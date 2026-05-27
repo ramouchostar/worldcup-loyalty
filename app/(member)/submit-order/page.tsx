@@ -58,34 +58,49 @@ export default function SubmitOrderPage() {
     setParseStatus("parsing");
     setParseError("");
 
-    const formData = new FormData();
-    formData.append("receipt", receiptFile);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
 
-    const res = await fetch("/api/orders/parse-receipt", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const formData = new FormData();
+      formData.append("receipt", receiptFile);
 
-    const data: ExtractedData & { error?: string } = await res.json();
+      const res = await fetch("/api/orders/parse-receipt", {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
 
-    if (!res.ok) {
+      const data: ExtractedData & { error?: string } = await res.json();
+
+      if (!res.ok) {
+        setParseStatus("error");
+        setParseError(data.error ?? "Erreur lors de l'analyse.");
+        return;
+      }
+
+      if (!data.date || !data.time) {
+        setParseStatus("error");
+        setParseError(
+          "Impossible de lire la date ou l'heure sur ce ticket. Prends une photo plus nette, bien éclairée et sans flou."
+        );
+        return;
+      }
+
+      setParseStatus("done");
+      setDate(data.date);
+      setTime(data.time);
+      if (data.amount) setAmount(String(data.amount));
+    } catch (err) {
       setParseStatus("error");
-      setParseError(data.error ?? "Erreur lors de l'analyse.");
-      return;
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setParseError("L'analyse a pris trop de temps. Réessaie avec une photo plus légère.");
+      } else {
+        setParseError("Erreur réseau. Vérifie ta connexion et réessaie.");
+      }
+    } finally {
+      clearTimeout(timeout);
     }
-
-    if (!data.date || !data.time) {
-      setParseStatus("error");
-      setParseError(
-        "Impossible de lire la date ou l'heure sur ce ticket. Prends une photo plus nette, bien éclairée et sans flou."
-      );
-      return;
-    }
-
-    setParseStatus("done");
-    setDate(data.date);
-    setTime(data.time);
-    if (data.amount) setAmount(String(data.amount));
   }
 
   async function handleSubmit(e: React.FormEvent) {
