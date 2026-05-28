@@ -13,13 +13,11 @@ type AdminClaim = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  google_review: "⭐ Avis Google",
-  social_follow: "📱 Abonnement réseaux",
-  social_share: "🔁 Partage campagne",
-  referral: "👥 Parrainage",
+  google_review:    "⭐ Avis Google",
+  instagram_follow: "📸 Follow Instagram",
+  tiktok_follow:    "🎵 Follow TikTok",
+  facebook_follow:  "👍 Follow Facebook",
 };
-
-const ALL_TYPES = ["google_review", "social_follow", "social_share", "referral"];
 
 export default function AdminMicroRewardsPage() {
   const [claims, setClaims] = useState<AdminClaim[]>([]);
@@ -48,19 +46,19 @@ export default function AdminMicroRewardsPage() {
     setBusy(null);
   }
 
-  // Membres avec les 4 actions validées → churros à remettre
-  const claimsByUser = claims.reduce<Record<string, AdminClaim[]>>((acc, c) => {
-    if (!acc[c.user_id]) acc[c.user_id] = [];
-    acc[c.user_id].push(c);
+  // Compute token count per user (social validated claims)
+  const tokensByUser = claims.reduce<Record<string, number>>((acc, c) => {
+    if (c.status === "validated") acc[c.user_id] = (acc[c.user_id] ?? 0) + 1;
     return acc;
   }, {});
 
-  const churrosReady = Object.values(claimsByUser).filter(
-    (userClaims) =>
-      ALL_TYPES.every((type) =>
-        userClaims.some((c) => c.reward_type === type && c.status === "validated")
-      )
-  );
+  // Users with enough social tokens to potentially earn churros (4+)
+  const churrosEligible = Object.entries(tokensByUser)
+    .filter(([, count]) => count >= 4)
+    .map(([userId, count]) => {
+      const claim = claims.find((c) => c.user_id === userId);
+      return { userId, count, profile: claim?.profiles ?? null };
+    });
 
   const filtered = claims.filter((c) => filter === "all" || c.status === filter);
   const counts = {
@@ -73,43 +71,43 @@ export default function AdminMicroRewardsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Actions & Cadeau</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Actions sociales</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Valider les 4 actions d&apos;un membre débloque ses Churros (6 pcs).
+          Chaque action validée = 1 jeton social. 4 jetons (social + parrainage) = 12 churros.
         </p>
       </div>
 
-      {/* Section churros à remettre */}
-      {churrosReady.length > 0 && (
+      {/* Churros eligible */}
+      {churrosEligible.length > 0 && (
         <div className="bg-green-50 border-2 border-green-400 rounded-xl p-4">
           <p className="font-bold text-green-900 mb-3">
-            🍢 {churrosReady.length} membre(s) à qui remettre les Churros
+            🍢 {churrosEligible.length} membre(s) avec 4+ jetons sociaux
+          </p>
+          <p className="text-xs text-green-700 mb-3">
+            Note : des jetons parrainages peuvent s&apos;y ajouter — vérifier dans &quot;Parrainages&quot;.
           </p>
           <div className="space-y-2">
-            {churrosReady.map((userClaims) => {
-              const profile = userClaims[0].profiles;
-              return (
-                <div
-                  key={userClaims[0].user_id}
-                  className="bg-white rounded-lg px-4 py-3 flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">
-                      {profile?.display_name ?? "—"}
-                    </p>
-                    <p className="text-xs text-gray-400">{profile?.email}</p>
-                  </div>
-                  <span className="text-xs font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                    Churros à remettre ✓
-                  </span>
+            {churrosEligible.map(({ userId, count, profile }) => (
+              <div
+                key={userId}
+                className="bg-white rounded-lg px-4 py-3 flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {profile?.display_name ?? "—"}
+                  </p>
+                  <p className="text-xs text-gray-400">{profile?.email}</p>
                 </div>
-              );
-            })}
+                <span className="text-xs font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  {count} jeton{count > 1 ? "s" : ""} sociaux ✓
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Filtres */}
+      {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         {(["all", "pending", "validated", "rejected"] as const).map((f) => (
           <button
@@ -121,19 +119,13 @@ export default function AdminMicroRewardsPage() {
                 : "bg-white text-gray-600 border border-gray-200 hover:border-gray-400"
             }`}
           >
-            {f === "all"
-              ? "Toutes"
-              : f === "pending"
-              ? "En attente"
-              : f === "validated"
-              ? "Validées"
-              : "Rejetées"}
+            {f === "all" ? "Toutes" : f === "pending" ? "En attente" : f === "validated" ? "Validées" : "Rejetées"}
             <span className="ml-1.5 opacity-60">({counts[f]})</span>
           </button>
         ))}
       </div>
 
-      {/* Liste des demandes */}
+      {/* Claims list */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -147,8 +139,7 @@ export default function AdminMicroRewardsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((claim) => {
-            const userClaims = claimsByUser[claim.user_id] ?? [];
-            const userValidatedCount = userClaims.filter((c) => c.status === "validated").length;
+            const userTokens = tokensByUser[claim.user_id] ?? 0;
             return (
               <div
                 key={claim.id}
@@ -168,7 +159,7 @@ export default function AdminMicroRewardsPage() {
                       </span>
                       <span className="text-xs text-gray-400">{claim.profiles?.email}</span>
                       <span className="text-xs text-gray-400">
-                        ({userValidatedCount}/4 validées)
+                        ({userTokens} jeton{userTokens > 1 ? "s" : ""} social{userTokens > 1 ? "aux" : ""})
                       </span>
                     </div>
                     <span className="inline-block bg-gray-100 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2">
