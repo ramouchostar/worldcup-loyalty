@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 const navLinks = [
-  { href: "/admin",               label: "📊 Dashboard" },
-  { href: "/admin/orders",        label: "🧾 Commandes" },
-  { href: "/admin/micro-rewards", label: "⭐ Actions" },
-  { href: "/admin/referrals",    label: "👥 Parrainages" },
-  { href: "/admin/teams",         label: "🏴 Équipes" },
-  { href: "/admin/thresholds",    label: "🎯 Seuils CA" },
+  { href: "/admin",                  label: "📊 Dashboard" },
+  { href: "/admin/pending-rewards",  label: "🎁 Cadeaux" },
+  { href: "/admin/orders",           label: "🧾 Commandes" },
+  { href: "/admin/micro-rewards",    label: "⭐ Actions" },
+  { href: "/admin/referrals",        label: "👥 Parrainages" },
+  { href: "/admin/teams",            label: "🏴 Équipes" },
+  { href: "/admin/thresholds",       label: "🎯 Seuils CA" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
