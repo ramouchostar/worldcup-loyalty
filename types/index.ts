@@ -53,6 +53,8 @@ export type Reward = {
   cost_euros: number;
   requires_purchase: boolean;
   is_active: boolean;
+  restaurant_id: string;
+  min_member_count: number;
   created_at: string;
   updated_at: string;
 };
