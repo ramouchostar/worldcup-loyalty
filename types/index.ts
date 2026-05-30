@@ -112,5 +112,21 @@ export type RestaurantThreshold = {
   current_revenue: number;
   is_unlocked: boolean;
   unlocked_at: string | null;
+  restaurant_id: string;
   created_at: string;
+};
+
+export type PendingRewardStatus = "pending" | "redeemed";
+
+export type PendingReward = {
+  id: string;
+  user_id: string;
+  order_id: string;
+  restaurant_id: string;
+  solo_item: string | null;
+  community_item: string | null;
+  advancement_item: string | null;
+  status: PendingRewardStatus;
+  created_at: string;
+  redeemed_at: string | null;
 };
