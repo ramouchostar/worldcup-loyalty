@@ -70,7 +70,8 @@ export default function RootLayout({
     <html lang="fr">
       <head>
         <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icons/icon.svg" />
+        <link rel="icon" href="/api/icons/192" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/api/icons/192" />
       </head>
       <body className="bg-gray-50 text-gray-900 antialiased">
         {children}
