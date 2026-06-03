@@ -7,6 +7,7 @@ import { getRestaurantId } from "@/lib/restaurant";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { RewardProgressBar } from "@/components/member/RewardProgressBar";
 import { PushPrompt } from "@/components/member/PushPrompt";
+import { InstallBanner } from "@/components/InstallBanner";
 import type { Order, CommunityScore, PendingReward } from "@/types";
 
 type ProfileWithTeam = {
@@ -77,12 +78,16 @@ export default async function DashboardPage() {
     { score: 10000, label: "4 Tenders Menu" },
   ];
   const nextCommunityBonus = communityBonusThresholds.find(t => t.score > currentScore) ?? null;
+  const hasValidatedOrder = (orders as { status: string }[] ?? []).some(o => o.status === "validated");
 
   return (
     <div className="space-y-5 pb-4">
 
-      {/* Bannière push — s'affiche uniquement si permission pas encore accordée */}
-      <PushPrompt />
+      {/* Installation PWA — s'affiche si non encore installée */}
+      <InstallBanner />
+
+      {/* Push — seulement après une première commande validée */}
+      {hasValidatedOrder && <PushPrompt />}
 
       {/* Alerte équipe éliminée */}
       {!team.is_active && (
