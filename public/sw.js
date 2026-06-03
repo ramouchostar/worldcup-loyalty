@@ -24,6 +24,32 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let data = {};
+  try { data = event.data.json(); } catch { data = { title: "Belchicken", body: event.data.text() }; }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? "Belchicken", {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: data.url ?? "/dashboard" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/dashboard";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then((clients) => {
+      const existing = clients.find(c => c.url.includes(url));
+      return existing ? existing.focus() : self.clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
