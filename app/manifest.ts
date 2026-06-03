@@ -14,15 +14,20 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["food", "loyalty", "sports"],
     icons: [
       {
+        src: "/api/icons/192",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/api/icons/512",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
         src: "/icons/icon.svg",
         sizes: "any",
         type: "image/svg+xml",
-      },
-      {
-        src: "/icons/icon-maskable.svg",
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "maskable",
       },
     ],
     screenshots: [],
