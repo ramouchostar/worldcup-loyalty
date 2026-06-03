@@ -3,6 +3,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase";
 
 export async function registerTeam(
   _prevState: { error: string } | null,
@@ -46,13 +47,14 @@ export async function registerTeam(
   }
 
   const user = session.user;
+  const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID ?? "molenbeek";
 
   const { data: updatedRows, error } = await supabase
     .from("profiles")
     .update({
       team_id: teamId,
       display_name: displayName,
-      restaurant_id: process.env.NEXT_PUBLIC_RESTAURANT_ID ?? "molenbeek",
+      restaurant_id: restaurantId,
     })
     .eq("id", user.id)
     .select();
@@ -63,6 +65,31 @@ export async function registerTeam(
 
   if (!updatedRows || updatedRows.length === 0) {
     return { error: "Profil introuvable. Déconnecte-toi et reconnecte-toi." };
+  }
+
+  // Attribution du parrainage si le membre est arrivé via un lien /join?ref=CODE
+  const refCode = cookieStore.get("belchicken_ref")?.value;
+  if (refCode && /^[A-Z0-9]{6}$/.test(refCode)) {
+    const admin = createAdminClient();
+
+    const { data: refLink } = await admin
+      .from("referral_links")
+      .select("user_id")
+      .eq("code", refCode)
+      .eq("restaurant_id", restaurantId)
+      .maybeSingle();
+
+    // Le parrain existe et ce n'est pas le membre lui-même
+    if (refLink && refLink.user_id !== user.id) {
+      await admin.from("referrals").insert({
+        referrer_id: refLink.user_id,
+        referee_id: user.id,
+        restaurant_id: restaurantId,
+      });
+    }
+
+    // Effacer le cookie — attribution one-shot
+    cookieStore.set("belchicken_ref", "", { maxAge: 0, path: "/" });
   }
 
   redirect("/dashboard");
