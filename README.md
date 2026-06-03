@@ -111,6 +111,7 @@ docs/m3-micro-rewards-redesign.sql — jetons sociaux + multi-établissement
 docs/m4-rewards-redesign.sql       — paliers communautaires
 docs/m5-pending-rewards.sql        — récompenses 3 couches (pending_rewards + trigger)
 docs/m6-schema-cibles.sql          — schéma cibles ADRs 0001–0009 (manques M2–M5)
+docs/m7-referral-links.sql         — liens de parrainage WhatsApp (referral_links + referrals)
 ```
 
 ---
