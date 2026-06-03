@@ -120,12 +120,12 @@ Voir les [issues ouvertes](https://github.com/ramouchostar/worldcup-loyalty/issu
 
 | # | Slice | Priorité |
 |---|-------|----------|
-| [#1](../../issues/1) | Migrations schéma cibles (ADRs 0001–0009) | Fondation |
-| [#2](../../issues/2) | Google & Facebook OAuth | Immédiat |
-| [#3](../../issues/3) | Auto-validation OCR + Bestelnummer | Haute |
-| [#4](../../issues/4) | Récompenses 3 couches (refonte trigger) | Haute |
-| [#5](../../issues/5) | Dashboard hero card + gamification | Moyenne |
-| [#6](../../issues/6) | Liens de parrainage WhatsApp | Moyenne |
-| [#7](../../issues/7) | Notifications d'incitation communautaire | Moyenne |
-| [#8](../../issues/8) | Interface admin commandes suspectes | Moyenne |
-| [#9](../../issues/9) | PWA + polish mobile | Finale |
+| [#10](../../issues/10) | Migrations schéma cibles (ADRs 0001–0009) | Fondation |
+| [#11](../../issues/11) | Google & Facebook OAuth | Immédiat |
+| [#12](../../issues/12) | Auto-validation OCR + Bestelnummer | Haute |
+| [#13](../../issues/13) | Récompenses 3 couches (refonte trigger) | Haute |
+| [#14](../../issues/14) | Dashboard hero card + gamification | Moyenne |
+| [#15](../../issues/15) | Liens de parrainage WhatsApp | Moyenne |
+| [#16](../../issues/16) | Notifications d'incitation communautaire | Moyenne |
+| [#17](../../issues/17) | Interface admin commandes suspectes | Moyenne |
+| [#18](../../issues/18) | PWA + polish mobile | Finale |
