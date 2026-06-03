@@ -326,7 +326,7 @@ function ReferralSection({
 
   const joinUrl =
     code && typeof window !== "undefined"
-      ? `${window.location.origin}/join?ref=${code}`
+      ? `${window.location.origin}/invite?ref=${code}`
       : null;
 
   const whatsappUrl = joinUrl
