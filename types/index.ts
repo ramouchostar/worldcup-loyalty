@@ -97,6 +97,18 @@ export type ReferralSubmission = {
   submitted_at: string;
 };
 
+export type Referral = {
+  id: string;
+  referred_at: string;
+};
+
+export type ReferralLinkData = {
+  code: string;
+  conversions: number;
+  referrals: Referral[];
+  validatedCount: number;
+};
+
 export type Transfer = {
   id: string;
   user_id: string;

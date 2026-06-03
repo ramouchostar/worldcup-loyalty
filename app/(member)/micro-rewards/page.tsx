@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralSubmission } from "@/types";
+import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
 
 type SocialData = {
   rewards: MicroReward[];
   claims: MicroRewardClaim[];
-};
-
-type ReferralData = {
-  submissions: ReferralSubmission[];
-  validatedCount: number;
 };
 
 const ACTION_META: Record<
@@ -47,7 +42,7 @@ const TOKENS_PER_PORTION = 4;
 
 export default function MicroRewardsPage() {
   const [socialData, setSocialData] = useState<SocialData | null>(null);
-  const [referralData, setReferralData] = useState<ReferralData | null>(null);
+  const [referralData, setReferralData] = useState<ReferralLinkData | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function fetchAll() {
@@ -160,10 +155,9 @@ export default function MicroRewardsPage() {
 
       {/* Referral section */}
       <ReferralSection
-        submissions={referralData?.submissions ?? []}
+        code={referralData?.code ?? null}
         validatedCount={referralData?.validatedCount ?? 0}
         referralTokens={referralTokens}
-        onSuccess={fetchAll}
       />
     </div>
   );
@@ -317,61 +311,49 @@ function ActionCard({
 }
 
 function ReferralSection({
-  submissions,
+  code,
   validatedCount,
   referralTokens,
-  onSuccess,
 }: {
-  submissions: ReferralSubmission[];
+  code: string | null;
   validatedCount: number;
   referralTokens: number;
-  onSuccess: () => void;
 }) {
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const nextTokenIn = 5 - (validatedCount % 5);
   const progressToToken = validatedCount % 5;
+  const nextTokenIn = 5 - progressToToken;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    setSuccess(false);
+  const joinUrl =
+    code && typeof window !== "undefined"
+      ? `${window.location.origin}/join?ref=${code}`
+      : null;
 
-    const res = await fetch("/api/referrals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ referral_email: email }),
-    });
+  const whatsappUrl = joinUrl
+    ? `https://wa.me/?text=${encodeURIComponent(
+        `Rejoins ma communauté Belchicken 🇧🇪 et commande directement — on gagne ensemble !\n${joinUrl}`
+      )}`
+    : null;
 
-    if (res.status === 201) {
-      setEmail("");
-      setSuccess(true);
-      onSuccess();
-      setSubmitting(false);
-      return;
-    }
-
-    const data = await res.json();
-    setError(data.error ?? "Erreur inconnue.");
-    setSubmitting(false);
+  async function copyLink() {
+    if (!joinUrl) return;
+    await navigator.clipboard.writeText(joinUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
     <div>
       <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-        Parrainages — 5 validés = 1 jeton
+        Parrainages — 5 inscrits = 1 jeton
       </h2>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Header stats */}
+        {/* Stats */}
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">Parrainages validés</p>
+              <p className="text-xs text-gray-500">Amis inscrits via ton lien</p>
               <p className="text-2xl font-bold text-gray-900">{validatedCount}</p>
             </div>
             <div className="text-right">
@@ -379,8 +361,6 @@ function ReferralSection({
               <p className="text-2xl font-bold text-brand-red">{referralTokens}</p>
             </div>
           </div>
-
-          {/* Progress to next referral token */}
           <div className="mt-3">
             <div className="w-full bg-gray-100 rounded-full h-2">
               <div
@@ -389,73 +369,49 @@ function ReferralSection({
               />
             </div>
             <p className="text-xs text-gray-400 mt-1">
-              {progressToToken}/5 validés — encore {nextTokenIn} pour un nouveau jeton
+              {progressToToken}/5 — encore {nextTokenIn} inscription{nextTokenIn > 1 ? "s" : ""} pour un nouveau jeton
             </p>
           </div>
         </div>
 
-        {/* Submit form */}
-        <form onSubmit={handleSubmit} className="p-4 border-b border-gray-100">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            👥 Soumettre un parrainage
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ami@exemple.com"
-              required
-              className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 text-sm"
-            />
-            <button
-              type="submit"
-              disabled={submitting || !email.trim()}
-              className="px-4 py-2.5 bg-brand-dark text-white rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+        {/* Share section */}
+        <div className="p-4 space-y-3">
+          <p className="text-sm text-gray-600">
+            Partage ton lien — chaque ami qui s&apos;inscrit via ce lien compte comme un parrainage.
+          </p>
+
+          {/* Link display */}
+          {joinUrl ? (
+            <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-200">
+              <p className="flex-1 text-xs text-gray-600 truncate font-mono">{joinUrl}</p>
+              <button
+                onClick={copyLink}
+                className="shrink-0 text-xs font-semibold text-brand-red hover:text-red-700 transition-colors"
+              >
+                {copied ? "✓ Copié" : "Copier"}
+              </button>
+            </div>
+          ) : (
+            <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+          )}
+
+          {/* WhatsApp button */}
+          {whatsappUrl ? (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#25D366] text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#1ebe5b] transition-colors"
             >
-              {submitting ? "..." : "Envoyer"}
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 mt-1.5">
-            L&apos;ami doit s&apos;inscrire sur la plateforme. Notre équipe valide manuellement.
-          </p>
-          {error && (
-            <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg mt-2">{error}</p>
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+              Partager sur WhatsApp
+            </a>
+          ) : (
+            <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
           )}
-          {success && (
-            <p className="text-green-700 text-sm bg-green-50 px-3 py-2 rounded-lg mt-2">
-              ✓ Parrainage soumis, en attente de validation.
-            </p>
-          )}
-        </form>
-
-        {/* Submitted list */}
-        {submissions.length > 0 && (
-          <div className="divide-y divide-gray-50">
-            {submissions.map((sub) => (
-              <div key={sub.id} className="px-4 py-3 flex items-center justify-between gap-3">
-                <p className="text-sm text-gray-700 truncate">{sub.referral_email}</p>
-                <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                    sub.status === "validated"
-                      ? "bg-green-100 text-green-800"
-                      : sub.status === "rejected"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {sub.status === "validated" ? "✓ Validé" : sub.status === "rejected" ? "✕ Rejeté" : "⏳ En attente"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {submissions.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-6">
-            Aucun parrainage soumis pour l&apos;instant.
-          </p>
-        )}
+        </div>
       </div>
     </div>
   );
