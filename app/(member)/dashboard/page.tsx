@@ -6,6 +6,7 @@ import { getCurrentThreshold, isRestaurantThresholdUnlocked } from "@/lib/thresh
 import { getRestaurantId } from "@/lib/restaurant";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { RewardProgressBar } from "@/components/member/RewardProgressBar";
+import { PushPrompt } from "@/components/member/PushPrompt";
 import type { Order, CommunityScore, PendingReward } from "@/types";
 
 type ProfileWithTeam = {
@@ -79,6 +80,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-4">
+
+      {/* Bannière push — s'affiche uniquement si permission pas encore accordée */}
+      <PushPrompt />
 
       {/* Alerte équipe éliminée */}
       {!team.is_active && (
