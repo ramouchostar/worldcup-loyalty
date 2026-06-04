@@ -22,6 +22,9 @@ export default function SubmitOrderPage() {
 
   const [orderNumber, setOrderNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [ocrAmount, setOcrAmount] = useState<number | null>(null);
+  const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
+  const [noRestaurantHeader, setNoRestaurantHeader] = useState(false);
   const [noDelivery, setNoDelivery] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -67,7 +70,13 @@ export default function SubmitOrderPage() {
         signal: controller.signal,
       });
 
-      const data: { order_number?: string | null; amount?: number | null; error?: string } = await res.json();
+      const data: {
+        order_number?: string | null;
+        amount?: number | null;
+        confidence?: number | null;
+        has_restaurant_header?: boolean;
+        error?: string;
+      } = await res.json();
 
       if (!res.ok) {
         setParseStatus("error");
@@ -85,7 +94,12 @@ export default function SubmitOrderPage() {
 
       setParseStatus("done");
       setOrderNumber(data.order_number);
-      if (data.amount) setAmount(String(data.amount));
+      if (data.amount) {
+        setAmount(String(data.amount));
+        setOcrAmount(data.amount);
+      }
+      setOcrConfidence(data.confidence ?? null);
+      setNoRestaurantHeader(!(data.has_restaurant_header ?? true));
     } catch (err) {
       setParseStatus("error");
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -109,6 +123,9 @@ export default function SubmitOrderPage() {
     formData.append("receipt", receiptFile);
     formData.append("order_number", orderNumber);
     formData.append("amount", amount);
+    if (ocrAmount !== null)      formData.append("ocr_amount", String(ocrAmount));
+    if (ocrConfidence !== null)  formData.append("ocr_confidence", String(ocrConfidence));
+    if (noRestaurantHeader)      formData.append("no_restaurant_header", "true");
 
     // Délai artificiel 3–5s + fetch en parallèle (ADR 0008)
     const [res] = await Promise.all([
