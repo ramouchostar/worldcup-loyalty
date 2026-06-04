@@ -1,6 +1,10 @@
-export function buildDuplicateKey(date: string, time: string, amount: number): string {
-  const timeHHMM = time.substring(0, 5);
-  return `${date}_${timeHHMM}_${amount.toFixed(2)}`;
+// Bestelnummer format: YYYY-MM-DD/NNN/NNNNN (ex: 2026-06-01/258/03993)
+export function validateOrderNumber(orderNumber: string): string | null {
+  const regex = /^\d{4}-\d{2}-\d{2}\/\d{3}\/\d{5}$/;
+  if (!regex.test(orderNumber.trim())) {
+    return "Numéro de commande invalide. Le format attendu est YYYY-MM-DD/NNN/NNNNN (visible sur le ticket).";
+  }
+  return null;
 }
 
 export function validateOrderDate(dateStr: string): string | null {
