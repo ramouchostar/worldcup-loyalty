@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/orders";
 import { getRestaurantId } from "@/lib/restaurant";
+import { getSoloReward, getCommunityBonus, getAdvancementBonus } from "@/lib/rewards";
+import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
@@ -14,6 +16,55 @@ async function countTodayOrders(supabase: Awaited<ReturnType<typeof createServer
     .eq("restaurant_id", restaurantId)
     .gte("submitted_at", `${today}T00:00:00Z`);
   return count ?? 0;
+}
+
+type TeamScoreRow = {
+  score: number;
+  teams: { round_reached: string; is_active: boolean } | null;
+};
+
+async function createPendingReward(
+  orderId: string,
+  userId: string,
+  teamId: string,
+  restaurantId: string,
+  amount: number
+) {
+  const adminClient = createAdminClient();
+
+  const [{ data: scoreData }, restaurantUnlocked] = await Promise.all([
+    adminClient
+      .from("community_scores")
+      .select("score, teams(round_reached, is_active)")
+      .eq("team_id", teamId)
+      .eq("restaurant_id", restaurantId)
+      .single(),
+    isRestaurantThresholdUnlocked(),
+  ]);
+
+  const row = scoreData as unknown as TeamScoreRow | null;
+  const teamScore = row?.score ?? 0;
+  const roundReached = row?.teams?.round_reached ?? "group_stage";
+  const isEliminated = !(row?.teams?.is_active ?? true);
+
+  const solo = getSoloReward(amount);
+  const community = getCommunityBonus(teamScore, restaurantUnlocked);
+  const advancement = getAdvancementBonus(roundReached, isEliminated);
+
+  if (!solo.item && !community.item && !advancement.item) return;
+
+  await adminClient.from("pending_rewards").insert({
+    user_id: userId,
+    restaurant_id: restaurantId,
+    order_id: orderId,
+    solo_item: solo.item,
+    solo_cost: solo.cost > 0 ? solo.cost : null,
+    community_item: community.item,
+    community_cost: community.cost > 0 ? community.cost : null,
+    advancement_item: advancement.item,
+    advancement_cost: advancement.cost > 0 ? advancement.cost : null,
+    status: "pending",
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -59,12 +110,10 @@ export async function POST(request: NextRequest) {
   const amountError = validateAmount(amount);
   if (amountError) return NextResponse.json({ error: amountError }, { status: 400 });
 
-  // Validate date from Bestelnummer
-  const orderDate = orderNumber.split("/")[0]; // "2026-06-01"
+  const orderDate = orderNumber.split("/")[0];
   const dateError = validateOrderDate(orderDate);
   if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
 
-  // Verify team
   const { data: profile } = await supabase
     .from("profiles")
     .select("team_id")
@@ -87,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     const adminClient = createAdminClient();
     const fileExt = receiptFile.type.split("/")[1] ?? "jpg";
-    const safeName = orderNumber.replace(/\//g, "-"); // 2026-06-01-258-03993
+    const safeName = orderNumber.replace(/\//g, "-");
     const storagePath = `${restaurantId}/${user.id}/${safeName}.${fileExt}`;
     const bytes = await receiptFile.arrayBuffer();
 
@@ -114,19 +163,22 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Insert order (order_number is the dedup key; also set duplicate_key for backward compat)
-  const { error: insertError } = await supabase.from("orders").insert({
-    user_id: user.id,
-    team_id: profile.team_id,
-    amount: parsedAmount,
-    order_number: orderNumber,
-    order_date: orderDate,
-    order_time: null,
-    receipt_url: receiptUrl,
-    duplicate_key: orderNumber,
-    status,
-    restaurant_id: restaurantId,
-  });
+  const { data: insertedOrder, error: insertError } = await supabase
+    .from("orders")
+    .insert({
+      user_id: user.id,
+      team_id: profile.team_id,
+      amount: parsedAmount,
+      order_number: orderNumber,
+      order_date: orderDate,
+      order_time: null,
+      receipt_url: receiptUrl,
+      duplicate_key: orderNumber,
+      status,
+      restaurant_id: restaurantId,
+    })
+    .select("id")
+    .single();
 
   if (insertError) {
     if (insertError.code === "23505") {
@@ -136,6 +188,18 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json({ error: "Erreur serveur. Réessaie." }, { status: 500 });
+  }
+
+  // Create 3-layer pending reward for validated orders
+  if (status === "validated" && insertedOrder?.id) {
+    // Fire-and-forget — reward creation failure doesn't fail the order submission
+    createPendingReward(
+      insertedOrder.id,
+      user.id,
+      profile.team_id,
+      restaurantId,
+      parsedAmount
+    ).catch(() => { /* logged silently */ });
   }
 
   return NextResponse.json({ success: true, status }, { status: 201 });
