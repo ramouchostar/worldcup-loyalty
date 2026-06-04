@@ -100,19 +100,20 @@ export default async function TransferPage() {
             </p>
           </div>
         )}
-
-        {!isEliminated && (
-          <div className="mt-3 bg-amber-50 rounded-lg p-3">
-            <p className="text-amber-800 text-sm">
-              ⚠️ Ton équipe est encore en course. Tu peux quand même changer,
-              mais tu quitteras ta communauté actuelle.
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Formulaire de transfert */}
-      <TransferForm teams={allActiveTeams} />
+      {/* Formulaire de transfert — uniquement si équipe éliminée (ADR 0004) */}
+      {isEliminated ? (
+        <TransferForm teams={allActiveTeams} />
+      ) : (
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center">
+          <p className="text-3xl mb-3">⏳</p>
+          <p className="font-semibold text-gray-800">Transfert indisponible</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Tu pourras rejoindre une autre communauté si ton équipe est éliminée du tournoi.
+          </p>
+        </div>
+      )}
 
       {/* Historique des transferts */}
       {history.length > 0 && (
