@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { isMemberActive } from "@/lib/rewards";
-import { getCurrentThreshold, isRestaurantThresholdUnlocked } from "@/lib/thresholds";
+import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getRestaurantId } from "@/lib/restaurant";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { RewardProgressBar } from "@/components/member/RewardProgressBar";
@@ -27,7 +27,6 @@ export default async function DashboardPage() {
     { data: profileRaw },
     { data: orders },
     { data: pendingRaw },
-    threshold,
     restaurantUnlocked,
     memberActive,
   ] = await Promise.all([
@@ -50,7 +49,6 @@ export default async function DashboardPage() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(1),
-    getCurrentThreshold(),
     isRestaurantThresholdUnlocked(),
     isMemberActive(user.id),
   ]);
@@ -123,7 +121,6 @@ export default async function DashboardPage() {
           initial={{
             team_id: profile.team_id,
             member_count: score?.member_count ?? 0,
-            total_spent: score?.total_spent ?? 0,
             score: currentScore,
           }}
         />
@@ -189,17 +186,13 @@ export default async function DashboardPage() {
           <p className={`font-semibold text-sm ${restaurantUnlocked ? "text-green-900" : "text-amber-900"}`}>
             {restaurantUnlocked
               ? "Bonus communautaire débloqué"
-              : "Bonus communautaire en attente de l'objectif CA"}
+              : "Bonus communautaire verrouillé"}
           </p>
-          {threshold && (
-            <p className={`text-xs mt-0.5 ${restaurantUnlocked ? "text-green-700" : "text-amber-700"}`}>
-              {threshold.period_label} — objectif{" "}
-              {threshold.target_revenue.toLocaleString("fr-BE", {
-                style: "currency",
-                currency: "EUR",
-              })}
-            </p>
-          )}
+          <p className={`text-xs mt-0.5 ${restaurantUnlocked ? "text-green-700" : "text-amber-700"}`}>
+            {restaurantUnlocked
+              ? "Chaque commande validée ajoute le bonus de ta communauté."
+              : "Il sera débloqué prochainement — continue à commander !"}
+          </p>
         </div>
       </div>
 
