@@ -26,9 +26,11 @@ export type Order = {
   user_id: string;
   team_id: string;
   amount: number;
+  order_number: string | null;
   order_date: string;
-  order_time: string;
+  order_time: string | null;
   duplicate_key: string;
+  receipt_url: string | null;
   status: OrderStatus;
   rejection_reason: string | null;
   validated_at: string | null;
