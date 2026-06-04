@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
-import { buildMessage, sendPush, logNotification, type TriggerType } from "@/lib/notifications";
+import { buildMessage, sendPush, sendWhatsApp, logNotification, type TriggerType, type Channel } from "@/lib/notifications";
 
 const SCORE_THRESHOLDS = [
   { score: 1000,  label: "Frites Medium" },
@@ -9,13 +9,14 @@ const SCORE_THRESHOLDS = [
   { score: 10000, label: "4 Tenders Menu" },
 ];
 
-const INACTIVE_DAYS     = 7;
-const APPROACHING_RATIO = 0.85;
+const INACTIVE_DAYS     = 3;
+const APPROACHING_RATIO = 0.90;
 const SPAM_HOURS        = 48;
 const MAX_PER_WEEK      = 3;
 
 export async function GET(request: Request) {
-  if (request.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization");
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
 
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
 
   const { data: members } = await admin
     .from("profiles")
-    .select("id, last_notified_at, team_id, teams!inner(name, flag_emoji, is_active, round_reached, round_advanced_at)")
+    .select("id, phone, last_notified_at, team_id, teams!inner(name, flag_emoji, is_active, round_reached, round_advanced_at)")
     .eq("restaurant_id", restaurantId)
     .not("team_id", "is", null);
 
@@ -129,8 +130,15 @@ export async function GET(request: Request) {
 
     if (!trigger || !message) continue;
 
+    let channel: Channel = "in_app";
     const pushed = await sendPush(member.id, restaurantId, message);
-    await logNotification(member.id, restaurantId, trigger, pushed ? "push" : "in_app", message, teamScore);
+    if (pushed) {
+      channel = "push";
+    } else if ((member as any).phone) {
+      const waSent = await sendWhatsApp((member as any).phone, message);
+      if (waSent) channel = "whatsapp";
+    }
+    await logNotification(member.id, restaurantId, trigger, channel, message, teamScore);
     sent++;
   }
 
