@@ -21,7 +21,7 @@ type AdminOrder = {
   teams: { name: string; flag_emoji: string } | null;
 };
 
-const STATUS_FILTER = ["pending", "validated", "rejected", "all"] as const;
+const STATUS_FILTER = ["flagged", "pending", "validated", "rejected", "all"] as const;
 type Filter = (typeof STATUS_FILTER)[number];
 
 const REJECT_REASONS = [
@@ -267,7 +267,7 @@ function SwipeCard({
 export default function AdminOrdersPage() {
   const [orders, setOrders]       = useState<AdminOrder[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [filter, setFilter]       = useState<Filter>("pending");
+  const [filter, setFilter]       = useState<Filter>("flagged");
   const [rejectId, setRejectId]   = useState<string | null>(null);
   const [rejectPreset, setRejectPreset] = useState("");
   const [rejectFree, setRejectFree]    = useState("");
@@ -325,17 +325,25 @@ export default function AdminOrdersPage() {
     ? rejectFree
     : rejectPreset || rejectFree;
 
-  // Sort pending by age (oldest first), others by recency (newest first)
+  const isFlagged = (o: AdminOrder) => Array.isArray(o.flag_reasons) && o.flag_reasons.length > 0;
+
+  // Sort pending/flagged by age (oldest first), others by recency (newest first)
   const filtered = orders
-    .filter(o => filter === "all" || o.status === filter)
+    .filter(o => {
+      if (filter === "all")     return true;
+      if (filter === "flagged") return isFlagged(o) && o.status === "pending";
+      return o.status === filter;
+    })
     .sort((a, b) => {
-      if (filter === "pending" || (filter === "all" && a.status === "pending" && b.status === "pending")) {
+      if (filter === "pending" || filter === "flagged" ||
+         (filter === "all" && a.status === "pending" && b.status === "pending")) {
         return new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
       }
       return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
     });
 
   const counts = {
+    flagged:   orders.filter(o => isFlagged(o) && o.status === "pending").length,
     pending:   orders.filter(o => o.status === "pending").length,
     validated: orders.filter(o => o.status === "validated").length,
     rejected:  orders.filter(o => o.status === "rejected").length,
@@ -386,11 +394,16 @@ export default function AdminOrdersPage() {
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === f
-                ? "bg-brand-dark text-white"
-                : "bg-white text-gray-600 border border-gray-200 hover:border-gray-400"
+                ? f === "flagged" ? "bg-red-600 text-white" : "bg-brand-dark text-white"
+                : f === "flagged" && counts.flagged > 0
+                  ? "bg-red-50 text-red-700 border border-red-300 hover:border-red-500"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-gray-400"
             }`}
           >
-            {f === "all" ? "Toutes" : f === "pending" ? "En attente" : f === "validated" ? "Validées" : "Rejetées"}
+            {f === "flagged" ? "🚩 Suspectes" :
+             f === "all" ? "Toutes" :
+             f === "pending" ? "En attente" :
+             f === "validated" ? "Validées" : "Rejetées"}
             <span className="ml-1.5 opacity-60">({counts[f]})</span>
           </button>
         ))}
