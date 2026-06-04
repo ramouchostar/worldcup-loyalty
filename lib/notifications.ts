@@ -10,7 +10,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 export type TriggerType = "tier_upgrade" | "member_inactive" | "tier_approaching" | "advancement";
-export type Channel = "push" | "in_app";
+export type Channel = "push" | "whatsapp" | "in_app";
 
 export function buildMessage(
   trigger: TriggerType,
@@ -20,13 +20,13 @@ export function buildMessage(
 ): string {
   switch (trigger) {
     case "tier_upgrade":
-      return `${teamFlag} Ta communauté ${teamName} vient de franchir un palier ! Tu as débloqué : ${details?.newReward ?? "une récompense"}.`;
+      return `${teamFlag} Ta communauté ${teamName} vient de franchir un palier ! Tu as débloqué : ${details?.newReward ?? "une récompense"} sur chaque commande directe.`;
     case "member_inactive":
       return `${teamFlag} ${teamName} a besoin de toi ! Reviens passer une commande chez Belchicken pour faire progresser ta communauté.`;
     case "tier_approaching":
-      return `${teamFlag} Plus que ${details?.ptsNeeded?.toLocaleString("fr-BE")} pts pour débloquer ${details?.nextReward ?? "le prochain bonus"} avec ${teamName} !`;
+      return `${teamFlag} Plus que ${details?.ptsNeeded?.toLocaleString("fr-BE")} pts pour débloquer ${details?.nextReward ?? "le prochain bonus"} avec ${teamName} ! Une commande ce soir peut tout changer.`;
     case "advancement":
-      return `🏆 ${teamFlag} ${teamName} passe en ${details?.round ?? "tour suivant"} ! Tu gagnes une récompense d'avancement à ta prochaine visite.`;
+      return `🏆 ${teamFlag} ${teamName} passe en ${details?.round ?? "tour suivant"} ! Ton bonus d'avancement est actif : présente-toi au comptoir Belchicken.`;
   }
 }
 
@@ -35,6 +35,8 @@ export async function sendPush(
   restaurantId: string,
   message: string
 ): Promise<boolean> {
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return false;
+
   const admin = createAdminClient();
   const { data: subs } = await admin
     .from("push_subscriptions")
@@ -58,7 +60,7 @@ export async function sendPush(
   // Nettoyer les abonnements expirés (410 Gone)
   const stale = subs.filter((_, i) => {
     const r = results[i];
-    return r.status === "rejected" && (r.reason as any)?.statusCode === 410;
+    return r.status === "rejected" && (r.reason as { statusCode?: number })?.statusCode === 410;
   });
   if (stale.length > 0) {
     await admin
@@ -69,6 +71,49 @@ export async function sendPush(
   }
 
   return results.some(r => r.status === "fulfilled");
+}
+
+// Fallback WhatsApp — proactive template messages via Meta Business API
+// Requiert un template pré-approuvé Meta (WHATSAPP_TEMPLATE_NAME)
+export async function sendWhatsApp(phone: string | null, message: string): Promise<boolean> {
+  if (!phone) return false;
+
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.WHATSAPP_TOKEN;
+  const templateName = process.env.WHATSAPP_TEMPLATE_NAME;
+  if (!phoneNumberId || !token || !templateName) return false;
+
+  // Normalise: supprime espaces, tirets, parenthèses, garde le + pour l'international
+  const cleanPhone = phone.replace(/[\s()\-]/g, "").replace(/^\+/, "");
+  if (cleanPhone.length < 8) return false;
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: cleanPhone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: "fr" },
+          components: [
+            {
+              type: "body",
+              parameters: [{ type: "text", text: message }],
+            },
+          ],
+        },
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function logNotification(
