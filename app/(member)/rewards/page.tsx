@@ -66,10 +66,10 @@ export default async function RewardsPage() {
         <div className={`rounded-xl p-3 text-center ${restaurantUnlocked ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}>
           <p className="text-xl mb-1">{restaurantUnlocked ? "🔓" : "🔒"}</p>
           <p className={`text-xs font-semibold ${restaurantUnlocked ? "text-green-800" : "text-amber-800"}`}>
-            Objectif restaurant
+            Bonus communautaire
           </p>
           <p className={`text-xs mt-0.5 ${restaurantUnlocked ? "text-green-600" : "text-amber-600"}`}>
-            {restaurantUnlocked ? "Atteint" : "En attente"}
+            {restaurantUnlocked ? "Actif" : "Verrouillé"}
           </p>
         </div>
         <div className={`rounded-xl p-3 text-center ${memberActive ? "bg-green-50 border border-green-200" : "bg-gray-50 border border-gray-200"}`}>
@@ -85,11 +85,10 @@ export default async function RewardsPage() {
 
       {!restaurantUnlocked && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-          <p className="font-semibold mb-1">Double verrou actif</p>
+          <p className="font-semibold mb-1">Bonus communautaire bientôt disponible</p>
           <p className="text-xs">
-            Les récompenses se débloquent uniquement si <strong>ton score dépasse le seuil</strong>{" "}
-            ET que <strong>le restaurant a atteint son objectif de chiffre d&apos;affaires</strong>.
-            Les deux conditions doivent être réunies simultanément.
+            Les bonus communautaires seront actifs prochainement.
+            Continue à commander directement — chaque commande validée fait progresser ta communauté.
           </p>
         </div>
       )}
