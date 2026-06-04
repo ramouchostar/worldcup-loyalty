@@ -38,17 +38,10 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
   const body = await request.json();
-  const { reward_type, proof_url } = body;
+  const { reward_type } = body;
 
   if (!reward_type || !VALID_TYPES.includes(reward_type as MicroRewardType)) {
     return NextResponse.json({ error: "Type d'action invalide." }, { status: 400 });
-  }
-
-  if (!proof_url || typeof proof_url !== "string" || proof_url.trim().length < 2) {
-    return NextResponse.json(
-      { error: "Merci de fournir une preuve (lien ou pseudo)." },
-      { status: 400 }
-    );
   }
 
   const restaurantId = getRestaurantId();
@@ -56,7 +49,6 @@ export async function POST(request: NextRequest) {
   const { error } = await supabase.from("micro_reward_claims").insert({
     user_id: user.id,
     reward_type,
-    proof_url: proof_url.trim(),
     status: "pending",
     restaurant_id: restaurantId,
   });
