@@ -94,7 +94,6 @@ export default async function MyTeamPage() {
           initial={{
             team_id: profile.team_id,
             member_count: score?.member_count ?? 0,
-            total_spent: score?.total_spent ?? 0,
             score: score?.score ?? 0,
           }}
         />
