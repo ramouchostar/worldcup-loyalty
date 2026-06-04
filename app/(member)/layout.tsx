@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 
 const navLinks = [
   { href: "/dashboard",     label: "Dashboard",   icon: "🏠" },
@@ -19,6 +20,8 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           <span className="text-xs text-gray-400" aria-hidden="true">Belchicken</span>
         </div>
       </header>
+
+      <PushNotificationBanner />
 
       <main className="max-w-2xl mx-auto px-4 py-6" id="main-content">
         {children}
