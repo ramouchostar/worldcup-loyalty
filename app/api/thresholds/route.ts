@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getCurrentThreshold } from "@/lib/thresholds";
+import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 
 export async function GET() {
-  const threshold = await getCurrentThreshold();
-  if (!threshold) return NextResponse.json(null);
-  return NextResponse.json(threshold);
+  const is_unlocked = await isRestaurantThresholdUnlocked();
+  return NextResponse.json({ is_unlocked });
 }
