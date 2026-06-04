@@ -78,15 +78,15 @@ Un ticket valide doit contenir le nom "${restaurantName}" et un Bestelnummer (nu
 Si ce N'EST PAS un ticket de caisse ${restaurantName} (photo de personne, paysage, autre restaurant, ticket sans Bestelnummer), réponds UNIQUEMENT avec :
 {"is_receipt": false}
 
-Si c'est bien un ticket ${restaurantName}, extrais le Bestelnummer et le montant total et réponds UNIQUEMENT avec :
-{"is_receipt": true, "order_number": "2026-06-01/258/03993", "amount": 12.50}
+Si c'est bien un ticket ${restaurantName}, extrais les informations et réponds UNIQUEMENT avec :
+{"is_receipt": true, "order_number": "2026-06-01/258/03993", "amount": 12.50, "confidence": 90, "has_restaurant_header": true}
 
 Règles strictes :
 - Réponds UNIQUEMENT avec du JSON valide, sans texte autour, sans markdown
-- order_number : le Bestelnummer exact tel qu'il apparaît sur le ticket (format YYYY-MM-DD/NNN/NNNNN)
-- amount : le TOTAL payé en euros, nombre décimal (ex: 12.50)
-- Si le Bestelnummer est illisible, mets null pour order_number
-- Si le montant est illisible, mets null pour amount`,
+- order_number : le Bestelnummer exact tel qu'il apparaît sur le ticket (format YYYY-MM-DD/NNN/NNNNN), ou null si illisible
+- amount : le TOTAL payé en euros, nombre décimal (ex: 12.50), ou null si illisible
+- confidence : ton niveau de certitude 0-100 sur la lisibilité du Bestelnummer et du montant (100 = parfaitement lisible, <70 = doutes importants)
+- has_restaurant_header : true si le nom "${restaurantName}" est clairement visible sur le ticket`,
           },
         ],
       },
@@ -95,7 +95,13 @@ Règles strictes :
 
   const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "";
 
-  let parsed: { is_receipt: boolean; order_number?: string | null; amount?: number | null };
+  let parsed: {
+    is_receipt: boolean;
+    order_number?: string | null;
+    amount?: number | null;
+    confidence?: number | null;
+    has_restaurant_header?: boolean;
+  };
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -115,5 +121,7 @@ Règles strictes :
   return NextResponse.json({
     order_number: parsed.order_number ?? null,
     amount: parsed.amount ?? null,
+    confidence: typeof parsed.confidence === "number" ? Math.min(100, Math.max(0, parsed.confidence)) : null,
+    has_restaurant_header: parsed.has_restaurant_header ?? false,
   });
 }
