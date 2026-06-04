@@ -88,19 +88,11 @@ export type MicroRewardClaim = {
   claimed_at: string;
 };
 
-export type ReferralStatus = "pending" | "validated" | "rejected";
-
-export type ReferralSubmission = {
-  id: string;
-  user_id: string;
-  restaurant_id: string;
-  referral_email: string;
-  status: ReferralStatus;
-  submitted_at: string;
-};
-
 export type Referral = {
   id: string;
+  referrer_id: string;
+  referee_id: string;
+  restaurant_id: string;
   referred_at: string;
 };
 
