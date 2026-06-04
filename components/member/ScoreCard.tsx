@@ -5,7 +5,6 @@ import useSWR from "swr";
 type ScoreData = {
   team_id: string;
   member_count: number;
-  total_spent: number;
   score: number;
 };
 
@@ -25,23 +24,14 @@ export function ScoreCard({
 
   const score = data?.score ?? 0;
   const members = data?.member_count ?? 0;
-  const spent = data?.total_spent ?? 0;
 
   return (
-    <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100">
+    <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100">
       <Stat
         value={score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })}
-        label="Score"
+        label="Score communautaire"
       />
       <Stat value={members.toLocaleString()} label="Membres" />
-      <Stat
-        value={spent.toLocaleString("fr-BE", {
-          style: "currency",
-          currency: "EUR",
-          maximumFractionDigits: 0,
-        })}
-        label="CA total"
-      />
     </div>
   );
 }
