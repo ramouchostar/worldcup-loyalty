@@ -15,12 +15,18 @@ export default async function AdminDashboardPage() {
     { count: pendingClaims },
     { count: totalMembers },
     { data: threshold },
+    { data: pendingOrdersData },
   ] = await Promise.all([
     admin.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("micro_reward_claims").select("id", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("profiles").select("id", { count: "exact", head: true }).not("team_id", "is", null),
     admin.from("restaurant_thresholds").select("period_label, current_revenue, target_revenue, is_unlocked").order("created_at", { ascending: false }).limit(1).single(),
+    admin.from("orders").select("flag_reasons").eq("status", "pending"),
   ]);
+
+  const flaggedCount = (pendingOrdersData ?? []).filter(
+    (o: { flag_reasons: string[] | null }) => Array.isArray(o.flag_reasons) && o.flag_reasons.length > 0
+  ).length;
 
   const th = threshold as {
     period_label: string;
@@ -36,10 +42,19 @@ export default async function AdminDashboardPage() {
   const stats = [
     {
       href: "/admin/orders",
+      label: "Commandes suspectes",
+      value: flaggedCount,
+      icon: "🚩",
+      urgent: flaggedCount > 0,
+      badge: flaggedCount > 0 ? "Vérifier" : undefined,
+    },
+    {
+      href: "/admin/orders",
       label: "Commandes en attente",
       value: pendingOrders ?? 0,
       icon: "🧾",
       urgent: (pendingOrders ?? 0) > 0,
+      badge: undefined,
     },
     {
       href: "/admin/micro-rewards",
@@ -47,6 +62,7 @@ export default async function AdminDashboardPage() {
       value: pendingClaims ?? 0,
       icon: "⭐",
       urgent: (pendingClaims ?? 0) > 0,
+      badge: undefined,
     },
     {
       href: "/admin/teams",
@@ -54,6 +70,7 @@ export default async function AdminDashboardPage() {
       value: totalMembers ?? 0,
       icon: "👥",
       urgent: false,
+      badge: undefined,
     },
   ];
 
@@ -65,25 +82,36 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map((s) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {stats.map((s, i) => (
           <Link
-            key={s.href}
+            key={`${s.href}-${i}`}
             href={s.href}
-            className={`bg-white rounded-2xl border p-5 hover:shadow-md transition-shadow ${
-              s.urgent ? "border-amber-300" : "border-gray-100"
+            className={`bg-white rounded-2xl border p-4 hover:shadow-md transition-shadow ${
+              s.icon === "🚩" && s.urgent
+                ? "border-red-400 bg-red-50"
+                : s.urgent ? "border-amber-300" : "border-gray-100"
             }`}
           >
             <div className="flex items-start justify-between">
-              <span className="text-3xl">{s.icon}</span>
-              {s.urgent && (
+              <span className="text-2xl">{s.icon}</span>
+              {s.badge && (
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  s.icon === "🚩" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
+                }`}>
+                  {s.badge}
+                </span>
+              )}
+              {s.urgent && !s.badge && (
                 <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
-                  Action requise
+                  Action
                 </span>
               )}
             </div>
-            <p className="text-3xl font-black text-gray-900 mt-3">{s.value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{s.label}</p>
+            <p className={`text-3xl font-black mt-2 ${s.icon === "🚩" && s.urgent ? "text-red-700" : "text-gray-900"}`}>
+              {s.value}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</p>
           </Link>
         ))}
       </div>
