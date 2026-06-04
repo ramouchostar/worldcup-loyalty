@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
 
+  const restaurantName = process.env.NEXT_PUBLIC_RESTAURANT_NAME ?? "Belchicken";
+
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 256,
@@ -68,23 +70,23 @@ export async function POST(request: NextRequest) {
           },
           {
             type: "text",
-            text: `Tu es un assistant pour Belchicken, un restaurant fast-food belge à Bruxelles.
-Analyse cette image et détermine d'abord si c'est un ticket de caisse de restaurant.
+            text: `Tu es un assistant pour ${restaurantName}, un restaurant fast-food belge à Bruxelles.
+Analyse cette image et détermine si c'est un ticket de caisse de ${restaurantName}.
 
-Un ticket de caisse valide contient : une date, une heure, un montant total, et des articles achetés.
+Un ticket valide doit contenir le nom "${restaurantName}" et un Bestelnummer (numéro de commande au format YYYY-MM-DD/NNN/NNNNN, ex: 2026-06-01/258/03993).
 
-Si ce N'EST PAS un ticket de caisse de restaurant (photo de personne, paysage, document autre, etc.), réponds UNIQUEMENT avec :
+Si ce N'EST PAS un ticket de caisse ${restaurantName} (photo de personne, paysage, autre restaurant, ticket sans Bestelnummer), réponds UNIQUEMENT avec :
 {"is_receipt": false}
 
-Si c'est bien un ticket de caisse, extrais ces 3 informations et réponds UNIQUEMENT avec :
-{"is_receipt": true, "date": "YYYY-MM-DD", "time": "HH:MM", "amount": 12.50}
+Si c'est bien un ticket ${restaurantName}, extrais le Bestelnummer et le montant total et réponds UNIQUEMENT avec :
+{"is_receipt": true, "order_number": "2026-06-01/258/03993", "amount": 12.50}
 
 Règles strictes :
 - Réponds UNIQUEMENT avec du JSON valide, sans texte autour, sans markdown
-- Pour la date : format YYYY-MM-DD (ex: 2026-06-15)
-- Pour l'heure : format HH:MM en heure locale du ticket (ex: 19:32)
-- Pour le montant : le TOTAL payé en euros, nombre décimal (ex: 12.50)
-- Si un champ est illisible, mets null pour ce champ uniquement`,
+- order_number : le Bestelnummer exact tel qu'il apparaît sur le ticket (format YYYY-MM-DD/NNN/NNNNN)
+- amount : le TOTAL payé en euros, nombre décimal (ex: 12.50)
+- Si le Bestelnummer est illisible, mets null pour order_number
+- Si le montant est illisible, mets null pour amount`,
           },
         ],
       },
@@ -93,7 +95,7 @@ Règles strictes :
 
   const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "";
 
-  let parsed: { is_receipt: boolean; date?: string | null; time?: string | null; amount?: number | null };
+  let parsed: { is_receipt: boolean; order_number?: string | null; amount?: number | null };
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -105,14 +107,13 @@ Règles strictes :
 
   if (!parsed.is_receipt) {
     return NextResponse.json(
-      { error: "Cette image ne ressemble pas à un ticket de caisse. Prends en photo le reçu papier de ta commande Belchicken." },
+      { error: `Cette image ne ressemble pas à un ticket ${restaurantName}. Prends en photo le reçu papier de ta commande.` },
       { status: 422 }
     );
   }
 
   return NextResponse.json({
-    date: parsed.date ?? null,
-    time: parsed.time ?? null,
+    order_number: parsed.order_number ?? null,
     amount: parsed.amount ?? null,
   });
 }
