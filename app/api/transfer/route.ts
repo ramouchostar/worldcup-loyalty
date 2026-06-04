@@ -26,6 +26,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Tu es déjà dans cette équipe." }, { status: 409 });
   }
 
+  // ADR 0004 — le transfert n'est autorisé que si l'équipe actuelle est éliminée
+  if (currentTeamId) {
+    const { data: currentTeam } = await supabase
+      .from("teams")
+      .select("is_active")
+      .eq("id", currentTeamId)
+      .single();
+
+    if (currentTeam?.is_active) {
+      return NextResponse.json(
+        { error: "Le transfert n'est possible que si ton équipe est éliminée du tournoi." },
+        { status: 422 }
+      );
+    }
+  }
+
   // Vérifie que l'équipe cible est active
   const { data: targetTeam } = await supabase
     .from("teams")
