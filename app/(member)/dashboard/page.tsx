@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       .single(),
     supabase
       .from("orders")
-      .select("id, amount, order_date, order_time, status, rejection_reason")
+      .select("id, amount, order_number, order_date, order_time, status, rejection_reason")
       .eq("user_id", user.id)
       .order("submitted_at", { ascending: false })
       .limit(10),
@@ -259,9 +259,8 @@ export default async function DashboardPage() {
                       currency: "EUR",
                     })}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(order.order_date).toLocaleDateString("fr-BE")} à{" "}
-                    {String(order.order_time).substring(0, 5)}
+                  <p className="text-xs text-gray-500 font-mono">
+                    {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}
                   </p>
                   {order.rejection_reason && (
                     <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>
