@@ -1,20 +1,40 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { isMemberActive } from "@/lib/rewards";
+import { getSoloReward, getCommunityBonus, getAdvancementBonus } from "@/lib/rewards";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getRestaurantId } from "@/lib/restaurant";
 import { ScoreCard } from "@/components/member/ScoreCard";
-import { RewardProgressBar } from "@/components/member/RewardProgressBar";
 import { PushPrompt } from "@/components/member/PushPrompt";
 import { InstallBanner } from "@/components/InstallBanner";
-import type { Order, CommunityScore, PendingReward } from "@/types";
+import type { Order, PendingReward } from "@/types";
 
 type ProfileWithTeam = {
   display_name: string;
   team_id: string;
-  teams: { name: string; flag_emoji: string; is_active: boolean };
+  teams: {
+    name: string;
+    flag_emoji: string;
+    is_active: boolean;
+    round_reached: string;
+    eliminated_at: string | null;
+  };
 };
+
+const COMMUNITY_TIERS = [
+  { score: 1000,  item: "Frites Medium" },
+  { score: 3000,  item: "Churros 12 pcs" },
+  { score: 6000,  item: "Finest burger" },
+  { score: 10000, item: "Menu 4 Tenders" },
+];
+
+const TOURNAMENT_ROUNDS = [
+  { key: "group_stage",   label: "Groupes" },
+  { key: "round_of_16",   label: "1/8" },
+  { key: "quarter_final", label: "1/4" },
+  { key: "semi_final",    label: "1/2" },
+  { key: "final",         label: "Finale" },
+];
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
@@ -27,18 +47,20 @@ export default async function DashboardPage() {
     { data: profileRaw },
     { data: orders },
     { data: pendingRaw },
+    { count: redeemedCount },
     restaurantUnlocked,
-    memberActive,
+    { data: validatedOrdersData, count: validatedOrderCount },
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, team_id, teams(name, flag_emoji, is_active)")
+      .select("display_name, team_id, teams(name, flag_emoji, is_active, round_reached, eliminated_at)")
       .eq("id", user.id)
       .single(),
     supabase
       .from("orders")
-      .select("id, amount, order_number, order_date, order_time, status, rejection_reason")
+      .select("id, amount, order_number, order_date, status, rejection_reason")
       .eq("user_id", user.id)
+      .eq("restaurant_id", restaurantId)
       .order("submitted_at", { ascending: false })
       .limit(10),
     supabase
@@ -49,8 +71,19 @@ export default async function DashboardPage() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(1),
+    supabase
+      .from("pending_rewards")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "redeemed"),
     isRestaurantThresholdUnlocked(),
-    isMemberActive(user.id),
+    supabase
+      .from("orders")
+      .select("amount", { count: "exact" })
+      .eq("user_id", user.id)
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "validated"),
   ]);
 
   const profile = profileRaw as unknown as ProfileWithTeam | null;
@@ -58,175 +91,265 @@ export default async function DashboardPage() {
 
   const { data: scoreRaw } = await supabase
     .from("community_scores")
-    .select("team_id, member_count, total_spent, score, last_updated")
+    .select("team_id, member_count, score")
     .eq("team_id", profile.team_id)
     .eq("restaurant_id", restaurantId)
     .single();
 
-  const score = scoreRaw as CommunityScore | null;
-  const currentScore = score?.score ?? 0;
-  const pendingReward = (pendingRaw as PendingReward[] ?? [])[0] ?? null;
-  const team = profile.teams;
+  const currentScore   = (scoreRaw as { score: number } | null)?.score ?? 0;
+  const memberCount    = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
+  const pendingReward  = (pendingRaw as PendingReward[] ?? [])[0] ?? null;
+  const orderList      = (orders as Order[] ?? []);
+  const team           = profile.teams;
 
-  // Palier de progression vers le prochain bonus communautaire
-  const communityBonusThresholds = [
-    { score: 1000,  label: "Frites Medium" },
-    { score: 3000,  label: "Churros 12 pcs" },
-    { score: 6000,  label: "Finest burger" },
-    { score: 10000, label: "4 Tenders Menu" },
-  ];
-  const nextCommunityBonus = communityBonusThresholds.find(t => t.score > currentScore) ?? null;
-  const hasValidatedOrder = (orders as { status: string }[] ?? []).some(o => o.status === "validated");
+  // ── Hero preview (ADR 0010) ────────────────────────────────────────────────
+  const totalSpent  = (validatedOrdersData ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
+  const validCount  = validatedOrderCount ?? 0;
+  const memberActive = validCount > 0;
+  const avgAmount   = validCount > 0 ? totalSpent / validCount : 25;
+  const previewAmt  = Math.max(15, Math.round(avgAmount));
+
+  const heroSolo        = getSoloReward(previewAmt);
+  const heroCommunity   = getCommunityBonus(currentScore, restaurantUnlocked);
+  const heroAdvancement = getAdvancementBonus(team.round_reached, !team.is_active);
+  const heroCount       = [heroSolo.item, heroCommunity.item, heroAdvancement.item].filter(Boolean).length;
+
+  // ── Community progress (ADR 0010 section 2) ───────────────────────────────
+  const nextTier       = COMMUNITY_TIERS.find(t => t.score > currentScore) ?? null;
+  const prevTierScore  = nextTier ? (COMMUNITY_TIERS[COMMUNITY_TIERS.indexOf(nextTier) - 1]?.score ?? 0) : 0;
+  const tierPct        = nextTier
+    ? Math.min(100, Math.round(((currentScore - prevTierScore) / (nextTier.score - prevTierScore)) * 100))
+    : 100;
+
+  // ── Tournament path (ADR 0010 section 3) ──────────────────────────────────
+  const roundKeys      = TOURNAMENT_ROUNDS.map(r => r.key);
+  const teamRoundIdx   = roundKeys.indexOf(team.round_reached);
+  const isEliminated   = !team.is_active;
+  const isWinner       = team.round_reached === "winner";
 
   return (
     <div className="space-y-5 pb-4">
-
-      {/* Installation PWA — s'affiche si non encore installée */}
       <InstallBanner />
+      {memberActive && <PushPrompt />}
 
-      {/* Push — seulement après une première commande validée */}
-      {hasValidatedOrder && <PushPrompt />}
+      {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
+      <div className="bg-gradient-to-br from-brand-dark to-gray-800 rounded-2xl p-5 text-white">
+        <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">🎁 Ta prochaine commande</p>
+        <p className="text-xs text-gray-500 mb-4">Pour une commande de ~€{previewAmt} :</p>
 
-      {/* Alerte équipe éliminée */}
-      {!team.is_active && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-          <span className="text-2xl">🔴</span>
-          <div>
-            <p className="font-bold text-red-900">Ton équipe est éliminée</p>
-            <p className="text-red-700 text-sm mt-1">
-              {team.flag_emoji} {team.name} est hors du tournoi.
-              Rejoins une autre communauté pour continuer.
-            </p>
-            <Link href="/transfer" className="inline-block mt-3 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
-              Choisir une nouvelle équipe →
-            </Link>
-          </div>
+        <div className="space-y-3">
+          {heroSolo.item ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>🍗</span>
+                <span className="font-bold">{heroSolo.item}</span>
+              </div>
+              <span className="text-xs text-gray-400">← ton cadeau de base</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between opacity-40">
+              <span className="text-sm text-gray-400">Aucun cadeau solo (commande ≥ €15)</span>
+            </div>
+          )}
+
+          {heroCommunity.item && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>👥</span>
+                <span className="font-bold text-brand-gold">+ {heroCommunity.item}</span>
+              </div>
+              <span className="text-xs text-gray-400">← {team.flag_emoji} force de ta communauté</span>
+            </div>
+          )}
+
+          {heroAdvancement.item && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>⚽</span>
+                <span className="font-bold text-brand-gold">+ {heroAdvancement.item}</span>
+              </div>
+              <span className="text-xs text-gray-400">← {team.flag_emoji} {team.name} avance</span>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Carte équipe + score */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div className="flex items-center gap-3">
-          <span className="text-4xl">{team.flag_emoji}</span>
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Ta communauté</p>
-            <h2 className="text-xl font-bold text-gray-900">{team.name}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Bonjour, {profile.display_name} 👋
-            </p>
-          </div>
+        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+          <p className="text-sm text-gray-300">
+            {heroCount > 0
+              ? `${heroCount} cadeau${heroCount > 1 ? "x" : ""} t'attend${heroCount > 1 ? "ent" : ""} au comptoir`
+              : "Commande ≥ €15 pour débloquer"}
+          </p>
+          <Link
+            href="/submit-order"
+            className="bg-brand-red text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors shrink-0"
+          >
+            Commander →
+          </Link>
         </div>
-        <ScoreCard
-          teamId={profile.team_id}
-          initial={{
-            team_id: profile.team_id,
-            member_count: score?.member_count ?? 0,
-            score: currentScore,
-          }}
-        />
       </div>
 
-      {/* Récompense en attente — carte principale */}
-      {pendingReward ? (
-        <div className="bg-gradient-to-br from-brand-gold/10 to-brand-red/5 rounded-2xl border-2 border-brand-gold/30 p-5">
-          <p className="text-xs font-bold text-brand-gold uppercase tracking-widest mb-2">
-            🎁 Ton prochain passage
+      {/* Récompense déjà gagnée — à récupérer au comptoir */}
+      {pendingReward && (
+        <div className="bg-gradient-to-br from-brand-gold/15 to-brand-red/5 rounded-2xl border-2 border-brand-gold/40 p-5">
+          <p className="text-xs font-bold text-brand-gold uppercase tracking-widest mb-3">
+            🛎 À récupérer au comptoir
           </p>
           <div className="space-y-2">
             {pendingReward.solo_item && (
               <div className="flex items-center gap-2">
-                <span className="text-lg">🍗</span>
-                <div>
-                  <p className="font-bold text-gray-900">{pendingReward.solo_item}</p>
-                  <p className="text-xs text-gray-500">Palier solo — ta commande</p>
-                </div>
+                <span>🍗</span>
+                <span className="font-bold text-gray-900">{pendingReward.solo_item}</span>
+                <span className="text-xs text-gray-400 ml-auto">ton cadeau de base</span>
               </div>
             )}
             {pendingReward.community_item && (
               <div className="flex items-center gap-2">
-                <span className="text-lg">👥</span>
-                <div>
-                  <p className="font-bold text-gray-900">+ {pendingReward.community_item}</p>
-                  <p className="text-xs text-gray-500">Bonus communautaire</p>
-                </div>
+                <span>👥</span>
+                <span className="font-bold text-gray-900">+ {pendingReward.community_item}</span>
+                <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
               </div>
             )}
             {pendingReward.advancement_item && (
               <div className="flex items-center gap-2">
-                <span className="text-lg">🏆</span>
-                <div>
-                  <p className="font-bold text-gray-900">+ {pendingReward.advancement_item}</p>
-                  <p className="text-xs text-gray-500">Récompense d&apos;avancement</p>
-                </div>
+                <span>⚽</span>
+                <span className="font-bold text-gray-900">+ {pendingReward.advancement_item}</span>
+                <span className="text-xs text-gray-400 ml-auto">récompense d&apos;avancement</span>
               </div>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-3 border-t border-brand-gold/20 pt-3">
+          <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-brand-gold/20">
             Montre ton profil au comptoir Belchicken pour récupérer tes cadeaux.
           </p>
         </div>
-      ) : memberActive ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-center">
-          <p className="text-2xl mb-2">🎁</p>
-          <p className="font-semibold text-gray-700 text-sm">Aucune récompense en attente</p>
-          <p className="text-xs text-gray-400 mt-1">
-            Passe une commande de €15+ pour débloquer ta prochaine récompense.
-          </p>
-        </div>
-      ) : null}
+      )}
 
-      {/* Statut double verrou */}
-      <div className={`rounded-xl p-4 flex items-center gap-3 ${
-        restaurantUnlocked
-          ? "bg-green-50 border border-green-200"
-          : "bg-amber-50 border border-amber-200"
-      }`}>
-        <span className="text-2xl">{restaurantUnlocked ? "🔓" : "🔒"}</span>
-        <div>
-          <p className={`font-semibold text-sm ${restaurantUnlocked ? "text-green-900" : "text-amber-900"}`}>
-            {restaurantUnlocked
-              ? "Bonus communautaire débloqué"
-              : "Bonus communautaire verrouillé"}
-          </p>
-          <p className={`text-xs mt-0.5 ${restaurantUnlocked ? "text-green-700" : "text-amber-700"}`}>
-            {restaurantUnlocked
-              ? "Chaque commande validée ajoute le bonus de ta communauté."
-              : "Il sera débloqué prochainement — continue à commander !"}
-          </p>
+      {/* ── SECTION 2 — Community progress ────────────────────────────────── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-2xl">{team.flag_emoji}</span>
+          <p className="font-bold text-gray-900">Communauté {team.name}</p>
+        </div>
+
+        <ScoreCard
+          teamId={profile.team_id}
+          initial={{ team_id: profile.team_id, member_count: memberCount, score: currentScore }}
+        />
+
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          {nextTier ? (
+            <>
+              <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
+                <span>{currentScore.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
+                <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2">
+                <div
+                  className="bg-brand-red h-2 rounded-full transition-all duration-700"
+                  style={{ width: `${tierPct}%` }}
+                />
+              </div>
+              <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+                <span className="text-lg">👥</span>
+                <div>
+                  <p className="text-xs text-gray-500">Prochain bonus communautaire</p>
+                  <p className="font-semibold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-2 text-center">
+                💡 Chaque commande directe de ta communauté vous rapproche.
+              </p>
+            </>
+          ) : (
+            <div className="text-center py-1">
+              <p className="text-2xl mb-1">🏆</p>
+              <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
+              <p className="text-xs text-gray-500">+ Menu 4 Tenders sur chaque commande</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Progression bonus communautaire */}
-      {nextCommunityBonus && restaurantUnlocked && (
-        <RewardProgressBar
-          teamId={profile.team_id}
-          initialScore={currentScore}
-          nextReward={null}
-          restaurantUnlocked={restaurantUnlocked}
-        />
-      )}
-
-      {/* Prochain bonus communautaire */}
-      {nextCommunityBonus && (
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-xs text-gray-500 mb-1">Prochain bonus communautaire</p>
-          <div className="flex items-center justify-between">
-            <p className="font-semibold text-gray-900 text-sm">
-              👥 + {nextCommunityBonus.label}
+      {/* ── SECTION 3 — World Cup card ─────────────────────────────────────── */}
+      {isEliminated ? (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-3">
+          <span className="text-2xl">🔴</span>
+          <div className="flex-1">
+            <p className="font-bold text-red-900">{team.flag_emoji} {team.name} est éliminée</p>
+            <p className="text-red-700 text-sm mt-1">
+              Ton bonus d&apos;avancement n&apos;est plus actif.
             </p>
-            <p className="text-xs text-gray-400">
-              à {nextCommunityBonus.score.toLocaleString("fr-BE")} pts
-            </p>
-          </div>
-          <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-            <div
-              className="bg-brand-red h-1.5 rounded-full transition-all"
-              style={{
-                width: `${Math.min(100, Math.round((currentScore / nextCommunityBonus.score) * 100))}%`
-              }}
-            />
+            <Link
+              href="/transfer"
+              className="inline-block mt-3 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+            >
+              Changer de communauté →
+            </Link>
           </div>
         </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-4">
+            ⚽ {team.name} dans le tournoi
+          </p>
+
+          {isWinner ? (
+            <div className="text-center py-2">
+              <p className="text-4xl mb-2">🏆</p>
+              <p className="font-bold text-yellow-600">Champion du monde !</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-start justify-between mb-4">
+                {TOURNAMENT_ROUNDS.map((round, idx) => {
+                  const passed  = idx < teamRoundIdx;
+                  const current = idx === teamRoundIdx;
+                  return (
+                    <div key={round.key} className="flex flex-col items-center gap-1 flex-1">
+                      <span className="text-base leading-none">
+                        {passed ? "✅" : current ? "📍" : "○"}
+                      </span>
+                      <span className={`text-xs text-center leading-tight ${
+                        current ? "font-bold text-brand-red" :
+                        passed  ? "text-gray-500" : "text-gray-300"
+                      }`}>
+                        {round.label}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-base leading-none">⭐</span>
+                  <span className="text-xs text-gray-300">★</span>
+                </div>
+              </div>
+
+              {heroAdvancement.item ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-green-900">
+                    Tant que {team.name} avance, chaque commande directe débloque{" "}
+                    <span className="text-green-700">+ {heroAdvancement.item}</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 text-center">
+                  Le bonus d&apos;avancement s&apos;active au prochain tour qualifié.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── SECTION 4 — Personal stats (subtle, bas de page) ──────────────── */}
+      {memberActive && (
+        <p className="text-center text-xs text-gray-400 py-1">
+          {validCount} commande{validCount > 1 ? "s" : ""} validée{validCount > 1 ? "s" : ""}
+          {" · "}
+          {totalSpent.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })} dépensés
+          {(redeemedCount ?? 0) > 0 && (
+            <> · {redeemedCount} cadeau{(redeemedCount ?? 0) > 1 ? "x" : ""} récupéré{(redeemedCount ?? 0) > 1 ? "s" : ""}</>
+          )}
+        </p>
       )}
 
       {/* Commandes récentes */}
@@ -238,7 +361,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {!orders || orders.length === 0 ? (
+        {orderList.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-gray-400 text-sm">Aucune commande soumise.</p>
             <Link
@@ -250,14 +373,11 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {(orders as Order[]).map((order) => (
+            {orderList.map((order) => (
               <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                 <div>
                   <p className="font-medium text-gray-900 text-sm">
-                    {Number(order.amount).toLocaleString("fr-BE", {
-                      style: "currency",
-                      currency: "EUR",
-                    })}
+                    {Number(order.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
                   </p>
                   <p className="text-xs text-gray-500 font-mono">
                     {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}
@@ -273,18 +393,16 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <p className="text-center text-xs text-gray-300 pb-2">
-        Score mis à jour toutes les 30 secondes
-      </p>
+      <p className="text-center text-xs text-gray-300 pb-2">Score mis à jour toutes les 30 secondes</p>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
-    pending:   { cls: "bg-amber-100 text-amber-800",  label: "En attente" },
-    validated: { cls: "bg-green-100 text-green-800",  label: "Validée ✓" },
-    rejected:  { cls: "bg-red-100 text-red-800",      label: "Rejetée" },
+    pending:   { cls: "bg-amber-100 text-amber-800", label: "En attente" },
+    validated: { cls: "bg-green-100 text-green-800", label: "Validée ✓" },
+    rejected:  { cls: "bg-red-100 text-red-800",     label: "Rejetée" },
   };
   const { cls, label } = map[status] ?? map.pending;
   return (
