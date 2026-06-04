@@ -65,7 +65,7 @@ export function RewardProgressBar({
 
       {!restaurantUnlocked && (
         <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
-          🔒 Le restaurant doit atteindre son objectif CA pour débloquer les récompenses.
+          🔒 Les récompenses communautaires seront bientôt disponibles.
         </p>
       )}
     </div>
