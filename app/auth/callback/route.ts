@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -45,6 +46,19 @@ export async function GET(request: NextRequest) {
   if (!authError) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (adminEmails.includes((user.email ?? "").toLowerCase())) {
+        const admin = createAdminClient();
+        await admin
+          .from("profiles")
+          .update({ is_admin: true })
+          .eq("id", user.id);
+      }
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("team_id")
