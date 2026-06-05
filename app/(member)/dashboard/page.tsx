@@ -69,8 +69,7 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(1),
+      .order("created_at", { ascending: false }),
     supabase
       .from("pending_rewards")
       .select("id", { count: "exact", head: true })
@@ -98,7 +97,7 @@ export default async function DashboardPage() {
 
   const currentScore   = (scoreRaw as { score: number } | null)?.score ?? 0;
   const memberCount    = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
-  const pendingReward  = (pendingRaw as PendingReward[] ?? [])[0] ?? null;
+  const pendingRewards = (pendingRaw as PendingReward[] ?? []);
   const orderList      = (orders as Order[] ?? []);
   const team           = profile.teams;
 
@@ -188,34 +187,53 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Récompense déjà gagnée — à récupérer au comptoir */}
-      {pendingReward && (
+      {/* Récompenses à récupérer au comptoir */}
+      {pendingRewards.length > 0 && (
         <div className="bg-gradient-to-br from-brand-gold/15 to-brand-red/5 rounded-2xl border-2 border-brand-gold/40 p-5">
-          <p className="text-xs font-bold text-brand-gold uppercase tracking-widest mb-3">
-            🛎 À récupérer au comptoir
-          </p>
-          <div className="space-y-2">
-            {pendingReward.solo_item && (
-              <div className="flex items-center gap-2">
-                <span>🍗</span>
-                <span className="font-bold text-gray-900">{pendingReward.solo_item}</span>
-                <span className="text-xs text-gray-400 ml-auto">ton cadeau de base</span>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-brand-gold uppercase tracking-widest">
+              🛎 À récupérer au comptoir
+              {pendingRewards.length > 1 && (
+                <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {pendingRewards.length}
+                </span>
+              )}
+            </p>
+            <Link href="/my-rewards" className="text-xs text-gray-400 hover:text-gray-600 underline">
+              Historique →
+            </Link>
+          </div>
+          <div className="space-y-4">
+            {pendingRewards.map((r, idx) => (
+              <div key={r.id} className={idx > 0 ? "pt-3 border-t border-brand-gold/20" : ""}>
+                {pendingRewards.length > 1 && (
+                  <p className="text-xs text-gray-400 mb-1.5">Commande {pendingRewards.length - idx}</p>
+                )}
+                <div className="space-y-1.5">
+                  {r.solo_item && (
+                    <div className="flex items-center gap-2">
+                      <span>🍗</span>
+                      <span className="font-bold text-gray-900">{r.solo_item}</span>
+                      <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
+                    </div>
+                  )}
+                  {r.community_item && (
+                    <div className="flex items-center gap-2">
+                      <span>👥</span>
+                      <span className="font-bold text-gray-900">+ {r.community_item}</span>
+                      <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
+                    </div>
+                  )}
+                  {r.advancement_item && (
+                    <div className="flex items-center gap-2">
+                      <span>⚽</span>
+                      <span className="font-bold text-gray-900">+ {r.advancement_item}</span>
+                      <span className="text-xs text-gray-400 ml-auto">avancement</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-            {pendingReward.community_item && (
-              <div className="flex items-center gap-2">
-                <span>👥</span>
-                <span className="font-bold text-gray-900">+ {pendingReward.community_item}</span>
-                <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
-              </div>
-            )}
-            {pendingReward.advancement_item && (
-              <div className="flex items-center gap-2">
-                <span>⚽</span>
-                <span className="font-bold text-gray-900">+ {pendingReward.advancement_item}</span>
-                <span className="text-xs text-gray-400 ml-auto">récompense d&apos;avancement</span>
-              </div>
-            )}
+            ))}
           </div>
           <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-brand-gold/20">
             Montre ton profil au comptoir Belchicken pour récupérer tes cadeaux.
