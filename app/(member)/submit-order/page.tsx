@@ -21,6 +21,7 @@ export default function SubmitOrderPage() {
   const [parseError, setParseError] = useState("");
 
   const [orderNumber, setOrderNumber] = useState("");
+  const [orderNumberEditable, setOrderNumberEditable] = useState(false);
   const [amount, setAmount] = useState("");
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
@@ -37,6 +38,7 @@ export default function SubmitOrderPage() {
     setParseStatus("idle");
     setParseError("");
     setOrderNumber("");
+    setOrderNumberEditable(false);
     setAmount("");
   }
 
@@ -84,16 +86,14 @@ export default function SubmitOrderPage() {
         return;
       }
 
-      if (!data.order_number) {
-        setParseStatus("error");
-        setParseError(
-          "Impossible de lire le Bestelnummer sur ce ticket. Prends une photo plus nette, bien éclairée et sans flou."
-        );
-        return;
-      }
-
       setParseStatus("done");
-      setOrderNumber(data.order_number);
+      if (data.order_number) {
+        setOrderNumber(data.order_number);
+        setOrderNumberEditable(false);
+      } else {
+        setOrderNumber("");
+        setOrderNumberEditable(true);
+      }
       if (data.amount) {
         setAmount(String(data.amount));
         setOcrAmount(data.amount);
@@ -154,6 +154,7 @@ export default function SubmitOrderPage() {
     setParseStatus("idle");
     setParseError("");
     setOrderNumber("");
+    setOrderNumberEditable(false);
     setAmount("");
     setNoDelivery(false);
     setSubmitStatus("idle");
@@ -285,15 +286,34 @@ export default function SubmitOrderPage() {
             </p>
           </div>
 
-          {/* Bestelnummer — read-only */}
+          {/* Bestelnummer — read-only if found, editable if not */}
+          {orderNumberEditable && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+              <p className="text-orange-800 text-sm font-semibold">Bestelnummer non détecté</p>
+              <p className="text-orange-700 text-xs mt-1">
+                Entre le numéro manuellement si tu le vois sur ton ticket (ex : 2026-06-01/258/03993),
+                ou laisse vide — ta commande sera vérifiée manuellement sous 2h.
+              </p>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Numéro de commande (Bestelnummer)
             </label>
-            <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 flex items-center justify-between font-mono text-sm">
-              <span>{orderNumber}</span>
-              <span className="text-xs text-gray-400 font-sans">Lu sur le ticket</span>
-            </div>
+            {orderNumberEditable ? (
+              <input
+                type="text"
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                placeholder="2026-06-01/258/03993"
+                className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono text-sm"
+              />
+            ) : (
+              <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 flex items-center justify-between font-mono text-sm">
+                <span>{orderNumber}</span>
+                <span className="text-xs text-gray-400 font-sans">Lu sur le ticket</span>
+              </div>
+            )}
           </div>
 
           {/* Montant — editable */}
