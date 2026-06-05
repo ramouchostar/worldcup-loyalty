@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { createServerSupabaseClient } from "@/lib/supabase";
 
 export const maxDuration = 30;
@@ -11,117 +10,136 @@ function isAllowedType(type: string): type is AllowedType {
   return (ALLOWED_TYPES as readonly string[]).includes(type);
 }
 
+// Bestelnummer: YYYY-MM-DD/NNN/NNNNN
+const BESTELNUMMER_RE = /\b(\d{4}-\d{2}-\d{2}\/\d{3}\/\d{5})\b/;
+
+function extractAmount(text: string): number | null {
+  // Priority: line containing TOTAAL / TOTAL / te betalen / a payer
+  const labeled = text.match(
+    /(?:TOTAAL|TOTAL|te\s+betalen|a\s+payer)[^\d]*(\d{1,3}[,\.]\d{2})/i
+  );
+  if (labeled) return parseFloat(labeled[1].replace(",", "."));
+
+  // Fallback: all decimal amounts in range €1–€500 — return the largest
+  const all = [...text.matchAll(/\b(\d{1,3}[,\.]\d{2})\b/g)]
+    .map((m) => parseFloat(m[1].replace(",", ".")))
+    .filter((n) => !isNaN(n) && n >= 1 && n <= 500);
+
+  return all.length ? Math.max(...all) : null;
+}
+
+function computeConfidence(
+  fullText: string,
+  orderNumber: string | null,
+  amount: number | null,
+  visionData: { responses?: { fullTextAnnotation?: { pages?: { blocks?: { confidence?: number }[] }[] } }[] }
+): number {
+  // Try to get average block confidence from Vision API
+  const pages = visionData.responses?.[0]?.fullTextAnnotation?.pages ?? [];
+  let total = 0;
+  let count = 0;
+  for (const page of pages) {
+    for (const block of (page.blocks ?? [])) {
+      if (block.confidence != null) {
+        total += block.confidence;
+        count++;
+      }
+    }
+  }
+  if (count > 0) return Math.round((total / count) * 100);
+
+  // Heuristic fallback
+  if (orderNumber && amount) return 90;
+  if (orderNumber || amount) return 65;
+  return 35;
+}
+
 export async function POST(request: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GOOGLE_VISION_API_KEY) {
     return NextResponse.json(
       { error: "Service d'analyse non configuré. Contacte l'équipe Belchicken." },
       { status: 503 }
     );
   }
 
-  const anthropic = new Anthropic();
-
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
   const formData = await request.formData();
   const file = formData.get("receipt") as File | null;
 
-  if (!file) {
-    return NextResponse.json({ error: "Aucune image fournie." }, { status: 400 });
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
+  if (!file) return NextResponse.json({ error: "Aucune image fournie." }, { status: 400 });
+  if (file.size > 5 * 1024 * 1024)
     return NextResponse.json({ error: "Image trop lourde (max 5 Mo)." }, { status: 400 });
-  }
-
-  if (!isAllowedType(file.type)) {
+  if (!isAllowedType(file.type))
     return NextResponse.json(
       { error: "Format non supporté. Utilise JPG, PNG ou WebP." },
       { status: 400 }
     );
-  }
 
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
 
-  const restaurantName = process.env.NEXT_PUBLIC_RESTAURANT_NAME ?? "Belchicken";
-
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 256,
-    messages: [
-      {
-        role: "user",
-        content: [
+  const visionRes = await fetch(
+    `https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requests: [
           {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: file.type,
-              data: base64,
-            },
-          },
-          {
-            type: "text",
-            text: `Tu es un assistant pour ${restaurantName}, un restaurant fast-food belge à Bruxelles.
-Analyse cette image et détermine si c'est un ticket de caisse de ${restaurantName}.
-
-Un ticket valide doit contenir le nom "${restaurantName}" et un Bestelnummer (numéro de commande au format YYYY-MM-DD/NNN/NNNNN, ex: 2026-06-01/258/03993).
-
-Si ce N'EST PAS un ticket de caisse ${restaurantName} (photo de personne, paysage, autre restaurant, ticket sans Bestelnummer), réponds UNIQUEMENT avec :
-{"is_receipt": false}
-
-Si c'est bien un ticket ${restaurantName}, extrais les informations et réponds UNIQUEMENT avec :
-{"is_receipt": true, "order_number": "2026-06-01/258/03993", "amount": 12.50, "confidence": 90, "has_restaurant_header": true}
-
-Règles strictes :
-- Réponds UNIQUEMENT avec du JSON valide, sans texte autour, sans markdown
-- order_number : le Bestelnummer exact tel qu'il apparaît sur le ticket (format YYYY-MM-DD/NNN/NNNNN), ou null si illisible
-- amount : le TOTAL payé en euros, nombre décimal (ex: 12.50), ou null si illisible
-- confidence : ton niveau de certitude 0-100 sur la lisibilité du Bestelnummer et du montant (100 = parfaitement lisible, <70 = doutes importants)
-- has_restaurant_header : true si le nom "${restaurantName}" est clairement visible sur le ticket`,
+            image: { content: base64 },
+            features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
           },
         ],
+      }),
+    }
+  );
+
+  if (!visionRes.ok) {
+    return NextResponse.json(
+      { error: "Erreur lors de l'analyse de l'image. Réessaie." },
+      { status: 502 }
+    );
+  }
+
+  const visionData = await visionRes.json();
+  const fullText: string = visionData.responses?.[0]?.fullTextAnnotation?.text ?? "";
+
+  if (!fullText) {
+    return NextResponse.json(
+      {
+        error:
+          "Impossible de lire du texte sur cette image. Assure-toi que la photo est nette, bien éclairée et pas floue.",
       },
-    ],
-  });
-
-  const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "";
-
-  let parsed: {
-    is_receipt: boolean;
-    order_number?: string | null;
-    amount?: number | null;
-    confidence?: number | null;
-    has_restaurant_header?: boolean;
-  };
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return NextResponse.json(
-      { error: "Impossible d'analyser l'image. Assure-toi que la photo est nette et bien éclairée." },
       { status: 422 }
     );
   }
 
-  if (!parsed.is_receipt) {
+  const restaurantName = process.env.NEXT_PUBLIC_RESTAURANT_NAME ?? "Belchicken";
+  const hasRestaurantHeader = fullText.toLowerCase().includes(restaurantName.toLowerCase());
+
+  if (!hasRestaurantHeader) {
     return NextResponse.json(
-      { error: `Cette image ne ressemble pas à un ticket ${restaurantName}. Prends en photo le reçu papier de ta commande.` },
+      {
+        error: `Cette image ne ressemble pas à un ticket ${restaurantName}. Prends en photo le reçu papier de ta commande directe.`,
+      },
       { status: 422 }
     );
   }
+
+  const bestelMatch = fullText.match(BESTELNUMMER_RE);
+  const orderNumber = bestelMatch ? bestelMatch[1] : null;
+  const amount = extractAmount(fullText);
+  const confidence = computeConfidence(fullText, orderNumber, amount, visionData);
 
   return NextResponse.json({
-    order_number: parsed.order_number ?? null,
-    amount: parsed.amount ?? null,
-    confidence: typeof parsed.confidence === "number" ? Math.min(100, Math.max(0, parsed.confidence)) : null,
-    has_restaurant_header: parsed.has_restaurant_header ?? false,
+    order_number: orderNumber,
+    amount,
+    confidence,
+    has_restaurant_header: hasRestaurantHeader,
   });
 }
