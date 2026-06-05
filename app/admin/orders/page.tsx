@@ -184,7 +184,9 @@ function SwipeCard({
                 : <span className="italic text-gray-400">N° non extrait</span>
               }
               {" · "}
-              {new Date(order.order_date).toLocaleDateString("fr-BE")} à {String(order.order_time).substring(0, 5)}
+              {new Date(order.order_date + "T00:00:00").toLocaleDateString("fr-BE")}
+              {" · "}
+              {new Date(order.submitted_at).toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}
             </p>
 
             {/* SLA + flags */}
@@ -283,7 +285,11 @@ export default function AdminOrdersPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
 
   async function handleAction(id: string, action: "validate" | "reject", reason?: string) {
     setBusy(id);
@@ -363,16 +369,35 @@ export default function AdminOrdersPage() {
           </p>
         </div>
         {counts.pending > 0 && (
-          <button
-            onClick={() => { setBatchMode(b => !b); setSelected(new Set()); }}
-            className={`shrink-0 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors ${
-              batchMode
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
-            }`}
-          >
-            {batchMode ? "Annuler sélection" : "Sélection"}
-          </button>
+          <div className="flex gap-2 shrink-0">
+            {batchMode && (
+              <button
+                onClick={() => {
+                  const pendingIds = filtered
+                    .filter(o => o.status === "pending")
+                    .map(o => o.id);
+                  setSelected(prev =>
+                    prev.size === pendingIds.length
+                      ? new Set()
+                      : new Set(pendingIds)
+                  );
+                }}
+                className="text-xs font-semibold px-3 py-2 rounded-lg border bg-white text-gray-700 border-gray-200 hover:border-gray-400 transition-colors"
+              >
+                Tout sélectionner
+              </button>
+            )}
+            <button
+              onClick={() => { setBatchMode(b => !b); setSelected(new Set()); }}
+              className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors ${
+                batchMode
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              {batchMode ? "Annuler" : "Sélection"}
+            </button>
+          </div>
         )}
       </div>
 
