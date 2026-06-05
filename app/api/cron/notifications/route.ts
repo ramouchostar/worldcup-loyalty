@@ -113,7 +113,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // 4. Membre inactif (priorité moyenne)
+    // 4. Membre inactif + communauté progressée (priorité moyenne)
+    // ADR 0009 : déclenche seulement si +500 pts absolus depuis la dernière notification
     if (!trigger) {
       const inactiveSince = new Date(now.getTime() - INACTIVE_DAYS * 86_400_000).toISOString();
       const { count: recentValidated } = await admin
@@ -122,9 +123,21 @@ export async function GET(request: Request) {
         .eq("user_id", member.id)
         .eq("status", "validated")
         .gte("submitted_at", inactiveSince);
+
       if ((recentValidated ?? 0) === 0) {
-        trigger = "member_inactive";
-        message = buildMessage("member_inactive", team.name, team.flag_emoji);
+        const { data: lastLog } = await admin
+          .from("notification_log")
+          .select("community_score_at_send")
+          .eq("user_id", member.id)
+          .order("sent_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const scoreAtLastNotif = lastLog ? Number(lastLog.community_score_at_send) : 0;
+        if (teamScore - scoreAtLastNotif >= 500) {
+          trigger = "member_inactive";
+          message = buildMessage("member_inactive", team.name, team.flag_emoji);
+        }
       }
     }
 
