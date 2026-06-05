@@ -299,7 +299,7 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                   <Link
-                    href="/invite"
+                    href="/parrainage"
                     className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
                   >
                     <span>📲</span> Inviter des amis via WhatsApp
