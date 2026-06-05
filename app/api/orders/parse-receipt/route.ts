@@ -21,7 +21,7 @@ function extractAmount(text: string): number | null {
   if (labeled) return parseFloat(labeled[1].replace(",", "."));
 
   // Fallback: all decimal amounts in range €1–€500 — return the largest
-  const all = [...text.matchAll(/\b(\d{1,3}[,\.]\d{2})\b/g)]
+  const all = Array.from(text.matchAll(/\b(\d{1,3}[,\.]\d{2})\b/g))
     .map((m) => parseFloat(m[1].replace(",", ".")))
     .filter((n) => !isNaN(n) && n >= 1 && n <= 500);
 
