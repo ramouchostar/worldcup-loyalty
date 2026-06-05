@@ -28,7 +28,7 @@ export function ScoreCard({
   return (
     <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100">
       <Stat
-        value={score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })}
+        value={`${score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts`}
         label="Score communautaire"
       />
       <Stat value={members.toLocaleString()} label="Membres" />
