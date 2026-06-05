@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getSoloReward, getCommunityBonus, getAdvancementBonus } from "@/lib/rewards";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getRestaurantId } from "@/lib/restaurant";
+import { applyRoundBonus } from "@/lib/score";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { PushPrompt } from "@/components/member/PushPrompt";
 import { InstallBanner } from "@/components/InstallBanner";
@@ -18,6 +19,7 @@ type ProfileWithTeam = {
     is_active: boolean;
     round_reached: string;
     eliminated_at: string | null;
+    round_advanced_at: string | null;
   };
 };
 
@@ -53,7 +55,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, team_id, teams(name, flag_emoji, is_active, round_reached, eliminated_at)")
+      .select("display_name, team_id, teams(name, flag_emoji, is_active, round_reached, eliminated_at, round_advanced_at)")
       .eq("id", user.id)
       .single(),
     supabase
@@ -95,11 +97,15 @@ export default async function DashboardPage() {
     .eq("restaurant_id", restaurantId)
     .single();
 
-  const currentScore   = (scoreRaw as { score: number } | null)?.score ?? 0;
+  const rawScore       = (scoreRaw as { score: number } | null)?.score ?? 0;
   const memberCount    = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
   const pendingRewards = (pendingRaw as PendingReward[] ?? []);
   const orderList      = (orders as Order[] ?? []);
   const team           = profile.teams;
+
+  // Apply ×1.5 round-advancement bonus to display score (ADR 0002)
+  const displayScore    = applyRoundBonus(rawScore, team.round_advanced_at ?? null);
+  const roundBonusActive = displayScore !== rawScore;
 
   // ── Hero preview (ADR 0010) ────────────────────────────────────────────────
   const totalSpent  = (validatedOrdersData ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
@@ -109,15 +115,16 @@ export default async function DashboardPage() {
   const previewAmt  = Math.max(15, Math.round(avgAmount));
 
   const heroSolo        = getSoloReward(previewAmt);
-  const heroCommunity   = getCommunityBonus(currentScore, restaurantUnlocked);
+  const heroCommunity   = getCommunityBonus(displayScore, restaurantUnlocked);
   const heroAdvancement = getAdvancementBonus(team.round_reached, !team.is_active);
   const heroCount       = [heroSolo.item, heroCommunity.item, heroAdvancement.item].filter(Boolean).length;
 
   // ── Community progress (ADR 0010 section 2) ───────────────────────────────
-  const nextTier       = COMMUNITY_TIERS.find(t => t.score > currentScore) ?? null;
+  const isWeakCommunity = displayScore < COMMUNITY_TIERS[0].score;
+  const nextTier       = COMMUNITY_TIERS.find(t => t.score > displayScore) ?? null;
   const prevTierScore  = nextTier ? (COMMUNITY_TIERS[COMMUNITY_TIERS.indexOf(nextTier) - 1]?.score ?? 0) : 0;
   const tierPct        = nextTier
-    ? Math.min(100, Math.round(((currentScore - prevTierScore) / (nextTier.score - prevTierScore)) * 100))
+    ? Math.min(100, Math.round(((displayScore - prevTierScore) / (nextTier.score - prevTierScore)) * 100))
     : 100;
 
   // ── Tournament path (ADR 0010 section 3) ──────────────────────────────────
@@ -250,14 +257,24 @@ export default async function DashboardPage() {
 
         <ScoreCard
           teamId={profile.team_id}
-          initial={{ team_id: profile.team_id, member_count: memberCount, score: currentScore }}
+          initial={{ team_id: profile.team_id, member_count: memberCount, score: displayScore }}
         />
 
         <div className="mt-4 pt-4 border-t border-gray-100">
+          {/* Bonus ×1.5 active badge (ADR 0002) */}
+          {roundBonusActive && (
+            <div className="mb-3 flex items-center gap-2 bg-brand-gold/10 border border-brand-gold/30 rounded-lg px-3 py-2">
+              <span className="text-sm">⚡</span>
+              <p className="text-xs font-semibold text-amber-800">
+                Bonus ×1.5 actif — votre équipe vient de passer un tour !
+              </p>
+            </div>
+          )}
+
           {nextTier ? (
             <>
               <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
-                <span>{currentScore.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
+                <span>{displayScore.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
                 <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">
@@ -266,16 +283,42 @@ export default async function DashboardPage() {
                   style={{ width: `${tierPct}%` }}
                 />
               </div>
-              <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                <span className="text-lg">👥</span>
-                <div>
-                  <p className="text-xs text-gray-500">Prochain bonus communautaire</p>
-                  <p className="font-semibold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
+
+              {/* Weak community CTA (ADR 0010) */}
+              {isWeakCommunity ? (
+                <div className="mt-3 space-y-2">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                    <p className="text-sm font-semibold text-blue-900">
+                      À{" "}
+                      {(nextTier.score - displayScore).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}{" "}
+                      pts du 1er bonus communautaire
+                    </p>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Chaque commande de tes amis vous rapproche du bonus&nbsp;
+                      <span className="font-semibold">+ {nextTier.item}</span>.
+                    </p>
+                  </div>
+                  <Link
+                    href="/invite"
+                    className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
+                  >
+                    <span>📲</span> Inviter des amis via WhatsApp
+                  </Link>
                 </div>
-              </div>
-              <p className="text-xs text-gray-400 mt-2 text-center">
-                💡 Chaque commande directe de ta communauté vous rapproche.
-              </p>
+              ) : (
+                <>
+                  <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+                    <span className="text-lg">👥</span>
+                    <div>
+                      <p className="text-xs text-gray-500">Prochain bonus communautaire</p>
+                      <p className="font-semibold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2 text-center">
+                    💡 Chaque commande directe de ta communauté vous rapproche.
+                  </p>
+                </>
+              )}
             </>
           ) : (
             <div className="text-center py-1">
