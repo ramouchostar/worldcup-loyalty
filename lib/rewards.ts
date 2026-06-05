@@ -1,6 +1,12 @@
-import { createServerSupabaseClient } from "./supabase";
+import { createServerSupabaseClient, createAdminClient } from "./supabase";
 import { getRestaurantId } from "./restaurant";
+import { isRestaurantThresholdUnlocked } from "./thresholds";
 import type { Reward } from "@/types";
+
+type TeamScoreRow = {
+  score: number;
+  teams: { round_reached: string; is_active: boolean } | null;
+};
 
 // Double lock: rewards only unlock if BOTH conditions are met:
 // 1. Community score exceeds the tier threshold
@@ -67,4 +73,50 @@ export function getAdvancementBonus(roundReached: string, isEliminated: boolean)
   if (roundReached === "quarter_final") return { item: "Finest burger", cost: 0.94 };
   if (roundReached === "round_of_16")  return { item: "Churros 6 pcs", cost: 0.31 };
   return { item: null, cost: 0 }; // group_stage — not yet advanced
+}
+
+// Creates the 3-layer pending_reward for a validated order.
+// Safe to call redundantly — DB has ON CONFLICT (order_id) DO NOTHING.
+export async function createPendingReward(
+  orderId: string,
+  userId: string,
+  teamId: string,
+  restaurantId: string,
+  amount: number
+): Promise<void> {
+  const adminClient = createAdminClient();
+
+  const [{ data: scoreData }, restaurantUnlocked] = await Promise.all([
+    adminClient
+      .from("community_scores")
+      .select("score, teams(round_reached, is_active)")
+      .eq("team_id", teamId)
+      .eq("restaurant_id", restaurantId)
+      .single(),
+    isRestaurantThresholdUnlocked(),
+  ]);
+
+  const row = scoreData as unknown as TeamScoreRow | null;
+  const teamScore = row?.score ?? 0;
+  const roundReached = row?.teams?.round_reached ?? "group_stage";
+  const isEliminated = !(row?.teams?.is_active ?? true);
+
+  const solo = getSoloReward(amount);
+  const community = getCommunityBonus(teamScore, restaurantUnlocked);
+  const advancement = getAdvancementBonus(roundReached, isEliminated);
+
+  if (!solo.item && !community.item && !advancement.item) return;
+
+  await adminClient.from("pending_rewards").insert({
+    user_id: userId,
+    restaurant_id: restaurantId,
+    order_id: orderId,
+    solo_item: solo.item,
+    solo_cost: solo.cost > 0 ? solo.cost : null,
+    community_item: community.item,
+    community_cost: community.cost > 0 ? community.cost : null,
+    advancement_item: advancement.item,
+    advancement_cost: advancement.cost > 0 ? advancement.cost : null,
+    status: "pending",
+  });
 }
