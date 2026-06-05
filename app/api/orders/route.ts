@@ -66,15 +66,24 @@ export async function POST(request: NextRequest) {
     amount = parseFloat(String(body.amount));
   }
 
-  const orderNumberError = validateOrderNumber(orderNumber);
-  if (orderNumberError) return NextResponse.json({ error: orderNumberError }, { status: 400 });
+  const hasBestelnummer = orderNumber.trim().length > 0;
+
+  if (hasBestelnummer) {
+    const orderNumberError = validateOrderNumber(orderNumber);
+    if (orderNumberError) return NextResponse.json({ error: orderNumberError }, { status: 400 });
+  }
 
   const amountError = validateAmount(amount);
   if (amountError) return NextResponse.json({ error: amountError }, { status: 400 });
 
-  const orderDate = orderNumber.split("/")[0];
-  const dateError = validateOrderDate(orderDate);
-  if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
+  const orderDate = hasBestelnummer
+    ? orderNumber.split("/")[0]
+    : new Date().toISOString().split("T")[0];
+
+  if (hasBestelnummer) {
+    const dateError = validateOrderDate(orderDate);
+    if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -98,7 +107,9 @@ export async function POST(request: NextRequest) {
 
     const adminClient = createAdminClient();
     const fileExt = receiptFile.type.split("/")[1] ?? "jpg";
-    const safeName = orderNumber.replace(/\//g, "-");
+    const safeName = hasBestelnummer
+      ? orderNumber.replace(/\//g, "-")
+      : `nobn-${Date.now()}`;
     const storagePath = `${restaurantId}/${user.id}/${safeName}.${fileExt}`;
     const bytes = await receiptFile.arrayBuffer();
 
@@ -118,6 +129,7 @@ export async function POST(request: NextRequest) {
   const flagReasons: string[] = [];
   const todayCount = await countTodayOrders(supabase, user.id, restaurantId);
 
+  if (!hasBestelnummer)   flagReasons.push("no_bestelnummer");
   if (parsedAmount > 200) flagReasons.push("high_amount");
   if (todayCount >= 3)    flagReasons.push("too_many_today");
   if (ocrConfidence !== null && ocrConfidence < 70) flagReasons.push("low_confidence");
@@ -141,14 +153,14 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
       team_id: profile.team_id,
       amount: parsedAmount,
-      order_number: orderNumber,
+      order_number: hasBestelnummer ? orderNumber : null,
       order_date: orderDate,
       order_time: null,
       receipt_url: receiptUrl,
       ocr_amount: ocrAmount,
       ocr_confidence: ocrConfidence,
       flag_reasons: flagReasons,
-      duplicate_key: orderNumber,
+      duplicate_key: hasBestelnummer ? orderNumber : `NOBN_${user.id}_${Date.now()}`,
       status,
       restaurant_id: restaurantId,
     })
