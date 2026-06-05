@@ -253,7 +253,7 @@ function ReferralSection({
 
   const joinUrl =
     code && typeof window !== "undefined"
-      ? `${window.location.origin}/invite?ref=${code}`
+      ? `${window.location.origin}/join?ref=${code}`
       : null;
 
   const whatsappUrl = joinUrl
