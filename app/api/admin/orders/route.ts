@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
 import { sendPush } from "@/lib/notifications";
 import { getRestaurantId } from "@/lib/restaurant";
+import { createPendingReward } from "@/lib/rewards";
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -69,17 +70,18 @@ export async function PATCH(request: NextRequest) {
       .update({ status: "validated", validated_at: now, rejection_reason: null })
       .in("id", ids)
       .eq("status", "pending")
-      .select("id, user_id, amount");
+      .select("id, user_id, amount, team_id");
 
     if (error) return NextResponse.json({ error: "Erreur lors de la validation." }, { status: 500 });
 
-    // Notifier chaque membre (best-effort, non-bloquant)
+    // Récompenses 3 couches + notifications (best-effort, non-bloquant)
     void Promise.allSettled(
-      (updated ?? []).map(o =>
-        sendPush(o.user_id, restaurantId,
+      (updated ?? []).map(async o => {
+        await createPendingReward(o.id, o.user_id, o.team_id, restaurantId, Number(o.amount)).catch(() => {});
+        await sendPush(o.user_id, restaurantId,
           `✅ Ta commande de ${Number(o.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} a été validée ! Tes récompenses t'attendent.`
-        )
-      )
+        );
+      })
     );
 
     return NextResponse.json({ updated: updated?.length ?? 0 });
@@ -95,17 +97,20 @@ export async function PATCH(request: NextRequest) {
     .from("orders")
     .update(update)
     .eq("id", id)
-    .select("user_id, amount")
+    .select("user_id, amount, team_id")
     .single();
 
   if (error) return NextResponse.json({ error: "Erreur lors de la mise à jour." }, { status: 500 });
 
-  // Notifier le membre (best-effort)
   if (updated) {
     const msg = action === "validate"
       ? `✅ Ta commande de ${Number(updated.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} a été validée ! Tes récompenses t'attendent.`
       : `❌ Ta commande a été rejetée : ${rejection_reason.trim()}`;
     void sendPush(updated.user_id, restaurantId, msg);
+
+    if (action === "validate") {
+      void createPendingReward(id, updated.user_id, updated.team_id, restaurantId, Number(updated.amount)).catch(() => {});
+    }
   }
 
   return NextResponse.json({ success: true });
