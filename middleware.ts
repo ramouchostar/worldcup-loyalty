@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/my-rewards") ||
     path.startsWith("/rewards") ||
     path.startsWith("/micro-rewards") ||
-    path.startsWith("/invite") ||
+    path.startsWith("/parrainage") ||
     path.startsWith("/leaderboard") ||
     path.startsWith("/transfer");
 
