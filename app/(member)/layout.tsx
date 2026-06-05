@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
+import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 
 const navLinks = [
   { href: "/dashboard",     label: "Dashboard",   icon: "🏠" },
@@ -22,6 +23,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       </header>
 
       <PushNotificationBanner />
+      <InAppNotificationBanner />
 
       <main className="max-w-2xl mx-auto px-4 py-6" id="main-content">
         {children}
@@ -31,7 +33,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10"
         aria-label="Navigation principale"
       >
-        <div className="max-w-2xl mx-auto flex justify-around">
+        <div className="max-w-2xl mx-auto flex justify-around pb-safe">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -46,7 +48,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         </div>
       </nav>
 
-      <div className="h-16" />
+      <div style={{ height: "calc(4rem + env(safe-area-inset-bottom, 0px))" }} />
     </div>
   );
 }
