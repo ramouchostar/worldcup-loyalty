@@ -45,8 +45,11 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/dashboard") ||
     path.startsWith("/submit-order") ||
     path.startsWith("/my-team") ||
+    path.startsWith("/my-rewards") ||
     path.startsWith("/rewards") ||
     path.startsWith("/micro-rewards") ||
+    path.startsWith("/invite") ||
+    path.startsWith("/leaderboard") ||
     path.startsWith("/transfer");
 
   const isAdminRoute = path.startsWith("/admin");
