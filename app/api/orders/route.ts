@@ -2,8 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/orders";
 import { getRestaurantId } from "@/lib/restaurant";
-import { getSoloReward, getCommunityBonus, getAdvancementBonus } from "@/lib/rewards";
-import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
+import { createPendingReward } from "@/lib/rewards";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
@@ -18,54 +17,6 @@ async function countTodayOrders(supabase: Awaited<ReturnType<typeof createServer
   return count ?? 0;
 }
 
-type TeamScoreRow = {
-  score: number;
-  teams: { round_reached: string; is_active: boolean } | null;
-};
-
-async function createPendingReward(
-  orderId: string,
-  userId: string,
-  teamId: string,
-  restaurantId: string,
-  amount: number
-) {
-  const adminClient = createAdminClient();
-
-  const [{ data: scoreData }, restaurantUnlocked] = await Promise.all([
-    adminClient
-      .from("community_scores")
-      .select("score, teams(round_reached, is_active)")
-      .eq("team_id", teamId)
-      .eq("restaurant_id", restaurantId)
-      .single(),
-    isRestaurantThresholdUnlocked(),
-  ]);
-
-  const row = scoreData as unknown as TeamScoreRow | null;
-  const teamScore = row?.score ?? 0;
-  const roundReached = row?.teams?.round_reached ?? "group_stage";
-  const isEliminated = !(row?.teams?.is_active ?? true);
-
-  const solo = getSoloReward(amount);
-  const community = getCommunityBonus(teamScore, restaurantUnlocked);
-  const advancement = getAdvancementBonus(roundReached, isEliminated);
-
-  if (!solo.item && !community.item && !advancement.item) return;
-
-  await adminClient.from("pending_rewards").insert({
-    user_id: userId,
-    restaurant_id: restaurantId,
-    order_id: orderId,
-    solo_item: solo.item,
-    solo_cost: solo.cost > 0 ? solo.cost : null,
-    community_item: community.item,
-    community_cost: community.cost > 0 ? community.cost : null,
-    advancement_item: advancement.item,
-    advancement_cost: advancement.cost > 0 ? advancement.cost : null,
-    status: "pending",
-  });
-}
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
