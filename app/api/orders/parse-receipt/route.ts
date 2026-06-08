@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
   );
 
   if (!visionRes.ok) {
+    const errBody = await visionRes.text().catch(() => "");
+    console.error("[parse-receipt] Vision API error", visionRes.status, errBody);
     return NextResponse.json(
       { error: "Erreur lors de l'analyse de l'image. Réessaie." },
       { status: 502 }
