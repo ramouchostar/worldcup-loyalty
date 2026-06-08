@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
+import Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 30;
 
@@ -13,55 +14,13 @@ function isAllowedType(type: string): type is AllowedType {
 // Bestelnummer: YYYY-MM-DD/NNN/NNNNN
 const BESTELNUMMER_RE = /\b(\d{4}-\d{2}-\d{2}\/\d{3}\/\d{5})\b/;
 
-function extractAmount(text: string): number | null {
-  // Priority: line containing TOTAAL / TOTAL / te betalen / a payer
-  const labeled = text.match(
-    /(?:TOTAAL|TOTAL|te\s+betalen|a\s+payer)[^\d]*(\d{1,3}[,\.]\d{2})/i
-  );
-  if (labeled) return parseFloat(labeled[1].replace(",", "."));
-
-  // Fallback: all decimal amounts in range €1–€500 — return the largest
-  const all = Array.from(text.matchAll(/\b(\d{1,3}[,\.]\d{2})\b/g))
-    .map((m) => parseFloat(m[1].replace(",", ".")))
-    .filter((n) => !isNaN(n) && n >= 1 && n <= 500);
-
-  return all.length ? Math.max(...all) : null;
-}
-
-function computeConfidence(
-  fullText: string,
-  orderNumber: string | null,
-  amount: number | null,
-  visionData: { responses?: { fullTextAnnotation?: { pages?: { blocks?: { confidence?: number }[] }[] } }[] }
-): number {
-  // Try to get average block confidence from Vision API
-  const pages = visionData.responses?.[0]?.fullTextAnnotation?.pages ?? [];
-  let total = 0;
-  let count = 0;
-  for (const page of pages) {
-    for (const block of (page.blocks ?? [])) {
-      if (block.confidence != null) {
-        total += block.confidence;
-        count++;
-      }
-    }
-  }
-  if (count > 0) return Math.round((total / count) * 100);
-
-  // Heuristic fallback
-  if (orderNumber && amount) return 90;
-  if (orderNumber || amount) return 65;
-  return 35;
-}
+type VisionResult = {
+  order_number: string | null;
+  amount: number | null;
+  has_restaurant_header: boolean;
+};
 
 export async function POST(request: NextRequest) {
-  if (!process.env.GOOGLE_VISION_API_KEY) {
-    return NextResponse.json(
-      { error: "Service d'analyse non configuré. Contacte l'équipe Belchicken." },
-      { status: 503 }
-    );
-  }
-
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -82,47 +41,56 @@ export async function POST(request: NextRequest) {
 
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
+  const restaurantName = process.env.NEXT_PUBLIC_RESTAURANT_NAME ?? "Belchicken";
 
-  const visionRes = await fetch(
-    `https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        requests: [
-          {
-            image: { content: base64 },
-            features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
-          },
-        ],
-      }),
-    }
-  );
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  if (!visionRes.ok) {
-    const errBody = await visionRes.text().catch(() => "");
-    console.error("[parse-receipt] Vision API error", visionRes.status, errBody);
+  let parsed: VisionResult;
+
+  try {
+    const msg = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 256,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: file.type as AllowedType,
+                data: base64,
+              },
+            },
+            {
+              type: "text",
+              text: `This is a receipt. Extract ONLY what you can clearly read:
+1. Bestelnummer: a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993) — null if not visible
+2. Total amount in euros (look for TOTAAL, TOTAL, "te betalen", "à payer") — return as a number, null if not visible
+3. Whether the word "${restaurantName}" appears anywhere on the receipt
+
+Return ONLY valid JSON, no markdown, no explanation:
+{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false}`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const rawText = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+    // Strip markdown code fences if model wraps output
+    const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    parsed = JSON.parse(jsonText) as VisionResult;
+  } catch (err) {
+    console.error("[parse-receipt] Claude vision error:", err);
     return NextResponse.json(
-      { error: "Erreur lors de l'analyse de l'image. Réessaie." },
+      { error: "Erreur lors de l'analyse de l'image. Réessaie avec une photo plus nette." },
       { status: 502 }
     );
   }
 
-  const visionData = await visionRes.json();
-  const fullText: string = visionData.responses?.[0]?.fullTextAnnotation?.text ?? "";
-
-  if (!fullText) {
-    return NextResponse.json(
-      {
-        error:
-          "Impossible de lire du texte sur cette image. Assure-toi que la photo est nette, bien éclairée et pas floue.",
-      },
-      { status: 422 }
-    );
-  }
-
-  const restaurantName = process.env.NEXT_PUBLIC_RESTAURANT_NAME ?? "Belchicken";
-  const hasRestaurantHeader = fullText.toLowerCase().includes(restaurantName.toLowerCase());
+  const hasRestaurantHeader = parsed.has_restaurant_header === true;
 
   if (!hasRestaurantHeader) {
     return NextResponse.json(
@@ -133,10 +101,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const bestelMatch = fullText.match(BESTELNUMMER_RE);
-  const orderNumber = bestelMatch ? bestelMatch[1] : null;
-  const amount = extractAmount(fullText);
-  const confidence = computeConfidence(fullText, orderNumber, amount, visionData);
+  // Validate Bestelnummer format even if Claude extracted something
+  const orderNumber =
+    typeof parsed.order_number === "string" && BESTELNUMMER_RE.test(parsed.order_number)
+      ? parsed.order_number
+      : null;
+
+  const amount =
+    typeof parsed.amount === "number" && parsed.amount >= 1 && parsed.amount <= 500
+      ? Math.round(parsed.amount * 100) / 100
+      : null;
+
+  const confidence = orderNumber && amount ? 90 : orderNumber || amount ? 65 : 35;
 
   return NextResponse.json({
     order_number: orderNumber,
