@@ -95,8 +95,7 @@ export default async function LeaderboardPage() {
         <div className="bg-white rounded-xl border border-gray-100 p-3 flex items-center gap-2 text-xs text-gray-500">
           <span>📡</span>
           <span>
-            Classement mis à jour en <strong>temps réel</strong> via Supabase Realtime
-            — Score = Membres × CA total (€)
+            Classement mis à jour en <strong>temps réel</strong> — le score reflète la fidélité et la taille de chaque communauté
           </span>
         </div>
       </div>
