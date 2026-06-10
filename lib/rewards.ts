@@ -66,15 +66,16 @@ export function getCommunityBonus(score: number, restaurantUnlocked: boolean): R
 }
 
 // Layer 3 — Advancement bonus while team is still in the tournament. No double verrou.
-// WC2026: group_stage → round_of_32 → round_of_16 → quarter_final → semi_final → final
+// WC2026 grid (CONTEXT.md): round_of_16 → Churros / quarter_final → Finest burger /
+//   semi_final → Menu 4 Tenders / final → Chef's Combo.
+// round_of_32 = qualified from groups but haven't won a knockout match yet → no bonus.
 export function getAdvancementBonus(roundReached: string, isEliminated: boolean): RewardItem {
   if (isEliminated) return { item: null, cost: 0 };
-  if (roundReached === "final" || roundReached === "semi_final" || roundReached === "winner")
-    return { item: "Chef's Combo", cost: 1.92 };
-  if (roundReached === "quarter_final") return { item: "Menu 4 Tenders", cost: 1.93 };
-  if (roundReached === "round_of_16")   return { item: "Finest burger", cost: 0.94 };
-  if (roundReached === "round_of_32")   return { item: "Churros 6 pcs", cost: 0.31 };
-  return { item: null, cost: 0 }; // group_stage — not yet advanced
+  if (roundReached === "final" || roundReached === "winner") return { item: "Chef's Combo", cost: 1.92 };
+  if (roundReached === "semi_final")    return { item: "Menu 4 Tenders", cost: 1.93 };
+  if (roundReached === "quarter_final") return { item: "Finest burger", cost: 0.94 };
+  if (roundReached === "round_of_16")   return { item: "Churros 6 pcs", cost: 0.31 };
+  return { item: null, cost: 0 }; // group_stage or round_of_32 — no bonus yet
 }
 
 // Creates the 3-layer pending_reward for a validated order.
