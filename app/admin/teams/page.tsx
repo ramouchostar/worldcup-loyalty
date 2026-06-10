@@ -15,6 +15,7 @@ type AdminTeam = {
 
 const ROUNDS = [
   { value: "group_stage",  label: "Phase de groupes" },
+  { value: "round_of_32", label: "Seizièmes" },
   { value: "round_of_16", label: "Huitièmes" },
   { value: "quarter_final", label: "Quarts" },
   { value: "semi_final",  label: "Demi-finales" },
