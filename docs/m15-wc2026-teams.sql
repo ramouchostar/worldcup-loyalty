@@ -17,8 +17,8 @@
 -- (membres attachés à ces équipes verront "éliminée" et pourront transférer)
 
 UPDATE teams SET is_active = false, eliminated_at = NOW()
-WHERE country_code IN ('PL', 'SCO', 'DZ');
--- Pologne, Écosse, Algérie → n'ont pas qualifié pour WC2026
+WHERE country_code IN ('PL', 'SCO', 'DZ', 'IT');
+-- Pologne, Écosse, Algérie, Italie → n'ont pas qualifié pour WC2026
 
 
 -- ── 2. Corriger les noms/flags des équipes existantes ─────────────────────
@@ -154,14 +154,15 @@ BEGIN
       LIMIT 1;
   END IF;
 
+  -- Grille CONTEXT.md : bonus démarre aux huitièmes (round_of_16)
+  -- round_of_32 = qualifié des groupes mais n'a pas encore gagné de knockout → pas de bonus
   IF v_team_active THEN
     SELECT t_item, t_cost INTO v_advancement_item, v_advancement_cost
       FROM (VALUES
         ('final',         'Chef''s Combo',  1.92::numeric),
-        ('semi_final',    'Chef''s Combo',  1.92::numeric),
-        ('quarter_final', 'Menu 4 Tenders', 1.93::numeric),
-        ('round_of_16',   'Finest burger',  0.94::numeric),
-        ('round_of_32',   'Churros 6 pcs',  0.31::numeric)
+        ('semi_final',    'Menu 4 Tenders', 1.93::numeric),
+        ('quarter_final', 'Finest burger',  0.94::numeric),
+        ('round_of_16',   'Churros 6 pcs',  0.31::numeric)
       ) AS t(t_round, t_item, t_cost)
       WHERE v_round_reached = t_round
       LIMIT 1;
