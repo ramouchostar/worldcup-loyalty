@@ -11,7 +11,7 @@ type AdminPendingReward = PendingReward & {
 export default function AdminPendingRewardsPage() {
   const [rewards, setRewards] = useState<AdminPendingReward[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"pending" | "redeemed">("pending");
+  const [filter, setFilter] = useState<"available" | "redeemed">("available");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -37,10 +37,10 @@ export default function AdminPendingRewardsPage() {
     setBusy(null);
   }
 
-  const pending  = rewards.filter(r => r.status === "pending");
+  const pending  = rewards.filter(r => r.status === "available");
   const redeemed = rewards.filter(r => r.status === "redeemed");
 
-  const counts = { pending: pending.length, redeemed: redeemed.length };
+  const counts = { available: pending.length, redeemed: redeemed.length };
 
   // Résumé des items à distribuer (pending seulement)
   const distribution = useMemo(() => {
@@ -53,7 +53,7 @@ export default function AdminPendingRewardsPage() {
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [pending]);
 
-  const filtered = (filter === "pending" ? pending : redeemed).filter(r => {
+  const filtered = (filter === "available" ? pending : redeemed).filter(r => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -93,7 +93,7 @@ export default function AdminPendingRewardsPage() {
       {/* Filtres + recherche */}
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
-          {(["pending", "redeemed"] as const).map((f) => (
+          {(["available", "redeemed"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -103,7 +103,7 @@ export default function AdminPendingRewardsPage() {
                   : "bg-white text-gray-600 border border-gray-200 hover:border-gray-400"
               }`}
             >
-              {f === "pending" ? "À récupérer" : "Récupérées"}
+              {f === "available" ? "À récupérer" : "Récupérées"}
               <span className="ml-1.5 opacity-60">({counts[f]})</span>
             </button>
           ))}
@@ -129,7 +129,7 @@ export default function AdminPendingRewardsPage() {
         <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
           <p className="text-gray-400">
             {search ? "Aucun résultat pour cette recherche." :
-             filter === "pending" ? "Aucune récompense en attente." : "Aucune récompense récupérée."}
+             filter === "available" ? "Aucune récompense en attente." : "Aucune récompense récupérée."}
           </p>
         </div>
       ) : (
@@ -138,7 +138,7 @@ export default function AdminPendingRewardsPage() {
             <div
               key={r.id}
               className={`bg-white rounded-xl border p-4 ${
-                r.status === "pending" ? "border-brand-gold/40" : "border-gray-100 opacity-70"
+                r.status === "available" ? "border-brand-gold/40" : "border-gray-100 opacity-70"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -186,7 +186,7 @@ export default function AdminPendingRewardsPage() {
                   </p>
                 </div>
 
-                {r.status === "pending" ? (
+                {r.status === "available" ? (
                   <button
                     onClick={() => markRedeemed(r.id)}
                     disabled={busy === r.id}
