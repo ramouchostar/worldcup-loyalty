@@ -76,6 +76,15 @@ AUTO_VALIDATE=false                 # true en dev uniquement
 ADMIN_EMAILS=                       # emails bootstrappés comme admin
 ```
 
+### ADR 0011 — Coupon de récupération anti-fraude
+- **Un seul cadeau actif** par membre à la fois — Option B : si une récompense est `available`, aucune nouvelle n'est créée jusqu'à ce qu'elle soit `redeemed` ou `expired`
+- **48h** pour récupérer avant expiration automatique
+- **Coupon 10 minutes** avec timer actif (countdown + horloge live mise à jour chaque seconde) — anti-capture d'écran
+- **€10 minimum** sur la commande de récupération — règle opérationnelle cashier, non technique
+- **Cashier valide** depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → idempotent
+- Table `redemption_tokens` : `token TEXT UNIQUE`, `expires_at = NOW() + 10 min`, `redeemed_at`
+- Index `UNIQUE` sur `pending_rewards (user_id, restaurant_id) WHERE status = 'available'`
+
 ## Issues GitHub actives
 
 Repo : `ramouchostar/worldcup-loyalty`
