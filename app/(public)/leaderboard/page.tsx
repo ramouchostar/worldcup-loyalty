@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { LeaderboardRealtime } from "@/components/LeaderboardRealtime";
 import Link from "next/link";
 import type { CommunityScore, Team } from "@/types";
+import { getRestaurantId } from "@/lib/restaurant";
 
 type LeaderboardRow = CommunityScore & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active" | "round_reached">;
@@ -31,6 +32,7 @@ export default async function LeaderboardPage() {
           round_reached
         )
       `)
+      .eq("restaurant_id", getRestaurantId())
       .order("score", { ascending: false }),
     user
       ? supabase.from("profiles").select("team_id").eq("id", user.id).single()
