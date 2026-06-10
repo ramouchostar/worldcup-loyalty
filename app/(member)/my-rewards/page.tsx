@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurantId } from "@/lib/restaurant";
 import type { PendingReward } from "@/types";
+import { RedeemButton } from "./RedeemButton";
 
 export default async function MyRewardsPage() {
   const supabase = await createServerSupabaseClient();
@@ -19,8 +20,9 @@ export default async function MyRewardsPage() {
     .order("created_at", { ascending: false });
 
   const rewards = (data as PendingReward[]) ?? [];
-  const pending  = rewards.filter(r => r.status === "pending");
-  const redeemed = rewards.filter(r => r.status === "redeemed");
+  const available = rewards.filter((r) => r.status === "available");
+  const redeemed  = rewards.filter((r) => r.status === "redeemed");
+  const expired   = rewards.filter((r) => r.status === "expired");
 
   return (
     <div className="space-y-5 pb-4">
@@ -34,12 +36,12 @@ export default async function MyRewardsPage() {
         </div>
       </div>
 
-      {/* En attente */}
+      {/* À récupérer */}
       <section>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          🛎 À récupérer ({pending.length})
+          🛎 À récupérer ({available.length})
         </h2>
-        {pending.length === 0 ? (
+        {available.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
             <p className="text-gray-400 text-sm">Aucune récompense en attente.</p>
             <Link
@@ -51,7 +53,7 @@ export default async function MyRewardsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {pending.map((r) => (
+            {available.map((r) => (
               <RewardCard key={r.id} reward={r} />
             ))}
           </div>
@@ -66,6 +68,20 @@ export default async function MyRewardsPage() {
           </h2>
           <div className="space-y-3 opacity-60">
             {redeemed.map((r) => (
+              <RewardCard key={r.id} reward={r} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Expirées */}
+      {expired.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            ⏱ Expirées ({expired.length})
+          </h2>
+          <div className="space-y-3 opacity-40">
+            {expired.map((r) => (
               <RewardCard key={r.id} reward={r} />
             ))}
           </div>
@@ -92,12 +108,15 @@ export default async function MyRewardsPage() {
 }
 
 function RewardCard({ reward }: { reward: PendingReward }) {
-  const isRedeemed = reward.status === "redeemed";
+  const isAvailable = reward.status === "available";
+  const isRedeemed  = reward.status === "redeemed";
 
   return (
-    <div className={`bg-white rounded-xl border p-4 ${
-      isRedeemed ? "border-gray-100" : "border-brand-gold/40 shadow-sm"
-    }`}>
+    <div
+      className={`bg-white rounded-xl border p-4 ${
+        isAvailable ? "border-brand-gold/40 shadow-sm" : "border-gray-100"
+      }`}
+    >
       <div className="space-y-1.5 mb-2">
         {reward.solo_item && (
           <div className="flex items-center gap-2">
@@ -125,16 +144,20 @@ function RewardCard({ reward }: { reward: PendingReward }) {
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <p className="text-xs text-gray-400">
           {new Date(reward.created_at).toLocaleDateString("fr-BE", {
-            day: "numeric", month: "short", year: "numeric"
+            day: "numeric",
+            month: "short",
+            year: "numeric",
           })}
         </p>
-        {isRedeemed ? (
+        {isAvailable ? (
+          <RedeemButton />
+        ) : isRedeemed ? (
           <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
             Récupéré ✓
           </span>
         ) : (
-          <span className="text-xs font-semibold text-brand-gold bg-brand-gold/10 px-2 py-0.5 rounded-full">
-            En attente
+          <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            Expiré
           </span>
         )}
       </div>
