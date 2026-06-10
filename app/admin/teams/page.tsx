@@ -30,6 +30,8 @@ export default function AdminTeamsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [editingRound, setEditingRound] = useState<string | null>(null);
   const [roundValue, setRoundValue] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncLog, setSyncLog] = useState<string[] | null>(null);
 
   async function fetchTeams() {
     const res = await fetch("/api/admin/teams");
@@ -48,6 +50,16 @@ export default function AdminTeamsPage() {
     });
     await fetchTeams();
     setBusy(null);
+  }
+
+  async function triggerSync() {
+    setSyncing(true);
+    setSyncLog(null);
+    const res = await fetch("/api/admin/sync-wc2026", { method: "POST" });
+    const data = await res.json();
+    setSyncLog(data.log ?? [data.error ?? "Erreur inconnue"]);
+    if (res.ok) await fetchTeams();
+    setSyncing(false);
   }
 
   async function updateRound(id: string) {
@@ -74,6 +86,39 @@ export default function AdminTeamsPage() {
         <p className="text-gray-500 text-sm mt-1">
           Gérer les équipes : élimination, avancement au tour suivant.
         </p>
+      </div>
+
+      {/* Synchro FIFA */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-semibold text-blue-900 text-sm">Synchronisation WC2026</p>
+            <p className="text-xs text-blue-600 mt-0.5">
+              Récupère les résultats depuis football-data.org et met à jour éliminations + avancements.
+            </p>
+          </div>
+          <button
+            onClick={triggerSync}
+            disabled={syncing}
+            className="shrink-0 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {syncing ? "Synchro..." : "⚽ Synchro"}
+          </button>
+        </div>
+        {syncLog && (
+          <div className="mt-3 bg-white rounded-lg border border-blue-100 p-3 max-h-40 overflow-y-auto">
+            {syncLog.length === 0
+              ? <p className="text-xs text-gray-400 italic">Aucun changement détecté.</p>
+              : syncLog.map((line, i) => (
+                  <p key={i} className={`text-xs font-mono ${
+                    line.startsWith("✓") ? "text-green-700" :
+                    line.startsWith("✗") ? "text-red-600" :
+                    line.startsWith("⚠") ? "text-amber-600" : "text-gray-600"
+                  }`}>{line}</p>
+                ))
+            }
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">
