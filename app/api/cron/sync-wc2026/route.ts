@@ -1,18 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import {
-  fetchWC2026Teams,
   fetchWC2026Matches,
   fetchWC2026Standings,
   tlaToCode,
   getBest8ThirdPlace,
   KNOCKOUT_STAGE_TO_NEXT_ROUND,
   type FDMatch,
-  type FDTeam,
 } from "@/lib/football-data";
 
-// WC2026 : 12 groupes × 6 matchs = 72 matchs de poules au total
-const GROUP_STAGE_TOTAL_MATCHES = 72;
+// 72 matchs de poules (12 groupes × 6 matchs)
+const GROUP_STAGE_TOTAL = 72;
+
+// Un match peut durer jusqu'à 120 min (prolongations) + ~15 min de tirs au but.
+// On considère qu'un match est potentiellement terminé 110 min après le coup d'envoi.
+const MATCH_DURATION_MINUTES = 110;
 
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -24,109 +26,113 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const now   = new Date().toISOString();
-  const log: string[] = [];
+  const now   = new Date();
+  const nowIso = now.toISOString();
+
+  // ── Étape 1 : y a-t-il des matchs à traiter ? ────────────────────────────
+  // On cherche les matchs dont le coup d'envoi est passé depuis au moins
+  // MATCH_DURATION_MINUTES et qui ne sont pas encore marqués FINISHED dans notre DB.
+  const threshold = new Date(now.getTime() - MATCH_DURATION_MINUTES * 60_000).toISOString();
+
+  const { data: pending } = await admin
+    .from("wc2026_matches")
+    .select("fd_id, stage, group_name, home_tla, away_tla")
+    .lt("kickoff_utc", threshold)
+    .neq("status", "FINISHED")
+    .order("kickoff_utc", { ascending: true });
+
+  if (!pending?.length) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "Aucun match en attente de résultat.",
+    });
+  }
+
+  const log: string[] = [`${pending.length} match(s) à traiter`];
 
   try {
-    // ── Étape 0 : synchro de la liste des équipes qualifiées ─────────────────
-    // L'API est la source de vérité — elle sait exactement quelles 48 équipes
-    // ont qualifié. On ne hardcode rien.
-    const apiTeams = await fetchWC2026Teams();
-    log.push(`API retourne ${apiTeams.length} équipes qualifiées`);
-    await syncQualifiedTeams(admin, apiTeams, now, log);
+    // ── Étape 2 : récupérer les résultats depuis l'API ────────────────────
+    const apiMatches = await fetchWC2026Matches();
+    const byId = new Map<number, FDMatch>(apiMatches.map((m) => [m.id, m]));
 
-    // ── Étape 1 : phases knockout ────────────────────────────────────────────
-    const matches = await fetchWC2026Matches();
-    const finishedMatches = matches.filter(m => m.status === "FINISHED");
+    let groupFinishedCount = 0;
+    let newlyFinishedKnockout: FDMatch[] = [];
 
-    const knockoutStages = Object.keys(KNOCKOUT_STAGE_TO_NEXT_ROUND);
-    const knockoutFinished = finishedMatches.filter(m => knockoutStages.includes(m.stage));
+    for (const row of pending) {
+      const m = byId.get(row.fd_id);
+      if (!m) { log.push(`⚠ Match ${row.fd_id} absent de l'API`); continue; }
 
-    for (const match of knockoutFinished) {
-      const result = processKnockoutMatch(match);
-      if (!result) continue;
+      if (m.status !== "FINISHED") {
+        log.push(`⏳ Match ${row.fd_id} toujours en cours (${m.status})`);
+        continue;
+      }
 
-      const { winnerTla, loserTla, nextRound } = result;
+      // Mettre à jour wc2026_matches
+      await admin.from("wc2026_matches").update({
+        home_tla:      m.homeTeam?.tla || null,
+        away_tla:      m.awayTeam?.tla || null,
+        home_score:    m.score.fullTime.home ?? null,
+        away_score:    m.score.fullTime.away ?? null,
+        penalties_home: m.score.penalties?.home ?? null,
+        penalties_away: m.score.penalties?.away ?? null,
+        winner:        m.score.winner ?? null,
+        status:        "FINISHED",
+        synced_at:     nowIso,
+      }).eq("fd_id", m.id);
+
+      if (m.stage === "GROUP_STAGE") {
+        log.push(`✓ Poules — ${m.homeTeam.tla} ${m.score.fullTime.home}-${m.score.fullTime.away} ${m.awayTeam.tla}`);
+      } else if (KNOCKOUT_STAGE_TO_NEXT_ROUND[m.stage]) {
+        newlyFinishedKnockout.push(m);
+      }
+    }
+
+    // ── Étape 3 : traitements knockout ────────────────────────────────────
+    for (const m of newlyFinishedKnockout) {
+      const nextRound = KNOCKOUT_STAGE_TO_NEXT_ROUND[m.stage];
+      if (!m.score.winner || m.score.winner === "DRAW") {
+        log.push(`⚠ Knockout ${m.id} sans vainqueur clair (${m.score.winner})`);
+        continue;
+      }
+
+      const winnerTla = m.score.winner === "HOME_TEAM" ? m.homeTeam.tla : m.awayTeam.tla;
+      const loserTla  = m.score.winner === "HOME_TEAM" ? m.awayTeam.tla : m.homeTeam.tla;
       const winnerCode = tlaToCode(winnerTla);
       const loserCode  = tlaToCode(loserTla);
 
-      if (!winnerCode) { log.push(`⚠ TLA inconnu (winner): ${winnerTla}`); }
-      if (!loserCode)  { log.push(`⚠ TLA inconnu (loser): ${loserTla}`); }
+      if (!winnerCode) log.push(`⚠ TLA inconnu: ${winnerTla}`);
+      if (!loserCode)  log.push(`⚠ TLA inconnu: ${loserTla}`);
 
       if (winnerCode) {
-        const { error } = await admin
-          .from("teams")
-          .update({ round_reached: nextRound, round_advanced_at: now })
+        const { error } = await admin.from("teams")
+          .update({ round_reached: nextRound, round_advanced_at: nowIso })
           .eq("country_code", winnerCode)
-          .eq("round_reached", currentRoundForStage(match.stage));
+          .eq("round_reached", currentRoundForStage(m.stage));
         if (!error) log.push(`✓ ${winnerTla} → ${nextRound}`);
       }
-
       if (loserCode) {
-        const { error } = await admin
-          .from("teams")
-          .update({ is_active: false, eliminated_at: now })
+        const { error } = await admin.from("teams")
+          .update({ is_active: false, eliminated_at: nowIso })
           .eq("country_code", loserCode)
           .eq("is_active", true);
-        if (!error) log.push(`✗ ${loserTla} éliminé (knockout)`);
+        if (!error) log.push(`✗ ${loserTla} éliminé`);
       }
     }
 
-    // ── Étape 2 : fin de phase de groupes ────────────────────────────────────
-    const groupFinished = finishedMatches.filter(m => m.stage === "GROUP_STAGE");
+    // ── Étape 4 : fin de phase de groupes ? ───────────────────────────────
+    const { count } = await admin
+      .from("wc2026_matches")
+      .select("fd_id", { count: "exact", head: true })
+      .eq("stage", "GROUP_STAGE")
+      .eq("status", "FINISHED");
 
-    if (groupFinished.length >= GROUP_STAGE_TOTAL_MATCHES) {
+    if ((count ?? 0) >= GROUP_STAGE_TOTAL) {
       log.push("Phase de groupes terminée — calcul des qualifiés");
-      const standings = await fetchWC2026Standings();
-
-      const top2Tlas: string[] = [];
-      for (const group of standings.filter(s => s.stage === "GROUP_STAGE")) {
-        top2Tlas.push(...group.table.filter(r => r.position <= 2).map(r => r.team.tla));
-      }
-
-      const best8Tlas = getBest8ThirdPlace(standings);
-
-      const allThirdsTlas = standings
-        .filter(s => s.stage === "GROUP_STAGE")
-        .map(g => g.table.find(r => r.position === 3)?.team.tla)
-        .filter(Boolean) as string[];
-      const allFourthsTlas = standings
-        .filter(s => s.stage === "GROUP_STAGE")
-        .map(g => g.table.find(r => r.position === 4)?.team.tla)
-        .filter(Boolean) as string[];
-
-      const eliminatedGroupTlas = [
-        ...allThirdsTlas.filter(tla => !best8Tlas.includes(tla)),
-        ...allFourthsTlas,
-      ];
-
-      for (const tla of [...top2Tlas, ...best8Tlas]) {
-        const code = tlaToCode(tla);
-        if (!code) { log.push(`⚠ TLA inconnu (qualifié groupes): ${tla}`); continue; }
-        await admin.from("teams")
-          .update({ round_reached: "round_of_32", round_advanced_at: now })
-          .eq("country_code", code)
-          .eq("round_reached", "group_stage");
-        log.push(`✓ ${tla} → round_of_32`);
-      }
-
-      for (const tla of eliminatedGroupTlas) {
-        const code = tlaToCode(tla);
-        if (!code) { log.push(`⚠ TLA inconnu (éliminé groupes): ${tla}`); continue; }
-        await admin.from("teams")
-          .update({ is_active: false, eliminated_at: now })
-          .eq("country_code", code)
-          .eq("is_active", true);
-        log.push(`✗ ${tla} éliminé (groupes)`);
-      }
+      await processGroupStageQualification(admin, nowIso, log);
     }
 
-    return NextResponse.json({
-      ok: true,
-      synced_at: now,
-      finished_matches: finishedMatches.length,
-      log,
-    });
+    return NextResponse.json({ ok: true, synced_at: nowIso, log });
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -135,110 +141,75 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ── Synchro de la liste des équipes qualifiées ───────────────────────────────
-// Source de vérité : football-data.org /competitions/WC/teams
-// - Équipes dans l'API → is_active = true (elles ont qualifié)
-// - Équipes dans notre DB mais absentes de l'API → is_active = false (non-qualifiées)
-// - Équipes dans l'API mais absentes de notre DB → INSERT automatique
-async function syncQualifiedTeams(
+// ── Qualification phase de groupes ───────────────────────────────────────────
+async function processGroupStageQualification(
   admin: ReturnType<typeof createAdminClient>,
-  apiTeams: FDTeam[],
   now: string,
   log: string[]
 ) {
-  const qualifiedTlas = new Set(apiTeams.map(t => t.tla));
-
-  // Récupère toutes nos équipes
-  const { data: dbTeams } = await admin.from("teams").select("id, name, country_code, is_active");
-  if (!dbTeams) return;
-
-  // Map country_code → id pour les lookups
-  const dbByCode = new Map(dbTeams.map(t => [t.country_code, t]));
-
-  // Équipes de l'API → marquer actives si elles ne le sont pas déjà
-  for (const apiTeam of apiTeams) {
-    const code = tlaToCode(apiTeam.tla);
-    if (!code) {
-      log.push(`⚠ TLA sans mapping country_code: ${apiTeam.tla} (${apiTeam.name}) — à ajouter dans TLA_TO_COUNTRY_CODE`);
-      continue;
-    }
-
-    const dbTeam = dbByCode.get(code);
-
-    if (!dbTeam) {
-      // Équipe qualifiée mais absente de notre DB → INSERT
-      const { error } = await admin.from("teams").insert({
-        name: apiTeam.shortName || apiTeam.name,
-        flag_emoji: "🏳️", // placeholder — à corriger via admin/teams
-        country_code: code,
-        is_active: true,
-      });
-      if (!error) {
-        log.push(`+ ${apiTeam.tla} (${apiTeam.name}) inséré — mettre à jour le flag_emoji via admin`);
-        // INSERT community_scores pour ce nouveau team
-        const { data: newTeam } = await admin.from("teams").select("id").eq("country_code", code).single();
-        if (newTeam) {
-          const { data: restaurants } = await admin
-            .from("community_scores")
-            .select("restaurant_id")
-            .limit(1);
-          const restaurantId = (restaurants?.[0] as { restaurant_id: string } | undefined)?.restaurant_id;
-          if (restaurantId) {
-            await admin.from("community_scores").insert({
-              team_id: newTeam.id,
-              restaurant_id: restaurantId,
-              member_count: 0,
-              total_spent: 0,
-            });
-          }
-        }
-      }
-    } else if (!dbTeam.is_active) {
-      // Équipe dans l'API mais marquée inactive dans notre DB → réactiver
-      await admin.from("teams")
-        .update({ is_active: true, eliminated_at: null })
-        .eq("id", dbTeam.id);
-      log.push(`↑ ${apiTeam.tla} réactivé (présent dans l'API WC2026)`);
-    }
+  // Vérifie si c'est déjà traité (au moins un team en round_of_32)
+  const { count: alreadyDone } = await admin
+    .from("teams")
+    .select("id", { count: "exact", head: true })
+    .eq("round_reached", "round_of_32");
+  if ((alreadyDone ?? 0) > 0) {
+    log.push("Qualification groupes déjà traitée — skip");
+    return;
   }
 
-  // Équipes de notre DB absentes de l'API → non-qualifiées → marquer inactives
-  for (const dbTeam of dbTeams) {
-    const tla = Object.entries(
-      (await import("@/lib/football-data")).TLA_TO_COUNTRY_CODE
-    ).find(([, code]) => code === dbTeam.country_code)?.[0];
+  const standings = await fetchWC2026Standings();
 
-    if (!tla) continue; // pas dans notre mapping → ignorer (équipe test etc.)
-    if (!qualifiedTlas.has(tla) && dbTeam.is_active) {
-      await admin.from("teams")
-        .update({ is_active: false, eliminated_at: now })
-        .eq("id", dbTeam.id);
-      log.push(`✗ ${tla} (${dbTeam.name}) → non-qualifié selon l'API`);
-    }
+  const top2Tlas: string[] = [];
+  for (const group of standings.filter((s) => s.stage === "GROUP_STAGE")) {
+    top2Tlas.push(...group.table.filter((r) => r.position <= 2).map((r) => r.team.tla));
+  }
+
+  const best8Tlas = getBest8ThirdPlace(standings);
+
+  const allThirdsTlas = standings
+    .filter((s) => s.stage === "GROUP_STAGE")
+    .map((g) => g.table.find((r) => r.position === 3)?.team.tla)
+    .filter(Boolean) as string[];
+  const allFourthsTlas = standings
+    .filter((s) => s.stage === "GROUP_STAGE")
+    .map((g) => g.table.find((r) => r.position === 4)?.team.tla)
+    .filter(Boolean) as string[];
+
+  const eliminated = [
+    ...allThirdsTlas.filter((tla) => !best8Tlas.includes(tla)),
+    ...allFourthsTlas,
+  ];
+
+  for (const tla of [...top2Tlas, ...best8Tlas]) {
+    const code = tlaToCode(tla);
+    if (!code) { log.push(`⚠ TLA inconnu (qualifié): ${tla}`); continue; }
+    await admin.from("teams")
+      .update({ round_reached: "round_of_32", round_advanced_at: now })
+      .eq("country_code", code)
+      .eq("round_reached", "group_stage");
+    log.push(`✓ ${tla} → round_of_32`);
+  }
+
+  for (const tla of eliminated) {
+    const code = tlaToCode(tla);
+    if (!code) { log.push(`⚠ TLA inconnu (éliminé): ${tla}`); continue; }
+    await admin.from("teams")
+      .update({ is_active: false, eliminated_at: now })
+      .eq("country_code", code)
+      .eq("is_active", true);
+    log.push(`✗ ${tla} éliminé (groupes)`);
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function processKnockoutMatch(match: FDMatch): {
-  winnerTla: string; loserTla: string; nextRound: string;
-} | null {
-  const { score, homeTeam, awayTeam, stage } = match;
-  const nextRound = KNOCKOUT_STAGE_TO_NEXT_ROUND[stage];
-  if (!nextRound) return null;
-  if (!score.winner || score.winner === "DRAW") return null;
-  const winnerTla = score.winner === "HOME_TEAM" ? homeTeam.tla : awayTeam.tla;
-  const loserTla  = score.winner === "HOME_TEAM" ? awayTeam.tla : homeTeam.tla;
-  return { winnerTla, loserTla, nextRound };
-}
+// ── Helper ────────────────────────────────────────────────────────────────────
 
 function currentRoundForStage(stage: string): string {
   const map: Record<string, string> = {
-    'ROUND_OF_32':    'round_of_32',
-    'ROUND_OF_16':    'round_of_16',
-    'QUARTER_FINALS': 'quarter_final',
-    'SEMI_FINALS':    'semi_final',
-    'FINAL':          'final',
+    ROUND_OF_32:    "round_of_32",
+    ROUND_OF_16:    "round_of_16",
+    QUARTER_FINALS: "quarter_final",
+    SEMI_FINALS:    "semi_final",
+    FINAL:          "final",
   };
-  return map[stage] ?? '';
+  return map[stage] ?? "";
 }
