@@ -33,6 +33,7 @@ const COMMUNITY_TIERS = [
 
 const TOURNAMENT_ROUNDS = [
   { key: "group_stage",   label: "Groupes" },
+  { key: "round_of_32",   label: "1/32" },
   { key: "round_of_16",   label: "1/8" },
   { key: "quarter_final", label: "1/4" },
   { key: "semi_final",    label: "1/2" },
