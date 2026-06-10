@@ -14,8 +14,10 @@ export type FDTeamRef = { id: number; name: string; tla: string };
 
 export type FDMatch = {
   id: number;
+  utcDate: string;   // ISO kickoff time, e.g. "2026-06-11T21:00:00Z"
   status: MatchStatus;
   stage: string;
+  group?: string;    // "GROUP_A" ... "GROUP_L", absent for knockout
   homeTeam: FDTeamRef;
   awayTeam: FDTeamRef;
   score: {
