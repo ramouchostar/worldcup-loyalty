@@ -76,10 +76,36 @@ export const KNOCKOUT_STAGE_TO_NEXT_ROUND: Record<string, string> = {
   'FINAL':          'winner',
 };
 
+// ── Types équipes ─────────────────────────────────────────────────────────────
+
+export type FDTeam = {
+  id: number;
+  name: string;
+  shortName: string;
+  tla: string;
+  crest: string;
+  area: { name: string; code: string };
+};
+
 // ── Appels API ───────────────────────────────────────────────────────────────
 
 function headers() {
   return { "X-Auth-Token": process.env.FOOTBALL_DATA_API_KEY ?? "" };
+}
+
+// Liste officielle des 48 équipes qualifiées pour WC2026
+// C'est la source de vérité pour savoir qui est qualifié
+export async function fetchWC2026Teams(): Promise<FDTeam[]> {
+  const res = await fetch(`${BASE_URL}/competitions/WC/teams?season=2026`, {
+    headers: headers(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`football-data.org teams ${res.status}: ${body}`);
+  }
+  const data = await res.json();
+  return (data.teams ?? []) as FDTeam[];
 }
 
 export async function fetchWC2026Matches(): Promise<FDMatch[]> {
