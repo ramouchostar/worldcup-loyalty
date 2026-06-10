@@ -32,6 +32,8 @@ export default function AdminTeamsPage() {
   const [roundValue, setRoundValue] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncLog, setSyncLog] = useState<string[] | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
 
   async function fetchTeams() {
     const res = await fetch("/api/admin/teams");
@@ -50,6 +52,15 @@ export default function AdminTeamsPage() {
     });
     await fetchTeams();
     setBusy(null);
+  }
+
+  async function importSchedule() {
+    setImporting(true);
+    setImportResult(null);
+    const res = await fetch("/api/admin/import-schedule", { method: "POST" });
+    const data = await res.json();
+    setImportResult(res.ok ? `✓ ${data.imported} matchs importés` : `✗ ${data.error}`);
+    setImporting(false);
   }
 
   async function triggerSync() {
@@ -86,6 +97,31 @@ export default function AdminTeamsPage() {
         <p className="text-gray-500 text-sm mt-1">
           Gérer les équipes : élimination, avancement au tour suivant.
         </p>
+      </div>
+
+      {/* Import calendrier — action unique */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-semibold text-gray-800 text-sm">Importer le calendrier WC2026</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Action unique — récupère les 104 matchs (dates + heures) depuis football-data.org.
+              À faire une seule fois avant le début du tournoi.
+            </p>
+          </div>
+          <button
+            onClick={importSchedule}
+            disabled={importing}
+            className="shrink-0 bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-900 disabled:opacity-50 transition-colors"
+          >
+            {importing ? "Import..." : "📅 Importer"}
+          </button>
+        </div>
+        {importResult && (
+          <p className={`mt-2 text-xs font-mono ${importResult.startsWith("✓") ? "text-green-700" : "text-red-600"}`}>
+            {importResult}
+          </p>
+        )}
       </div>
 
       {/* Synchro FIFA */}
