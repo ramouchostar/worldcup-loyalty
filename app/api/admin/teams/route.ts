@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase";
 
 const VALID_ROUNDS = [
   "group_stage",
+  "round_of_32",
   "round_of_16",
   "quarter_final",
   "semi_final",
@@ -54,6 +55,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Stade invalide." }, { status: 400 });
     }
     update.round_reached = round_reached;
+    // Set round_advanced_at to activate the ×1.5 score bonus (ADR 0002)
+    if (round_reached !== "group_stage") {
+      update.round_advanced_at = new Date().toISOString();
+    }
   }
 
   if (Object.keys(update).length === 0) {
