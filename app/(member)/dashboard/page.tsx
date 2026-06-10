@@ -9,6 +9,7 @@ import { ScoreCard } from "@/components/member/ScoreCard";
 import { PushPrompt } from "@/components/member/PushPrompt";
 import { InstallBanner } from "@/components/InstallBanner";
 import type { Order, PendingReward } from "@/types";
+import { RedeemButton } from "@/app/(member)/my-rewards/RedeemButton";
 
 type ProfileWithTeam = {
   display_name: string;
@@ -70,7 +71,7 @@ export default async function DashboardPage() {
       .select("*")
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
-      .eq("status", "pending")
+      .eq("status", "available")
       .order("created_at", { ascending: false }),
     supabase
       .from("pending_rewards")
@@ -242,9 +243,14 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-brand-gold/20">
-            Montre ton profil au comptoir Belchicken pour récupérer tes cadeaux.
-          </p>
+          <div className="mt-3 pt-3 border-t border-brand-gold/20 flex items-center justify-between">
+            <p className="text-xs text-gray-500">
+              {pendingRewards.length > 1
+                ? `${pendingRewards.length} cadeaux à récupérer au comptoir`
+                : "Cadeau à récupérer au comptoir"}
+            </p>
+            <RedeemButton />
+          </div>
         </div>
       )}
 
