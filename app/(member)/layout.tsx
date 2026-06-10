@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { createServerSupabaseClient } from "@/lib/supabase";
+import { UserNav } from "@/components/member/UserNav";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 
@@ -10,7 +12,10 @@ const navLinks = [
   { href: "/leaderboard",   label: "Classement",  icon: "🏆" },
 ];
 
-export default function MemberLayout({ children }: { children: React.ReactNode }) {
+export default async function MemberLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
@@ -18,7 +23,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           <Link href="/dashboard" className="font-bold text-lg tracking-tight" aria-label="Accueil WorldCup Loyalty">
             🏆 <span className="text-brand-gold">WorldCup</span> Loyalty
           </Link>
-          <span className="text-xs text-gray-400" aria-hidden="true">Belchicken</span>
+          <UserNav email={user?.email ?? ""} />
         </div>
       </header>
 
