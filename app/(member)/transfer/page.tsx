@@ -57,6 +57,7 @@ export default async function TransferPage() {
 
   const roundLabels: Record<string, string> = {
     group_stage: "Phase de groupes",
+    round_of_32: "Seizièmes de finale",
     round_of_16: "Huitièmes de finale",
     quarter_final: "Quarts de finale",
     semi_final: "Demi-finales",
