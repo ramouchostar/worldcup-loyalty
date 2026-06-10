@@ -37,7 +37,7 @@ export default async function LeaderboardPage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  const scores = (scoresRaw as unknown as LeaderboardRow[]) ?? [];
+  const scores = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter(s => s.teams?.is_active);
   const myTeamId = (profileResult.data as { team_id: string } | null)?.team_id ?? undefined;
 
   const totalMembers = scores.reduce((sum, s) => sum + s.member_count, 0);
