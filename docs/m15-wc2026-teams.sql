@@ -70,12 +70,14 @@ INSERT INTO teams (name, flag_emoji, country_code) VALUES
   ('Indonésie',        '🇮🇩', 'ID');
 
 
--- ── 4. Community scores (0/0) pour chaque nouvelle équipe ─────────────────
+-- ── 4. Community scores (0/0) pour chaque nouvelle équipe × restaurant ────
 
-INSERT INTO community_scores (team_id, member_count, total_spent)
-SELECT t.id, 0, 0
+INSERT INTO community_scores (team_id, restaurant_id, member_count, total_spent)
+SELECT t.id, r.restaurant_id, 0, 0
 FROM teams t
-LEFT JOIN community_scores cs ON cs.team_id = t.id
+CROSS JOIN (SELECT DISTINCT restaurant_id FROM community_scores) r
+LEFT JOIN community_scores cs
+       ON cs.team_id = t.id AND cs.restaurant_id = r.restaurant_id
 WHERE cs.team_id IS NULL;
 
 
