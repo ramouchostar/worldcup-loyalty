@@ -44,6 +44,11 @@ export async function GET(request: NextRequest) {
   }
 
   if (!authError) {
+    // Récupération de mot de passe → page dédiée avant toute redirection
+    if (type === "recovery") {
+      return NextResponse.redirect(`${origin}/reset-password`);
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const adminEmails = (process.env.ADMIN_EMAILS ?? "")
