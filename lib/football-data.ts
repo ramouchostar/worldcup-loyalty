@@ -52,17 +52,20 @@ export const TLA_TO_COUNTRY_CODE: Record<string, string> = {
   'NED': 'NL',  'ITA': 'IT', 'CRO': 'HR', 'DEN': 'DK', 'SUI': 'CH',
   'POL': 'PL',  'SRB': 'RS', 'AUT': 'AT', 'TUR': 'TR',
   'SCO': 'SCO', // Écosse — country_code 'SCO' dans notre DB (non-ISO)
-  'HUN': 'HU',  'ALB': 'AL',
+  'HUN': 'HU',  'ALB': 'AL', 'BIH': 'BA', 'NOR': 'NO', 'SWE': 'SE', 'CZE': 'CZ',
+  'ROU': 'RO',  'SVK': 'SK', // dans le mapping pour les matchs API même si non qualifiées
   // CAF
   'MAR': 'MA', 'ALG': 'DZ', 'SEN': 'SN', 'CMR': 'CM', 'TUN': 'TN',
   'NGA': 'NG', 'EGY': 'EG', 'MLI': 'ML', 'RSA': 'ZA', 'CIV': 'CI',
+  'GHA': 'GH', 'CPV': 'CV', 'COD': 'CD',
   // CONMEBOL
   'BRA': 'BR', 'ARG': 'AR', 'URU': 'UY', 'COL': 'CO', 'ECU': 'EC', 'VEN': 'VE',
   // CONCACAF
-  'USA': 'US', 'MEX': 'MX', 'CAN': 'CA', 'PAN': 'PA', 'CRC': 'CR', 'HON': 'HN', 'CUW': 'CW',
+  'USA': 'US', 'MEX': 'MX', 'CAN': 'CA', 'PAN': 'PA', 'CRC': 'CR', 'HON': 'HN',
+  'CUW': 'CW', 'HAI': 'HT', 'JAM': 'JM', 'PAR': 'PY',
   // AFC
   'JPN': 'JP', 'KOR': 'KR', 'KSA': 'SA', 'IRN': 'IR', 'AUS': 'AU',
-  'IRQ': 'IQ', 'JOR': 'JO', 'UZB': 'UZ',
+  'IRQ': 'IQ', 'JOR': 'JO', 'UZB': 'UZ', 'QAT': 'QA',
   // OFC
   'NZL': 'NZ',
   // Barrages intercontinentaux
