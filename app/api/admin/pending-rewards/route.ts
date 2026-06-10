@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest) {
     .update({ status: "redeemed", redeemed_at: new Date().toISOString() })
     .eq("id", id)
     .eq("restaurant_id", getRestaurantId())
-    .eq("status", "pending")   // idempotency — ne peut être marqué qu'une seule fois
+    .eq("status", "available")  // idempotency — ne peut être marqué qu'une seule fois
     .select()
     .single();
 
