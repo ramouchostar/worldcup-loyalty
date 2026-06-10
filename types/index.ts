@@ -122,7 +122,7 @@ export type RestaurantThreshold = {
   created_at: string;
 };
 
-export type PendingRewardStatus = "pending" | "redeemed";
+export type PendingRewardStatus = "pending" | "redeemed" | "expired" | "available";
 
 export type PendingReward = {
   id: string;
@@ -130,8 +130,11 @@ export type PendingReward = {
   order_id: string;
   restaurant_id: string;
   solo_item: string | null;
+  solo_cost: number | null;
   community_item: string | null;
+  community_cost: number | null;
   advancement_item: string | null;
+  advancement_cost: number | null;
   status: PendingRewardStatus;
   created_at: string;
   redeemed_at: string | null;
