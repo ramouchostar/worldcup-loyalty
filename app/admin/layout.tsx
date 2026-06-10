@@ -8,6 +8,7 @@ const navLinks = [
   { href: "/admin/referrals",        label: "👥 Parrainages" },
   { href: "/admin/teams",            label: "🏴 Équipes" },
   { href: "/admin/thresholds",       label: "🎯 Seuils CA" },
+  { href: "/admin/sandbox",          label: "🧪 Sandbox" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
