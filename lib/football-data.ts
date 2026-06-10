@@ -59,7 +59,7 @@ export const TLA_TO_COUNTRY_CODE: Record<string, string> = {
   // CONMEBOL
   'BRA': 'BR', 'ARG': 'AR', 'URU': 'UY', 'COL': 'CO', 'ECU': 'EC', 'VEN': 'VE',
   // CONCACAF
-  'USA': 'US', 'MEX': 'MX', 'CAN': 'CA', 'PAN': 'PA', 'CRC': 'CR', 'HON': 'HN',
+  'USA': 'US', 'MEX': 'MX', 'CAN': 'CA', 'PAN': 'PA', 'CRC': 'CR', 'HON': 'HN', 'CUW': 'CW',
   // AFC
   'JPN': 'JP', 'KOR': 'KR', 'KSA': 'SA', 'IRN': 'IR', 'AUS': 'AU',
   'IRQ': 'IQ', 'JOR': 'JO', 'UZB': 'UZ',
