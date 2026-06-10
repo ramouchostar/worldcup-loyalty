@@ -165,7 +165,7 @@ export default async function LandingPage() {
           </div>
 
           <p className="text-xs text-gray-500 mt-4 text-center">
-            Score = Membres × CA total (€) · Bonus ×1.5 après chaque qualification
+            Le score reflète la fidélité et la taille de ta communauté · Bonus ×1.5 après chaque qualification
           </p>
         </div>
       </div>
