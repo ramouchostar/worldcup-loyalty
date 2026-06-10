@@ -71,8 +71,16 @@ Grille Coupe du Monde 2026 : Huitièmes → +Churros 6 pcs / Quarts → +Finest 
 _Avoid_ : bonus de victoire, pari, récompense de match, bonus de tour (terme réservé au ×1.5 d'affichage).
 
 **Récompense en attente** :
-Enregistrement dans `pending_rewards` créé à chaque validation de commande. Contient le palier solo + bonus communautaire + récompense d'avancement calculés au moment de la validation. Affiché sur le dashboard comme promesse concrète avant la prochaine visite ("Ton prochain passage : Finest burger + Churros 12 pcs 🎁"). Marqué `redeemed` quand le membre récupère son cadeau au comptoir (validation admin).
+Enregistrement unique dans `pending_rewards` par membre (un seul actif à la fois — ADR 0011). Créé à chaque validation de commande si aucune récompense active n'existe déjà. Contient les 3 couches (palier solo + bonus communautaire + récompense d'avancement). Expire automatiquement après **48h** (`status = 'expired'`). Affiché sur le dashboard avec un compte à rebours 48h. Récupéré via coupon actif au comptoir.
 _Avoid_ : crédit, cagnotte, reward (anglicisme).
+
+**Coupon de récupération** :
+Jeton à durée de vie de **10 minutes** généré quand le membre active "Récupérer mon cadeau" au restaurant. Affiché sur `/coupon/[token]` avec un countdown animé et une horloge live (mise à jour chaque seconde) — anti-capture d'écran : le cashier vérifie que l'heure affichée correspond à sa montre et que le timer tourne. Contient le nom du membre (vérification identité), les items à remettre, et expire côté serveur (pas seulement côté client). Invalidé immédiatement après validation cashier. Commande minimum **€10** sur la visite de récupération (règle opérationnelle, vérifiée par le cashier). Voir ADR 0011.
+_Avoid_ : QR code (non utilisé), voucher, bon de réduction.
+
+**Récupération** :
+Action du cashier qui valide le coupon de récupération depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → `redeemed_at = NOW()`, `pending_rewards.status = 'redeemed'`. Idempotente (double-tap ignoré). Débloque la génération d'une nouvelle récompense à la prochaine commande du membre.
+_Avoid_ : remboursement, échange, validation (terme réservé à la validation des commandes).
 
 **Micro-récompense** :
 Action sociale unique récompensée par un jeton : avis Google, abonnement Instagram, abonnement TikTok, abonnement Facebook. Non soumise au double verrou. Une seule fois par type par membre. Maximum 4 jetons sociaux par membre.
