@@ -99,16 +99,12 @@ export default async function MyTeamPage() {
         />
       </div>
 
-      {/* Formule du score */}
+      {/* Info score */}
       <div className="bg-brand-dark rounded-xl p-4 text-white">
-        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Comment le score est calculé</p>
-        <div className="flex items-center gap-2 text-sm font-mono">
-          <span className="bg-white/10 rounded px-2 py-1">Membres</span>
-          <span className="text-brand-gold font-bold text-lg">×</span>
-          <span className="bg-white/10 rounded px-2 py-1">CA total (€)</span>
-          <span className="text-brand-gold font-bold text-lg">=</span>
-          <span className="bg-brand-gold text-brand-dark rounded px-2 py-1 font-bold">Score</span>
-        </div>
+        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Score communautaire</p>
+        <p className="text-sm text-gray-300">
+          Chaque commande directe validée fait progresser le score de ta communauté.
+        </p>
         <p className="text-xs text-gray-400 mt-2">
           Bonus ×1.5 pendant 48h après chaque qualification de ton équipe.
         </p>
