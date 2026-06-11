@@ -29,7 +29,7 @@ export default async function MyTeamPage() {
   const [{ data: scoreRaw }, { data: allScores }] = await Promise.all([
     supabase
       .from("community_scores")
-      .select("team_id, member_count, total_spent, score, last_updated")
+      .select("team_id, member_count, score, last_updated")
       .eq("team_id", profile.team_id)
       .single(),
     supabase
@@ -38,7 +38,8 @@ export default async function MyTeamPage() {
       .order("score", { ascending: false }),
   ]);
 
-  const score = scoreRaw as CommunityScore | null;
+  // total_spent (euros) jamais sélectionné côté client — ADR 0007
+  const score = scoreRaw as Omit<CommunityScore, "total_spent"> | null;
   const leaderboard = (allScores as unknown as LeaderboardEntry[]) ?? [];
   const rank = leaderboard.findIndex((s) => s.team_id === profile.team_id) + 1;
   const team = profile.teams;
