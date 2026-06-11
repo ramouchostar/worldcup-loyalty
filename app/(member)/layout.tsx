@@ -3,14 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { UserNav } from "@/components/member/UserNav";
 import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
-
-const navLinks = [
-  { href: "/dashboard",     label: "Dashboard",   icon: "🏠" },
-  { href: "/submit-order",  label: "Commande",    icon: "🧾" },
-  { href: "/rewards",       label: "Récompenses", icon: "🎁" },
-  { href: "/micro-rewards", label: "Actions",     icon: "⭐" },
-  { href: "/leaderboard",   label: "Classement",  icon: "🏆" },
-];
+import { BottomNav } from "@/components/member/BottomNav";
+import { InstallPrompt } from "@/components/member/InstallPrompt";
 
 export default async function MemberLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
@@ -27,6 +21,7 @@ export default async function MemberLayout({ children }: { children: React.React
         </div>
       </header>
 
+      <InstallPrompt />
       <PushNotificationBanner />
       <InAppNotificationBanner />
 
@@ -34,24 +29,7 @@ export default async function MemberLayout({ children }: { children: React.React
         {children}
       </main>
 
-      <nav
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10"
-        aria-label="Navigation principale"
-      >
-        <div className="max-w-2xl mx-auto flex justify-around pb-safe">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="flex flex-col items-center py-2 px-1 text-xs text-gray-600 hover:text-brand-red transition-colors min-w-0"
-              aria-label={link.label}
-            >
-              <span className="text-lg leading-none mb-0.5" aria-hidden="true">{link.icon}</span>
-              <span className="truncate">{link.label}</span>
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <BottomNav />
 
       <div style={{ height: "calc(4rem + env(safe-area-inset-bottom, 0px))" }} />
     </div>
