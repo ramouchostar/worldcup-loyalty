@@ -5,6 +5,14 @@ import { sendPush } from "@/lib/notifications";
 import { getRestaurantId } from "@/lib/restaurant";
 import { createPendingReward } from "@/lib/rewards";
 
+// receipt_url stocke un chemin storage (bucket privé — ADR 0003).
+// Les anciennes lignes contiennent encore une URL publique complète :
+// on en extrait le chemin pour pouvoir les signer aussi.
+function toStoragePath(value: string): string | null {
+  if (!value.startsWith("http")) return value;
+  return value.split("/receipts/")[1] ?? null;
+}
+
 export async function GET() {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
@@ -37,7 +45,26 @@ export async function GET() {
     .order("submitted_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
-  return NextResponse.json(data ?? []);
+
+  // Remplace les chemins storage par des URLs signées temporaires (1h)
+  const orders = data ?? [];
+  const paths = orders.map((o) => (o.receipt_url ? toStoragePath(o.receipt_url) : null));
+  const validPaths = Array.from(new Set(paths.filter((p): p is string => p !== null)));
+
+  if (validPaths.length > 0) {
+    const { data: signed } = await admin.storage
+      .from("receipts")
+      .createSignedUrls(validPaths, 3600);
+    const signedByPath = new Map(
+      (signed ?? []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl])
+    );
+    orders.forEach((o, i) => {
+      const p = paths[i];
+      o.receipt_url = p ? signedByPath.get(p) ?? null : null;
+    });
+  }
+
+  return NextResponse.json(orders);
 }
 
 export async function PATCH(request: NextRequest) {
