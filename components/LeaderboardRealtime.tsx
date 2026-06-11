@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import type { CommunityScore, Team } from "@/types";
 
-type LeaderboardRow = CommunityScore & {
+// total_spent (euros) ne doit jamais entrer dans ce composant — ADR 0007
+type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active" | "round_reached">;
 };
 
@@ -36,13 +37,20 @@ export function LeaderboardRealtime({
         "postgres_changes",
         { event: "*", schema: "public", table: "community_scores" },
         (payload) => {
-          const updated = payload.new as Omit<LeaderboardRow, "teams">;
+          // Ne reprendre que les champs autorisés côté client — le payload
+          // realtime contient la ligne complète (dont total_spent)
+          const updated = payload.new as CommunityScore;
           setRows((prev) => {
             const idx = prev.findIndex((r) => r.team_id === updated.team_id);
             if (idx === -1) return prev;
 
             const next = [...prev];
-            next[idx] = { ...next[idx], ...updated };
+            next[idx] = {
+              ...next[idx],
+              member_count: updated.member_count,
+              score: updated.score,
+              last_updated: updated.last_updated,
+            };
             next.sort((a, b) => b.score - a.score);
             return next;
           });
