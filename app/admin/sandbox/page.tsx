@@ -54,6 +54,10 @@ export default function SandboxPage() {
   const [cronBusy, setCronBusy] = useState<"notif" | "sync" | null>(null);
   const [cronResult, setCronResult] = useState<Result | null>(null);
 
+  // Reset test
+  const [resetTestBusy, setResetTestBusy] = useState(false);
+  const [resetTestResult, setResetTestResult] = useState<Result | null>(null);
+
   // Reset
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
@@ -111,6 +115,20 @@ export default function SandboxPage() {
       setScoreResult({ error: err instanceof Error ? err.message : String(err) });
     } finally {
       setScoreBusy(false);
+    }
+  }
+
+  async function resetTest() {
+    if (!userId) { setResetTestResult({ error: "Sélectionne un membre d'abord." }); return; }
+    setResetTestBusy(true);
+    setResetTestResult(null);
+    try {
+      const r = await post({ action: "reset_test", user_id: userId });
+      setResetTestResult(r);
+    } catch (err: unknown) {
+      setResetTestResult({ error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setResetTestBusy(false);
     }
   }
 
@@ -312,6 +330,19 @@ export default function SandboxPage() {
             Lance les jobs planifiés immédiatement sans attendre cron-job.org.
           </p>
         </div>
+        <button
+          onClick={resetTest}
+          disabled={resetTestBusy || !userId}
+          className="w-full bg-purple-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+        >
+          {resetTestBusy ? "Reset..." : "🔄 Reset test — log + last_notified_at + orders → -7h"}
+        </button>
+        {resetTestResult && (
+          <p className={`text-xs font-mono ${resetTestResult.ok ? "text-green-700" : "text-red-600"}`}>
+            {resetTestResult.ok ? `✓ ${resetTestResult.reset}` : `✗ ${resetTestResult.error}`}
+          </p>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => triggerCron("trigger_notifications")}
