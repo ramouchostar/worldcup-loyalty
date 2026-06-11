@@ -1,6 +1,7 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
 import { getRestaurantId } from "./restaurant";
 import { isRestaurantThresholdUnlocked } from "./thresholds";
+import { getBudgetStatus, incrementRewardsCost } from "./budget";
 import type { Reward } from "@/types";
 
 type TeamScoreRow = {
@@ -93,7 +94,7 @@ export async function createPendingReward(
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const [{ data: scoreData }, restaurantUnlocked] = await Promise.all([
+  const [{ data: scoreData }, restaurantUnlocked, budget] = await Promise.all([
     adminClient
       .from("community_scores")
       .select("score, teams(round_reached, is_active)")
@@ -101,6 +102,7 @@ export async function createPendingReward(
       .eq("restaurant_id", restaurantId)
       .single(),
     isRestaurantThresholdUnlocked(),
+    getBudgetStatus(restaurantId),
   ]);
 
   const row = scoreData as unknown as TeamScoreRow | null;
@@ -108,13 +110,17 @@ export async function createPendingReward(
   const roundReached = row?.teams?.round_reached ?? "group_stage";
   const isEliminated = !(row?.teams?.is_active ?? true);
 
+  // Plafond budget atteint (ADR 0012) : couches 2 et 3 désactivées,
+  // la couche 1 (palier solo) reste intouchable
   const solo = getSoloReward(amount);
-  const community = getCommunityBonus(teamScore, restaurantUnlocked);
-  const advancement = getAdvancementBonus(roundReached, isEliminated);
+  const community = getCommunityBonus(teamScore, restaurantUnlocked && budget.communityBonusActive);
+  const advancement = budget.communityBonusActive
+    ? getAdvancementBonus(roundReached, isEliminated)
+    : { item: null, cost: 0 };
 
   if (!solo.item && !community.item && !advancement.item) return;
 
-  const { error } = await adminClient.from("pending_rewards").upsert(
+  const { data: inserted, error } = await adminClient.from("pending_rewards").upsert(
     {
       user_id: userId,
       restaurant_id: restaurantId,
@@ -128,12 +134,19 @@ export async function createPendingReward(
       status: "available",
     },
     { onConflict: "order_id", ignoreDuplicates: true }
-  );
+  ).select("id");
 
   if (error) {
     // 23505 hors order_id = index partiel ADR 0011 (un seul cadeau
     // 'available' par membre) — no-op attendu, pas une erreur
     if (error.code === "23505") return;
     throw new Error(`pending_rewards insert failed: ${error.message}`);
+  }
+
+  // Compteur budget : uniquement si une récompense a réellement été créée
+  // (liste vide = conflit ignoré, rien distribué)
+  if (inserted && inserted.length > 0) {
+    const totalCost = solo.cost + community.cost + advancement.cost;
+    await incrementRewardsCost(restaurantId, totalCost);
   }
 }
