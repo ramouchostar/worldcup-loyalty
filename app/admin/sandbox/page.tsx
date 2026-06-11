@@ -84,33 +84,48 @@ export default function SandboxPage() {
     if (!userId) return;
     setOrderBusy(true);
     setOrderResult(null);
-    const r = await post({ action: "test_order", user_id: userId, amount: Number(amount) });
-    setOrderResult(r);
-    if (r.ok) fetchData();
-    setOrderBusy(false);
+    try {
+      const r = await post({ action: "test_order", user_id: userId, amount: Number(amount) });
+      setOrderResult(r);
+      if (r.ok) fetchData();
+    } catch (err: unknown) {
+      setOrderResult({ error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setOrderBusy(false);
+    }
   }
 
   async function applyScore() {
     setScoreBusy(true);
     setScoreResult(null);
-    const r = await post({
-      action:       "set_score",
-      team_id:      scoreTeamId === "__all__" ? undefined : scoreTeamId,
-      member_count: Number(memberCount),
-      total_spent:  Number(totalSpent),
-    });
-    setScoreResult(r);
-    if (r.ok) fetchData();
-    setScoreBusy(false);
+    try {
+      const r = await post({
+        action:       "set_score",
+        team_id:      scoreTeamId === "__all__" ? undefined : scoreTeamId,
+        member_count: Number(memberCount),
+        total_spent:  Number(totalSpent),
+      });
+      setScoreResult(r);
+      if (r.ok) fetchData();
+    } catch (err: unknown) {
+      setScoreResult({ error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setScoreBusy(false);
+    }
   }
 
   async function triggerCron(type: "trigger_notifications" | "trigger_sync") {
     const key = type === "trigger_notifications" ? "notif" : "sync";
     setCronBusy(key);
     setCronResult(null);
-    const r = await post({ action: type });
-    setCronResult(r);
-    setCronBusy(null);
+    try {
+      const r = await post({ action: type });
+      setCronResult(r);
+    } catch (err: unknown) {
+      setCronResult({ error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setCronBusy(null);
+    }
   }
 
   async function resetScores() {
