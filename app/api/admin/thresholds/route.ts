@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
+import { getBudgetStatus } from "@/lib/budget";
+import { getRestaurantId } from "@/lib/restaurant";
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -8,13 +10,17 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  const { data, error } = await admin
-    .from("restaurant_thresholds")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data, error }, budget] = await Promise.all([
+    admin
+      .from("restaurant_thresholds")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    getBudgetStatus(getRestaurantId()),
+  ]);
 
   if (error) return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
-  return NextResponse.json(data ?? []);
+  // Budget en euros : route admin uniquement (ADR 0007)
+  return NextResponse.json({ thresholds: data ?? [], budget });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -34,6 +40,12 @@ export async function PATCH(request: NextRequest) {
   }
   if (period_label) update.period_label = period_label;
   if (target_revenue !== undefined) update.target_revenue = Number(target_revenue);
+  if (body.baseline_weekly_revenue !== undefined) {
+    update.baseline_weekly_revenue = body.baseline_weekly_revenue === null
+      ? null
+      : Number(body.baseline_weekly_revenue);
+  }
+  if (body.growth_target_pct !== undefined) update.growth_target_pct = Number(body.growth_target_pct);
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Rien à mettre à jour." }, { status: 400 });
