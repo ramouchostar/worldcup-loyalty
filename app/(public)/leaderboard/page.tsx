@@ -4,7 +4,8 @@ import Link from "next/link";
 import type { CommunityScore, Team } from "@/types";
 import { getRestaurantId } from "@/lib/restaurant";
 
-type LeaderboardRow = CommunityScore & {
+// total_spent (euros) jamais sélectionné côté client — ADR 0007
+type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active" | "round_reached">;
 };
 
@@ -22,7 +23,6 @@ export default async function LeaderboardPage() {
       .select(`
         team_id,
         member_count,
-        total_spent,
         score,
         last_updated,
         teams (
