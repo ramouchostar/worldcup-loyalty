@@ -258,7 +258,7 @@ export default async function DashboardPage() {
       )}
 
       {/* ── SECTION 2 — Community progress ────────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div id="tour-community-progress" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-2xl">{team.flag_emoji}</span>
           <p className="font-bold text-gray-900">Communauté {team.name}</p>
