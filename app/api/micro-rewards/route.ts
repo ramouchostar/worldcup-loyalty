@@ -22,7 +22,7 @@ export async function GET() {
       .from("micro_rewards")
       .select("*")
       .eq("is_active", true)
-      .eq("restaurant_id", restaurantId),
+      .or(`restaurant_id.eq.${restaurantId},restaurant_id.is.null`),
     supabase
       .from("micro_reward_claims")
       .select("id, reward_type, proof_url, status, claimed_at")
