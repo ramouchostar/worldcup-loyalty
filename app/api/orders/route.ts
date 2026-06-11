@@ -190,16 +190,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Erreur serveur. Réessaie." }, { status: 500 });
   }
 
-  // Create 3-layer pending reward for validated orders
+  // Create 3-layer pending reward for validated orders — awaited pour
+  // garantir la création dans la même requête. Un échec est loggé mais
+  // ne fait pas échouer la soumission (la commande est déjà validée).
   if (status === "validated" && insertedOrder?.id) {
-    // Fire-and-forget — reward creation failure doesn't fail the order submission
-    createPendingReward(
-      insertedOrder.id,
-      user.id,
-      profile.team_id,
-      restaurantId,
-      parsedAmount
-    ).catch(() => { /* logged silently */ });
+    try {
+      await createPendingReward(
+        insertedOrder.id,
+        user.id,
+        profile.team_id,
+        restaurantId,
+        parsedAmount
+      );
+    } catch (err) {
+      console.error("[orders] createPendingReward failed:", err);
+    }
   }
 
   return NextResponse.json({ success: true, status }, { status: 201 });
