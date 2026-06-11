@@ -95,28 +95,38 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // ── Déclencher le cron notifications ─────────────────────────────────────
-  if (action === "trigger_notifications") {
-    const base = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-    const res = await fetch(`${base}/api/cron/notifications`, {
-      headers: { Authorization: `Bearer ${process.env.CRON_SECRET ?? ""}` },
-    });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
-  }
+  // ── Déclencher un cron (notifications ou sync) ───────────────────────────
+  if (action === "trigger_notifications" || action === "trigger_sync") {
+    const path = action === "trigger_notifications"
+      ? "/api/cron/notifications"
+      : "/api/cron/sync-wc2026";
 
-  // ── Déclencher le cron sync WC2026 ───────────────────────────────────────
-  if (action === "trigger_sync") {
-    const base = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-    const res = await fetch(`${base}/api/cron/sync-wc2026`, {
-      headers: { Authorization: `Bearer ${process.env.CRON_SECRET ?? ""}` },
-    });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    // Préférer VERCEL_PROJECT_PRODUCTION_URL (alias fixe) sinon VERCEL_URL (déploiement)
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ?? process.env.VERCEL_URL
+      ?? "localhost:3000";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const base = `${protocol}://${host}`;
+
+    let data: Record<string, unknown>;
+    let status: number;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 9_000); // 9s max
+      const res = await fetch(`${base}${path}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${process.env.CRON_SECRET ?? ""}` },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const text = await res.text();
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      status = res.status;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return NextResponse.json({ error: `fetch échoué : ${msg}` }, { status: 500 });
+    }
+    return NextResponse.json(data, { status });
   }
 
   // ── Reset scores à 0 ─────────────────────────────────────────────────────
