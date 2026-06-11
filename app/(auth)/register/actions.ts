@@ -9,11 +9,17 @@ export async function registerTeam(
   _prevState: { error: string } | null,
   formData: FormData
 ): Promise<{ error: string } | null> {
+  const ALLOWED_RESTAURANTS = ["kraainem", "houba", "uccle-de-bue"];
+
   const teamId = formData.get("team_id") as string;
   const displayName = (formData.get("display_name") as string).trim();
+  const restaurantIdFromForm = formData.get("restaurant_id") as string;
 
   if (!teamId || !displayName) {
     return { error: "Choisis une équipe et entre ton prénom." };
+  }
+  if (!restaurantIdFromForm || !ALLOWED_RESTAURANTS.includes(restaurantIdFromForm)) {
+    return { error: "Choisis ton Belchicken." };
   }
 
   const cookieStore = await cookies();
@@ -47,7 +53,7 @@ export async function registerTeam(
   }
 
   const user = session.user;
-  const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID ?? "molenbeek";
+  const restaurantId = restaurantIdFromForm;
 
   const { data: updatedRows, error } = await supabase
     .from("profiles")
