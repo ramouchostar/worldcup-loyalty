@@ -129,6 +129,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status });
   }
 
+  // ── Reset test : log notifs + last_notified_at + orders à -7h ───────────
+  if (action === "reset_test") {
+    const { user_id } = body;
+    if (!user_id) return NextResponse.json({ error: "user_id requis." }, { status: 400 });
+
+    const sevenHoursAgo = new Date(Date.now() - 7 * 3_600_000).toISOString();
+
+    const [logDel, profileUp, ordersUp] = await Promise.all([
+      admin.from("notification_log").delete().eq("user_id", user_id),
+      admin.from("profiles").update({ last_notified_at: null }).eq("id", user_id),
+      admin.from("orders")
+        .update({ submitted_at: sevenHoursAgo, validated_at: sevenHoursAgo })
+        .eq("user_id", user_id)
+        .eq("status", "validated"),
+    ]);
+
+    const err = logDel.error ?? profileUp.error ?? ordersUp.error;
+    if (err) return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: true, reset: "log + last_notified_at + orders → -7h" });
+  }
+
   // ── Reset scores à 0 ─────────────────────────────────────────────────────
   if (action === "reset_scores") {
     const { error } = await admin
