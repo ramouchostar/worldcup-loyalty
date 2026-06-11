@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navLinks = [
-  { href: "/dashboard",     label: "Dashboard",   icon: "🏠" },
-  { href: "/submit-order",  label: "Commande",    icon: "🧾" },
-  { href: "/rewards",       label: "Récompenses", icon: "🎁" },
-  { href: "/micro-rewards", label: "Actions",     icon: "⭐" },
-  { href: "/leaderboard",   label: "Classement",  icon: "🏆" },
+  { href: "/dashboard",     label: "Dashboard",   icon: "🏠", id: undefined },
+  { href: "/submit-order",  label: "Commande",    icon: "🧾", id: "tour-nav-commande" },
+  { href: "/rewards",       label: "Récompenses", icon: "🎁", id: "tour-nav-recompenses" },
+  { href: "/micro-rewards", label: "Actions",     icon: "⭐", id: "tour-nav-actions" },
+  { href: "/leaderboard",   label: "Classement",  icon: "🏆", id: "tour-nav-classement" },
 ];
 
 export function BottomNav() {
@@ -26,6 +26,7 @@ export function BottomNav() {
             <Link
               key={link.href}
               href={link.href}
+              id={link.id}
               className={`flex flex-col items-center py-2 px-1 text-xs min-w-0 transition-colors ${
                 active
                   ? "text-brand-red font-semibold"
