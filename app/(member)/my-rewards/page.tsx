@@ -111,6 +111,10 @@ function RewardCard({ reward }: { reward: PendingReward }) {
   const isAvailable = reward.status === "available";
   const isRedeemed  = reward.status === "redeemed";
 
+  const expiresAt = new Date(new Date(reward.created_at).getTime() + 48 * 60 * 60 * 1000);
+  const hoursLeft = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)));
+  const isUrgent  = isAvailable && hoursLeft <= 6;
+
   return (
     <div
       className={`bg-white rounded-xl border p-4 ${
@@ -140,6 +144,20 @@ function RewardCard({ reward }: { reward: PendingReward }) {
           </div>
         )}
       </div>
+
+      {isAvailable && (
+        <div className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium mb-2 ${
+          isUrgent ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+        }`}>
+          <span>⏰</span>
+          {hoursLeft <= 0
+            ? "Expire très bientôt !"
+            : isUrgent
+            ? `Plus que ${hoursLeft}h pour récupérer !`
+            : `Expire le ${expiresAt.toLocaleDateString("fr-BE", { day: "numeric", month: "short" })} à ${expiresAt.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}`
+          }
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <p className="text-xs text-gray-400">
