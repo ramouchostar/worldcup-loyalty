@@ -247,11 +247,16 @@ export default async function DashboardPage() {
             ))}
           </div>
           <div className="mt-3 pt-3 border-t border-brand-gold/20 flex items-center justify-between">
-            <p className="text-xs text-gray-500">
-              {pendingRewards.length > 1
-                ? `${pendingRewards.length} cadeaux à récupérer au comptoir`
-                : "Cadeau à récupérer au comptoir"}
-            </p>
+            <div>
+              <p className="text-xs text-gray-500">
+                {pendingRewards.length > 1
+                  ? `${pendingRewards.length} cadeaux à récupérer au comptoir`
+                  : "Cadeau à récupérer au comptoir"}
+              </p>
+              <p className="text-xs text-amber-600 font-medium mt-0.5">
+                ⏰ 48h pour récupérer avant expiration
+              </p>
+            </div>
             <RedeemButton />
           </div>
         </div>
