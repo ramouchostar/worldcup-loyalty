@@ -4,7 +4,8 @@ import type { CommunityScore, Team, Reward } from "@/types";
 
 export const revalidate = 60;
 
-type LeaderboardRow = CommunityScore & {
+// total_spent (euros) jamais sélectionné côté client — ADR 0007
+type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
 
@@ -42,7 +43,7 @@ export default async function LandingPage() {
   const [{ data: scoresRaw }, { data: rewardsRaw }] = await Promise.all([
     supabase
       .from("community_scores")
-      .select("team_id, score, member_count, total_spent, last_updated, teams(name, flag_emoji, is_active)")
+      .select("team_id, score, member_count, last_updated, teams(name, flag_emoji, is_active)")
       .order("score", { ascending: false })
       .limit(5),
     supabase
