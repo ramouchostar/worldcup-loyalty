@@ -79,7 +79,11 @@ export function getAdvancementBonus(roundReached: string, isEliminated: boolean)
 }
 
 // Creates the 3-layer pending_reward for a validated order.
-// Safe to call redundantly — DB has ON CONFLICT (order_id) DO NOTHING.
+// Single source of truth for reward writes since m20 dropped the SQL
+// trigger — the grid lives only in the pure functions above.
+// Idempotent: upsert ON CONFLICT (order_id) DO NOTHING; a 23505 on the
+// partial index (one 'available' reward per member — ADR 0011) is also
+// an expected no-op.
 export async function createPendingReward(
   orderId: string,
   userId: string,
@@ -110,16 +114,26 @@ export async function createPendingReward(
 
   if (!solo.item && !community.item && !advancement.item) return;
 
-  await adminClient.from("pending_rewards").insert({
-    user_id: userId,
-    restaurant_id: restaurantId,
-    order_id: orderId,
-    solo_item: solo.item,
-    solo_cost: solo.cost > 0 ? solo.cost : null,
-    community_item: community.item,
-    community_cost: community.cost > 0 ? community.cost : null,
-    advancement_item: advancement.item,
-    advancement_cost: advancement.cost > 0 ? advancement.cost : null,
-    status: "pending",
-  });
+  const { error } = await adminClient.from("pending_rewards").upsert(
+    {
+      user_id: userId,
+      restaurant_id: restaurantId,
+      order_id: orderId,
+      solo_item: solo.item,
+      solo_cost: solo.cost > 0 ? solo.cost : null,
+      community_item: community.item,
+      community_cost: community.cost > 0 ? community.cost : null,
+      advancement_item: advancement.item,
+      advancement_cost: advancement.cost > 0 ? advancement.cost : null,
+      status: "available",
+    },
+    { onConflict: "order_id", ignoreDuplicates: true }
+  );
+
+  if (error) {
+    // 23505 hors order_id = index partiel ADR 0011 (un seul cadeau
+    // 'available' par membre) — no-op attendu, pas une erreur
+    if (error.code === "23505") return;
+    throw new Error(`pending_rewards insert failed: ${error.message}`);
+  }
 }
