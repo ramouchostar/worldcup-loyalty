@@ -6,9 +6,7 @@ import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getRestaurantId } from "@/lib/restaurant";
 import { applyRoundBonus } from "@/lib/score";
 import { ScoreCard } from "@/components/member/ScoreCard";
-import { PushPrompt } from "@/components/member/PushPrompt";
-import { InstallBanner } from "@/components/InstallBanner";
-import { OnboardingTour } from "@/components/member/OnboardingTour";
+import { OnboardingFlow } from "@/components/member/OnboardingFlow";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/(member)/my-rewards/RedeemButton";
 
@@ -138,9 +136,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-4">
-      <OnboardingTour />
-      <InstallBanner />
-      {memberActive && <PushPrompt />}
+      <OnboardingFlow />
 
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 rounded-2xl p-5 text-white">
