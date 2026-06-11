@@ -35,7 +35,7 @@ export default async function RewardsPage() {
       .order("level"),
     supabase
       .from("community_scores")
-      .select("score, member_count, total_spent")
+      .select("score, member_count")
       .eq("team_id", profile.team_id)
       .eq("restaurant_id", restaurantId)
       .single(),
@@ -44,7 +44,8 @@ export default async function RewardsPage() {
   ]);
 
   const rewards = (rewardsRaw as Reward[]) ?? [];
-  const score = scoreRaw as CommunityScore | null;
+  // total_spent (euros) jamais sélectionné côté client — ADR 0007
+  const score = scoreRaw as Pick<CommunityScore, "score" | "member_count"> | null;
   const currentScore = score?.score ?? 0;
   const memberCount = score?.member_count ?? 0;
 
