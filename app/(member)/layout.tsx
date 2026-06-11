@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { UserNav } from "@/components/member/UserNav";
-import { PushNotificationBanner } from "@/components/PushNotificationBanner";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { BottomNav } from "@/components/member/BottomNav";
-import { InstallPrompt } from "@/components/member/InstallPrompt";
 
 export default async function MemberLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
@@ -21,8 +19,6 @@ export default async function MemberLayout({ children }: { children: React.React
         </div>
       </header>
 
-      <InstallPrompt />
-      <PushNotificationBanner />
       <InAppNotificationBanner />
 
       <main className="max-w-2xl mx-auto px-4 py-6" id="main-content">
