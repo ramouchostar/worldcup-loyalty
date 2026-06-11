@@ -9,15 +9,34 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISSED_KEY = "pwa_install_dismissed";
 
+function checkIOSSafari(): boolean {
+  const ua = navigator.userAgent;
+  const ios = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
+  const safari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
+  return ios && safari;
+}
+
+function checkStandalone(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
 export function InstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showIOS, setShowIOS] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Already installed (standalone mode) → hide
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
-    // Already dismissed → hide
+    if (checkStandalone()) return;
     if (sessionStorage.getItem(DISMISSED_KEY)) return;
+
+    if (checkIOSSafari()) {
+      setShowIOS(true);
+      setVisible(true);
+      return;
+    }
 
     function handler(e: Event) {
       e.preventDefault();
@@ -44,6 +63,26 @@ export function InstallPrompt() {
   }
 
   if (!visible) return null;
+
+  if (showIOS) {
+    return (
+      <div className="bg-brand-dark text-white px-4 py-3 flex items-start gap-3 border-b border-white/10">
+        <span className="text-xl shrink-0 mt-0.5">📲</span>
+        <p className="text-sm flex-1 min-w-0 leading-relaxed">
+          <strong>Installer l&apos;app</strong> : appuie sur{" "}
+          <span className="font-bold text-brand-gold">⬆</span>{" "}
+          puis <span className="font-semibold text-brand-gold">&laquo;&nbsp;Sur l&apos;écran d&apos;accueil&nbsp;&raquo;</span>
+        </p>
+        <button
+          onClick={dismiss}
+          className="shrink-0 text-gray-400 hover:text-white text-xl leading-none transition-colors mt-0.5"
+          aria-label="Fermer"
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-brand-dark text-white px-4 py-3 flex items-center gap-3 border-b border-white/10">
