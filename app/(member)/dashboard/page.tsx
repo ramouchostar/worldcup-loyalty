@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getSoloReward, getCommunityBonus, getAdvancementBonus } from "@/lib/rewards";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
+import { getBudgetStatus } from "@/lib/budget";
 import { getRestaurantId } from "@/lib/restaurant";
 import { applyRoundBonus } from "@/lib/score";
 import { ScoreCard } from "@/components/member/ScoreCard";
@@ -52,6 +53,7 @@ export default async function DashboardPage() {
     { data: pendingRaw },
     { count: redeemedCount },
     restaurantUnlocked,
+    budget,
     { data: validatedOrdersData, count: validatedOrderCount },
   ] = await Promise.all([
     supabase
@@ -80,6 +82,7 @@ export default async function DashboardPage() {
       .eq("restaurant_id", restaurantId)
       .eq("status", "redeemed"),
     isRestaurantThresholdUnlocked(),
+    getBudgetStatus(restaurantId),
     supabase
       .from("orders")
       .select("amount", { count: "exact" })
@@ -115,9 +118,13 @@ export default async function DashboardPage() {
   const avgAmount   = validCount > 0 ? totalSpent / validCount : 25;
   const previewAmt  = Math.max(15, Math.round(avgAmount));
 
+  // Plafond budget (ADR 0012) : couches 2 et 3 masquées si en pause —
+  // seule la valeur booléenne sert au rendu, jamais les montants
   const heroSolo        = getSoloReward(previewAmt);
-  const heroCommunity   = getCommunityBonus(displayScore, restaurantUnlocked);
-  const heroAdvancement = getAdvancementBonus(team.round_reached, !team.is_active);
+  const heroCommunity   = getCommunityBonus(displayScore, restaurantUnlocked && budget.communityBonusActive);
+  const heroAdvancement = budget.communityBonusActive
+    ? getAdvancementBonus(team.round_reached, !team.is_active)
+    : { item: null, cost: 0 };
   const heroCount       = [heroSolo.item, heroCommunity.item, heroAdvancement.item].filter(Boolean).length;
 
   // ── Community progress (ADR 0010 section 2) ───────────────────────────────
@@ -277,6 +284,17 @@ export default async function DashboardPage() {
               <span className="text-sm">⚡</span>
               <p className="text-xs font-semibold text-amber-800">
                 Bonus ×1.5 actif — votre équipe vient de passer un tour !
+              </p>
+            </div>
+          )}
+
+          {/* Plafond budget atteint (ADR 0012) — message neutre, jamais la
+              vraie raison (ADR 0007) */}
+          {!budget.communityBonusActive && (
+            <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <span className="text-sm">⏸️</span>
+              <p className="text-xs font-medium text-gray-600">
+                Bonus communautaire en pause — ton cadeau de base reste garanti à chaque commande.
               </p>
             </div>
           )}
