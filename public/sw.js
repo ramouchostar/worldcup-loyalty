@@ -5,6 +5,7 @@ const PRECACHE_URLS = [
   "/",
   "/leaderboard",
   "/offline",
+  "/api/icons/192",
 ];
 
 self.addEventListener("install", (event) => {
@@ -32,8 +33,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title ?? "Belchicken", {
       body: data.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      icon: "/api/icons/192",
+      badge: "/api/icons/192",
       data: { url: data.url ?? "/dashboard" },
     })
   );
