@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { sendPush } from "@/lib/notifications";
 import { getRestaurantId } from "@/lib/restaurant";
 import { createPendingReward } from "@/lib/rewards";
+import { incrementProgramRevenue } from "@/lib/budget";
 
 // receipt_url stocke un chemin storage (bucket privé — ADR 0003).
 // Les anciennes lignes contiennent encore une URL publique complète :
@@ -104,6 +105,7 @@ export async function PATCH(request: NextRequest) {
     // Récompenses 3 couches + notifications (best-effort, non-bloquant)
     void Promise.allSettled(
       (updated ?? []).map(async o => {
+        await incrementProgramRevenue(restaurantId, Number(o.amount));
         await createPendingReward(o.id, o.user_id, o.team_id, restaurantId, Number(o.amount)).catch(() => {});
         await sendPush(o.user_id, restaurantId,
           `✅ Ta commande de ${Number(o.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} a été validée ! Tes récompenses t'attendent.`
@@ -136,7 +138,9 @@ export async function PATCH(request: NextRequest) {
     void sendPush(updated.user_id, restaurantId, msg);
 
     if (action === "validate") {
-      void createPendingReward(id, updated.user_id, updated.team_id, restaurantId, Number(updated.amount)).catch(() => {});
+      void incrementProgramRevenue(restaurantId, Number(updated.amount))
+        .then(() => createPendingReward(id, updated.user_id, updated.team_id, restaurantId, Number(updated.amount)))
+        .catch(() => {});
     }
   }
 
