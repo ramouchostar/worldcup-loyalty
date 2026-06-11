@@ -120,6 +120,8 @@ export type RestaurantThreshold = {
   unlocked_at: string | null;
   restaurant_id: string;
   created_at: string;
+  baseline_weekly_revenue: number | null;
+  growth_target_pct: number | null;
 };
 
 export type PendingRewardStatus = "pending" | "redeemed" | "expired" | "available";
