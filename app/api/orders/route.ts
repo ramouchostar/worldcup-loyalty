@@ -3,6 +3,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/orders";
 import { getRestaurantId } from "@/lib/restaurant";
 import { createPendingReward } from "@/lib/rewards";
+import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 
 export const maxDuration = 30;
@@ -194,6 +195,9 @@ export async function POST(request: NextRequest) {
   // garantir la création dans la même requête. Un échec est loggé mais
   // ne fait pas échouer la soumission (la commande est déjà validée).
   if (status === "validated" && insertedOrder?.id) {
+    // CA programme incrémenté AVANT la récompense : le budget du mois
+    // (ADR 0012) inclut ainsi cette commande au moment du calcul
+    await incrementProgramRevenue(restaurantId, parsedAmount);
     try {
       await createPendingReward(
         insertedOrder.id,
