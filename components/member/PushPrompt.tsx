@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from "react";
 
+function urlBase64ToUint8Array(base64: string): ArrayBuffer {
+  const pad = "=".repeat((4 - (base64.length % 4)) % 4);
+  const b64 = (base64 + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  const buf = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+  return buf.buffer;
+}
+
 export function PushPrompt() {
   const [status, setStatus] = useState<"idle" | "granted" | "denied" | "loading" | "unsupported">("idle");
 
@@ -20,10 +29,13 @@ export function PushPrompt() {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") { setStatus("denied"); return; }
 
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) { setStatus("denied"); return; }
+
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
       await fetch("/api/push/subscribe", {
