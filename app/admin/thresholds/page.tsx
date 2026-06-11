@@ -10,14 +10,26 @@ type Threshold = {
   is_unlocked: boolean;
   unlocked_at: string | null;
   created_at: string;
+  baseline_weekly_revenue: number | null;
+  growth_target_pct: number | null;
+};
+
+type Budget = {
+  programRevenue: number;
+  rewardsCost: number;
+  budgetPct: number;
+  communityBonusActive: boolean;
 };
 
 export default function AdminThresholdsPage() {
   const [thresholds, setThresholds] = useState<Threshold[]>([]);
+  const [budget, setBudget] = useState<Budget | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRevenue, setEditRevenue] = useState("");
+  const [editingBaselineId, setEditingBaselineId] = useState<string | null>(null);
+  const [editBaseline, setEditBaseline] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newTarget, setNewTarget] = useState("");
@@ -25,7 +37,11 @@ export default function AdminThresholdsPage() {
 
   async function fetchThresholds() {
     const res = await fetch("/api/admin/thresholds");
-    if (res.ok) setThresholds(await res.json());
+    if (res.ok) {
+      const json = await res.json();
+      setThresholds(json.thresholds ?? []);
+      setBudget(json.budget ?? null);
+    }
     setLoading(false);
   }
 
@@ -40,6 +56,19 @@ export default function AdminThresholdsPage() {
     });
     setEditingId(null);
     setEditRevenue("");
+    await fetchThresholds();
+    setBusy(null);
+  }
+
+  async function updateBaseline(id: string) {
+    setBusy(id);
+    await fetch("/api/admin/thresholds", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, baseline_weekly_revenue: Number(editBaseline) }),
+    });
+    setEditingBaselineId(null);
+    setEditBaseline("");
     await fetchThresholds();
     setBusy(null);
   }
@@ -124,6 +153,60 @@ export default function AdminThresholdsPage() {
         </div>
       )}
 
+      {/* Budget cadeaux du mois (ADR 0012) — données euros admin uniquement */}
+      {budget && (() => {
+        const budgetMax = budget.programRevenue * budget.budgetPct;
+        const budgetUsedPct = budgetMax > 0
+          ? Math.min(100, Math.round((budget.rewardsCost / budgetMax) * 100))
+          : 0;
+        return (
+          <div className={`bg-white rounded-xl border p-5 ${
+            budget.communityBonusActive ? "border-green-300" : "border-amber-300"
+          }`}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h3 className="font-bold text-gray-900">💰 Budget cadeaux du mois</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Plafond : {(budget.budgetPct * 100).toFixed(0)}% du CA programme
+                  ({Number(budget.programRevenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })})
+                </p>
+              </div>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
+                budget.communityBonusActive
+                  ? "bg-green-100 text-green-800"
+                  : "bg-amber-100 text-amber-800"
+              }`}>
+                {budget.communityBonusActive ? "🟢 Bonus actif" : "⏸️ Bonus en pause"}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>
+                Distribué :{" "}
+                <strong>{Number(budget.rewardsCost).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}</strong>
+              </span>
+              <span>
+                Budget max :{" "}
+                <strong>{budgetMax.toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}</strong>
+              </span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-3">
+              <div
+                className={`h-3 rounded-full transition-all ${
+                  budgetUsedPct >= 100 ? "bg-amber-500" : "bg-green-500"
+                }`}
+                style={{ width: `${budgetUsedPct}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1 text-right">{budgetUsedPct}% du budget utilisé</p>
+            {!budget.communityBonusActive && (
+              <p className="text-xs text-amber-700 mt-2">
+                Plafond atteint — couches 2 et 3 en pause jusqu&apos;au mois prochain. Le palier solo reste actif.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
       {loading ? (
         <div className="space-y-3">
           {[1, 2].map((i) => <div key={i} className="bg-white rounded-xl h-32 animate-pulse border border-gray-100" />)}
@@ -170,6 +253,64 @@ export default function AdminThresholdsPage() {
                     />
                   </div>
                   <p className="text-xs text-gray-400 mt-1 text-right">{pct}%</p>
+                </div>
+
+                {/* Baseline croissance (ADR 0012) */}
+                <div className="mb-4 bg-gray-50 rounded-lg p-3">
+                  {editingBaselineId === t.id ? (
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        value={editBaseline}
+                        onChange={(e) => setEditBaseline(e.target.value)}
+                        placeholder="Baseline hebdo (€)"
+                        min="0"
+                        className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                      />
+                      <button
+                        onClick={() => updateBaseline(t.id)}
+                        disabled={!editBaseline || busy === t.id}
+                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-green-700"
+                      >
+                        Enregistrer
+                      </button>
+                      <button
+                        onClick={() => setEditingBaselineId(null)}
+                        className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-gray-600">
+                        📈 Baseline hebdo :{" "}
+                        <strong>
+                          {t.baseline_weekly_revenue != null
+                            ? Number(t.baseline_weekly_revenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })
+                            : "non définie"}
+                        </strong>
+                        {t.baseline_weekly_revenue != null && (
+                          <>
+                            {" "}· Seuil croissance (+{((t.growth_target_pct ?? 0.10) * 100).toFixed(0)}%) :{" "}
+                            <strong>
+                              {(Number(t.baseline_weekly_revenue) * (1 + (t.growth_target_pct ?? 0.10)))
+                                .toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
+                            </strong>
+                          </>
+                        )}
+                      </p>
+                      <button
+                        onClick={() => {
+                          setEditingBaselineId(t.id);
+                          setEditBaseline(t.baseline_weekly_revenue != null ? String(t.baseline_weekly_revenue) : "");
+                        }}
+                        className="text-xs text-brand-red font-semibold hover:underline shrink-0"
+                      >
+                        Modifier
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
