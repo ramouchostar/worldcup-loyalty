@@ -3,6 +3,9 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/orders";
 import { getRestaurantId } from "@/lib/restaurant";
 import { createPendingReward } from "@/lib/rewards";
+import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
+
+export const maxDuration = 30;
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
@@ -33,10 +36,6 @@ export async function POST(request: NextRequest) {
   let amount: number;
   let receiptFile: File | null = null;
 
-  let ocrAmount: number | null = null;
-  let ocrConfidence: number | null = null;
-  let noRestaurantHeader = false;
-
   if (isMultipart) {
     const formData = await request.formData();
     const rawOrderNumber = formData.get("order_number");
@@ -50,12 +49,10 @@ export async function POST(request: NextRequest) {
     orderNumber = String(rawOrderNumber).trim();
     amount = parseFloat(String(rawAmount));
 
-    const rawOcrAmount = formData.get("ocr_amount");
-    const rawOcrConfidence = formData.get("ocr_confidence");
-    const rawNoHeader = formData.get("no_restaurant_header");
-    if (rawOcrAmount) ocrAmount = parseFloat(String(rawOcrAmount)) || null;
-    if (rawOcrConfidence) ocrConfidence = parseInt(String(rawOcrConfidence), 10) || null;
-    noRestaurantHeader = rawNoHeader === "true";
+    // Les champs OCR du formData (ocr_amount, ocr_confidence,
+    // no_restaurant_header) ne sont volontairement PAS lus : le serveur
+    // ré-analyse le ticket lui-même plus bas. Aucune donnée client ne
+    // doit influencer l'auto-validation.
   } else {
     // Legacy JSON path (backward compat for admin tools)
     const body = await request.json();
@@ -98,8 +95,21 @@ export async function POST(request: NextRequest) {
   const restaurantId = getRestaurantId();
   const parsedAmount = parseFloat(amount.toFixed(2));
 
+  // OCR serveur — seule source de vérité pour le flagging anti-fraude
+  let serverOcr: ReceiptAnalysis | null = null;
+  let ocrFailed = false;
+  if (receiptFile) {
+    try {
+      serverOcr = await analyzeReceipt(receiptFile);
+    } catch {
+      ocrFailed = true;
+    }
+  }
+
   // Upload receipt to storage (service role bypasses bucket RLS)
-  let receiptUrl: string | null = null;
+  // receipt_url stocke le CHEMIN storage, jamais une URL publique —
+  // le bucket est privé (ADR 0003), l'admin génère des URLs signées.
+  let receiptPath: string | null = null;
   if (receiptFile) {
     if (!ALLOWED_TYPES.includes(receiptFile.type as typeof ALLOWED_TYPES[number])) {
       return NextResponse.json({ error: "Format de ticket non supporté." }, { status: 400 });
@@ -121,23 +131,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Erreur lors de l'upload du ticket." }, { status: 500 });
     }
 
-    const { data: { publicUrl } } = adminClient.storage.from("receipts").getPublicUrl(storagePath);
-    receiptUrl = publicUrl;
+    receiptPath = storagePath;
   }
 
-  // Compute flag_reasons
+  // Compute flag_reasons — uniquement à partir de la lecture OCR serveur
   const flagReasons: string[] = [];
   const todayCount = await countTodayOrders(supabase, user.id, restaurantId);
 
   if (!hasBestelnummer)   flagReasons.push("no_bestelnummer");
   if (parsedAmount > 200) flagReasons.push("high_amount");
   if (todayCount >= 3)    flagReasons.push("too_many_today");
-  if (ocrConfidence !== null && ocrConfidence < 70) flagReasons.push("low_confidence");
-  if (ocrAmount !== null && parsedAmount > 0) {
-    const mismatch = Math.abs(ocrAmount - parsedAmount) / parsedAmount;
-    if (mismatch > 0.05) flagReasons.push("amount_mismatch");
+  if (!receiptFile)       flagReasons.push("no_receipt");
+  if (ocrFailed)          flagReasons.push("ocr_failed");
+  if (serverOcr) {
+    if (serverOcr.confidence < 70) flagReasons.push("low_confidence");
+    if (serverOcr.amount !== null && parsedAmount > 0) {
+      const mismatch = Math.abs(serverOcr.amount - parsedAmount) / parsedAmount;
+      if (mismatch > 0.05) flagReasons.push("amount_mismatch");
+    }
+    if (!serverOcr.has_restaurant_header) flagReasons.push("no_restaurant_header");
   }
-  if (noRestaurantHeader) flagReasons.push("no_restaurant_header");
 
   // Auto-validate only when no flags and amount in normal range
   const autoValidateEnabled = process.env.AUTO_VALIDATE !== "false";
@@ -156,9 +169,9 @@ export async function POST(request: NextRequest) {
       order_number: hasBestelnummer ? orderNumber : null,
       order_date: orderDate,
       order_time: null,
-      receipt_url: receiptUrl,
-      ocr_amount: ocrAmount,
-      ocr_confidence: ocrConfidence,
+      receipt_url: receiptPath,
+      ocr_amount: serverOcr?.amount ?? null,
+      ocr_confidence: serverOcr?.confidence ?? null,
       flag_reasons: flagReasons,
       duplicate_key: hasBestelnummer ? orderNumber : `NOBN_${user.id}_${Date.now()}`,
       status,
