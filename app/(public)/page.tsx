@@ -30,10 +30,10 @@ const STEPS = [
 ];
 
 const MICRO_ACTIONS = [
-  { icon: "⭐", label: "Avis Google 5★", gift: "Churros (6 pcs)" },
-  { icon: "📱", label: "Abonnement réseaux", gift: "Nuggets (4 pcs)" },
-  { icon: "🔁", label: "Partage campagne", gift: "Frites Medium" },
-  { icon: "👥", label: "Parrainage", gift: "Sauce XXL" },
+  { icon: "⭐", label: "Avis Google 5★",    token: true },
+  { icon: "📸", label: "Suivre Instagram",  token: true },
+  { icon: "🎵", label: "Suivre TikTok",     token: true },
+  { icon: "👍", label: "Suivre Facebook",   token: true },
 ];
 
 export default async function LandingPage() {
@@ -215,22 +215,41 @@ export default async function LandingPage() {
         </div>
       )}
 
-      {/* ── ACTIONS GRATUITES ── */}
+      {/* ── JETONS & CHURROS ── */}
       <div className="bg-gray-50 py-10">
         <div className="max-w-lg mx-auto px-5">
-          <h2 className="text-2xl font-black text-gray-900 mb-1">4 cadeaux immédiats</h2>
-          <p className="text-gray-500 text-sm mb-6">
-            Sans acheter quoi que ce soit — juste pour ton engagement envers Belchicken.
+          <h2 className="text-2xl font-black text-gray-900 mb-1">Gagne des Churros gratuits</h2>
+          <p className="text-gray-500 text-sm mb-2">
+            Chaque action sociale = <span className="font-semibold text-gray-700">1 jeton</span>. 4 jetons = une portion de 12 Churros offerte.
           </p>
+          <p className="text-gray-400 text-xs mb-6">Sans obligation d&apos;achat — juste pour ton soutien à Belchicken.</p>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             {MICRO_ACTIONS.map((a) => (
-              <div key={a.label} className="bg-white rounded-2xl border border-gray-100 p-4">
-                <span className="text-3xl">{a.icon}</span>
-                <p className="font-semibold text-gray-900 text-sm mt-2">{a.label}</p>
-                <p className="text-xs text-brand-red font-medium mt-0.5">🎁 {a.gift}</p>
+              <div key={a.label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+                <span className="text-2xl shrink-0">{a.icon}</span>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">{a.label}</p>
+                  <p className="text-xs text-brand-gold font-medium">+1 jeton</p>
+                </div>
               </div>
             ))}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+            <span className="text-2xl shrink-0">👥</span>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-900 text-sm">Parrainage WhatsApp</p>
+              <p className="text-xs text-gray-500">5 amis inscrits via ton lien = 1 jeton</p>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-brand-dark text-white rounded-2xl p-4 flex items-center gap-4">
+            <span className="text-3xl">🍢</span>
+            <div>
+              <p className="font-bold">4 jetons accumulés</p>
+              <p className="text-sm text-gray-300">= 12 Churros offerts au comptoir</p>
+            </div>
           </div>
         </div>
       </div>
