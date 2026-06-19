@@ -50,7 +50,7 @@ Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Pro
 ```
 Framework   : Next.js 14 (App Router)
 Database    : Supabase (PostgreSQL)
-Auth        : Supabase Auth (magic link + Google OAuth + Facebook OAuth)
+Auth        : Supabase Auth (magic link + Google OAuth)
 Styles      : Tailwind CSS
 Language    : TypeScript strict
 State       : React Context + SWR (refresh 30s)
@@ -92,7 +92,7 @@ Repo : `ramouchostar/worldcup-loyalty`
 | # | Titre | Priorité |
 |---|---|---|
 | #1 | Migrations schéma (ADRs 0001–0009) | 🔴 Fondation |
-| #2 | Google & Facebook OAuth | 🔴 |
+| #2 | Google OAuth | 🔴 |
 | #3 | Auto-validation OCR + Bestelnummer | 🔴 |
 | #4 | Récompenses 3 couches (pending_rewards) | 🔴 |
 | #5 | Dashboard hero card + gamification | 🔴 |

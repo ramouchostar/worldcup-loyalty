@@ -11,7 +11,7 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(
     searchParams.get("error") ? "Connexion échouée. Réessaie." : null
   );
-  const [oauthLoading, setOauthLoading] = useState<"google" | "facebook" | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function LoginForm() {
     // si pas d'erreur, signIn appelle redirect() côté serveur → navigation automatique
   }
 
-  async function handleOAuth(provider: "google" | "facebook") {
+  async function handleOAuth(provider: "google") {
     setOauthLoading(provider);
     setError(null);
     const supabase = createClient();
@@ -42,7 +42,7 @@ export default function LoginForm() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (oauthErr) {
-      setError("Connexion " + (provider === "google" ? "Google" : "Facebook") + " échouée.");
+      setError("Connexion Google échouée.");
       setOauthLoading(null);
     }
   }
@@ -121,21 +121,6 @@ export default function LoginForm() {
             </svg>
           )}
           {oauthLoading === "google" ? "Redirection..." : "Google"}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleOAuth("facebook")}
-          disabled={oauthLoading !== null}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors text-sm font-medium text-gray-700"
-        >
-          {oauthLoading === "facebook" ? (
-            <span className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin shrink-0" />
-          ) : (
-            <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="#1877F2" aria-hidden="true">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-          )}
-          {oauthLoading === "facebook" ? "Redirection..." : "Facebook"}
         </button>
       </div>
 

@@ -24,7 +24,7 @@ Le membre récupère ses cadeaux au comptoir Belchicken à sa prochaine visite.
 
 - **Frontend** — Next.js 14 App Router (Server Components + Client Components)
 - **Backend** — Supabase (PostgreSQL, RLS, SECURITY DEFINER triggers, Storage)
-- **Auth** — Supabase Auth (email/password, Google OAuth, Facebook OAuth)
+- **Auth** — Supabase Auth (email/password, Google OAuth)
 - **Deploy** — Vercel (un déploiement par établissement)
 - **OCR** — Claude Vision API (validation automatique des tickets de caisse)
 
@@ -123,7 +123,7 @@ Voir les [issues ouvertes](https://github.com/ramouchostar/worldcup-loyalty/issu
 | # | Slice | Priorité |
 |---|-------|----------|
 | [#10](../../issues/10) | Migrations schéma cibles (ADRs 0001–0009) | Fondation |
-| [#11](../../issues/11) | Google & Facebook OAuth | Immédiat |
+| [#11](../../issues/11) | Google OAuth | Immédiat |
 | [#12](../../issues/12) | Auto-validation OCR + Bestelnummer | Haute |
 | [#13](../../issues/13) | Récompenses 3 couches (refonte trigger) | Haute |
 | [#14](../../issues/14) | Dashboard hero card + gamification | Moyenne |
