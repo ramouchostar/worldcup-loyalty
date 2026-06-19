@@ -101,16 +101,9 @@ Repo : `ramouchostar/worldcup-loyalty`
 | #8 | Interface admin commandes suspectes | 🟡 |
 | #9 | PWA + polish mobile | 🟢 |
 
-## Violations actuelles à corriger en priorité
+## Conformité ADR 0007
 
-Avant d'implémenter de nouvelles features, corriger ces violations ADR 0007 visibles dans l'app :
-
-1. **Dashboard** : supprimer "CA total : 0 €" — ne jamais afficher le CA au client
-2. **Dashboard** : remplacer "Bonus communautaire en attente de l'objectif CA" par un message neutre sans mentionner le CA
-3. **Leaderboard** : supprimer "Score = Membres × CA total (€)" — reformuler sans euros ni CA
-4. **/rewards** : supprimer la carte "Objectif restaurant" — invisible côté client
-5. **/rewards** : réécrire le texte double verrou sans mentionner "chiffre d'affaires"
-6. **Micro-rewards** : remplacer le système parrainage par email par le système lien WhatsApp
+**Audité conforme le 2026-06-19.** Toutes les violations historiques (CA total au dashboard, message double verrou mentionnant le CA, "Score = Membres × CA" au leaderboard, carte "Objectif restaurant" sur /rewards, parrainage par email) sont corrigées. Les surfaces client n'affichent que des points pour le score communautaire et des euros uniquement pour les dépenses personnelles du membre. Vérifier cette conformité à chaque nouvelle surface client (toute API publique renvoyant `target_revenue`/`current_revenue`/`is_unlocked` est une régression).
 
 ## Workflow
 
