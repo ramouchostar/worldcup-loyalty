@@ -149,7 +149,7 @@ export default async function RewardsPage() {
                 <div className="text-right shrink-0">
                   <p className="text-xs text-gray-400">Seuil</p>
                   <p className="font-bold text-gray-900 text-sm tabular-nums">
-                    {Number(reward.score_threshold).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}
+                    {Number(reward.score_threshold).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
                   </p>
                 </div>
               </div>
