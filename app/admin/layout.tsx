@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getRestaurantId } from "@/lib/restaurant";
 
 const navLinks = [
   { href: "/admin",                  label: "📊 Dashboard" },
@@ -6,8 +7,10 @@ const navLinks = [
   { href: "/admin/orders",           label: "🧾 Commandes" },
   { href: "/admin/micro-rewards",    label: "⭐ Actions" },
   { href: "/admin/referrals",        label: "👥 Parrainages" },
-  { href: "/admin/teams",            label: "🏴 Équipes" },
   { href: "/admin/thresholds",       label: "🎯 Seuils CA" },
+  { href: "/admin/menu",             label: "📋 Menu & coûts" },
+  { href: "/admin/team-tiers",       label: "🏆 Paliers d'équipe" },
+  { href: "/admin/broadcast",        label: "📣 Broadcasts" },
   { href: "/admin/sandbox",          label: "🧪 Sandbox" },
 ];
 
@@ -18,9 +21,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-brand-gold font-black text-lg">⚙️ Admin</span>
-            <span className="text-gray-500 text-sm">Belchicken WorldCup</span>
+            <span className="text-gray-500 text-sm">Belchicken</span>
           </div>
-          <Link href="/dashboard" className="text-xs text-gray-400 hover:text-white transition-colors">
+          <Link href={`/r/${getRestaurantId()}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors">
             ← Retour membre
           </Link>
         </div>

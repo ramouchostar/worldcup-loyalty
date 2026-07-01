@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 export function RedeemButton() {
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+  const { restaurantId } = useParams<{ restaurantId: string }>();
 
   async function handleClick() {
     setBusy(true);
-    const res = await fetch("/api/redemption/generate", { method: "POST" });
+    const res = await fetch("/api/redemption/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId }),
+    });
     if (res.ok) {
       const { token } = await res.json();
       router.push(`/coupon/${token}`);

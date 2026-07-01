@@ -1,66 +1,50 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase";
-import { getSoloReward, getCommunityBonus, getAdvancementBonus } from "@/lib/rewards";
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus } from "@/lib/rewards";
+import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
-import { getRestaurantId } from "@/lib/restaurant";
-import { applyRoundBonus } from "@/lib/score";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
 import type { Order, PendingReward } from "@/types";
-import { RedeemButton } from "@/app/(member)/my-rewards/RedeemButton";
+import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
 
-type ProfileWithTeam = {
-  display_name: string;
-  team_id: string;
-  teams: {
-    name: string;
-    flag_emoji: string;
-    is_active: boolean;
-    round_reached: string;
-    eliminated_at: string | null;
-    round_advanced_at: string | null;
-  };
+type MembershipWithTeam = {
+  team_id: string | null;
+  teams: { name: string; flag_emoji: string } | null;
 };
 
 const COMMUNITY_TIERS = [
-  { score: 1000,  item: "Frites Medium" },
-  { score: 3000,  item: "Churros 12 pcs" },
-  { score: 6000,  item: "Finest burger" },
+  { score: 1000, item: "Frites Medium" },
+  { score: 3000, item: "Churros 12 pcs" },
+  { score: 6000, item: "Finest burger" },
   { score: 10000, item: "Menu 4 Tenders" },
 ];
 
-const TOURNAMENT_ROUNDS = [
-  { key: "group_stage",   label: "Groupes" },
-  { key: "round_of_32",   label: "1/32" },
-  { key: "round_of_16",   label: "1/8" },
-  { key: "quarter_final", label: "1/4" },
-  { key: "semi_final",    label: "1/2" },
-  { key: "final",         label: "Finale" },
-];
-
-export default async function DashboardPage() {
+export default async function DashboardPage({ params }: { params: Promise<{ restaurantId: string }> }) {
+  const { restaurantId } = await params;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  const restaurantId = getRestaurantId();
+  const r = (path: string) => `/r/${restaurantId}${path}`;
 
   const [
-    { data: profileRaw },
+    { data: membershipRaw },
     { data: orders },
     { data: pendingRaw },
     { count: redeemedCount },
     restaurantUnlocked,
     budget,
     { data: validatedOrdersData, count: validatedOrderCount },
+    grid,
   ] = await Promise.all([
     supabase
-      .from("profiles")
-      .select("display_name, team_id, teams(name, flag_emoji, is_active, round_reached, eliminated_at, round_advanced_at)")
-      .eq("id", user.id)
-      .single(),
+      .from("memberships")
+      .select("team_id, teams(name, flag_emoji)")
+      .eq("user_id", user.id)
+      .eq("restaurant_id", restaurantId)
+      .maybeSingle(),
     supabase
       .from("orders")
       .select("id, amount, order_number, order_date, status, rejection_reason")
@@ -81,7 +65,7 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .eq("status", "redeemed"),
-    isRestaurantThresholdUnlocked(),
+    isRestaurantThresholdUnlocked(restaurantId),
     getBudgetStatus(restaurantId),
     supabase
       .from("orders")
@@ -89,57 +73,60 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .eq("status", "validated"),
+    loadRewardGrid(restaurantId),
   ]);
 
-  const profile = profileRaw as unknown as ProfileWithTeam | null;
-  if (!profile?.team_id) redirect("/register");
+  const membership = membershipRaw as unknown as MembershipWithTeam | null;
+  const hasTeam = !!membership?.team_id;
 
-  const { data: scoreRaw } = await supabase
-    .from("community_scores")
-    .select("team_id, member_count, score")
-    .eq("team_id", profile.team_id)
-    .eq("restaurant_id", restaurantId)
-    .single();
+  // Score (points, côté membre) + dépense cumulée d'équipe (euros, service role —
+  // jamais rendue, sert seulement à résoudre la couche 3). ADR 0007.
+  const admin = createAdminClient();
+  const [scoreResult, spentResult, teamTiers] = await Promise.all([
+    hasTeam
+      ? supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
+      : Promise.resolve({ data: null }),
+    hasTeam
+      ? admin.from("community_scores").select("total_spent").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
+      : Promise.resolve({ data: null }),
+    loadTeamTiers(restaurantId),
+  ]);
+  const scoreRaw = scoreResult.data;
+  const spentRaw = spentResult.data;
 
-  const rawScore       = (scoreRaw as { score: number } | null)?.score ?? 0;
-  const memberCount    = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
+  const score = (scoreRaw as { score: number } | null)?.score ?? 0;
+  const memberCount = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
+  const teamTotalSpent = Number((spentRaw as { total_spent: number } | null)?.total_spent ?? 0);
   const pendingRewards = (pendingRaw as PendingReward[] ?? []);
-  const orderList      = (orders as Order[] ?? []);
-  const team           = profile.teams;
+  const orderList = (orders as Order[] ?? []);
+  const team = membership?.teams ?? null;
 
-  // Apply ×1.5 round-advancement bonus to display score (ADR 0002)
-  const displayScore    = applyRoundBonus(rawScore, team.round_advanced_at ?? null);
-  const roundBonusActive = displayScore !== rawScore;
-
-  // ── Hero preview (ADR 0010) ────────────────────────────────────────────────
-  const totalSpent  = (validatedOrdersData ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
-  const validCount  = validatedOrderCount ?? 0;
+  // ── Hero preview ───────────────────────────────────────────────────────────
+  const totalSpent = (validatedOrdersData ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
+  const validCount = validatedOrderCount ?? 0;
   const memberActive = validCount > 0;
-  const avgAmount   = validCount > 0 ? totalSpent / validCount : 25;
-  const previewAmt  = Math.max(15, Math.round(avgAmount));
+  const avgAmount = validCount > 0 ? totalSpent / validCount : 25;
+  const previewAmt = Math.max(15, Math.round(avgAmount));
 
-  // Plafond budget (ADR 0012) : couches 2 et 3 masquées si en pause —
-  // seule la valeur booléenne sert au rendu, jamais les montants
-  const heroSolo        = getSoloReward(previewAmt);
-  const heroCommunity   = getCommunityBonus(displayScore, restaurantUnlocked && budget.communityBonusActive);
-  const heroAdvancement = budget.communityBonusActive
-    ? getAdvancementBonus(team.round_reached, !team.is_active)
+  // Plafond budget (ADR 0012) : couches 2 et 3 masquées si en pause
+  const heroSolo = resolveSoloReward(grid, previewAmt);
+  const heroCommunity = resolveCommunityBonus(grid, score, restaurantUnlocked && budget.communityBonusActive);
+  const heroTeamTier = budget.communityBonusActive
+    ? resolveTeamTier(teamTiers, teamTotalSpent)
     : { item: null, cost: 0 };
-  const heroCount       = [heroSolo.item, heroCommunity.item, heroAdvancement.item].filter(Boolean).length;
+  const heroCount = [heroSolo.item, heroCommunity.item, heroTeamTier.item].filter(Boolean).length;
 
-  // ── Community progress (ADR 0010 section 2) ───────────────────────────────
-  const isWeakCommunity = displayScore < COMMUNITY_TIERS[0].score;
-  const nextTier       = COMMUNITY_TIERS.find(t => t.score > displayScore) ?? null;
-  const prevTierScore  = nextTier ? (COMMUNITY_TIERS[COMMUNITY_TIERS.indexOf(nextTier) - 1]?.score ?? 0) : 0;
-  const tierPct        = nextTier
-    ? Math.min(100, Math.round(((displayScore - prevTierScore) / (nextTier.score - prevTierScore)) * 100))
+  // Grille communautaire affichée : catalogue si configuré, sinon grille héritée
+  const communityTiers = grid.community.length > 0
+    ? grid.community.map((t) => ({ score: t.min, item: t.item }))
+    : COMMUNITY_TIERS;
+
+  const isWeakCommunity = score < communityTiers[0].score;
+  const nextTier = communityTiers.find((t) => t.score > score) ?? null;
+  const prevTierScore = nextTier ? (communityTiers[communityTiers.indexOf(nextTier) - 1]?.score ?? 0) : 0;
+  const tierPct = nextTier
+    ? Math.min(100, Math.round(((score - prevTierScore) / (nextTier.score - prevTierScore)) * 100))
     : 100;
-
-  // ── Tournament path (ADR 0010 section 3) ──────────────────────────────────
-  const roundKeys      = TOURNAMENT_ROUNDS.map(r => r.key);
-  const teamRoundIdx   = roundKeys.indexOf(team.round_reached);
-  const isEliminated   = !team.is_active;
-  const isWinner       = team.round_reached === "winner";
 
   return (
     <div className="space-y-5 pb-4">
@@ -171,17 +158,17 @@ export default async function DashboardPage() {
                 <span>👥</span>
                 <span className="font-bold text-brand-gold">+ {heroCommunity.item}</span>
               </div>
-              <span className="text-xs text-gray-400">← {team.flag_emoji} force de ta communauté</span>
+              <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
             </div>
           )}
 
-          {heroAdvancement.item && (
+          {heroTeamTier.item && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span>⚽</span>
-                <span className="font-bold text-brand-gold">+ {heroAdvancement.item}</span>
+                <span>🏆</span>
+                <span className="font-bold text-brand-gold">+ {heroTeamTier.item}</span>
               </div>
-              <span className="text-xs text-gray-400">← {team.flag_emoji} {team.name} avance</span>
+              <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
             </div>
           )}
         </div>
@@ -193,7 +180,7 @@ export default async function DashboardPage() {
               : "Commande ≥ €15 pour débloquer"}
           </p>
           <Link
-            href="/submit-order"
+            href={r("/submit-order")}
             className="bg-brand-red text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors shrink-0"
           >
             Commander →
@@ -213,36 +200,36 @@ export default async function DashboardPage() {
                 </span>
               )}
             </p>
-            <Link href="/my-rewards" className="text-xs text-gray-400 hover:text-gray-600 underline">
+            <Link href={r("/my-rewards")} className="text-xs text-gray-400 hover:text-gray-600 underline">
               Historique →
             </Link>
           </div>
           <div className="space-y-4">
-            {pendingRewards.map((r, idx) => (
-              <div key={r.id} className={idx > 0 ? "pt-3 border-t border-brand-gold/20" : ""}>
+            {pendingRewards.map((r2, idx) => (
+              <div key={r2.id} className={idx > 0 ? "pt-3 border-t border-brand-gold/20" : ""}>
                 {pendingRewards.length > 1 && (
                   <p className="text-xs text-gray-400 mb-1.5">Commande {pendingRewards.length - idx}</p>
                 )}
                 <div className="space-y-1.5">
-                  {r.solo_item && (
+                  {r2.solo_item && (
                     <div className="flex items-center gap-2">
                       <span>🍗</span>
-                      <span className="font-bold text-gray-900">{r.solo_item}</span>
+                      <span className="font-bold text-gray-900">{r2.solo_item}</span>
                       <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
                     </div>
                   )}
-                  {r.community_item && (
+                  {r2.community_item && (
                     <div className="flex items-center gap-2">
                       <span>👥</span>
-                      <span className="font-bold text-gray-900">+ {r.community_item}</span>
+                      <span className="font-bold text-gray-900">+ {r2.community_item}</span>
                       <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
                     </div>
                   )}
-                  {r.advancement_item && (
+                  {r2.advancement_item && (
                     <div className="flex items-center gap-2">
-                      <span>⚽</span>
-                      <span className="font-bold text-gray-900">+ {r.advancement_item}</span>
-                      <span className="text-xs text-gray-400 ml-auto">avancement</span>
+                      <span>🏆</span>
+                      <span className="font-bold text-gray-900">+ {r2.advancement_item}</span>
+                      <span className="text-xs text-gray-400 ml-auto">bonus d&apos;équipe</span>
                     </div>
                   )}
                 </div>
@@ -256,40 +243,42 @@ export default async function DashboardPage() {
                   ? `${pendingRewards.length} cadeaux à récupérer au comptoir`
                   : "Cadeau à récupérer au comptoir"}
               </p>
-              <p className="text-xs text-amber-600 font-medium mt-0.5">
-                ⏰ 48h pour récupérer avant expiration
-              </p>
+              <p className="text-xs text-amber-600 font-medium mt-0.5">⏰ 48h pour récupérer avant expiration</p>
             </div>
             <RedeemButton />
           </div>
         </div>
       )}
 
-      {/* ── SECTION 2 — Community progress ────────────────────────────────── */}
+      {/* ── SECTION 2 — Progression d'équipe ──────────────────────────────── */}
+      {!team ? (
+        <div id="tour-community-progress" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center">
+          <p className="text-3xl mb-2">👥</p>
+          <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Crée ton équipe ou rejoins-en une pour débloquer le bonus communautaire sur chaque commande.
+          </p>
+          <Link
+            href={r("/my-team")}
+            className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors"
+          >
+            Voir mon équipe →
+          </Link>
+        </div>
+      ) : (
       <div id="tour-community-progress" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-2xl">{team.flag_emoji}</span>
-          <p className="font-bold text-gray-900">Communauté {team.name}</p>
+          <p className="font-bold text-gray-900">Équipe {team.name}</p>
         </div>
 
         <ScoreCard
-          teamId={profile.team_id}
-          initial={{ team_id: profile.team_id, member_count: memberCount, score: displayScore }}
+          teamId={membership!.team_id!}
+          initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
         />
 
         <div className="mt-4 pt-4 border-t border-gray-100">
-          {/* Bonus ×1.5 active badge (ADR 0002) */}
-          {roundBonusActive && (
-            <div className="mb-3 flex items-center gap-2 bg-brand-gold/10 border border-brand-gold/30 rounded-lg px-3 py-2">
-              <span className="text-sm">⚡</span>
-              <p className="text-xs font-semibold text-amber-800">
-                Bonus ×1.5 actif — votre équipe vient de passer un tour !
-              </p>
-            </div>
-          )}
-
-          {/* Plafond budget atteint (ADR 0012) — message neutre, jamais la
-              vraie raison (ADR 0007) */}
+          {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
           {!budget.communityBonusActive && (
             <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
               <span className="text-sm">⏸️</span>
@@ -302,7 +291,7 @@ export default async function DashboardPage() {
           {nextTier ? (
             <>
               <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
-                <span>{displayScore.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
+                <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
                 <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">
@@ -312,25 +301,24 @@ export default async function DashboardPage() {
                 />
               </div>
 
-              {/* Weak community CTA (ADR 0010) */}
               {isWeakCommunity ? (
                 <div className="mt-3 space-y-2">
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                     <p className="text-sm font-semibold text-blue-900">
                       À{" "}
-                      {(nextTier.score - displayScore).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}{" "}
+                      {(nextTier.score - score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}{" "}
                       pts du 1er bonus communautaire
                     </p>
                     <p className="text-xs text-blue-700 mt-1">
-                      Chaque commande de tes amis vous rapproche du bonus&nbsp;
+                      Chaque commande de tes coéquipiers vous rapproche du bonus&nbsp;
                       <span className="font-semibold">+ {nextTier.item}</span>.
                     </p>
                   </div>
                   <Link
-                    href="/parrainage"
+                    href={r("/my-team")}
                     className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
                   >
-                    <span>📲</span> Inviter des amis via WhatsApp
+                    <span>📲</span> Inviter dans mon équipe
                   </Link>
                 </div>
               ) : (
@@ -343,7 +331,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-2 text-center">
-                    💡 Chaque commande directe de ta communauté vous rapproche.
+                    💡 Chaque commande directe de ton équipe vous rapproche.
                   </p>
                 </>
               )}
@@ -352,84 +340,14 @@ export default async function DashboardPage() {
             <div className="text-center py-1">
               <p className="text-2xl mb-1">🏆</p>
               <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
-              <p className="text-xs text-gray-500">+ Menu 4 Tenders sur chaque commande</p>
+              <p className="text-xs text-gray-500">+ {communityTiers[communityTiers.length - 1].item} sur chaque commande</p>
             </div>
           )}
         </div>
       </div>
-
-      {/* ── SECTION 3 — World Cup card ─────────────────────────────────────── */}
-      {isEliminated ? (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-3">
-          <span className="text-2xl">🔴</span>
-          <div className="flex-1">
-            <p className="font-bold text-red-900">{team.flag_emoji} {team.name} est éliminée</p>
-            <p className="text-red-700 text-sm mt-1">
-              Ton bonus d&apos;avancement n&apos;est plus actif.
-            </p>
-            <Link
-              href="/transfer"
-              className="inline-block mt-3 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
-            >
-              Changer de communauté →
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-4">
-            ⚽ {team.name} dans le tournoi
-          </p>
-
-          {isWinner ? (
-            <div className="text-center py-2">
-              <p className="text-4xl mb-2">🏆</p>
-              <p className="font-bold text-yellow-600">Champion du monde !</p>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-start justify-between mb-4">
-                {TOURNAMENT_ROUNDS.map((round, idx) => {
-                  const passed  = idx < teamRoundIdx;
-                  const current = idx === teamRoundIdx;
-                  return (
-                    <div key={round.key} className="flex flex-col items-center gap-1 flex-1">
-                      <span className="text-base leading-none">
-                        {passed ? "✅" : current ? "📍" : "○"}
-                      </span>
-                      <span className={`text-xs text-center leading-tight ${
-                        current ? "font-bold text-brand-red" :
-                        passed  ? "text-gray-500" : "text-gray-300"
-                      }`}>
-                        {round.label}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-base leading-none">⭐</span>
-                  <span className="text-xs text-gray-300">★</span>
-                </div>
-              </div>
-
-              {heroAdvancement.item ? (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-3">
-                  <p className="text-xs font-semibold text-green-900">
-                    Tant que {team.name} avance, chaque commande directe débloque{" "}
-                    <span className="text-green-700">+ {heroAdvancement.item}</span>
-                  </p>
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400 text-center">
-                  Le bonus d&apos;avancement s&apos;active au prochain tour qualifié.
-                </p>
-              )}
-            </>
-          )}
-        </div>
       )}
 
-      {/* ── SECTION 4 — Personal stats (subtle, bas de page) ──────────────── */}
+      {/* ── SECTION 3 — Stats perso (subtil, bas de page) ─────────────────── */}
       {memberActive && (
         <p className="text-center text-xs text-gray-400 py-1">
           {validCount} commande{validCount > 1 ? "s" : ""} validée{validCount > 1 ? "s" : ""}
@@ -445,7 +363,7 @@ export default async function DashboardPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-bold text-gray-900">Mes commandes</h3>
-          <Link href="/submit-order" className="text-brand-red text-sm font-semibold hover:underline">
+          <Link href={r("/submit-order")} className="text-brand-red text-sm font-semibold hover:underline">
             + Ajouter
           </Link>
         </div>
@@ -454,7 +372,7 @@ export default async function DashboardPage() {
           <div className="text-center py-6">
             <p className="text-gray-400 text-sm">Aucune commande soumise.</p>
             <Link
-              href="/submit-order"
+              href={r("/submit-order")}
               className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
             >
               Soumettre ma première commande
@@ -471,9 +389,7 @@ export default async function DashboardPage() {
                   <p className="text-xs text-gray-500 font-mono">
                     {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}
                   </p>
-                  {order.rejection_reason && (
-                    <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>
-                  )}
+                  {order.rejection_reason && <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>}
                 </div>
                 <StatusBadge status={order.status} />
               </div>
@@ -489,14 +405,10 @@ export default async function DashboardPage() {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
-    pending:   { cls: "bg-amber-100 text-amber-800", label: "En attente" },
+    pending: { cls: "bg-amber-100 text-amber-800", label: "En attente" },
     validated: { cls: "bg-green-100 text-green-800", label: "Validée ✓" },
-    rejected:  { cls: "bg-red-100 text-red-800",     label: "Rejetée" },
+    rejected: { cls: "bg-red-100 text-red-800", label: "Rejetée" },
   };
   const { cls, label } = map[status] ?? map.pending;
-  return (
-    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${cls}`}>
-      {label}
-    </span>
-  );
+  return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${cls}`}>{label}</span>;
 }

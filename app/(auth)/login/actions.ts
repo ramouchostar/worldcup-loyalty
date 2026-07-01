@@ -41,11 +41,16 @@ export async function signIn(
     return { error: "Email ou mot de passe incorrect." };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("team_id")
-    .eq("id", data.user.id)
-    .single();
+  // ADR 0015 §2 — un membre peut avoir plusieurs établissements ; on ouvre
+  // sur le dernier rejoint. Aucune adhésion → direction /register (ou /join
+  // si le profil a déjà un nom, cf. registerProfile()).
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("restaurant_id")
+    .eq("user_id", data.user.id)
+    .order("joined_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  redirect(profile?.team_id ? "/dashboard" : "/register");
+  redirect(membership ? `/r/${membership.restaurant_id}/dashboard` : "/register");
 }

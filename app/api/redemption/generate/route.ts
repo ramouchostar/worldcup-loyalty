@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 import { randomBytes } from "crypto";
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const restaurantId = getRestaurantId();
+  const body = await request.json().catch(() => null);
+  const restaurantId = typeof body?.restaurantId === "string" ? body.restaurantId : "";
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
   const admin = createAdminClient();
 
   const { data: reward } = await admin

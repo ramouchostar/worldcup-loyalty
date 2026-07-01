@@ -2,24 +2,23 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { isMemberActive } from "@/lib/rewards";
-import { getRestaurantId } from "@/lib/restaurant";
 import type { Reward, CommunityScore } from "@/types";
 
-export default async function RewardsPage() {
+export default async function RewardsPage({ params }: { params: Promise<{ restaurantId: string }> }) {
+  const { restaurantId } = await params;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profileRaw } = await supabase
-    .from("profiles")
+  const { data: membershipRaw } = await supabase
+    .from("memberships")
     .select("team_id")
-    .eq("id", user.id)
-    .single();
+    .eq("user_id", user.id)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
 
-  const profile = profileRaw as { team_id: string | null } | null;
-  if (!profile?.team_id) redirect("/register");
-
-  const restaurantId = getRestaurantId();
+  const membership = membershipRaw as { team_id: string | null } | null;
+  if (!membership?.team_id) redirect(`/r/${restaurantId}/my-team`);
 
   const [
     { data: rewardsRaw },
@@ -36,10 +35,10 @@ export default async function RewardsPage() {
     supabase
       .from("community_scores")
       .select("score, member_count")
-      .eq("team_id", profile.team_id)
+      .eq("team_id", membership.team_id)
       .eq("restaurant_id", restaurantId)
       .single(),
-    isRestaurantThresholdUnlocked(),
+    isRestaurantThresholdUnlocked(restaurantId),
     isMemberActive(user.id),
   ]);
 

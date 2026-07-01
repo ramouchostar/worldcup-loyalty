@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
 
 type SocialData = {
@@ -18,14 +19,15 @@ const ACTION_META: Record<MicroRewardType, { icon: string; link: string | undefi
 const TOKENS_PER_PORTION = 4;
 
 export default function MicroRewardsPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [socialData, setSocialData] = useState<SocialData | null>(null);
   const [referralData, setReferralData] = useState<ReferralLinkData | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function fetchAll() {
     const [socialRes, refRes] = await Promise.all([
-      fetch("/api/micro-rewards"),
-      fetch("/api/referrals"),
+      fetch(`/api/micro-rewards?restaurantId=${restaurantId}`),
+      fetch(`/api/referrals?restaurantId=${restaurantId}`),
     ]);
     if (socialRes.ok) setSocialData(await socialRes.json());
     if (refRes.ok) setReferralData(await refRes.json());
@@ -115,6 +117,7 @@ export default function MicroRewardsPage() {
               reward={reward}
               claim={claimMap[reward.type] ?? null}
               meta={ACTION_META[reward.type as MicroRewardType]}
+              restaurantId={restaurantId}
               onSuccess={fetchAll}
             />
           ))}
@@ -135,11 +138,13 @@ function ActionCard({
   reward,
   claim,
   meta,
+  restaurantId,
   onSuccess,
 }: {
   reward: MicroReward;
   claim: MicroRewardClaim | null;
   meta: (typeof ACTION_META)[MicroRewardType];
+  restaurantId: string;
   onSuccess: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
@@ -153,7 +158,7 @@ function ActionCard({
     const res = await fetch("/api/micro-rewards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reward_type: reward.type }),
+      body: JSON.stringify({ reward_type: reward.type, restaurantId }),
     });
     if (res.status === 201) {
       onSuccess();

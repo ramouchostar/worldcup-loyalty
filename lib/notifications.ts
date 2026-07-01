@@ -46,7 +46,7 @@ export async function sendPush(
 
   if (!subs || subs.length === 0) return false;
 
-  const payload = JSON.stringify({ title: "Belchicken", body: message, url: "/dashboard" });
+  const payload = JSON.stringify({ title: "Belchicken", body: message, url: `/r/${restaurantId}/dashboard` });
 
   const results = await Promise.allSettled(
     subs.map(sub =>

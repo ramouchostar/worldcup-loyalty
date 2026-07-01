@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import type { ReferralLinkData } from "@/types";
 
 export default function InvitePage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [data, setData] = useState<ReferralLinkData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetch("/api/referrals")
+    fetch(`/api/referrals?restaurantId=${restaurantId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setData)
       .finally(() => setLoading(false));
-  }, []);
+  }, [restaurantId]);
 
   const joinUrl =
     data?.code && typeof window !== "undefined"
@@ -42,7 +44,7 @@ export default function InvitePage() {
   return (
     <div className="space-y-5 pb-4">
       <div className="flex items-center gap-3">
-        <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">
+        <Link href={`/r/${restaurantId}/dashboard`} className="text-gray-400 hover:text-gray-600">
           ←
         </Link>
         <div>

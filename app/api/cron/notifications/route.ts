@@ -24,11 +24,21 @@ export async function GET(request: Request) {
   const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID ?? "molenbeek";
   const now = new Date();
 
-  const { data: members } = await admin
-    .from("profiles")
-    .select("id, phone, last_notified_at, team_id, teams!inner(name, flag_emoji, is_active, round_reached, round_advanced_at)")
+  // ADR 0015 — l'appartenance à un établissement + une équipe vit désormais
+  // dans memberships, pas dans profiles (colonne conservée mais plus lue).
+  const { data: membershipsRaw } = await admin
+    .from("memberships")
+    .select("user_id, team_id, profiles!inner(phone, last_notified_at), teams!inner(name, flag_emoji, is_active)")
     .eq("restaurant_id", restaurantId)
     .not("team_id", "is", null);
+
+  const members = (membershipsRaw ?? []).map((m: any) => ({
+    id: m.user_id,
+    phone: m.profiles.phone,
+    last_notified_at: m.profiles.last_notified_at,
+    team_id: m.team_id,
+    teams: m.teams,
+  }));
 
   if (!members?.length) return NextResponse.json({ sent: 0, evaluated: 0 });
 
@@ -59,6 +69,7 @@ export async function GET(request: Request) {
       .from("notification_log")
       .select("id", { count: "exact", head: true })
       .eq("user_id", member.id)
+      .neq("trigger_type", "admin_broadcast") // broadcasts = quota séparé (T8c)
       .gte("sent_at", weekAgo);
     if ((weeklyCount ?? 0) >= MAX_PER_WEEK) continue;
 
@@ -75,16 +86,7 @@ export async function GET(request: Request) {
     let trigger: TriggerType | null = null;
     let message: string | null = null;
 
-    // 1. Avancement d'équipe (haute priorité) — round_advanced_at dans les 24h
-    if (team.round_advanced_at) {
-      const hours = (now.getTime() - new Date(team.round_advanced_at).getTime()) / 3_600_000;
-      if (hours <= 24) {
-        trigger = "advancement";
-        message = buildMessage("advancement", team.name, team.flag_emoji, { round: team.round_reached });
-      }
-    }
-
-    // 2. Palier franchi (haute priorité)
+    // 1. Palier franchi (haute priorité)
     if (!trigger) {
       const reachedThreshold = SCORE_THRESHOLDS.filter(t => teamScore >= t.score).pop();
       if (reachedThreshold) {

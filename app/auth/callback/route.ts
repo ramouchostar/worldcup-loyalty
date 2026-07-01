@@ -66,15 +66,29 @@ export async function GET(request: NextRequest) {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("team_id")
+        .select("display_name")
         .eq("id", user.id)
         .single();
 
-      if (!profile?.team_id) {
+      if (!profile?.display_name) {
         return NextResponse.redirect(`${origin}/register`);
       }
+
+      // ADR 0015 §2 — ouvre sur le dernier établissement rejoint, ou /join
+      // si le membre a un profil mais n'a encore rejoint aucun restaurant.
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("restaurant_id")
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      return NextResponse.redirect(
+        `${origin}${membership ? `/r/${membership.restaurant_id}/dashboard` : "/join"}`
+      );
     }
-    return NextResponse.redirect(`${origin}/dashboard`);
+    return NextResponse.redirect(`${origin}/join`);
   }
 
   return NextResponse.redirect(`${origin}/login?error=lien_invalide`);

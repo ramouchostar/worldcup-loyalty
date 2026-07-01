@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getRestaurantId } from "@/lib/restaurant";
 
 export default async function AdminDashboardPage() {
   const supabase = await createServerSupabaseClient();
@@ -9,6 +10,7 @@ export default async function AdminDashboardPage() {
   if (!user) redirect("/login");
 
   const admin = createAdminClient();
+  const restaurantId = getRestaurantId();
 
   const [
     { count: pendingOrders },
@@ -19,7 +21,7 @@ export default async function AdminDashboardPage() {
   ] = await Promise.all([
     admin.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("micro_reward_claims").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    admin.from("profiles").select("id", { count: "exact", head: true }).not("team_id", "is", null),
+    admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).not("team_id", "is", null),
     admin.from("restaurant_thresholds").select("period_label, current_revenue, target_revenue, is_unlocked").order("created_at", { ascending: false }).limit(1).single(),
     admin.from("orders").select("flag_reasons").eq("status", "pending"),
   ]);
@@ -65,7 +67,7 @@ export default async function AdminDashboardPage() {
       badge: undefined,
     },
     {
-      href: "/admin/teams",
+      href: "/admin/broadcast",
       label: "Membres inscrits",
       value: totalMembers ?? 0,
       icon: "👥",
@@ -78,7 +80,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard Admin</h1>
-        <p className="text-gray-500 text-sm mt-1">Vue d&apos;ensemble du programme WorldCup</p>
+        <p className="text-gray-500 text-sm mt-1">Vue d&apos;ensemble du programme de fidélité</p>
       </div>
 
       {/* Stats cards */}
@@ -149,11 +151,11 @@ export default async function AdminDashboardPage() {
 
       {/* Liens rapides */}
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/admin/teams" className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
-          <p className="font-semibold text-gray-900 text-sm">🏴 Gérer les équipes</p>
-          <p className="text-xs text-gray-400 mt-0.5">Éliminer, avancer au tour suivant</p>
+        <Link href="/admin/team-tiers" className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
+          <p className="font-semibold text-gray-900 text-sm">🏆 Paliers d&apos;équipe</p>
+          <p className="text-xs text-gray-400 mt-0.5">Récompenses collectives</p>
         </Link>
-        <Link href="/leaderboard" className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow" target="_blank">
+        <Link href={`/r/${restaurantId}/leaderboard`} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow" target="_blank">
           <p className="font-semibold text-gray-900 text-sm">🏆 Classement public</p>
           <p className="text-xs text-gray-400 mt-0.5">Vue temps réel ↗</p>
         </Link>

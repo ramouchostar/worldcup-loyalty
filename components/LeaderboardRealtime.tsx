@@ -6,16 +6,7 @@ import type { CommunityScore, Team } from "@/types";
 
 // total_spent (euros) ne doit jamais entrer dans ce composant — ADR 0007
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
-  teams: Pick<Team, "name" | "flag_emoji" | "is_active" | "round_reached">;
-};
-
-const ROUND_LABELS: Record<string, string> = {
-  group_stage: "Groupes",
-  round_of_16: "1/8",
-  quarter_final: "1/4",
-  semi_final: "1/2",
-  final: "Finale",
-  winner: "🏆 Champion",
+  teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
 
 export function LeaderboardRealtime({
@@ -109,10 +100,9 @@ export function LeaderboardRealtime({
                 {entry.teams.name}
                 {isMyTeam && <span className="ml-1 text-xs font-normal text-brand-red">← toi</span>}
               </p>
-              <p className="text-xs text-gray-400">
-                {ROUND_LABELS[entry.teams.round_reached] ?? entry.teams.round_reached}
-                {!entry.teams.is_active && " — éliminée"}
-              </p>
+              {!entry.teams.is_active && (
+                <p className="text-xs text-gray-400">inactive</p>
+              )}
             </div>
 
             {/* Stats */}

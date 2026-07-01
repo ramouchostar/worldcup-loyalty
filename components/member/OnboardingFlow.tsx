@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 
@@ -98,6 +99,7 @@ const TOUR_STEPS = [
 
 // ── Component ──────────────────────────────────────────────────────────────
 export function OnboardingFlow() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [stage, setStage]     = useState<Stage | null>(null);
   const [isIOS, setIsIOS]     = useState(false);
   const [install, setInstall] = useState<BeforeInstallPromptEvent | null>(null);
@@ -184,7 +186,7 @@ export function OnboardingFlow() {
             await fetch("/api/push/subscribe", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(sub.toJSON()),
+              body: JSON.stringify({ ...sub.toJSON(), restaurantId }),
             });
           } catch { /* subscription failed silently */ }
         }

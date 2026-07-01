@@ -29,52 +29,62 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
-  // Redirige les utilisateurs déjà connectés hors des pages auth
+  // Redirige les utilisateurs déjà connectés hors des pages auth vers leur
+  // établissement le plus récent (ADR 0015 §1-2 — plusieurs établissements
+  // possibles, on ouvre sur le dernier rejoint), ou /join s'il n'en a aucun.
   const isAuthRoute = path === "/login" || path === "/signup";
   if (isAuthRoute && user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("team_id")
-      .eq("id", user.id)
-      .single();
-    const dest = profile?.team_id ? "/dashboard" : "/register";
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("restaurant_id")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const dest = membership ? `/r/${membership.restaurant_id}/dashboard` : "/join";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 
-  const isMemberRoute =
-    path.startsWith("/dashboard") ||
-    path.startsWith("/submit-order") ||
-    path.startsWith("/my-team") ||
-    path.startsWith("/my-rewards") ||
-    path.startsWith("/rewards") ||
-    path.startsWith("/micro-rewards") ||
-    path.startsWith("/parrainage") ||
-    path.startsWith("/leaderboard") ||
-    path.startsWith("/transfer");
+  const restaurantMatch = path.match(/^\/r\/([^/]+)\//);
+  const currentRestaurantId = restaurantMatch?.[1];
+  // /r/[id]/leaderboard reste public (classement consultable sans compte)
+  const isPublicRestaurantRoute = !!currentRestaurantId && path === `/r/${currentRestaurantId}/leaderboard`;
+  const isRestaurantRoute = !!restaurantMatch && !isPublicRestaurantRoute;
 
   const isAdminRoute = path.startsWith("/admin");
+  const isJoinRoute = path === "/join";
 
   // Routes protégées : authentification requise
-  if ((isMemberRoute || isAdminRoute) && !user) {
+  if ((isRestaurantRoute || isAdminRoute || isJoinRoute) && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Routes membres et admin : charge le profil une seule fois
-  if ((isMemberRoute || isAdminRoute) && user) {
+  // Route établissement : le membre doit avoir une adhésion pour CET
+  // établissement précis (ADR 0015 §2 — pas de blocage global)
+  if (isRestaurantRoute && user && currentRestaurantId) {
+    const myTeamPath = `/r/${currentRestaurantId}/my-team`;
+    if (path !== myTeamPath) {
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("team_id")
+        .eq("user_id", user.id)
+        .eq("restaurant_id", currentRestaurantId)
+        .maybeSingle();
+      if (!membership?.team_id) {
+        return NextResponse.redirect(new URL(myTeamPath, request.url));
+      }
+    }
+  }
+
+  // Admin : is_admin requis (hors scope ADR 0015 §6-7 — inchangé)
+  if (isAdminRoute && user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("team_id, is_admin")
+      .select("is_admin")
       .eq("id", user.id)
       .single();
-
-    // Membres : équipe obligatoire
-    if (isMemberRoute && path !== "/register" && !profile?.team_id) {
-      return NextResponse.redirect(new URL("/register", request.url));
-    }
-
-    // Admin : is_admin requis
-    if (isAdminRoute && !profile?.is_admin) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    if (!profile?.is_admin) {
+      return NextResponse.redirect(new URL("/join", request.url));
     }
   }
 

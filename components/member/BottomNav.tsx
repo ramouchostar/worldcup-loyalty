@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navLinks = [
-  { href: "/dashboard",     label: "Dashboard",   icon: "🏠", id: undefined },
-  { href: "/submit-order",  label: "Commande",    icon: "🧾", id: "tour-nav-commande" },
-  { href: "/rewards",       label: "Récompenses", icon: "🎁", id: "tour-nav-recompenses" },
-  { href: "/micro-rewards", label: "Actions",     icon: "⭐", id: "tour-nav-actions" },
-  { href: "/leaderboard",   label: "Classement",  icon: "🏆", id: "tour-nav-classement" },
+  { href: "dashboard",     label: "Dashboard",   icon: "🏠", id: undefined },
+  { href: "my-team",       label: "Équipe",      icon: "👥", id: "tour-nav-equipe" },
+  { href: "submit-order",  label: "Commande",    icon: "🧾", id: "tour-nav-commande" },
+  { href: "rewards",       label: "Récompenses", icon: "🎁", id: "tour-nav-recompenses" },
+  { href: "micro-rewards", label: "Actions",     icon: "⭐", id: "tour-nav-actions" },
+  { href: "leaderboard",   label: "Classement",  icon: "🏆", id: "tour-nav-classement" },
 ];
 
-export function BottomNav() {
+export function BottomNav({ restaurantId }: { restaurantId: string }) {
   const pathname = usePathname();
+  const base = `/r/${restaurantId}`;
 
   return (
     <nav
@@ -21,11 +23,12 @@ export function BottomNav() {
     >
       <div className="max-w-2xl mx-auto flex justify-around pb-safe">
         {navLinks.map((link) => {
-          const active = pathname === link.href || pathname.startsWith(link.href + "/");
+          const href = `${base}/${link.href}`;
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={link.href}
-              href={link.href}
+              href={href}
               id={link.id}
               className={`flex flex-col items-center py-2 px-1 text-xs min-w-0 transition-colors ${
                 active

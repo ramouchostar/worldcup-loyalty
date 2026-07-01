@@ -19,7 +19,7 @@ export default async function AdminCouponPage({
     .eq("id", user.id)
     .single();
 
-  if (!profile?.is_admin) redirect("/dashboard");
+  if (!profile?.is_admin) redirect("/join");
 
   const { token } = await params;
 

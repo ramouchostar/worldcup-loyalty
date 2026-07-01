@@ -3,23 +3,19 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase";
 
-export async function registerTeam(
+// ADR 0015 — le choix de l'établissement ne se fait plus ici (liste figée de
+// 3 Belchicken) mais sur /join, qui liste les établissements réels de la
+// table `restaurants` — un membre peut en rejoindre plusieurs, pas un seul
+// choisi une fois pour toutes.
+export async function registerProfile(
   _prevState: { error: string } | null,
   formData: FormData
 ): Promise<{ error: string } | null> {
-  const ALLOWED_RESTAURANTS = ["kraainem", "houba", "uccle-de-bue"];
-
-  const teamId = formData.get("team_id") as string;
   const displayName = (formData.get("display_name") as string).trim();
-  const restaurantIdFromForm = formData.get("restaurant_id") as string;
 
-  if (!teamId || !displayName) {
-    return { error: "Choisis une équipe et entre ton prénom." };
-  }
-  if (!restaurantIdFromForm || !ALLOWED_RESTAURANTS.includes(restaurantIdFromForm)) {
-    return { error: "Choisis ton Belchicken." };
+  if (!displayName) {
+    return { error: "Entre ton prénom." };
   }
 
   const cookieStore = await cookies();
@@ -53,15 +49,10 @@ export async function registerTeam(
   }
 
   const user = session.user;
-  const restaurantId = restaurantIdFromForm;
 
   const { data: updatedRows, error } = await supabase
     .from("profiles")
-    .update({
-      team_id: teamId,
-      display_name: displayName,
-      restaurant_id: restaurantId,
-    })
+    .update({ display_name: displayName })
     .eq("id", user.id)
     .select();
 
@@ -73,30 +64,7 @@ export async function registerTeam(
     return { error: "Profil introuvable. Déconnecte-toi et reconnecte-toi." };
   }
 
-  // Attribution du parrainage si le membre est arrivé via un lien /join?ref=CODE
-  const refCode = cookieStore.get("belchicken_ref")?.value;
-  if (refCode && /^[A-Z0-9]{6}$/.test(refCode)) {
-    const admin = createAdminClient();
-
-    const { data: refLink } = await admin
-      .from("referral_links")
-      .select("user_id")
-      .eq("code", refCode)
-      .eq("restaurant_id", restaurantId)
-      .maybeSingle();
-
-    // Le parrain existe et ce n'est pas le membre lui-même
-    if (refLink && refLink.user_id !== user.id) {
-      await admin.from("referrals").insert({
-        referrer_id: refLink.user_id,
-        referee_id: user.id,
-        restaurant_id: restaurantId,
-      });
-    }
-
-    // Effacer le cookie — attribution one-shot
-    cookieStore.set("belchicken_ref", "", { maxAge: 0, path: "/" });
-  }
-
-  redirect("/dashboard");
+  // Le cookie belchicken_ref (parrainage) et le choix de l'établissement
+  // sont désormais gérés sur /join (ADR 0015) — pas de restaurant_id connu ici.
+  redirect("/join");
 }

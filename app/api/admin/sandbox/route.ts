@@ -175,7 +175,7 @@ export async function GET() {
   const [membersResult, teamsResult] = await Promise.all([
     admin
       .from("profiles")
-      .select("id, display_name, email, team_id, teams(name, flag_emoji)")
+      .select("id, display_name, email, team_id, teams!profiles_team_id_fkey(name, flag_emoji)")
       .eq("restaurant_id", restaurantId)
       .not("team_id", "is", null)
       .order("display_name"),

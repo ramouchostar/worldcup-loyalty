@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 type NotifEntry = {
   id: string;
@@ -10,11 +11,12 @@ type NotifEntry = {
 };
 
 export function InAppNotificationBanner() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [notif, setNotif] = useState<NotifEntry | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    fetch("/api/notifications/latest")
+    fetch(`/api/notifications/latest?restaurantId=${restaurantId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data: NotifEntry | null) => {
         if (!data) return;
@@ -22,7 +24,7 @@ export function InAppNotificationBanner() {
         setNotif(data);
       })
       .catch(() => {});
-  }, []);
+  }, [restaurantId]);
 
   function dismiss() {
     if (notif) sessionStorage.setItem(`notif_dismissed_${notif.id}`, "1");

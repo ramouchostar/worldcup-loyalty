@@ -96,7 +96,7 @@ export default async function LandingPage() {
               Rejoindre gratuitement →
             </Link>
             <Link
-              href="/leaderboard"
+              href="/join"
               className="flex-1 bg-white/10 text-white text-center py-4 rounded-2xl font-semibold hover:bg-white/20 transition-colors border border-white/20"
             >
               🏆 Classement live
@@ -179,7 +179,7 @@ export default async function LandingPage() {
               <h2 className="text-2xl font-black text-gray-900">Top 5 communautés</h2>
               <p className="text-gray-500 text-sm">Mis à jour toutes les minutes</p>
             </div>
-            <Link href="/leaderboard" className="text-brand-red text-sm font-semibold hover:underline">
+            <Link href="/join" className="text-brand-red text-sm font-semibold hover:underline">
               Voir tout →
             </Link>
           </div>
@@ -277,7 +277,7 @@ export default async function LandingPage() {
         <div className="max-w-lg mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <span className="font-bold text-gray-400">🏆 WorldCup Loyalty · Belchicken</span>
           <div className="flex gap-4">
-            <Link href="/leaderboard" className="hover:text-gray-300 transition-colors">Classement</Link>
+            <Link href="/join" className="hover:text-gray-300 transition-colors">Classement</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Connexion</Link>
           </div>
         </div>

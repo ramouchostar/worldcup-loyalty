@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // pas de 0/O, 1/I/L
 
@@ -12,12 +11,14 @@ function generateCode(): string {
   return code;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
-  const restaurantId = getRestaurantId();
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
   const admin = createAdminClient();
 
   // Récupère ou crée le lien de parrainage du membre

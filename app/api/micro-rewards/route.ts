@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 import type { MicroRewardType } from "@/types";
 
 const VALID_TYPES: MicroRewardType[] = [
@@ -10,12 +9,13 @@ const VALID_TYPES: MicroRewardType[] = [
   "facebook_follow",
 ];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
-  const restaurantId = getRestaurantId();
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
 
   const [{ data: rewards }, { data: claims }] = await Promise.all([
     supabase
@@ -38,13 +38,14 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
   const body = await request.json();
-  const { reward_type } = body;
+  const { reward_type, restaurantId } = body;
 
   if (!reward_type || !VALID_TYPES.includes(reward_type as MicroRewardType)) {
     return NextResponse.json({ error: "Type d'action invalide." }, { status: 400 });
   }
-
-  const restaurantId = getRestaurantId();
+  if (!restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
 
   const { error } = await supabase.from("micro_reward_claims").insert({
     user_id: user.id,

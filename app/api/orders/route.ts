@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/orders";
-import { getRestaurantId } from "@/lib/restaurant";
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
@@ -36,19 +35,22 @@ export async function POST(request: NextRequest) {
   let orderNumber: string;
   let amount: number;
   let receiptFile: File | null = null;
+  let restaurantId: string;
 
   if (isMultipart) {
     const formData = await request.formData();
     const rawOrderNumber = formData.get("order_number");
     const rawAmount = formData.get("amount");
+    const rawRestaurantId = formData.get("restaurantId");
     receiptFile = formData.get("receipt") as File | null;
 
-    if (!rawOrderNumber || rawAmount === null || !receiptFile) {
-      return NextResponse.json({ error: "Champs manquants (order_number, amount, receipt)." }, { status: 400 });
+    if (!rawOrderNumber || rawAmount === null || !receiptFile || !rawRestaurantId) {
+      return NextResponse.json({ error: "Champs manquants (order_number, amount, receipt, restaurantId)." }, { status: 400 });
     }
 
     orderNumber = String(rawOrderNumber).trim();
     amount = parseFloat(String(rawAmount));
+    restaurantId = String(rawRestaurantId);
 
     // Les champs OCR du formData (ocr_amount, ocr_confidence,
     // no_restaurant_header) ne sont volontairement PAS lus : le serveur
@@ -57,11 +59,12 @@ export async function POST(request: NextRequest) {
   } else {
     // Legacy JSON path (backward compat for admin tools)
     const body = await request.json();
-    if (!body.order_number || body.amount === undefined) {
+    if (!body.order_number || body.amount === undefined || !body.restaurantId) {
       return NextResponse.json({ error: "Champs manquants." }, { status: 400 });
     }
     orderNumber = String(body.order_number).trim();
     amount = parseFloat(String(body.amount));
+    restaurantId = String(body.restaurantId);
   }
 
   const hasBestelnummer = orderNumber.trim().length > 0;
@@ -83,17 +86,17 @@ export async function POST(request: NextRequest) {
     if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
+  const { data: membership } = await supabase
+    .from("memberships")
     .select("team_id")
-    .eq("id", user.id)
-    .single();
+    .eq("user_id", user.id)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
 
-  if (!profile?.team_id) {
+  if (!membership?.team_id) {
     return NextResponse.json({ error: "Tu dois choisir une équipe avant de soumettre une commande." }, { status: 400 });
   }
 
-  const restaurantId = getRestaurantId();
   const parsedAmount = parseFloat(amount.toFixed(2));
 
   // OCR serveur — seule source de vérité pour le flagging anti-fraude
@@ -165,7 +168,7 @@ export async function POST(request: NextRequest) {
     .from("orders")
     .insert({
       user_id: user.id,
-      team_id: profile.team_id,
+      team_id: membership.team_id,
       amount: parsedAmount,
       order_number: hasBestelnummer ? orderNumber : null,
       order_date: orderDate,
@@ -202,7 +205,7 @@ export async function POST(request: NextRequest) {
       await createPendingReward(
         insertedOrder.id,
         user.id,
-        profile.team_id,
+        membership.team_id,
         restaurantId,
         parsedAmount
       );

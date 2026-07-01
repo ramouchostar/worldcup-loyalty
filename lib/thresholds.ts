@@ -1,15 +1,14 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
-import { getRestaurantId } from "./restaurant";
 import type { RestaurantThreshold } from "@/types";
 
 const DEFAULT_GROWTH_TARGET_PCT = parseFloat(process.env.GROWTH_TARGET_PCT ?? "0.10");
 
-export async function getCurrentThreshold(): Promise<RestaurantThreshold | null> {
+export async function getCurrentThreshold(restaurantId: string): Promise<RestaurantThreshold | null> {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from("restaurant_thresholds")
     .select("*")
-    .eq("restaurant_id", getRestaurantId())
+    .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
@@ -32,8 +31,8 @@ function startOfCurrentWeekISO(): string {
 // baseline_weekly_revenue × (1 + growth_target_pct). Le restaurant ne
 // débloque que s'il vend PLUS qu'avant le programme.
 // is_unlocked = true reste un override manuel admin.
-export async function isRestaurantThresholdUnlocked(): Promise<boolean> {
-  const threshold = await getCurrentThreshold();
+export async function isRestaurantThresholdUnlocked(restaurantId: string): Promise<boolean> {
+  const threshold = await getCurrentThreshold(restaurantId);
   if (!threshold) return false;
   if (threshold.is_unlocked) return true;
 
@@ -49,7 +48,7 @@ export async function isRestaurantThresholdUnlocked(): Promise<boolean> {
   const { data, error } = await admin
     .from("orders")
     .select("amount")
-    .eq("restaurant_id", getRestaurantId())
+    .eq("restaurant_id", restaurantId)
     .eq("status", "validated")
     .gte("submitted_at", startOfCurrentWeekISO());
 

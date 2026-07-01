@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json(null);
 
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json(null);
+
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
   const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
 
   const { data } = await admin

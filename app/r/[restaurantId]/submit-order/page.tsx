@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useParams } from "next/navigation";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
 type ParseStatus = "idle" | "parsing" | "done" | "error";
@@ -14,6 +15,7 @@ function randomDelay() {
 }
 
 export default function SubmitOrderPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -123,6 +125,7 @@ export default function SubmitOrderPage() {
     formData.append("receipt", receiptFile);
     formData.append("order_number", orderNumber);
     formData.append("amount", amount);
+    formData.append("restaurantId", restaurantId);
     if (ocrAmount !== null)      formData.append("ocr_amount", String(ocrAmount));
     if (ocrConfidence !== null)  formData.append("ocr_confidence", String(ocrConfidence));
     if (noRestaurantHeader)      formData.append("no_restaurant_header", "true");
