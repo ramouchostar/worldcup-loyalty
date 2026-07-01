@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant } from "@/lib/restaurant";
+import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import type { CommunityScore, Team } from "@/types";
@@ -39,6 +39,29 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // ADR 0015 §6 — un établissement pending/disabled reste invisible à tout
+  // le monde sauf son propriétaire (contrôle qualité avant validation).
+  if (restaurant.status !== "active") {
+    const owner = user ? await isRestaurantOwner(user.id, restaurantId) : false;
+    if (!owner) notFound();
+
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center bg-white rounded-2xl shadow-xl p-8">
+          <p className="text-4xl mb-3">🕐</p>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">
+            {restaurant.name} — en attente de validation
+          </h1>
+          <p className="text-gray-500 text-sm">
+            {restaurant.status === "disabled"
+              ? "Cet établissement n'est plus actif sur la plateforme."
+              : "Notre équipe examine ton établissement. Cette page deviendra visible aux clients dès validation."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [{ data: membership }, { data: scoresRaw }] = await Promise.all([
     user
       ? supabase.from("memberships").select("user_id").eq("user_id", user.id).eq("restaurant_id", restaurantId).maybeSingle()
@@ -72,11 +95,28 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
             <span className="text-brand-gold">gagne des cadeaux.</span>
           </h1>
 
-          <p className="text-gray-300 text-base leading-relaxed mb-8">
+          <p className="text-gray-300 text-base leading-relaxed mb-3">
             Le programme de fidélité communautaire de{" "}
             <span className="text-white font-bold">{restaurant.name}</span>.
             Plus ton équipe commande, plus vous gagnez ensemble.
           </p>
+
+          {(restaurant.cuisine_types.length > 0 || restaurant.address) && (
+            <div className="mb-5 space-y-2">
+              {restaurant.cuisine_types.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {restaurant.cuisine_types.map((t) => (
+                    <span key={t} className="bg-white/10 text-gray-200 text-xs font-medium px-2.5 py-1 rounded-full">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {restaurant.address && (
+                <p className="text-gray-400 text-xs">📍 {restaurant.address}</p>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3">
             {!user ? (

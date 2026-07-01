@@ -73,7 +73,8 @@ NEXT_PUBLIC_FACEBOOK_URL=
 WHATSAPP_PHONE_NUMBER_ID=           # pour notifications proactives
 WHATSAPP_TOKEN=                     # API Meta directe (pas Twilio)
 AUTO_VALIDATE=false                 # true en dev uniquement
-ADMIN_EMAILS=                       # emails bootstrappés comme admin
+ADMIN_EMAILS=                       # emails bootstrappés comme admin établissement (is_admin)
+SUPER_ADMIN_EMAILS=                 # emails bootstrappés comme super-admin plateforme (is_super_admin, ADR 0015 §7)
 ```
 
 ### ADR 0011 — Coupon de récupération anti-fraude

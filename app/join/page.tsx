@@ -9,7 +9,7 @@ export default async function JoinPage() {
   if (!user) redirect("/login");
 
   const [{ data: restaurants }, { data: memberships }] = await Promise.all([
-    supabase.from("restaurants").select("id, name").order("name"),
+    supabase.from("restaurants").select("id, name").eq("status", "active").order("name"),
     supabase.from("memberships").select("restaurant_id").eq("user_id", user.id),
   ]);
 

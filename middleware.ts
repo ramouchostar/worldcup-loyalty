@@ -53,9 +53,11 @@ export async function middleware(request: NextRequest) {
 
   const isAdminRoute = path.startsWith("/admin");
   const isJoinRoute = path === "/join";
+  const isBecomePartnerRoute = path.startsWith("/become-a-partner");
+  const isPlatformRoute = path.startsWith("/platform");
 
   // Routes protégées : authentification requise
-  if ((isRestaurantRoute || isAdminRoute || isJoinRoute) && !user) {
+  if ((isRestaurantRoute || isAdminRoute || isJoinRoute || isBecomePartnerRoute || isPlatformRoute) && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -84,6 +86,19 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
     if (!profile?.is_admin) {
+      return NextResponse.redirect(new URL("/join", request.url));
+    }
+  }
+
+  // Console plateforme : is_super_admin requis (ADR 0015 §7 — rôle distinct
+  // de is_admin, au-dessus de tous les établissements)
+  if (isPlatformRoute && user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_super_admin")
+      .eq("id", user.id)
+      .single();
+    if (!profile?.is_super_admin) {
       return NextResponse.redirect(new URL("/join", request.url));
     }
   }

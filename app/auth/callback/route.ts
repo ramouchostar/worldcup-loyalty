@@ -64,6 +64,21 @@ export async function GET(request: NextRequest) {
           .eq("id", user.id);
       }
 
+      // ADR 0015 §7 — super-admin plateforme, même mécanique que ADMIN_EMAILS
+      // mais rôle distinct (au-dessus de tous les établissements).
+      const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (superAdminEmails.includes((user.email ?? "").toLowerCase())) {
+        const admin = createAdminClient();
+        await admin
+          .from("profiles")
+          .update({ is_super_admin: true })
+          .eq("id", user.id);
+      }
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("display_name")
