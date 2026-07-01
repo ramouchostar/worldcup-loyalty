@@ -74,6 +74,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/register`);
       }
 
+      // Arrivée via le QR code / lien d'un établissement précis (page /r/[id])
+      // → on y retourne en priorité.
+      const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
+      if (pendingRestaurantId) {
+        cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
+        return NextResponse.redirect(`${origin}/r/${pendingRestaurantId}`);
+      }
+
       // ADR 0015 §2 — ouvre sur le dernier établissement rejoint, ou /join
       // si le membre a un profil mais n'a encore rejoint aucun restaurant.
       const { data: membership } = await supabase

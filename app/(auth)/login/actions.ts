@@ -41,6 +41,14 @@ export async function signIn(
     return { error: "Email ou mot de passe incorrect." };
   }
 
+  // Arrivée via le QR code / lien d'un établissement précis (page /r/[id])
+  // → on y retourne en priorité, peu importe les adhésions existantes.
+  const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
+  if (pendingRestaurantId) {
+    cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
+    redirect(`/r/${pendingRestaurantId}`);
+  }
+
   // ADR 0015 §2 — un membre peut avoir plusieurs établissements ; on ouvre
   // sur le dernier rejoint. Aucune adhésion → direction /register (ou /join
   // si le profil a déjà un nom, cf. registerProfile()).

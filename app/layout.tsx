@@ -10,8 +10,8 @@ export const metadata: Metadata = {
     template: "%s — WorldCup Loyalty",
   },
   description:
-    "Programme de fidélité communautaire Coupe du Monde 2026. Commandez chez Belchicken, faites monter le score de votre équipe, gagnez des récompenses ensemble.",
-  keywords: ["Belchicken", "fidélité", "WorldCup 2026", "Bruxelles", "fast-food", "récompenses"],
+    "Programme de fidélité communautaire par équipes. Commandez directement chez vos restaurants préférés, faites progresser votre équipe, gagnez des récompenses ensemble.",
+  keywords: ["fidélité", "restaurants", "Bruxelles", "récompenses", "communauté"],
   authors: [{ name: "Belchicken" }],
   creator: "Belchicken",
   manifest: "/manifest.webmanifest",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: "WorldCup Loyalty — Belchicken",
     title: "WorldCup Loyalty — Belchicken 🏆",
     description:
-      "Supporte ton équipe et gagne des repas chez Belchicken. Programme de fidélité communautaire Coupe du Monde 2026.",
+      "Rejoins ton équipe et commande directement chez tes restaurants préférés. Programme de fidélité communautaire par équipes.",
     images: [
       {
         url: `${APP_URL}/icons/icon.svg`,
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "WorldCup Loyalty — Belchicken 🏆",
-    description: "Supporte ton équipe et gagne des repas chez Belchicken.",
+    description: "Rejoins ton équipe et gagne des cadeaux en commandant directement.",
     images: [`${APP_URL}/icons/icon.svg`],
   },
   robots: {

@@ -64,6 +64,14 @@ export async function registerProfile(
     return { error: "Profil introuvable. Déconnecte-toi et reconnecte-toi." };
   }
 
+  // Arrivée via le QR code / lien d'un établissement précis (page /r/[id])
+  // → on y retourne pour qu'il clique "Rejoindre" (confirmation explicite).
+  const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
+  if (pendingRestaurantId) {
+    cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
+    redirect(`/r/${pendingRestaurantId}`);
+  }
+
   // Le cookie belchicken_ref (parrainage) et le choix de l'établissement
   // sont désormais gérés sur /join (ADR 0015) — pas de restaurant_id connu ici.
   redirect("/join");
