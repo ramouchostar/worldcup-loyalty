@@ -1,6 +1,6 @@
 # World Cup Loyalty — Belchicken
 
-Programme de fidélité communautaire lié à la Coupe du Monde 2026 pour Belchicken (Bruxelles). Les clients forment des communautés autour d'équipes nationales et débloquent des récompenses collectives en dépensant directement au restaurant.
+Programme de fidélité communautaire pour Belchicken (Bruxelles). Les clients forment des **équipes** qu'ils créent eux-mêmes (élèves d'une école, salariés d'une entreprise, habitants d'un quartier, chauffeurs de taxi…) et débloquent des récompenses collectives en dépensant directement au restaurant. *(Historique : le programme a d'abord été lancé autour de la Coupe du Monde 2026 — pivot acté par l'ADR 0014.)*
 
 ## Language
 
@@ -58,17 +58,18 @@ _Avoid_ : niveau, récompense (récompense est plus large — inclut les micro-r
 **Palier solo** :
 Couche 1 du système de récompenses. Récompense individuelle promise automatiquement à chaque commande directe validée, basée sur le montant de cette commande. Affichée immédiatement sur le dashboard : "ta prochaine visite → [cadeau]". Non soumise au double verrou.
 Grille : < €15 → aucune récompense solo (la commande compte quand même pour le score communautaire) / €15–24 → Churros 6 pcs (coût €0,31) / €25–39 → Finest burger (coût €0,94) / €40–59 → Menu 4 Tenders (coût €1,93) / €60+ → Chef's Combo (coût €1,92).
+Depuis ADR 0013, les articles et coûts de cette grille proviennent du catalogue menu (`menu_items`) ; les valeurs ci-dessus sont les exemples Belchicken — seules les tranches de montant constituent la structure.
 _Avoid_ : récompense individuelle, fidélité solo, cagnotte.
 
 **Bonus communautaire** :
 Couche 2 du système de récompenses. Article supplémentaire ajouté au palier solo en fonction du score de l'équipe du membre au moment de la validation. Soumis au double verrou. Non affiché si le double verrou n'est pas satisfait.
 Grille : score < 1 000 pts → rien / 1 000–2 999 → +Frites Medium / 3 000–5 999 → +Churros 12 pcs / 6 000–9 999 → +Finest burger / 10 000+ → +Menu 4 Tenders.
+Articles et coûts issus du catalogue menu (`menu_items`, ADR 0013) — valeurs d'exemple Belchicken.
 _Avoid_ : palier communautaire, récompense d'équipe (confusionnable avec "palier").
 
-**Récompense d'avancement** :
-Couche 3 du système de récompenses. Bonus permanent actif tant que l'équipe est encore en compétition. Se débloque quand l'admin valide le passage d'un tour — toujours après le match, jamais avant. Non soumise au double verrou. Ce n'est pas un pari sportif : c'est une récompense de fidélité à une communauté encore en course.
-Grille Coupe du Monde 2026 : Huitièmes → +Churros 6 pcs / Quarts → +Finest burger / Demi-finale → +Menu 4 Tenders / Finale → +Chef's Combo.
-_Avoid_ : bonus de victoire, pari, récompense de match, bonus de tour (terme réservé au ×1.5 d'affichage).
+**Palier d'équipe** :
+Couche 3 du système de récompenses (remplace la « récompense d'avancement » Coupe du Monde — ADR 0014). Seuil de **dépense cumulée de l'équipe** (`community_scores.total_spent`) défini par l'admin établissement ; quand l'équipe le franchit, **tous ses membres** débloquent une récompense : un **pourcentage borné** (prochaine commande / fenêtre limitée) ou un **article gratuit** (catalogue menu, ADR 0013). Rétro-financé par le plafond de budget cadeaux (ADR 0012). Non soumis au double verrou.
+_Avoid_ : récompense d'avancement (terme Coupe du Monde obsolète), palier (réservé au seuil de score communautaire), pari.
 
 **Récompense en attente** :
 Enregistrement unique dans `pending_rewards` par membre (un seul actif à la fois — ADR 0011). Créé à chaque validation de commande si aucune récompense active n'existe déjà. Contient les 3 couches (palier solo + bonus communautaire + récompense d'avancement). Expire automatiquement après **48h** (`status = 'expired'`). Affiché sur le dashboard avec un compte à rebours 48h. Récupéré via coupon actif au comptoir.
@@ -101,42 +102,92 @@ Membre ayant au moins une commande directe validée par le système. Seuls les m
 _Avoid_ : membre vérifié, membre validé.
 
 **Seuil CA restaurant** :
-Objectif de chiffre d'affaires que le restaurant doit atteindre sur une période donnée avant que les paliers collectifs et les bonus communautaires puissent se débloquer. Validé manuellement par l'admin. La moitié du double verrou. Entièrement invisible côté client.
-_Avoid_ : objectif, quota, seuil de CA.
+Condition de croissance que le restaurant doit atteindre avant que les paliers collectifs et les bonus communautaires puissent se débloquer. Basé sur la **croissance** vs la moyenne des 4 semaines précédentes (`baseline × (1 + GROWTH_TARGET_PCT)`), pas un montant absolu — le restaurant ne débloque que s'il vend plus qu'avant le programme (ADR 0012). Validé par l'admin. La moitié du double verrou. Entièrement invisible côté client.
+_Avoid_ : objectif, quota, seuil de CA absolu.
 
-**Bonus de tour** :
-Multiplicateur ×1.5 appliqué au score affiché d'une équipe pendant 48h après qu'elle ait passé un tour. Calculé à l'affichage uniquement — non stocké en base. Déclenché automatiquement quand l'admin met à jour `round_reached`.
-_Avoid_ : bonus de match, multiplicateur de victoire, récompense d'avancement (terme distinct).
+**Plafond de budget cadeaux** :
+Filet de sécurité financier (ADR 0012). Le coût total des récompenses distribuées dans un mois ne peut jamais dépasser `CA_programme_mois × REWARD_BUDGET_PCT` (défaut 8%). Quand le plafond est atteint : la couche 1 (palier solo) reste active, les couches 2 et 3 se désactivent jusqu'au mois suivant. Garantit que le restaurant reste bénéficiaire quelle que soit la participation — le budget grandit proportionnellement au CA généré. Stocké dans `reward_budget_tracking`. Invisible côté client : "Bonus communautaire en pause" sans explication.
+Le coût total est calculé à partir des prix de revient du catalogue menu (`menu_items.cost_price`, ADR 0013).
+_Avoid_ : enveloppe, quota cadeaux, limite (trop vague).
+
+**Bonus de tour** *(obsolète — ADR 0014)* :
+Ancien multiplicateur ×1.5 sur le score affiché pendant 48h après qu'une équipe passait un tour de Coupe du Monde. Retiré avec le pivot vers les équipes communautaires (plus de tours).
+
+---
+
+### Catalogue menu & coûts
+
+**Catalogue menu** :
+Ensemble des articles d'un établissement (table `menu_items`), chacun avec son prix de vente et son prix de revient. Source de vérité unique des articles et coûts utilisés par les récompenses (ADR 0013) — remplace les grilles codées en dur. Soumis par le restaurateur via un fichier CSV (colonnes `nom`, `categorie`, `prix_vente`, `prix_revient`). Strictement admin, jamais exposé côté membre (ADR 0007).
+_Avoid_ : carte (ambigu), menu (réservé aux combos type "Menu 4 Tenders"), base produits.
+
+**Article** :
+Une ligne du catalogue menu (`menu_items`) — un produit vendu par l'établissement. Possède un nom, une catégorie, un prix de vente et un prix de revient. Marqué `reward_eligible` s'il peut être proposé en cadeau. Re-téléverser le catalogue met à jour les articles existants (upsert sur le nom) et désactive ceux absents du nouveau fichier — jamais de suppression (préserve l'historique des récompenses).
+_Avoid_ : produit, item (anglicisme), plat (exclut à tort boissons et accompagnements).
+
+**Catégorie** :
+Famille d'un article dans le catalogue (ex. "Burger", "Accompagnement", "Dessert", "Boisson"). Sert à regrouper les articles, à restreindre les suggestions de cadeaux à une taille cohérente avec le palier, et à composer les combos (évolution future). Sans rapport avec une communauté/équipe.
+_Avoid_ : type, segment, rayon.
+
+**Prix de vente** :
+Prix carte d'un article (`menu_items.menu_price`) — la valeur perçue par le client quand il reçoit l'article en cadeau. Sert de numérateur au calcul d'attractivité d'une suggestion. Donnée euros, admin uniquement.
+_Avoid_ : prix public, tarif, prix client.
+
+**Prix de revient** :
+Coût matière réel d'un article (`menu_items.cost_price`), saisi par le restaurateur lui-même — jamais calculé à sa place (ADR 0013). C'est ce coût qui alimente le plafond de budget cadeaux (ADR 0012) et le coût figé dans `pending_rewards`. Donnée euros, admin uniquement, jamais côté membre (ADR 0007).
+_Avoid_ : coût (trop vague seul), prix d'achat, marge.
+
+**Suggestion de cadeau** :
+Proposition automatique de l'app indiquant quel article placer à un palier donné, classée par attractivité (`prix_vente / prix_revient` — forte valeur perçue par euro de coût réel) et filtrée pour rester sous le plafond de budget cadeaux. Formulée en clair via `@anthropic-ai/sdk`. L'app propose, l'admin décide : jamais appliquée automatiquement (ADR 0013).
+_Avoid_ : attribution automatique, recommandation auto, cadeau imposé.
 
 ---
 
 ### Établissements
 
 **Établissement** :
-L'un des 3 restaurants Belchicken participant au programme. Chaque établissement a son propre programme isolé : communautés, scores, seuils CA, récompenses et liens sociaux séparés. Un membre appartient à un seul établissement — choisi à l'inscription, non modifiable. Les données d'un établissement ne sont jamais visibles par les membres ou admins d'un autre établissement.
-_Avoid_ : restaurant (trop générique), tenant, instance.
+*(Pivot ADR 0015, 2026-07-01 — remplace le modèle "3 restaurants Belchicken" ci-dessous, historique conservé pour mémoire.)* Un restaurant du réseau, avec son propre programme isolé : communautés, scores, seuils CA, récompenses et liens sociaux séparés — l'isolation par `restaurant_id` reste inchangée. Ce qui change : un membre peut désormais appartenir à **plusieurs établissements simultanément** (au plus une équipe par établissement, ADR 0014 §1 amendé), au lieu d'un seul établissement choisi à l'inscription et non modifiable. Les données d'un établissement restent invisibles aux membres/admins d'un autre établissement — seul le compte membre lui-même est partagé entre établissements qu'il a rejoints.
+_Avoid_ : tenant, instance ; "restaurant" reste acceptable mais préférer "établissement" dans les textes de domaine.
 
-**Déploiement par établissement** :
-Chaque établissement dispose de sa propre URL Vercel et de ses propres variables d'environnement (`RESTAURANT_ID`, liens sociaux). Le même codebase est déployé 3 fois. L'isolation est assurée par `restaurant_id` sur toutes les tables.
+**Déploiement par établissement** *(obsolète — ADR 0015 supersede ADR 0005)* :
+Ancien modèle : chaque établissement disposait de sa propre URL Vercel et de ses propres variables d'environnement (`RESTAURANT_ID`, liens sociaux), le même codebase déployé une fois par restaurant. Remplacé par un **déploiement unique** servant tous les établissements du réseau — l'isolation reste assurée par `restaurant_id` sur toutes les tables, mais n'est plus figée par l'environnement de déploiement.
 _Avoid_ : multi-tenant (jargon technique), site, instance.
+
+**Restaurateur / Admin établissement** *(ADR 0015)* :
+Compte qui a créé l'établissement (self-service), sur le modèle du capitaine d'équipe (ADR 0014). Gère uniquement son propre établissement (menu, seuils, équipes, commandes suspectes). Un restaurateur peut posséder plusieurs établissements. Distinct du **super-admin plateforme**, qui approuve les nouveaux établissements avant leur mise en ligne et voit les statistiques cross-établissements.
+_Avoid_ : gérant (réservé à une évolution future de co-admin), propriétaire.
+
+**Statut établissement** *(ADR 0015)* :
+`pending` (créé en self-service, invisible aux membres, en attente de validation par le super-admin) ou `active` (visible et rejoignable). Contrôle qualité en phase de lancement — jamais de mise en ligne automatique.
+_Avoid_ : approuvé/rejeté (le rejet n'est pas encore modélisé), publié.
 
 ---
 
 ### Communautés & Équipes
 
+**Équipe** :
+Groupe créé par un membre et rejoint par d'autres (`teams`) : élèves d'une école, professeurs, salariés d'une entreprise, habitants d'une rue ou d'un quartier, chauffeurs de taxi… Permanente (aucune élimination). Appartient à un seul établissement — même nom dans deux établissements = deux équipes distinctes (membres, score et dépense cumulée séparés). Un membre appartient à au plus une équipe par établissement.
+_Avoid_ : équipe nationale (obsolète — ADR 0014), groupe, clan, team (anglicisme dans les textes UI).
+
 **Communauté** :
-Ensemble des membres ayant choisi la même équipe nationale. Partage un score communautaire commun. Synonyme métier de "équipe" côté base de données (`teams`).
-_Avoid_ : groupe, clan, team (anglicisme à éviter dans les textes UI).
+Synonyme métier d'« équipe » côté affichage. Ensemble des membres d'une même équipe partageant un score communautaire commun.
+_Avoid_ : groupe, clan.
 
-**Transfert** :
-Changement de communauté par un membre dont l'équipe a été éliminée. Autorisé uniquement à l'élimination de l'équipe courante, sans limite de fois. L'historique des dépenses du membre suit lors du transfert.
-_Avoid_ : changement d'équipe, switch.
+**Capitaine** :
+Membre qui a créé l'équipe. Peut la renommer et partager le lien d'adhésion. L'admin établissement garde un droit de modération (renommer, fusionner, désactiver une équipe, corriger son type).
+_Avoid_ : chef, propriétaire, admin (réservé à l'admin établissement).
 
-<!-- VERSION HORS COUPE DU MONDE — non activée, future évolution
-**Équipes thématiques** :
-Remplacement des équipes nationales dans les déploiements hors Coupe du Monde. L'admin crée des équipes basées sur les préférences culinaires (ex. restaurant italien : Team Pizza / Team Calzone / Team Pâtes). Même mécanique de score communautaire, de bonus communautaire et de transfert. Pas de notion d'élimination — les équipes sont permanentes. Le transfert est libre, limité à une fois par mois. La récompense d'avancement est remplacée par des "défis mensuels" configurés par l'admin.
-_Avoid_ : catégorie, segment client, équipe nationale (terme réservé à la version World Cup).
--->
+**Type d'équipe** :
+Catégorie d'une équipe (`teams.type`) : `ecole`, `entreprise`, `rue_quartier`, `taxis`, `autre`. Sert au ciblage des broadcasts admin (ex. « menu étudiant » → toutes les équipes de type `ecole`). À ne pas confondre avec la catégorie d'un article du catalogue menu.
+_Avoid_ : catégorie (réservé au catalogue menu), segment.
+
+**Adhésion** :
+Action de rejoindre une équipe via un lien/QR partageable (`/join-team?code=`, sur le modèle du parrainage). Ouverte par défaut : le lien suffit. *Rejoindre* pour faire grandir son équipe est libre et encouragé — c'est le moteur de recrutement.
+_Avoid_ : inscription (réservé à la création de compte), invitation.
+
+**Changement d'équipe** :
+Un membre peut quitter son équipe pour une autre, **au plus une fois par mois** (anti score-surfing : empêche de sauter sur une équipe juste avant un palier). Remplace l'ancien « transfert » lié à l'élimination (ADR 0004, superseded par ADR 0014). L'historique de dépenses du membre le suit (principe ADR 0001).
+_Avoid_ : transfert (obsolète — lié à l'élimination), switch.
 
 ---
 
@@ -160,16 +211,22 @@ _Avoid_ : phase, semaine (trop lié au calendrier de la Coupe du Monde).
 ### Dashboard membre
 
 **Aperçu prochaine commande** :
-Section hero du dashboard membre. Affiche en temps réel la récompense totale (couches 1+2+3) que le membre obtiendrait s'il commandait maintenant, avec une ligne étiquetée par couche ("ton cadeau de base" / "force de ta communauté" / "Belgique en quarts"). C'est la réponse à la question fondamentale : "qu'est-ce que je gagne ce soir ?". Calculé via `getDashboardData()`, rafraîchi toutes les 30s. Fallback si aucun historique : prévisualisation pour €25. Masque le bonus communautaire si double verrou non satisfait, masque le bonus d'avancement si équipe éliminée. Voir ADR 0010.
+Section hero du dashboard membre. Affiche en temps réel la récompense totale (couches 1+2+3) que le membre obtiendrait s'il commandait maintenant, avec une ligne étiquetée par couche ("ton cadeau de base" / "force de ta communauté" / "palier d'équipe débloqué"). C'est la réponse à la question fondamentale : "qu'est-ce que je gagne ce soir ?". Calculé via `getDashboardData()`, rafraîchi toutes les 30s. Fallback si aucun historique : prévisualisation pour €25. Masque le bonus communautaire si double verrou non satisfait. (Le bonus d'avancement Coupe du Monde a été remplacé par les paliers d'équipe — ADR 0014.) Voir ADR 0010.
 _Avoid_ : carte de récompenses, aperçu des points (la récompense est concrète — jamais abstraite).
 
 **Notification d'incitation** :
-Message proactif envoyé à un membre montrant l'état de sa communauté et le cadeau concret qu'il obtiendrait en commandant maintenant. Toujours spécifique ("ton cadeau passe à Finest burger + Churros 12 pcs") — jamais générique. Quatre déclencheurs : franchissement de palier, membre inactif 72h+ avec +500 pts absolus depuis sa dernière commande, proximité du prochain seuil (< 10%), avancement Coupe du Monde. Anti-spam : 48h minimum, max 3/semaine. Canal : PWA push (gratuit) → WhatsApp (~€0,05/conversation) en fallback. Voir ADR 0009.
+Message proactif envoyé à un membre montrant l'état de sa communauté et le cadeau concret qu'il obtiendrait en commandant maintenant. Toujours spécifique ("ton cadeau passe à Finest burger + Churros 12 pcs") — jamais générique. Trois déclencheurs : franchissement de palier, membre inactif 72h+ avec +500 pts absolus depuis sa dernière commande, proximité du prochain seuil (< 10%). Anti-spam : 48h minimum, max 3/semaine. Canal : PWA push (gratuit) → WhatsApp (~€0,05/conversation) en fallback. Voir ADR 0009.
 _Avoid_ : rappel, relance, marketing push (toujours ancré dans le score réel).
+
+**Broadcast admin** :
+Notification composée et envoyée par le restaurateur à une équipe, plusieurs équipes, ou tout un type d'équipe (ex. « menu étudiant » → type `ecole` ; « service de nuit » → type `taxis`). Distincte des notifications d'incitation automatiques (ADR 0009) : enveloppe anti-spam dédiée (≈ 2/semaine/membre). Canal PWA push → WhatsApp en fallback.
+_Avoid_ : campagne, marketing de masse, newsletter.
 
 ---
 
 ## Example dialogue
+
+> ⚠️ *Dialogue d'époque Coupe du Monde — les échanges mentionnant « bonus de tour », « avancement », « Belgique en quarts » ou `round_reached` sont obsolètes (ADR 0014). Les notions de double verrou, de couches de récompense, de doublon (Bestelnummer) et de commande directe restent valables. À rafraîchir lors de l'implémentation du pivot.*
 
 > **Dev** : "Je dois afficher le score de la communauté belge avec le bonus — comment je calcule ça ?"
 >
