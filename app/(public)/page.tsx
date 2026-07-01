@@ -78,6 +78,23 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── DEVENIR PARTENAIRE ── */}
+      <div className="max-w-lg mx-auto px-5 pb-10">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex items-center gap-4">
+          <span className="text-3xl shrink-0">🍽️</span>
+          <div className="flex-1">
+            <p className="font-bold text-gray-900 text-sm">Tu es restaurateur ?</p>
+            <p className="text-gray-500 text-xs mt-0.5">Rejoins le réseau et fidélise tes propres clients.</p>
+          </div>
+          <Link
+            href="/become-a-partner"
+            className="shrink-0 text-sm font-semibold text-brand-red hover:underline"
+          >
+            Devenir partenaire →
+          </Link>
+        </div>
+      </div>
+
       {/* ── CTA FINAL ── */}
       <div className="bg-brand-red text-white py-12">
         <div className="max-w-lg mx-auto px-5 text-center">
@@ -101,6 +118,7 @@ export default function LandingPage() {
           <span className="font-bold text-gray-400">Fidélité communautaire</span>
           <div className="flex gap-4">
             <Link href="/join" className="hover:text-gray-300 transition-colors">Restaurants</Link>
+            <Link href="/become-a-partner" className="hover:text-gray-300 transition-colors">Devenir partenaire</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Connexion</Link>
           </div>
         </div>
