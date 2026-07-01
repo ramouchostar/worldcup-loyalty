@@ -54,6 +54,13 @@ export default async function JoinPage() {
             </div>
           ))}
         </div>
+
+        <p className="text-center text-sm text-gray-500 mt-5">
+          Ton restaurant n&apos;est pas dans la liste ?{" "}
+          <Link href="/become-a-partner" className="font-semibold text-brand-red hover:underline">
+            Deviens partenaire →
+          </Link>
+        </p>
       </div>
     </div>
   );
