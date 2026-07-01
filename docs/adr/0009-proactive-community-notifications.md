@@ -88,3 +88,11 @@ CREATE INDEX idx_notification_log_user_sent
 - La fonction vérifie `last_notified_at` avant tout envoi
 - Après chaque envoi : `UPDATE profiles SET last_notified_at = NOW() WHERE id = ?`
 - Le message est construit dynamiquement avec le score réel et la récompense calculée (même logique que `pending_rewards`)
+
+---
+
+## Mise à jour 2026-06-24 — ADR 0014 (pivot équipes)
+
+- **Trigger 4 (avancement Coupe du Monde) retiré** : plus de tours.
+- Triggers 1-3 (franchissement de palier, membre inactif, proximité du seuil) inchangés — valables avec les équipes communautaires.
+- **Nouveau canal : broadcast admin ciblé.** Le restaurateur compose une notification et l'envoie à une équipe, plusieurs équipes, ou tout un **type** d'équipe (« menu étudiant » → type `ecole` ; « service de nuit » → type `taxis`). `trigger_type = 'admin_broadcast'` (le `CHECK` doit l'inclure), **enveloppe anti-spam dédiée** (≈ 2/semaine/membre), séparée du quota des triggers automatiques.

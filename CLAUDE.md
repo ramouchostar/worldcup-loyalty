@@ -85,6 +85,15 @@ ADMIN_EMAILS=                       # emails bootstrappés comme admin
 - Table `redemption_tokens` : `token TEXT UNIQUE`, `expires_at = NOW() + 10 min`, `redeemed_at`
 - Index `UNIQUE` sur `pending_rewards (user_id, restaurant_id) WHERE status = 'available'`
 
+### ADR 0012 — Protection financière (CRITIQUE pour la rentabilité)
+- **Plafond budget cadeaux** : coût mensuel des récompenses ≤ `CA_programme_mois × 8%` (`REWARD_BUDGET_PCT`)
+- Plafond atteint → couche 1 (solo) reste, couches 2 et 3 désactivées jusqu'au mois suivant
+- **Double verrou basé sur la croissance** : le seuil CA n'est PAS un montant fixe mais `baseline_4_semaines × (1 + 10%)` (`GROWTH_TARGET_PCT`)
+- Le restaurant ne débloque les bonus que s'il vend PLUS qu'avant le programme
+- Table `reward_budget_tracking` + colonnes `baseline_weekly_revenue`, `growth_target_pct` sur `restaurant_thresholds`
+- `getCommunityBonus()` doit vérifier `community_bonus_active` avant d'attribuer
+- Côté client : "Bonus communautaire en pause" si plafond atteint — jamais la vraie raison (ADR 0007)
+
 ## Issues GitHub actives
 
 Repo : `ramouchostar/worldcup-loyalty`

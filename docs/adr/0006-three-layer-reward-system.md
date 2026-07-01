@@ -88,3 +88,20 @@ CREATE TABLE pending_rewards (
 ```
 
 Trigger à ajouter sur `orders` après validation : calculer les 3 couches et insérer dans `pending_rewards`.
+
+---
+
+## Mise à jour 2026-06-24 — ADR 0013
+
+Les articles et coûts des trois grilles ci-dessus ne sont plus codés en dur : ils proviennent du **catalogue menu** (`menu_items`) soumis par l'établissement (voir ADR 0013).
+
+- La **structure** reste inchangée : 3 couches cumulatives, mêmes seuils (montant de commande, score communautaire, tour), même soumission au double verrou pour la couche 2.
+- Seul le **cadeau** de chaque palier change de source : un `menu_items.id` assigné par l'admin (assisté par la suggestion), au lieu d'un couple `item`/`cost` figé dans `lib/rewards.ts`.
+- Les coûts chiffrés des tableaux ci-dessus (€0,94, €0,31…) deviennent des **valeurs d'exemple Belchicken**, plus des constantes.
+- `pending_rewards` continue de figer `*_item`/`*_cost` au moment de la validation (snapshot historique, insensible aux re-téléversements du catalogue).
+
+---
+
+## Mise à jour 2026-06-24 — ADR 0014 (pivot équipes)
+
+La **couche 3 « Récompense d'avancement »** (grille liée aux tours de Coupe du Monde) est **remplacée** par les **paliers d'équipe** (ADR 0014) : seuils de dépense cumulée de l'équipe (`community_scores.total_spent`) → pourcentage borné ou article gratuit (catalogue, ADR 0013) débloqué pour **tous les membres** de l'équipe. Les couches 1 (palier solo) et 2 (bonus communautaire) sont inchangées. `getAdvancementBonus` et le bonus de tour ×1.5 sont retirés.
