@@ -1,11 +1,29 @@
+// Type d'équipe communautaire (ADR 0014) — sert au ciblage des broadcasts
+export type TeamType = "ecole" | "entreprise" | "rue_quartier" | "taxis" | "autre";
+
 export type Team = {
   id: string;
   name: string;
-  flag_emoji: string;
-  country_code: string;
+  restaurant_id: string | null; // NULL = ancienne équipe nationale globale (WC)
+  type: TeamType;
+  created_by: string | null;
+  join_code: string | null;
+  flag_emoji: string; // avatar de l'équipe (emoji par type)
   is_active: boolean;
-  eliminated_at: string | null;
-  round_reached: string;
+  created_at: string;
+};
+
+// Couche 3 — palier de dépense cumulée d'équipe (ADR 0014)
+export type TeamRewardKind = "percent" | "free_item";
+
+export type TeamTier = {
+  id: string;
+  restaurant_id: string;
+  threshold_spent: number;
+  reward_kind: TeamRewardKind;
+  percent_value: number | null; // si percent
+  menu_item_id: string | null;  // si free_item (catalogue, ADR 0013)
+  is_active: boolean;
   created_at: string;
 };
 
@@ -140,4 +158,31 @@ export type PendingReward = {
   status: PendingRewardStatus;
   created_at: string;
   redeemed_at: string | null;
+};
+
+// ─── Catalogue menu & coûts (ADR 0013) ───────────────────────────────────────
+
+export type MenuItem = {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  category: string;
+  menu_price: number;   // prix de vente carte (valeur perçue)
+  cost_price: number;   // prix de revient réel
+  is_active: boolean;
+  reward_eligible: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RewardLayer = "solo" | "community";
+
+// Palier → article du catalogue (remplace les grilles codées en dur)
+export type RewardTier = {
+  id: string;
+  restaurant_id: string;
+  layer: RewardLayer;
+  min_threshold: number; // montant de commande (solo) ou score équipe (community)
+  menu_item_id: string | null;
+  is_active: boolean;
 };
