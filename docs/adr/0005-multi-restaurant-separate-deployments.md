@@ -1,6 +1,6 @@
 # ADR 0005 — Multi-établissement : déploiements séparés par restaurant_id
 
-**Statut** : Accepté
+**Statut** : Superseded par [ADR 0015](0015-multi-restaurant-platform-pivot.md) (2026-07-01) — le pivot plateforme remplace le modèle "1 déploiement Vercel par restaurant" par un déploiement unique servant tous les établissements en libre-service. Conservé ci-dessous pour l'historique.
 
 ## Contexte
 
