@@ -30,7 +30,7 @@ const REJECT_REASONS = [
   "Montant ne correspond pas au ticket",
   "Bestelnummer invalide ou déjà utilisé",
   "Commande déjà soumise (doublon)",
-  "Ce ticket n'est pas de chez Belchicken",
+  "Ce ticket ne vient pas de cet établissement",
   "Autre (préciser ci-dessous)",
 ];
 

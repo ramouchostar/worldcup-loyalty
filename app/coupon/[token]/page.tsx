@@ -13,7 +13,7 @@ export default async function CouponPage({
   const { data: tokenRow } = await admin
     .from("redemption_tokens")
     .select(
-      "token, expires_at, redeemed_at, pending_rewards(solo_item, community_item, advancement_item), profiles(display_name)"
+      "token, expires_at, redeemed_at, pending_rewards(solo_item, community_item, advancement_item), profiles(display_name), restaurants(name)"
     )
     .eq("token", token)
     .single();
@@ -35,6 +35,7 @@ export default async function CouponPage({
     items.push({ icon: "⚽", label: `+ ${reward.advancement_item}`, sublabel: "avancement" });
 
   const profile = tokenRow.profiles as unknown as { display_name: string } | null;
+  const restaurant = tokenRow.restaurants as unknown as { name: string } | null;
 
   return (
     <CouponClient
@@ -43,6 +44,7 @@ export default async function CouponPage({
       memberName={profile?.display_name ?? "Membre"}
       items={items}
       isAdmin={false}
+      restaurantName={restaurant?.name}
     />
   );
 }

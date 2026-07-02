@@ -35,6 +35,20 @@ export async function getRestaurant(restaurantId: string): Promise<RestaurantInf
   return data;
 }
 
+// Nom d'affichage d'un établissement (titre des pushs, prompt OCR, messages).
+// Mémoïsé par invocation serverless — les broadcasts et validations en lot
+// le demandent en boucle pour le même restaurant.
+const displayNameCache = new Map<string, string>();
+export async function getRestaurantDisplayName(restaurantId: string): Promise<string> {
+  const cached = displayNameCache.get(restaurantId);
+  if (cached) return cached;
+  const admin = createAdminClient();
+  const { data } = await admin.from("restaurants").select("name").eq("id", restaurantId).maybeSingle();
+  const name = data?.name ?? "Ton restaurant";
+  displayNameCache.set(restaurantId, name);
+  return name;
+}
+
 // ADR 0015 §7 — admin établissement = celui qui l'a créé (owner_id), sur le
 // modèle "capitaine" déjà utilisé pour les équipes (lib/teams.ts).
 export async function isRestaurantOwner(userId: string, restaurantId: string): Promise<boolean> {

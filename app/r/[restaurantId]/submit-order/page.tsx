@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
 type ParseStatus = "idle" | "parsing" | "done" | "error";
@@ -16,6 +17,7 @@ function randomDelay() {
 
 export default function SubmitOrderPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
+  const { name: restaurantName } = useRestaurantInfo();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -67,6 +69,7 @@ export default function SubmitOrderPage() {
     try {
       const formData = new FormData();
       formData.append("receipt", receiptFile);
+      formData.append("restaurantId", restaurantId);
 
       const res = await fetch("/api/orders/parse-receipt", {
         method: "POST",
@@ -352,7 +355,7 @@ export default function SubmitOrderPage() {
             />
             <span className="text-sm text-gray-700">
               <span className="font-semibold">Je confirme</span> que cette commande a été passée
-              directement au restaurant Belchicken (sur place ou téléphone/WhatsApp),{" "}
+              directement au restaurant {restaurantName} (sur place ou téléphone/WhatsApp),{" "}
               <span className="font-semibold text-brand-red">
                 et non via une plateforme de livraison
               </span>

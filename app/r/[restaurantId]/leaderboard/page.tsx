@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase";
+import { getRestaurant } from "@/lib/restaurant";
 import { LeaderboardRealtime } from "@/components/LeaderboardRealtime";
 import Link from "next/link";
 import type { CommunityScore, Team } from "@/types";
@@ -17,7 +18,8 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
   // Récupère l'utilisateur connecté pour highlight sa communauté (optionnel)
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: scoresRaw }, membershipResult] = await Promise.all([
+  const [restaurant, { data: scoresRaw }, membershipResult] = await Promise.all([
+    getRestaurant(restaurantId),
     supabase
       .from("community_scores")
       .select(`
@@ -51,7 +53,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
       <div className="bg-brand-dark text-white rounded-2xl px-4 py-6 -mx-4 -mt-6 sm:mx-0 sm:mt-0 sm:rounded-2xl">
         <h1 className="text-2xl font-black">🏆 Classement des équipes</h1>
         <p className="text-gray-400 text-sm mt-1">
-          Quelle équipe mange le plus chez Belchicken ?
+          Quelle équipe mange le plus chez {restaurant?.name ?? "nous"} ?
         </p>
 
         {/* Stats globales */}
@@ -96,7 +98,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
         <div className="bg-brand-red rounded-2xl p-5 text-center text-white">
           <p className="font-bold text-lg mb-1">Rejoins ta communauté</p>
           <p className="text-red-100 text-sm mb-4">
-            Chaque commande chez Belchicken fait monter le score de ton équipe.
+            Chaque commande chez {restaurant?.name ?? "nous"} fait monter le score de ton équipe.
           </p>
           <Link
             href="/login"

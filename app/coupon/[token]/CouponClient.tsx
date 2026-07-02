@@ -10,6 +10,7 @@ type Props = {
   memberName: string;
   items: Item[];
   isAdmin?: boolean;
+  restaurantName?: string;
 };
 
 function initials(name: string) {
@@ -20,7 +21,7 @@ function initials(name: string) {
     .join("");
 }
 
-export function CouponClient({ token, expiresAt, memberName, items, isAdmin = false }: Props) {
+export function CouponClient({ token, expiresAt, memberName, items, isAdmin = false, restaurantName }: Props) {
   const [now, setNow] = useState(() => Date.now());
   const [redeemed, setRedeemed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -158,7 +159,7 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
 
         {!isAdmin && (
           <p className="text-center text-xs text-gray-400 mt-4">
-            Montre cette page au cashier Belchicken pour récupérer tes cadeaux.
+            Montre cette page au cashier {restaurantName ?? "du restaurant"} pour récupérer tes cadeaux.
           </p>
         )}
       </div>

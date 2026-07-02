@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import type { ReferralLinkData } from "@/types";
 
 export default function InvitePage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
+  const { name: restaurantName } = useRestaurantInfo();
   const [data, setData] = useState<ReferralLinkData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -25,7 +27,7 @@ export default function InvitePage() {
 
   const whatsappUrl = joinUrl
     ? `https://wa.me/?text=${encodeURIComponent(
-        `Rejoins ma communauté Belchicken 🇧🇪 et commande directement — on gagne ensemble !\n${joinUrl}`
+        `Rejoins ma communauté ${restaurantName} 🇧🇪 et commande directement — on gagne ensemble !\n${joinUrl}`
       )}`
     : null;
 

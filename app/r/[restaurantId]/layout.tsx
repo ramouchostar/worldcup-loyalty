@@ -6,6 +6,7 @@ import { UserNav } from "@/components/member/UserNav";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { BottomNav } from "@/components/member/BottomNav";
 import { RestaurantSwitcher } from "@/components/member/RestaurantSwitcher";
+import { RestaurantProvider } from "@/components/member/RestaurantContext";
 
 export default async function RestaurantLayout({
   children,
@@ -35,6 +36,7 @@ export default async function RestaurantLayout({
     .filter((r): r is { id: string; name: string } => !!r);
 
   return (
+    <RestaurantProvider value={{ id: restaurant.id, name: restaurant.name }}>
     <div className="min-h-screen bg-gray-50">
       <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -68,5 +70,6 @@ export default async function RestaurantLayout({
         </>
       )}
     </div>
+    </RestaurantProvider>
   );
 }

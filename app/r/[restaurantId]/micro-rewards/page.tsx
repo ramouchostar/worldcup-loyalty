@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
 
 type SocialData = {
@@ -20,6 +21,7 @@ const TOKENS_PER_PORTION = 4;
 
 export default function MicroRewardsPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
+  const { name: restaurantName } = useRestaurantInfo();
   const [socialData, setSocialData] = useState<SocialData | null>(null);
   const [referralData, setReferralData] = useState<ReferralLinkData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +75,7 @@ export default function MicroRewardsPage() {
             {churroPortions} portion{churroPortions > 1 ? "s" : ""} de 12 Churros gagnée{churroPortions > 1 ? "s" : ""}
           </p>
           <p className="text-green-800 text-sm mt-1 text-center">
-            Présente-toi au comptoir Belchicken pour les récupérer.
+            Présente-toi au comptoir {restaurantName} pour les récupérer.
           </p>
           <div className="mt-3 bg-green-100 rounded-xl p-3 text-center">
             <p className="text-xs text-green-700">
@@ -251,6 +253,7 @@ function ReferralSection({
   validatedCount: number;
   referralTokens: number;
 }) {
+  const { name: restaurantName } = useRestaurantInfo();
   const [copied, setCopied] = useState(false);
 
   const progressToToken = validatedCount % 5;
@@ -263,7 +266,7 @@ function ReferralSection({
 
   const whatsappUrl = joinUrl
     ? `https://wa.me/?text=${encodeURIComponent(
-        `Rejoins ma communauté Belchicken 🇧🇪 et commande directement — on gagne ensemble !\n${joinUrl}`
+        `Rejoins ma communauté ${restaurantName} 🇧🇪 et commande directement — on gagne ensemble !\n${joinUrl}`
       )}`
     : null;
 

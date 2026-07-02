@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase";
+import { getRestaurantDisplayName } from "@/lib/restaurant";
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -16,19 +17,21 @@ export function buildMessage(
   trigger: TriggerType,
   teamName: string,
   teamFlag: string,
+  restaurantName: string,
   details?: { newReward?: string; nextReward?: string; ptsNeeded?: number; round?: string }
 ): string {
   switch (trigger) {
     case "tier_upgrade":
       return `${teamFlag} Ta communauté ${teamName} vient de franchir un palier ! Tu as débloqué : ${details?.newReward ?? "une récompense"} sur chaque commande directe.`;
     case "member_inactive":
-      return `${teamFlag} ${teamName} a besoin de toi ! Reviens passer une commande chez Belchicken pour faire progresser ta communauté.`;
+      return `${teamFlag} ${teamName} a besoin de toi ! Reviens passer une commande chez ${restaurantName} pour faire progresser ta communauté.`;
     case "tier_approaching":
       return `${teamFlag} Plus que ${details?.ptsNeeded?.toLocaleString("fr-BE")} pts pour débloquer ${details?.nextReward ?? "le prochain bonus"} avec ${teamName} ! Une commande ce soir peut tout changer.`;
     case "advancement":
-      return `🏆 ${teamFlag} ${teamName} passe en ${details?.round ?? "tour suivant"} ! Ton bonus d'avancement est actif : présente-toi au comptoir Belchicken.`;
+      return `🏆 ${teamFlag} ${teamName} passe en ${details?.round ?? "tour suivant"} ! Ton bonus d'avancement est actif : présente-toi au comptoir ${restaurantName}.`;
   }
 }
+
 
 export async function sendPush(
   userId: string,
@@ -46,7 +49,8 @@ export async function sendPush(
 
   if (!subs || subs.length === 0) return false;
 
-  const payload = JSON.stringify({ title: "Belchicken", body: message, url: `/r/${restaurantId}/dashboard` });
+  const title = await getRestaurantDisplayName(restaurantId);
+  const payload = JSON.stringify({ title, body: message, url: `/r/${restaurantId}/dashboard` });
 
   const results = await Promise.allSettled(
     subs.map(sub =>

@@ -21,8 +21,21 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient();
-  const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID ?? "molenbeek";
   const now = new Date();
+
+  // ADR 0015 §1 — un seul déploiement sert tous les établissements : le cron
+  // évalue chaque restaurant actif, plus seulement celui de l'environnement.
+  const { data: restaurantsRaw } = await admin
+    .from("restaurants")
+    .select("id, name")
+    .eq("status", "active");
+  const restaurants = (restaurantsRaw ?? []) as { id: string; name: string }[];
+
+  let sent = 0;
+  let evaluated = 0;
+
+  for (const restaurant of restaurants) {
+  const restaurantId = restaurant.id;
 
   // ADR 0015 — l'appartenance à un établissement + une équipe vit désormais
   // dans memberships, pas dans profiles (colonne conservée mais plus lue).
@@ -40,7 +53,8 @@ export async function GET(request: Request) {
     teams: m.teams,
   }));
 
-  if (!members?.length) return NextResponse.json({ sent: 0, evaluated: 0 });
+  if (!members?.length) continue;
+  evaluated += members.length;
 
   const { data: scores } = await admin
     .from("community_scores")
@@ -48,8 +62,6 @@ export async function GET(request: Request) {
     .eq("restaurant_id", restaurantId);
 
   const scoreMap = new Map<string, number>((scores ?? []).map(s => [s.team_id, Number(s.score)]));
-
-  let sent = 0;
 
   for (const member of members) {
     const team = (member as any).teams;
@@ -98,7 +110,7 @@ export async function GET(request: Request) {
           .gte("community_score_at_send", reachedThreshold.score);
         if ((prevUpgrade ?? 0) === 0) {
           trigger = "tier_upgrade";
-          message = buildMessage("tier_upgrade", team.name, team.flag_emoji, { newReward: reachedThreshold.label });
+          message = buildMessage("tier_upgrade", team.name, team.flag_emoji, restaurant.name, { newReward: reachedThreshold.label });
         }
       }
     }
@@ -108,7 +120,7 @@ export async function GET(request: Request) {
       const nextThreshold = SCORE_THRESHOLDS.find(t => t.score > teamScore);
       if (nextThreshold && teamScore >= nextThreshold.score * APPROACHING_RATIO) {
         trigger = "tier_approaching";
-        message = buildMessage("tier_approaching", team.name, team.flag_emoji, {
+        message = buildMessage("tier_approaching", team.name, team.flag_emoji, restaurant.name, {
           nextReward: nextThreshold.label,
           ptsNeeded: Math.ceil(nextThreshold.score - teamScore),
         });
@@ -138,7 +150,7 @@ export async function GET(request: Request) {
         const scoreAtLastNotif = lastLog ? Number(lastLog.community_score_at_send) : 0;
         if (teamScore - scoreAtLastNotif >= 500) {
           trigger = "member_inactive";
-          message = buildMessage("member_inactive", team.name, team.flag_emoji);
+          message = buildMessage("member_inactive", team.name, team.flag_emoji, restaurant.name);
         }
       }
     }
@@ -156,6 +168,7 @@ export async function GET(request: Request) {
     await logNotification(member.id, restaurantId, trigger, channel, message, teamScore);
     sent++;
   }
+  } // fin boucle restaurants
 
-  return NextResponse.json({ sent, evaluated: members.length });
+  return NextResponse.json({ sent, evaluated, restaurants: restaurants.length });
 }

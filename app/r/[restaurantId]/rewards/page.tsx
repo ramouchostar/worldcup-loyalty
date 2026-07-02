@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
+import { getRestaurant } from "@/lib/restaurant";
 import { isMemberActive } from "@/lib/rewards";
 import type { Reward, CommunityScore } from "@/types";
 
@@ -21,11 +22,13 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
   if (!membership?.team_id) redirect(`/r/${restaurantId}/my-team`);
 
   const [
+    restaurant,
     { data: rewardsRaw },
     { data: scoreRaw },
     restaurantUnlocked,
     memberActive,
   ] = await Promise.all([
+    getRestaurant(restaurantId),
     supabase
       .from("rewards")
       .select("*")
@@ -180,7 +183,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
               {isClaimable && (
                 <div className="mt-4 bg-green-50 rounded-lg p-3 text-center">
                   <p className="text-green-800 text-sm font-semibold">
-                    🎉 Récompense disponible — présente-toi au comptoir Belchicken !
+                    🎉 Récompense disponible — présente-toi au comptoir {restaurant?.name ?? "du restaurant"} !
                   </p>
                 </div>
               )}

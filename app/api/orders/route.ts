@@ -4,6 +4,7 @@ import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/or
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
+import { getRestaurantDisplayName } from "@/lib/restaurant";
 
 export const maxDuration = 30;
 
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
   let ocrFailed = false;
   if (receiptFile) {
     try {
-      serverOcr = await analyzeReceipt(receiptFile);
+      serverOcr = await analyzeReceipt(receiptFile, await getRestaurantDisplayName(restaurantId));
     } catch {
       ocrFailed = true;
     }

@@ -29,10 +29,9 @@ export type ReceiptAnalysis = {
  * de soumission (orders) ET par la route d'aperçu UX (parse-receipt).
  * Throws si l'API vision échoue ou retourne du JSON invalide.
  */
-export async function analyzeReceipt(file: File): Promise<ReceiptAnalysis> {
+export async function analyzeReceipt(file: File, restaurantName: string): Promise<ReceiptAnalysis> {
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
-  const restaurantName = process.env.NEXT_PUBLIC_RESTAURANT_NAME ?? "Belchicken";
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
