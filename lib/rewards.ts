@@ -1,5 +1,4 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
-import { getRestaurantId } from "./restaurant";
 import { isRestaurantThresholdUnlocked } from "./thresholds";
 import { getBudgetStatus, incrementRewardsCost } from "./budget";
 import type { Reward } from "@/types";
@@ -15,6 +14,7 @@ type TeamScoreRow = {
 // 2. Restaurant revenue threshold is unlocked (is_unlocked = true)
 // Family Bucket (level 5) adds a third condition: min_member_count
 export async function getUnlockedRewards(
+  restaurantId: string,
   teamScore: number,
   memberCount: number,
   restaurantThresholdUnlocked: boolean
@@ -26,7 +26,7 @@ export async function getUnlockedRewards(
     .from("rewards")
     .select("*")
     .eq("is_active", true)
-    .eq("restaurant_id", getRestaurantId())
+    .eq("restaurant_id", restaurantId)
     .lte("score_threshold", teamScore)
     .order("level", { ascending: true });
 

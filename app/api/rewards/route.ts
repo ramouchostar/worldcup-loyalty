@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   const memberCount = score?.member_count ?? 0;
   const restaurantUnlocked = await isRestaurantThresholdUnlocked(restaurantId);
   const memberActive = await isMemberActive(user.id);
-  const unlocked = await getUnlockedRewards(teamScore, memberCount, restaurantUnlocked);
+  const unlocked = await getUnlockedRewards(restaurantId, teamScore, memberCount, restaurantUnlocked);
 
   return NextResponse.json({ unlocked, restaurantUnlocked, memberActive, teamScore, memberCount });
 }
