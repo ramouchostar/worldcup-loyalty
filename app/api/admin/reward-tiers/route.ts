@@ -1,20 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 
 type TierInput = { layer: unknown; min_threshold: unknown; menu_item_id: unknown };
 
-// GET /api/admin/reward-tiers — paliers configurés de l'établissement.
-export async function GET() {
-  const guard = await requireAdmin();
+// GET /api/admin/reward-tiers?restaurantId=... — paliers configurés de l'établissement.
+export async function GET(request: NextRequest) {
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("reward_tiers")
     .select("id, layer, min_threshold, menu_item_id, is_active")
-    .eq("restaurant_id", getRestaurantId())
+    .eq("restaurant_id", restaurantId)
     .order("layer")
     .order("min_threshold");
 
@@ -23,18 +25,22 @@ export async function GET() {
 }
 
 // PUT /api/admin/reward-tiers — enregistre les assignations palier → article.
-// Body : { tiers: { layer, min_threshold, menu_item_id|null }[] }.
+// Body : { restaurantId, tiers: { layer, min_threshold, menu_item_id|null }[] }.
 export async function PUT(req: Request) {
-  const guard = await requireAdmin();
+  const body = await req.json().catch(() => null);
+  const restaurantId = body?.restaurantId;
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
-  const body = await req.json().catch(() => null);
   const tiers: TierInput[] = Array.isArray(body?.tiers) ? body.tiers : [];
   if (tiers.length === 0) {
     return NextResponse.json({ error: "Aucun palier fourni." }, { status: 400 });
   }
 
-  const restaurantId = getRestaurantId();
   const admin = createAdminClient();
 
   // Articles valides de l'établissement (anti-assignation croisée)

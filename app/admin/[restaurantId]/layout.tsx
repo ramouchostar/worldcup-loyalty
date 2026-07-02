@@ -1,29 +1,41 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getRestaurantId } from "@/lib/restaurant";
+import { getRestaurant } from "@/lib/restaurant";
 
-const navLinks = [
-  { href: "/admin",                  label: "📊 Dashboard" },
-  { href: "/admin/pending-rewards",  label: "🎁 Cadeaux" },
-  { href: "/admin/orders",           label: "🧾 Commandes" },
-  { href: "/admin/micro-rewards",    label: "⭐ Actions" },
-  { href: "/admin/referrals",        label: "👥 Parrainages" },
-  { href: "/admin/thresholds",       label: "🎯 Seuils CA" },
-  { href: "/admin/menu",             label: "📋 Menu & coûts" },
-  { href: "/admin/team-tiers",       label: "🏆 Paliers d'équipe" },
-  { href: "/admin/broadcast",        label: "📣 Broadcasts" },
-  { href: "/admin/sandbox",          label: "🧪 Sandbox" },
-];
+export default async function AdminLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ restaurantId: string }>;
+}) {
+  const { restaurantId } = await params;
+  const restaurant = await getRestaurant(restaurantId);
+  if (!restaurant) notFound();
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const base = `/admin/${restaurantId}`;
+  const navLinks = [
+    { href: base,                        label: "📊 Dashboard" },
+    { href: `${base}/pending-rewards`,   label: "🎁 Cadeaux" },
+    { href: `${base}/orders`,            label: "🧾 Commandes" },
+    { href: `${base}/micro-rewards`,     label: "⭐ Actions" },
+    { href: `${base}/referrals`,         label: "👥 Parrainages" },
+    { href: `${base}/thresholds`,        label: "🎯 Seuils CA" },
+    { href: `${base}/menu`,              label: "📋 Menu & coûts" },
+    { href: `${base}/team-tiers`,        label: "🏆 Paliers d'équipe" },
+    { href: `${base}/broadcast`,         label: "📣 Broadcasts" },
+    { href: `${base}/sandbox`,           label: "🧪 Sandbox" },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-brand-gold font-black text-lg">⚙️ Admin</span>
-            <span className="text-gray-500 text-sm">Belchicken</span>
+            <span className="text-gray-500 text-sm">{restaurant.name}</span>
           </div>
-          <Link href={`/r/${getRestaurantId()}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors">
+          <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors">
             ← Retour membre
           </Link>
         </div>

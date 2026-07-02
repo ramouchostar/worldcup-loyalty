@@ -1,5 +1,4 @@
 import { createAdminClient } from "./supabase";
-import { getRestaurantId } from "./restaurant";
 import { sendPush, sendWhatsApp } from "./notifications";
 import type { TeamType } from "@/types";
 
@@ -27,19 +26,25 @@ async function resolveTeamIds(admin: Admin, restaurantId: string, target: Broadc
   return ((data ?? []) as { id: string }[]).map((r) => r.id);
 }
 
-export async function sendBroadcast(message: string, target: BroadcastTarget): Promise<BroadcastResult> {
+export async function sendBroadcast(
+  message: string,
+  target: BroadcastTarget,
+  restaurantId: string
+): Promise<BroadcastResult> {
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
 
   const teamIds = await resolveTeamIds(admin, restaurantId, target);
   if (teamIds.length === 0) return { targeted: 0, sent: 0, skipped: 0 };
 
+  // ADR 0015 — l'appartenance à une équipe vit dans memberships, pas
+  // profiles.team_id (obsolète, plus mis à jour depuis le pivot).
   const { data: membersRaw } = await admin
-    .from("profiles")
-    .select("id, phone")
+    .from("memberships")
+    .select("user_id, profiles!inner(phone)")
     .eq("restaurant_id", restaurantId)
     .in("team_id", teamIds);
-  const members = (membersRaw ?? []) as { id: string; phone: string | null }[];
+  const members = ((membersRaw ?? []) as unknown as { user_id: string; profiles: { phone: string | null } }[])
+    .map((m) => ({ id: m.user_id, phone: m.profiles.phone }));
 
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   let sent = 0;

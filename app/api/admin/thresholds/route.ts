@@ -2,10 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
 import { getBudgetStatus } from "@/lib/budget";
-import { getRestaurantId } from "@/lib/restaurant";
 
-export async function GET() {
-  const guard = await requireAdmin();
+export async function GET(request: NextRequest) {
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
@@ -14,8 +16,9 @@ export async function GET() {
     admin
       .from("restaurant_thresholds")
       .select("*")
+      .eq("restaurant_id", restaurantId)
       .order("created_at", { ascending: false }),
-    getBudgetStatus(getRestaurantId()),
+    getBudgetStatus(restaurantId),
   ]);
 
   if (error) return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
@@ -24,11 +27,15 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const guard = await requireAdmin();
-  if (!guard.ok) return guard.response;
-
   const body = await request.json();
-  const { id, current_revenue, is_unlocked, period_label, target_revenue } = body;
+  const { id, restaurantId, current_revenue, is_unlocked, period_label, target_revenue } = body;
+
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
+  if (!guard.ok) return guard.response;
 
   if (!id) return NextResponse.json({ error: "ID seuil manquant." }, { status: 400 });
 
@@ -52,18 +59,22 @@ export async function PATCH(request: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const { error } = await admin.from("restaurant_thresholds").update(update).eq("id", id);
+  const { error } = await admin.from("restaurant_thresholds").update(update).eq("id", id).eq("restaurant_id", restaurantId);
 
   if (error) return NextResponse.json({ error: "Erreur lors de la mise à jour." }, { status: 500 });
   return NextResponse.json({ success: true });
 }
 
 export async function POST(request: NextRequest) {
-  const guard = await requireAdmin();
-  if (!guard.ok) return guard.response;
-
   const body = await request.json();
-  const { period_label, target_revenue } = body;
+  const { restaurantId, period_label, target_revenue } = body;
+
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
+  if (!guard.ok) return guard.response;
 
   if (!period_label?.trim() || !target_revenue || Number(target_revenue) <= 0) {
     return NextResponse.json({ error: "Label et objectif CA requis." }, { status: 400 });
@@ -71,6 +82,7 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
   const { error } = await admin.from("restaurant_thresholds").insert({
+    restaurant_id: restaurantId,
     period_label: period_label.trim(),
     target_revenue: Number(target_revenue),
   });

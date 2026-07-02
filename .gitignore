@@ -13,5 +13,6 @@ tsconfig.tsbuildinfo
 # misc
 .DS_Store
 *.pem
+.playwright-mcp/
 
 .vercel

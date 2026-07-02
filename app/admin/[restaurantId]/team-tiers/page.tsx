@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 
 type RewardKind = "percent" | "free_item";
@@ -9,6 +10,7 @@ type TierRow = { threshold_spent: number; reward_kind: RewardKind; percent_value
 type Msg = { kind: "ok" | "err"; text: string };
 
 export default function AdminTeamTiersPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [tiers, setTiers] = useState<TierForm[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,10 @@ export default function AdminTeamTiersPage() {
   const [msg, setMsg] = useState<Msg | null>(null);
 
   async function load() {
-    const [tRes, mRes] = await Promise.all([fetch("/api/admin/team-tiers"), fetch("/api/admin/menu")]);
+    const [tRes, mRes] = await Promise.all([
+      fetch(`/api/admin/team-tiers?restaurantId=${restaurantId}`),
+      fetch(`/api/admin/menu?restaurantId=${restaurantId}`),
+    ]);
     const tData: TierRow[] = tRes.ok ? await tRes.json() : [];
     const mData: MenuItem[] = mRes.ok ? await mRes.json() : [];
     setItems(mData);
@@ -31,7 +36,7 @@ export default function AdminTeamTiersPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [restaurantId]);
 
   const giftItems = items.filter((i) => i.is_active && i.reward_eligible);
 
@@ -57,7 +62,7 @@ export default function AdminTeamTiersPage() {
     const res = await fetch("/api/admin/team-tiers", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tiers: payload }),
+      body: JSON.stringify({ restaurantId, tiers: payload }),
     });
     const body = await res.json();
     if (res.ok) {

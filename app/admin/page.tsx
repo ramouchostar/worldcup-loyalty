@@ -1,164 +1,68 @@
-import { createAdminClient } from "@/lib/supabase";
-import { createServerSupabaseClient } from "@/lib/supabase";
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId } from "@/lib/restaurant";
 
-export default async function AdminDashboardPage() {
+export default async function AdminLandingPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
 
-  const [
-    { count: pendingOrders },
-    { count: pendingClaims },
-    { count: totalMembers },
-    { data: threshold },
-    { data: pendingOrdersData },
-  ] = await Promise.all([
-    admin.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    admin.from("micro_reward_claims").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).not("team_id", "is", null),
-    admin.from("restaurant_thresholds").select("period_label, current_revenue, target_revenue, is_unlocked").order("created_at", { ascending: false }).limit(1).single(),
-    admin.from("orders").select("flag_reasons").eq("status", "pending"),
+  const [{ data: owned }, { data: profile }] = await Promise.all([
+    admin.from("restaurants").select("id, name").eq("owner_id", user.id).order("name"),
+    admin.from("profiles").select("is_admin").eq("id", user.id).single(),
   ]);
 
-  const flaggedCount = (pendingOrdersData ?? []).filter(
-    (o: { flag_reasons: string[] | null }) => Array.isArray(o.flag_reasons) && o.flag_reasons.length > 0
-  ).length;
+  const restaurants = [...(owned ?? [])];
 
-  const th = threshold as {
-    period_label: string;
-    current_revenue: number;
-    target_revenue: number;
-    is_unlocked: boolean;
-  } | null;
+  // Pont legacy — les comptes is_admin (ADMIN_EMAILS) gardent l'accès au
+  // restaurant par défaut tant qu'ils n'en sont pas explicitement owner.
+  if (profile?.is_admin) {
+    const legacyId = getRestaurantId();
+    if (!restaurants.some((r) => r.id === legacyId)) {
+      const { data: legacy } = await admin.from("restaurants").select("id, name").eq("id", legacyId).maybeSingle();
+      if (legacy) restaurants.push(legacy);
+    }
+  }
 
-  const revenuePct = th
-    ? Math.min(100, Math.round((th.current_revenue / th.target_revenue) * 100))
-    : 0;
-
-  const stats = [
-    {
-      href: "/admin/orders",
-      label: "Commandes suspectes",
-      value: flaggedCount,
-      icon: "🚩",
-      urgent: flaggedCount > 0,
-      badge: flaggedCount > 0 ? "Vérifier" : undefined,
-    },
-    {
-      href: "/admin/orders",
-      label: "Commandes en attente",
-      value: pendingOrders ?? 0,
-      icon: "🧾",
-      urgent: (pendingOrders ?? 0) > 0,
-      badge: undefined,
-    },
-    {
-      href: "/admin/micro-rewards",
-      label: "Actions à valider",
-      value: pendingClaims ?? 0,
-      icon: "⭐",
-      urgent: (pendingClaims ?? 0) > 0,
-      badge: undefined,
-    },
-    {
-      href: "/admin/broadcast",
-      label: "Membres inscrits",
-      value: totalMembers ?? 0,
-      icon: "👥",
-      urgent: false,
-      badge: undefined,
-    },
-  ];
+  if (restaurants.length === 1) redirect(`/admin/${restaurants[0].id}`);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Admin</h1>
-        <p className="text-gray-500 text-sm mt-1">Vue d&apos;ensemble du programme de fidélité</p>
-      </div>
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <Link
-            key={`${s.href}-${i}`}
-            href={s.href}
-            className={`bg-white rounded-2xl border p-4 hover:shadow-md transition-shadow ${
-              s.icon === "🚩" && s.urgent
-                ? "border-red-400 bg-red-50"
-                : s.urgent ? "border-amber-300" : "border-gray-100"
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <span className="text-2xl">{s.icon}</span>
-              {s.badge && (
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  s.icon === "🚩" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
-                }`}>
-                  {s.badge}
-                </span>
-              )}
-              {s.urgent && !s.badge && (
-                <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
-                  Action
-                </span>
-              )}
-            </div>
-            <p className={`text-3xl font-black mt-2 ${s.icon === "🚩" && s.urgent ? "text-red-700" : "text-gray-900"}`}>
-              {s.value}
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</p>
-          </Link>
-        ))}
-      </div>
-
-      {/* Statut CA restaurant */}
-      {th && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-900">Objectif CA — {th.period_label}</h2>
-            <Link href="/admin/thresholds" className="text-brand-red text-sm font-medium hover:underline">
-              Gérer →
-            </Link>
-          </div>
-          <div className="flex items-center gap-3 mb-3">
-            <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-              th.is_unlocked ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
-            }`}>
-              {th.is_unlocked ? "🔓 Débloqué" : "🔒 Verrouillé"}
-            </span>
-            <span className="text-sm text-gray-600">
-              {Number(th.current_revenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
-              {" / "}
-              {Number(th.target_revenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-3">
-            <div
-              className={`h-3 rounded-full transition-all ${th.is_unlocked ? "bg-green-500" : "bg-brand-red"}`}
-              style={{ width: `${revenuePct}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-400 mt-1 text-right">{revenuePct}% de l&apos;objectif</p>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <p className="text-4xl mb-2">⚙️</p>
+          <h1 className="text-2xl font-bold text-gray-900">Console admin</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {restaurants.length === 0
+              ? "Aucun établissement à administrer pour ce compte."
+              : "Choisis l'établissement à gérer."}
+          </p>
         </div>
-      )}
 
-      {/* Liens rapides */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/admin/team-tiers" className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
-          <p className="font-semibold text-gray-900 text-sm">🏆 Paliers d&apos;équipe</p>
-          <p className="text-xs text-gray-400 mt-0.5">Récompenses collectives</p>
-        </Link>
-        <Link href={`/r/${restaurantId}/leaderboard`} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow" target="_blank">
-          <p className="font-semibold text-gray-900 text-sm">🏆 Classement public</p>
-          <p className="text-xs text-gray-400 mt-0.5">Vue temps réel ↗</p>
-        </Link>
+        {restaurants.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-xl p-4 space-y-2">
+            {restaurants.map((r) => (
+              <Link
+                key={r.id}
+                href={`/admin/${r.id}`}
+                className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 hover:border-brand-red transition-colors"
+              >
+                <span className="font-semibold text-gray-900">{r.name}</span>
+                <span className="text-sm font-semibold text-brand-red">Gérer →</span>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <p className="text-center text-sm text-gray-500 mt-5">
+          Tu veux inscrire ton propre restaurant ?{" "}
+          <Link href="/become-a-partner" className="font-semibold text-brand-red hover:underline">
+            Deviens partenaire →
+          </Link>
+        </p>
       </div>
     </div>
   );

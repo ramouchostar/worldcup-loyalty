@@ -4,12 +4,17 @@ import { sendBroadcast, type BroadcastTarget } from "@/lib/broadcast";
 import { isTeamType } from "@/lib/teams";
 
 // POST /api/admin/broadcast — envoie une notification ciblée (ADR 0014).
-// Body : { message, target: { kind: "all" } | { kind: "teams", teamIds } | { kind: "types", types } }.
+// Body : { restaurantId, message, target: { kind: "all" } | { kind: "teams", teamIds } | { kind: "types", types } }.
 export async function POST(req: Request) {
-  const guard = await requireAdmin();
+  const body = await req.json().catch(() => null);
+  const restaurantId = body?.restaurantId;
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
-  const body = await req.json().catch(() => null);
   const message = typeof body?.message === "string" ? body.message.trim() : "";
   if (message.length < 3 || message.length > 280) {
     return NextResponse.json({ error: "Message de 3 à 280 caractères." }, { status: 400 });
@@ -33,6 +38,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Cible invalide." }, { status: 400 });
   }
 
-  const result = await sendBroadcast(message, target);
+  const result = await sendBroadcast(message, target, restaurantId);
   return NextResponse.json({ ok: true, ...result });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
 
@@ -20,6 +21,7 @@ type Suggestion = { layer: string; threshold: number; item_name: string | null; 
 const tierKey = (layer: string, threshold: number) => `${layer}:${threshold}`;
 
 export default function AdminMenuPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -34,8 +36,8 @@ export default function AdminMenuPage() {
 
   const loadAll = useCallback(async () => {
     const [itemsRes, tiersRes] = await Promise.all([
-      fetch("/api/admin/menu"),
-      fetch("/api/admin/reward-tiers"),
+      fetch(`/api/admin/menu?restaurantId=${restaurantId}`),
+      fetch(`/api/admin/reward-tiers?restaurantId=${restaurantId}`),
     ]);
     const itemsData: MenuItem[] = itemsRes.ok ? await itemsRes.json() : [];
     const tiersData: TierRow[] = tiersRes.ok ? await tiersRes.json() : [];
@@ -47,7 +49,7 @@ export default function AdminMenuPage() {
     tiersData.forEach((t) => { map[tierKey(t.layer, t.min_threshold)] = t.menu_item_id; });
     setTiers(map);
     setLoading(false);
-  }, []);
+  }, [restaurantId]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
@@ -61,7 +63,7 @@ export default function AdminMenuPage() {
     const res = await fetch("/api/admin/menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csv }),
+      body: JSON.stringify({ csv, restaurantId }),
     });
     const body = await res.json();
 
@@ -90,7 +92,11 @@ export default function AdminMenuPage() {
   async function suggest() {
     setSuggesting(true);
     setTierMsg(null);
-    const res = await fetch("/api/admin/menu/suggest", { method: "POST" });
+    const res = await fetch("/api/admin/menu/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId }),
+    });
     const body = await res.json();
     if (res.ok) {
       const nextTiers = { ...tiers };
@@ -120,7 +126,7 @@ export default function AdminMenuPage() {
     const res = await fetch("/api/admin/reward-tiers", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tiers: payload }),
+      body: JSON.stringify({ restaurantId, tiers: payload }),
     });
     const body = await res.json();
     if (res.ok) {

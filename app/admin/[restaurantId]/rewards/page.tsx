@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import type { Reward } from "@/types";
 
 type EditState = Partial<Pick<Reward, "title" | "description" | "gift_details" | "score_threshold" | "cost_euros" | "min_member_count" | "is_active">>;
 
 export default function AdminRewardsPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Record<string, EditState>>({});
@@ -13,12 +15,12 @@ export default function AdminRewardsPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function fetchRewards() {
-    const res = await fetch("/api/admin/rewards");
+    const res = await fetch(`/api/admin/rewards?restaurantId=${restaurantId}`);
     if (res.ok) setRewards(await res.json());
     setLoading(false);
   }
 
-  useEffect(() => { fetchRewards(); }, []);
+  useEffect(() => { fetchRewards(); }, [restaurantId]);
 
   function startEdit(r: Reward) {
     setEditing((prev) => ({
@@ -46,7 +48,7 @@ export default function AdminRewardsPage() {
     const res = await fetch("/api/admin/rewards", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...updates }),
+      body: JSON.stringify({ id, restaurantId, ...updates }),
     });
     if (res.ok) {
       cancelEdit(id);
@@ -63,7 +65,7 @@ export default function AdminRewardsPage() {
     await fetch("/api/admin/rewards", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: r.id, is_active: !r.is_active }),
+      body: JSON.stringify({ id: r.id, restaurantId, is_active: !r.is_active }),
     });
     await fetchRewards();
     setSaving(null);
@@ -87,7 +89,7 @@ export default function AdminRewardsPage() {
         <p>
           Les récompenses se débloquent si <strong>score ≥ seuil</strong> ET{" "}
           <strong>objectif CA restaurant atteint</strong> (
-          <a href="/admin/thresholds" className="underline font-medium">Seuils CA</a>).
+          <a href={`/admin/${restaurantId}/thresholds`} className="underline font-medium">Seuils CA</a>).
           Le Family Bucket (palier 5) exige en plus un minimum de membres actifs.
         </p>
       </div>

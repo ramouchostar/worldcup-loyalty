@@ -1,16 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 
 export async function POST(request: NextRequest) {
-  const guard = await requireAdmin();
+  const body = await request.json();
+  const { action, restaurantId } = body;
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
-  const body = await request.json();
-  const { action } = body;
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
   const now = new Date().toISOString();
 
   // ── Commande test : créée + validée instantanément ───────────────────────
@@ -20,14 +22,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "user_id et amount requis." }, { status: 400 });
     }
 
-    const { data: profile } = await admin
-      .from("profiles")
+    // ADR 0015 — l'équipe du membre pour CET établissement vit dans
+    // memberships, pas profiles.team_id (obsolète).
+    const { data: membership } = await admin
+      .from("memberships")
       .select("team_id")
-      .eq("id", user_id)
-      .single();
+      .eq("user_id", user_id)
+      .eq("restaurant_id", restaurantId)
+      .maybeSingle();
 
-    if (!profile?.team_id) {
-      return NextResponse.json({ error: "Utilisateur sans équipe." }, { status: 400 });
+    if (!membership?.team_id) {
+      return NextResponse.json({ error: "Utilisateur sans équipe dans cet établissement." }, { status: 400 });
     }
 
     const fakeKey = `SANDBOX-${Date.now()}`;
@@ -35,7 +40,7 @@ export async function POST(request: NextRequest) {
       .from("orders")
       .insert({
         user_id,
-        team_id:       profile.team_id,
+        team_id:       membership.team_id,
         restaurant_id: restaurantId,
         amount:        Number(amount),
         order_date:    now.split("T")[0],
@@ -95,12 +100,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // ── Déclencher un cron (notifications ou sync) ───────────────────────────
-  if (action === "trigger_notifications" || action === "trigger_sync") {
-    const path = action === "trigger_notifications"
-      ? "/api/cron/notifications"
-      : "/api/cron/sync-wc2026";
-
+  // ── Déclencher le cron de notifications ──────────────────────────────────
+  if (action === "trigger_notifications") {
     // Préférer VERCEL_PROJECT_PRODUCTION_URL (alias fixe) sinon VERCEL_URL (déploiement)
     const host = process.env.VERCEL_PROJECT_PRODUCTION_URL
       ?? process.env.VERCEL_URL
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 9_000); // 9s max
-      const res = await fetch(`${base}${path}`, {
+      const res = await fetch(`${base}/api/cron/notifications`, {
         method: "GET",
         headers: { Authorization: `Bearer ${process.env.CRON_SECRET ?? ""}` },
         signal: controller.signal,
@@ -165,20 +166,22 @@ export async function POST(request: NextRequest) {
 }
 
 // ── Liste des membres + équipes (pour les sélecteurs de la sandbox) ──────────
-export async function GET() {
-  const guard = await requireAdmin();
+export async function GET(request: NextRequest) {
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
 
   const [membersResult, teamsResult] = await Promise.all([
     admin
-      .from("profiles")
-      .select("id, display_name, email, team_id, teams!profiles_team_id_fkey(name, flag_emoji)")
+      .from("memberships")
+      .select("user_id, team_id, profiles!inner(display_name, email), teams!inner(name, flag_emoji)")
       .eq("restaurant_id", restaurantId)
       .not("team_id", "is", null)
-      .order("display_name"),
+      .order("display_name", { referencedTable: "profiles" }),
     admin
       .from("community_scores")
       .select("team_id, member_count, total_spent, score, teams(name, flag_emoji)")
@@ -186,8 +189,21 @@ export async function GET() {
       .order("score", { ascending: false }),
   ]);
 
+  const members = ((membersResult.data ?? []) as unknown as {
+    user_id: string;
+    team_id: string;
+    profiles: { display_name: string; email: string };
+    teams: { name: string; flag_emoji: string };
+  }[]).map((m) => ({
+    id: m.user_id,
+    display_name: m.profiles.display_name,
+    email: m.profiles.email,
+    team_id: m.team_id,
+    teams: m.teams,
+  }));
+
   return NextResponse.json({
-    members: membersResult.data ?? [],
-    scores:  teamsResult.data ?? [],
+    members,
+    scores: teamsResult.data ?? [],
   });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import type { TeamType } from "@/types";
 
 type TargetKind = "all" | "types" | "teams";
@@ -16,6 +17,7 @@ const TYPE_OPTIONS: { value: TeamType; label: string }[] = [
 ];
 
 export default function AdminBroadcastPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [message, setMessage] = useState("");
   const [kind, setKind] = useState<TargetKind>("all");
   const [types, setTypes] = useState<TeamType[]>([]);
@@ -26,8 +28,8 @@ export default function AdminBroadcastPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/teams").then(async (r) => { if (r.ok) setTeams(await r.json()); });
-  }, []);
+    fetch(`/api/teams?restaurantId=${restaurantId}`).then(async (r) => { if (r.ok) setTeams(await r.json()); });
+  }, [restaurantId]);
 
   function toggle<T>(list: T[], v: T): T[] {
     return list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
@@ -50,7 +52,7 @@ export default function AdminBroadcastPage() {
     const res = await fetch("/api/admin/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, target }),
+      body: JSON.stringify({ restaurantId, message, target }),
     });
     const body = await res.json();
     if (res.ok) { setResult(body); setMessage(""); }

@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
 import { sendPush } from "@/lib/notifications";
-import { getRestaurantId } from "@/lib/restaurant";
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 
@@ -14,12 +13,14 @@ function toStoragePath(value: string): string | null {
   return value.split("/receipts/")[1] ?? null;
 }
 
-export async function GET() {
-  const guard = await requireAdmin();
+export async function GET(request: NextRequest) {
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
 
   const { data, error } = await admin
     .from("orders")
@@ -69,11 +70,15 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const guard = await requireAdmin();
-  if (!guard.ok) return guard.response;
-
   const body = await request.json();
-  const { id, ids, action, rejection_reason } = body;
+  const { id, ids, action, rejection_reason, restaurantId } = body;
+
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
+  if (!guard.ok) return guard.response;
 
   if (!action || !["validate", "reject", "batch_validate"].includes(action)) {
     return NextResponse.json({ error: "Action invalide." }, { status: 400 });
@@ -89,7 +94,6 @@ export async function PATCH(request: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
   const now = new Date().toISOString();
 
   if (action === "batch_validate") {

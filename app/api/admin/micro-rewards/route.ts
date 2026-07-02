@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 
-export async function GET() {
-  const guard = await requireAdmin();
+export async function GET(request: NextRequest) {
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
-  const restaurantId = getRestaurantId();
 
   const { data, error } = await admin
     .from("micro_reward_claims")
@@ -29,11 +30,15 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const guard = await requireAdmin();
-  if (!guard.ok) return guard.response;
-
   const body = await request.json();
-  const { id, action } = body;
+  const { id, action, restaurantId } = body;
+
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
+  if (!guard.ok) return guard.response;
 
   if (!id || !["validate", "reject"].includes(action)) {
     return NextResponse.json({ error: "Paramètres invalides." }, { status: 400 });

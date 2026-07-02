@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 
-export async function GET() {
-  const guard = await requireAdmin();
+export async function GET(request: NextRequest) {
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
@@ -15,7 +17,7 @@ export async function GET() {
       profiles:user_id (display_name, email),
       orders:order_id (amount, order_date)
     `)
-    .eq("restaurant_id", getRestaurantId())
+    .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -23,10 +25,14 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const guard = await requireAdmin();
+  const { id, restaurantId } = await req.json();
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
-  const { id } = await req.json();
   if (!id || typeof id !== "string") {
     return NextResponse.json({ error: "id requis." }, { status: 400 });
   }
@@ -36,7 +42,7 @@ export async function PATCH(req: NextRequest) {
     .from("pending_rewards")
     .update({ status: "redeemed", redeemed_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("restaurant_id", getRestaurantId())
+    .eq("restaurant_id", restaurantId)
     .eq("status", "available")  // idempotency — ne peut être marqué qu'une seule fois
     .select()
     .single();

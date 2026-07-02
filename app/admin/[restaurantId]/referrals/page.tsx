@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 type AdminReferral = {
   id: string;
@@ -11,14 +12,15 @@ type AdminReferral = {
 };
 
 export default function AdminReferralsPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [referrals, setReferrals] = useState<AdminReferral[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/referrals")
+    fetch(`/api/admin/referrals?restaurantId=${restaurantId}`)
       .then((r) => r.json())
       .then((data) => { setReferrals(data); setLoading(false); });
-  }, []);
+  }, [restaurantId]);
 
   // Group by referrer to compute token counts
   const byReferrer = referrals.reduce<Record<string, { name: string; email: string; count: number }>>(

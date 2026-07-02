@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 
 type AdminOrder = {
   id: string;
@@ -267,6 +268,7 @@ function SwipeCard({
 
 // ── Main page ────────────────────────────────────────────────
 export default function AdminOrdersPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [orders, setOrders]       = useState<AdminOrder[]>([]);
   const [loading, setLoading]     = useState(true);
   const [filter, setFilter]       = useState<Filter>("flagged");
@@ -280,10 +282,10 @@ export default function AdminOrdersPage() {
   const [photoUrl, setPhotoUrl]   = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
-    const res = await fetch("/api/admin/orders");
+    const res = await fetch(`/api/admin/orders?restaurantId=${restaurantId}`);
     if (res.ok) setOrders(await res.json());
     setLoading(false);
-  }, []);
+  }, [restaurantId]);
 
   useEffect(() => {
     fetchOrders();
@@ -296,7 +298,7 @@ export default function AdminOrdersPage() {
     await fetch("/api/admin/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action, rejection_reason: reason }),
+      body: JSON.stringify({ id, action, rejection_reason: reason, restaurantId }),
     });
     setRejectId(null);
     setRejectPreset("");
@@ -311,7 +313,7 @@ export default function AdminOrdersPage() {
     await fetch("/api/admin/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: Array.from(selected), action: "batch_validate" }),
+      body: JSON.stringify({ ids: Array.from(selected), action: "batch_validate", restaurantId }),
     });
     setSelected(new Set());
     setBatchMode(false);

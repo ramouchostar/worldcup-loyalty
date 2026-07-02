@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 
 type Member = {
   id: string;
@@ -33,6 +34,7 @@ function StatusBadge({ result }: { result: Result | null }) {
 }
 
 export default function SandboxPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [members, setMembers] = useState<Member[]>([]);
   const [scores, setScores] = useState<ScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ export default function SandboxPage() {
   const [scoreResult, setScoreResult] = useState<Result | null>(null);
 
   // Crons
-  const [cronBusy, setCronBusy] = useState<"notif" | "sync" | null>(null);
+  const [cronBusy, setCronBusy] = useState<"notif" | null>(null);
   const [cronResult, setCronResult] = useState<Result | null>(null);
 
   // Reset test
@@ -64,14 +66,14 @@ export default function SandboxPage() {
   const [resetResult, setResetResult] = useState<Result | null>(null);
 
   const fetchData = useCallback(async () => {
-    const res = await fetch("/api/admin/sandbox");
+    const res = await fetch(`/api/admin/sandbox?restaurantId=${restaurantId}`);
     if (res.ok) {
       const d = await res.json();
       setMembers(d.members ?? []);
       setScores(d.scores ?? []);
     }
     setLoading(false);
-  }, []);
+  }, [restaurantId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -79,7 +81,7 @@ export default function SandboxPage() {
     const res = await fetch("/api/admin/sandbox", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ restaurantId, ...body }),
     });
     return res.json() as Promise<Result>;
   }
@@ -132,12 +134,11 @@ export default function SandboxPage() {
     }
   }
 
-  async function triggerCron(type: "trigger_notifications" | "trigger_sync") {
-    const key = type === "trigger_notifications" ? "notif" : "sync";
-    setCronBusy(key);
+  async function triggerCron() {
+    setCronBusy("notif");
     setCronResult(null);
     try {
-      const r = await post({ action: type });
+      const r = await post({ action: "trigger_notifications" });
       setCronResult(r);
     } catch (err: unknown) {
       setCronResult({ error: err instanceof Error ? err.message : String(err) });
@@ -343,22 +344,13 @@ export default function SandboxPage() {
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => triggerCron("trigger_notifications")}
-            disabled={cronBusy === "notif"}
-            className="bg-amber-500 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors"
-          >
-            {cronBusy === "notif" ? "Envoi..." : "🔔 Notifications"}
-          </button>
-          <button
-            onClick={() => triggerCron("trigger_sync")}
-            disabled={cronBusy === "sync"}
-            className="bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
-          >
-            {cronBusy === "sync" ? "Sync..." : "⚽ Sync WC2026"}
-          </button>
-        </div>
+        <button
+          onClick={triggerCron}
+          disabled={cronBusy === "notif"}
+          className="w-full bg-amber-500 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors"
+        >
+          {cronBusy === "notif" ? "Envoi..." : "🔔 Déclencher les notifications"}
+        </button>
         {cronResult && (
           <pre className={`text-xs font-mono p-2 rounded-lg bg-gray-50 overflow-x-auto ${cronResult.ok ? "text-green-700" : "text-red-600"}`}>
             {JSON.stringify(cronResult, null, 2)}

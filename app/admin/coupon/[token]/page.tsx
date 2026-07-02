@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { CouponClient } from "@/app/coupon/[token]/CouponClient";
 
 export default async function AdminCouponPage({
@@ -11,27 +12,31 @@ export default async function AdminCouponPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { token } = await params;
   const admin = createAdminClient();
 
+  const { data: tokenRow } = await admin
+    .from("redemption_tokens")
+    .select(
+      "token, expires_at, redeemed_at, restaurant_id, pending_rewards(solo_item, community_item, advancement_item), profiles(display_name)"
+    )
+    .eq("token", token)
+    .single();
+
+  if (!tokenRow) notFound();
+
+  // ADR 0015 §7 — validé par le token, pas par navigation d'établissement :
+  // on résout le restaurant du coupon puis on vérifie l'accès (pont legacy
+  // is_admin sur le restaurant par défaut, ou owner_id pour le self-service).
   const { data: profile } = await admin
     .from("profiles")
     .select("is_admin")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.is_admin) redirect("/join");
-
-  const { token } = await params;
-
-  const { data: tokenRow } = await admin
-    .from("redemption_tokens")
-    .select(
-      "token, expires_at, redeemed_at, pending_rewards(solo_item, community_item, advancement_item), profiles(display_name)"
-    )
-    .eq("token", token)
-    .single();
-
-  if (!tokenRow) notFound();
+  const isLegacyAdmin = !!profile?.is_admin && tokenRow.restaurant_id === getRestaurantId();
+  const isOwner = await isRestaurantOwner(user.id, tokenRow.restaurant_id);
+  if (!isLegacyAdmin && !isOwner) redirect("/join");
 
   const reward = tokenRow.pending_rewards as unknown as {
     solo_item: string | null;

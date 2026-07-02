@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
 
 type TierInput = {
   threshold_spent: unknown;
@@ -10,16 +9,19 @@ type TierInput = {
   menu_item_id: unknown;
 };
 
-// GET /api/admin/team-tiers — paliers d'équipe de l'établissement (ADR 0014).
-export async function GET() {
-  const guard = await requireAdmin();
+// GET /api/admin/team-tiers?restaurantId=... — paliers d'équipe (ADR 0014).
+export async function GET(request: NextRequest) {
+  const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+  if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("team_tiers")
     .select("id, threshold_spent, reward_kind, percent_value, menu_item_id, is_active")
-    .eq("restaurant_id", getRestaurantId())
+    .eq("restaurant_id", restaurantId)
     .order("threshold_spent");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -27,14 +29,18 @@ export async function GET() {
 }
 
 // PUT /api/admin/team-tiers — remplace l'ensemble des paliers.
-// Body : { tiers: { threshold_spent, reward_kind, percent_value, menu_item_id }[] }.
+// Body : { restaurantId, tiers: { threshold_spent, reward_kind, percent_value, menu_item_id }[] }.
 export async function PUT(req: Request) {
-  const guard = await requireAdmin();
+  const body = await req.json().catch(() => null);
+  const restaurantId = body?.restaurantId;
+  if (typeof restaurantId !== "string" || !restaurantId) {
+    return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  }
+
+  const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
 
-  const body = await req.json().catch(() => null);
   const raw: TierInput[] = Array.isArray(body?.tiers) ? body.tiers : [];
-  const restaurantId = getRestaurantId();
   const admin = createAdminClient();
 
   const { data: items } = await admin.from("menu_items").select("id").eq("restaurant_id", restaurantId);

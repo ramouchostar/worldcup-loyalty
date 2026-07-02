@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 type AdminClaim = {
   id: string;
@@ -20,27 +21,28 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function AdminMicroRewardsPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [claims, setClaims] = useState<AdminClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "validated" | "rejected">("pending");
   const [busy, setBusy] = useState<string | null>(null);
 
   async function fetchClaims() {
-    const res = await fetch("/api/admin/micro-rewards");
+    const res = await fetch(`/api/admin/micro-rewards?restaurantId=${restaurantId}`);
     if (res.ok) setClaims(await res.json());
     setLoading(false);
   }
 
   useEffect(() => {
     fetchClaims();
-  }, []);
+  }, [restaurantId]);
 
   async function handleAction(id: string, action: "validate" | "reject") {
     setBusy(id);
     await fetch("/api/admin/micro-rewards", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action }),
+      body: JSON.stringify({ id, action, restaurantId }),
     });
     await fetchClaims();
     setBusy(null);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import type { PendingReward } from "@/types";
 
 type AdminPendingReward = PendingReward & {
@@ -9,6 +10,7 @@ type AdminPendingReward = PendingReward & {
 };
 
 export default function AdminPendingRewardsPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [rewards, setRewards] = useState<AdminPendingReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"available" | "redeemed">("available");
@@ -16,19 +18,19 @@ export default function AdminPendingRewardsPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   async function fetchRewards() {
-    const res = await fetch("/api/admin/pending-rewards");
+    const res = await fetch(`/api/admin/pending-rewards?restaurantId=${restaurantId}`);
     if (res.ok) setRewards(await res.json());
     setLoading(false);
   }
 
-  useEffect(() => { fetchRewards(); }, []);
+  useEffect(() => { fetchRewards(); }, [restaurantId]);
 
   async function markRedeemed(id: string) {
     setBusy(id);
     const res = await fetch("/api/admin/pending-rewards", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, restaurantId }),
     });
     if (!res.ok) {
       alert("Erreur : " + (await res.json()).error);

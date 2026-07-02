@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 type Threshold = {
   id: string;
@@ -22,6 +23,7 @@ type Budget = {
 };
 
 export default function AdminThresholdsPage() {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
   const [thresholds, setThresholds] = useState<Threshold[]>([]);
   const [budget, setBudget] = useState<Budget | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ export default function AdminThresholdsPage() {
   const [creating, setCreating] = useState(false);
 
   async function fetchThresholds() {
-    const res = await fetch("/api/admin/thresholds");
+    const res = await fetch(`/api/admin/thresholds?restaurantId=${restaurantId}`);
     if (res.ok) {
       const json = await res.json();
       setThresholds(json.thresholds ?? []);
@@ -45,14 +47,14 @@ export default function AdminThresholdsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchThresholds(); }, []);
+  useEffect(() => { fetchThresholds(); }, [restaurantId]);
 
   async function updateRevenue(id: string) {
     setBusy(id);
     await fetch("/api/admin/thresholds", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, current_revenue: Number(editRevenue) }),
+      body: JSON.stringify({ id, restaurantId, current_revenue: Number(editRevenue) }),
     });
     setEditingId(null);
     setEditRevenue("");
@@ -65,7 +67,7 @@ export default function AdminThresholdsPage() {
     await fetch("/api/admin/thresholds", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, baseline_weekly_revenue: Number(editBaseline) }),
+      body: JSON.stringify({ id, restaurantId, baseline_weekly_revenue: Number(editBaseline) }),
     });
     setEditingBaselineId(null);
     setEditBaseline("");
@@ -78,7 +80,7 @@ export default function AdminThresholdsPage() {
     await fetch("/api/admin/thresholds", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: t.id, is_unlocked: !t.is_unlocked }),
+      body: JSON.stringify({ id: t.id, restaurantId, is_unlocked: !t.is_unlocked }),
     });
     await fetchThresholds();
     setBusy(null);
@@ -90,7 +92,7 @@ export default function AdminThresholdsPage() {
     await fetch("/api/admin/thresholds", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ period_label: newLabel, target_revenue: Number(newTarget) }),
+      body: JSON.stringify({ restaurantId, period_label: newLabel, target_revenue: Number(newTarget) }),
     });
     setShowNew(false);
     setNewLabel("");
