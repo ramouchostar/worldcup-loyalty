@@ -7,6 +7,7 @@ const MAX_CUISINE_TYPES = 5;
 
 export default function BecomeAPartnerPage() {
   const [name, setName] = useState("");
+  const [sector, setSector] = useState("");
   const [address, setAddress] = useState("");
   const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
   const [cuisineInput, setCuisineInput] = useState("");
@@ -44,12 +45,17 @@ export default function BecomeAPartnerPage() {
       setError("Entre le nom de ton restaurant.");
       return;
     }
+    if (!sector.trim()) {
+      setError("Indique ta ville ou ton quartier.");
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     const formData = new FormData();
     formData.set("name", name.trim());
+    formData.set("sector", sector.trim());
     formData.set("address", address.trim());
     cuisineTypes.forEach((t) => formData.append("cuisine_types", t));
     formData.set("google_maps_url", googleMapsUrl.trim());
@@ -76,6 +82,9 @@ export default function BecomeAPartnerPage() {
             Étape 1/2 — présente ton établissement. Il restera invisible aux clients
             jusqu&apos;à validation par notre équipe.
           </p>
+          <a href="/secteurs" className="inline-block text-xs font-semibold text-brand-red hover:underline mt-2">
+            Vois l&apos;activité du réseau dans ton secteur →
+          </a>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8 space-y-5">
@@ -86,6 +95,21 @@ export default function BecomeAPartnerPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex : Pizzeria Da Mario"
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ville / quartier</label>
+            <p className="text-xs text-gray-500 mb-2">
+              Le secteur où tes clients te trouvent — il apparaît sur la page publique d&apos;activité du réseau.
+            </p>
+            <input
+              type="text"
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              placeholder="Ex : Molenbeek"
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
             />
@@ -210,7 +234,7 @@ export default function BecomeAPartnerPage() {
 
           <button
             type="submit"
-            disabled={loading || !name.trim()}
+            disabled={loading || !name.trim() || !sector.trim()}
             className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? "Création..." : "Continuer →"}

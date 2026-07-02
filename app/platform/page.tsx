@@ -13,7 +13,7 @@ export default async function PlatformPage() {
   const admin = createAdminClient();
 
   const [{ data: pending }, { count: activeCount }, { count: memberCount }] = await Promise.all([
-    admin.from("restaurants").select("id, name, created_at").eq("status", "pending").order("created_at"),
+    admin.from("restaurants").select("id, name, sector, created_at").eq("status", "pending").order("created_at"),
     admin.from("restaurants").select("id", { count: "exact", head: true }).eq("status", "active"),
     admin.from("memberships").select("user_id", { count: "exact", head: true }),
   ]);
@@ -64,7 +64,10 @@ export default async function PlatformPage() {
                 <div key={r.id} className="border border-gray-200 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <p className="font-semibold text-gray-900">{r.name}</p>
+                      <p className="font-semibold text-gray-900">
+                        {r.name}
+                        {r.sector && <span className="ml-2 text-xs font-normal text-gray-400">📍 {r.sector}</span>}
+                      </p>
                       <p className="text-xs text-gray-400">
                         {new Date(r.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
                         {" · "}

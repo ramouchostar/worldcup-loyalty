@@ -161,6 +161,10 @@ _Avoid_ : gérant (réservé à une évolution future de co-admin), propriétair
 `pending` (créé en self-service, invisible aux membres, en attente de validation par le super-admin) ou `active` (visible et rejoignable). Contrôle qualité en phase de lancement — jamais de mise en ligne automatique.
 _Avoid_ : approuvé/rejeté (le rejet n'est pas encore modélisé), publié.
 
+**Secteur** *(ADR 0016)* :
+Ville ou quartier d'un établissement (`restaurants.sector`, texte libre) — la maille d'agrégation de la page publique `/secteurs`, qui montre l'activité du réseau (établissements actifs, membres, équipes actives) comme preuve sociale pour les restaurateurs prospects. Distinct de l'adresse (qui localise un établissement précis). Obligatoire à l'inscription partenaire. Jamais d'euros/CA sur cette page (ADR 0007 s'applique au public).
+_Avoid_ : zone (vague), région (trop large), localisation (c'est l'adresse).
+
 ---
 
 ### Communautés & Équipes

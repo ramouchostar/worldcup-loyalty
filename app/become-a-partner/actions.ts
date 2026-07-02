@@ -13,6 +13,7 @@ export async function createPartnerRestaurant(
   formData: FormData
 ): Promise<{ error: string } | null> {
   const name = (formData.get("name") as string)?.trim();
+  const sector = (formData.get("sector") as string)?.trim();
   const address = (formData.get("address") as string)?.trim() || null;
   const cuisineTypes = formData.getAll("cuisine_types").map((v) => String(v).trim()).filter(Boolean);
   const googleMapsUrl = (formData.get("google_maps_url") as string)?.trim() || null;
@@ -22,6 +23,10 @@ export async function createPartnerRestaurant(
 
   if (!name || name.length < 2) {
     return { error: "Entre le nom de ton restaurant." };
+  }
+  // ADR 0016 §2 — maille d'agrégation de la page publique /secteurs
+  if (!sector || sector.length < 2) {
+    return { error: "Indique ta ville ou ton quartier." };
   }
   if (cuisineTypes.length > 5) {
     return { error: "5 types de cuisine maximum." };
@@ -36,6 +41,7 @@ export async function createPartnerRestaurant(
   const { error } = await admin.from("restaurants").insert({
     id: slug,
     name,
+    sector,
     address,
     cuisine_types: cuisineTypes,
     owner_id: user.id,

@@ -84,7 +84,12 @@ export default function LandingPage() {
           <span className="text-3xl shrink-0">🍽️</span>
           <div className="flex-1">
             <p className="font-bold text-gray-900 text-sm">Tu es restaurateur ?</p>
-            <p className="text-gray-500 text-xs mt-0.5">Rejoins le réseau et fidélise tes propres clients.</p>
+            <p className="text-gray-500 text-xs mt-0.5">
+              Rejoins le réseau et fidélise tes propres clients.{" "}
+              <Link href="/secteurs" className="text-brand-red font-semibold hover:underline">
+                Vois l&apos;activité de ton secteur
+              </Link>
+            </p>
           </div>
           <Link
             href="/become-a-partner"
@@ -118,6 +123,7 @@ export default function LandingPage() {
           <span className="font-bold text-gray-400">Fidélité communautaire</span>
           <div className="flex gap-4">
             <Link href="/join" className="hover:text-gray-300 transition-colors">Restaurants</Link>
+            <Link href="/secteurs" className="hover:text-gray-300 transition-colors">Secteurs</Link>
             <Link href="/become-a-partner" className="hover:text-gray-300 transition-colors">Devenir partenaire</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Connexion</Link>
           </div>
