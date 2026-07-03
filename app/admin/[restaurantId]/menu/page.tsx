@@ -15,7 +15,7 @@ const euro = (n: number) =>
   Number(n).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
 type Msg = { kind: "ok" | "err"; text: string; details?: string[] };
-type TierRow = { layer: string; min_threshold: number; menu_item_id: string | null };
+type TierRow = { layer: string; min_threshold: number; menu_item_id: string | null; is_active: boolean };
 type Suggestion = { layer: string; threshold: number; item_name: string | null; rationale: string };
 
 const tierKey = (layer: string, threshold: number) => `${layer}:${threshold}`;
@@ -30,6 +30,9 @@ export default function AdminMenuPage() {
 
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [rationales, setRationales] = useState<Record<string, string>>({});
+  // Paliers solo par établissement (ADR 0017) : ceux déjà enregistrés, sinon
+  // la grille par défaut ; recalculés par la suggestion.
+  const [soloBands, setSoloBands] = useState<number[]>([...SOLO_BANDS]);
   const [suggesting, setSuggesting] = useState(false);
   const [savingTiers, setSavingTiers] = useState(false);
   const [tierMsg, setTierMsg] = useState<Msg | null>(null);
@@ -40,13 +43,21 @@ export default function AdminMenuPage() {
       fetch(`/api/admin/reward-tiers?restaurantId=${restaurantId}`),
     ]);
     const itemsData: MenuItem[] = itemsRes.ok ? await itemsRes.json() : [];
-    const tiersData: TierRow[] = tiersRes.ok ? await tiersRes.json() : [];
+    const allTiers: TierRow[] = tiersRes.ok ? await tiersRes.json() : [];
+    const tiersData = allTiers.filter((t) => t.is_active);
     setItems(itemsData);
 
+    const savedSolo = tiersData
+      .filter((t) => t.layer === "solo")
+      .map((t) => Number(t.min_threshold))
+      .sort((a, b) => a - b);
+    const bands = savedSolo.length > 0 ? savedSolo : [...SOLO_BANDS];
+    setSoloBands(bands);
+
     const map: Record<string, string | null> = {};
-    SOLO_BANDS.forEach((b) => { map[tierKey("solo", b)] = null; });
+    bands.forEach((b) => { map[tierKey("solo", b)] = null; });
     COMMUNITY_BANDS.forEach((b) => { map[tierKey("community", b)] = null; });
-    tiersData.forEach((t) => { map[tierKey(t.layer, t.min_threshold)] = t.menu_item_id; });
+    tiersData.forEach((t) => { map[tierKey(t.layer, Number(t.min_threshold))] = t.menu_item_id; });
     setTiers(map);
     setLoading(false);
   }, [restaurantId]);
@@ -99,7 +110,16 @@ export default function AdminMenuPage() {
     });
     const body = await res.json();
     if (res.ok) {
-      const nextTiers = { ...tiers };
+      // Paliers solo recalculés pour l'établissement (ADR 0017) : on remplace
+      // les bandes solo, en conservant les assignations communautaires.
+      const nextBands: number[] =
+        Array.isArray(body.soloBands) && body.soloBands.length > 0
+          ? body.soloBands.map(Number)
+          : soloBands;
+      const nextTiers: Record<string, string | null> = {};
+      nextBands.forEach((b) => { nextTiers[tierKey("solo", b)] = null; });
+      COMMUNITY_BANDS.forEach((b) => { nextTiers[tierKey("community", b)] = tiers[tierKey("community", b)] ?? null; });
+
       const nextRationales: Record<string, string> = {};
       (body.suggestions as Suggestion[]).forEach((s) => {
         const item = items.find((i) => i.name === s.item_name);
@@ -107,6 +127,7 @@ export default function AdminMenuPage() {
         if (item) nextTiers[key] = item.id;
         if (s.rationale) nextRationales[key] = s.rationale;
       });
+      setSoloBands(nextBands);
       setTiers(nextTiers);
       setRationales(nextRationales);
       setTierMsg({ kind: "ok", text: body.note ?? "Suggestions générées." });
@@ -133,7 +154,8 @@ export default function AdminMenuPage() {
       setTierMsg({ kind: "ok", text: `Paliers enregistrés (${body.saved}).` });
       await loadAll();
     } else {
-      setTierMsg({ kind: "err", text: body.error ?? "Échec de l'enregistrement." });
+      // details = violations du plafond de coût par palier (ADR 0017)
+      setTierMsg({ kind: "err", text: body.error ?? "Échec de l'enregistrement.", details: body.details });
     }
     setSavingTiers(false);
   }
@@ -274,7 +296,12 @@ export default function AdminMenuPage() {
 
           {tierMsg && (
             <div className={`rounded-lg p-2.5 text-sm border ${tierMsg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
-              {tierMsg.text}
+              <p>{tierMsg.text}</p>
+              {tierMsg.details && tierMsg.details.length > 0 && (
+                <ul className="mt-1 list-disc list-inside text-xs opacity-80">
+                  {tierMsg.details.slice(0, 8).map((d, i) => <li key={i}>{d}</li>)}
+                </ul>
+              )}
             </div>
           )}
 
@@ -282,7 +309,7 @@ export default function AdminMenuPage() {
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Récompense solo (montant de commande)</p>
               <div className="divide-y divide-gray-50">
-                {SOLO_BANDS.map((b) => bandRow("solo", b, `Commande ≥ ${b} €`))}
+                {soloBands.map((b) => bandRow("solo", b, `Commande ≥ ${b} €`))}
               </div>
             </div>
             <div>
@@ -297,6 +324,127 @@ export default function AdminMenuPage() {
             Un palier sans article ne donne aucun cadeau. Tant qu&apos;aucun palier n&apos;est enregistré pour
             une couche, la grille héritée s&apos;applique automatiquement.
           </p>
+        </div>
+      )}
+
+      {/* ── Cadeau des 4 jetons (ADR 0017) ─────────────────────────────────── */}
+      {!loading && items.length > 0 && (
+        <JetonsGiftCard restaurantId={restaurantId} items={items} />
+      )}
+    </div>
+  );
+}
+
+// Cadeau remis pour 4 jetons (actions sociales / parrainages) — aucun achat en
+// face, donc plafond strict : coût ≤ panier moyen × budget cadeaux (ADR 0017).
+// L'app suggère le meilleur ratio valeur perçue / coût, l'admin décide.
+type JetonsInfo = {
+  current: { id: string | null; name: string; cost: number };
+  suggestion: { id: string; name: string; menu_price: number; cost_price: number } | null;
+  costCap: number;
+  avgBasket: number;
+};
+
+function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: MenuItem[] }) {
+  const [info, setInfo] = useState<JetonsInfo | null>(null);
+  const [selected, setSelected] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<Msg | null>(null);
+
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/admin/jetons-gift?restaurantId=${restaurantId}`);
+    if (res.ok) {
+      const data: JetonsInfo = await res.json();
+      setInfo(data);
+      setSelected(data.current.id ?? "");
+    }
+  }, [restaurantId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function save(itemId: string) {
+    if (!itemId) return;
+    setSaving(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/jetons-gift", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId, menu_item_id: itemId }),
+    });
+    const body = await res.json();
+    if (res.ok) {
+      setMsg({ kind: "ok", text: "Cadeau des jetons enregistré." });
+      await load();
+    } else {
+      setMsg({ kind: "err", text: body.error ?? "Échec de l'enregistrement." });
+    }
+    setSaving(false);
+  }
+
+  if (!info) {
+    return <div className="bg-white rounded-xl h-24 animate-pulse border border-gray-100" />;
+  }
+
+  const affordable = items.filter(
+    (i) => i.is_active && i.reward_eligible && Number(i.cost_price) <= info.costCap
+  );
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+      <div>
+        <h2 className="font-bold text-gray-900">Cadeau des 4 jetons</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Remis pour 4 jetons (actions sociales / parrainages) — aucun achat en face, donc coût réel
+          plafonné à {euro(info.costCap)} ({euro(info.avgBasket)} de panier moyen × budget cadeaux).
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-gray-500">Cadeau actuel :</span>
+        <span className="font-semibold text-gray-900">{info.current.name}</span>
+        <span className="text-xs text-gray-400">(coût {euro(info.current.cost)})</span>
+      </div>
+
+      {info.suggestion && info.suggestion.id !== info.current.id && (
+        <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-amber-800">
+            💡 Suggestion : <span className="font-semibold">{info.suggestion.name}</span> — perçu à{" "}
+            {euro(info.suggestion.menu_price)} pour {euro(info.suggestion.cost_price)} de coût réel
+            (ratio ×{(info.suggestion.menu_price / info.suggestion.cost_price).toFixed(1)}).
+          </p>
+          <button
+            onClick={() => save(info.suggestion!.id)}
+            disabled={saving}
+            className="text-xs px-3 py-1.5 bg-brand-gold/20 text-amber-800 border border-brand-gold/40 rounded-lg font-semibold hover:bg-brand-gold/30 disabled:opacity-50"
+          >
+            Appliquer
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <select
+          value={selected}
+          onChange={(e) => setSelected(e.target.value)}
+          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+        >
+          <option value="">— choisir un article (sous plafond) —</option>
+          {affordable.map((it) => (
+            <option key={it.id} value={it.id}>{it.name}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => save(selected)}
+          disabled={saving || !selected}
+          className="px-3 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? "Enregistrement…" : "Enregistrer"}
+        </button>
+      </div>
+
+      {msg && (
+        <div className={`rounded-lg p-2.5 text-sm border ${msg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {msg.text}
         </div>
       )}
     </div>

@@ -8,6 +8,8 @@ import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData }
 type SocialData = {
   rewards: MicroReward[];
   claims: MicroRewardClaim[];
+  // Cadeau des 4 jetons de l'établissement (ADR 0017) — nom uniquement, jamais de coût
+  giftName?: string;
 };
 
 const ACTION_META: Record<MicroRewardType, { icon: string; link: string | undefined }> = {
@@ -52,34 +54,36 @@ export default function MicroRewardsPage() {
   const socialTokens = claims.filter((c) => c.status === "validated").length;
   const referralTokens = Math.floor((referralData?.validatedCount ?? 0) / 5);
   const totalTokens = socialTokens + referralTokens;
-  const churroPortions = Math.floor(totalTokens / TOKENS_PER_PORTION);
-  const nextMilestone = (churroPortions + 1) * TOKENS_PER_PORTION;
+  const giftsEarned = Math.floor(totalTokens / TOKENS_PER_PORTION);
+  const nextMilestone = (giftsEarned + 1) * TOKENS_PER_PORTION;
   const tokensToNext = nextMilestone - totalTokens;
+  // Cadeau propre à l'établissement (ADR 0017), fallback hérité
+  const giftName = socialData?.giftName ?? "12 Churros";
 
   const claimMap = Object.fromEntries(claims.map((c) => [c.reward_type, c])) as Record<string, MicroRewardClaim>;
 
   return (
     <div className="space-y-5 pb-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Jetons & Churros</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Jetons & Cadeaux</h1>
         <p className="text-gray-500 text-sm mt-1">
           Gagne des jetons via les actions sociales et les parrainages.
         </p>
       </div>
 
       {/* Token summary */}
-      {churroPortions > 0 ? (
+      {giftsEarned > 0 ? (
         <div className="bg-green-50 border-2 border-green-400 rounded-2xl p-5">
           <p className="text-4xl mb-2 text-center">🎉</p>
           <p className="font-bold text-green-900 text-lg text-center">
-            {churroPortions} portion{churroPortions > 1 ? "s" : ""} de 12 Churros gagnée{churroPortions > 1 ? "s" : ""}
+            {giftsEarned} cadeau{giftsEarned > 1 ? "x" : ""} « {giftName} » gagné{giftsEarned > 1 ? "s" : ""}
           </p>
           <p className="text-green-800 text-sm mt-1 text-center">
             Présente-toi au comptoir {restaurantName} pour les récupérer.
           </p>
           <div className="mt-3 bg-green-100 rounded-xl p-3 text-center">
             <p className="text-xs text-green-700">
-              {totalTokens} jeton{totalTokens > 1 ? "s" : ""} au total · encore {tokensToNext} pour une nouvelle portion
+              {totalTokens} jeton{totalTokens > 1 ? "s" : ""} au total · encore {tokensToNext} pour un nouveau cadeau
             </p>
           </div>
         </div>
@@ -88,7 +92,7 @@ export default function MicroRewardsPage() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Cadeau à débloquer</p>
-              <p className="font-bold text-gray-900 text-lg mt-0.5">🍢 12 Churros offerts</p>
+              <p className="font-bold text-gray-900 text-lg mt-0.5">🎁 {giftName} offert</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-brand-red">{totalTokens}</p>
@@ -102,7 +106,7 @@ export default function MicroRewardsPage() {
             />
           </div>
           <p className="text-xs text-gray-400 mt-2">
-            {tokensToNext} jeton{tokensToNext > 1 ? "s" : ""} de plus pour gagner ta première portion
+            {tokensToNext} jeton{tokensToNext > 1 ? "s" : ""} de plus pour gagner ton premier cadeau
           </p>
         </div>
       )}

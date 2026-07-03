@@ -90,8 +90,9 @@ export type MicroReward = {
   type: MicroRewardType;
   title: string;
   description: string;
-  gift_item: string;
-  gift_cost_euros: number;
+  // Champs coûts : surfaces admin uniquement, jamais renvoyés côté membre (ADR 0007/0017)
+  gift_item?: string;
+  gift_cost_euros?: number;
   is_active: boolean;
 };
 

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
+import { getJetonsGift } from "@/lib/jetons-gift";
 import type { MicroRewardType } from "@/types";
 
 const VALID_TYPES: MicroRewardType[] = [
@@ -17,19 +18,26 @@ export async function GET(request: NextRequest) {
   const restaurantId = request.nextUrl.searchParams.get("restaurantId");
   if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
 
-  const [{ data: rewards }, { data: claims }] = await Promise.all([
+  const [{ data: rewards }, { data: claims }, gift] = await Promise.all([
     supabase
       .from("micro_rewards")
-      .select("*")
+      // Champs coûts (gift_cost_euros) jamais renvoyés côté membre (ADR 0007)
+      .select("id, type, title, description, is_active")
       .eq("is_active", true)
       .or(`restaurant_id.eq.${restaurantId},restaurant_id.is.null`),
     supabase
       .from("micro_reward_claims")
       .select("id, reward_type, proof_url, status, claimed_at")
       .eq("user_id", user.id),
+    // Cadeau des 4 jetons de l'établissement (ADR 0017) — nom uniquement
+    getJetonsGift(restaurantId),
   ]);
 
-  return NextResponse.json({ rewards: rewards ?? [], claims: claims ?? [] });
+  return NextResponse.json({
+    rewards: rewards ?? [],
+    claims: claims ?? [],
+    giftName: gift.name,
+  });
 }
 
 export async function POST(request: NextRequest) {
