@@ -51,6 +51,14 @@ _Avoid_ : points (en interne/base de données), score d'équipe, classement.
 Condition nécessaire et suffisante pour débloquer les paliers collectifs et le bonus communautaire : (1) le score communautaire dépasse le seuil du palier ET (2) le seuil CA du restaurant est atteint. Les deux conditions doivent être vraies simultanément. Entièrement invisible côté client — un palier non satisfait s'affiche simplement comme verrouillé sans explication du pourquoi.
 _Avoid_ : conditions de déblocage (trop vague).
 
+**Couverture communautaire** :
+Troisième verrou (ADR 0017), qui s'ajoute au double verrou pour les cadeaux distribués à toute une équipe (couches 2 et 3) : `membres × coût du cadeau ≤ dépense cumulée de l'équipe × budget cadeaux (8 %)`. Vérifiée à chaque résolution (taille d'équipe variable). Si le palier atteint au score n'est pas couvert, cascade vers le palier couvert inférieur. Comme le double verrou, entièrement invisible côté client (ADR 0007).
+_Avoid_ : verrou budgétaire (réservé au plafond mensuel ADR 0012), seuil dynamique.
+
+**Plafond de palier** :
+Coût réel maximal du cadeau d'un palier solo : `seuil du palier × budget cadeaux (8 %)` (ADR 0017). Enforcé au moment de l'enregistrement des paliers — une assignation au-dessus du plafond est rejetée. Les paliers solo eux-mêmes sont dimensionnés par établissement à partir du panier moyen.
+_Avoid_ : plafond budget (réservé au plafond mensuel ADR 0012).
+
 **Palier** :
 Niveau de récompense communautaire avec un score seuil et un cadeau associé. Se débloque uniquement si le double verrou est satisfait. Configurables par l'admin.
 _Avoid_ : niveau, récompense (récompense est plus large — inclut les micro-récompenses).
@@ -94,7 +102,7 @@ Tables : `referral_links` (code unique par membre, compteurs clicks/conversions)
 _Avoid_ : référence, invitation par email, micro-récompense (c'est une catégorie séparée).
 
 **Jeton** :
-Unité de valeur gagnée via les micro-récompenses sociales (1 par action) ou les parrainages (1 par tranche de 5 validés). 4 jetons = 1 portion de 12 churros à récupérer au comptoir. Calculé à l'affichage uniquement à partir des claims validés — non stocké en base. Les jetons s'accumulent : 8 jetons = 2 portions, etc.
+Unité de valeur gagnée via les micro-récompenses sociales (1 par action) ou les parrainages (1 par tranche de 5 validés). 4 jetons = 1 cadeau à récupérer au comptoir : un article du catalogue de l'établissement (`restaurants.jetons_gift_menu_item_id`, ADR 0017), plafonné à `panier moyen × budget cadeaux` car aucune commande n'est en face — fallback hérité « 12 Churros » tant que rien n'est configuré. Calculé à l'affichage uniquement à partir des claims validés — non stocké en base. Les jetons s'accumulent : 8 jetons = 2 cadeaux, etc. Côté membre, seul le nom de l'article est affiché.
 _Avoid_ : point, crédit, token (anglicisme).
 
 **Membre actif** :

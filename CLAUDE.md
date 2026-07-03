@@ -5,7 +5,7 @@
 Avant d'écrire ou modifier la moindre ligne, tu dois lire dans cet ordre :
 
 1. `CONTEXT.md` — glossaire complet du domaine, terminologie exacte, règles UI
-2. `docs/adr/0001` à `docs/adr/0010` — toutes les décisions architecturales
+2. `docs/adr/0001` à `docs/adr/0017` — toutes les décisions architecturales
 
 Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Prompt_ClaudeCode.md` qui est le document source initial mais qui a été affiné par les ADRs.
 
@@ -85,6 +85,12 @@ SUPER_ADMIN_EMAILS=                 # emails bootstrappés comme super-admin pla
 - **Cashier valide** depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → idempotent
 - Table `redemption_tokens` : `token TEXT UNIQUE`, `expires_at = NOW() + 10 min`, `redeemed_at`
 - Index `UNIQUE` sur `pending_rewards (user_id, restaurant_id) WHERE status = 'available'`
+
+### ADR 0017 — Dimensionnement des récompenses par les coûts de revient
+- Principe : coût réel d'un cadeau ≤ `REWARD_BUDGET_PCT` (8 %) × dépenses qui l'ont déclenché — calculs dans `lib/reward-sizing.ts`
+- **Palier solo** : `cost_price ≤ seuil × pct`, rejet dur au `PUT /api/admin/reward-tiers` ; paliers suggérés par établissement (panier moyen, `suggestSoloBands`)
+- **Cadeau 4 jetons** : article du catalogue (`restaurants.jetons_gift_menu_item_id`, m28), plafond `panier moyen × pct`, seul le **nom** sort côté membre
+- **Couverture communautaire** (3e verrou, couches 2 et 3) : `membres × coût ≤ dépense cumulée équipe × pct`, cascade vers le palier couvert — invisible côté client (ADR 0007)
 
 ### ADR 0012 — Protection financière (CRITIQUE pour la rentabilité)
 - **Plafond budget cadeaux** : coût mensuel des récompenses ≤ `CA_programme_mois × 8%` (`REWARD_BUDGET_PCT`)
