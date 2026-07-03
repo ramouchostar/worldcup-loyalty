@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { getMenuItems, upsertMenuCatalog, parseMenuCsv } from "@/lib/menu";
+import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
 
 // GET /api/admin/menu?restaurantId=... — liste du catalogue de l'établissement.
 export async function GET(request: NextRequest) {
@@ -46,7 +47,11 @@ export async function POST(req: Request) {
 
   try {
     const result = await upsertMenuCatalog(restaurantId, items);
-    return NextResponse.json({ ok: true, ...result, warnings: errors });
+    // ADR 0017 §4 — un resto sans grille configurée reçoit une configuration
+    // par défaut protégée dès la soumission des coûts. Non-destructif : une
+    // couche déjà configurée n'est jamais écrasée.
+    const defaults = await applyDefaultRewardConfig(restaurantId);
+    return NextResponse.json({ ok: true, ...result, defaults, warnings: errors });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

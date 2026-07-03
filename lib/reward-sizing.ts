@@ -71,6 +71,24 @@ export function pickBestGift(items: GiftCandidate[], costCap: number): GiftCandi
   return best;
 }
 
+// Cadeau le plus généreux sous plafond : valeur perçue (prix carte) maximale,
+// à valeur égale le coût le plus faible. Pour les paliers élevés d'une
+// configuration par défaut — le plafond monte avec le palier, l'article suit.
+export function pickGenerousGift(items: GiftCandidate[], costCap: number): GiftCandidate | null {
+  let best: GiftCandidate | null = null;
+  for (const it of items) {
+    if (it.cost_price <= 0 || it.cost_price > costCap) continue;
+    if (
+      !best ||
+      it.menu_price > best.menu_price ||
+      (it.menu_price === best.menu_price && it.cost_price < best.cost_price)
+    ) {
+      best = it;
+    }
+  }
+  return best;
+}
+
 // ─── Règle 3 — couverture communautaire ──────────────────────────────────────
 
 export type TeamCoverage = {

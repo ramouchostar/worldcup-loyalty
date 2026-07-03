@@ -44,6 +44,20 @@ Un palier communautaire (couche 2) ou d'équipe (couche 3) distribue son cadeau 
 - S'ajoute au double verrou (ADR 0005/0007) et au plafond mensuel (ADR 0012) sans les remplacer. Comme eux, **invisible côté client** : un palier non couvert s'affiche simplement comme non atteint, sans explication (ADR 0007). La couche 1 (solo) n'est pas concernée.
 - Les récompenses « pourcentage » de la couche 3 (coût 0, réalisé au comptoir) passent toujours.
 
+### 4. Configuration par défaut dès la soumission des coûts
+
+Sans configuration, un établissement retombe sur la grille héritée Belchicken : paliers non dimensionnés et articles absents de son catalogue. Dès que le catalogue est soumis (onboarding `become-a-partner` ou upload `/admin/menu`), l'app applique donc une **grille par défaut protégée**, calculée de façon déterministe (aucun appel IA) :
+
+- paliers solo dimensionnés (§1) ; premier palier → article au meilleur ratio, paliers suivants → article le plus généreux (prix carte maximal) sous le plafond du palier ;
+- paliers communautaires : mêmes plafonds progressifs (la couverture §3 protège de toute façon la distribution) ;
+- cadeau des 4 jetons (§2) si non configuré.
+
+**Non-destructif** : une couche déjà configurée n'est jamais écrasée — l'app calcule, le restaurateur révise et ajuste depuis `/admin/menu` (où l'onboarding redirige). Best-effort : un échec de la grille par défaut ne bloque jamais l'import du catalogue.
+
+### 5. Notifications alignées sur la délivrabilité
+
+Le cron de notifications (ADR 0009) n'annonce un palier communautaire (« palier franchi », « palier approchant ») que si le bonus serait **réellement délivré** : grille du catalogue (plus de grille codée en dur), double verrou, plafond budget (ADR 0012) et couverture d'équipe (§3). On ne promet jamais un cadeau que la résolution refuserait.
+
 ## Alternatives rejetées
 
 - **Seuils communautaires recalculés en points par équipe** (`seuil = membres² × coût / pct`) : équivalent mathématiquement mais instable (le seuil affiché bougerait à chaque arrivée de membre) et incompatible avec des seuils partagés par toutes les équipes. Le verrou de couverture au moment de la résolution donne le même effet sans toucher aux seuils affichés.
@@ -62,6 +76,8 @@ Un palier communautaire (couche 2) ou d'équipe (couche 3) distribue son cadeau 
 - `app/api/admin/reward-tiers/route.ts` : rejette les assignations solo au-dessus du plafond.
 - `lib/menu-suggest.ts` : paliers solo calculés par resto + filtrage déterministe sous plafond ; renvoie les paliers utilisés.
 - `lib/jetons-gift.ts` + `app/api/admin/jetons-gift/route.ts` + carte sur `/admin/menu` ; `/api/micro-rewards` renvoie le nom du cadeau ; page membre dynamique.
+- `lib/reward-defaults.ts` : grille par défaut déterministe, appelée par `submitOnboardingMenu` (qui redirige vers `/admin/menu`) et `POST /api/admin/menu`.
+- `app/api/cron/notifications/route.ts` : grille catalogue + double verrou + budget + couverture au lieu de la grille codée en dur.
 
 ### Documentation
 - CLAUDE.md : section règles critiques ADR 0017.

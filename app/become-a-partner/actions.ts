@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { generateRestaurantSlug, isRestaurantOwner } from "@/lib/restaurant";
 import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
+import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
 
 // ADR 0015 §6-7 — un membre connecté crée son établissement lui-même et en
 // devient l'admin (owner_id). Reste invisible (status 'pending') jusqu'à
@@ -84,5 +85,12 @@ export async function submitOnboardingMenu(
 
   await upsertMenuCatalog(restaurantId, items);
 
-  redirect(`/r/${restaurantId}`);
+  // ADR 0017 §4 — dès le catalogue soumis, l'app calcule une grille protégée
+  // (paliers dimensionnés par le panier moyen, articles sous plafond, cadeau
+  // jetons) au lieu de laisser le resto sur la grille héritée. Non-destructif.
+  await applyDefaultRewardConfig(restaurantId);
+
+  // Le restaurateur atterrit sur sa page menu admin pour réviser/ajuster la
+  // grille pré-remplie (l'app calcule, l'admin décide).
+  redirect(`/admin/${restaurantId}/menu`);
 }

@@ -79,7 +79,12 @@ export default function AdminMenuPage() {
     const body = await res.json();
 
     if (res.ok) {
-      setMsg({ kind: "ok", text: `${body.upserted} article(s) importé(s), ${body.deactivated} désactivé(s).`, details: body.warnings });
+      // Grille par défaut appliquée par l'API si rien n'était configuré (ADR 0017 §4)
+      const d = body.defaults ?? {};
+      const extra = d.soloConfigured || d.communityConfigured || d.jetonsConfigured
+        ? " Grille par défaut calculée pour ton établissement — vérifie les paliers ci-dessous."
+        : "";
+      setMsg({ kind: "ok", text: `${body.upserted} article(s) importé(s), ${body.deactivated} désactivé(s).${extra}`, details: body.warnings });
       await loadAll();
     } else {
       setMsg({ kind: "err", text: body.error ?? "Échec de l'import.", details: body.details });

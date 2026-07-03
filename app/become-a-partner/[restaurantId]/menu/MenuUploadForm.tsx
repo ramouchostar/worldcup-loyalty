@@ -69,7 +69,8 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
       setWarnings(result.warnings ?? []);
       setLoading(false);
     }
-    // si pas d'erreur, submitOnboardingMenu redirige vers /r/[restaurantId]
+    // si pas d'erreur, submitOnboardingMenu applique la grille par défaut
+    // (ADR 0017 §4) puis redirige vers /admin/[restaurantId]/menu pour révision
   }
 
   return (
