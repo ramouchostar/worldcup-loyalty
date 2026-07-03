@@ -70,8 +70,9 @@ export function getCommunityBonus(score: number, restaurantUnlocked: boolean): R
 }
 
 // Grille communautaire héritée sous forme de paliers — permet d'appliquer la
-// couverture ADR 0017 au fallback comme au catalogue.
-const LEGACY_COMMUNITY_TIERS: GridTier[] = [
+// couverture ADR 0017 au fallback comme au catalogue. Exportée pour le cron
+// de notifications (même source de vérité que la résolution des récompenses).
+export const LEGACY_COMMUNITY_TIERS: GridTier[] = [
   { min: 1000,  item: "Frites Medium",  cost: 0.24 },
   { min: 3000,  item: "Churros 12 pcs", cost: 0.63 },
   { min: 6000,  item: "Finest burger",  cost: 0.94 },
@@ -86,7 +87,7 @@ const LEGACY_COMMUNITY_TIERS: GridTier[] = [
 // palier n'est configuré pour une couche, on retombe sur la grille héritée
 // (getSoloReward / getCommunityBonus) — migration non-cassante.
 
-type GridTier = { min: number; item: string; cost: number };
+export type GridTier = { min: number; item: string; cost: number };
 export type RewardGrid = { solo: GridTier[]; community: GridTier[] };
 
 type MenuItemEmbed = {
