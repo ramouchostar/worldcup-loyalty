@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase";
+import { coverageSatisfied, type TeamCoverage } from "./reward-sizing";
 
 // ADR 0014 — Couche 3 : paliers de dépense cumulée d'équipe.
 // Quand la dépense cumulée de l'équipe (community_scores.total_spent) franchit
@@ -27,22 +28,35 @@ export async function loadTeamTiers(restaurantId: string): Promise<TeamTierRow[]
   return (data ?? []) as unknown as TeamTierRow[];
 }
 
+// Résout l'article + coût d'un palier ; null si l'article a été retiré du
+// catalogue ou exclu des cadeaux.
+function tierReward(tier: TeamTierRow): TeamTierReward | null {
+  if (tier.reward_kind === "percent") {
+    return { item: `-${tier.percent_value ?? 0}%`, cost: 0 };
+  }
+  const mi = Array.isArray(tier.menu_items) ? tier.menu_items[0] : tier.menu_items;
+  if (!mi || !mi.is_active || !mi.reward_eligible) return null;
+  return { item: mi.name, cost: Number(mi.cost_price) };
+}
+
 // Palier d'équipe le plus élevé atteint par la dépense cumulée (tiers triés
 // croissants). Pourcentage borné → coût 0 (réalisé au comptoir, hors plafond
 // cadeaux). Article gratuit → coût matière du catalogue (compté au plafond).
-export function resolveTeamTier(tiers: TeamTierRow[], teamTotalSpent: number): TeamTierReward {
-  let best: TeamTierRow | null = null;
+// Couverture ADR 0017 : un article distribué à toute l'équipe doit être
+// financé par la marge budget sur sa dépense cumulée — sinon cascade vers le
+// palier couvert inférieur (les pourcentages, coût 0, passent toujours).
+export function resolveTeamTier(
+  tiers: TeamTierRow[],
+  teamTotalSpent: number,
+  coverage?: TeamCoverage
+): TeamTierReward {
+  let best: TeamTierReward | null = null;
   for (const t of tiers) {
-    if (teamTotalSpent >= Number(t.threshold_spent)) best = t;
-    else break;
+    if (teamTotalSpent < Number(t.threshold_spent)) break;
+    const reward = tierReward(t);
+    if (!reward) continue;
+    if (coverage && !coverageSatisfied(coverage, reward.cost)) continue;
+    best = reward;
   }
-  if (!best) return { item: null, cost: 0 };
-
-  if (best.reward_kind === "percent") {
-    return { item: `-${best.percent_value ?? 0}%`, cost: 0 };
-  }
-
-  const mi = Array.isArray(best.menu_items) ? best.menu_items[0] : best.menu_items;
-  if (!mi || !mi.is_active || !mi.reward_eligible) return { item: null, cost: 0 };
-  return { item: mi.name, cost: Number(mi.cost_price) };
+  return best ?? { item: null, cost: 0 };
 }

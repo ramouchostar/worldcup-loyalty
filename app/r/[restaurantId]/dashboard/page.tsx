@@ -108,11 +108,19 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const avgAmount = validCount > 0 ? totalSpent / validCount : 25;
   const previewAmt = Math.max(15, Math.round(avgAmount));
 
-  // Plafond budget (ADR 0012) : couches 2 et 3 masquées si en pause
+  // Plafond budget (ADR 0012) : couches 2 et 3 masquées si en pause.
+  // Couverture d'équipe (ADR 0017) : le bonus affiché est le palier réellement
+  // finançable pour cette taille d'équipe — cohérent avec createPendingReward.
+  const coverage = { memberCount, teamTotalSpent, budgetPct: budget.budgetPct };
   const heroSolo = resolveSoloReward(grid, previewAmt);
-  const heroCommunity = resolveCommunityBonus(grid, score, restaurantUnlocked && budget.communityBonusActive);
+  const heroCommunity = resolveCommunityBonus(
+    grid,
+    score,
+    restaurantUnlocked && budget.communityBonusActive,
+    coverage
+  );
   const heroTeamTier = budget.communityBonusActive
-    ? resolveTeamTier(teamTiers, teamTotalSpent)
+    ? resolveTeamTier(teamTiers, teamTotalSpent, coverage)
     : { item: null, cost: 0 };
   const heroCount = [heroSolo.item, heroCommunity.item, heroTeamTier.item].filter(Boolean).length;
 
@@ -340,7 +348,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             <div className="text-center py-1">
               <p className="text-2xl mb-1">🏆</p>
               <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
-              <p className="text-xs text-gray-500">+ {communityTiers[communityTiers.length - 1].item} sur chaque commande</p>
+              {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
+              <p className="text-xs text-gray-500">
+                + {heroCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque commande
+              </p>
             </div>
           )}
         </div>

@@ -3,10 +3,12 @@ import { isRestaurantThresholdUnlocked } from "./thresholds";
 import { getBudgetStatus, incrementRewardsCost } from "./budget";
 import type { Reward } from "@/types";
 import { loadTeamTiers, resolveTeamTier } from "./team-tiers";
+import { coverageSatisfied, type TeamCoverage } from "./reward-sizing";
 
 type TeamScoreRow = {
   score: number;
   total_spent: number;
+  member_count: number;
 };
 
 // Double lock: rewards only unlock if BOTH conditions are met:
@@ -67,6 +69,15 @@ export function getCommunityBonus(score: number, restaurantUnlocked: boolean): R
   return { item: "Frites Medium", cost: 0.24 };
 }
 
+// Grille communautaire héritée sous forme de paliers — permet d'appliquer la
+// couverture ADR 0017 au fallback comme au catalogue.
+const LEGACY_COMMUNITY_TIERS: GridTier[] = [
+  { min: 1000,  item: "Frites Medium",  cost: 0.24 },
+  { min: 3000,  item: "Churros 12 pcs", cost: 0.63 },
+  { min: 6000,  item: "Finest burger",  cost: 0.94 },
+  { min: 10000, item: "Menu 4 Tenders", cost: 1.93 },
+];
+
 // Couche 3 (avancement Coupe du Monde) retirée — remplacée par les paliers
 // d'équipe sur la dépense cumulée (ADR 0014, voir lib/team-tiers.ts).
 
@@ -119,21 +130,36 @@ function pickTier(tiers: GridTier[], value: number): RewardItem {
   return best ? { item: best.item, cost: best.cost } : { item: null, cost: 0 };
 }
 
+// Variante avec couverture (ADR 0017) : palier le plus élevé atteint au score
+// ET dont la distribution à toute l'équipe est couverte par la marge budget.
+// Cascade : un palier atteint mais non couvert retombe sur le palier couvert
+// inférieur — invisible côté client (ADR 0007).
+function pickCoveredTier(tiers: GridTier[], value: number, coverage?: TeamCoverage): RewardItem {
+  let best: GridTier | null = null;
+  for (const t of tiers) {
+    if (value < t.min) break;
+    if (!coverage || coverageSatisfied(coverage, t.cost)) best = t;
+  }
+  return best ? { item: best.item, cost: best.cost } : { item: null, cost: 0 };
+}
+
 // Couche 1 — pilotée par catalogue, fallback grille héritée.
 export function resolveSoloReward(grid: RewardGrid, amount: number): RewardItem {
   if (grid.solo.length === 0) return getSoloReward(amount);
   return pickTier(grid.solo, amount);
 }
 
-// Couche 2 — pilotée par catalogue, fallback grille héritée. Double verrou conservé.
+// Couche 2 — pilotée par catalogue, fallback grille héritée. Double verrou
+// conservé ; la couverture d'équipe (ADR 0017) s'ajoute comme troisième verrou.
 export function resolveCommunityBonus(
   grid: RewardGrid,
   score: number,
-  restaurantUnlocked: boolean
+  restaurantUnlocked: boolean,
+  coverage?: TeamCoverage
 ): RewardItem {
-  if (grid.community.length === 0) return getCommunityBonus(score, restaurantUnlocked);
   if (!restaurantUnlocked) return { item: null, cost: 0 };
-  return pickTier(grid.community, score);
+  const tiers = grid.community.length > 0 ? grid.community : LEGACY_COMMUNITY_TIERS;
+  return pickCoveredTier(tiers, score, coverage);
 }
 
 // Creates the 3-layer pending_reward for a validated order.
@@ -155,7 +181,7 @@ export async function createPendingReward(
   const [{ data: scoreData }, restaurantUnlocked, budget, grid, teamTiers] = await Promise.all([
     adminClient
       .from("community_scores")
-      .select("score, total_spent")
+      .select("score, total_spent, member_count")
       .eq("team_id", teamId)
       .eq("restaurant_id", restaurantId)
       .single(),
@@ -167,17 +193,30 @@ export async function createPendingReward(
 
   const row = scoreData as unknown as TeamScoreRow | null;
   const teamScore = row?.score ?? 0;
-  const teamTotalSpent = row?.total_spent ?? 0;
+  const teamTotalSpent = Number(row?.total_spent ?? 0);
+
+  // Couverture d'équipe (ADR 0017) : un cadeau distribué à toute l'équipe
+  // doit être financé par la marge budget sur sa dépense cumulée.
+  const coverage: TeamCoverage = {
+    memberCount: row?.member_count ?? 0,
+    teamTotalSpent,
+    budgetPct: budget.budgetPct,
+  };
 
   // Articles + coûts pilotés par le catalogue (ADR 0013), fallback grille
   // héritée. Plafond budget atteint (ADR 0012) : couches 2 et 3 désactivées,
   // la couche 1 (palier solo) reste intouchable.
   const solo = resolveSoloReward(grid, amount);
-  const community = resolveCommunityBonus(grid, teamScore, restaurantUnlocked && budget.communityBonusActive);
+  const community = resolveCommunityBonus(
+    grid,
+    teamScore,
+    restaurantUnlocked && budget.communityBonusActive,
+    coverage
+  );
   // Couche 3 — palier d'équipe sur la dépense cumulée (ADR 0014), remplace
   // l'ancienne récompense d'avancement Coupe du Monde.
   const advancement = budget.communityBonusActive
-    ? resolveTeamTier(teamTiers, teamTotalSpent)
+    ? resolveTeamTier(teamTiers, teamTotalSpent, coverage)
     : { item: null, cost: 0 };
 
   if (!solo.item && !community.item && !advancement.item) return;
