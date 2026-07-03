@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { MAX_ZONES, sanitizeZones } from "@/lib/zones";
 import type { TeamType } from "@/types";
 
 const TYPE_OPTIONS: { value: TeamType; label: string }[] = [
@@ -14,18 +15,35 @@ const TYPE_OPTIONS: { value: TeamType; label: string }[] = [
 
 type Team = { id: string; name: string; type: TeamType; join_code: string };
 
+// Équipe proposée par la découverte de zone (ADR 0018)
+export type NearbyTeam = {
+  id: string;
+  name: string;
+  type: TeamType;
+  flag_emoji: string;
+  zone: string;
+  member_count: number;
+  score: number;
+};
+
 export function TeamManager({
   team,
   initialJoinCode,
   restaurantId,
+  zones,
+  nearbyTeams,
 }: {
   team: Team | null;
   initialJoinCode: string | null;
   restaurantId: string;
+  zones: string[];
+  nearbyTeams: NearbyTeam[];
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [type, setType] = useState<TeamType>("ecole");
+  const [teamZone, setTeamZone] = useState(zones[0] ?? "");
+  const [customZone, setCustomZone] = useState("");
   const [code, setCode] = useState(initialJoinCode ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +52,11 @@ export function TeamManager({
   async function create() {
     setBusy(true);
     setError(null);
+    const zone = teamZone === "__custom__" ? customZone : teamZone;
     const res = await fetch("/api/teams", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, restaurantId }),
+      body: JSON.stringify({ name, type, restaurantId, zone: zone || null }),
     });
     const body = await res.json();
     if (res.ok) router.refresh();
@@ -47,13 +66,13 @@ export function TeamManager({
     }
   }
 
-  async function join() {
+  async function join(payload: { code?: string; teamId?: string }) {
     setBusy(true);
     setError(null);
     const res = await fetch("/api/teams/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, restaurantId }),
+      body: JSON.stringify({ ...payload, restaurantId }),
     });
     const body = await res.json();
     if (res.ok) router.refresh();
@@ -101,7 +120,7 @@ export function TeamManager({
     );
   }
 
-  // ── Mode onboarding / changement : rejoindre ou créer ─────────────────────
+  // ── Mode onboarding / changement : découvrir, rejoindre ou créer ──────────
   return (
     <div className="space-y-4">
       {team && (
@@ -111,8 +130,50 @@ export function TeamManager({
       )}
       {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>}
 
+      {/* Zones du membre (ADR 0018) */}
+      <ZonesCard zones={zones} onSaved={() => router.refresh()} />
+
+      {/* Équipes dans ta zone */}
+      {zones.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+          <div>
+            <p className="font-semibold text-gray-900">Équipes dans ta zone</p>
+            <p className="text-xs text-gray-500">
+              Actives à {zones.join(", ")} — rejoins-en une en un clic.
+            </p>
+          </div>
+          {nearbyTeams.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-3">
+              Aucune équipe dans tes zones pour l&apos;instant — sois la première à en créer une ! 👇
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {nearbyTeams.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                  <span className="text-xl shrink-0">{t.flag_emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{t.name}</p>
+                    <p className="text-xs text-gray-500">
+                      📍 {t.zone} · {t.member_count} membre{t.member_count > 1 ? "s" : ""} ·{" "}
+                      {t.score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => join({ teamId: t.id })}
+                    disabled={busy}
+                    className="px-3 py-1.5 bg-brand-red text-white rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-red-700 shrink-0"
+                  >
+                    Rejoindre
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
-        <p className="font-semibold text-gray-900">Rejoindre une équipe</p>
+        <p className="font-semibold text-gray-900">Rejoindre avec un code d&apos;invitation</p>
         {initialJoinCode && !team && (
           <p className="text-xs text-brand-gold">Un lien d&apos;invitation t&apos;attend — code prérempli.</p>
         )}
@@ -125,7 +186,7 @@ export function TeamManager({
             className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase tracking-widest"
           />
           <button
-            onClick={join}
+            onClick={() => join({ code })}
             disabled={busy || code.length !== 6}
             className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold disabled:opacity-50 shrink-0"
           >
@@ -152,6 +213,27 @@ export function TeamManager({
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+        {/* Zone de l'équipe : proposée aux membres de cette zone (ADR 0018) */}
+        <select
+          value={teamZone}
+          onChange={(e) => setTeamZone(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+        >
+          {zones.map((z) => (
+            <option key={z} value={z}>📍 {z}</option>
+          ))}
+          <option value="__custom__">Autre zone…</option>
+          <option value="">Sans zone (invitation uniquement)</option>
+        </select>
+        {teamZone === "__custom__" && (
+          <input
+            value={customZone}
+            onChange={(e) => setCustomZone(e.target.value)}
+            placeholder="Ville ou quartier de l'équipe"
+            maxLength={40}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+          />
+        )}
         <button
           onClick={create}
           disabled={busy || name.trim().length < 2}
@@ -159,6 +241,104 @@ export function TeamManager({
         >
           {busy ? "…" : "Créer mon équipe"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// Zones du membre : affichage + édition inline (PUT /api/profile/zones).
+// Ouvre directement l'éditeur si aucune zone (membres d'avant l'ADR 0018).
+function ZonesCard({ zones, onSaved }: { zones: string[]; onSaved: () => void }) {
+  const [editing, setEditing] = useState(zones.length === 0);
+  const [fields, setFields] = useState<string[]>([
+    zones[0] ?? "",
+    zones[1] ?? "",
+    zones[2] ?? "",
+  ]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    const clean = sanitizeZones(fields);
+    if (clean.length === 0) {
+      setError("Indique au moins une zone (ville ou quartier).");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/profile/zones", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ zones: clean }),
+    });
+    const body = await res.json();
+    if (res.ok) {
+      setEditing(false);
+      onSaved();
+    } else {
+      setError(body.error ?? "Erreur.");
+    }
+    setBusy(false);
+  }
+
+  if (!editing) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="text-xs text-gray-500 shrink-0">Tes zones :</span>
+          {zones.map((z) => (
+            <span key={z} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
+              📍 {z}
+            </span>
+          ))}
+        </div>
+        <button
+          onClick={() => setEditing(true)}
+          className="text-xs text-gray-400 hover:text-gray-600 underline shrink-0"
+        >
+          Modifier
+        </button>
+      </div>
+    );
+  }
+
+  const LABELS = ["Zone où tu vis", "Zone de travail (facultatif)", "Zone d'école (facultatif)"];
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+      <div>
+        <p className="font-semibold text-gray-900">Tes zones</p>
+        <p className="text-xs text-gray-500">
+          Ville ou quartier — on te propose les équipes actives dans tes zones (max {MAX_ZONES}).
+        </p>
+      </div>
+      {fields.map((v, i) => (
+        <div key={i}>
+          <label className="block text-xs text-gray-500 mb-1">{LABELS[i]}</label>
+          <input
+            value={v}
+            onChange={(e) =>
+              setFields((prev) => prev.map((p, j) => (j === i ? e.target.value : p)))
+            }
+            placeholder={i === 0 ? "Ex : Molenbeek" : "Ex : Anderlecht"}
+            maxLength={40}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+      ))}
+      {error && <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={save}
+          disabled={busy}
+          className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold disabled:opacity-50"
+        >
+          {busy ? "…" : "Enregistrer"}
+        </button>
+        {zones.length > 0 && (
+          <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 underline">
+            Annuler
+          </button>
+        )}
       </div>
     </div>
   );

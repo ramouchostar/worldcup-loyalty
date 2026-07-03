@@ -1,10 +1,13 @@
 import { createAdminClient, createServerSupabaseClient } from "./supabase";
+import { normalizeZone } from "./zones";
 import type { TeamType } from "@/types";
 
 // ADR 0014 — Équipes communautaires créées par les membres.
 // Création / adhésion via service role (pas de policy INSERT sur teams).
 // Changement d'équipe limité à 1×/30 jours (remplace le transfert lié à
 // l'élimination, ADR 0004 superseded).
+// ADR 0018 — les équipes portent une zone (découverte « équipes dans ta
+// zone ») et sont joignables par id en plus du code d'invitation.
 
 const VALID_TYPES: TeamType[] = ["ecole", "entreprise", "rue_quartier", "taxis", "autre"];
 const CHANGE_COOLDOWN_DAYS = 30;
@@ -95,7 +98,12 @@ async function assignTeam(
   return { ok: true };
 }
 
-export async function createTeam(name: string, type: TeamType, restaurantId: string): Promise<TeamActionResult> {
+export async function createTeam(
+  name: string,
+  type: TeamType,
+  restaurantId: string,
+  zone?: string | null
+): Promise<TeamActionResult> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, status: 401, error: "Non authentifié." };
 
@@ -103,6 +111,8 @@ export async function createTeam(name: string, type: TeamType, restaurantId: str
   if (cleanName.length < 2 || cleanName.length > 60) {
     return { ok: false, status: 400, error: "Nom d'équipe invalide (2 à 60 caractères)." };
   }
+  // Zone facultative (ADR 0018) : NULL = pas déclarée, joignable par code seulement
+  const cleanZone = zone ? normalizeZone(zone) || null : null;
 
   const admin = createAdminClient();
 
@@ -124,6 +134,7 @@ export async function createTeam(name: string, type: TeamType, restaurantId: str
       join_code: joinCode,
       flag_emoji: teamEmoji(type),
       is_active: true,
+      zone: cleanZone,
     })
     .select("id, name, type, join_code")
     .single();
@@ -150,6 +161,32 @@ export async function createTeam(name: string, type: TeamType, restaurantId: str
   if (!assigned.ok) return assigned;
 
   return { ok: true, team };
+}
+
+// ADR 0018 — rejoindre une équipe découverte (liste « équipes dans ta zone »).
+// Même garde-fou 1 changement/30 jours que le code d'invitation.
+export async function joinTeamById(teamId: string, restaurantId: string): Promise<TeamActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, status: 401, error: "Non authentifié." };
+
+  const admin = createAdminClient();
+  const { data: found } = await admin
+    .from("teams")
+    .select("id, name, type, join_code, restaurant_id, is_active")
+    .eq("id", teamId)
+    .maybeSingle();
+
+  const team = found as (TeamSummary & { restaurant_id: string | null; is_active: boolean }) | null;
+  if (!team) return { ok: false, status: 404, error: "Équipe introuvable." };
+  if (team.restaurant_id !== restaurantId) {
+    return { ok: false, status: 422, error: "Cette équipe appartient à un autre établissement." };
+  }
+  if (!team.is_active) return { ok: false, status: 422, error: "Cette équipe n'est plus active." };
+
+  const assigned = await assignTeam(admin, userId, restaurantId, team.id);
+  if (!assigned.ok) return assigned;
+
+  return { ok: true, team: { id: team.id, name: team.name, type: team.type, join_code: team.join_code } };
 }
 
 export async function joinTeamByCode(code: string, restaurantId: string): Promise<TeamActionResult> {

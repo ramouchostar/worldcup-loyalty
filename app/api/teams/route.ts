@@ -22,11 +22,13 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(data ?? []);
 }
 
-// POST /api/teams — crée une équipe communautaire. Body : { name, type, restaurantId }.
+// POST /api/teams — crée une équipe communautaire.
+// Body : { name, type, restaurantId, zone? } (zone : ADR 0018).
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name : "";
   const restaurantId = typeof body?.restaurantId === "string" ? body.restaurantId : "";
+  const zone = typeof body?.zone === "string" ? body.zone : null;
   if (!isTeamType(body?.type)) {
     return NextResponse.json({ error: "Type d'équipe invalide." }, { status: 400 });
   }
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
   }
 
-  const result = await createTeam(name, body.type, restaurantId);
+  const result = await createTeam(name, body.type, restaurantId, zone);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
   return NextResponse.json(result.team, { status: 201 });
 }

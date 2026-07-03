@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { ScoreCard } from "@/components/member/ScoreCard";
-import { TeamManager } from "@/components/member/TeamManager";
+import { TeamManager, type NearbyTeam } from "@/components/member/TeamManager";
+import { zonesMatch } from "@/lib/zones";
 import type { TeamType } from "@/types";
 
 const TYPE_LABEL: Record<TeamType, string> = {
@@ -36,27 +37,70 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
   const cookieStore = await cookies();
   const pendingJoin = cookieStore.get("pending_join_code")?.value ?? null;
 
-  const { data: membershipRaw } = await supabase
-    .from("memberships")
-    .select("team_id, teams(id, name, type, flag_emoji, restaurant_id, join_code)")
-    .eq("user_id", user.id)
-    .eq("restaurant_id", restaurantId)
-    .maybeSingle();
+  const [{ data: membershipRaw }, { data: profileRaw }] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("team_id, teams(id, name, type, flag_emoji, restaurant_id, join_code)")
+      .eq("user_id", user.id)
+      .eq("restaurant_id", restaurantId)
+      .maybeSingle(),
+    supabase.from("profiles").select("zones").eq("id", user.id).single(),
+  ]);
 
   const membership = membershipRaw as unknown as MembershipRow | null;
   const team = membership?.teams ?? null;
+  const memberZones: string[] = (profileRaw as { zones?: string[] } | null)?.zones ?? [];
 
-  // Pas encore d'équipe dans cet établissement → onboarding créer / rejoindre.
+  // Équipes dans les zones du membre (ADR 0018) — correspondance insensible
+  // à la casse/accents faite côté serveur, jamais plus de 12 propositions.
+  let nearbyTeams: NearbyTeam[] = [];
+  if (memberZones.length > 0) {
+    const { data: zoneTeamsRaw } = await supabase
+      .from("teams")
+      .select("id, name, type, flag_emoji, zone, community_scores(member_count, score)")
+      .eq("restaurant_id", restaurantId)
+      .eq("is_active", true)
+      .not("zone", "is", null);
+
+    type ZoneTeamRow = {
+      id: string; name: string; type: TeamType; flag_emoji: string; zone: string;
+      community_scores: { member_count: number; score: number }[] | { member_count: number; score: number } | null;
+    };
+    nearbyTeams = ((zoneTeamsRaw ?? []) as unknown as ZoneTeamRow[])
+      .filter((t) => t.id !== team?.id && memberZones.some((z) => zonesMatch(z, t.zone)))
+      .map((t) => {
+        const cs = Array.isArray(t.community_scores) ? t.community_scores[0] : t.community_scores;
+        return {
+          id: t.id,
+          name: t.name,
+          type: t.type,
+          flag_emoji: t.flag_emoji,
+          zone: t.zone,
+          member_count: cs?.member_count ?? 0,
+          score: Number(cs?.score ?? 0),
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12);
+  }
+
+  // Pas encore d'équipe dans cet établissement → découverte / rejoindre / créer.
   if (!team) {
     return (
       <div className="space-y-5 pb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mon équipe</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Crée ton équipe ou rejoins-en une. Plus vous commandez ensemble, plus vous débloquez de cadeaux.
+            Rejoins une équipe de ta zone ou crée la tienne. Plus vous commandez ensemble, plus vous débloquez de cadeaux.
           </p>
         </div>
-        <TeamManager team={null} initialJoinCode={pendingJoin} restaurantId={restaurantId} />
+        <TeamManager
+          team={null}
+          initialJoinCode={pendingJoin}
+          restaurantId={restaurantId}
+          zones={memberZones}
+          nearbyTeams={nearbyTeams}
+        />
       </div>
     );
   }
@@ -115,6 +159,8 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
         team={{ id: t.id, name: t.name, type: t.type, join_code: t.join_code ?? "" }}
         initialJoinCode={null}
         restaurantId={restaurantId}
+        zones={memberZones}
+        nearbyTeams={nearbyTeams}
       />
 
       {leaderboard.length > 0 && (

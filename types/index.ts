@@ -10,6 +10,7 @@ export type Team = {
   join_code: string | null;
   flag_emoji: string; // avatar de l'équipe (emoji par type)
   is_active: boolean;
+  zone: string | null; // ville/quartier de l'équipe — découverte par zone (ADR 0018)
   created_at: string;
 };
 
@@ -34,6 +35,7 @@ export type Profile = {
   email: string | null;
   team_id: string | null;
   is_admin: boolean;
+  zones: string[]; // 1 à 3 zones (vie/travail/école) — découverte d'équipes (ADR 0018)
   joined_at: string;
 };
 
