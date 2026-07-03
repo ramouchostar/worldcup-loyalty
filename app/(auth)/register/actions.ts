@@ -3,6 +3,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { sanitizeZones } from "@/lib/zones";
 
 // ADR 0015 — le choix de l'établissement ne se fait plus ici (liste figée de
 // 3 Belchicken) mais sur /join, qui liste les établissements réels de la
@@ -16,6 +17,12 @@ export async function registerProfile(
 
   if (!displayName) {
     return { error: "Entre ton prénom." };
+  }
+
+  // ADR 0018 — zones du membre (1 à 3), base de la découverte d'équipes
+  const zones = sanitizeZones(formData.getAll("zones"));
+  if (zones.length === 0) {
+    return { error: "Indique au moins ta zone (ville ou quartier où tu vis)." };
   }
 
   const cookieStore = await cookies();
@@ -52,7 +59,7 @@ export async function registerProfile(
 
   const { data: updatedRows, error } = await supabase
     .from("profiles")
-    .update({ display_name: displayName })
+    .update({ display_name: displayName, zones })
     .eq("id", user.id)
     .select();
 

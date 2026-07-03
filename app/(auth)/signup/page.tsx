@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
+import { sanitizeZones } from "@/lib/zones";
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -11,6 +12,9 @@ export default function SignupPage() {
     email: "",
     phone: "",
     birthDate: "",
+    zoneHome: "",
+    zoneWork: "",
+    zoneSchool: "",
     password: "",
     confirmPassword: "",
   });
@@ -32,6 +36,12 @@ export default function SignupPage() {
       setError("Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
+    // ADR 0018 — au moins la zone où tu vis, pour la découverte d'équipes
+    const zones = sanitizeZones([form.zoneHome, form.zoneWork, form.zoneSchool]);
+    if (zones.length === 0) {
+      setError("Indique au moins ta zone (ville ou quartier où tu vis).");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -46,6 +56,7 @@ export default function SignupPage() {
           display_name: displayName,
           phone: form.phone.trim() || null,
           birth_date: form.birthDate || null,
+          zones, // copiées dans profiles.zones par handle_new_user (m29)
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -85,7 +96,7 @@ export default function SignupPage() {
           <span className="font-semibold text-gray-900">{form.email}</span>.
         </p>
         <p className="text-gray-500 text-xs mt-4">
-          Clique le lien pour activer ton compte et choisir ton équipe.
+          Clique le lien pour activer ton compte et rejoindre ton restaurant.
         </p>
       </div>
     );
@@ -97,7 +108,9 @@ export default function SignupPage() {
   return (
     <>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Créer un compte</h2>
-      <p className="text-gray-500 text-sm mb-5">Rejoins le programme de fidélité Belchicken.</p>
+      <p className="text-gray-500 text-sm mb-5">
+        Rejoins le programme de fidélité de ton restaurant et gagne des cadeaux à chaque commande.
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-4">
         <div className="grid grid-cols-2 gap-3">
@@ -165,6 +178,56 @@ export default function SignupPage() {
             max={maxBirthDate.toISOString().split("T")[0]}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
           />
+        </div>
+
+        {/* ADR 0018 — zones du membre : découverte des équipes proches */}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ta zone (ville ou quartier)</label>
+            <input
+              name="zoneHome"
+              type="text"
+              value={form.zoneHome}
+              onChange={handleChange}
+              placeholder="Ex : Molenbeek"
+              required
+              maxLength={40}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              On te proposera les équipes actives dans tes zones.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Zone de travail <span className="text-gray-400 font-normal">(facultatif)</span>
+              </label>
+              <input
+                name="zoneWork"
+                type="text"
+                value={form.zoneWork}
+                onChange={handleChange}
+                placeholder="Ex : Anderlecht"
+                maxLength={40}
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Zone d&apos;école <span className="text-gray-400 font-normal">(facultatif)</span>
+              </label>
+              <input
+                name="zoneSchool"
+                type="text"
+                value={form.zoneSchool}
+                onChange={handleChange}
+                placeholder="Ex : Ixelles"
+                maxLength={40}
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+              />
+            </div>
+          </div>
         </div>
 
         <div>
