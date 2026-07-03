@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase";
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getRestaurant } from "@/lib/restaurant";
 import { isMemberActive } from "@/lib/rewards";
+import { getBudgetStatus } from "@/lib/budget";
+import { coverageSatisfied } from "@/lib/reward-sizing";
 import type { Reward, CommunityScore } from "@/types";
 
 export default async function RewardsPage({ params }: { params: Promise<{ restaurantId: string }> }) {
@@ -46,10 +48,27 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
   ]);
 
   const rewards = (rewardsRaw as Reward[]) ?? [];
-  // total_spent (euros) jamais sélectionné côté client — ADR 0007
   const score = scoreRaw as Pick<CommunityScore, "score" | "member_count"> | null;
   const currentScore = score?.score ?? 0;
   const memberCount = score?.member_count ?? 0;
+
+  // Couverture d'équipe (ADR 0017) — total_spent en euros lu via service role,
+  // jamais rendu au client (ADR 0007) : il n'entre que dans le calcul du verrou.
+  const admin = createAdminClient();
+  const [{ data: spentRaw }, budget] = await Promise.all([
+    admin
+      .from("community_scores")
+      .select("total_spent")
+      .eq("team_id", membership.team_id)
+      .eq("restaurant_id", restaurantId)
+      .single(),
+    getBudgetStatus(restaurantId),
+  ]);
+  const coverage = {
+    memberCount,
+    teamTotalSpent: Number((spentRaw as { total_spent: number } | null)?.total_spent ?? 0),
+    budgetPct: budget.budgetPct,
+  };
 
   return (
     <div className="space-y-5 pb-4">
@@ -101,7 +120,10 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
         {rewards.map((reward) => {
           const isScoreReached = currentScore >= reward.score_threshold;
           const isMemberCountReached = memberCount >= reward.min_member_count;
-          const isUnlocked = isScoreReached && isMemberCountReached && restaurantUnlocked;
+          // Couverture ADR 0017 dans le verrou — jamais expliquée côté client
+          // (ADR 0007) : un palier non couvert s'affiche simplement verrouillé.
+          const isCovered = coverageSatisfied(coverage, Number(reward.cost_euros ?? 0));
+          const isUnlocked = isScoreReached && isMemberCountReached && restaurantUnlocked && isCovered;
           const isClaimable = isUnlocked && memberActive;
           const pct = Math.min(100, Math.round((currentScore / reward.score_threshold) * 100));
           const isFinalTier = reward.min_member_count > 0;

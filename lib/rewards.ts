@@ -14,12 +14,15 @@ type TeamScoreRow = {
 // Double lock: rewards only unlock if BOTH conditions are met:
 // 1. Community score exceeds the tier threshold
 // 2. Restaurant revenue threshold is unlocked (is_unlocked = true)
-// Family Bucket (level 5) adds a third condition: min_member_count
+// Family Bucket (level 5) adds a third condition: min_member_count.
+// Couverture d'équipe (ADR 0017) : un palier collectif distribué à toute
+// l'équipe doit être financé par la marge budget sur sa dépense cumulée.
 export async function getUnlockedRewards(
   restaurantId: string,
   teamScore: number,
   memberCount: number,
-  restaurantThresholdUnlocked: boolean
+  restaurantThresholdUnlocked: boolean,
+  coverage?: TeamCoverage
 ): Promise<Reward[]> {
   if (!restaurantThresholdUnlocked) return [];
 
@@ -32,7 +35,11 @@ export async function getUnlockedRewards(
     .lte("score_threshold", teamScore)
     .order("level", { ascending: true });
 
-  return (data ?? []).filter((r: Reward) => memberCount >= r.min_member_count);
+  return (data ?? []).filter(
+    (r: Reward) =>
+      memberCount >= r.min_member_count &&
+      (!coverage || coverageSatisfied(coverage, Number(r.cost_euros ?? 0)))
+  );
 }
 
 // Active member = at least 1 validated order
