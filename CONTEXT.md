@@ -198,8 +198,12 @@ Catégorie d'une équipe (`teams.type`) : `ecole`, `entreprise`, `rue_quartier`,
 _Avoid_ : catégorie (réservé au catalogue menu), segment.
 
 **Adhésion** :
-Action de rejoindre une équipe via un lien/QR partageable (`/join-team?code=`, sur le modèle du parrainage). Ouverte par défaut : le lien suffit. *Rejoindre* pour faire grandir son équipe est libre et encouragé — c'est le moteur de recrutement.
+Action de rejoindre une équipe via un lien/QR partageable (`/join-team?code=`, sur le modèle du parrainage) ou en un clic depuis la liste « Équipes dans ta zone » (ADR 0018). Ouverte par défaut : le lien ou la zone suffit. *Rejoindre* pour faire grandir son équipe est libre et encouragé — c'est le moteur de recrutement.
 _Avoid_ : inscription (réservé à la création de compte), invitation.
+
+**Zone** :
+Ville ou quartier déclaré par le membre à l'inscription (`profiles.zones`, 1 à 3 : là où il vit, travaille, va à l'école — ADR 0018). Les équipes portent aussi une zone (`teams.zone`) ; la page équipe propose au membre les équipes actives dans ses zones, joignables en un clic. L'équipe n'est **jamais obligatoire** : sans équipe, l'app reste entièrement accessible et la couche solo fonctionne. Texte libre, correspondance insensible à la casse et aux accents. À ne pas confondre avec le **secteur** d'un établissement (ADR 0016) — même maille géographique, mais l'un décrit un resto, l'autre un membre ou une équipe.
+_Avoid_ : secteur (réservé aux établissements), région (trop large), localisation (suggère du GPS — c'est déclaratif).
 
 **Changement d'équipe** :
 Un membre peut quitter son équipe pour une autre, **au plus une fois par mois** (anti score-surfing : empêche de sauter sur une équipe juste avant un palier). Remplace l'ancien « transfert » lié à l'élimination (ADR 0004, superseded par ADR 0014). L'historique de dépenses du membre le suit (principe ADR 0001).
