@@ -83,19 +83,18 @@ export async function middleware(request: NextRequest) {
   }
 
   // Route établissement : le membre doit avoir une adhésion pour CET
-  // établissement précis (ADR 0015 §2 — pas de blocage global)
+  // établissement précis (ADR 0015 §2 — pas de blocage global). L'équipe est
+  // OPTIONNELLE (ADR 0018) : sans équipe, l'app reste entièrement accessible —
+  // chaque page gère son état vide. Sans adhésion → landing /r/[id] (Rejoindre).
   if (isRestaurantRoute && user && currentRestaurantId) {
-    const myTeamPath = `/r/${currentRestaurantId}/my-team`;
-    if (path !== myTeamPath) {
-      const { data: membership } = await supabase
-        .from("memberships")
-        .select("team_id")
-        .eq("user_id", user.id)
-        .eq("restaurant_id", currentRestaurantId)
-        .maybeSingle();
-      if (!membership?.team_id) {
-        return NextResponse.redirect(new URL(myTeamPath, request.url));
-      }
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("restaurant_id")
+      .eq("user_id", user.id)
+      .eq("restaurant_id", currentRestaurantId)
+      .maybeSingle();
+    if (!membership) {
+      return NextResponse.redirect(new URL(`/r/${currentRestaurantId}`, request.url));
     }
   }
 

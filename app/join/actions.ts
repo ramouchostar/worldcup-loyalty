@@ -41,5 +41,7 @@ export async function joinRestaurant(restaurantId: string) {
     cookieStore.set("belchicken_ref", "", { maxAge: 0, path: "/" });
   }
 
-  redirect(`/r/${restaurantId}/my-team`);
+  // ADR 0018 — l'équipe est optionnelle : on ouvre sur le dashboard (aperçu
+  // de la valeur), qui propose lui-même de rejoindre une équipe.
+  redirect(`/r/${restaurantId}/dashboard`);
 }

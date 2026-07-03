@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
@@ -21,7 +22,35 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
     .maybeSingle();
 
   const membership = membershipRaw as { team_id: string | null } | null;
-  if (!membership?.team_id) redirect(`/r/${restaurantId}/my-team`);
+
+  // ADR 0018 — pas d'équipe : invitation douce au lieu d'une redirection
+  // forcée. Les paliers collectifs sont l'incitation à rejoindre une équipe.
+  if (!membership?.team_id) {
+    return (
+      <div className="space-y-5 pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Récompenses</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Les paliers collectifs se débloquent en équipe.
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+          <p className="text-4xl mb-3">👥</p>
+          <p className="font-bold text-gray-900 mb-1">Rejoins une équipe pour débloquer les paliers</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Ton cadeau de base reste garanti à chaque commande — mais les bonus
+            collectifs se gagnent ensemble, avec ta zone, ton école ou tes collègues.
+          </p>
+          <Link
+            href={`/r/${restaurantId}/my-team`}
+            className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors"
+          >
+            Découvrir les équipes →
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const [
     restaurant,
