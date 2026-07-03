@@ -146,8 +146,12 @@ Coût matière réel d'un article (`menu_items.cost_price`), saisi par le restau
 _Avoid_ : coût (trop vague seul), prix d'achat, marge.
 
 **Suggestion de cadeau** :
-Proposition automatique de l'app indiquant quel article placer à un palier donné, classée par attractivité (`prix_vente / prix_revient` — forte valeur perçue par euro de coût réel) et filtrée pour rester sous le plafond de budget cadeaux. Formulée en clair via `@anthropic-ai/sdk`. L'app propose, l'admin décide : jamais appliquée automatiquement (ADR 0013).
+Proposition automatique de l'app indiquant quel article placer à un palier donné, classée par attractivité (`prix_vente / prix_revient` — forte valeur perçue par euro de coût réel) et filtrée pour rester sous le plafond de budget cadeaux. Formulée en clair via `@anthropic-ai/sdk`. L'app propose, l'admin décide : jamais appliquée automatiquement (ADR 0013). Distincte de la grille par défaut (ci-dessous).
 _Avoid_ : attribution automatique, recommandation auto, cadeau imposé.
+
+**Grille par défaut** :
+Configuration calculée de façon déterministe (sans IA) et appliquée dès la soumission du catalogue si — et seulement si — rien n'est encore configuré (ADR 0017 §4) : paliers solo dimensionnés sur le panier moyen, articles sous plafond de palier, cadeau des 4 jetons. Non-destructive (une couche configurée n'est jamais écrasée) ; le restaurateur révise et ajuste depuis `/admin/menu`. Évite qu'un établissement retombe sur la grille héritée Belchicken.
+_Avoid_ : suggestion de cadeau (celle-ci est proposée, pas appliquée), grille héritée (c'est ce qu'elle remplace).
 
 ---
 
