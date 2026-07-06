@@ -4,6 +4,7 @@ import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/or
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
+import { insertOrderItems } from "@/lib/order-items";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 
 export const maxDuration = 30;
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
       amount: parsedAmount,
       order_number: hasBestelnummer ? orderNumber : null,
       order_date: orderDate,
-      order_time: null,
+      order_time: serverOcr?.order_time ?? null,
       receipt_url: receiptPath,
       ocr_amount: serverOcr?.amount ?? null,
       ocr_confidence: serverOcr?.confidence ?? null,
@@ -213,6 +214,12 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error("[orders] createPendingReward failed:", err);
     }
+  }
+
+  // Lignes d'articles lues par l'OCR (ADR 0020) — best effort, après le
+  // chemin critique commande + récompense, n'échoue jamais la soumission.
+  if (insertedOrder?.id && serverOcr && serverOcr.items.length > 0) {
+    await insertOrderItems(insertedOrder.id, restaurantId, serverOcr.items);
   }
 
   return NextResponse.json({ success: true, status }, { status: 201 });

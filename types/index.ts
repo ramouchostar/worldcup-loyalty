@@ -57,6 +57,19 @@ export type Order = {
   submitted_at: string;
 };
 
+// ADR 0020 — ligne d'article lue sur le ticket (best effort). Données perso
+// du membre : unit_price en euros autorisé, comme "Mes stats" (ADR 0007).
+export type OrderItem = {
+  id: string;
+  order_id: string;
+  line_index: number;
+  raw_name: string;
+  quantity: number;
+  unit_price: number | null;
+  menu_item_id: string | null;
+  created_at: string;
+};
+
 export type CommunityScore = {
   team_id: string;
   member_count: number;
