@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
     const rawRestaurantId = formData.get("restaurantId");
     receiptFile = formData.get("receipt") as File | null;
 
-    if (!rawOrderNumber || rawAmount === null || !receiptFile || !rawRestaurantId) {
+    // order_number vide autorisé : c'est le chemin « pas de numéro lisible »
+    // (clé synthétique + file admin, ADR 0019) — seule son absence totale
+    // du formulaire est une erreur.
+    if (rawOrderNumber === null || rawAmount === null || !receiptFile || !rawRestaurantId) {
       return NextResponse.json({ error: "Champs manquants (order_number, amount, receipt, restaurantId)." }, { status: 400 });
     }
 
