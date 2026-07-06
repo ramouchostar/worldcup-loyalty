@@ -70,7 +70,7 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
       setLoading(false);
     }
     // si pas d'erreur, submitOnboardingMenu applique la grille par défaut
-    // (ADR 0017 §4) puis redirige vers /admin/[restaurantId]/menu pour révision
+    // (ADR 0017 §4) puis redirige vers l'étape 3/3 (tickets, ADR 0019)
   }
 
   return (
@@ -170,7 +170,7 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
           disabled={loading || !csv}
           className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? "Envoi..." : "Terminer l'inscription →"}
+          {loading ? "Envoi..." : "Continuer →"}
         </button>
       </div>
     </form>

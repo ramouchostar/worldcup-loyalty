@@ -26,6 +26,8 @@ export default function SubmitOrderPage() {
 
   const [orderNumber, setOrderNumber] = useState("");
   const [orderNumberEditable, setOrderNumberEditable] = useState(false);
+  // Libellé de la clé de commande propre à l'établissement (ADR 0019)
+  const [keyLabel, setKeyLabel] = useState("Numéro de commande");
   const [amount, setAmount] = useState("");
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
@@ -82,6 +84,7 @@ export default function SubmitOrderPage() {
         amount?: number | null;
         confidence?: number | null;
         has_restaurant_header?: boolean;
+        key_label?: string | null;
         error?: string;
       } = await res.json();
 
@@ -92,6 +95,7 @@ export default function SubmitOrderPage() {
       }
 
       setParseStatus("done");
+      if (data.key_label) setKeyLabel(data.key_label);
       if (data.order_number) {
         setOrderNumber(data.order_number);
         setOrderNumberEditable(false);
@@ -277,7 +281,7 @@ export default function SubmitOrderPage() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
           <p className="text-red-700 text-sm">{parseError}</p>
           <p className="text-red-500 text-xs mt-1">
-            Assure-toi que le Bestelnummer (ex : 2026-06-01/258/03993) est bien visible sur la photo.
+            Assure-toi que le numéro de commande est bien visible sur la photo.
           </p>
         </div>
       )}
@@ -292,19 +296,19 @@ export default function SubmitOrderPage() {
             </p>
           </div>
 
-          {/* Bestelnummer — read-only if found, editable if not */}
+          {/* Clé de commande — read-only if found, editable if not */}
           {orderNumberEditable && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-              <p className="text-orange-800 text-sm font-semibold">Bestelnummer non détecté</p>
+              <p className="text-orange-800 text-sm font-semibold">{keyLabel} non détecté</p>
               <p className="text-orange-700 text-xs mt-1">
-                Entre le numéro manuellement si tu le vois sur ton ticket (ex : 2026-06-01/258/03993),
+                Entre le numéro manuellement si tu le vois sur ton ticket,
                 ou laisse vide — ta commande sera vérifiée manuellement sous 2h.
               </p>
             </div>
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Numéro de commande (Bestelnummer)
+              {keyLabel}
             </label>
             {orderNumberEditable ? (
               <input
@@ -379,7 +383,7 @@ export default function SubmitOrderPage() {
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
               <p className="font-semibold text-orange-900 text-sm">Commande déjà soumise</p>
               <p className="text-orange-700 text-xs mt-1">
-                Ce Bestelnummer a déjà été enregistré dans le système.
+                Ce numéro de ticket a déjà été enregistré dans le système.
               </p>
             </div>
           )}

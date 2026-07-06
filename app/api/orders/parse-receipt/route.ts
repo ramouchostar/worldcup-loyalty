@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { analyzeReceipt, isAllowedReceiptType } from "@/lib/receipt-ocr";
+import { getReceiptConfig } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 
 export const maxDuration = 30;
@@ -30,11 +31,14 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
 
-  const restaurantName = await getRestaurantDisplayName(String(rawRestaurantId));
+  const [restaurantName, receiptConfig] = await Promise.all([
+    getRestaurantDisplayName(String(rawRestaurantId)),
+    getReceiptConfig(String(rawRestaurantId)),
+  ]);
 
   let analysis;
   try {
-    analysis = await analyzeReceipt(file, restaurantName);
+    analysis = await analyzeReceipt(file, restaurantName, receiptConfig);
   } catch (err) {
     console.error("[parse-receipt] Claude vision error:", err);
     return NextResponse.json(
@@ -52,5 +56,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json(analysis);
+  // key_label / has_reliable_key : métadonnées non sensibles pour libeller
+  // le champ côté client (le pattern, lui, reste service-role — ADR 0019).
+  return NextResponse.json({
+    ...analysis,
+    key_label: receiptConfig.key_label,
+    has_reliable_key: receiptConfig.has_reliable_key,
+  });
 }

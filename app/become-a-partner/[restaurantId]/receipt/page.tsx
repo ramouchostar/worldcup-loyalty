@@ -1,9 +1,11 @@
 import { redirect, notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
-import { MenuUploadForm } from "./MenuUploadForm";
+import { ReceiptSetupForm } from "./ReceiptSetupForm";
 
-export default async function OnboardingMenuPage({ params }: { params: Promise<{ restaurantId: string }> }) {
+// Étape 3/3 de l'onboarding (ADR 0019) — découverte de la clé unique qui
+// identifie une commande sur le format de ticket de cet établissement.
+export default async function OnboardingReceiptPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -19,15 +21,16 @@ export default async function OnboardingMenuPage({ params }: { params: Promise<{
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
-          <p className="text-4xl mb-2">🧾</p>
-          <h1 className="text-2xl font-bold text-gray-900">Le catalogue de {restaurant.name}</h1>
+          <p className="text-4xl mb-2">🎫</p>
+          <h1 className="text-2xl font-bold text-gray-900">Tes tickets de caisse</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Étape 2/3 — soumets ton menu avec les coûts. Ces données restent internes,
-            jamais visibles des clients.
+            Étape 3/3 — envoie 2 ou 3 photos de tickets récents. On y repère le
+            numéro qui identifie chaque commande, pour reconnaître les tickets
+            de tes clients sans jamais compter deux fois la même commande.
           </p>
         </div>
 
-        <MenuUploadForm restaurantId={restaurantId} />
+        <ReceiptSetupForm restaurantId={restaurantId} />
       </div>
     </div>
   );

@@ -1,4 +1,7 @@
 // Bestelnummer format: YYYY-MM-DD/NNN/NNNNN (ex: 2026-06-01/258/03993)
+// Legacy (ADR 0019) : la validation de la clé de commande passe désormais
+// par validateOrderKey(lib/receipt-config.ts), pilotée par la config de
+// l'établissement. Conservé pour les outils qui valident du Bestelnummer pur.
 export function validateOrderNumber(orderNumber: string): string | null {
   const regex = /^\d{4}-\d{2}-\d{2}\/\d{3}\/\d{5}$/;
   if (!regex.test(orderNumber.trim())) {

@@ -41,6 +41,12 @@ const FLAG_LABELS: Record<string, { label: string; color: string }> = {
   amount_mismatch:        { label: "Écart > 5%",     color: "bg-red-100 text-red-800" },
   no_restaurant_header:   { label: "Hors restaurant",color: "bg-purple-100 text-purple-800" },
   too_many_today:         { label: "3+/jour",        color: "bg-amber-100 text-amber-800" },
+  // ADR 0019 : no_order_key remplace no_bestelnummer — les deux restent
+  // mappés pour les commandes historiques.
+  no_order_key:           { label: "Sans n° de ticket", color: "bg-red-100 text-red-800" },
+  no_bestelnummer:        { label: "Sans n° de ticket", color: "bg-red-100 text-red-800" },
+  no_receipt:             { label: "Sans photo",     color: "bg-red-100 text-red-800" },
+  ocr_failed:             { label: "OCR en échec",   color: "bg-red-100 text-red-800" },
 };
 
 function waitHours(submitted_at: string): number {

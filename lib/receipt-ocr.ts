@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 export type AllowedReceiptType = (typeof ALLOWED_TYPES)[number];
@@ -57,13 +58,33 @@ function sanitizeLineItems(raw: unknown): ReceiptLineItem[] {
   return items;
 }
 
+// ADR 0019 — section « clé de commande » du prompt, dynamique à partir de
+// la config de l'établissement. Sans config : format Bestelnummer legacy.
+function buildKeyPromptSection(config: ReceiptKeyConfig | null | undefined): string {
+  if (config && !config.has_reliable_key) {
+    return ""; // pas de clé fiable sur ce format de ticket : rien à extraire
+  }
+  if (config?.key_label && config.key_description) {
+    const example = config.key_examples[0];
+    const position = config.position_hint ? `, usually ${config.position_hint}` : "";
+    return `1. ${config.key_label}: ${config.key_description}${position}${example ? ` (e.g. ${example})` : ""} — null if not visible\n`;
+  }
+  return "1. Bestelnummer: a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993) — null if not visible\n";
+}
+
 /**
  * Analyse OCR d'un ticket de caisse via Claude vision.
  * Seule source de vérité anti-fraude : appelée côté serveur par la route
  * de soumission (orders) ET par la route d'aperçu UX (parse-receipt).
  * Throws si l'API vision échoue ou retourne du JSON invalide.
+ * `config` (ADR 0019) pilote la clé de commande recherchée ; absent =
+ * comportement Bestelnummer historique.
  */
-export async function analyzeReceipt(file: File, restaurantName: string): Promise<ReceiptAnalysis> {
+export async function analyzeReceipt(
+  file: File,
+  restaurantName: string,
+  config?: ReceiptKeyConfig | null
+): Promise<ReceiptAnalysis> {
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
 
@@ -87,8 +108,7 @@ export async function analyzeReceipt(file: File, restaurantName: string): Promis
           {
             type: "text",
             text: `This is a receipt. Extract ONLY what you can clearly read:
-1. Bestelnummer: a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993) — null if not visible
-2. Total amount in euros (look for TOTAAL, TOTAL, "te betalen", "à payer") — return as a number, null if not visible
+${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL, "te betalen", "à payer") — return as a number, null if not visible
 3. Whether the word "${restaurantName}" appears anywhere on the receipt
 4. Order time in 24h HH:MM format if printed on the receipt — null if not visible
 5. Line items ordered: for each clearly readable line, the item name as printed, the quantity (default 1) and the unit price in euros (null if unreadable). Maximum ${MAX_LINE_ITEMS} items, skip totals/taxes/payment lines.
@@ -106,10 +126,12 @@ Return ONLY valid JSON, no markdown, no explanation:
   const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
   const parsed = JSON.parse(jsonText) as VisionResult;
 
-  // Validate Bestelnummer format even if Claude extracted something
+  // Validate la clé extraite contre le pattern de l'établissement
+  // (ADR 0019), sinon contre le Bestelnummer legacy.
+  const keyPattern = config ? compileKeyPattern(config) : BESTELNUMMER_RE;
   const orderNumber =
-    typeof parsed.order_number === "string" && BESTELNUMMER_RE.test(parsed.order_number)
-      ? parsed.order_number
+    keyPattern && typeof parsed.order_number === "string" && keyPattern.test(parsed.order_number.trim())
+      ? parsed.order_number.trim()
       : null;
 
   const amount =

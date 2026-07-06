@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { validateOrderNumber, validateOrderDate, validateAmount } from "@/lib/orders";
+import { validateOrderDate, validateAmount } from "@/lib/orders";
+import { getReceiptConfig, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
@@ -69,21 +70,26 @@ export async function POST(request: NextRequest) {
     restaurantId = String(body.restaurantId);
   }
 
-  const hasBestelnummer = orderNumber.trim().length > 0;
+  // ADR 0019 — la clé de commande est définie par l'établissement
+  // (restaurant_receipt_config, fallback Bestelnummer legacy).
+  const receiptConfig = await getReceiptConfig(restaurantId);
+  const hasOrderKey = receiptConfig.has_reliable_key && orderNumber.trim().length > 0;
 
-  if (hasBestelnummer) {
-    const orderNumberError = validateOrderNumber(orderNumber);
-    if (orderNumberError) return NextResponse.json({ error: orderNumberError }, { status: 400 });
+  if (hasOrderKey) {
+    const orderKeyError = validateOrderKey(orderNumber, receiptConfig);
+    if (orderKeyError) return NextResponse.json({ error: orderKeyError }, { status: 400 });
+    orderNumber = orderNumber.trim();
   }
 
   const amountError = validateAmount(amount);
   if (amountError) return NextResponse.json({ error: amountError }, { status: 400 });
 
-  const orderDate = hasBestelnummer
-    ? orderNumber.split("/")[0]
-    : new Date().toISOString().split("T")[0];
+  // Date dérivée de la clé quand le format l'encapsule (date_group),
+  // sinon date du jour.
+  const keyDate = hasOrderKey ? extractDateFromKey(orderNumber, receiptConfig) : null;
+  const orderDate = keyDate ?? new Date().toISOString().split("T")[0];
 
-  if (hasBestelnummer) {
+  if (keyDate) {
     const dateError = validateOrderDate(orderDate);
     if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
   }
@@ -106,7 +112,7 @@ export async function POST(request: NextRequest) {
   let ocrFailed = false;
   if (receiptFile) {
     try {
-      serverOcr = await analyzeReceipt(receiptFile, await getRestaurantDisplayName(restaurantId));
+      serverOcr = await analyzeReceipt(receiptFile, await getRestaurantDisplayName(restaurantId), receiptConfig);
     } catch {
       ocrFailed = true;
     }
@@ -123,8 +129,8 @@ export async function POST(request: NextRequest) {
 
     const adminClient = createAdminClient();
     const fileExt = receiptFile.type.split("/")[1] ?? "jpg";
-    const safeName = hasBestelnummer
-      ? orderNumber.replace(/\//g, "-")
+    const safeName = hasOrderKey
+      ? orderNumber.replace(/[^a-zA-Z0-9._-]/g, "-")
       : `nobn-${Date.now()}`;
     const storagePath = `${restaurantId}/${user.id}/${safeName}.${fileExt}`;
     const bytes = await receiptFile.arrayBuffer();
@@ -144,7 +150,10 @@ export async function POST(request: NextRequest) {
   const flagReasons: string[] = [];
   const todayCount = await countTodayOrders(supabase, user.id, restaurantId);
 
-  if (!hasBestelnummer)   flagReasons.push("no_bestelnummer");
+  // no_order_key remplace no_bestelnummer (ADR 0019) — les deux libellés
+  // restent mappés côté admin pour l'historique. Un resto sans clé fiable
+  // déclarée passe toujours par la file admin.
+  if (!hasOrderKey)       flagReasons.push("no_order_key");
   if (parsedAmount > 200) flagReasons.push("high_amount");
   if (todayCount >= 3)    flagReasons.push("too_many_today");
   if (!receiptFile)       flagReasons.push("no_receipt");
@@ -172,14 +181,18 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
       team_id: membership.team_id,
       amount: parsedAmount,
-      order_number: hasBestelnummer ? orderNumber : null,
+      order_number: hasOrderKey ? orderNumber : null,
       order_date: orderDate,
       order_time: serverOcr?.order_time ?? null,
       receipt_url: receiptPath,
       ocr_amount: serverOcr?.amount ?? null,
       ocr_confidence: serverOcr?.confidence ?? null,
       flag_reasons: flagReasons,
-      duplicate_key: hasBestelnummer ? orderNumber : `NOBN_${user.id}_${Date.now()}`,
+      // duplicate_key scopé par établissement (m32) : l'index UNIQUE est
+      // global, deux restos aux numéros séquentiels simples collisionneraient.
+      duplicate_key: hasOrderKey
+        ? `${restaurantId}:${orderNumber}`
+        : `${restaurantId}:NOBN_${user.id}_${Date.now()}`,
       status,
       restaurant_id: restaurantId,
     })
@@ -189,7 +202,7 @@ export async function POST(request: NextRequest) {
   if (insertError) {
     if (insertError.code === "23505") {
       return NextResponse.json(
-        { error: "Cette commande a déjà été soumise (Bestelnummer en double)." },
+        { error: "Cette commande a déjà été soumise (numéro de ticket en double)." },
         { status: 409 }
       );
     }

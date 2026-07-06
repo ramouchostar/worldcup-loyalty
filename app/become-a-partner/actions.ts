@@ -5,6 +5,12 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { generateRestaurantSlug, isRestaurantOwner } from "@/lib/restaurant";
 import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
 import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
+import { isAllowedReceiptType } from "@/lib/receipt-ocr";
+import {
+  discoverReceiptKey,
+  validateProposedPattern,
+  type ReceiptKeyProposal,
+} from "@/lib/receipt-key-discovery";
 
 // ADR 0015 §6-7 — un membre connecté crée son établissement lui-même et en
 // devient l'admin (owner_id). Reste invisible (status 'pending') jusqu'à
@@ -90,7 +96,148 @@ export async function submitOnboardingMenu(
   // jetons) au lieu de laisser le resto sur la grille héritée. Non-destructif.
   await applyDefaultRewardConfig(restaurantId);
 
-  // Le restaurateur atterrit sur sa page menu admin pour réviser/ajuster la
-  // grille pré-remplie (l'app calcule, l'admin décide).
+  // Étape 3/3 (ADR 0019) : découverte de la clé unique des tickets.
+  redirect(`/become-a-partner/${restaurantId}/receipt`);
+}
+
+// ─── Étape 3 — clé unique du ticket (ADR 0019) ────────────────────────────────
+
+async function requireOwner(restaurantId: string): Promise<{ userId: string } | { error: string }> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Non authentifié. Reconnecte-toi puis réessaie." };
+  const owner = await isRestaurantOwner(user.id, restaurantId);
+  if (!owner) return { error: "Tu n'es pas le propriétaire de cet établissement." };
+  return { userId: user.id };
+}
+
+export type ReceiptAnalysisState = {
+  error?: string;
+  proposal?: ReceiptKeyProposal;
+};
+
+// Analyse one-shot des tickets d'exemple (modèle fort — coût unique à
+// l'onboarding). Enregistre la proposition SANS confirmed_at : l'app
+// propose, le restaurateur décide (même principe qu'ADR 0013).
+export async function analyzeReceiptSamples(
+  restaurantId: string,
+  _prevState: ReceiptAnalysisState | null,
+  formData: FormData
+): Promise<ReceiptAnalysisState> {
+  const auth = await requireOwner(restaurantId);
+  if ("error" in auth) return { error: auth.error };
+
+  const files = formData
+    .getAll("receipts")
+    .filter((f): f is File => f instanceof File && f.size > 0)
+    .slice(0, 3);
+
+  if (files.length < 2) {
+    return { error: "Ajoute au moins 2 photos de tickets différents." };
+  }
+  for (const file of files) {
+    if (file.size > 5 * 1024 * 1024) return { error: "Image trop lourde (max 5 Mo par photo)." };
+    if (!isAllowedReceiptType(file.type)) {
+      return { error: "Format non supporté. Utilise JPG, PNG ou WebP." };
+    }
+  }
+
+  const { data: restaurant } = await createAdminClient()
+    .from("restaurants")
+    .select("name")
+    .eq("id", restaurantId)
+    .single();
+
+  let proposal: ReceiptKeyProposal;
+  try {
+    proposal = await discoverReceiptKey(files, restaurant?.name ?? restaurantId);
+  } catch (err) {
+    console.error("[receipt-discovery] échec:", err);
+    return { error: "L'analyse des tickets a échoué. Réessaie avec des photos plus nettes." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("restaurant_receipt_config").upsert({
+    restaurant_id: restaurantId,
+    has_reliable_key: proposal.has_reliable_key,
+    key_label: proposal.key_label || null,
+    key_description: proposal.key_description || null,
+    key_pattern: proposal.key_pattern || null,
+    key_examples: proposal.key_examples,
+    position_hint: proposal.position_hint || null,
+    date_group: proposal.date_group,
+    confirmed_at: null,
+    confirmed_by: null,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { error: "Erreur lors de l'enregistrement de la proposition. Réessaie." };
+
+  return { proposal };
+}
+
+// Confirmation (éventuellement corrigée) par le restaurateur. skip=true
+// enregistre explicitement "pas de clé fiable" : les commandes de ce resto
+// passeront par la file admin (flag no_order_key).
+export async function confirmReceiptConfig(
+  restaurantId: string,
+  _prevState: { error: string } | null,
+  formData: FormData
+): Promise<{ error: string } | null> {
+  const auth = await requireOwner(restaurantId);
+  if ("error" in auth) return { error: auth.error };
+
+  const skip = formData.get("skip") === "true";
+  const admin = createAdminClient();
+
+  if (skip) {
+    const { error } = await admin.from("restaurant_receipt_config").upsert({
+      restaurant_id: restaurantId,
+      has_reliable_key: false,
+      key_label: null,
+      key_description: null,
+      key_pattern: null,
+      key_examples: [],
+      position_hint: null,
+      date_group: null,
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: auth.userId,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
+    redirect(`/admin/${restaurantId}/menu`);
+  }
+
+  const keyLabel = (formData.get("key_label") as string)?.trim();
+  const keyDescription = (formData.get("key_description") as string)?.trim();
+  const keyPattern = (formData.get("key_pattern") as string)?.trim();
+  const keyExamples = formData
+    .getAll("key_examples")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+  const positionHint = (formData.get("position_hint") as string)?.trim() || null;
+  const rawDateGroup = (formData.get("date_group") as string)?.trim();
+  const dateGroup = rawDateGroup && /^\d+$/.test(rawDateGroup) ? parseInt(rawDateGroup, 10) : null;
+
+  if (!keyLabel || !keyDescription || !keyPattern) {
+    return { error: "Nom du champ, description et pattern sont requis." };
+  }
+  const patternError = validateProposedPattern(keyPattern, keyExamples);
+  if (patternError) return { error: patternError };
+
+  const { error } = await admin.from("restaurant_receipt_config").upsert({
+    restaurant_id: restaurantId,
+    has_reliable_key: true,
+    key_label: keyLabel,
+    key_description: keyDescription,
+    key_pattern: keyPattern,
+    key_examples: keyExamples,
+    position_hint: positionHint,
+    date_group: dateGroup,
+    confirmed_at: new Date().toISOString(),
+    confirmed_by: auth.userId,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
+
   redirect(`/admin/${restaurantId}/menu`);
 }
