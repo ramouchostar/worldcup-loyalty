@@ -16,13 +16,6 @@ type MembershipWithTeam = {
   teams: { name: string; flag_emoji: string } | null;
 };
 
-const COMMUNITY_TIERS = [
-  { score: 1000, item: "Frites Medium" },
-  { score: 3000, item: "Churros 12 pcs" },
-  { score: 6000, item: "Finest burger" },
-  { score: 10000, item: "Menu 4 Tenders" },
-];
-
 export default async function DashboardPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
   const supabase = await createServerSupabaseClient();
@@ -134,12 +127,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     : { item: null, cost: 0 };
   const heroCount = [heroSolo.item, heroCommunity.item, heroTeamTier.item].filter(Boolean).length;
 
-  // Grille communautaire affichée : catalogue si configuré, sinon grille héritée
-  const communityTiers = grid.community.length > 0
-    ? grid.community.map((t) => ({ score: t.min, item: t.item }))
-    : COMMUNITY_TIERS;
+  // Grille communautaire affichée : celle du catalogue (loadRewardGrid gère
+  // le fallback hérité pour le resto legacy). Vide = section masquée.
+  const communityTiers = grid.community.map((t) => ({ score: t.min, item: t.item }));
 
-  const isWeakCommunity = score < communityTiers[0].score;
+  const isWeakCommunity = communityTiers.length > 0 && score < communityTiers[0].score;
   const nextTier = communityTiers.find((t) => t.score > score) ?? null;
   const prevTierScore = nextTier ? (communityTiers[communityTiers.indexOf(nextTier) - 1]?.score ?? 0) : 0;
   const tierPct = nextTier
@@ -306,7 +298,13 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             </div>
           )}
 
-          {nextTier ? (
+          {communityTiers.length === 0 ? (
+            // Aucun palier communautaire configuré (resto sans grille) —
+            // aucune promesse d'article, message neutre (ADR 0007)
+            <p className="text-xs text-gray-400 text-center py-1">
+              Le score de ton équipe grandit à chaque commande directe.
+            </p>
+          ) : nextTier ? (
             <>
               <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
                 <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>

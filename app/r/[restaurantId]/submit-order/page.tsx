@@ -26,8 +26,9 @@ export default function SubmitOrderPage() {
 
   const [orderNumber, setOrderNumber] = useState("");
   const [orderNumberEditable, setOrderNumberEditable] = useState(false);
-  // Libellé de la clé de commande propre à l'établissement (ADR 0019)
+  // Libellé + exemple de la clé de commande propres à l'établissement (ADR 0019)
   const [keyLabel, setKeyLabel] = useState("Numéro de commande");
+  const [keyExample, setKeyExample] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
@@ -85,6 +86,7 @@ export default function SubmitOrderPage() {
         confidence?: number | null;
         has_restaurant_header?: boolean;
         key_label?: string | null;
+        key_example?: string | null;
         error?: string;
       } = await res.json();
 
@@ -96,6 +98,7 @@ export default function SubmitOrderPage() {
 
       setParseStatus("done");
       if (data.key_label) setKeyLabel(data.key_label);
+      if (data.key_example) setKeyExample(data.key_example);
       if (data.order_number) {
         setOrderNumber(data.order_number);
         setOrderNumberEditable(false);
@@ -315,7 +318,7 @@ export default function SubmitOrderPage() {
                 type="text"
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
-                placeholder="2026-06-01/258/03993"
+                placeholder={keyExample ?? ""}
                 className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono text-sm"
               />
             ) : (

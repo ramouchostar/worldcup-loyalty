@@ -56,11 +56,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // key_label / has_reliable_key : métadonnées non sensibles pour libeller
-  // le champ côté client (le pattern, lui, reste service-role — ADR 0019).
+  // key_label / key_example / has_reliable_key : métadonnées non sensibles
+  // pour libeller le champ côté client (le pattern reste service-role —
+  // ADR 0019).
   return NextResponse.json({
     ...analysis,
     key_label: receiptConfig.key_label,
+    key_example: receiptConfig.key_examples[0] ?? null,
     has_reliable_key: receiptConfig.has_reliable_key,
   });
 }

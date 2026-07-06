@@ -4,16 +4,19 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 
+// Branding plateforme neutre (ADR 0015) — le nom d'un établissement
+// n'apparaît que sur ses propres surfaces, jamais dans les métadonnées
+// globales partagées par tous les restos.
 export const metadata: Metadata = {
   title: {
-    default: "WorldCup Loyalty — Belchicken",
+    default: "WorldCup Loyalty",
     template: "%s — WorldCup Loyalty",
   },
   description:
     "Programme de fidélité communautaire par équipes. Commandez directement chez vos restaurants préférés, faites progresser votre équipe, gagnez des récompenses ensemble.",
   keywords: ["fidélité", "restaurants", "Bruxelles", "récompenses", "communauté"],
-  authors: [{ name: "Belchicken" }],
-  creator: "Belchicken",
+  authors: [{ name: "WorldCup Loyalty" }],
+  creator: "WorldCup Loyalty",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -24,8 +27,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_BE",
     url: APP_URL,
-    siteName: "WorldCup Loyalty — Belchicken",
-    title: "WorldCup Loyalty — Belchicken 🏆",
+    siteName: "WorldCup Loyalty",
+    title: "WorldCup Loyalty 🏆",
     description:
       "Rejoins ton équipe et commande directement chez tes restaurants préférés. Programme de fidélité communautaire par équipes.",
     images: [
@@ -33,13 +36,13 @@ export const metadata: Metadata = {
         url: `${APP_URL}/icons/icon.svg`,
         width: 512,
         height: 512,
-        alt: "WorldCup Loyalty Belchicken",
+        alt: "WorldCup Loyalty",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "WorldCup Loyalty — Belchicken 🏆",
+    title: "WorldCup Loyalty 🏆",
     description: "Rejoins ton équipe et gagne des cadeaux en commandant directement.",
     images: [`${APP_URL}/icons/icon.svg`],
   },

@@ -4,9 +4,17 @@ import { createContext, useContext } from "react";
 
 // ADR 0015 §8 (nuance technique) — le nom affiché doit être celui de
 // l'établissement consulté, plus jamais un "Belchicken" codé en dur.
-// Fourni par app/r/[restaurantId]/layout.tsx (serveur), consommé par les
-// pages client via useRestaurantInfo().
-type RestaurantContextValue = { id: string; name: string };
+// Idem pour les liens sociaux (micro-récompenses) : ceux de l'établissement,
+// jamais les variables d'env globales. Fourni par
+// app/r/[restaurantId]/layout.tsx (serveur), consommé via useRestaurantInfo().
+type RestaurantContextValue = {
+  id: string;
+  name: string;
+  google_maps_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  facebook_url: string | null;
+};
 
 const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 

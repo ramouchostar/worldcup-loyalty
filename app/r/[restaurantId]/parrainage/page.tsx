@@ -52,7 +52,7 @@ export default function InvitePage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inviter des amis</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            5 amis inscrits = 1 jeton · 4 jetons = 12 Churros
+            5 amis inscrits = 1 jeton · 4 jetons = 1 cadeau au comptoir
           </p>
         </div>
       </div>
@@ -158,9 +158,9 @@ export default function InvitePage() {
             </p>
           </div>
           <div className="flex items-start gap-3">
-            <span className="text-lg leading-none mt-0.5">🍢</span>
+            <span className="text-lg leading-none mt-0.5">🎁</span>
             <p className="text-xs text-gray-300">
-              4 jetons = une portion de 12 Churros offerte au comptoir
+              4 jetons = 1 cadeau offert au comptoir
             </p>
           </div>
         </div>

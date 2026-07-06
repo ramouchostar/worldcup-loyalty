@@ -6,7 +6,10 @@ import { createServerSupabaseClient, createAdminClient } from "./supabase";
 // résout le restaurant via le segment d'URL /r/[restaurantId], voir
 // getRestaurant() ci-dessous.
 export function getRestaurantId(): string {
-  return process.env.NEXT_PUBLIC_RESTAURANT_ID ?? "molenbeek";
+  // Fallback = resto historique réel (kraainem) : "molenbeek" ne correspondait
+  // à aucun établissement en base et cassait l'accès admin legacy (is_admin)
+  // quand la variable d'env manquait.
+  return process.env.NEXT_PUBLIC_RESTAURANT_ID ?? "kraainem";
 }
 
 export type RestaurantInfo = {

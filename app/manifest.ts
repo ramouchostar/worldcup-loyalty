@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "WorldCup Loyalty — Belchicken",
+    name: "WorldCup Loyalty",
     short_name: "WorldCup",
     description:
       "Programme de fidélité communautaire par équipes. Mangez directement au restaurant, gagnez ensemble.",

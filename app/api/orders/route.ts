@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderDate, validateAmount } from "@/lib/orders";
 import { getReceiptConfig, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
-import { createPendingReward } from "@/lib/rewards";
+import { createPendingReward, LEGACY_RESTAURANT_ID } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
@@ -92,6 +92,25 @@ export async function POST(request: NextRequest) {
   if (keyDate) {
     const dateError = validateOrderDate(orderDate);
     if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
+
+    // Plancher par établissement : un ticket ne peut pas être antérieur à
+    // l'arrivée du resto dans le programme (restaurants.created_at). Le resto
+    // legacy garde le plancher global NEXT_PUBLIC_PROGRAM_START_DATE — sa
+    // ligne restaurants a été créée après son vrai lancement (m27).
+    if (restaurantId !== LEGACY_RESTAURANT_ID) {
+      const { data: resto } = await createAdminClient()
+        .from("restaurants")
+        .select("created_at")
+        .eq("id", restaurantId)
+        .maybeSingle();
+      const restaurantStart = resto?.created_at ? String(resto.created_at).slice(0, 10) : null;
+      if (restaurantStart && orderDate < restaurantStart) {
+        return NextResponse.json(
+          { error: `Les commandes sont comptabilisées à partir du ${restaurantStart}.` },
+          { status: 400 }
+        );
+      }
+    }
   }
 
   const { data: membership } = await supabase

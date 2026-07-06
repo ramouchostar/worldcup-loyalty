@@ -36,7 +36,16 @@ export default async function RestaurantLayout({
     .filter((r): r is { id: string; name: string } => !!r);
 
   return (
-    <RestaurantProvider value={{ id: restaurant.id, name: restaurant.name }}>
+    <RestaurantProvider
+      value={{
+        id: restaurant.id,
+        name: restaurant.name,
+        google_maps_url: restaurant.google_maps_url,
+        instagram_url: restaurant.instagram_url,
+        tiktok_url: restaurant.tiktok_url,
+        facebook_url: restaurant.facebook_url,
+      }}
+    >
     <div className="min-h-screen bg-gray-50">
       <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">

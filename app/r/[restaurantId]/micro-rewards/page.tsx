@@ -12,18 +12,28 @@ type SocialData = {
   giftName?: string;
 };
 
-const ACTION_META: Record<MicroRewardType, { icon: string; link: string | undefined }> = {
-  google_review:    { icon: "⭐", link: process.env.NEXT_PUBLIC_GOOGLE_MAPS_URL },
-  instagram_follow: { icon: "📸", link: process.env.NEXT_PUBLIC_INSTAGRAM_URL },
-  tiktok_follow:    { icon: "🎵", link: process.env.NEXT_PUBLIC_TIKTOK_URL },
-  facebook_follow:  { icon: "👍", link: process.env.NEXT_PUBLIC_FACEBOOK_URL },
-};
-
 const TOKENS_PER_PORTION = 4;
+
+// Resto historique : ses liens sociaux peuvent encore venir des variables
+// d'env globales (pré-ADR 0015). Tout autre établissement n'utilise QUE ses
+// propres colonnes — sinon un membre gagnerait un jeton en suivant les
+// réseaux d'un autre resto.
+const LEGACY_RESTAURANT_ID = "kraainem";
 
 export default function MicroRewardsPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
-  const { name: restaurantName } = useRestaurantInfo();
+  const restaurant = useRestaurantInfo();
+  const { name: restaurantName } = restaurant;
+
+  const legacyFallback = (envUrl: string | undefined) =>
+    restaurantId === LEGACY_RESTAURANT_ID ? envUrl : undefined;
+
+  const ACTION_META: Record<MicroRewardType, { icon: string; link: string | undefined }> = {
+    google_review:    { icon: "⭐", link: restaurant.google_maps_url ?? legacyFallback(process.env.NEXT_PUBLIC_GOOGLE_MAPS_URL) },
+    instagram_follow: { icon: "📸", link: restaurant.instagram_url ?? legacyFallback(process.env.NEXT_PUBLIC_INSTAGRAM_URL) },
+    tiktok_follow:    { icon: "🎵", link: restaurant.tiktok_url ?? legacyFallback(process.env.NEXT_PUBLIC_TIKTOK_URL) },
+    facebook_follow:  { icon: "👍", link: restaurant.facebook_url ?? legacyFallback(process.env.NEXT_PUBLIC_FACEBOOK_URL) },
+  };
   const [socialData, setSocialData] = useState<SocialData | null>(null);
   const [referralData, setReferralData] = useState<ReferralLinkData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,8 +67,9 @@ export default function MicroRewardsPage() {
   const giftsEarned = Math.floor(totalTokens / TOKENS_PER_PORTION);
   const nextMilestone = (giftsEarned + 1) * TOKENS_PER_PORTION;
   const tokensToNext = nextMilestone - totalTokens;
-  // Cadeau propre à l'établissement (ADR 0017), fallback hérité
-  const giftName = socialData?.giftName ?? "12 Churros";
+  // Cadeau propre à l'établissement (ADR 0017) — le serveur gère les
+  // fallbacks (hérité pour le resto legacy, « Cadeau surprise » sinon)
+  const giftName = socialData?.giftName ?? "Cadeau surprise";
 
   const claimMap = Object.fromEntries(claims.map((c) => [c.reward_type, c])) as Record<string, MicroRewardClaim>;
 
@@ -149,7 +160,7 @@ function ActionCard({
 }: {
   reward: MicroReward;
   claim: MicroRewardClaim | null;
-  meta: (typeof ACTION_META)[MicroRewardType];
+  meta: { icon: string; link: string | undefined };
   restaurantId: string;
   onSuccess: () => void;
 }) {

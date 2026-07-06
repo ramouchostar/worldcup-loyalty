@@ -106,7 +106,7 @@ SUPER_ADMIN_EMAILS=                 # emails bootstrappés comme super-admin pla
 - **Double verrou basé sur la croissance** : le seuil CA n'est PAS un montant fixe mais `baseline_4_semaines × (1 + 10%)` (`GROWTH_TARGET_PCT`)
 - Le restaurant ne débloque les bonus que s'il vend PLUS qu'avant le programme
 - Table `reward_budget_tracking` + colonnes `baseline_weekly_revenue`, `growth_target_pct` sur `restaurant_thresholds`
-- `getCommunityBonus()` doit vérifier `community_bonus_active` avant d'attribuer
+- `resolveCommunityBonus()` doit vérifier `community_bonus_active` avant d'attribuer ; les grilles héritées Belchicken ne s'appliquent qu'au resto legacy (`LEGACY_RESTAURANT_ID`)
 - Côté client : "Bonus communautaire en pause" si plafond atteint — jamais la vraie raison (ADR 0007)
 
 ## Issues GitHub actives

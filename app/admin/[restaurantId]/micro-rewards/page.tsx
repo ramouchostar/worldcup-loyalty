@@ -75,7 +75,7 @@ export default function AdminMicroRewardsPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Actions sociales</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Chaque action validée = 1 jeton social. 4 jetons (social + parrainage) = 12 churros.
+          Chaque action validée = 1 jeton social. 4 jetons (social + parrainage) = le cadeau jetons configuré (voir Menu &amp; cadeaux).
         </p>
       </div>
 
@@ -83,7 +83,7 @@ export default function AdminMicroRewardsPage() {
       {churrosEligible.length > 0 && (
         <div className="bg-green-50 border-2 border-green-400 rounded-xl p-4">
           <p className="font-bold text-green-900 mb-3">
-            🍢 {churrosEligible.length} membre(s) avec 4+ jetons sociaux
+            🎁 {churrosEligible.length} membre(s) avec 4+ jetons sociaux
           </p>
           <p className="text-xs text-green-700 mb-3">
             Note : des jetons parrainages peuvent s&apos;y ajouter — vérifier dans &quot;Parrainages&quot;.

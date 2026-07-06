@@ -15,8 +15,12 @@ import {
 
 const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
 
-// Cadeau hérité Belchicken (pré-ADR 0017)
+// Cadeau hérité Belchicken (pré-ADR 0017) — réservé au resto historique :
+// pour tout autre établissement sans cadeau configuré, on affiche un
+// « cadeau surprise » plutôt qu'un article qui n'existe pas chez lui.
 const LEGACY_GIFT = { id: null as string | null, name: "12 Churros", cost: 0.63 };
+const UNCONFIGURED_GIFT = { id: null as string | null, name: "Cadeau surprise", cost: 0 };
+const LEGACY_RESTAURANT_ID = "kraainem";
 
 export type JetonsGift = { id: string | null; name: string; cost: number };
 
@@ -36,12 +40,14 @@ export async function getJetonsGift(restaurantId: string): Promise<JetonsGift> {
     .eq("id", restaurantId)
     .maybeSingle();
 
+  const fallback = restaurantId === LEGACY_RESTAURANT_ID ? LEGACY_GIFT : UNCONFIGURED_GIFT;
+
   // Fail-open héritage si la colonne n'existe pas encore (m28 non appliquée)
-  if (error || !data) return LEGACY_GIFT;
+  if (error || !data) return fallback;
 
   const row = data as unknown as RestaurantGiftRow;
   const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
-  if (!mi || !mi.is_active || !mi.reward_eligible) return LEGACY_GIFT;
+  if (!mi || !mi.is_active || !mi.reward_eligible) return fallback;
   return { id: mi.id, name: mi.name, cost: Number(mi.cost_price) };
 }
 

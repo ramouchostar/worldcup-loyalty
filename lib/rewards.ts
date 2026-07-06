@@ -58,28 +58,21 @@ export async function isMemberActive(userId: string): Promise<boolean> {
 
 type RewardItem = { item: string | null; cost: number };
 
-// Layer 1 — Solo reward based on order amount. No double verrou.
-export function getSoloReward(amount: number): RewardItem {
-  if (amount >= 60) return { item: "Chef's Combo", cost: 1.92 };
-  if (amount >= 40) return { item: "Menu 4 Tenders", cost: 1.93 };
-  if (amount >= 25) return { item: "Finest burger", cost: 0.94 };
-  if (amount >= 15) return { item: "Churros 6 pcs", cost: 0.31 };
-  return { item: null, cost: 0 };
-}
+// Seul établissement autorisé à retomber sur les grilles héritées Belchicken :
+// pour tout autre resto, une grille non configurée ne promet RIEN plutôt que
+// des articles qui n'existent pas chez lui (et que le cashier devrait honorer,
+// puisque pending_rewards fige le snapshot).
+export const LEGACY_RESTAURANT_ID = "kraainem";
 
-// Layer 2 — Community bonus based on team score. Requires double verrou.
-export function getCommunityBonus(score: number, restaurantUnlocked: boolean): RewardItem {
-  if (!restaurantUnlocked || score < 1000) return { item: null, cost: 0 };
-  if (score >= 10000) return { item: "Menu 4 Tenders", cost: 1.93 };
-  if (score >= 6000)  return { item: "Finest burger", cost: 0.94 };
-  if (score >= 3000)  return { item: "Churros 12 pcs", cost: 0.63 };
-  return { item: "Frites Medium", cost: 0.24 };
-}
-
-// Grille communautaire héritée sous forme de paliers — permet d'appliquer la
-// couverture ADR 0017 au fallback comme au catalogue. Exportée pour le cron
-// de notifications (même source de vérité que la résolution des récompenses).
-export const LEGACY_COMMUNITY_TIERS: GridTier[] = [
+// Grilles héritées Belchicken (pré-ADR 0013) — injectées par loadRewardGrid
+// uniquement pour LEGACY_RESTAURANT_ID quand le catalogue n'a pas de paliers.
+const LEGACY_SOLO_TIERS: GridTier[] = [
+  { min: 15, item: "Churros 6 pcs",   cost: 0.31 },
+  { min: 25, item: "Finest burger",   cost: 0.94 },
+  { min: 40, item: "Menu 4 Tenders",  cost: 1.93 },
+  { min: 60, item: "Chef's Combo",    cost: 1.92 },
+];
+const LEGACY_COMMUNITY_TIERS: GridTier[] = [
   { min: 1000,  item: "Frites Medium",  cost: 0.24 },
   { min: 3000,  item: "Churros 12 pcs", cost: 0.63 },
   { min: 6000,  item: "Finest burger",  cost: 0.94 },
@@ -90,9 +83,9 @@ export const LEGACY_COMMUNITY_TIERS: GridTier[] = [
 // d'équipe sur la dépense cumulée (ADR 0014, voir lib/team-tiers.ts).
 
 // ─── Grille pilotée par le catalogue (ADR 0013) ─────────────────────────────
-// Les couches solo & communautaire lisent reward_tiers + menu_items. Si aucun
-// palier n'est configuré pour une couche, on retombe sur la grille héritée
-// (getSoloReward / getCommunityBonus) — migration non-cassante.
+// Les couches solo & communautaire lisent reward_tiers + menu_items. Le
+// fallback grille héritée est réservé à LEGACY_RESTAURANT_ID (migration
+// non-cassante) — partout ailleurs, couche non configurée = pas de cadeau.
 
 export type GridTier = { min: number; item: string; cost: number };
 export type RewardGrid = { solo: GridTier[]; community: GridTier[] };
@@ -125,6 +118,13 @@ export async function loadRewardGrid(restaurantId: string): Promise<RewardGrid> 
     const tier: GridTier = { min: Number(r.min_threshold), item: mi.name, cost: Number(mi.cost_price) };
     (r.layer === "solo" ? grid.solo : grid.community).push(tier);
   }
+
+  // Fallback hérité Belchicken — uniquement pour l'établissement historique
+  if (restaurantId === LEGACY_RESTAURANT_ID) {
+    if (grid.solo.length === 0) grid.solo = LEGACY_SOLO_TIERS;
+    if (grid.community.length === 0) grid.community = LEGACY_COMMUNITY_TIERS;
+  }
+
   return grid;
 }
 
@@ -151,14 +151,14 @@ function pickCoveredTier(tiers: GridTier[], value: number, coverage?: TeamCovera
   return best ? { item: best.item, cost: best.cost } : { item: null, cost: 0 };
 }
 
-// Couche 1 — pilotée par catalogue, fallback grille héritée.
+// Couche 1 — pilotée par catalogue (le fallback hérité est déjà injecté par
+// loadRewardGrid pour le resto legacy). Grille vide = pas de cadeau.
 export function resolveSoloReward(grid: RewardGrid, amount: number): RewardItem {
-  if (grid.solo.length === 0) return getSoloReward(amount);
   return pickTier(grid.solo, amount);
 }
 
-// Couche 2 — pilotée par catalogue, fallback grille héritée. Double verrou
-// conservé ; la couverture d'équipe (ADR 0017) s'ajoute comme troisième verrou.
+// Couche 2 — même logique. Double verrou conservé ; la couverture d'équipe
+// (ADR 0017) s'ajoute comme troisième verrou.
 export function resolveCommunityBonus(
   grid: RewardGrid,
   score: number,
@@ -166,8 +166,7 @@ export function resolveCommunityBonus(
   coverage?: TeamCoverage
 ): RewardItem {
   if (!restaurantUnlocked) return { item: null, cost: 0 };
-  const tiers = grid.community.length > 0 ? grid.community : LEGACY_COMMUNITY_TIERS;
-  return pickCoveredTier(tiers, score, coverage);
+  return pickCoveredTier(grid.community, score, coverage);
 }
 
 // Creates the 3-layer pending_reward for a validated order.

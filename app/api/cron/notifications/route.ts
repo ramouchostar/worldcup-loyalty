@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import { buildMessage, sendPush, sendWhatsApp, logNotification, type TriggerType, type Channel } from "@/lib/notifications";
-import { loadRewardGrid, LEGACY_COMMUNITY_TIERS, type GridTier } from "@/lib/rewards";
+import { loadRewardGrid, type GridTier } from "@/lib/rewards";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { coverageSatisfied, type TeamCoverage } from "@/lib/reward-sizing";
@@ -85,7 +85,9 @@ export async function GET(request: Request) {
       .select("team_id, score, total_spent, member_count")
       .eq("restaurant_id", restaurantId),
   ]);
-  const communityTiers = grid.community.length > 0 ? grid.community : LEGACY_COMMUNITY_TIERS;
+  // Fallback hérité géré par loadRewardGrid (resto legacy uniquement) —
+  // grille vide = aucun palier à promettre en notification.
+  const communityTiers = grid.community;
   const bonusDeliverable = restaurantUnlocked && budget.communityBonusActive;
 
   type ScoreRow = { team_id: string; score: number; total_spent: number; member_count: number };
