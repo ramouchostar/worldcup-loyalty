@@ -3,6 +3,11 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import type { PendingReward } from "@/types";
 import { RedeemButton } from "./RedeemButton";
+import { BankButton } from "./BankButton";
+
+// Montant de la commande d'origine (jointure RLS own-read) — sert à
+// afficher les points de réserve avant le choix « Mettre de côté »
+type RewardWithOrder = PendingReward & { orders: { amount: number } | null };
 
 export default async function MyRewardsPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -12,15 +17,16 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
 
   const { data } = await supabase
     .from("pending_rewards")
-    .select("*")
+    .select("*, orders(amount)")
     .eq("user_id", user.id)
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
 
-  const rewards = (data as PendingReward[]) ?? [];
+  const rewards = (data as RewardWithOrder[]) ?? [];
   const available = rewards.filter((r) => r.status === "available");
   const redeemed  = rewards.filter((r) => r.status === "redeemed");
   const expired   = rewards.filter((r) => r.status === "expired");
+  const banked    = rewards.filter((r) => r.status === "banked");
 
   return (
     <div className="space-y-5 pb-4">
@@ -57,6 +63,27 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
           </div>
         )}
       </section>
+
+      {/* Mises de côté (ADR 0021) */}
+      {banked.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            💰 Mises de côté ({banked.length})
+          </h2>
+          <div className="space-y-3 opacity-70">
+            {banked.map((r) => (
+              <RewardCard key={r.id} reward={r} />
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Ces cadeaux ont rejoint{" "}
+            <Link href={`/r/${restaurantId}/reserve`} className="underline">
+              ta réserve
+            </Link>
+            .
+          </p>
+        </section>
+      )}
 
       {/* Récupérées */}
       {redeemed.length > 0 && (
@@ -105,9 +132,14 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
   );
 }
 
-function RewardCard({ reward }: { reward: PendingReward }) {
+function RewardCard({ reward }: { reward: RewardWithOrder }) {
   const isAvailable = reward.status === "available";
   const isRedeemed  = reward.status === "redeemed";
+  const isBanked    = reward.status === "banked";
+  // Seuls les cadeaux issus d'une commande se mettent de côté (ADR 0021) —
+  // un cadeau échangé depuis la réserve (order_id NULL) ne se re-banke pas.
+  const canBank     = isAvailable && reward.order_id !== null;
+  const bankPoints  = reward.orders ? Math.floor(Number(reward.orders.amount)) : null;
 
   const expiresAt = new Date(new Date(reward.created_at).getTime() + 48 * 60 * 60 * 1000);
   const hoursLeft = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)));
@@ -157,7 +189,7 @@ function RewardCard({ reward }: { reward: PendingReward }) {
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
         <p className="text-xs text-gray-400">
           {new Date(reward.created_at).toLocaleDateString("fr-BE", {
             day: "numeric",
@@ -166,10 +198,17 @@ function RewardCard({ reward }: { reward: PendingReward }) {
           })}
         </p>
         {isAvailable ? (
-          <RedeemButton />
+          <span className="flex items-center gap-2">
+            {canBank && <BankButton points={bankPoints} />}
+            <RedeemButton />
+          </span>
         ) : isRedeemed ? (
           <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
             Récupéré ✓
+          </span>
+        ) : isBanked ? (
+          <span className="text-xs font-semibold text-brand-dark bg-gray-100 px-2 py-0.5 rounded-full">
+            💰 Mis de côté{bankPoints !== null ? ` (+${bankPoints})` : ""}
           </span>
         ) : (
           <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">

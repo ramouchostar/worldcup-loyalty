@@ -40,6 +40,21 @@ export function suggestSoloBands(
   return bands.filter((b, i) => i === 0 || b > bands[i - 1]);
 }
 
+// ─── Règle 1bis — paliers de la réserve (ADR 0021) ──────────────────────────
+
+// Multiplicateurs des paliers « saver » : la réserve doit valoir l'attente,
+// le premier gros cadeau arrive après ~4 commandes moyennes mises de côté.
+const SAVER_BAND_MULTIPLIERS = [4, 8, 12] as const;
+
+// Paliers de la réserve en POINTS. 1 point = 1 € dépensé (ADR 0021), donc le
+// plafond de coût d'un palier réutilise soloCostCap(seuil) tel quel.
+export function suggestSaverBands(avgBasket: number): number[] {
+  const safeBasket = avgBasket > 0 ? avgBasket : DEFAULT_AVG_BASKET;
+  const base = roundTo5(0.85 * safeBasket);
+  const bands = SAVER_BAND_MULTIPLIERS.map((m) => roundTo5(base * m));
+  return bands.filter((b, i) => i === 0 || b > bands[i - 1]);
+}
+
 // ─── Règle 2 — cadeau à coût pur (jetons) ────────────────────────────────────
 
 export type GiftCandidate = {

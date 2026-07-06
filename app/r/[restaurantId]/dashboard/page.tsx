@@ -5,6 +5,7 @@ import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus } from "@/lib/
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
+import { getPointsBalance } from "@/lib/points";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
 import type { Order, PendingReward } from "@/types";
@@ -82,7 +83,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // Score (points, côté membre) + dépense cumulée d'équipe (euros, service role —
   // jamais rendue, sert seulement à résoudre la couche 3). ADR 0007.
   const admin = createAdminClient();
-  const [scoreResult, spentResult, teamTiers] = await Promise.all([
+  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }] = await Promise.all([
     hasTeam
       ? supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
       : Promise.resolve({ data: null }),
@@ -90,7 +91,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       ? admin.from("community_scores").select("total_spent").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
       : Promise.resolve({ data: null }),
     loadTeamTiers(restaurantId),
+    // Réserve de points (ADR 0021) — tuile affichée si solde > 0 ou paliers configurés
+    getPointsBalance(user.id, restaurantId),
+    admin
+      .from("reward_tiers")
+      .select("id", { count: "exact", head: true })
+      .eq("restaurant_id", restaurantId)
+      .eq("layer", "saver")
+      .eq("is_active", true),
   ]);
+  const showReserve = reserveBalance > 0 || (saverTierCount ?? 0) > 0;
   const scoreRaw = scoreResult.data;
   const spentRaw = spentResult.data;
 
@@ -356,6 +366,27 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           )}
         </div>
       </div>
+      )}
+
+      {/* ── Ma réserve (ADR 0021) — perso, comme les stats ──────────────────── */}
+      {showReserve && (
+        <Link
+          href={r("/reserve")}
+          className="block bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-gold/40 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-gray-900 text-sm">💰 Ma réserve</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Mets tes cadeaux de côté pour en obtenir un plus gros
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-black text-brand-dark tabular-nums">{reserveBalance}</p>
+              <p className="text-xs text-gray-400">voir →</p>
+            </div>
+          </div>
+        </Link>
       )}
 
       {/* ── SECTION 3 — Stats perso (subtil, bas de page) ─────────────────── */}

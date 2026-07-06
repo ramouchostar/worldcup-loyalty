@@ -158,12 +158,12 @@ export type RestaurantThreshold = {
   growth_target_pct: number | null;
 };
 
-export type PendingRewardStatus = "pending" | "redeemed" | "expired" | "available";
+export type PendingRewardStatus = "pending" | "redeemed" | "expired" | "available" | "banked";
 
 export type PendingReward = {
   id: string;
   user_id: string;
-  order_id: string;
+  order_id: string | null; // NULL = cadeau échangé depuis la réserve (ADR 0021)
   restaurant_id: string;
   solo_item: string | null;
   solo_cost: number | null;
@@ -172,8 +172,19 @@ export type PendingReward = {
   advancement_item: string | null;
   advancement_cost: number | null;
   status: PendingRewardStatus;
+  source: "order" | "saver";
   created_at: string;
   redeemed_at: string | null;
+  banked_at: string | null;
+};
+
+// ADR 0021 — mouvement de la réserve de points personnelle (deltas en
+// points, jamais d'euros côté membre)
+export type PointTransaction = {
+  id: string;
+  delta: number;
+  reason: "bank_reward" | "exchange_gift" | "admin_adjust";
+  created_at: string;
 };
 
 // ─── Catalogue menu & coûts (ADR 0013) ───────────────────────────────────────
@@ -191,14 +202,14 @@ export type MenuItem = {
   updated_at: string;
 };
 
-export type RewardLayer = "solo" | "community";
+export type RewardLayer = "solo" | "community" | "saver";
 
 // Palier → article du catalogue (remplace les grilles codées en dur)
 export type RewardTier = {
   id: string;
   restaurant_id: string;
   layer: RewardLayer;
-  min_threshold: number; // montant de commande (solo) ou score équipe (community)
+  min_threshold: number; // montant de commande (solo), score équipe (community) ou points de réserve (saver)
   menu_item_id: string | null;
   is_active: boolean;
 };

@@ -5,7 +5,7 @@
 Avant d'écrire ou modifier la moindre ligne, tu dois lire dans cet ordre :
 
 1. `CONTEXT.md` — glossaire complet du domaine, terminologie exacte, règles UI
-2. `docs/adr/0001` à `docs/adr/0017` — toutes les décisions architecturales
+2. `docs/adr/0001` à `docs/adr/0021` — toutes les décisions architecturales
 
 Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Prompt_ClaudeCode.md` qui est le document source initial mais qui a été affiné par les ADRs.
 
@@ -25,11 +25,19 @@ Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Pro
 - Couche 2 (bonus communautaire) : soumise au double verrou
 - Couche 3 (récompense d'avancement) : non soumise au double verrou
 
-### ADR 0008 — Validation automatique des tickets
-- `duplicate_key` = **Bestelnummer** (`order_number`, format `YYYY-MM-DD/NNN/NNNNN`)
-- L'ancien `DATE_HH:MM_MONTANT` est obsolète — ne jamais l'utiliser
+### ADR 0008 + 0019 — Validation automatique des tickets
+- `duplicate_key` = **`restaurant_id:clé de commande`** — la clé est définie par `restaurant_receipt_config` (découverte à l'onboarding, ADR 0019), fallback Bestelnummer legacy si aucune config
+- Le Bestelnummer `YYYY-MM-DD/NNN/NNNNN` n'est plus codé en dur — ne jamais le réintroduire dans le prompt OCR ou la validation
 - Délai artificiel 3–5s côté client avec message "Vérification en cours..."
 - Jamais les mots "automatique" ou "instantané" côté client
+
+### ADR 0021 — Réserve de points personnelle
+- « Mettre de côté » (onglet récompenses) : cadeau `available` → `banked`, crédit `floor(montant commande)` points dans le ledger `point_transactions` (jamais de colonne solde)
+- Le score communautaire n'est **jamais** affecté par ce choix (crédité à la validation du ticket)
+- Gros cadeaux : `reward_tiers` layer `saver`, seuils en points, plafond ADR 0017 (`cost_price ≤ seuil × 8%`)
+- Échange via RPC transactionnel → `pending_rewards` standard (cycle coupon inchangé) ; un cadeau `saver` n'est pas re-bankable
+- Budget ADR 0012 : coût re-crédité au bank, débité à l'échange
+- UI : « Ma réserve » — jamais « points » seuls (réservés au score communautaire), jamais de coûts sur `/api/saver-tiers`
 
 ### ADR 0010 — Dashboard : conséquences, pas chiffres
 - Section 1 (hero) : aperçu prochaine commande avec 3 lignes étiquetées par couche

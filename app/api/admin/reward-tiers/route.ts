@@ -57,7 +57,7 @@ export async function PUT(req: Request) {
   );
 
   const rows = tiers
-    .filter((t) => (t.layer === "solo" || t.layer === "community") && typeof t.min_threshold === "number")
+    .filter((t) => (t.layer === "solo" || t.layer === "community" || t.layer === "saver") && typeof t.min_threshold === "number")
     .map((t) => ({
       restaurant_id: restaurantId,
       layer: t.layer as string,
@@ -71,18 +71,22 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Paliers invalides." }, { status: 400 });
   }
 
-  // Plafond de palier solo (ADR 0017) : le coût réel du cadeau ne doit pas
-  // dépasser BUDGET_PCT du montant de commande qui le déclenche. Rejet dur —
-  // c'est la protection de rentabilité de l'établissement, pas un avertissement.
+  // Plafond de palier (ADR 0017) : le coût réel du cadeau ne doit pas
+  // dépasser BUDGET_PCT des dépenses qui le déclenchent. Rejet dur —
+  // c'est la protection de rentabilité de l'établissement, pas un
+  // avertissement. Vaut pour solo (seuil en € de commande) et saver
+  // (seuil en points, 1 pt = 1 € dépensé — ADR 0021, même formule).
   const violations = rows
-    .filter((r) => r.layer === "solo" && r.menu_item_id)
+    .filter((r) => (r.layer === "solo" || r.layer === "saver") && r.menu_item_id)
     .map((r) => ({ row: r, item: itemById.get(r.menu_item_id!)! }))
     .filter(({ row, item }) => Number(item.cost_price) > soloCostCap(row.min_threshold, BUDGET_PCT))
     .map(
       ({ row, item }) =>
-        `Palier €${row.min_threshold} : « ${item.name} » coûte €${Number(item.cost_price).toFixed(2)}, ` +
+        `Palier ${row.layer === "saver" ? `${row.min_threshold} pts` : `€${row.min_threshold}`} : ` +
+        `« ${item.name} » coûte €${Number(item.cost_price).toFixed(2)}, ` +
         `au-dessus du plafond de €${soloCostCap(row.min_threshold, BUDGET_PCT).toFixed(2)} ` +
-        `(${Math.round(BUDGET_PCT * 100)} % de la commande). Choisis un article moins cher ou un palier plus haut.`
+        `(${Math.round(BUDGET_PCT * 100)} % ${row.layer === "saver" ? "des dépenses cumulées" : "de la commande"}). ` +
+        `Choisis un article moins cher ou un palier plus haut.`
     );
 
   if (violations.length > 0) {

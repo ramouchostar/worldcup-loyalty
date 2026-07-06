@@ -9,6 +9,7 @@ import {
   pickGenerousGift,
   soloCostCap,
   suggestSoloBands,
+  suggestSaverBands,
   type GiftCandidate,
 } from "./reward-sizing";
 
@@ -25,6 +26,7 @@ export type DefaultConfigResult = {
   soloConfigured: boolean;
   communityConfigured: boolean;
   jetonsConfigured: boolean;
+  saverConfigured: boolean;
 };
 
 export async function applyDefaultRewardConfig(restaurantId: string): Promise<DefaultConfigResult> {
@@ -32,6 +34,7 @@ export async function applyDefaultRewardConfig(restaurantId: string): Promise<De
     soloConfigured: false,
     communityConfigured: false,
     jetonsConfigured: false,
+    saverConfigured: false,
   };
 
   const items = (await getMenuItems(restaurantId)).filter((i) => i.is_active && i.reward_eligible);
@@ -98,6 +101,23 @@ export async function applyDefaultRewardConfig(restaurantId: string): Promise<De
     result.communityConfigured = true;
   }
 
+  // Paliers de la réserve (ADR 0021) : gros cadeaux contre points cumulés.
+  // 1 pt = 1 € dépensé → le plafond soloCostCap s'applique tel quel, et le
+  // palier élevé mérite l'article le plus généreux que son plafond autorise.
+  if (!configuredLayers.has("saver")) {
+    suggestSaverBands(avgBasket).forEach((band) => {
+      const gift = pickGenerousGift(candidates, soloCostCap(band, BUDGET_PCT));
+      rows.push({
+        restaurant_id: restaurantId,
+        layer: "saver",
+        min_threshold: band,
+        menu_item_id: gift?.id ?? null,
+        is_active: true,
+      });
+    });
+    result.saverConfigured = true;
+  }
+
   if (rows.length > 0) {
     const { error } = await admin
       .from("reward_tiers")
@@ -108,6 +128,7 @@ export async function applyDefaultRewardConfig(restaurantId: string): Promise<De
       console.error("[reward-defaults] upsert reward_tiers failed:", error.message);
       result.soloConfigured = false;
       result.communityConfigured = false;
+      result.saverConfigured = false;
     }
   }
 
