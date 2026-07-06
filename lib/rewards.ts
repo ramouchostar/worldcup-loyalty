@@ -97,7 +97,7 @@ type MenuItemEmbed = {
   reward_eligible: boolean;
 };
 type RewardTierRow = {
-  layer: "solo" | "community";
+  layer: "solo" | "community" | "saver";
   min_threshold: number;
   menu_items: MenuItemEmbed | MenuItemEmbed[] | null;
 };
@@ -115,6 +115,10 @@ export async function loadRewardGrid(restaurantId: string): Promise<RewardGrid> 
   for (const r of (data ?? []) as unknown as RewardTierRow[]) {
     const mi = Array.isArray(r.menu_items) ? r.menu_items[0] : r.menu_items;
     if (!mi || !mi.is_active || !mi.reward_eligible) continue; // article retiré/hors cadeau
+    // Filtre explicite par couche : les paliers 'saver' (ADR 0021, seuils en
+    // POINTS de réserve) ne doivent jamais fuir dans la grille communautaire
+    // (seuils en score d'équipe).
+    if (r.layer !== "solo" && r.layer !== "community") continue;
     const tier: GridTier = { min: Number(r.min_threshold), item: mi.name, cost: Number(mi.cost_price) };
     (r.layer === "solo" ? grid.solo : grid.community).push(tier);
   }
