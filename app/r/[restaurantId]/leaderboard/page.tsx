@@ -1,5 +1,6 @@
+import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant } from "@/lib/restaurant";
+import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { LeaderboardRealtime } from "@/components/LeaderboardRealtime";
 import Link from "next/link";
 import type { CommunityScore, Team } from "@/types";
@@ -39,6 +40,15 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
       ? supabase.from("memberships").select("team_id").eq("user_id", user.id).eq("restaurant_id", restaurantId).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  // ADR 0015 §6 — un établissement pending/disabled reste invisible à tout
+  // le monde sauf son propriétaire, y compris sur le classement public
+  // (trouvé au test d'envergure : la landing masquait, pas le leaderboard).
+  if (!restaurant) notFound();
+  if (restaurant.status !== "active") {
+    const owner = user ? await isRestaurantOwner(user.id, restaurantId) : false;
+    if (!owner) notFound();
+  }
 
   const scores = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter(s => s.teams?.is_active);
   const myTeamId = (membershipResult.data as { team_id: string | null } | null)?.team_id ?? undefined;
