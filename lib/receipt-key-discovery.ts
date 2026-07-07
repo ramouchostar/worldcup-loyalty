@@ -58,9 +58,13 @@ export async function discoverReceiptKey(
     })
   );
 
+  // Sonnet 5 : thinking adaptatif par défaut — la réponse commence par des
+  // blocs thinking (texte vide), et le thinking consomme max_tokens. On
+  // laisse le thinking actif (utile pour raisonner sur le pattern) avec un
+  // budget large, et on extrait le texte de façon robuste plus bas.
   const msg = await client.messages.create({
     model: "claude-sonnet-5",
-    max_tokens: 2048,
+    max_tokens: 8000,
     messages: [
       {
         role: "user",
@@ -89,9 +93,20 @@ Return ONLY valid JSON, no markdown:
     ],
   });
 
-  const rawText = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
-  const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-  const parsed = JSON.parse(jsonText) as Partial<ReceiptKeyProposal>;
+  // Concatène TOUS les blocs texte (jamais content[0] : des blocs thinking
+  // peuvent précéder), puis isole l'objet JSON même si le modèle l'entoure
+  // de prose ou de fences markdown.
+  const rawText = msg.content
+    .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+    .map((b) => b.text)
+    .join("")
+    .trim();
+  const jsonStart = rawText.indexOf("{");
+  const jsonEnd = rawText.lastIndexOf("}");
+  if (jsonStart === -1 || jsonEnd <= jsonStart) {
+    throw new Error(`discovery: pas de JSON dans la réponse (${rawText.slice(0, 120)})`);
+  }
+  const parsed = JSON.parse(rawText.slice(jsonStart, jsonEnd + 1)) as Partial<ReceiptKeyProposal>;
 
   const proposal: ReceiptKeyProposal = {
     has_reliable_key: parsed.has_reliable_key === true,
