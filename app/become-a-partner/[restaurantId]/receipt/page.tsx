@@ -3,6 +3,10 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { ReceiptSetupForm } from "./ReceiptSetupForm";
 
+// L'analyse des tickets d'exemple (claude-sonnet-5, 2-3 images) dépasse le
+// timeout serverless par défaut — la server action hérite de ce segment.
+export const maxDuration = 60;
+
 // Étape 3/3 de l'onboarding (ADR 0019) — découverte de la clé unique qui
 // identifie une commande sur le format de ticket de cet établissement.
 export default async function OnboardingReceiptPage({ params }: { params: Promise<{ restaurantId: string }> }) {
