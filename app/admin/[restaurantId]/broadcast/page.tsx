@@ -31,6 +31,13 @@ export default function AdminBroadcastPage() {
     fetch(`/api/teams?restaurantId=${restaurantId}`).then(async (r) => { if (r.ok) setTeams(await r.json()); });
   }, [restaurantId]);
 
+  // Message pré-rempli par la page Opportunités (?prefill=...) — lu via
+  // window.location pour rester compatible avec le prérendu client.
+  useEffect(() => {
+    const prefill = new URLSearchParams(window.location.search).get("prefill");
+    if (prefill) setMessage(prefill.slice(0, 280));
+  }, []);
+
   function toggle<T>(list: T[], v: T): T[] {
     return list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
   }

@@ -18,13 +18,36 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
     { count: totalMembers },
     { data: threshold },
     { data: pendingOrdersData },
+    { data: validatedAmounts },
+    { data: marginItems },
+    { data: budgetRows },
   ] = await Promise.all([
     admin.from("orders").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).eq("status", "pending"),
     admin.from("micro_reward_claims").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).eq("status", "pending"),
     admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).not("team_id", "is", null),
     admin.from("restaurant_thresholds").select("period_label, current_revenue, target_revenue, is_unlocked").eq("restaurant_id", restaurantId).order("created_at", { ascending: false }).limit(1).single(),
     admin.from("orders").select("flag_reasons").eq("restaurant_id", restaurantId).eq("status", "pending"),
+    // Gains du programme (depuis le début) : CA scanné + marge estimée sur
+    // les articles reconnus (ADR 0020) + coût réel des cadeaux distribués
+    admin.from("orders").select("amount").eq("restaurant_id", restaurantId).eq("status", "validated").limit(10000),
+    admin
+      .from("order_items")
+      .select("quantity, menu_items!inner(menu_price, cost_price), orders!inner(restaurant_id, status)")
+      .eq("orders.restaurant_id", restaurantId)
+      .eq("orders.status", "validated")
+      .limit(10000),
+    admin.from("reward_budget_tracking").select("rewards_cost").eq("restaurant_id", restaurantId),
   ]);
+
+  const programRevenue = (validatedAmounts ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
+  type MarginRow = { quantity: number; menu_items: { menu_price: number; cost_price: number } | { menu_price: number; cost_price: number }[] };
+  const programMargin = ((marginItems ?? []) as unknown as MarginRow[]).reduce((s, row) => {
+    const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
+    if (!mi) return s;
+    return s + (Number(mi.menu_price) - Number(mi.cost_price)) * (Number(row.quantity) || 1);
+  }, 0);
+  const rewardsCost = (budgetRows ?? []).reduce((s, r) => s + Number((r as { rewards_cost: number }).rewards_cost), 0);
+  const netGain = programMargin - rewardsCost;
 
   const flaggedCount = (pendingOrdersData ?? []).filter(
     (o: { flag_reasons: string[] | null }) => Array.isArray(o.flag_reasons) && o.flag_reasons.length > 0
@@ -118,6 +141,36 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
         ))}
       </div>
 
+      {/* Gains du programme — depuis le début */}
+      <div className="bg-gradient-to-br from-brand-dark to-gray-800 text-white rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold">💰 Ce que le programme t&apos;a rapporté</h2>
+          <Link href={r("/sales")} className="text-xs text-brand-gold hover:underline">Détail par plat →</Link>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div>
+            <p className="text-2xl font-black tabular-nums">
+              {programRevenue.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">CA généré (tickets scannés)</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black tabular-nums text-brand-gold">
+              {programMargin.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">marge sur articles reconnus</p>
+          </div>
+          <div>
+            <p className={`text-2xl font-black tabular-nums ${netGain >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {netGain.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              gain net estimé (marge − {rewardsCost.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })} de cadeaux)
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Statut CA restaurant */}
       {th && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -162,6 +215,10 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
         <Link href={r("/sales")} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
           <p className="font-semibold text-gray-900 text-sm">📊 Ventes par plat</p>
           <p className="text-xs text-gray-400 mt-0.5">Quantités, CA, marges, heures</p>
+        </Link>
+        <Link href={r("/insights")} className="bg-white rounded-xl border border-brand-gold/40 p-4 hover:shadow-sm transition-shadow">
+          <p className="font-semibold text-gray-900 text-sm">💡 Opportunités</p>
+          <p className="text-xs text-gray-400 mt-0.5">Promos &amp; combos suggérés</p>
         </Link>
         <Link href={r("/qr")} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
           <p className="font-semibold text-gray-900 text-sm">📱 QR code</p>
