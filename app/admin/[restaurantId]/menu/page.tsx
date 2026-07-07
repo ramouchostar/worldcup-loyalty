@@ -239,43 +239,82 @@ export default function AdminMenuPage() {
         <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
           Aucun article. Importe ton premier catalogue avec le bouton ci-dessus.
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="text-left font-medium px-4 py-2.5">Article</th>
-                <th className="text-left font-medium px-4 py-2.5">Catégorie</th>
-                <th className="text-right font-medium px-4 py-2.5">Prix vente</th>
-                <th className="text-right font-medium px-4 py-2.5">Prix revient</th>
-                <th className="text-right font-medium px-4 py-2.5" title="Valeur perçue par euro de coût">Ratio cadeau</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {items.map((it) => {
-                const ratio = it.cost_price > 0 ? it.menu_price / it.cost_price : 0;
-                return (
-                  <tr key={it.id} className={it.is_active ? "" : "opacity-50"}>
-                    <td className="px-4 py-2.5 font-medium text-gray-900">
-                      {it.name}
-                      {!it.is_active && <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">inactif</span>}
-                      {!it.reward_eligible && <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">hors cadeau</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-600">{it.category}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{euro(it.menu_price)}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{euro(it.cost_price)}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">
-                      <span className={`font-semibold ${ratio >= 8 ? "text-green-600" : ratio >= 4 ? "text-amber-600" : "text-gray-400"}`}>
-                        {ratio > 0 ? `×${ratio.toFixed(1)}` : "—"}
-                      </span>
-                    </td>
+      ) : (() => {
+        // Marge unitaire (prix vente − prix revient) — top/flop parmi les
+        // articles actifs réellement vendus (prix > 0 : les accompagnements
+        // offerts, volontairement à 0 €, ne sont pas des « mauvais élèves »).
+        const margin = (it: MenuItem) => Number(it.menu_price) - Number(it.cost_price);
+        const priced = items.filter((i) => i.is_active && Number(i.menu_price) > 0);
+        const sorted = [...priced].sort((a, b) => margin(b) - margin(a));
+        const topIds = new Set(sorted.slice(0, 3).map((i) => i.id));
+        const flopIds = new Set(sorted.length > 3 ? sorted.slice(-3).map((i) => i.id) : []);
+        const best = sorted[0];
+        const worst = sorted.length > 1 ? sorted[sorted.length - 1] : null;
+        return (
+          <>
+            {best && worst && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                  <p className="text-xs text-green-700 font-semibold uppercase tracking-wide">💎 Marge la plus forte</p>
+                  <p className="text-sm font-bold text-gray-900 mt-1 truncate">{best.name}</p>
+                  <p className="text-xs text-green-700">{euro(margin(best))} de marge par vente</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">⚠️ Marge la plus faible</p>
+                  <p className="text-sm font-bold text-gray-900 mt-1 truncate">{worst.name}</p>
+                  <p className="text-xs text-amber-700">{euro(margin(worst))} de marge par vente</p>
+                </div>
+              </div>
+            )}
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                  <tr>
+                    <th className="text-left font-medium px-4 py-2.5">Article</th>
+                    <th className="text-left font-medium px-4 py-2.5">Catégorie</th>
+                    <th className="text-right font-medium px-4 py-2.5">Prix vente</th>
+                    <th className="text-right font-medium px-4 py-2.5">Prix revient</th>
+                    <th className="text-right font-medium px-4 py-2.5" title="Prix de vente − prix de revient">Marge</th>
+                    <th className="text-right font-medium px-4 py-2.5" title="Valeur perçue par euro de coût">Ratio cadeau</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {items.map((it) => {
+                    const ratio = it.cost_price > 0 ? it.menu_price / it.cost_price : 0;
+                    const m = margin(it);
+                    const isTop = topIds.has(it.id);
+                    const isFlop = flopIds.has(it.id);
+                    return (
+                      <tr key={it.id} className={`${it.is_active ? "" : "opacity-50"} ${isTop ? "bg-green-50/60" : isFlop ? "bg-amber-50/60" : ""}`}>
+                        <td className="px-4 py-2.5 font-medium text-gray-900">
+                          {it.name}
+                          {isTop && <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">💎 top marge</span>}
+                          {isFlop && <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">marge faible</span>}
+                          {!it.is_active && <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">inactif</span>}
+                          {!it.reward_eligible && <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">hors cadeau</span>}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600">{it.category}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{euro(it.menu_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{euro(it.cost_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          <span className={`font-semibold ${isTop ? "text-green-600" : isFlop ? "text-amber-600" : "text-gray-700"}`}>
+                            {euro(m)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          <span className={`font-semibold ${ratio >= 8 ? "text-green-600" : ratio >= 4 ? "text-amber-600" : "text-gray-400"}`}>
+                            {ratio > 0 ? `×${ratio.toFixed(1)}` : "—"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── Paliers de récompense ───────────────────────────────────────────── */}
       {!loading && items.length > 0 && (

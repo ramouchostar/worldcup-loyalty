@@ -159,6 +159,10 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
           <p className="font-semibold text-gray-900 text-sm">🏆 Classement public</p>
           <p className="text-xs text-gray-400 mt-0.5">Vue temps réel ↗</p>
         </Link>
+        <Link href={r("/sales")} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
+          <p className="font-semibold text-gray-900 text-sm">📊 Ventes par plat</p>
+          <p className="text-xs text-gray-400 mt-0.5">Quantités, CA, marges, heures</p>
+        </Link>
         <Link href={r("/qr")} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
           <p className="font-semibold text-gray-900 text-sm">📱 QR code</p>
           <p className="text-xs text-gray-400 mt-0.5">À imprimer pour tes clients</p>
