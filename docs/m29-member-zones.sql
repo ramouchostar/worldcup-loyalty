@@ -20,25 +20,51 @@ ALTER TABLE teams
 CREATE INDEX IF NOT EXISTS idx_teams_restaurant_zone
   ON teams (restaurant_id, zone) WHERE is_active;
 
--- Trigger profil : zones (JSON array), phone, birth_date depuis les métadonnées
-CREATE OR REPLACE FUNCTION handle_new_user()
+-- Trigger profil : zones (JSON array), phone, birth_date depuis les métadonnées.
+-- ⚠️ Version DÉFENSIVE (m29b) : la première version de ce fichier cassait
+-- toute inscription (fonction non qualifiée + search_path absent dans le
+-- contexte Supabase Auth). La définition ci-dessous est celle de m29b —
+-- rejouer ce fichier après m29b ne peut plus régresser. Incident réel :
+-- migrations rejouées en lot le 2026-07-06 → inscriptions cassées en prod.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_meta  JSONB  := '{}'::jsonb;
+  v_zones TEXT[] := '{}';
+  v_birth DATE   := NULL;
 BEGIN
-  INSERT INTO profiles (id, email, display_name, phone, birth_date, zones)
+  BEGIN
+    v_meta := COALESCE(NEW.raw_user_meta_data::jsonb, '{}'::jsonb);
+  EXCEPTION WHEN OTHERS THEN
+    v_meta := '{}'::jsonb;
+  END;
+
+  BEGIN
+    IF jsonb_typeof(v_meta->'zones') = 'array' THEN
+      v_zones := ARRAY(SELECT jsonb_array_elements_text(v_meta->'zones'));
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    v_zones := '{}';
+  END;
+
+  BEGIN
+    v_birth := NULLIF(v_meta->>'birth_date', '')::DATE;
+  EXCEPTION WHEN OTHERS THEN
+    v_birth := NULL;
+  END;
+
+  INSERT INTO public.profiles (id, email, display_name, phone, birth_date, zones)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
-    NULLIF(NEW.raw_user_meta_data->>'phone', ''),
-    NULLIF(NEW.raw_user_meta_data->>'birth_date', '')::DATE,
-    COALESCE(
-      ARRAY(SELECT jsonb_array_elements_text(NEW.raw_user_meta_data->'zones')),
-      '{}'
-    )
+    COALESCE(v_meta->>'display_name', split_part(NEW.email, '@', 1)),
+    NULLIF(v_meta->>'phone', ''),
+    v_birth,
+    v_zones
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Vérification
 SELECT
