@@ -1,9 +1,12 @@
-const CACHE_NAME = "worldcup-loyalty-v1";
+// v2 : consoles (/admin, /platform), coupons anti-fraude et pages membres
+// authentifiées passent en network-first — le cache est réservé aux surfaces
+// de consultation (landing, classement, offline). Le bump purge les caches v1
+// existants à l'activation.
+const CACHE_NAME = "worldcup-loyalty-v2";
 
 // Ressources à mettre en cache lors de l'installation
 const PRECACHE_URLS = [
   "/",
-  "/leaderboard",
   "/offline",
   "/api/icons/192",
 ];
@@ -59,13 +62,31 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   if (url.origin !== self.location.origin) return;
 
-  // API routes et pages auth : network-first (toujours depuis le serveur)
+  // Pages membres authentifiées (/r/[id]/...) : network-first, SAUF la
+  // landing (/r/[id]) et le classement — surfaces de consultation où la
+  // vitesse d'affichage prime. Le dashboard, les récompenses (countdown
+  // 48h), la réserve et la soumission de ticket doivent être frais.
+  const memberMatch = url.pathname.match(/^\/r\/[^/]+(\/.*)?$/);
+  const memberSubPath = memberMatch?.[1] ?? null;
+  const isMemberAppPage =
+    !!memberSubPath && memberSubPath !== "/" && memberSubPath !== "/leaderboard";
+
+  // Network-first (toujours depuis le serveur) :
+  // - /api/* et pages auth (historique)
+  // - /admin/* et /platform : consoles opérationnelles — une donnée en
+  //   retard fait prendre de mauvaises décisions, un formulaire pré-rempli
+  //   périmé peut écraser des données fraîches
+  // - /coupon/* : dispositif anti-fraude à timer 10 min (ADR 0011), ne doit
+  //   jamais sortir d'un cache
   const isNetworkFirst =
     url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/admin") ||
+    url.pathname.startsWith("/platform") ||
+    url.pathname.startsWith("/coupon") ||
     url.pathname === "/login" ||
     url.pathname === "/signup" ||
-    url.pathname === "/dashboard" ||
-    url.pathname === "/register";
+    url.pathname === "/register" ||
+    isMemberAppPage;
 
   if (isNetworkFirst) {
     event.respondWith(
