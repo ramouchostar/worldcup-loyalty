@@ -108,12 +108,15 @@ export async function middleware(request: NextRequest) {
 
   if (isAdminEstablishmentRoute && user && adminRestaurantId) {
     const [{ data: profile }, { data: restaurant }] = await Promise.all([
-      supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+      supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
       supabase.from("restaurants").select("owner_id").eq("id", adminRestaurantId).maybeSingle(),
     ]);
     const isLegacyAdmin = !!profile?.is_admin && adminRestaurantId === getRestaurantId();
     const isOwner = restaurant?.owner_id === user.id;
-    if (!isLegacyAdmin && !isOwner) {
+    // Le super-admin plateforme accède à la console de n'importe quel
+    // établissement (support, gestion des données — ADR 0015 §7).
+    const isSuperAdmin = !!profile?.is_super_admin;
+    if (!isLegacyAdmin && !isOwner && !isSuperAdmin) {
       return NextResponse.redirect(new URL("/join", request.url));
     }
   }

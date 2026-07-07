@@ -1,6 +1,24 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { approveRestaurant, rejectRestaurant } from "./actions";
+import { approveRestaurant, rejectRestaurant, setRestaurantStatus } from "./actions";
+import { CreateRestaurantForm } from "./CreateRestaurantForm";
+import { AssignOwnerForm } from "./AssignOwnerForm";
+
+type RestaurantRow = {
+  id: string;
+  name: string;
+  sector: string | null;
+  status: "pending" | "active" | "disabled";
+  owner_id: string | null;
+  created_at: string;
+};
+
+const STATUS_BADGE: Record<RestaurantRow["status"], { label: string; cls: string }> = {
+  active:   { label: "Actif",      cls: "bg-green-100 text-green-800" },
+  pending:  { label: "En attente", cls: "bg-amber-100 text-amber-800" },
+  disabled: { label: "Désactivé",  cls: "bg-gray-100 text-gray-500" },
+};
 
 export default async function PlatformPage() {
   const supabase = await createServerSupabaseClient();
@@ -12,18 +30,40 @@ export default async function PlatformPage() {
 
   const admin = createAdminClient();
 
-  const [{ data: pending }, { count: activeCount }, { count: memberCount }] = await Promise.all([
-    admin.from("restaurants").select("id, name, sector, created_at").eq("status", "pending").order("created_at"),
-    admin.from("restaurants").select("id", { count: "exact", head: true }).eq("status", "active"),
+  const [{ data: allRaw }, { count: memberCount }] = await Promise.all([
+    admin
+      .from("restaurants")
+      .select("id, name, sector, status, owner_id, created_at")
+      .order("created_at", { ascending: false }),
     admin.from("memberships").select("user_id", { count: "exact", head: true }),
   ]);
 
-  const pendingList = pending ?? [];
-  const menuCounts = await Promise.all(
-    pendingList.map((r) =>
-      admin.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", r.id)
-    )
+  const all = (allRaw ?? []) as RestaurantRow[];
+  const pendingList = all.filter((r) => r.status === "pending");
+  const activeCount = all.filter((r) => r.status === "active").length;
+
+  // Emails des owners + compteurs par établissement (réseau petit — les
+  // requêtes parallèles suffisent largement)
+  const ownerIds = Array.from(new Set(all.map((r) => r.owner_id).filter((id): id is string => !!id)));
+  const [{ data: owners }, memberCounts, menuCounts] = await Promise.all([
+    ownerIds.length > 0
+      ? admin.from("profiles").select("id, email").in("id", ownerIds)
+      : Promise.resolve({ data: [] }),
+    Promise.all(
+      all.map((r) =>
+        admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", r.id)
+      )
+    ),
+    Promise.all(
+      pendingList.map((r) =>
+        admin.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", r.id)
+      )
+    ),
+  ]);
+  const ownerEmailById = new Map(
+    ((owners ?? []) as { id: string; email: string | null }[]).map((o) => [o.id, o.email])
   );
+  const membersById = new Map(all.map((r, i) => [r.id, memberCounts[i].count ?? 0]));
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -36,7 +76,7 @@ export default async function PlatformPage() {
         {/* Stats cross-établissements — argument commercial ADR 0015 §9 */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900">{activeCount ?? 0}</p>
+            <p className="text-3xl font-bold text-gray-900">{activeCount}</p>
             <p className="text-xs text-gray-500 mt-1">établissements actifs</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
@@ -97,6 +137,97 @@ export default async function PlatformPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Tous les établissements */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h2 className="font-bold text-gray-900 mb-4">Tous les établissements ({all.length})</h2>
+          {all.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">Aucun établissement.</p>
+          ) : (
+            <div className="space-y-3">
+              {all.map((r) => {
+                const badge = STATUS_BADGE[r.status];
+                const ownerEmail = r.owner_id ? ownerEmailById.get(r.owner_id) : null;
+                return (
+                  <div key={r.id} className="border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {r.name}
+                          {r.sector && <span className="ml-2 text-xs font-normal text-gray-400">📍 {r.sector}</span>}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          <span className="font-mono">{r.id}</span>
+                          {" · "}
+                          {membersById.get(r.id) ?? 0} membre{(membersById.get(r.id) ?? 0) > 1 ? "s" : ""}
+                          {" · "}
+                          {ownerEmail ?? (r.owner_id ? "owner sans email" : "aucun owner")}
+                        </p>
+                      </div>
+                      <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <Link
+                        href={`/admin/${r.id}`}
+                        className="text-xs font-semibold text-white bg-brand-dark px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors"
+                      >
+                        Console admin →
+                      </Link>
+                      <Link
+                        href={`/r/${r.id}`}
+                        target="_blank"
+                        className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        Page publique ↗
+                      </Link>
+                      {r.status === "active" ? (
+                        <form action={setRestaurantStatus.bind(null, r.id, "disabled")} className="ml-auto">
+                          <button
+                            type="submit"
+                            className="text-xs font-semibold text-red-700 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
+                          >
+                            Désactiver
+                          </button>
+                        </form>
+                      ) : r.status === "disabled" ? (
+                        <form action={setRestaurantStatus.bind(null, r.id, "active")} className="ml-auto">
+                          <button
+                            type="submit"
+                            className="text-xs font-semibold text-green-700 bg-green-50 px-3 py-1.5 rounded-lg hover:bg-green-100 transition-colors"
+                          >
+                            Réactiver
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Ajouter un établissement (démarchage terrain) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h2 className="font-bold text-gray-900 mb-1">Ajouter un établissement</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Créé directement actif. Le restaurateur complétera son menu et ses
+            tickets depuis sa console admin.
+          </p>
+          <CreateRestaurantForm />
+        </div>
+
+        {/* Rattacher un owner */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h2 className="font-bold text-gray-900 mb-1">Rattacher un restaurateur</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Donne (ou réassigne) l&apos;accès admin d&apos;un établissement au compte
+            membre correspondant à cet email.
+          </p>
+          <AssignOwnerForm restaurants={all.map((r) => ({ id: r.id, name: r.name }))} />
         </div>
       </div>
     </div>
