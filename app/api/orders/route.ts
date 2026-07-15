@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
     // doit influencer l'auto-validation.
   } else {
     // Legacy JSON path (backward compat for admin tools)
-    const body = await request.json();
-    if (!body.order_number || body.amount === undefined || !body.restaurantId) {
+    const body = await request.json().catch(() => null);
+    if (!body || !body.order_number || body.amount === undefined || !body.restaurantId) {
       return NextResponse.json({ error: "Champs manquants." }, { status: 400 });
     }
     orderNumber = String(body.order_number).trim();
