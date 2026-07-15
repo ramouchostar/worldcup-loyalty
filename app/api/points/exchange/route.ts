@@ -16,6 +16,11 @@ export async function POST(request: Request) {
   if (typeof restaurantId !== "string" || !restaurantId || typeof tierId !== "string" || !tierId) {
     return NextResponse.json({ error: "restaurantId et tierId requis." }, { status: 400 });
   }
+  // tierId doit être un UUID — sinon le RPC lève « invalid input syntax for
+  // type uuid » et renvoyait un 500. Message neutre (ADR 0007).
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tierId)) {
+    return NextResponse.json({ error: "Ce cadeau n'est plus disponible." }, { status: 400 });
+  }
 
   try {
     const result = await exchangePointsForGift(user.id, restaurantId, tierId);
