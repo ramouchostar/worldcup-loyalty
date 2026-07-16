@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "WorldCup Loyalty",
-    short_name: "WorldCup",
+    name: "Boosteats",
+    short_name: "Boosteats",
     description:
       "Programme de fidélité communautaire par équipes. Mangez directement au restaurant, gagnez ensemble.",
     id: "/",
@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#1A1A2E",
     theme_color: "#C8102E",
     orientation: "portrait",
-    categories: ["food", "loyalty", "sports"],
+    categories: ["food", "loyalty", "shopping"],
     icons: [
       {
         src: "/api/icons/192",
