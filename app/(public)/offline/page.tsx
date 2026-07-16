@@ -13,7 +13,7 @@ export default function OfflinePage() {
         <p className="text-6xl mb-5" role="img" aria-label="Pas de signal">📶</p>
         <h1 className="text-2xl font-black text-white mb-3">Pas de connexion</h1>
         <p className="text-gray-400 text-sm leading-relaxed mb-8">
-          Tu es hors ligne. Reconnecte-toi pour accéder à WorldCup Loyalty.
+          Tu es hors ligne. Reconnecte-toi pour accéder à Boosteats.
         </p>
         <Link
           href="/"
