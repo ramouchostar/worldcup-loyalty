@@ -41,10 +41,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     openGraph: {
       title,
       description,
-      images: [{ url: `${APP_URL}/api/icons/512`, width: 512, height: 512, alt: "WorldCup Loyalty" }],
+      images: [{ url: `${APP_URL}/api/icons/512`, width: 512, height: 512, alt: "Boosteats" }],
       url: `${APP_URL}/invite${searchParams.ref ? `?ref=${searchParams.ref}` : ""}`,
       type: "website",
-      siteName: "WorldCup Loyalty",
+      siteName: "Boosteats",
     },
     twitter: {
       card: "summary",
