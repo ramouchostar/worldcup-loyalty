@@ -47,7 +47,7 @@ export async function GET(
             letterSpacing: Math.round(size * 0.008),
           }}
         >
-          WORLDCUP
+          BOOSTEATS
         </div>
       </div>
     ),
