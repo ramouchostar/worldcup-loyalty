@@ -73,7 +73,11 @@ export default async function QrPrintPage({
 
   return (
     <>
-      <style>{`
+      <style
+        // contenu dynamique (@page selon le format) → dangerouslySetInnerHTML
+        // pour éviter que React ne diffe le texte CSS à l'hydratation (err #329)
+        dangerouslySetInnerHTML={{
+          __html: `
         @page { size: ${spec.page}; margin: 0; }
         html, body { background: #f3f4f6; }
         @media print {
@@ -85,7 +89,9 @@ export default async function QrPrintPage({
             top: 0 !important; left: 0 !important; margin: 0 !important; box-shadow: none !important; }
           .print-sheet * { visibility: visible !important; }
         }
-      `}</style>
+      `,
+        }}
+      />
 
       {/* Barre d'action — écran uniquement */}
       <div className="no-print sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
