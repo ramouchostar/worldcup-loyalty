@@ -8,10 +8,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Couleurs de marque pilotées par variables CSS (canaux RGB) — permet
+        // la charte graphique par établissement (lib/branding.ts) tout en
+        // gardant les modificateurs d'opacité Tailwind (ex. brand-gold/40).
+        // Défauts Boosteats définis dans app/globals.css.
         brand: {
-          red: "#C8102E",
-          gold: "#F5A623",
-          dark: "#1A1A2E",
+          red: "rgb(var(--brand-red) / <alpha-value>)",
+          gold: "rgb(var(--brand-gold) / <alpha-value>)",
+          dark: "rgb(var(--brand-dark) / <alpha-value>)",
         },
       },
     },
