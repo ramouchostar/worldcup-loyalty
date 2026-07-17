@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant } from "@/lib/restaurant";
+import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
+import { brandStyle } from "@/lib/branding";
 import { UserNav } from "@/components/member/UserNav";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { BottomNav } from "@/components/member/BottomNav";
@@ -18,6 +19,10 @@ export default async function RestaurantLayout({
   const { restaurantId } = await params;
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();
+
+  // Charte graphique de l'établissement (m37) — surcharge les couleurs de
+  // marque sur toutes ses surfaces membre. Défauts Boosteats si aucune charte.
+  const branding = await getRestaurantBranding(restaurantId);
 
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -46,7 +51,7 @@ export default async function RestaurantLayout({
         facebook_url: restaurant.facebook_url,
       }}
     >
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" style={brandStyle(branding)}>
       <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <RestaurantSwitcher
