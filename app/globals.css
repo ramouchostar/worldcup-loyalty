@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Couleurs de marque Boosteats par défaut (canaux RGB pour l'opacité Tailwind).
+   Surchargées par établissement dans les layouts /r/[id] et /admin/[id] via
+   lib/branding.ts — un resto sans charte garde ces valeurs. */
+:root {
+  --brand-red: 200 16 46;    /* #C8102E */
+  --brand-gold: 245 166 35;  /* #F5A623 */
+  --brand-dark: 26 26 46;    /* #1A1A2E */
+}
+
 @layer utilities {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
