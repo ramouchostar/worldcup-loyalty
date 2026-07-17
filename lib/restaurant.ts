@@ -1,4 +1,36 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
+import type { Branding } from "./branding";
+
+const LOGO_BUCKET = "restaurant-logos";
+const EMPTY_BRANDING: Branding = { logo_url: null, brand_primary: null, brand_dark: null, brand_accent: null };
+
+// Charte graphique d'un établissement (couleurs + logo, m37). Résilient : si
+// les colonnes n'existent pas encore (migration non appliquée), retourne les
+// défauts Boosteats au lieu de casser la page. Voir lib/branding.ts.
+export async function getRestaurantBranding(restaurantId: string): Promise<Branding> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("restaurants")
+      .select("logo_url, brand_primary, brand_dark, brand_accent")
+      .eq("id", restaurantId)
+      .maybeSingle();
+    if (error || !data) return EMPTY_BRANDING;
+    return data as Branding;
+  } catch {
+    return EMPTY_BRANDING;
+  }
+}
+
+// URL publique d'un logo à partir de son chemin de stockage (bucket public).
+export function logoPublicUrl(path: string | null): string | null {
+  if (!path) return null;
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return null;
+  return `${base}/storage/v1/object/public/${LOGO_BUCKET}/${path}`;
+}
+
+export { LOGO_BUCKET };
 
 // Conservé pour app/admin/** uniquement (ADR 0015 §6-7 hors scope — l'admin
 // reste sur un seul établissement résolu par variable d'environnement le
