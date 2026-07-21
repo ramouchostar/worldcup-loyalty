@@ -280,6 +280,84 @@ export function suggestDegressiveBundle(
   return null;
 }
 
+// ─── « N achetés = 1 offert » pour le jour creux (stratégie terrain, ADR 0022) ─
+
+// Deuxième stratégie terrain : sur un jour creux, offrir une unité gratuite à
+// l'achat de N unités payées. La valeur perçue de l'offre est le PRIX CARTE de
+// l'unité offerte (le client voit « €12 offerts ») ; son coût réel n'est que
+// le coût matière. N se déduit du ratio coût/prix du produit : un burger à
+// €12 pour €1,50 de coût supporte « 1 acheté = 1 offert », une pizza dont le
+// coût fait 25 % du prix exige « 3 achetées = la 4e offerte » — dans les deux
+// cas la formule complète garde une marge saine, c'est le curseur.
+
+// Marge minimale de la formule complète (N payées + 1 offerte), calibrée sur
+// les deux exemples de référence : burger 1+1 → 75 %, pizza 3+1 → 66,7 % ;
+// pizza 2+1 tomberait à 62,5 % → rejetée, il faut bien 3 payées.
+export const FREEBIE_MIN_MARGIN_RATIO = 0.65;
+// Au-delà de 4 unités payées, l'offre n'attire plus personne.
+export const FREEBIE_MAX_PAID_UNITS = 4;
+
+export type FreebieSuggestion = {
+  product: ProductStat;
+  paidUnits: number;      // N unités payées pour 1 offerte
+  revenue: number;        // encaissé par formule (N × prix carte)
+  totalCost: number;      // coût matière des N+1 unités
+  margin: number;         // marge restante par formule
+  marginRatio: number;    // marge / encaissé
+  perceivedValue: number; // ce que le client croit gagner (prix carte de l'offerte)
+  realCost: number;       // ce que l'offerte coûte vraiment (coût matière)
+};
+
+// Plus petit N (1..4) tel que la formule N payées + 1 offerte garde la marge
+// minimale. Null si même 4 payées n'y suffisent pas (coût trop lourd).
+export function freebiePaidUnits(menuPrice: number, costPrice: number): number | null {
+  if (menuPrice <= 0 || costPrice <= 0) return null;
+  for (let n = 1; n <= FREEBIE_MAX_PAID_UNITS; n++) {
+    const marginRatio = (n * menuPrice - (n + 1) * costPrice) / (n * menuPrice);
+    if (marginRatio >= FREEBIE_MIN_MARGIN_RATIO) return n;
+  }
+  return null;
+}
+
+// Produit cible : parmi les articles qui se vendent déjà, celui dont l'offre
+// est la plus percutante — N le plus petit d'abord (« 1 acheté = 1 offert »
+// bat « 3 achetés = 1 offert »), puis la valeur perçue de l'unité offerte
+// (prix carte), puis le volume prouvé.
+export function suggestBuyNGetOneFree(
+  products: ProductStat[],
+  totalItems: number
+): FreebieSuggestion | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return null;
+  let best: { n: number; p: ProductStat } | null = null;
+  for (const p of products) {
+    if (p.qty <= 0) continue;
+    const n = freebiePaidUnits(p.menuPrice, p.costPrice);
+    if (n === null) continue;
+    if (
+      !best ||
+      n < best.n ||
+      (n === best.n && p.menuPrice > best.p.menuPrice) ||
+      (n === best.n && p.menuPrice === best.p.menuPrice && p.qty > best.p.qty)
+    ) {
+      best = { n, p };
+    }
+  }
+  if (!best) return null;
+  const { n, p } = best;
+  const revenue = n * p.menuPrice;
+  const totalCost = (n + 1) * p.costPrice;
+  return {
+    product: p,
+    paidUnits: n,
+    revenue,
+    totalCost,
+    margin: revenue - totalCost,
+    marginRatio: (revenue - totalCost) / revenue,
+    perceivedValue: p.menuPrice,
+    realCost: p.costPrice,
+  };
+}
+
 // Clé canonique d'une paire de produits (ordre stable)
 export function pairKey(idA: string, idB: string): string {
   return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;

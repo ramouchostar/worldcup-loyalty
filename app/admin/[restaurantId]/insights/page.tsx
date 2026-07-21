@@ -9,6 +9,7 @@ import {
   pickPromoProduct,
   suggestCombos,
   suggestDegressiveBundle,
+  suggestBuyNGetOneFree,
   pairKey,
   type ProductStat,
 } from "@/lib/insights";
@@ -116,6 +117,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const promo = pickPromoProduct(products);
   const combos = suggestCombos(products, pairCounts, totalItems);
   const bundle = suggestDegressiveBundle(products, totalItems);
+  const freebie = suggestBuyNGetOneFree(products, totalItems);
 
   const broadcast = (message: string) =>
     `/admin/${restaurantId}/broadcast?prefill=${encodeURIComponent(message)}`;
@@ -145,6 +147,22 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       title: `Happy hour ${quietHours.start}h–${quietHours.end}h`,
       rationale: `Le créneau ${quietHours.start}h–${quietHours.end}h est ton plus calme (${quietHours.qty} articles, contre ${quietHours.windowQty} sur ton meilleur créneau de 2 h). Remplis-le sans casser ta marge : −${promo.discountPct} % sur « ${promo.product.name} » reste rentable.`,
       message: `⏰ Happy hour membres ${quietHours.start}h–${quietHours.end}h : −${promo.discountPct}% sur ${promo.product.name} !`,
+    });
+  }
+
+  if (freebie && quietDay) {
+    const day = WEEKDAY_LABELS[quietDay.day];
+    const f = freebie;
+    const offer =
+      f.paidUnits === 1
+        ? `1 ${f.product.name} acheté = 1 offert`
+        : `${f.paidUnits} ${f.product.name} achetés = 1 offert`;
+    cards.push({
+      icon: "🎁",
+      title: `${offer} — le ${day}`,
+      rationale: `Le ${day} est ton jour le plus calme (${quietDay.qty} articles vendus contre ${quietDay.busiestQty} le ${WEEKDAY_LABELS[quietDay.busiestDay]}). L'unité offerte de « ${f.product.name} » est perçue à ${euro(f.perceivedValue)} mais ne te coûte que ${euro(f.realCost)} : chaque formule encaisse ${euro(f.revenue)} pour ${euro(f.totalCost)} de coût matière — il te reste ${euro(f.margin)} de marge (${Math.round(f.marginRatio * 100)} %). Et un client qui multiplie la formule pour cumuler les gratuits multiplie d'autant ce qu'il te laisse.`,
+      message: `🎁 Spécial ${day} membres : ${offer} !`,
+      detail: `Réserve l'offre au ${day} (et aux membres) : sur un jour plein elle remplacerait des ventes plein tarif au lieu d'en créer.`,
     });
   }
 
