@@ -18,6 +18,9 @@ import {
   addDaysISO,
   PAYDAY_DAYS,
   TIGHT_DAYS,
+  upcomingCalendarContexts,
+  matchSeasonalProducts,
+  suggestGroupPack,
   nextPromoDates,
   pairKey,
   type ProductStat,
@@ -137,6 +140,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const rushUpsell = suggestRushUpsell(products, avgBasket, totalItems);
   const monthDip = findMonthEndDip(byMonthDay, totalItems);
   const tightOffer = suggestTightBudgetOffer(products, totalItems);
+  const calendarContexts = upcomingCalendarContexts(todayInBrussels());
 
   const broadcast = (message: string, sendOn?: string, promoOn?: string) => {
     const q = new URLSearchParams({ prefill: message });
@@ -225,6 +229,58 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       planning: `Prochaine occurrence : ${fmtDate(dates.promoOn)}. L'annonce partira la veille (${fmtDate(dates.sendOn)}) — jamais plus tôt, pour ne pas déplacer les commandes des jours pleins. Prévois le stock de « ${f.product.name} ».`,
       sendOn: dates.sendOn,
       promoOn: dates.promoOn,
+    });
+  }
+
+  for (const ctx of calendarContexts) {
+    const ongoing = ctx.start <= todayISO;
+    // Contexte à venir : l'annonce part la veille du début (ADR 0023) ;
+    // contexte en cours : communication immédiate.
+    const sendOn = ongoing ? undefined : addDaysISO(ctx.start, -1);
+    const promoOn = ongoing ? undefined : ctx.start;
+    const period = ongoing
+      ? `en cours jusqu'au ${fmtDate(ctx.end)}`
+      : `du ${fmtDate(ctx.start)} au ${fmtDate(ctx.end)}`;
+
+    if (ctx.angle === "groupe") {
+      const pack = suggestGroupPack(products, totalItems);
+      if (!pack) continue;
+      cards.push({
+        icon: "⚽",
+        title: `${ctx.label} : vise les groupes`,
+        rationale: `Pendant ${ctx.label} (${period}), les gens se réunissent pour regarder les matchs ensemble — c'est une clientèle de GROUPES, pas d'individuels. Propose un pack : 4× « ${pack.main.name} » (ton plat le mieux vendu, ${pack.main.qty}×) + 2× « ${pack.side.name} » à partager, à ${euro(pack.packPrice)} au lieu de ${euro(pack.fullPrice)}. L'économie affichée est de ${euro(pack.saving)}, il te reste ${euro(pack.margin)} de marge par pack.`,
+        message: `⚽ ${ctx.label} : Pack match 4 personnes — 4× ${pack.main.name} + 2× ${pack.side.name} à ${euro(pack.packPrice)} au lieu de ${euro(pack.fullPrice)} ! On regarde ensemble, on mange ensemble 🍽️`,
+        detail: `Un pack de groupe fait un ticket ~4× ton panier individuel — pense au stock et au conditionnement à emporter pour les soirées de match.`,
+        planning: ongoing
+          ? `${ctx.label} est en cours (jusqu'au ${fmtDate(ctx.end)}) — l'annonce peut partir dès maintenant et l'offre courir toute la compétition.`
+          : `${ctx.label} démarre le ${fmtDate(ctx.start)}. L'annonce partira la veille (${fmtDate(sendOn!)}).`,
+        sendOn,
+        promoOn,
+      });
+      continue;
+    }
+
+    const seasonal = matchSeasonalProducts(products, ctx.angle);
+    const isEte = ctx.angle === "ete";
+    const names = seasonal.map((s) => s.name);
+    cards.push({
+      icon: isEte ? "☀️" : "🍲",
+      title: isEte
+        ? `${ctx.label} : mets tes produits d'été en avant`
+        : `${ctx.label} : plats chauds et réconfortants`,
+      rationale: isEte
+        ? `Juillet-août vendent généralement moins — plutôt qu'une remise, attire avec ce qui colle à la saison (${period}).${names.length > 0 ? ` Dans ton catalogue : ${names.map((n) => `« ${n} »`).join(", ")} — communique dessus, sans toucher aux prix.` : ` Ton catalogue ne contient pas d'article estival identifiable (glaces, boissons fraîches, salades…) — c'est peut-être le moment d'en ajouter via ton CSV.`}`
+        : `Pendant les vacances d'hiver (${period}), les clients cherchent du réconfort — rappelle-leur tes plats chauds.${names.length > 0 ? ` Dans ton catalogue : ${names.map((n) => `« ${n} »`).join(", ")} — communique dessus, sans toucher aux prix.` : ` Ton catalogue ne contient pas d'article « réconfort » identifiable (soupes, gratins, plats mijotés…) — c'est peut-être le moment d'en ajouter via ton CSV.`}`,
+      message:
+        names.length > 0
+          ? `${isEte ? "☀️" : "🍲"} ${isEte ? "L'été est là" : "Il fait froid dehors"} : ${names.join(", ")} ${names.length > 1 ? "vous attendent" : "vous attend"} ! ${isEte ? "Fraîcheur garantie 🧊" : "De quoi se réchauffer 🔥"}`
+          : `${isEte ? "☀️ Nos nouveautés d'été vous attendent !" : "🍲 Nos plats chauds vous attendent pour affronter l'hiver !"}`,
+      detail: `Communication de saison, pas une promo : aucun prix ne bouge, zéro impact sur ta marge — le bon produit au bon moment suffit.`,
+      planning: ongoing
+        ? `${ctx.label} : ${period} — l'annonce peut partir dès maintenant.`
+        : `${ctx.label} : ${period}. L'annonce partira la veille du début (${fmtDate(sendOn!)}).`,
+      sendOn,
+      promoOn,
     });
   }
 

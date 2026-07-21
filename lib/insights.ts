@@ -501,6 +501,154 @@ export function nextDateInMonthDays(todayISO: string, days: Set<number>, minLead
   return d; // inatteignable : toute fenêtre mensuelle survient sous 40 jours
 }
 
+// ─── Contextes calendaires : saisons & événements (stratégie terrain, ADR 0022) ─
+
+// Sixième stratégie terrain — la règle générale : le calendrier définit des
+// CONTEXTES (grandes vacances, vacances d'hiver, compétition sportive), et
+// chaque contexte impose un ANGLE de communication :
+//   - été       → attirer avec les produits de saison (juillet-août vend moins) ;
+//   - réconfort → l'hiver, rappeler qu'on a des plats chauds et réconfortants ;
+//   - groupe    → pendant un événement sportif, les gens se réunissent pour
+//                 regarder ensemble → offre qui vise les groupes.
+// On ne communique PAS forcément une promo : pour les saisons, montrer le bon
+// produit au bon moment suffit — zéro remise, zéro risque de marge.
+
+export type SeasonAngle = "ete" | "reconfort" | "groupe";
+
+export type CalendarContext = {
+  key: string;
+  label: string;
+  angle: SeasonAngle;
+  start: string; // YYYY-MM-DD
+  end: string;
+};
+
+// Grands événements sportifs à venir (dates connues à l'avance — à compléter
+// au fil des annonces officielles, une ligne par événement).
+export const SPORT_EVENTS: { label: string; start: string; end: string }[] = [
+  { label: "Coupe du Monde 2026", start: "2026-06-11", end: "2026-07-19" },
+  { label: "Euro 2028", start: "2028-06-09", end: "2028-07-09" },
+  { label: "JO de Los Angeles 2028", start: "2028-07-14", end: "2028-07-30" },
+  { label: "Coupe du Monde 2030", start: "2030-06-08", end: "2030-07-21" },
+];
+
+// Contextes en cours ou démarrant sous `leadDays` jours — l'annonce d'un
+// contexte à venir part la veille de son début (ADR 0023) ; un contexte en
+// cours se communique tout de suite.
+export function upcomingCalendarContexts(todayISO: string, leadDays = 21): CalendarContext[] {
+  const year = parseInt(todayISO.slice(0, 4), 10);
+  const windows: CalendarContext[] = [];
+  for (const y of [year - 1, year, year + 1]) {
+    windows.push({
+      key: `ete-${y}`,
+      label: "Grandes vacances",
+      angle: "ete",
+      start: `${y}-07-01`,
+      end: `${y}-08-31`,
+    });
+    // Les vacances d'hiver chevauchent le nouvel an : début en décembre de
+    // l'année y, fin début janvier de y+1.
+    windows.push({
+      key: `hiver-${y}`,
+      label: "Vacances d'hiver",
+      angle: "reconfort",
+      start: `${y}-12-20`,
+      end: `${y + 1}-01-05`,
+    });
+  }
+  for (const e of SPORT_EVENTS) {
+    windows.push({ key: `event-${e.start}`, label: e.label, angle: "groupe", start: e.start, end: e.end });
+  }
+  const horizon = addDaysISO(todayISO, leadDays);
+  return windows
+    .filter((w) => w.end >= todayISO && w.start <= horizon)
+    .sort((a, b) => (a.start < b.start ? -1 : 1));
+}
+
+// Correspondance saisonnière par mots-clés sur nom + catégorie (normalisés
+// sans accents). Les listes sont volontairement prudentes : un raté laisse
+// la carte sans produit (communication générique) plutôt qu'un contresens.
+const SEASON_KEYWORDS: Record<Exclude<SeasonAngle, "groupe">, string[]> = {
+  ete: ["glace", "ice", "sorbet", "smoothie", "milkshake", "frappe", "salade", "froid", "fraich", "limonade", "bubble tea", "fruit"],
+  reconfort: ["soupe", "gratin", "chaud", "raclette", "fondue", "tartiflette", "curry", "ragout", "stew", "braise", "mijote"],
+};
+
+const normalize = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+// Produits collant à l'angle saisonnier, classés par valeur perçue par euro
+// de coût. Volontairement SANS filtre sur les ventes récentes : un produit
+// d'été s'est peu vendu hors saison — c'est précisément pour ça qu'on le
+// remet en avant.
+export function matchSeasonalProducts(
+  products: ProductStat[],
+  angle: Exclude<SeasonAngle, "groupe">,
+  limit = 3
+): ProductStat[] {
+  const words = SEASON_KEYWORDS[angle];
+  return products
+    .filter((p) => {
+      const hay = normalize(p.name);
+      return p.menuPrice > 0 && words.some((w) => hay.includes(w));
+    })
+    .sort((a, b) => {
+      const ra = a.costPrice > 0 ? a.menuPrice / a.costPrice : 0;
+      const rb = b.costPrice > 0 ? b.menuPrice / b.costPrice : 0;
+      return rb - ra;
+    })
+    .slice(0, limit);
+}
+
+export type GroupPack = {
+  main: ProductStat;
+  side: ProductStat;
+  fullPrice: number; // 4 plats + 2 accompagnements au prix carte
+  packPrice: number;
+  saving: number;
+  margin: number;
+};
+
+// Pack de groupe pour un événement sportif : 4× le plat le mieux vendu +
+// 2× l'accompagnement à partager au coût le plus bas. Économie affichée
+// ~10 % du prix carte, plafonnée à la moitié de la marge (même règle que
+// les combos) — le pack reste largement rentable.
+export function suggestGroupPack(products: ProductStat[], totalItems: number): GroupPack | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return null;
+  // Un plat, pas un accompagnement : le cœur du pack se prend au-dessus du
+  // prix médian du catalogue (sinon le best-seller absolu — souvent les
+  // frites — deviendrait le plat du pack).
+  const prices = products.map((p) => p.menuPrice).sort((a, b) => a - b);
+  const medianPrice = prices[Math.floor(prices.length / 2)] ?? 0;
+  const main = [...products]
+    .filter((p) => p.qty > 0 && p.costPrice > 0 && p.menuPrice - p.costPrice > 0 && p.menuPrice >= medianPrice)
+    .sort((a, b) => b.qty - a.qty)[0];
+  if (!main) return null;
+  const side = [...products]
+    .filter(
+      (p) =>
+        p.id !== main.id &&
+        p.qty > 0 &&
+        p.costPrice > 0 &&
+        p.menuPrice < main.menuPrice &&
+        p.costPrice / p.menuPrice <= RUSH_SIDE_MAX_COST_RATIO
+    )
+    .sort((a, b) => a.costPrice / a.menuPrice - b.costPrice / b.menuPrice)[0];
+  if (!side) return null;
+
+  const fullPrice = 4 * main.menuPrice + 2 * side.menuPrice;
+  const fullMargin = 4 * (main.menuPrice - main.costPrice) + 2 * (side.menuPrice - side.costPrice);
+  const saving = round50(Math.min(fullPrice * 0.1, fullMargin * 0.5));
+  if (saving < 0.5) return null;
+  return {
+    main,
+    side,
+    fullPrice,
+    packPrice: round50(fullPrice - saving),
+    saving,
+    margin: fullMargin - saving,
+  };
+}
+
 // ─── Planification des promos (ADR 0023) ─────────────────────────────────────
 
 // Une suggestion liée à un jour de semaine vise sa PROCHAINE occurrence, avec
