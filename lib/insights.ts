@@ -205,6 +205,81 @@ export function suggestCombos(
   return out.slice(0, 3);
 }
 
+// ─── Formule dégressive (stratégie terrain, ADR 0022) ────────────────────────
+
+// Première stratégie terrain encodée : sur un article à FORTE VALEUR PERÇUE
+// (prix carte élevé pour un coût matière faible), proposer une échelle
+// dégressive « 1 pour €7 · 2 pour €10 · 3 pour €12 » qui pousse le client à
+// monter en gamme. Constat de terrain : plus la valeur perçue est haute, plus
+// le client est sensible à la promo — la remise porte sur le prix perçu, pas
+// sur la marge, qui reste protégée unité par unité.
+
+// Valeur perçue forte : prix carte ≥ 3× le coût matière.
+export const BUNDLE_MIN_RATIO = 3;
+// Chaque unité supplémentaire vendue doit rapporter au moins ça de marge —
+// jamais d'unité vendue à prix coûtant pour gonfler l'échelle.
+export const BUNDLE_MIN_MARGINAL_MARGIN = 0.5;
+
+// Prix marginal des 2e, 3e et 4e unités, en fraction du prix carte —
+// calibré sur l'échelle de référence (unité €7 → 2/€10 · 3/€12 · 4/€13+).
+const BUNDLE_MARGINAL_FRACTIONS = [0.45, 0.3, 0.15] as const;
+
+const ceil50 = (n: number) => Math.ceil(n * 2) / 2;
+
+export type BundleTier = {
+  units: number;
+  price: number;          // prix total de la formule
+  saving: number;         // économie affichée vs prix unitaire × unités
+  margin: number;         // marge totale restante de la formule
+  marginalPrice: number;  // ce que la dernière unité coûte au client
+  marginalMargin: number; // ce qu'elle rapporte encore au restaurant
+};
+
+export type BundleSuggestion = { product: ProductStat; tiers: BundleTier[] };
+
+// Échelle dégressive pour un article donné. Le prix marginal de chaque unité
+// ajoutée suit les fractions de calibrage mais est relevé si nécessaire pour
+// préserver la marge minimale — la dernière unité n'est jamais un cadeau.
+export function buildBundleLadder(product: ProductStat): BundleTier[] {
+  const { menuPrice, costPrice } = product;
+  if (menuPrice <= 0 || costPrice <= 0 || menuPrice - costPrice <= BUNDLE_MIN_MARGINAL_MARGIN) return [];
+  const tiers: BundleTier[] = [];
+  let price = menuPrice;
+  for (let k = 2; k <= 4; k++) {
+    const target = round50(menuPrice * BUNDLE_MARGINAL_FRACTIONS[k - 2]);
+    const floor = ceil50(costPrice + BUNDLE_MIN_MARGINAL_MARGIN);
+    const marginal = Math.max(target, floor);
+    if (marginal >= menuPrice) break; // plus aucune dégressivité possible
+    price += marginal;
+    tiers.push({
+      units: k,
+      price,
+      saving: k * menuPrice - price,
+      margin: price - k * costPrice,
+      marginalPrice: marginal,
+      marginalMargin: marginal - costPrice,
+    });
+  }
+  return tiers;
+}
+
+// Article cible : le mieux vendu parmi ceux à forte valeur perçue (ratio
+// prix/coût ≥ 3) — la formule amplifie un produit prouvé, comme la promo.
+export function suggestDegressiveBundle(
+  products: ProductStat[],
+  totalItems: number
+): BundleSuggestion | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return null;
+  const candidates = products
+    .filter((p) => p.qty > 0 && p.costPrice > 0 && p.menuPrice / p.costPrice >= BUNDLE_MIN_RATIO)
+    .sort((a, b) => b.qty - a.qty || b.menuPrice / b.costPrice - a.menuPrice / a.costPrice);
+  for (const product of candidates) {
+    const tiers = buildBundleLadder(product);
+    if (tiers.length >= 2) return { product, tiers };
+  }
+  return null;
+}
+
 // Clé canonique d'une paire de produits (ordre stable)
 export function pairKey(idA: string, idB: string): string {
   return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;

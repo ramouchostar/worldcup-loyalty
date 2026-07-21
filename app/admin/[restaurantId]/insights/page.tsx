@@ -8,6 +8,7 @@ import {
   findQuietHours,
   pickPromoProduct,
   suggestCombos,
+  suggestDegressiveBundle,
   pairKey,
   type ProductStat,
 } from "@/lib/insights";
@@ -114,6 +115,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const quietHours = findQuietHours(byHour, totalItems);
   const promo = pickPromoProduct(products);
   const combos = suggestCombos(products, pairCounts, totalItems);
+  const bundle = suggestDegressiveBundle(products, totalItems);
 
   const broadcast = (message: string) =>
     `/admin/${restaurantId}/broadcast?prefill=${encodeURIComponent(message)}`;
@@ -143,6 +145,24 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       title: `Happy hour ${quietHours.start}h–${quietHours.end}h`,
       rationale: `Le créneau ${quietHours.start}h–${quietHours.end}h est ton plus calme (${quietHours.qty} articles, contre ${quietHours.windowQty} sur ton meilleur créneau de 2 h). Remplis-le sans casser ta marge : −${promo.discountPct} % sur « ${promo.product.name} » reste rentable.`,
       message: `⏰ Happy hour membres ${quietHours.start}h–${quietHours.end}h : −${promo.discountPct}% sur ${promo.product.name} !`,
+    });
+  }
+
+  if (bundle) {
+    const p = bundle.product;
+    const ladder = bundle.tiers
+      .map((t) => `${t.units} pour ${euro(t.price)}`)
+      .join(" · ");
+    const marginalMargins = bundle.tiers
+      .map((t) => `+${euro(t.marginalMargin)}`)
+      .join(" / ");
+    const topTier = bundle.tiers[bundle.tiers.length - 1];
+    cards.push({
+      icon: "🪜",
+      title: `Formule dégressive ${p.name}`,
+      rationale: `« ${p.name} » est ton article à forte valeur perçue (${euro(p.menuPrice)} carte pour ${euro(p.costPrice)} de coût, vendu ${p.qty}× sur la période) — le profil idéal pour une échelle dégressive : 1 pour ${euro(p.menuPrice)} · ${ladder}. Chaque unité ajoutée reste rentable (${marginalMargins} de marge) et le panier grimpe de ${euro(p.menuPrice)} à ${euro(topTier.price)}. Elle gagne quand elle fait monter en gamme un client venu pour une seule unité — affiche-la comme une offre membre, pas comme une réduction de groupe.`,
+      message: `🪜 Offre membres : ${p.name} — 1 pour ${euro(p.menuPrice)} · ${ladder} !`,
+      detail: `Astuce terrain : si tu peux alléger la garniture des unités supplémentaires (sans toucher à la première), leur coût baisse et chaque palier gagne encore en marge — la valeur perçue de la formule, elle, ne bouge pas.`,
     });
   }
 
