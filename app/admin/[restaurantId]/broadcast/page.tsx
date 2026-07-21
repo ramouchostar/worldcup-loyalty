@@ -7,6 +7,22 @@ import type { TeamType } from "@/types";
 type TargetKind = "all" | "types" | "teams";
 type Team = { id: string; name: string; type: TeamType; flag_emoji: string };
 type Result = { targeted: number; sent: number; skipped: number };
+type Scheduled = {
+  id: string;
+  message: string;
+  send_on: string;
+  promo_on: string | null;
+  sent_at: string | null;
+  result: Result | null;
+};
+
+const fmtDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("fr-BE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
 
 const TYPE_OPTIONS: { value: TeamType; label: string }[] = [
   { value: "ecole", label: "🎓 Écoles" },
@@ -25,17 +41,35 @@ export default function AdminBroadcastPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [scheduledOk, setScheduledOk] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // ADR 0023 — envoi programmé (annonce de promo à J-1/J-2)
+  const [sendOn, setSendOn] = useState("");
+  const [promoOn, setPromoOn] = useState("");
+  const [scheduled, setScheduled] = useState<Scheduled[]>([]);
+
+  const loadScheduled = () =>
+    fetch(`/api/admin/broadcast?restaurantId=${restaurantId}`).then(async (r) => {
+      if (r.ok) setScheduled(await r.json());
+    });
 
   useEffect(() => {
     fetch(`/api/teams?restaurantId=${restaurantId}`).then(async (r) => { if (r.ok) setTeams(await r.json()); });
+    loadScheduled();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
-  // Message pré-rempli par la page Opportunités (?prefill=...) — lu via
-  // window.location pour rester compatible avec le prérendu client.
+  // Pré-rempli par la page Opportunités (?prefill=…&sendOn=…&promoOn=…) — lu
+  // via window.location pour rester compatible avec le prérendu client.
   useEffect(() => {
-    const prefill = new URLSearchParams(window.location.search).get("prefill");
+    const params = new URLSearchParams(window.location.search);
+    const prefill = params.get("prefill");
     if (prefill) setMessage(prefill.slice(0, 280));
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+    const so = params.get("sendOn");
+    const po = params.get("promoOn");
+    if (so && dateRe.test(so)) setSendOn(so);
+    if (po && dateRe.test(po)) setPromoOn(po);
   }, []);
 
   function toggle<T>(list: T[], v: T): T[] {
@@ -45,6 +79,7 @@ export default function AdminBroadcastPage() {
   async function send() {
     setError(null);
     setResult(null);
+    setScheduledOk(null);
 
     let target: unknown;
     if (kind === "all") target = { kind: "all" };
@@ -53,18 +88,40 @@ export default function AdminBroadcastPage() {
 
     if (kind === "types" && types.length === 0) { setError("Choisis au moins un type."); return; }
     if (kind === "teams" && teamIds.length === 0) { setError("Choisis au moins une équipe."); return; }
-    if (!window.confirm("Envoyer ce broadcast ? Les membres ciblés seront notifiés.")) return;
+    const confirmText = sendOn
+      ? `Programmer ce broadcast pour le ${fmtDate(sendOn)} ?`
+      : "Envoyer ce broadcast ? Les membres ciblés seront notifiés.";
+    if (!window.confirm(confirmText)) return;
 
     setSending(true);
     const res = await fetch("/api/admin/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurantId, message, target }),
+      body: JSON.stringify({
+        restaurantId,
+        message,
+        target,
+        ...(sendOn ? { sendOn, promoOn: promoOn || undefined } : {}),
+      }),
     });
     const body = await res.json();
-    if (res.ok) { setResult(body); setMessage(""); }
-    else setError(body.error ?? "Échec de l'envoi.");
+    if (res.ok && body.scheduled) {
+      setScheduledOk(body.sendOn);
+      setMessage("");
+      setSendOn("");
+      setPromoOn("");
+      loadScheduled();
+    } else if (res.ok) {
+      setResult(body);
+      setMessage("");
+    } else setError(body.error ?? "Échec de l'envoi.");
     setSending(false);
+  }
+
+  async function cancelScheduled(id: string) {
+    if (!window.confirm("Annuler cette annonce programmée ?")) return;
+    const res = await fetch(`/api/admin/broadcast?restaurantId=${restaurantId}&id=${id}`, { method: "DELETE" });
+    if (res.ok) loadScheduled();
   }
 
   return (
@@ -148,11 +205,44 @@ export default function AdminBroadcastPage() {
         )}
       </div>
 
+      {/* Envoi programmé (ADR 0023) */}
+      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-2">
+        <label className="text-sm font-semibold text-gray-900">📆 Programmer l&apos;envoi (optionnel)</label>
+        <p className="text-xs text-gray-500">
+          Laisse vide pour envoyer maintenant. Pour annoncer une promo, programme l&apos;envoi la veille
+          ou l&apos;avant-veille du jour de la promo — jamais plus tôt, sinon les membres reportent leurs
+          commandes des autres jours.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="date"
+            value={sendOn}
+            onChange={(e) => setSendOn(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+          />
+          {sendOn && (
+            <button onClick={() => { setSendOn(""); setPromoOn(""); }} className="text-xs text-gray-400 underline">
+              Envoyer maintenant à la place
+            </button>
+          )}
+        </div>
+        {sendOn && promoOn && (
+          <p className="text-xs text-amber-700">
+            Promo du {fmtDate(promoOn)} — annonce le {fmtDate(sendOn)}, envoyée en début de soirée.
+          </p>
+        )}
+      </div>
+
       {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">{error}</div>}
       {result && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800">
           Envoyé à {result.sent} membre(s) sur {result.targeted} ciblé(s).
           {result.skipped > 0 && ` ${result.skipped} ignoré(s) (quota hebdo atteint).`}
+        </div>
+      )}
+      {scheduledOk && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800">
+          Annonce programmée pour le {fmtDate(scheduledOk)} — elle partira en début de soirée.
         </div>
       )}
 
@@ -161,8 +251,32 @@ export default function AdminBroadcastPage() {
         disabled={sending || message.trim().length < 3}
         className="px-5 py-2.5 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
       >
-        {sending ? "Envoi en cours…" : "Envoyer le broadcast"}
+        {sending ? "Envoi en cours…" : sendOn ? "Programmer le broadcast" : "Envoyer le broadcast"}
       </button>
+
+      {/* Annonces programmées */}
+      {scheduled.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+          <p className="text-sm font-semibold text-gray-900">Annonces programmées</p>
+          {scheduled.map((s) => (
+            <div key={s.id} className="flex items-start justify-between gap-3 border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+              <div className="min-w-0">
+                <p className="text-sm text-gray-800 truncate">{s.message}</p>
+                <p className="text-xs text-gray-400">
+                  {s.sent_at
+                    ? `Envoyée le ${fmtDate(s.send_on)}${s.result ? ` — ${s.result.sent}/${s.result.targeted} membres` : ""}`
+                    : `Prévue le ${fmtDate(s.send_on)}${s.promo_on ? ` (promo du ${fmtDate(s.promo_on)})` : ""}`}
+                </p>
+              </div>
+              {!s.sent_at && (
+                <button onClick={() => cancelScheduled(s.id)} className="text-xs text-red-500 underline shrink-0">
+                  Annuler
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

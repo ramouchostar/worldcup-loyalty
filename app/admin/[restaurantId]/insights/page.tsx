@@ -12,10 +12,12 @@ import {
   suggestBuyNGetOneFree,
   findRushDay,
   suggestRushUpsell,
+  nextPromoDates,
   pairKey,
   type ProductStat,
 } from "@/lib/insights";
 import { getAverageBasket } from "@/lib/avg-basket";
+import { todayInBrussels } from "@/lib/broadcast";
 
 // Opportunités — l'app force de proposition (promos jours/heures creux,
 // combos par co-occurrence et par marges), le restaurateur ajuste le
@@ -125,8 +127,24 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const rushDay = findRushDay(byWeekday, totalItems);
   const rushUpsell = suggestRushUpsell(products, avgBasket, totalItems);
 
-  const broadcast = (message: string) =>
-    `/admin/${restaurantId}/broadcast?prefill=${encodeURIComponent(message)}`;
+  const broadcast = (message: string, sendOn?: string, promoOn?: string) => {
+    const q = new URLSearchParams({ prefill: message });
+    if (sendOn) q.set("sendOn", sendOn);
+    if (promoOn) q.set("promoOn", promoOn);
+    return `/admin/${restaurantId}/broadcast?${q.toString()}`;
+  };
+
+  // ADR 0023 — les promos liées à un jour visent leur prochaine occurrence ;
+  // l'annonce part la veille, jamais plus tôt (une notification reçue le
+  // samedi pour un mardi ferait reporter les commandes du week-end).
+  const todayISO = todayInBrussels();
+  const fmtDate = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("fr-BE", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      timeZone: "UTC",
+    });
 
   type Card = {
     icon: string;
@@ -134,16 +152,23 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     rationale: string;
     message: string;
     detail?: string;
+    planning?: string; // promo datée : occurrence visée + date d'annonce
+    sendOn?: string;
+    promoOn?: string;
   };
   const cards: Card[] = [];
 
   if (quietDay && promo) {
     const day = WEEKDAY_LABELS[quietDay.day];
+    const dates = nextPromoDates(todayISO, quietDay.day);
     cards.push({
       icon: "📅",
       title: `Relancer le ${day}`,
       rationale: `Le ${day} est ton jour le plus calme (${quietDay.qty} articles vendus sur ${PERIOD_DAYS} jours, contre ${quietDay.busiestQty} le ${WEEKDAY_LABELS[quietDay.busiestDay]}). Une promo ciblée y coûte peu : « ${promo.product.name} » garde ${euro((promo.product.menuPrice - promo.product.costPrice) - (promo.product.menuPrice * promo.discountPct) / 100)} de marge même à −${promo.discountPct} %.`,
       message: `😍 Spécial ${day} : −${promo.discountPct}% sur ${promo.product.name} pour les membres ! Montre ton app en caisse 🎉`,
+      planning: `Prochaine occurrence : ${fmtDate(dates.promoOn)}. L'annonce partira la veille (${fmtDate(dates.sendOn)}) — assez tôt pour que tes membres prévoient leur visite, assez tard pour ne pas déplacer les commandes des autres jours. Prévois le stock de « ${promo.product.name} ».`,
+      sendOn: dates.sendOn,
+      promoOn: dates.promoOn,
     });
   }
 
@@ -158,6 +183,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
 
   if (rushUpsell && rushDay) {
     const day = WEEKDAY_LABELS[rushDay.day];
+    const dates = nextPromoDates(todayISO, rushDay.day);
     const u = rushUpsell;
     cards.push({
       icon: "📈",
@@ -165,11 +191,15 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       rationale: `Le ${day} est ton jour de rush (${rushDay.qty} articles vendus contre ${Math.round(rushDay.othersAvg)} en moyenne les autres jours) — inutile d'y chercher plus de commandes, fais grossir le ticket. Dès qu'une commande atteint ${euro(u.threshold)} (ton panier moyen ~${euro(avgBasket)}), propose « 1 ${u.product.name} acheté = 1 offert » : la portion offerte est perçue à ${euro(u.product.menuPrice)} mais coûte ${euro(u.product.costPrice)}. Chaque ticket qui joue le jeu passe de ${euro(u.threshold)} à ${euro(u.newBasket)}, soit +${euro(u.marginGain)} de marge après le coût des deux portions.`,
       message: `📈 ${day.charAt(0).toUpperCase() + day.slice(1)} membres : dès ${euro(u.threshold)} de commande, 1 ${u.product.name} acheté = 1 offert — de quoi régaler toute la table !`,
       detail: `Briefe le comptoir : l'offre se propose à voix haute quand le ticket franchit ${euro(u.threshold)}. Elle marche avec n'importe quel accompagnement à partager au coût très bas (frites larges, onion rings, churros…) — le moteur a choisi « ${u.product.name} » car c'est celui qui fait grossir la marge le plus fort.`,
+      planning: `Prochaine occurrence : ${fmtDate(dates.promoOn)}. L'annonce partira la veille (${fmtDate(dates.sendOn)}). Prévois un stock large de « ${u.product.name} » — les portions offertes partent vite un jour de rush.`,
+      sendOn: dates.sendOn,
+      promoOn: dates.promoOn,
     });
   }
 
   if (freebie && quietDay) {
     const day = WEEKDAY_LABELS[quietDay.day];
+    const dates = nextPromoDates(todayISO, quietDay.day);
     const f = freebie;
     const offer =
       f.paidUnits === 1
@@ -181,6 +211,9 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       rationale: `Le ${day} est ton jour le plus calme (${quietDay.qty} articles vendus contre ${quietDay.busiestQty} le ${WEEKDAY_LABELS[quietDay.busiestDay]}). L'unité offerte de « ${f.product.name} » est perçue à ${euro(f.perceivedValue)} mais ne te coûte que ${euro(f.realCost)} : chaque formule encaisse ${euro(f.revenue)} pour ${euro(f.totalCost)} de coût matière — il te reste ${euro(f.margin)} de marge (${Math.round(f.marginRatio * 100)} %). Et un client qui multiplie la formule pour cumuler les gratuits multiplie d'autant ce qu'il te laisse.`,
       message: `🎁 Spécial ${day} membres : ${offer} !`,
       detail: `Réserve l'offre au ${day} (et aux membres) : sur un jour plein elle remplacerait des ventes plein tarif au lieu d'en créer.`,
+      planning: `Prochaine occurrence : ${fmtDate(dates.promoOn)}. L'annonce partira la veille (${fmtDate(dates.sendOn)}) — jamais plus tôt, pour ne pas déplacer les commandes des jours pleins. Prévois le stock de « ${f.product.name} ».`,
+      sendOn: dates.sendOn,
+      promoOn: dates.promoOn,
     });
   }
 
@@ -255,14 +288,22 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
                 </p>
                 <p className="text-sm text-gray-800">{card.message}</p>
               </div>
+              {card.planning && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-1.5">
+                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">
+                    📆 Planning
+                  </p>
+                  <p className="text-sm text-amber-900">{card.planning}</p>
+                </div>
+              )}
               {card.detail && <p className="text-xs text-gray-400 mb-2">💡 {card.detail}</p>}
 
               <div className="flex justify-end mt-2">
                 <Link
-                  href={broadcast(card.message)}
+                  href={broadcast(card.message, card.sendOn, card.promoOn)}
                   className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                 >
-                  Ajuster et envoyer →
+                  {card.sendOn ? "Programmer l'annonce →" : "Ajuster et envoyer →"}
                 </Link>
               </div>
             </div>

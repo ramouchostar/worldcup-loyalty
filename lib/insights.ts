@@ -428,6 +428,30 @@ export function suggestRushUpsell(
   };
 }
 
+// ─── Planification des promos (ADR 0023) ─────────────────────────────────────
+
+// Une suggestion liée à un jour de semaine vise sa PROCHAINE occurrence, avec
+// assez d'avance pour que l'annonce parte la veille : promo au plus tôt à
+// J+2 (sinon on saute à la semaine suivante), annonce = promo − 1 jour.
+// Jamais plus tôt que J-2 : un membre notifié le samedi pour une promo du
+// mardi reporterait sa commande du week-end — l'annonce précoce cannibalise
+// les jours pleins.
+export function nextPromoDates(
+  todayISO: string,
+  weekday: number // 0 = lundi … 6 = dimanche (convention WEEKDAY_LABELS)
+): { promoOn: string; sendOn: string } {
+  const base = new Date(`${todayISO}T00:00:00Z`);
+  const todayIdx = (base.getUTCDay() + 6) % 7;
+  let diff = (weekday - todayIdx + 7) % 7;
+  if (diff < 2) diff += 7;
+  const promo = new Date(base.getTime() + diff * 86_400_000);
+  const send = new Date(promo.getTime() - 86_400_000);
+  return {
+    promoOn: promo.toISOString().slice(0, 10),
+    sendOn: send.toISOString().slice(0, 10),
+  };
+}
+
 // Clé canonique d'une paire de produits (ordre stable)
 export function pairKey(idA: string, idB: string): string {
   return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;

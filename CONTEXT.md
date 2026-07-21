@@ -233,6 +233,10 @@ _Avoid_ : phase, semaine (trop lié au calendrier de la Coupe du Monde).
 Suggestion commerciale chiffrée de la page admin `/admin/[id]/insights`, calculée par le moteur de stratégies terrain (`lib/insights.ts`, ADR 0022) à partir des ventes scannées (ADR 0020) et du catalogue (ADR 0013) : jour/heure creux, promo sûre, combo, formule dégressive. Fonctions pures et déterministes — chaque suggestion est explicable par ses chiffres, préserve la marge unité par unité, et n'est jamais appliquée automatiquement (l'app propose, l'admin décide). Surface admin uniquement : les coûts et marges n'apparaissent jamais dans le message broadcast proposé (ADR 0007).
 _Avoid_ : conseil IA (le calcul est déterministe), recommandation automatique.
 
+**Promo planifiée** :
+Opportunité liée à un jour de semaine (jour creux, jour de rush) transformée en promo datée (ADR 0023) : la suggestion vise la prochaine occurrence du jour ciblé (au plus tôt J+2) et son annonce aux membres part **la veille ou l'avant-veille, jamais plus tôt** — une annonce précoce ferait reporter des commandes plein tarif vers le jour remisé. Fenêtre J-1/J-2 verrouillée côté serveur. Le broadcast attend dans `scheduled_broadcasts` et part via le cron du soir (`/api/cron/broadcasts`), avec la même enveloppe anti-spam que les broadcasts immédiats. Le restaurateur voit la date de la promo à l'avance (préparation du stock) et peut annuler tant que l'annonce n'est pas partie.
+_Avoid_ : campagne programmée, notification différée (c'est un broadcast admin, même pipeline).
+
 
 ---
 
