@@ -358,6 +358,76 @@ export function suggestBuyNGetOneFree(
   };
 }
 
+// ─── Arrondir le ticket du jour de rush (stratégie terrain, ADR 0022) ────────
+
+// Troisième stratégie terrain : un jour de rush, le restaurant travaille déjà
+// à plein — inutile d'y chercher plus de commandes, on fait grossir le PANIER
+// MOYEN. Dès qu'un ticket atteint le panier moyen (ex. €30), proposer un
+// accompagnement à partager en « 1 acheté = 1 offert » : la portion offerte
+// est perçue à son prix carte (€4,50) mais ne coûte que son coût matière
+// (€0,45) — le ticket passe de €30 à €34,50 et la marge monte d'autant.
+
+// Un accompagnement « à coût très bas » : coût matière ≤ 15 % du prix carte
+// (frites larges €4,50 / €0,45 = 10 % ; un plat à 25-30 % de coût est exclu).
+export const RUSH_SIDE_MAX_COST_RATIO = 0.15;
+// Un accompagnement, pas un plat : prix carte ≤ 25 % du seuil de ticket.
+export const RUSH_SIDE_MAX_PRICE_RATIO = 0.25;
+
+export type RushDay = { day: number; qty: number; othersAvg: number };
+
+// Jour le plus chargé, s'il se détache nettement des autres (≥ +25 % vs la
+// moyenne des six autres jours).
+export function findRushDay(byWeekday: number[], totalItems: number): RushDay | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return null;
+  let max = 0;
+  byWeekday.forEach((v, i) => {
+    if (v > byWeekday[max]) max = i;
+  });
+  const others = byWeekday.filter((_, i) => i !== max);
+  const othersAvg = others.reduce((s, v) => s + v, 0) / others.length;
+  if (byWeekday[max] === 0 || byWeekday[max] < othersAvg * 1.25) return null;
+  return { day: max, qty: byWeekday[max], othersAvg };
+}
+
+export type RushUpsellSuggestion = {
+  product: ProductStat;
+  threshold: number;  // le ticket doit atteindre ce montant (panier moyen arrondi aux €5)
+  newBasket: number;  // ticket après l'offre (seuil + prix de la portion payée)
+  basketGain: number; // ce que le ticket gagne (prix carte de la portion payée)
+  realCost: number;   // coût matière des deux portions (payée + offerte)
+  marginGain: number; // marge supplémentaire par ticket qui joue le jeu
+};
+
+// Accompagnement cible : parmi les articles prouvés à coût très bas et à prix
+// d'accompagnement, celui qui fait grossir la marge du ticket le plus fort —
+// à gain égal, le plus vendu (une envie déjà prouvée se propose mieux).
+export function suggestRushUpsell(
+  products: ProductStat[],
+  avgBasket: number,
+  totalItems: number
+): RushUpsellSuggestion | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS || avgBasket <= 0) return null;
+  const threshold = Math.max(10, Math.round(avgBasket / 5) * 5);
+  let best: ProductStat | null = null;
+  for (const p of products) {
+    if (p.qty <= 0 || p.costPrice <= 0 || p.menuPrice <= 0) continue;
+    if (p.costPrice / p.menuPrice > RUSH_SIDE_MAX_COST_RATIO) continue;
+    if (p.menuPrice > threshold * RUSH_SIDE_MAX_PRICE_RATIO) continue;
+    const gain = p.menuPrice - 2 * p.costPrice;
+    const bestGain = best ? best.menuPrice - 2 * best.costPrice : -1;
+    if (!best || gain > bestGain || (gain === bestGain && p.qty > best.qty)) best = p;
+  }
+  if (!best) return null;
+  return {
+    product: best,
+    threshold,
+    newBasket: threshold + best.menuPrice,
+    basketGain: best.menuPrice,
+    realCost: 2 * best.costPrice,
+    marginGain: best.menuPrice - 2 * best.costPrice,
+  };
+}
+
 // Clé canonique d'une paire de produits (ordre stable)
 export function pairKey(idA: string, idB: string): string {
   return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;

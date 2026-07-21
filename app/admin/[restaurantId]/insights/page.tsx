@@ -10,9 +10,12 @@ import {
   suggestCombos,
   suggestDegressiveBundle,
   suggestBuyNGetOneFree,
+  findRushDay,
+  suggestRushUpsell,
   pairKey,
   type ProductStat,
 } from "@/lib/insights";
+import { getAverageBasket } from "@/lib/avg-basket";
 
 // Opportunités — l'app force de proposition (promos jours/heures creux,
 // combos par co-occurrence et par marges), le restaurateur ajuste le
@@ -37,7 +40,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const admin = createAdminClient();
   const startDate = new Date(Date.now() - PERIOD_DAYS * 86_400_000).toISOString().slice(0, 10);
 
-  const [{ data: ordersRaw }, { data: menuRaw }] = await Promise.all([
+  const [{ data: ordersRaw }, { data: menuRaw }, avgBasket] = await Promise.all([
     admin
       .from("orders")
       .select("id, order_date, order_time")
@@ -50,6 +53,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       .select("id, name, menu_price, cost_price, is_active")
       .eq("restaurant_id", restaurantId)
       .eq("is_active", true),
+    getAverageBasket(restaurantId),
   ]);
 
   const orders = (ordersRaw ?? []) as OrderRow[];
@@ -118,6 +122,8 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const combos = suggestCombos(products, pairCounts, totalItems);
   const bundle = suggestDegressiveBundle(products, totalItems);
   const freebie = suggestBuyNGetOneFree(products, totalItems);
+  const rushDay = findRushDay(byWeekday, totalItems);
+  const rushUpsell = suggestRushUpsell(products, avgBasket, totalItems);
 
   const broadcast = (message: string) =>
     `/admin/${restaurantId}/broadcast?prefill=${encodeURIComponent(message)}`;
@@ -147,6 +153,18 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       title: `Happy hour ${quietHours.start}h–${quietHours.end}h`,
       rationale: `Le créneau ${quietHours.start}h–${quietHours.end}h est ton plus calme (${quietHours.qty} articles, contre ${quietHours.windowQty} sur ton meilleur créneau de 2 h). Remplis-le sans casser ta marge : −${promo.discountPct} % sur « ${promo.product.name} » reste rentable.`,
       message: `⏰ Happy hour membres ${quietHours.start}h–${quietHours.end}h : −${promo.discountPct}% sur ${promo.product.name} !`,
+    });
+  }
+
+  if (rushUpsell && rushDay) {
+    const day = WEEKDAY_LABELS[rushDay.day];
+    const u = rushUpsell;
+    cards.push({
+      icon: "📈",
+      title: `Arrondir le ticket du ${day}`,
+      rationale: `Le ${day} est ton jour de rush (${rushDay.qty} articles vendus contre ${Math.round(rushDay.othersAvg)} en moyenne les autres jours) — inutile d'y chercher plus de commandes, fais grossir le ticket. Dès qu'une commande atteint ${euro(u.threshold)} (ton panier moyen ~${euro(avgBasket)}), propose « 1 ${u.product.name} acheté = 1 offert » : la portion offerte est perçue à ${euro(u.product.menuPrice)} mais coûte ${euro(u.product.costPrice)}. Chaque ticket qui joue le jeu passe de ${euro(u.threshold)} à ${euro(u.newBasket)}, soit +${euro(u.marginGain)} de marge après le coût des deux portions.`,
+      message: `📈 ${day.charAt(0).toUpperCase() + day.slice(1)} membres : dès ${euro(u.threshold)} de commande, 1 ${u.product.name} acheté = 1 offert — de quoi régaler toute la table !`,
+      detail: `Briefe le comptoir : l'offre se propose à voix haute quand le ticket franchit ${euro(u.threshold)}. Elle marche avec n'importe quel accompagnement à partager au coût très bas (frites larges, onion rings, churros…) — le moteur a choisi « ${u.product.name} » car c'est celui qui fait grossir la marge le plus fort.`,
     });
   }
 
