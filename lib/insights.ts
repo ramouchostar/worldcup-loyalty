@@ -428,6 +428,79 @@ export function suggestRushUpsell(
   };
 }
 
+// ─── Cycle de paie du mois (stratégies terrain, ADR 0022) ────────────────────
+
+// Quatrième et cinquième stratégies terrain, basées sur le calendrier :
+// les clients sont payés en fin/début de mois — c'est là qu'ils ont le plus
+// d'argent, donc là qu'on pousse l'offre qui fait le plus gros ticket. Le
+// corollaire : autour du 20, les portefeuilles sont vides — si le trafic
+// baisse à ce moment-là, on crée une offre à PETIT PRIX D'ENTRÉE : le but
+// est de faire une vente, même petite, plutôt que rien.
+
+// Semaine de paie : fin de mois + tout début de mois (7 jours calendaires).
+export const PAYDAY_DAYS = new Set([28, 29, 30, 31, 1, 2, 3]);
+// Semaine du 20 : le creux de trésorerie des ménages (7 jours).
+export const TIGHT_DAYS = new Set([18, 19, 20, 21, 22, 23, 24]);
+// Creux avéré : la semaine du 20 vend moins de 75 % de la semaine de paie.
+export const MONTH_DIP_RATIO = 0.75;
+// Un vrai produit d'appel, pas une sauce : prix carte minimal de l'offre
+// petit budget.
+export const TIGHT_MIN_PRICE = 3;
+
+export type MonthEndDip = { tightQty: number; paydayQty: number; ratio: number };
+
+// Le creux du 20 existe-t-il chez CET établissement ? Comparaison des volumes
+// vendus par jour du mois entre les deux fenêtres (7 jours chacune — les 29/30/31
+// manquent à certains mois, biais mineur assumé au MVP).
+export function findMonthEndDip(byMonthDay: number[], totalItems: number): MonthEndDip | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return null;
+  const sum = (days: Set<number>) =>
+    Array.from(days).reduce((s, d) => s + (byMonthDay[d] ?? 0), 0);
+  const paydayQty = sum(PAYDAY_DAYS);
+  const tightQty = sum(TIGHT_DAYS);
+  if (paydayQty === 0) return null;
+  const ratio = tightQty / paydayQty;
+  if (ratio >= MONTH_DIP_RATIO) return null;
+  return { tightQty, paydayQty, ratio };
+}
+
+export type TightBudgetOffer = { product: ProductStat; discountPct: number; newPrice: number };
+
+// Offre petit budget : le produit prouvé le MOINS CHER (≥ €3) qui supporte
+// une remise sûre — on abaisse le ticket d'entrée au maximum, la marge reste
+// préservée (safeDiscountPct cède au plus la moitié de la marge).
+export function suggestTightBudgetOffer(
+  products: ProductStat[],
+  totalItems: number
+): TightBudgetOffer | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return null;
+  const candidates = products
+    .filter((p) => p.qty > 0 && p.menuPrice >= TIGHT_MIN_PRICE && safeDiscountPct(p.menuPrice, p.costPrice) !== null)
+    .sort((a, b) => a.menuPrice - b.menuPrice || b.qty - a.qty);
+  if (candidates.length === 0) return null;
+  const product = candidates[0];
+  const discountPct = safeDiscountPct(product.menuPrice, product.costPrice)!;
+  return { product, discountPct, newPrice: round50(product.menuPrice * (1 - discountPct / 100)) };
+}
+
+// Décalage de jours sur une date calendaire ISO (YYYY-MM-DD).
+export function addDaysISO(iso: string, days: number): string {
+  return new Date(new Date(`${iso}T00:00:00Z`).getTime() + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+// Prochaine date dont le jour du mois tombe dans la fenêtre, avec l'avance
+// minimale pour que l'annonce de la veille puisse encore partir (ADR 0023).
+export function nextDateInMonthDays(todayISO: string, days: Set<number>, minLead = 2): string {
+  let d = addDaysISO(todayISO, minLead);
+  for (let i = 0; i < 40; i++) {
+    if (days.has(new Date(`${d}T00:00:00Z`).getUTCDate())) return d;
+    d = addDaysISO(d, 1);
+  }
+  return d; // inatteignable : toute fenêtre mensuelle survient sous 40 jours
+}
+
 // ─── Planification des promos (ADR 0023) ─────────────────────────────────────
 
 // Une suggestion liée à un jour de semaine vise sa PROCHAINE occurrence, avec

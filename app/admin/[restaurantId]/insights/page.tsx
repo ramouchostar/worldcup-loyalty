@@ -12,6 +12,12 @@ import {
   suggestBuyNGetOneFree,
   findRushDay,
   suggestRushUpsell,
+  findMonthEndDip,
+  suggestTightBudgetOffer,
+  nextDateInMonthDays,
+  addDaysISO,
+  PAYDAY_DAYS,
+  TIGHT_DAYS,
   nextPromoDates,
   pairKey,
   type ProductStat,
@@ -76,6 +82,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const qtyByProduct = new Map<string, number>();
   const byHour = new Array<number>(24).fill(0);
   const byWeekday = new Array<number>(7).fill(0);
+  const byMonthDay = new Array<number>(32).fill(0);
   const productsPerOrder = new Map<string, Set<string>>();
   let totalItems = 0;
 
@@ -90,6 +97,8 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     }
     const wd = (new Date(`${order.order_date}T00:00:00Z`).getUTCDay() + 6) % 7;
     byWeekday[wd] += qty;
+    const md = parseInt(order.order_date.slice(8, 10), 10);
+    if (md >= 1 && md <= 31) byMonthDay[md] += qty;
     if (it.menu_item_id) {
       qtyByProduct.set(it.menu_item_id, (qtyByProduct.get(it.menu_item_id) ?? 0) + qty);
       const set = productsPerOrder.get(it.order_id) ?? new Set<string>();
@@ -126,6 +135,8 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const freebie = suggestBuyNGetOneFree(products, totalItems);
   const rushDay = findRushDay(byWeekday, totalItems);
   const rushUpsell = suggestRushUpsell(products, avgBasket, totalItems);
+  const monthDip = findMonthEndDip(byMonthDay, totalItems);
+  const tightOffer = suggestTightBudgetOffer(products, totalItems);
 
   const broadcast = (message: string, sendOn?: string, promoOn?: string) => {
     const q = new URLSearchParams({ prefill: message });
@@ -214,6 +225,38 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       planning: `Prochaine occurrence : ${fmtDate(dates.promoOn)}. L'annonce partira la veille (${fmtDate(dates.sendOn)}) — jamais plus tôt, pour ne pas déplacer les commandes des jours pleins. Prévois le stock de « ${f.product.name} ».`,
       sendOn: dates.sendOn,
       promoOn: dates.promoOn,
+    });
+  }
+
+  if (bundle) {
+    const p0 = bundle.product;
+    const ladder0 = bundle.tiers.map((t) => `${t.units} pour ${euro(t.price)}`).join(" · ");
+    const promoOn = nextDateInMonthDays(todayISO, PAYDAY_DAYS);
+    const sendOn = addDaysISO(promoOn, -1);
+    cards.push({
+      icon: "💶",
+      title: "Vague de paie : pousse ton plus gros ticket",
+      rationale: `Fin et début de mois, tes clients viennent d'être payés — c'est le moment où ils peuvent se faire plaisir, donc le moment de pousser l'offre qui fait le plus gros ticket : la formule dégressive « ${p0.name} » (1 pour ${euro(p0.menuPrice)} · ${ladder0}).${monthDip ? ` Tes propres ventes le confirment : ${monthDip.paydayQty} articles vendus sur la semaine de paie contre ${monthDip.tightQty} sur la semaine du 20 (−${Math.round((1 - monthDip.ratio) * 100)} %).` : ""}`,
+      message: `💶 Ce ${fmtDate(promoOn).split(" ")[0]} membres : ${p0.name} — 1 pour ${euro(p0.menuPrice)} · ${ladder0} !`,
+      planning: `Prochaine vague de paie : ${fmtDate(promoOn)}. L'annonce partira la veille (${fmtDate(sendOn)}). Prévois le stock de « ${p0.name} » — c'est l'offre à multiplier quand les portefeuilles sont pleins.`,
+      sendOn,
+      promoOn,
+    });
+  }
+
+  if (monthDip && tightOffer) {
+    const t = tightOffer;
+    const promoOn = nextDateInMonthDays(todayISO, TIGHT_DAYS);
+    const sendOn = addDaysISO(promoOn, -1);
+    const remaining = t.newPrice - t.product.costPrice;
+    cards.push({
+      icon: "🪙",
+      title: "Semaine du 20 : une petite vente plutôt que rien",
+      rationale: `Autour du 20, les portefeuilles se vident — et chez toi ça se voit : ${monthDip.tightQty} articles vendus sur la semaine du 20 contre ${monthDip.paydayQty} sur la semaine de paie (−${Math.round((1 - monthDip.ratio) * 100)} %). Inutile de pousser un gros panier à des clients qui n'ont plus de budget : abaisse le ticket d'entrée. « ${t.product.name} » à ${euro(t.newPrice)} au lieu de ${euro(t.product.menuPrice)} (−${t.discountPct} %) reste rentable (${euro(remaining)} de marge) — une petite commande vaut toujours mieux qu'un client qui ne vient pas, et il garde l'habitude de venir.`,
+      message: `🪙 Cette semaine pour les membres : ${t.product.name} à ${euro(t.newPrice)} au lieu de ${euro(t.product.menuPrice)} — petit prix, plaisir entier !`,
+      planning: `Prochaine semaine du 20 : à partir du ${fmtDate(promoOn)}. L'annonce partira la veille (${fmtDate(sendOn)}) et l'offre peut courir toute la semaine creuse.`,
+      sendOn,
+      promoOn,
     });
   }
 
