@@ -772,6 +772,93 @@ export function menuEngineering(products: ProductStat[], totalItems: number): Me
   return audit;
 }
 
+// ─── Effet leurre sur les tailles (stratégie terrain, ADR 0022) ──────────────
+
+// Neuvième stratégie terrain, cousine de la formule dégressive : quand un
+// produit existe en deux tailles, un écart de prix trop grand fait hésiter —
+// on REMONTE la petite taille pour que la grande devienne une évidence
+// (medium €4,50, large €5 → tout le monde prend la large). On ne remise
+// rien : on repositionne la perception. Pas de broadcast — un repricing ne
+// s'annonce pas aux clients.
+
+// Écart cible entre les deux tailles : 10 % du prix de la grande (calibré
+// sur l'exemple de référence €4,50 / €5).
+export const DECOY_GAP_RATIO = 0.1;
+// Hausse maximale de la petite taille : +25 % de son prix actuel — au-delà,
+// les habitués vivraient la hausse comme une trahison ; des tailles trop
+// éloignées ne sont pas un leurre, c'est un autre produit.
+export const DECOY_MAX_RAISE_RATIO = 0.25;
+
+// Marqueurs de taille reconnus dans les noms d'articles (mots entiers,
+// normalisés sans accents) + les quantités type « 6 pcs ».
+const SIZE_TOKENS = [
+  "mini", "small", "petit", "petite", "moyen", "moyenne", "medium",
+  "large", "grand", "grande", "maxi", "xl", "xxl",
+];
+const SIZE_TOKEN_RE = new RegExp(`\\b(${SIZE_TOKENS.join("|")})\\b`, "g");
+const PCS_RE = /\b\d+\s*(?:pcs|pieces|pc)\b/g;
+
+// Nom de base d'un article si son nom contient un marqueur de taille —
+// « Frites Medium » → « frites », « Churros 6 pcs » → « churros ».
+export function sizeBaseName(name: string): string | null {
+  const norm = normalize(name);
+  const base = norm.replace(SIZE_TOKEN_RE, "").replace(PCS_RE, "").replace(/\s+/g, " ").trim();
+  if (base === norm || base.length < 3) return null;
+  return base;
+}
+
+export type SizeDecoy = {
+  base: string;
+  medium: ProductStat;          // la petite des deux (par prix)
+  large: ProductStat;
+  suggestedMediumPrice: number; // nouveau prix de la petite taille
+  stayUplift: number;           // gain sur un client qui reste à la petite
+  switchUplift: number;         // gain de marge sur un client qui bascule
+};
+
+// Paires de tailles dont l'écart de prix fait hésiter : suggérer de remonter
+// la petite pour que « passer à la grande » coûte ~10 % du prix de la grande.
+// Garde-fous : jamais de baisse de prix, et la grande doit avoir une
+// meilleure marge que la petite (sinon pousser vers elle appauvrit).
+export function suggestSizeDecoys(
+  products: ProductStat[],
+  totalItems: number,
+  limit = 2
+): SizeDecoy[] {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return [];
+  const groups = new Map<string, ProductStat[]>();
+  for (const p of products) {
+    if (p.menuPrice <= 0) continue;
+    const base = sizeBaseName(p.name);
+    if (!base) continue;
+    groups.set(base, [...(groups.get(base) ?? []), p]);
+  }
+
+  const out: SizeDecoy[] = [];
+  groups.forEach((list, base) => {
+    if (list.length < 2) return;
+    const sorted = [...list].sort((a, b) => b.menuPrice - a.menuPrice);
+    const [large, medium] = sorted; // les deux plus chères du groupe
+    if (large.menuPrice <= medium.menuPrice) return;
+    const switchUplift =
+      large.menuPrice - large.costPrice - (medium.menuPrice - medium.costPrice);
+    if (switchUplift <= 0) return;
+    const suggested = round50(large.menuPrice * (1 - DECOY_GAP_RATIO));
+    if (suggested <= medium.menuPrice) return; // écart déjà irrésistible
+    if (suggested > medium.menuPrice * (1 + DECOY_MAX_RAISE_RATIO)) return; // hausse trop brutale
+    out.push({
+      base,
+      medium,
+      large,
+      suggestedMediumPrice: suggested,
+      stayUplift: suggested - medium.menuPrice,
+      switchUplift,
+    });
+  });
+
+  return out.sort((a, b) => b.medium.qty - a.medium.qty).slice(0, limit);
+}
+
 // Clé canonique d'une paire de produits (ordre stable)
 export function pairKey(idA: string, idB: string): string {
   return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;

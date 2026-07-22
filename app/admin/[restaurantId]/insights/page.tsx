@@ -23,6 +23,7 @@ import {
   suggestGroupPack,
   findTeamTypeSlots,
   menuEngineering,
+  suggestSizeDecoys,
   nextPromoDates,
   pairKey,
   type ProductStat,
@@ -164,6 +165,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const calendarContexts = upcomingCalendarContexts(todayInBrussels());
   const typeSlots = findTeamTypeSlots(byTypeHour);
   const menuAudit = menuEngineering(products, totalItems);
+  const sizeDecoys = suggestSizeDecoys(products, totalItems);
 
   const broadcast = (message: string, sendOn?: string, promoOn?: string, targetType?: string) => {
     const q = new URLSearchParams({ prefill: message });
@@ -189,7 +191,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     icon: string;
     title: string;
     rationale: string;
-    message: string;
+    message?: string; // absent = conseil interne (repricing…), pas de broadcast
     detail?: string;
     planning?: string; // promo datée : occurrence visée + date d'annonce
     sendOn?: string;
@@ -346,6 +348,17 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     });
   }
 
+  // Effet leurre sur les tailles (ADR 0022) — conseil de repricing interne,
+  // aucun broadcast : on n'annonce pas un changement de prix aux clients.
+  for (const d of sizeDecoys) {
+    cards.push({
+      icon: "📏",
+      title: `Effet leurre : ${d.large.name}`,
+      rationale: `« ${d.medium.name} » (${euro(d.medium.menuPrice)}${d.medium.qty > 0 ? `, vendu ${d.medium.qty}×` : ""}) et « ${d.large.name} » (${euro(d.large.menuPrice)}) : l'écart de ${euro(d.large.menuPrice - d.medium.menuPrice)} fait hésiter. Remonte « ${d.medium.name} » à ${euro(d.suggestedMediumPrice)} : l'écart tombe à ${euro(d.large.menuPrice - d.suggestedMediumPrice)} et passer à la grande devient une évidence. Chaque client qui reste à la petite paie ${euro(d.stayUplift)} de plus, chaque client qui bascule te rapporte ${euro(d.switchUplift)} de marge en plus. On ne remise rien — on repositionne la perception.`,
+      detail: `Changement à faire sur ta carte et ton catalogue CSV (prix de « ${d.medium.name} » → ${euro(d.suggestedMediumPrice)}). Pas d'annonce aux membres : un repricing ne se broadcast pas.`,
+    });
+  }
+
   if (bundle) {
     const p0 = bundle.product;
     const ladder0 = bundle.tiers.map((t) => `${t.units} pour ${euro(t.price)}`).join(" · ");
@@ -443,12 +456,14 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
               </div>
               <p className="text-sm text-gray-600 leading-relaxed mb-3">{card.rationale}</p>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-1.5">
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">
-                  Notification proposée
-                </p>
-                <p className="text-sm text-gray-800">{card.message}</p>
-              </div>
+              {card.message && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-1.5">
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">
+                    Notification proposée
+                  </p>
+                  <p className="text-sm text-gray-800">{card.message}</p>
+                </div>
+              )}
               {card.planning && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-1.5">
                   <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">
@@ -459,14 +474,16 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
               )}
               {card.detail && <p className="text-xs text-gray-400 mb-2">💡 {card.detail}</p>}
 
-              <div className="flex justify-end mt-2">
-                <Link
-                  href={broadcast(card.message, card.sendOn, card.promoOn, card.targetType)}
-                  className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  {card.sendOn ? "Programmer l'annonce →" : "Ajuster et envoyer →"}
-                </Link>
-              </div>
+              {card.message && (
+                <div className="flex justify-end mt-2">
+                  <Link
+                    href={broadcast(card.message, card.sendOn, card.promoOn, card.targetType)}
+                    className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    {card.sendOn ? "Programmer l'annonce →" : "Ajuster et envoyer →"}
+                  </Link>
+                </div>
+              )}
             </div>
           ))}
         </div>
