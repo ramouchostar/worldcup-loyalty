@@ -70,6 +70,12 @@ export default function AdminBroadcastPage() {
     const po = params.get("promoOn");
     if (so && dateRe.test(so)) setSendOn(so);
     if (po && dateRe.test(po)) setPromoOn(po);
+    // Pré-ciblage sur un type d'équipe (cartes Opportunités, ADR 0022)
+    const tt = params.get("targetType");
+    if (tt && TYPE_OPTIONS.some((o) => o.value === tt)) {
+      setKind("types");
+      setTypes([tt as TeamType]);
+    }
   }, []);
 
   function toggle<T>(list: T[], v: T): T[] {

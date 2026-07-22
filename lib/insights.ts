@@ -673,6 +673,105 @@ export function nextPromoDates(
   };
 }
 
+// ─── Offres par type d'équipe × créneau (stratégie terrain, ADR 0022) ────────
+
+// Septième stratégie terrain : les équipes sont typées (école, entreprise,
+// taxis, rue/quartier — ADR 0014) et chaque type a SON créneau naturel (les
+// écoles à midi, les taxis la nuit). Croiser le type avec ses heures réelles
+// de commande permet une offre dédiée, broadcastée à ce type uniquement —
+// l'infra de ciblage existe déjà (broadcast par type).
+
+// Volume minimal d'articles pour oser typer un créneau.
+export const TYPE_SLOT_MIN_ITEMS = 15;
+
+export type PeakWindow = { start: number; end: number; qty: number; share: number };
+
+// Fenêtre contiguë de 2 h la plus CHARGÉE (miroir de findQuietHours), en
+// enjambant minuit — le pic d'un type « taxis » est souvent 23h–1h.
+export function peakWindow(byHour: number[]): PeakWindow | null {
+  const total = byHour.reduce((s, v) => s + v, 0);
+  if (total === 0) return null;
+  let best: { start: number; qty: number } | null = null;
+  for (let h = 0; h < 24; h++) {
+    const qty = byHour[h] + byHour[(h + 1) % 24];
+    if (!best || qty > best.qty) best = { start: h, qty };
+  }
+  if (!best || best.qty === 0) return null;
+  return { start: best.start, end: (best.start + 2) % 24, qty: best.qty, share: best.qty / total };
+}
+
+export type TeamTypeSlot = { type: string; qty: number; peak: PeakWindow };
+
+// Types d'équipe avec assez de volume ET un créneau qui se détache (la
+// fenêtre de 2 h concentre ≥ 25 % du volume du type). Le type « autre » est
+// ignoré : pas d'identité commune, pas d'offre dédiée.
+export function findTeamTypeSlots(
+  byType: Map<string, number[]>,
+  limit = 2
+): TeamTypeSlot[] {
+  const out: TeamTypeSlot[] = [];
+  byType.forEach((byHour, type) => {
+    if (type === "autre") return;
+    const qty = byHour.reduce((s, v) => s + v, 0);
+    if (qty < TYPE_SLOT_MIN_ITEMS) return;
+    const peak = peakWindow(byHour);
+    if (!peak || peak.share < 0.25) return;
+    out.push({ type, qty, peak });
+  });
+  return out.sort((a, b) => b.qty - a.qty).slice(0, limit);
+}
+
+// ─── Audit de carte — menu engineering (stratégie terrain, ADR 0022) ─────────
+
+// Huitième stratégie terrain : croiser popularité × marge pour classer chaque
+// article — le regard qu'un consultant pose sur une carte en rendez-vous.
+//   stars      (populaire, forte marge)  → protéger, ne pas toucher au prix ;
+//   workhorses (populaire, faible marge) → repricer légèrement ou combiner ;
+//   puzzles    (invendu, forte marge)    → mettre en avant ;
+//   dogs       (invendu, faible marge)   → retirer ou repenser.
+// Seuils classiques du menu engineering : popularité ≥ 70 % de la vente
+// moyenne par article, marge ≥ marge moyenne pondérée par les ventes.
+
+export type MenuAudit = {
+  stars: ProductStat[];
+  workhorses: ProductStat[];
+  puzzles: ProductStat[];
+  dogs: ProductStat[];
+  popThreshold: number;
+  marginThreshold: number;
+};
+
+export function menuEngineering(products: ProductStat[], totalItems: number): MenuAudit | null {
+  if (totalItems < MIN_ITEMS_FOR_INSIGHTS) return null;
+  const withPrice = products.filter((p) => p.menuPrice > 0);
+  if (withPrice.length < 4) return null;
+
+  const totalQty = withPrice.reduce((s, p) => s + p.qty, 0);
+  if (totalQty === 0) return null;
+  const popThreshold = (totalQty / withPrice.length) * 0.7;
+  const soldQty = withPrice.reduce((s, p) => s + p.qty, 0);
+  const marginThreshold =
+    withPrice.reduce((s, p) => s + (p.menuPrice - p.costPrice) * p.qty, 0) / soldQty;
+
+  const audit: MenuAudit = { stars: [], workhorses: [], puzzles: [], dogs: [], popThreshold, marginThreshold };
+  for (const p of withPrice) {
+    const popular = p.qty >= popThreshold;
+    const highMargin = p.menuPrice - p.costPrice >= marginThreshold;
+    if (popular && highMargin) audit.stars.push(p);
+    else if (popular) audit.workhorses.push(p);
+    else if (highMargin) audit.puzzles.push(p);
+    else audit.dogs.push(p);
+  }
+  const byQty = (a: ProductStat, b: ProductStat) => b.qty - a.qty;
+  const byMargin = (a: ProductStat, b: ProductStat) =>
+    b.menuPrice - b.costPrice - (a.menuPrice - a.costPrice);
+  audit.stars.sort(byQty);
+  audit.workhorses.sort(byQty);
+  audit.puzzles.sort(byMargin);
+  audit.dogs.sort(byQty);
+  return audit;
+}
+
 // Clé canonique d'une paire de produits (ordre stable)
 export function pairKey(idA: string, idB: string): string {
   return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;

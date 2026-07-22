@@ -21,6 +21,8 @@ import {
   upcomingCalendarContexts,
   matchSeasonalProducts,
   suggestGroupPack,
+  findTeamTypeSlots,
+  menuEngineering,
   nextPromoDates,
   pairKey,
   type ProductStat,
@@ -38,7 +40,7 @@ const euro = (n: number) =>
 
 const PERIOD_DAYS = 90;
 
-type OrderRow = { id: string; order_date: string; order_time: string | null };
+type OrderRow = { id: string; user_id: string; order_date: string; order_time: string | null };
 type ItemRow = { order_id: string; quantity: number; menu_item_id: string | null };
 type MenuRow = { id: string; name: string; menu_price: number; cost_price: number; is_active: boolean };
 
@@ -54,7 +56,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const [{ data: ordersRaw }, { data: menuRaw }, avgBasket] = await Promise.all([
     admin
       .from("orders")
-      .select("id, order_date, order_time")
+      .select("id, user_id, order_date, order_time")
       .eq("restaurant_id", restaurantId)
       .eq("status", "validated")
       .gte("order_date", startDate)
@@ -69,6 +71,16 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
 
   const orders = (ordersRaw ?? []) as OrderRow[];
   const menu = (menuRaw ?? []) as MenuRow[];
+
+  // Type d'équipe de chaque membre (ADR 0014) — pour typer les créneaux.
+  const [{ data: membershipsRaw }, { data: teamsRaw }] = await Promise.all([
+    admin.from("memberships").select("user_id, team_id").eq("restaurant_id", restaurantId).not("team_id", "is", null),
+    admin.from("teams").select("id, type").eq("restaurant_id", restaurantId),
+  ]);
+  const teamType = new Map(((teamsRaw ?? []) as { id: string; type: string }[]).map((t) => [t.id, t.type]));
+  const userType = new Map(
+    ((membershipsRaw ?? []) as { user_id: string; team_id: string }[]).map((m) => [m.user_id, teamType.get(m.team_id) ?? "autre"])
+  );
 
   const items: ItemRow[] = [];
   const orderIds = orders.map((o) => o.id);
@@ -86,6 +98,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const byHour = new Array<number>(24).fill(0);
   const byWeekday = new Array<number>(7).fill(0);
   const byMonthDay = new Array<number>(32).fill(0);
+  const byTypeHour = new Map<string, number[]>();
   const productsPerOrder = new Map<string, Set<string>>();
   let totalItems = 0;
 
@@ -96,7 +109,15 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     totalItems += qty;
     if (order.order_time) {
       const h = parseInt(order.order_time.slice(0, 2), 10);
-      if (h >= 0 && h < 24) byHour[h] += qty;
+      if (h >= 0 && h < 24) {
+        byHour[h] += qty;
+        const type = userType.get(order.user_id);
+        if (type) {
+          const arr = byTypeHour.get(type) ?? new Array<number>(24).fill(0);
+          arr[h] += qty;
+          byTypeHour.set(type, arr);
+        }
+      }
     }
     const wd = (new Date(`${order.order_date}T00:00:00Z`).getUTCDay() + 6) % 7;
     byWeekday[wd] += qty;
@@ -141,11 +162,14 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const monthDip = findMonthEndDip(byMonthDay, totalItems);
   const tightOffer = suggestTightBudgetOffer(products, totalItems);
   const calendarContexts = upcomingCalendarContexts(todayInBrussels());
+  const typeSlots = findTeamTypeSlots(byTypeHour);
+  const menuAudit = menuEngineering(products, totalItems);
 
-  const broadcast = (message: string, sendOn?: string, promoOn?: string) => {
+  const broadcast = (message: string, sendOn?: string, promoOn?: string, targetType?: string) => {
     const q = new URLSearchParams({ prefill: message });
     if (sendOn) q.set("sendOn", sendOn);
     if (promoOn) q.set("promoOn", promoOn);
+    if (targetType) q.set("targetType", targetType);
     return `/admin/${restaurantId}/broadcast?${q.toString()}`;
   };
 
@@ -170,6 +194,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     planning?: string; // promo datée : occurrence visée + date d'annonce
     sendOn?: string;
     promoOn?: string;
+    targetType?: string; // broadcast pré-ciblé sur un type d'équipe
   };
   const cards: Card[] = [];
 
@@ -281,6 +306,43 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
         : `${ctx.label} : ${period}. L'annonce partira la veille du début (${fmtDate(sendOn!)}).`,
       sendOn,
       promoOn,
+    });
+  }
+
+  // Offres par type d'équipe × créneau (ADR 0022) — l'offre s'adapte au
+  // budget du public : petit prix pour les écoles, promo classique ailleurs.
+  const TYPE_META: Record<string, { emoji: string; label: string }> = {
+    ecole: { emoji: "🎓", label: "écoles" },
+    entreprise: { emoji: "🏢", label: "entreprises" },
+    rue_quartier: { emoji: "🏘️", label: "rues & quartiers" },
+    taxis: { emoji: "🚕", label: "taxis" },
+  };
+  for (const slot of typeSlots) {
+    const meta = TYPE_META[slot.type];
+    if (!meta) continue;
+    const isNight = slot.peak.start >= 21 || slot.peak.start < 6;
+    const window = `${slot.peak.start}h–${slot.peak.end}h`;
+    const slotLabel = isNight ? `service de nuit (${window})` : `créneau ${window}`;
+
+    let offerText: string | null = null;
+    let offerMsg: string | null = null;
+    if (slot.type === "ecole" && tightOffer) {
+      const t = tightOffer;
+      offerText = `Pour des étudiants, le prix d'entrée compte : « ${t.product.name} » à ${euro(t.newPrice)} au lieu de ${euro(t.product.menuPrice)} (−${t.discountPct} %, il te reste ${euro(t.newPrice - t.product.costPrice)} de marge).`;
+      offerMsg = `${meta.emoji} Offre étudiante ${window} : ${t.product.name} à ${euro(t.newPrice)} au lieu de ${euro(t.product.menuPrice)} — montre ton app !`;
+    } else if (promo) {
+      offerText = `« ${promo.product.name} » à −${promo.discountPct} % reste rentable (${euro(promo.product.menuPrice - promo.product.costPrice - (promo.product.menuPrice * promo.discountPct) / 100)} de marge).`;
+      offerMsg = `${meta.emoji} Spécial ${meta.label} ${window} : −${promo.discountPct}% sur ${promo.product.name} — montre ton app !`;
+    }
+    if (!offerText || !offerMsg) continue;
+
+    cards.push({
+      icon: meta.emoji,
+      title: `Offre ${meta.label} sur leur ${isNight ? "service de nuit" : "créneau"}`,
+      rationale: `Tes équipes ${meta.label} commandent surtout sur le ${slotLabel} : ${slot.peak.qty} articles sur cette fenêtre, soit ${Math.round(slot.peak.share * 100)} % de leur volume (${slot.qty} au total). Une offre dédiée, envoyée uniquement à ce type d'équipe, travaille leur créneau sans toucher au reste de ta clientèle. ${offerText}`,
+      message: offerMsg,
+      detail: `Le broadcast s'ouvrira pré-ciblé sur les équipes ${meta.label} — les autres membres ne verront rien.`,
+      targetType: slot.type,
     });
   }
 
@@ -399,7 +461,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
 
               <div className="flex justify-end mt-2">
                 <Link
-                  href={broadcast(card.message, card.sendOn, card.promoOn)}
+                  href={broadcast(card.message, card.sendOn, card.promoOn, card.targetType)}
                   className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                 >
                   {card.sendOn ? "Programmer l'annonce →" : "Ajuster et envoyer →"}
@@ -407,6 +469,42 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {menuAudit && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-2xl">🔬</span>
+            <h2 className="font-bold text-gray-900">Ta carte au rayon X</h2>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            Chaque article classé selon sa popularité (seuil : {menuAudit.popThreshold.toFixed(0)} ventes
+            sur la période) et sa marge unitaire (seuil : {euro(menuAudit.marginThreshold)}).
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(
+              [
+                ["⭐", "Tes stars", "Populaires et rentables — protège-les : mets-les en photo, ne touche pas à leur prix.", menuAudit.stars],
+                ["🐴", "Tes chevaux de trait", "Populaires mais peu rentables — monte légèrement le prix ou associe-les à un article à forte marge (vois les combos).", menuAudit.workhorses],
+                ["🧩", "Tes énigmes", "Rentables mais invendus — mets-les en avant : photo, suggestion du comptoir, promo découverte.", menuAudit.puzzles],
+                ["🪨", "Tes poids morts", "Ni vendus ni rentables — retire-les de la carte ou repense-les, ils encombrent le choix.", menuAudit.dogs],
+              ] as [string, string, string, ProductStat[]][]
+            ).map(([emoji, title, advice, list]) => (
+              <div key={title} className="border border-gray-100 rounded-xl p-3">
+                <p className="font-semibold text-gray-900 text-sm mb-1">
+                  {emoji} {title} <span className="text-gray-400 font-normal">({list.length})</span>
+                </p>
+                <p className="text-xs text-gray-500 mb-2">{advice}</p>
+                {list.slice(0, 4).map((p) => (
+                  <p key={p.id} className="text-xs text-gray-700">
+                    {p.name} — {p.qty}× · {euro(p.menuPrice - p.costPrice)} de marge
+                  </p>
+                ))}
+                {list.length > 4 && <p className="text-xs text-gray-400 mt-1">+ {list.length - 4} autres</p>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
