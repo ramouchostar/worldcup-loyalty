@@ -237,6 +237,10 @@ _Avoid_ : conseil IA (le calcul est déterministe), recommandation automatique.
 Opportunité liée à un jour de semaine (jour creux, jour de rush) transformée en promo datée (ADR 0023) : la suggestion vise la prochaine occurrence du jour ciblé (au plus tôt J+2) et son annonce aux membres part **la veille ou l'avant-veille, jamais plus tôt** — une annonce précoce ferait reporter des commandes plein tarif vers le jour remisé. Fenêtre J-1/J-2 verrouillée côté serveur. Le broadcast attend dans `scheduled_broadcasts` et part via le cron du soir (`/api/cron/broadcasts`), avec la même enveloppe anti-spam que les broadcasts immédiats. Le restaurateur voit la date de la promo à l'avance (préparation du stock) et peut annuler tant que l'annonce n'est pas partie.
 _Avoid_ : campagne programmée, notification différée (c'est un broadcast admin, même pipeline).
 
+**Stratégies membres** :
+Trois notifications personnalisées jouées par le cron quotidien pour tous les membres, avec ou sans équipe (ADR 0024) : **nudge de palier** (panier habituel juste sous un palier solo → montrer le cadeau à quelques euros près, zéro remise), **cadeau d'anniversaire** (article offert via `pending_rewards` `source='birthday'`, plafond de coût `max(panier moyen × budget %, dépense cumulée × 1 %)` — la reconnaissance grandit avec la fidélité ; le coupon cashier affiche la dépense cumulée du membre), **réactivation** (silence ≥ 2× l'intervalle médian du membre → rappel personnalisé). Même enveloppe anti-spam que les notifications d'incitation (ADR 0009). Les euros cités sont les dépenses propres du membre (ADR 0007).
+_Avoid_ : campagne CRM, marketing automation, segment (les décisions sont par membre, pas par segment).
+
 
 ---
 

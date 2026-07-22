@@ -18,7 +18,7 @@ export default async function AdminCouponPage({
   const { data: tokenRow } = await admin
     .from("redemption_tokens")
     .select(
-      "token, expires_at, redeemed_at, restaurant_id, pending_rewards(solo_item, community_item, advancement_item), profiles(display_name)"
+      "token, expires_at, redeemed_at, restaurant_id, user_id, pending_rewards(solo_item, community_item, advancement_item, source), profiles(display_name)"
     )
     .eq("token", token)
     .single();
@@ -42,11 +42,32 @@ export default async function AdminCouponPage({
     solo_item: string | null;
     community_item: string | null;
     advancement_item: string | null;
+    source: string | null;
   } | null;
+
+  // ADR 0024 — cadeau d'anniversaire : le cashier voit la dépense cumulée du
+  // membre — ce cadeau est un investissement sur un client fidèle, pas une
+  // dépense. Surface admin : euros autorisés (ADR 0007).
+  let birthdaySublabel: string | null = null;
+  if (reward?.source === "birthday") {
+    const { data: memberOrders } = await admin
+      .from("orders")
+      .select("amount")
+      .eq("user_id", tokenRow.user_id)
+      .eq("restaurant_id", tokenRow.restaurant_id)
+      .eq("status", "validated")
+      .limit(1000);
+    const spent = ((memberOrders ?? []) as { amount: number }[]).reduce((s, o) => s + Number(o.amount), 0);
+    birthdaySublabel = `🎂 cadeau d'anniversaire — client fidèle : €${Math.round(spent)} dépensés`;
+  }
 
   const items: { icon: string; label: string; sublabel: string }[] = [];
   if (reward?.solo_item)
-    items.push({ icon: "🍗", label: reward.solo_item, sublabel: "cadeau de base" });
+    items.push({
+      icon: birthdaySublabel ? "🎂" : "🍗",
+      label: reward.solo_item,
+      sublabel: birthdaySublabel ?? "cadeau de base",
+    });
   if (reward?.community_item)
     items.push({ icon: "👥", label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
   if (reward?.advancement_item)

@@ -10,11 +10,13 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   );
 }
 
-export type TriggerType = "tier_upgrade" | "member_inactive" | "tier_approaching" | "advancement";
+export type CommunityTriggerType = "tier_upgrade" | "member_inactive" | "tier_approaching" | "advancement";
+// Stratégies membres (ADR 0024) — messages construits dans member-strategies.ts
+export type TriggerType = CommunityTriggerType | "tier_nudge" | "birthday" | "winback";
 export type Channel = "push" | "whatsapp" | "in_app";
 
 export function buildMessage(
-  trigger: TriggerType,
+  trigger: CommunityTriggerType,
   teamName: string,
   teamFlag: string,
   restaurantName: string,
@@ -126,7 +128,10 @@ export async function logNotification(
   trigger: TriggerType,
   channel: Channel,
   message: string,
-  communityScore: number
+  // null pour les triggers non communautaires (ADR 0024) — un 0 fausserait
+  // le calcul « +500 pts depuis la dernière notification » du trigger
+  // member_inactive (ADR 0009).
+  communityScore: number | null
 ) {
   const admin = createAdminClient();
   await Promise.all([
