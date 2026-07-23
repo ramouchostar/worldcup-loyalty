@@ -60,8 +60,8 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Zoom autorisé (WCAG 1.4.4) — bloquer le pincer-pour-zoomer pénalise les
+  // membres qui ont besoin d'agrandir les textes (audit 2026-07-23).
   viewportFit: "cover",
 };
 

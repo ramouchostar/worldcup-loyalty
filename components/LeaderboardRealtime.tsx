@@ -108,7 +108,7 @@ export function LeaderboardRealtime({
             {/* Stats */}
             <div className="text-right shrink-0">
               <p className="font-bold text-gray-900 tabular-nums text-sm">
-                {Number(entry.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}
+                {Number(entry.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
                 {isFlashing && <span className="ml-1 text-yellow-500 text-xs">▲</span>}
               </p>
               <p className="text-xs text-gray-400 tabular-nums">

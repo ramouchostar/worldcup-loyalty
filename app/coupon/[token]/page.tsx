@@ -32,7 +32,7 @@ export default async function CouponPage({
   if (reward?.community_item)
     items.push({ icon: "👥", label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
   if (reward?.advancement_item)
-    items.push({ icon: "⚽", label: `+ ${reward.advancement_item}`, sublabel: "avancement" });
+    items.push({ icon: "🏆", label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
 
   const profile = tokenRow.profiles as unknown as { display_name: string } | null;
   const restaurant = tokenRow.restaurants as unknown as { name: string } | null;

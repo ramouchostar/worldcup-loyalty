@@ -15,6 +15,7 @@ export default function AdminPendingRewardsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"available" | "redeemed">("available");
   const [search, setSearch] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function fetchRewards() {
@@ -33,7 +34,8 @@ export default function AdminPendingRewardsPage() {
       body: JSON.stringify({ id, restaurantId }),
     });
     if (!res.ok) {
-      alert("Erreur : " + (await res.json()).error);
+      const body = await res.json().catch(() => null);
+      setActionError(body?.error ?? "Échec — la récompense n'a pas été marquée comme récupérée.");
     }
     await fetchRewards();
     setBusy(null);
@@ -66,10 +68,16 @@ export default function AdminPendingRewardsPage() {
 
   return (
     <div className="space-y-5">
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-start justify-between gap-2">
+          <span>⚠️ {actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-700 shrink-0" aria-label="Fermer">✕</button>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Récompenses en attente</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Marquez comme récupérée quand le membre passe au comptoir.
+          Marque comme récupérée quand le membre passe au comptoir.
         </p>
       </div>
 
@@ -172,7 +180,7 @@ export default function AdminPendingRewardsPage() {
                       <div className="flex items-center gap-1.5 text-sm">
                         <span>🏆</span>
                         <span className="font-medium text-gray-800">+ {r.advancement_item}</span>
-                        <span className="text-xs text-gray-400">— avancement</span>
+                        <span className="text-xs text-gray-400">— bonus d&apos;équipe</span>
                       </div>
                     )}
                   </div>

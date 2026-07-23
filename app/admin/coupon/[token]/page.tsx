@@ -71,7 +71,7 @@ export default async function AdminCouponPage({
   if (reward?.community_item)
     items.push({ icon: "👥", label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
   if (reward?.advancement_item)
-    items.push({ icon: "⚽", label: `+ ${reward.advancement_item}`, sublabel: "avancement" });
+    items.push({ icon: "🏆", label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
 
   const memberProfile = tokenRow.profiles as unknown as { display_name: string } | null;
 

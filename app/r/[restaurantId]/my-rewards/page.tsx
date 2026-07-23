@@ -168,9 +168,9 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
         )}
         {reward.advancement_item && (
           <div className="flex items-center gap-2">
-            <span>⚽</span>
+            <span>🏆</span>
             <span className="font-bold text-gray-900 text-sm">+ {reward.advancement_item}</span>
-            <span className="text-xs text-gray-400 ml-auto">avancement</span>
+            <span className="text-xs text-gray-400 ml-auto">bonus d&apos;équipe</span>
           </div>
         )}
       </div>

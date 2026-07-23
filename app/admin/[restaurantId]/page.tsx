@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getRestaurant } from "@/lib/restaurant";
 
 export default async function AdminDashboardPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -11,6 +12,7 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
 
   const admin = createAdminClient();
   const r = (path: string) => `/admin/${restaurantId}${path}`;
+  const restaurant = await getRestaurant(restaurantId);
 
   const [
     { count: pendingOrders },
@@ -105,6 +107,29 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
         <h1 className="text-2xl font-bold text-gray-900">Dashboard Admin</h1>
         <p className="text-gray-500 text-sm mt-1">Vue d&apos;ensemble du programme de fidélité</p>
       </div>
+
+      {/* Établissement pas encore en ligne : guider la fin de l'inscription
+          (audit 2026-07-23 — un abandon d'onboarding atterrissait dans une
+          console vide sans explication). */}
+      {restaurant?.status === "pending" && (
+        <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4">
+          <p className="font-bold text-amber-900 text-sm mb-1">
+            ⏳ Ton établissement n&apos;est pas encore visible des clients
+          </p>
+          <p className="text-xs text-amber-800 mb-3">
+            Il sera mis en ligne après validation par notre équipe. En attendant,
+            assure-toi d&apos;avoir terminé les 3 étapes de l&apos;inscription :
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href={r("/menu")} className="text-xs font-semibold bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors">
+              2/3 · Menu &amp; coûts →
+            </Link>
+            <Link href={`/become-a-partner/${restaurantId}/receipt`} className="text-xs font-semibold bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors">
+              3/3 · Configurer le ticket de caisse →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

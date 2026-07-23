@@ -425,8 +425,8 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Opportunités</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Des propositions calculées sur tes {PERIOD_DAYS} derniers jours de ventes
-          scannées — tu ajustes le message, tu choisis qui le reçoit, tu envoies.
+          {cards.length > 0 ? `${cards.length} proposition${cards.length > 1 ? "s" : ""} calculée${cards.length > 1 ? "s" : ""}` : "Des propositions calculées"} sur
+          tes {PERIOD_DAYS} derniers jours de ventes scannées — tu ajustes, tu décides, tu envoies.
         </p>
       </div>
 
@@ -447,45 +447,65 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
           scans.
         </div>
       ) : (
-        <div className="space-y-4">
-          {cards.map((card, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">{card.icon}</span>
-                <h2 className="font-bold text-gray-900">{card.title}</h2>
-              </div>
-              <p className="text-sm text-gray-600 leading-relaxed mb-3">{card.rationale}</p>
+        // Sectionné par nature de l'action (audit 2026-07-23) : le
+        // restaurateur entre deux services scanne les titres, pas 14 pavés.
+        <div className="space-y-6">
+          {(
+            [
+              ["📆 Promos datées", "L'annonce part automatiquement à la date prévue — prépare ton stock.", cards.filter((c) => c.sendOn)],
+              ["📣 Offres à lancer quand tu veux", null, cards.filter((c) => !c.sendOn && c.message)],
+              ["🛠️ Conseils internes", "Changements de carte ou de prix — rien n'est envoyé aux membres.", cards.filter((c) => !c.message)],
+            ] as [string, string | null, Card[]][]
+          )
+            .filter(([, , list]) => list.length > 0)
+            .map(([sectionTitle, sectionSub, list]) => (
+              <section key={sectionTitle}>
+                <h2 className="font-bold text-gray-900 mb-0.5">
+                  {sectionTitle} <span className="text-gray-400 font-normal text-sm">({list.length})</span>
+                </h2>
+                {sectionSub && <p className="text-xs text-gray-500 mb-3">{sectionSub}</p>}
+                <div className={`space-y-4 ${sectionSub ? "" : "mt-3"}`}>
+                  {list.map((card, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">{card.icon}</span>
+                        <h3 className="font-bold text-gray-900">{card.title}</h3>
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed mb-3">{card.rationale}</p>
 
-              {card.message && (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-1.5">
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">
-                    Notification proposée
-                  </p>
-                  <p className="text-sm text-gray-800">{card.message}</p>
-                </div>
-              )}
-              {card.planning && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-1.5">
-                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">
-                    📆 Planning
-                  </p>
-                  <p className="text-sm text-amber-900">{card.planning}</p>
-                </div>
-              )}
-              {card.detail && <p className="text-xs text-gray-400 mb-2">💡 {card.detail}</p>}
+                      {card.message && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-1.5">
+                          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">
+                            Notification proposée
+                          </p>
+                          <p className="text-sm text-gray-800">{card.message}</p>
+                        </div>
+                      )}
+                      {card.planning && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-1.5">
+                          <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">
+                            📆 Planning
+                          </p>
+                          <p className="text-sm text-amber-900">{card.planning}</p>
+                        </div>
+                      )}
+                      {card.detail && <p className="text-xs text-gray-400 mb-2">💡 {card.detail}</p>}
 
-              {card.message && (
-                <div className="flex justify-end mt-2">
-                  <Link
-                    href={broadcast(card.message, card.sendOn, card.promoOn, card.targetType)}
-                    className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    {card.sendOn ? "Programmer l'annonce →" : "Ajuster et envoyer →"}
-                  </Link>
+                      {card.message && (
+                        <div className="flex justify-end mt-2">
+                          <Link
+                            href={broadcast(card.message, card.sendOn, card.promoOn, card.targetType)}
+                            className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                          >
+                            {card.sendOn ? "Programmer l'annonce →" : "Ajuster et envoyer →"}
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          ))}
+              </section>
+            ))}
         </div>
       )}
 

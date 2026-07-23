@@ -79,7 +79,7 @@ export default function BecomeAPartnerPage() {
           <p className="text-4xl mb-2">🍗</p>
           <h1 className="text-2xl font-bold text-gray-900">Rejoins le réseau en tant que restaurateur</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Étape 1/2 — présente ton établissement. Il restera invisible aux clients
+            Étape 1/3 — présente ton établissement. Il restera invisible aux clients
             jusqu&apos;à validation par notre équipe.
           </p>
           <a href="/secteurs" className="inline-block text-xs font-semibold text-brand-red hover:underline mt-2">

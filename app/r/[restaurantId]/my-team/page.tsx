@@ -182,7 +182,7 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
                     {entry.teams.name} {isMine && "← toi"}
                   </span>
                   <span className="text-sm font-bold text-gray-900 tabular-nums">
-                    {Number(entry.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}
+                    {Number(entry.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
                   </span>
                 </div>
               );

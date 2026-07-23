@@ -28,7 +28,7 @@ type Filter = (typeof STATUS_FILTER)[number];
 const REJECT_REASONS = [
   "Ticket illisible ou photo floue",
   "Montant ne correspond pas au ticket",
-  "Bestelnummer invalide ou déjà utilisé",
+  "Numéro de commande invalide ou déjà utilisé",
   "Commande déjà soumise (doublon)",
   "Ce ticket ne vient pas de cet établissement",
   "Autre (préciser ci-dessous)",
