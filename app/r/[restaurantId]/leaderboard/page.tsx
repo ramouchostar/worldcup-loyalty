@@ -78,9 +78,9 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
           </div>
           <div className="bg-white/10 rounded-xl p-3 text-center">
             <p className="text-xl font-black text-brand-gold">
-              {Number(topScore).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}
+              {Number(topScore).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
             </p>
-            <p className="text-xs text-gray-400">score leader</p>
+            <p className="text-xs text-gray-400">équipe en tête</p>
           </div>
         </div>
       </div>

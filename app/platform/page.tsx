@@ -4,6 +4,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { approveRestaurant, rejectRestaurant, setRestaurantStatus } from "./actions";
 import { CreateRestaurantForm } from "./CreateRestaurantForm";
 import { AssignOwnerForm } from "./AssignOwnerForm";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
 type RestaurantRow = {
   id: string;
@@ -125,12 +126,12 @@ export default async function PlatformPage() {
                       </button>
                     </form>
                     <form action={rejectRestaurant.bind(null, r.id)}>
-                      <button
-                        type="submit"
+                      <ConfirmSubmitButton
+                        confirmMessage={`Rejeter « ${r.name} » ? L'établissement sera désactivé.`}
                         className="bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
                       >
                         Rejeter
-                      </button>
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 </div>
@@ -185,12 +186,12 @@ export default async function PlatformPage() {
                       </Link>
                       {r.status === "active" ? (
                         <form action={setRestaurantStatus.bind(null, r.id, "disabled")} className="ml-auto">
-                          <button
-                            type="submit"
+                          <ConfirmSubmitButton
+                            confirmMessage={`Désactiver « ${r.name} » ? Il deviendra invisible pour tous ses membres.`}
                             className="text-xs font-semibold text-red-700 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
                           >
                             Désactiver
-                          </button>
+                          </ConfirmSubmitButton>
                         </form>
                       ) : r.status === "disabled" ? (
                         <form action={setRestaurantStatus.bind(null, r.id, "active")} className="ml-auto">

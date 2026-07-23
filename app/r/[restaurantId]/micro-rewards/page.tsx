@@ -281,7 +281,7 @@ function ReferralSection({
 
   const whatsappUrl = joinUrl
     ? `https://wa.me/?text=${encodeURIComponent(
-        `Rejoins ma communauté ${restaurantName} 🇧🇪 et commande directement — on gagne ensemble !\n${joinUrl}`
+        `Rejoins ma communauté ${restaurantName} 🎉 et commande directement — on gagne ensemble !\n${joinUrl}`
       )}`
     : null;
 

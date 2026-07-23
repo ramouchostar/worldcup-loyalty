@@ -145,7 +145,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 rounded-2xl p-5 text-white">
         <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">🎁 Ta prochaine commande</p>
-        <p className="text-xs text-gray-500 mb-4">Pour une commande de ~€{previewAmt} :</p>
+        <p className="text-xs text-gray-300 mb-4">Pour une commande de ~€{previewAmt} :</p>
 
         <div className="space-y-3">
           {heroSolo.item ? (
@@ -286,6 +286,17 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           teamId={membership!.team_id!}
           initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
         />
+
+        {/* /rewards et /leaderboard ne sont plus dans la nav basse (5 onglets
+            max, audit 2026-07-23) — la carte d'équipe est leur porte d'entrée. */}
+        <div className="mt-3 flex gap-4 text-xs font-semibold">
+          <Link href={r("/rewards")} className="text-brand-red hover:underline">
+            🎁 Paliers de l&apos;équipe →
+          </Link>
+          <Link href={r("/leaderboard")} className="text-brand-red hover:underline">
+            🏆 Classement →
+          </Link>
+        </div>
 
         <div className="mt-4 pt-4 border-t border-gray-100">
           {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
@@ -438,7 +449,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         )}
       </div>
 
-      <p className="text-center text-xs text-gray-300 pb-2">Score mis à jour toutes les 30 secondes</p>
+      <p className="text-center text-xs text-gray-500 pb-2">Score mis à jour toutes les 30 secondes</p>
     </div>
   );
 }

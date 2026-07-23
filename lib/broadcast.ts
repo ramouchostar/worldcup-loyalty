@@ -26,6 +26,111 @@ async function resolveTeamIds(admin: Admin, restaurantId: string, target: Broadc
   return ((data ?? []) as { id: string }[]).map((r) => r.id);
 }
 
+// ─── Broadcasts programmés (ADR 0023) ────────────────────────────────────────
+
+// Une annonce de promo part à J-1/J-2 du jour visé, pas au moment où le
+// restaurateur accepte la suggestion. La ligne attend dans
+// scheduled_broadcasts ; le cron quotidien envoie ce qui est dû via
+// sendBroadcast (même pipeline, même enveloppe anti-spam).
+
+export type ScheduledBroadcast = {
+  id: string;
+  restaurant_id: string;
+  message: string;
+  target: BroadcastTarget;
+  send_on: string;
+  promo_on: string | null;
+  created_at: string;
+  sent_at: string | null;
+  result: BroadcastResult | null;
+};
+
+// Aujourd'hui (YYYY-MM-DD) dans le fuseau des établissements — les dates
+// d'envoi/promo sont des jours calendaires belges, pas des instants UTC.
+export function todayInBrussels(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
+}
+
+export async function scheduleBroadcast(
+  message: string,
+  target: BroadcastTarget,
+  restaurantId: string,
+  sendOn: string,
+  promoOn: string | null,
+  createdBy: string | null
+): Promise<ScheduledBroadcast> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("scheduled_broadcasts")
+    .insert({
+      restaurant_id: restaurantId,
+      message,
+      target,
+      send_on: sendOn,
+      promo_on: promoOn,
+      created_by: createdBy,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as ScheduledBroadcast;
+}
+
+export async function listScheduledBroadcasts(restaurantId: string): Promise<ScheduledBroadcast[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("scheduled_broadcasts")
+    .select()
+    .eq("restaurant_id", restaurantId)
+    .order("send_on", { ascending: false })
+    .limit(20);
+  return (data ?? []) as ScheduledBroadcast[];
+}
+
+// Annulation : uniquement tant que l'envoi n'a pas eu lieu.
+export async function cancelScheduledBroadcast(id: string, restaurantId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("scheduled_broadcasts")
+    .delete()
+    .eq("id", id)
+    .eq("restaurant_id", restaurantId)
+    .is("sent_at", null)
+    .select("id");
+  return (data ?? []).length > 0;
+}
+
+// Envoie tout ce qui est dû (send_on ≤ aujourd'hui, jamais envoyé). Le
+// marquage sent_at AVANT l'envoi rend le cron ré-entrant : une ligne prise
+// par un run n'est jamais reprise par un autre.
+export async function processDueScheduledBroadcasts(
+  today: string
+): Promise<{ due: number; sent: number }> {
+  const admin = createAdminClient();
+  const { data: dueRaw } = await admin
+    .from("scheduled_broadcasts")
+    .select("id, restaurant_id, message, target")
+    .lte("send_on", today)
+    .is("sent_at", null);
+  const due = (dueRaw ?? []) as Pick<ScheduledBroadcast, "id" | "restaurant_id" | "message" | "target">[];
+
+  let sent = 0;
+  for (const row of due) {
+    const { data: claimed } = await admin
+      .from("scheduled_broadcasts")
+      .update({ sent_at: new Date().toISOString() })
+      .eq("id", row.id)
+      .is("sent_at", null)
+      .select("id");
+    if ((claimed ?? []).length === 0) continue; // pris par un run concurrent
+
+    const result = await sendBroadcast(row.message, row.target, row.restaurant_id);
+    await admin.from("scheduled_broadcasts").update({ result }).eq("id", row.id);
+    sent++;
+  }
+  return { due: due.length, sent };
+}
+
 export async function sendBroadcast(
   message: string,
   target: BroadcastTarget,

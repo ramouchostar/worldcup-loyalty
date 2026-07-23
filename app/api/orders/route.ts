@@ -260,20 +260,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true, status }, { status: 201 });
 }
 
-export async function GET() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
-  }
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("submitted_at", { ascending: false });
-
-  if (error) return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
-  return NextResponse.json(data);
-}
+// GET supprimé (audit 2026-07-23) : aucun appelant — les pages membres sont
+// des Server Components qui lisent directement — et le select("*") exposait
+// les internes anti-fraude (flag_reasons, ocr_confidence, duplicate_key).

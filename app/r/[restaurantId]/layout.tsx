@@ -27,12 +27,16 @@ export default async function RestaurantLayout({
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: membershipsRaw } = user
-    ? await supabase
-        .from("memberships")
-        .select("restaurant_id, restaurants(id, name)")
-        .eq("user_id", user.id)
-    : { data: null };
+  const [{ data: membershipsRaw }, { data: profileRaw }] = user
+    ? await Promise.all([
+        supabase
+          .from("memberships")
+          .select("restaurant_id, restaurants(id, name)")
+          .eq("user_id", user.id),
+        supabase.from("profiles").select("is_super_admin").eq("id", user.id).single(),
+      ])
+    : [{ data: null }, { data: null }];
+  const isSuperAdmin = !!(profileRaw as { is_super_admin: boolean } | null)?.is_super_admin;
 
   const restaurants = (
     (membershipsRaw as unknown as { restaurants: { id: string; name: string } | null }[]) ?? []
@@ -59,7 +63,7 @@ export default async function RestaurantLayout({
             restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
           />
           {user ? (
-            <UserNav email={user.email ?? ""} />
+            <UserNav email={user.email ?? ""} isSuperAdmin={isSuperAdmin} />
           ) : (
             <Link
               href="/login"

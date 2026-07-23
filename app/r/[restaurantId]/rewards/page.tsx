@@ -135,11 +135,13 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
       </div>
 
       {!restaurantUnlocked && (
+        // Message neutre (ADR 0007) — jamais de promesse d'échéance : le
+        // double verrou dépend de la croissance du resto, pas du calendrier.
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-          <p className="font-semibold mb-1">Bonus communautaire bientôt disponible</p>
+          <p className="font-semibold mb-1">Bonus communautaire en pause</p>
           <p className="text-xs">
-            Les bonus communautaires seront actifs prochainement.
-            Continue à commander directement — chaque commande validée fait progresser ta communauté.
+            Ton cadeau de base reste garanti à chaque commande — et chaque commande
+            validée fait progresser ta communauté.
           </p>
         </div>
       )}
@@ -226,7 +228,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
                   <p className="text-amber-800 text-xs font-medium">
                     Score atteint — il faut encore{" "}
                     <strong>{reward.min_member_count - memberCount} membre{reward.min_member_count - memberCount > 1 ? "s" : ""}</strong>{" "}
-                    pour débloquer le Family Bucket.
+                    pour débloquer {reward.title ? `« ${reward.title} »` : "ce palier"}.
                   </p>
                 </div>
               )}

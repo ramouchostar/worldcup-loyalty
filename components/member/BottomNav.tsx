@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// 5 onglets max (audit 2026-07-23) : « Mes cadeaux » mène au parcours de
+// récupération (my-rewards) — le plus important. Les paliers collectifs
+// (/rewards) et le classement (/leaderboard) restent accessibles depuis la
+// carte d'équipe du dashboard et la landing.
 const navLinks = [
-  { href: "dashboard",     label: "Dashboard",   icon: "🏠", id: undefined },
+  { href: "dashboard",     label: "Accueil",     icon: "🏠", id: undefined },
   { href: "my-team",       label: "Équipe",      icon: "👥", id: "tour-nav-equipe" },
-  { href: "submit-order",  label: "Commande",    icon: "🧾", id: "tour-nav-commande" },
-  { href: "rewards",       label: "Récompenses", icon: "🎁", id: "tour-nav-recompenses" },
+  { href: "submit-order",  label: "Scanner",     icon: "🧾", id: "tour-nav-commande" },
+  { href: "my-rewards",    label: "Mes cadeaux", icon: "🎁", id: "tour-nav-recompenses" },
   { href: "micro-rewards", label: "Actions",     icon: "⭐", id: "tour-nav-actions" },
-  { href: "leaderboard",   label: "Classement",  icon: "🏆", id: "tour-nav-classement" },
 ];
 
 export function BottomNav({ restaurantId }: { restaurantId: string }) {

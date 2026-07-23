@@ -229,6 +229,18 @@ _Avoid_ : approbation, confirmation.
 Intervalle de temps associé à un seuil CA restaurant (ex : "Phase de groupes — Semaine 1"). Défini par l'admin. Plusieurs périodes peuvent coexister dans l'historique.
 _Avoid_ : phase, semaine (trop lié au calendrier de la Coupe du Monde).
 
+**Opportunité** :
+Suggestion commerciale chiffrée de la page admin `/admin/[id]/insights`, calculée par le moteur de stratégies terrain (`lib/insights.ts`, ADR 0022) à partir des ventes scannées (ADR 0020) et du catalogue (ADR 0013) : jour/heure creux, promo sûre, combo, formule dégressive. Fonctions pures et déterministes — chaque suggestion est explicable par ses chiffres, préserve la marge unité par unité, et n'est jamais appliquée automatiquement (l'app propose, l'admin décide). Surface admin uniquement : les coûts et marges n'apparaissent jamais dans le message broadcast proposé (ADR 0007).
+_Avoid_ : conseil IA (le calcul est déterministe), recommandation automatique.
+
+**Promo planifiée** :
+Opportunité liée à un jour de semaine (jour creux, jour de rush) transformée en promo datée (ADR 0023) : la suggestion vise la prochaine occurrence du jour ciblé (au plus tôt J+2) et son annonce aux membres part **la veille ou l'avant-veille, jamais plus tôt** — une annonce précoce ferait reporter des commandes plein tarif vers le jour remisé. Fenêtre J-1/J-2 verrouillée côté serveur. Le broadcast attend dans `scheduled_broadcasts` et part via le cron du soir (`/api/cron/broadcasts`), avec la même enveloppe anti-spam que les broadcasts immédiats. Le restaurateur voit la date de la promo à l'avance (préparation du stock) et peut annuler tant que l'annonce n'est pas partie.
+_Avoid_ : campagne programmée, notification différée (c'est un broadcast admin, même pipeline).
+
+**Stratégies membres** :
+Trois notifications personnalisées jouées par le cron quotidien pour tous les membres, avec ou sans équipe (ADR 0024) : **nudge de palier** (panier habituel juste sous un palier solo → montrer le cadeau à quelques euros près, zéro remise), **cadeau d'anniversaire** (article offert via `pending_rewards` `source='birthday'`, plafond de coût `max(panier moyen × budget %, dépense cumulée × 1 %)` — la reconnaissance grandit avec la fidélité ; le coupon cashier affiche la dépense cumulée du membre), **réactivation** (silence ≥ 2× l'intervalle médian du membre → rappel personnalisé). Même enveloppe anti-spam que les notifications d'incitation (ADR 0009). Les euros cités sont les dépenses propres du membre (ADR 0007).
+_Avoid_ : campagne CRM, marketing automation, segment (les décisions sont par membre, pas par segment).
+
 
 ---
 

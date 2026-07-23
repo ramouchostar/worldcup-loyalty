@@ -104,6 +104,23 @@ export function pickGenerousGift(items: GiftCandidate[], costCap: number): GiftC
   return best;
 }
 
+// ─── Règle 2bis — cadeau d'anniversaire (ADR 0024) ──────────────────────────
+
+// Le cadeau d'anniversaire grandit avec la fidélité : 1 % de la dépense
+// cumulée du membre chez l'établissement, avec pour plancher le plafond du
+// cadeau jetons (une commande moyenne × budget %). Un gros dépensier reçoit
+// un cadeau conséquent — la reconnaissance se calibre sur ce qu'il a
+// réellement apporté, et le coût reste dérisoire face à sa valeur.
+export const BIRTHDAY_SPEND_PCT = 0.01;
+
+export function birthdayGiftCap(
+  avgBasket: number,
+  totalSpent: number,
+  pct: number = DEFAULT_BUDGET_PCT
+): number {
+  return Math.max(jetonsGiftCostCap(avgBasket, pct), Math.max(0, totalSpent) * BIRTHDAY_SPEND_PCT);
+}
+
 // ─── Règle 3 — couverture communautaire ──────────────────────────────────────
 
 export type TeamCoverage = {

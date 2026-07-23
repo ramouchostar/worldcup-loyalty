@@ -93,8 +93,7 @@ const TOUR_STEPS = [
   { element: "#tour-nav-commande",       title: "Scanne ton ticket 📸",      description: "Après chaque visite, prends ton ticket en photo ici." },
   { element: "#tour-nav-actions",        title: "Gagne des jetons ⭐",        description: "Laisse un avis Google, suis-nous sur les réseaux. Chaque action = un jeton." },
   { element: "#tour-nav-recompenses",    title: "Tes cadeaux 🎁",            description: "Retrouve ici ce que tu gagnes sur ta prochaine visite." },
-  { element: "#tour-community-progress", title: "La force de ton équipe ⚡", description: "Plus votre équipe commande, plus vos cadeaux grossissent." },
-  { element: "#tour-nav-classement",     title: "Qui mène la course ? 🏆",   description: "Vois le score de toutes les communautés en temps réel." },
+  { element: "#tour-community-progress", title: "La force de ton équipe ⚡", description: "Plus votre équipe commande, plus vos cadeaux grossissent. Le classement complet est à un tap d'ici." },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -123,7 +122,7 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (stage !== "tour") return;
     const driverObj = driver({
-      popoverClass: "belchicken-popover",
+      popoverClass: "brand-popover",
       allowClose: false,
       showProgress: true,
       progressText: "{{current}} / {{total}}",

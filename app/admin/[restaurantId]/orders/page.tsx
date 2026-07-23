@@ -28,7 +28,7 @@ type Filter = (typeof STATUS_FILTER)[number];
 const REJECT_REASONS = [
   "Ticket illisible ou photo floue",
   "Montant ne correspond pas au ticket",
-  "Bestelnummer invalide ou déjà utilisé",
+  "Numéro de commande invalide ou déjà utilisé",
   "Commande déjà soumise (doublon)",
   "Ce ticket ne vient pas de cet établissement",
   "Autre (préciser ci-dessous)",
@@ -191,7 +191,7 @@ function SwipeCard({
                 : <span className="italic text-gray-400">N° non extrait</span>
               }
               {" · "}
-              {new Date(order.order_date + "T00:00:00").toLocaleDateString("fr-BE")}
+              {new Date(order.order_date + "T00:00:00Z").toLocaleDateString("fr-BE", { timeZone: "UTC" })}
               {" · "}
               {new Date(order.submitted_at).toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}
             </p>
@@ -282,6 +282,7 @@ export default function AdminOrdersPage() {
   const [rejectPreset, setRejectPreset] = useState("");
   const [rejectFree, setRejectFree]    = useState("");
   const [busy, setBusy]           = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [batchMode, setBatchMode] = useState(false);
   const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [batchBusy, setBatchBusy] = useState(false);
@@ -299,16 +300,31 @@ export default function AdminOrdersPage() {
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
+  // Filtre initial via ?filter=… (cartes du dashboard admin) — lu via
+  // window.location comme sur la page Broadcasts (compatible prérendu).
+  useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get("filter");
+    if (f && (STATUS_FILTER as readonly string[]).includes(f)) setFilter(f as Filter);
+  }, []);
+
   async function handleAction(id: string, action: "validate" | "reject", reason?: string) {
     setBusy(id);
-    await fetch("/api/admin/orders", {
+    setActionError(null);
+    // Une erreur serveur avalée = le restaurateur croit avoir validé une
+    // commande qui ne l'est pas (audit 2026-07-23) — toujours vérifier res.ok.
+    const res = await fetch("/api/admin/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action, rejection_reason: reason, restaurantId }),
-    });
-    setRejectId(null);
-    setRejectPreset("");
-    setRejectFree("");
+    }).catch(() => null);
+    if (!res?.ok) {
+      const body = await res?.json().catch(() => null);
+      setActionError(body?.error ?? `Échec de l'action « ${action === "validate" ? "valider" : "rejeter"} » — la commande n'a PAS été traitée. Réessaie.`);
+    } else {
+      setRejectId(null);
+      setRejectPreset("");
+      setRejectFree("");
+    }
     await fetchOrders();
     setBusy(null);
   }
@@ -316,13 +332,19 @@ export default function AdminOrdersPage() {
   async function handleBatchValidate() {
     if (selected.size === 0) return;
     setBatchBusy(true);
-    await fetch("/api/admin/orders", {
+    setActionError(null);
+    const res = await fetch("/api/admin/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: Array.from(selected), action: "batch_validate", restaurantId }),
-    });
-    setSelected(new Set());
-    setBatchMode(false);
+    }).catch(() => null);
+    if (!res?.ok) {
+      const body = await res?.json().catch(() => null);
+      setActionError(body?.error ?? "Échec de la validation groupée — aucune commande n'a été traitée. Réessaie.");
+    } else {
+      setSelected(new Set());
+      setBatchMode(false);
+    }
     await fetchOrders();
     setBatchBusy(false);
   }
@@ -368,6 +390,12 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-4">
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-start justify-between gap-2">
+          <span>⚠️ {actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-700 shrink-0" aria-label="Fermer">✕</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -452,6 +480,10 @@ export default function AdminOrdersPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
           <p className="text-gray-400">Aucune commande dans cette catégorie.</p>
+          <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+            Les tickets signalés (montant élevé, OCR incertain…) arrivent ici pour
+            revue — les commandes normales se valident toutes seules.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

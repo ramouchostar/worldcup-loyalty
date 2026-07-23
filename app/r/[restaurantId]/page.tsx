@@ -217,7 +217,7 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
                   <span className="flex-1 font-semibold text-sm text-gray-800">{entry.teams.name}</span>
                   <div className="text-right">
                     <p className="font-black text-gray-900 tabular-nums text-sm">
-                      {Number(entry.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}
+                      {Number(entry.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
                     </p>
                     <p className="text-xs text-gray-400">{entry.member_count} membres</p>
                   </div>

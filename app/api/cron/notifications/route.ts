@@ -5,6 +5,7 @@ import { loadRewardGrid, type GridTier } from "@/lib/rewards";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { coverageSatisfied, type TeamCoverage } from "@/lib/reward-sizing";
+import { runMemberStrategies } from "@/lib/member-strategies";
 
 // Paliers communautaires : catalogue de l'établissement (ADR 0013), fallback
 // grille héritée — même source de vérité que la résolution des récompenses.
@@ -53,6 +54,13 @@ export async function GET(request: Request) {
 
   for (const restaurant of restaurants) {
   const restaurantId = restaurant.id;
+
+  // ADR 0024 — stratégies membres (anniversaire, réactivation, nudge de
+  // palier), évaluées AVANT les triggers communautaires : l'anniversaire
+  // n'arrive qu'un jour par an, il gagne le créneau anti-spam du jour.
+  // Couvre tous les membres, avec ou sans équipe (ADR 0018).
+  const memberStrategies = await runMemberStrategies(restaurantId, restaurant.name, now);
+  sent += memberStrategies.sent;
 
   // ADR 0015 — l'appartenance à un établissement + une équipe vit désormais
   // dans memberships, pas dans profiles (colonne conservée mais plus lue).
