@@ -1,8 +1,20 @@
 "use client";
 
-export function UserNav({ email }: { email: string }) {
+import Link from "next/link";
+
+export function UserNav({ email, isSuperAdmin = false }: { email: string; isSuperAdmin?: boolean }) {
   return (
     <div className="flex items-center gap-2">
+      {/* Porte d'entrée de la console plateforme (audit 2026-07-23 — page
+          auparavant orpheline). Visible uniquement pour le super-admin. */}
+      {isSuperAdmin && (
+        <Link
+          href="/platform"
+          className="text-xs text-brand-gold hover:text-white px-2 py-1 rounded hover:bg-white/10 transition-colors"
+        >
+          🛠️ Plateforme
+        </Link>
+      )}
       <span className="text-xs text-gray-400 max-w-[120px] truncate hidden sm:block">
         {email}
       </span>

@@ -26,6 +26,7 @@ export default function AdminMicroRewardsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "validated" | "rejected">("pending");
   const [busy, setBusy] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function fetchClaims() {
     const res = await fetch(`/api/admin/micro-rewards?restaurantId=${restaurantId}`);
@@ -39,11 +40,18 @@ export default function AdminMicroRewardsPage() {
 
   async function handleAction(id: string, action: "validate" | "reject") {
     setBusy(id);
-    await fetch("/api/admin/micro-rewards", {
+    setActionError(null);
+    // Vérifier res.ok : une erreur avalée ferait croire au restaurateur que
+    // le jeton est validé alors qu'il ne l'est pas (audit 2026-07-23).
+    const res = await fetch("/api/admin/micro-rewards", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action, restaurantId }),
-    });
+    }).catch(() => null);
+    if (!res?.ok) {
+      const body = await res?.json().catch(() => null);
+      setActionError(body?.error ?? "Échec de l'action — la demande n'a PAS été traitée. Réessaie.");
+    }
     await fetchClaims();
     setBusy(null);
   }
@@ -72,6 +80,12 @@ export default function AdminMicroRewardsPage() {
 
   return (
     <div className="space-y-5">
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-start justify-between gap-2">
+          <span>⚠️ {actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-700 shrink-0" aria-label="Fermer">✕</button>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Actions sociales</h1>
         <p className="text-gray-500 text-sm mt-1">

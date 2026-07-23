@@ -190,7 +190,9 @@ export default async function AdminSalesPage({
       ) : (
         <>
           {/* Performance par plat */}
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          {/* overflow-x-auto + min-w : la table scrolle sur téléphone au lieu
+              de s'écraser (audit 2026-07-23) */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
             <div className="px-4 pt-4 pb-2">
               <h2 className="font-bold text-gray-900">Performance par plat</h2>
               <p className="text-xs text-gray-400 mt-0.5">
@@ -198,7 +200,7 @@ export default async function AdminSalesPage({
                 Triés par marge totale.
               </p>
             </div>
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[520px] text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="text-left font-medium px-4 py-2.5">Plat</th>

@@ -16,17 +16,23 @@ export default async function AdminLayout({
 
   const branding = await getRestaurantBranding(restaurantId);
   const base = `/admin/${restaurantId}`;
+  // Ordonné par fréquence d'usage (audit 2026-07-23). Le sandbox (outil de
+  // dev) est volontairement hors nav — accessible par URL, gardé par le
+  // middleware comme le reste.
   const navLinks = [
     { href: base,                        label: "📊 Dashboard" },
-    { href: `${base}/pending-rewards`,   label: "🎁 Cadeaux" },
     { href: `${base}/orders`,            label: "🧾 Commandes" },
+    { href: `${base}/pending-rewards`,   label: "🎁 Cadeaux" },
+    { href: `${base}/insights`,          label: "💡 Opportunités" },
+    { href: `${base}/broadcast`,         label: "📣 Broadcasts" },
+    { href: `${base}/menu`,              label: "📋 Menu & coûts" },
+    { href: `${base}/sales`,             label: "📈 Ventes" },
     { href: `${base}/micro-rewards`,     label: "⭐ Actions" },
     { href: `${base}/referrals`,         label: "👥 Parrainages" },
-    { href: `${base}/thresholds`,        label: "🎯 Seuils CA" },
-    { href: `${base}/menu`,              label: "📋 Menu & coûts" },
     { href: `${base}/team-tiers`,        label: "🏆 Paliers d'équipe" },
-    { href: `${base}/broadcast`,         label: "📣 Broadcasts" },
-    { href: `${base}/sandbox`,           label: "🧪 Sandbox" },
+    { href: `${base}/thresholds`,        label: "🎯 Seuils CA" },
+    { href: `${base}/qr`,                label: "🔲 QR code" },
+    { href: `${base}/settings`,          label: "⚙️ Réglages" },
   ];
 
   return (

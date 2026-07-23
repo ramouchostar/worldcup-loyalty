@@ -266,8 +266,10 @@ export default function AdminMenuPage() {
                 </div>
               </div>
             )}
-            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-              <table className="w-full text-sm">
+            {/* overflow-x-auto + min-w : la table 6 colonnes scrolle sur
+                téléphone au lieu de s'écraser (audit 2026-07-23) */}
+            <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                   <tr>
                     <th className="text-left font-medium px-4 py-2.5">Article</th>

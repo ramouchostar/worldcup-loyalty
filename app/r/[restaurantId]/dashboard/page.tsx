@@ -287,6 +287,17 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
         />
 
+        {/* /rewards et /leaderboard ne sont plus dans la nav basse (5 onglets
+            max, audit 2026-07-23) — la carte d'équipe est leur porte d'entrée. */}
+        <div className="mt-3 flex gap-4 text-xs font-semibold">
+          <Link href={r("/rewards")} className="text-brand-red hover:underline">
+            🎁 Paliers de l&apos;équipe →
+          </Link>
+          <Link href={r("/leaderboard")} className="text-brand-red hover:underline">
+            🏆 Classement →
+          </Link>
+        </div>
+
         <div className="mt-4 pt-4 border-t border-gray-100">
           {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
           {!budget.communityBonusActive && (
