@@ -1,7 +1,9 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
+import { createServerSupabaseClient } from "@/lib/supabase";
+import { isEstablishmentAdmin } from "@/lib/admin-guard";
 
 export default async function AdminLayout({
   children,
@@ -11,6 +13,16 @@ export default async function AdminLayout({
   params: Promise<{ restaurantId: string }>;
 }) {
   const { restaurantId } = await params;
+
+  // Défense en profondeur — NE PAS se fier au seul middleware (cf.
+  // CVE-2025-29927 : contournement du middleware via x-middleware-subrequest).
+  // On re-vérifie ici, côté serveur, que l'utilisateur est admin de CET
+  // établissement. Un seul garde protège toutes les pages /admin/[id]/*.
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  if (!(await isEstablishmentAdmin(user.id, restaurantId))) redirect("/join");
+
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();
 
@@ -31,6 +43,7 @@ export default async function AdminLayout({
     { href: `${base}/referrals`,         label: "👥 Parrainages" },
     { href: `${base}/team-tiers`,        label: "🏆 Paliers d'équipe" },
     { href: `${base}/thresholds`,        label: "🎯 Seuils CA" },
+    { href: `${base}/quality`,           label: "💬 Baromètre" },
     { href: `${base}/qr`,                label: "🔲 QR code" },
     { href: `${base}/settings`,          label: "⚙️ Réglages" },
   ];

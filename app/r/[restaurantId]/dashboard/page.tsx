@@ -6,6 +6,7 @@ import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { getPointsBalance } from "@/lib/points";
+import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
 import type { Order, PendingReward } from "@/types";
@@ -141,6 +142,23 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   return (
     <div className="space-y-5 pb-4">
       <OnboardingFlow />
+
+      {/* ── Invite canal qualité (ADR 0023) — après N commandes validées ───── */}
+      {(validatedOrderCount ?? 0) >= FEEDBACK_ELIGIBILITY_MIN && (
+        <Link
+          href={r("/feedback")}
+          className="block bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl" aria-hidden="true">💬</span>
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900 text-sm">Tu es un habitué 💛</p>
+              <p className="text-gray-500 text-xs">Encourage ton resto ou signale-lui un souci — en privé.</p>
+            </div>
+            <span className="ml-auto text-brand-red text-lg" aria-hidden="true">→</span>
+          </div>
+        </Link>
+      )}
 
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 rounded-2xl p-5 text-white">

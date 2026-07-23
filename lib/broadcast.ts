@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase";
 import { sendPush, sendWhatsApp } from "./notifications";
+import { getConsentingUserIds } from "./consent";
 import type { TeamType } from "@/types";
 
 // ADR 0014 — Broadcast admin : notification composée par le restaurateur,
@@ -148,8 +149,14 @@ export async function sendBroadcast(
     .select("user_id, profiles!inner(phone)")
     .eq("restaurant_id", restaurantId)
     .in("team_id", teamIds);
-  const members = ((membersRaw ?? []) as unknown as { user_id: string; profiles: { phone: string | null } }[])
+  const allMembers = ((membersRaw ?? []) as unknown as { user_id: string; profiles: { phone: string | null } }[])
     .map((m) => ({ id: m.user_id, phone: m.profiles.phone }));
+
+  // ADR 0022 — garde-fou : n'envoyer qu'aux membres ayant consenti au marketing.
+  // (À l'inscription comme dans /compte, push et WhatsApp sont couplés en un
+  // seul opt-in « marketing ».)
+  const optedIn = await getConsentingUserIds(allMembers.map((x) => x.id), "marketing_push", admin);
+  const members = allMembers.filter((m) => optedIn.has(m.id));
 
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   let sent = 0;

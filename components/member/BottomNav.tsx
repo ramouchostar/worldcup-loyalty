@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+type NavLink = { href: string; label: string; icon: string; id?: string; absolute?: boolean };
+
 // 5 onglets max (audit 2026-07-23) : « Mes cadeaux » mène au parcours de
 // récupération (my-rewards) — le plus important. Les paliers collectifs
 // (/rewards) et le classement (/leaderboard) restent accessibles depuis la
-// carte d'équipe du dashboard et la landing.
-const navLinks = [
-  { href: "dashboard",     label: "Accueil",     icon: "🏠", id: undefined },
+// carte d'équipe du dashboard et la landing. Le compte/RGPD vit dans UserNav.
+const navLinks: NavLink[] = [
+  { href: "dashboard",     label: "Accueil",     icon: "🏠" },
   { href: "my-team",       label: "Équipe",      icon: "👥", id: "tour-nav-equipe" },
   { href: "submit-order",  label: "Scanner",     icon: "🧾", id: "tour-nav-commande" },
   { href: "my-rewards",    label: "Mes cadeaux", icon: "🎁", id: "tour-nav-recompenses" },
@@ -26,7 +28,7 @@ export function BottomNav({ restaurantId }: { restaurantId: string }) {
     >
       <div className="max-w-2xl mx-auto flex justify-around pb-safe">
         {navLinks.map((link) => {
-          const href = `${base}/${link.href}`;
+          const href = link.absolute ? link.href : `${base}/${link.href}`;
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link

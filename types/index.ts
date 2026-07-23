@@ -37,6 +37,12 @@ export type Profile = {
   is_admin: boolean;
   zones: string[]; // 1 à 3 zones (vie/travail/école) — découverte d'équipes (ADR 0018)
   joined_at: string;
+  // ADR 0022 — RGPD : contrôle d'âge / mineurs + anonymisation
+  birth_date: string | null;
+  is_minor: boolean | null;
+  parental_consent_status: ParentalConsentStatus;
+  parental_email: string | null;
+  anonymized_at: string | null;
 };
 
 export type OrderStatus = "pending" | "validated" | "rejected";
@@ -212,4 +218,106 @@ export type RewardTier = {
   min_threshold: number; // montant de commande (solo), score équipe (community) ou points de réserve (saver)
   menu_item_id: string | null;
   is_active: boolean;
+};
+
+// ─── Conformité RGPD (ADR 0022) ──────────────────────────────────────────────
+
+export type ConsentPurpose =
+  | "programme"
+  | "marketing_push"
+  | "marketing_whatsapp"
+  | "insights_commerciaux"
+  | "zones";
+
+export type Consent = {
+  id: string;
+  user_id: string;
+  purpose: ConsentPurpose;
+  granted: boolean;
+  policy_version: string;
+  source: string | null;
+  created_at: string;
+};
+
+export type ParentalConsentStatus = "none" | "pending" | "granted";
+
+export type DataRequest = {
+  id: string;
+  user_id: string | null;
+  type: "export" | "deletion";
+  status: "pending" | "completed" | "failed";
+  requested_at: string;
+  completed_at: string | null;
+};
+
+// ─── Canal qualité privé — « note inversée » (ADR 0023) ───────────────────────
+
+// Intention d'abord (jamais mitigé) : encouragement (positif, prénom visible)
+// vs incident (négatif, anonyme par défaut).
+export type FeedbackSentiment = "encouragement" | "incident";
+
+// Axes opérationnels d'un signalement — cochés, jamais notés 1-5.
+export type FeedbackDimension = "accuracy" | "wait" | "quality" | "welcome";
+
+export type FeedbackStatus = "new" | "acknowledged" | "resolved";
+
+export type QualityFeedback = {
+  id: string;
+  user_id: string;
+  restaurant_id: string;
+  order_id: string | null;
+  sentiment: FeedbackSentiment;
+  dimensions: FeedbackDimension[];
+  comment: string | null;
+  is_anonymous: boolean;
+  contact_opt_in: boolean;
+  occurred_at: string | null;
+  status: FeedbackStatus;
+  moderation_status: "visible" | "flagged" | "hidden";
+  created_at: string;
+};
+
+// Fil de service recovery médié par la plateforme (le resto n'a jamais le contact brut).
+export type FeedbackMessage = {
+  id: string;
+  feedback_id: string;
+  restaurant_id: string;
+  sender: "member" | "establishment";
+  body: string;
+  channel: string;
+  created_at: string;
+};
+
+// Baromètre de confiance (ADR 0023 §8) — état + tendance + décomposition,
+// JAMAIS une note chiffrée. Réservé au restaurateur (miroir ADR 0007).
+export type BarometerState = "insufficient" | "good" | "watch" | "tense";
+export type BarometerTrend = "up" | "flat" | "down" | "na"; // up = s'améliore (moins d'incidents)
+
+export type BarometerDimensionCount = { dimension: FeedbackDimension; count: number };
+
+export type Barometer = {
+  state: BarometerState;
+  trend: BarometerTrend;
+  encouragements: number;
+  incidents: number;
+  unresolved: number;
+  topDimensions: BarometerDimensionCount[];
+  totalFeedback: number;
+};
+
+// Vue resto d'un retour — contexte GROSSI, JAMAIS d'identifiant, de contact,
+// de Bestelnummer ni d'heure à la minute (ADR 0023 §4-§5). authorName = prénom
+// uniquement pour un encouragement non anonyme ; null sinon.
+export type AdminFeedbackItem = {
+  id: string;
+  sentiment: FeedbackSentiment;
+  dimensions: FeedbackDimension[];
+  comment: string | null;
+  status: FeedbackStatus;
+  contactOptIn: boolean;
+  createdAt: string;
+  weekday: string;
+  slot: string;
+  authorName: string | null;
+  messages: FeedbackMessage[];
 };

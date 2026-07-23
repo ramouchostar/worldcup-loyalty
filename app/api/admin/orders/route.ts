@@ -102,6 +102,7 @@ export async function PATCH(request: NextRequest) {
       .update({ status: "validated", validated_at: now, rejection_reason: null })
       .in("id", ids)
       .eq("status", "pending")
+      .eq("restaurant_id", restaurantId) // ADR sécurité F1 — jamais muter une commande d'un autre établissement
       .select("id, user_id, amount, team_id");
 
     if (error) return NextResponse.json({ error: "Erreur lors de la validation." }, { status: 500 });
@@ -130,6 +131,7 @@ export async function PATCH(request: NextRequest) {
     .from("orders")
     .update(update)
     .eq("id", id)
+    .eq("restaurant_id", restaurantId) // ADR sécurité F1 — la commande doit appartenir à CET établissement
     .select("user_id, amount, team_id")
     .single();
 

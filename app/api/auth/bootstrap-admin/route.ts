@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 
-export async function GET() {
+// POST (et non GET) : cet endpoint MUTE l'état (is_admin=true). Un GET mutant
+// est déclenchable par CSRF (<img src=...>) — on exige donc POST. Reste borné
+// à ADMIN_EMAILS. À terme, supprimable une fois le bootstrap effectué.
+export async function POST() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });

@@ -3,30 +3,59 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase";
 import { sanitizeZones } from "@/lib/zones";
+import { recordConsents } from "@/lib/consent";
 
-// ADR 0015 — le choix de l'établissement ne se fait plus ici (liste figée de
-// 3 Belchicken) mais sur /join, qui liste les établissements réels de la
-// table `restaurants` — un membre peut en rejoindre plusieurs, pas un seul
-// choisi une fois pour toutes.
+function ageFromISO(d: string): number | null {
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dt.getFullYear();
+  const m = now.getMonth() - dt.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dt.getDate())) age--;
+  return age;
+}
+
+// ADR 0015 — le choix de l'établissement se fait sur /join (table `restaurants`).
+// ADR 0022 — collecte la date de naissance (contrôle d'âge / mineurs) et
+// enregistre les consentements granulaires à l'inscription.
 export async function registerProfile(
   _prevState: { error: string } | null,
   formData: FormData
 ): Promise<{ error: string } | null> {
   const displayName = (formData.get("display_name") as string).trim();
+  if (!displayName) return { error: "Entre ton prénom." };
 
-  if (!displayName) {
-    return { error: "Entre ton prénom." };
-  }
-
-  // ADR 0018 — zones du membre (1 à 3), base de la découverte d'équipes
+  // ADR 0018 — zones du membre (1 à 3)
   const zones = sanitizeZones(formData.getAll("zones"));
   if (zones.length === 0) {
     return { error: "Indique au moins ta zone (ville ou quartier où tu vis)." };
   }
 
-  const cookieStore = await cookies();
+  // ADR 0022 — âge
+  const birthDate = ((formData.get("birth_date") as string) || "").trim();
+  const age = ageFromISO(birthDate);
+  if (age === null || age < 0 || age > 120) {
+    return { error: "Indique une date de naissance valide." };
+  }
 
+  // ADR 0022 — acceptation de la politique (information, obligatoire)
+  if (formData.get("accept_policy") !== "1") {
+    return { error: "Tu dois accepter la politique de confidentialité et les conditions d'utilisation." };
+  }
+
+  const isMinor = age < 13;
+  const parentalEmail = ((formData.get("parental_email") as string) || "").trim();
+  if (isMinor && !parentalEmail) {
+    return { error: "Un email d'un parent est requis pour les moins de 13 ans." };
+  }
+
+  // Opt-ins facultatifs (séparés — jamais groupés dans l'acceptation)
+  const optMarketing = formData.get("opt_marketing") === "1";
+  const optInsights = formData.get("opt_insights") === "1";
+
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,50 +65,60 @@ export async function registerProfile(
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch {}
+          try { cookieStore.set({ name, value, ...options }); } catch {}
         },
         remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: "", ...options });
-          } catch {}
+          try { cookieStore.set({ name, value: "", ...options }); } catch {}
         },
       },
     }
   );
 
   const { data: { session } } = await supabase.auth.getSession();
-
   if (!session?.user) {
     return { error: "Non authentifié. Reconnecte-toi puis réessaie." };
   }
-
   const user = session.user;
 
-  const { data: updatedRows, error } = await supabase
+  // Écritures via service role (contourne côté serveur le verrouillage RLS
+  // du profil, m34, tout en restant sur le profil de l'utilisateur authentifié).
+  const admin = createAdminClient();
+  const { error } = await admin
     .from("profiles")
-    .update({ display_name: displayName, zones })
-    .eq("id", user.id)
-    .select();
+    .update({
+      display_name: displayName,
+      zones,
+      birth_date: birthDate,
+      is_minor: isMinor,
+      parental_consent_status: isMinor ? "pending" : "none",
+      parental_email: isMinor ? parentalEmail : null,
+    })
+    .eq("id", user.id);
 
   if (error) {
     return { error: "Erreur lors de l'enregistrement. Réessaie." };
   }
 
-  if (!updatedRows || updatedRows.length === 0) {
-    return { error: "Profil introuvable. Déconnecte-toi et reconnecte-toi." };
-  }
+  // Enregistre les consentements (journal append-only, ADR 0022)
+  await recordConsents(
+    user.id,
+    {
+      programme: true,
+      zones: true,
+      marketing_push: optMarketing,
+      marketing_whatsapp: optMarketing,
+      insights_commerciaux: optInsights,
+    },
+    "signup",
+    admin
+  );
 
-  // Arrivée via le QR code / lien d'un établissement précis (page /r/[id])
-  // → on y retourne pour qu'il clique "Rejoindre" (confirmation explicite).
+  // Arrivée via le QR / lien d'un établissement précis → on y retourne.
   const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
   if (pendingRestaurantId) {
     cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
     redirect(`/r/${pendingRestaurantId}`);
   }
 
-  // Le cookie belchicken_ref (parrainage) et le choix de l'établissement
-  // sont désormais gérés sur /join (ADR 0015) — pas de restaurant_id connu ici.
   redirect("/join");
 }

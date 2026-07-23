@@ -45,11 +45,16 @@ export async function PATCH(request: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: updated, error } = await admin
     .from("micro_reward_claims")
     .update({ status: action === "validate" ? "validated" : "rejected" })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("restaurant_id", restaurantId) // ADR sécurité F2 — la réclamation doit appartenir à CET établissement
+    .select("id");
 
   if (error) return NextResponse.json({ error: "Erreur lors de la mise à jour." }, { status: 500 });
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: "Réclamation introuvable." }, { status: 404 });
+  }
   return NextResponse.json({ success: true });
 }

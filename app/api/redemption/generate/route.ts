@@ -29,24 +29,33 @@ export async function POST(request: Request) {
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-  // Marquer la récompense comme récupérée dès l'activation du coupon.
-  // Le cashier valide en voyant le countdown live — pas besoin de confirmation admin.
-  const [tokenInsert] = await Promise.all([
-    admin.from("redemption_tokens").insert({
-      user_id: user.id,
-      reward_id: reward.id,
-      restaurant_id: restaurantId,
-      token,
-      expires_at: expiresAt,
-      redeemed_at: now,
-    }),
-    admin
-      .from("pending_rewards")
-      .update({ status: "redeemed", redeemed_at: now })
-      .eq("id", reward.id),
-  ]);
+  // ADR sécurité F4 — anti double-coupon. Compare-and-swap ATOMIQUE : la
+  // récompense passe 'redeemed' UNIQUEMENT si elle est encore 'available'
+  // (UPDATE ... WHERE status='available' est atomique au niveau ligne). PUIS
+  // on insère le token. Deux requêtes concurrentes (double-clic, 2 onglets,
+  // script) : une seule gagne le CAS, l'autre reçoit 409 → jamais deux coupons
+  // valides pour une même récompense. Remplace l'ancien Promise.all non atomique.
+  const { data: claimed } = await admin
+    .from("pending_rewards")
+    .update({ status: "redeemed", redeemed_at: now })
+    .eq("id", reward.id)
+    .eq("status", "available")
+    .select("id");
 
-  if (tokenInsert.error) return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json({ error: "Récompense déjà en cours de récupération." }, { status: 409 });
+  }
+
+  const { error: tokenError } = await admin.from("redemption_tokens").insert({
+    user_id: user.id,
+    reward_id: reward.id,
+    restaurant_id: restaurantId,
+    token,
+    expires_at: expiresAt,
+    redeemed_at: now,
+  });
+
+  if (tokenError) return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
 
   return NextResponse.json({ token });
 }

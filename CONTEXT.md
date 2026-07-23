@@ -260,6 +260,30 @@ _Avoid_ : campagne, marketing de masse, newsletter.
 
 ---
 
+### Qualité & retours *(ADR 0023 — proposé)*
+
+**Retour** :
+Message qu'un membre adresse à **son** établissement dans le canal qualité privé, en choisissant une **intention** — un **encouragement** ou un **signalement**, jamais mitigé. Rattaché à une commande validée (anti-faux-avis). Donnée personnelle du membre (export / effacement, ADR 0022).
+_Avoid_ : avis (réservé à l'avis Google public), note, review, commentaire (le commentaire n'est qu'un champ optionnel du retour).
+
+**Encouragement** :
+Retour **positif**. Le **prénom** du membre est visible par le restaurateur — c'est ce qui crée le lien. Nourrit le baromètre côté positif.
+_Avoid_ : like, avis positif.
+
+**Signalement** :
+Retour **négatif** (précision de commande, attente, qualité/température, accueil). **Anonyme par défaut** vis-à-vis du restaurateur (le membre peut toujours forcer l'anonymat) ; contexte **grossi** (jour + créneau, jamais le Bestelnummer ni la minute) pour ne pas ré-identifier. Le membre peut demander à être recontacté (opt-in par incident) via un fil **médié par la plateforme**.
+_Avoid_ : plainte / réclamation (usage oral toléré, mais « signalement » est le terme canonique — moins accusatoire), avis négatif.
+
+**Baromètre de confiance** :
+Lecture qualité d'un établissement **réservée au restaurateur** (jamais exposée au client — miroir de l'ADR 0007). **Ce n'est pas une note chiffrée** : un **état** (vert / orange / rouge) + une **tendance** (vs période précédente) + une **décomposition** actionnable (encouragements vs signalements, axes récurrents, taux de réponse). « Pas assez de signaux » tant que les retours sont trop peu nombreux.
+_Avoid_ : score (réservé au **score communautaire**), score de confiance, note, grade, notation.
+
+**Service recovery** :
+Réponse du restaurateur à un signalement, via un **fil médié par la plateforme** — il **ne reçoit jamais** le numéro/email du membre. Transforme un mécontentement en relation réparée.
+_Avoid_ : SAV, réclamation, support.
+
+---
+
 ## Example dialogue
 
 > ⚠️ *Dialogue d'époque Coupe du Monde — les échanges mentionnant « bonus de tour », « avancement », « Belgique en quarts » ou `round_reached` sont obsolètes (ADR 0014). Les notions de double verrou, de couches de récompense, de doublon (Bestelnummer) et de commande directe restent valables. À rafraîchir lors de l'implémentation du pivot.*
