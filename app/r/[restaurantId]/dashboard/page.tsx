@@ -145,7 +145,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 rounded-2xl p-5 text-white">
         <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">🎁 Ta prochaine commande</p>
-        <p className="text-xs text-gray-500 mb-4">Pour une commande de ~€{previewAmt} :</p>
+        <p className="text-xs text-gray-300 mb-4">Pour une commande de ~€{previewAmt} :</p>
 
         <div className="space-y-3">
           {heroSolo.item ? (
@@ -449,7 +449,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         )}
       </div>
 
-      <p className="text-center text-xs text-gray-300 pb-2">Score mis à jour toutes les 30 secondes</p>
+      <p className="text-center text-xs text-gray-500 pb-2">Score mis à jour toutes les 30 secondes</p>
     </div>
   );
 }

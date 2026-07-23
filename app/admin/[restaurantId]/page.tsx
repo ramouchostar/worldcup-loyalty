@@ -26,7 +26,9 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
   ] = await Promise.all([
     admin.from("orders").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).eq("status", "pending"),
     admin.from("micro_reward_claims").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).eq("status", "pending"),
-    admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).not("team_id", "is", null),
+    // Tous les membres inscrits — l'équipe est optionnelle (ADR 0018), le
+    // filtre team_id sous-comptait (audit 2026-07-23).
+    admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", restaurantId),
     admin.from("restaurant_thresholds").select("period_label, current_revenue, target_revenue, is_unlocked").eq("restaurant_id", restaurantId).order("created_at", { ascending: false }).limit(1).single(),
     admin.from("orders").select("flag_reasons").eq("restaurant_id", restaurantId).eq("status", "pending"),
     // Gains du programme (depuis le début) : CA scanné + marge estimée sur
@@ -76,7 +78,9 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
       badge: flaggedCount > 0 ? "Vérifier" : undefined,
     },
     {
-      href: r("/orders"),
+      // ?filter=pending : la page ouvre le bon onglet (audit 2026-07-23 —
+      // le défaut « flagged » ne correspondait pas au libellé de la carte).
+      href: `${r("/orders")}?filter=pending`,
       label: "Commandes en attente",
       value: pendingOrders ?? 0,
       icon: "🧾",

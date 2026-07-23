@@ -191,7 +191,7 @@ function SwipeCard({
                 : <span className="italic text-gray-400">N° non extrait</span>
               }
               {" · "}
-              {new Date(order.order_date + "T00:00:00").toLocaleDateString("fr-BE")}
+              {new Date(order.order_date + "T00:00:00Z").toLocaleDateString("fr-BE", { timeZone: "UTC" })}
               {" · "}
               {new Date(order.submitted_at).toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}
             </p>
@@ -299,6 +299,13 @@ export default function AdminOrdersPage() {
     const interval = setInterval(fetchOrders, 30_000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
+
+  // Filtre initial via ?filter=… (cartes du dashboard admin) — lu via
+  // window.location comme sur la page Broadcasts (compatible prérendu).
+  useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get("filter");
+    if (f && (STATUS_FILTER as readonly string[]).includes(f)) setFilter(f as Filter);
+  }, []);
 
   async function handleAction(id: string, action: "validate" | "reject", reason?: string) {
     setBusy(id);
@@ -473,6 +480,10 @@ export default function AdminOrdersPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
           <p className="text-gray-400">Aucune commande dans cette catégorie.</p>
+          <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+            Les tickets signalés (montant élevé, OCR incertain…) arrivent ici pour
+            revue — les commandes normales se valident toutes seules.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

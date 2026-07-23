@@ -7,7 +7,11 @@ import { BankButton } from "./BankButton";
 
 // Montant de la commande d'origine (jointure RLS own-read) — sert à
 // afficher les points de réserve avant le choix « Mettre de côté »
-type RewardWithOrder = PendingReward & { orders: { amount: number } | null };
+// Vue restreinte de PendingReward : les colonnes de coût (€) ne sont
+// volontairement pas sélectionnées (ADR 0007).
+type RewardWithOrder = Omit<PendingReward, "user_id" | "restaurant_id" | "solo_cost" | "community_cost" | "advancement_cost"> & {
+  orders: { amount: number } | null;
+};
 
 export default async function MyRewardsPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -15,14 +19,16 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Colonnes explicites (audit 2026-07-23) : jamais les *_cost — un
+  // select("*") remonterait les coûts € des cadeaux dans le rendu (ADR 0007).
   const { data } = await supabase
     .from("pending_rewards")
-    .select("*, orders(amount)")
+    .select("id, status, source, order_id, solo_item, community_item, advancement_item, created_at, redeemed_at, banked_at, orders(amount)")
     .eq("user_id", user.id)
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
 
-  const rewards = (data as RewardWithOrder[]) ?? [];
+  const rewards = (data as unknown as RewardWithOrder[]) ?? [];
   const available = rewards.filter((r) => r.status === "available");
   const redeemed  = rewards.filter((r) => r.status === "redeemed");
   const expired   = rewards.filter((r) => r.status === "expired");

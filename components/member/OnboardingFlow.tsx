@@ -122,7 +122,7 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (stage !== "tour") return;
     const driverObj = driver({
-      popoverClass: "belchicken-popover",
+      popoverClass: "brand-popover",
       allowClose: false,
       showProgress: true,
       progressText: "{{current}} / {{total}}",

@@ -151,6 +151,10 @@ export default function AdminMicroRewardsPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
           <p className="text-gray-400">Aucune demande dans cette catégorie.</p>
+          <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+            Les demandes arrivent quand un membre déclare une action sociale
+            (avis Google, abonnement…) depuis son onglet Actions.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
