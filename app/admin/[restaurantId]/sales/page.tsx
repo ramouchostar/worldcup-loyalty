@@ -39,15 +39,16 @@ export default async function AdminSalesPage({
   searchParams,
 }: {
   params: Promise<{ restaurantId: string }>;
-  searchParams: { days?: string };
+  searchParams: Promise<{ days?: string }>;
 }) {
   const { restaurantId } = await params;
+  const { days: rawDays } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const days = PERIODS.some((p) => p.days === Number(searchParams.days))
-    ? Number(searchParams.days)
+  const days = PERIODS.some((p) => p.days === Number(rawDays))
+    ? Number(rawDays)
     : 30;
   const startDate = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 

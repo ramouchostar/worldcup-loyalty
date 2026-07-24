@@ -6,7 +6,8 @@ import { addFeedbackMessage } from "@/lib/feedback";
 // POST /api/admin/feedback/[id]/reply — l'établissement répond à un retour,
 // via le fil MÉDIÉ par la plateforme (il n'a jamais le contact du membre).
 // Body : { restaurantId, body?: string, resolve?: bool }
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const body = await req.json().catch(() => null);
   const restaurantId = typeof body?.restaurantId === "string" ? body.restaurantId : "";
   const text = typeof body?.body === "string" ? body.body : "";
@@ -22,7 +23,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const { data: fb } = await admin
     .from("quality_feedback")
     .select("id, restaurant_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   const row = fb as { restaurant_id: string } | null;
   if (!row || row.restaurant_id !== restaurantId) {
@@ -35,13 +36,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   if (text.trim()) {
     const res = await addFeedbackMessage(
-      { feedbackId: params.id, restaurantId, sender: "establishment", body: text },
+      { feedbackId: id, restaurantId, sender: "establishment", body: text },
       admin
     );
     if (!res.ok) return NextResponse.json({ error: res.reason }, { status: 400 });
   }
   if (resolve) {
-    await admin.from("quality_feedback").update({ status: "resolved" }).eq("id", params.id);
+    await admin.from("quality_feedback").update({ status: "resolved" }).eq("id", id);
   }
   return NextResponse.json({ ok: true });
 }

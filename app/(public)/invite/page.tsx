@@ -4,7 +4,7 @@ import { InviteRedirect } from "./InviteRedirect";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 
-type Props = { searchParams: { ref?: string } };
+type Props = { searchParams: Promise<{ ref?: string }> };
 
 // La surface la plus partagée de l'app (lien WhatsApp de parrainage) : le
 // branding doit être celui de l'établissement du parrain, jamais un resto
@@ -27,7 +27,8 @@ async function resolveInviteRestaurant(ref: string | undefined): Promise<string 
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const restaurantName = await resolveInviteRestaurant(searchParams.ref);
+  const { ref } = await searchParams;
+  const restaurantName = await resolveInviteRestaurant(ref);
   const title = restaurantName
     ? `Rejoins ma communauté ${restaurantName} 🏆`
     : "Rejoins ma communauté 🏆";
@@ -42,7 +43,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       title,
       description,
       images: [{ url: `${APP_URL}/api/icons/512`, width: 512, height: 512, alt: "Boosteats" }],
-      url: `${APP_URL}/invite${searchParams.ref ? `?ref=${searchParams.ref}` : ""}`,
+      url: `${APP_URL}/invite${ref ? `?ref=${ref}` : ""}`,
       type: "website",
       siteName: "Boosteats",
     },
@@ -55,9 +56,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function InvitePage({ searchParams }: Props) {
-  const ref = searchParams.ref ?? "";
+  const sp = await searchParams;
+  const ref = sp.ref ?? "";
   const joinPath = `/join${ref ? `?ref=${ref}` : ""}`;
-  const restaurantName = await resolveInviteRestaurant(searchParams.ref);
+  const restaurantName = await resolveInviteRestaurant(sp.ref);
 
   return (
     <main className="min-h-screen bg-brand-dark flex flex-col items-center justify-center px-6 text-center text-white">

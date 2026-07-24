@@ -5,9 +5,10 @@ export const runtime = "edge";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { size: string } }
+  { params }: { params: Promise<{ size: string }> }
 ) {
-  const size = params.size === "512" ? 512 : 192;
+  const { size: sizeParam } = await params;
+  const size = sizeParam === "512" ? 512 : 192;
   const radius = Math.round(size * 0.16);
   const fontSize = Math.round(size * 0.5);
   const labelSize = Math.round(size * 0.11);
