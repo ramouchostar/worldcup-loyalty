@@ -72,7 +72,7 @@
 - **Cron** `notifications` protégé par `CRON_SECRET` (échoue fermé). **m34** verrouille l'escalade de privilèges sur `profiles`.
 - **XSS faible** : `dangerouslySetInnerHTML` uniquement sur le SVG QR (généré par la lib) + CSS d'impression statique ; le rendu markdown est du JSX échappé.
 - **Secrets** : `createAdminClient` (service-role) jamais importé côté client ; pas de secret en `NEXT_PUBLIC_*`.
-- **Canal qualité (ADR 0023)** : `getEstablishmentFeedback` expose bien le contexte grossi (jour+créneau) sans identité/commande sur les incidents anonymes — pas de fuite.
+- **Canal qualité (ADR 0026)** : `getEstablishmentFeedback` expose bien le contexte grossi (jour+créneau) sans identité/commande sur les incidents anonymes — pas de fuite.
 
 ---
 

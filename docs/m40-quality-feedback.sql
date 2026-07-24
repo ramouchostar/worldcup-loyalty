@@ -1,5 +1,5 @@
 -- ============================================================
--- M38 : ADR 0023 — Canal qualité privé (« note inversée »)
+-- M40 : ADR 0026 — Canal qualité privé (« note inversée »)
 --
 -- 1. quality_feedback : retour d'un membre à SON établissement.
 --    Intention d'abord (jamais mitigé) :

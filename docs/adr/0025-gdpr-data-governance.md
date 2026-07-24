@@ -1,4 +1,4 @@
-# ADR 0022 — Conformité RGPD, rôle de responsable de traitement & gouvernance des données
+# ADR 0025 — Conformité RGPD, rôle de responsable de traitement & gouvernance des données
 
 **Statut** : Proposé — **implémentable en l'état** ; les points marqués « À valider (juriste) » doivent être confirmés par un avocat / DPO spécialisé RGPD (Belgique) **avant commercialisation**. Ceci est une décision d'architecture, pas un avis juridique.
 

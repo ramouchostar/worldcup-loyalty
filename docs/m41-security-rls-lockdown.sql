@@ -1,5 +1,5 @@
 -- ============================================================
--- M39 : Audit sécurité 2026-07 — durcissement RLS ADR 0007 (finding F3)
+-- M41 : Audit sécurité 2026-07 — durcissement RLS ADR 0007 (finding F3)
 --
 -- F3 (HIGH) : community_scores.total_spent (dépense/CA cumulé, EUROS) était
 -- lisible par tout client anon/authenticated via la policy permissive

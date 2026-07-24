@@ -1,5 +1,5 @@
 -- ============================================================
--- M37 : ADR 0022 — Conformite RGPD : consentements & demandes de droits
+-- M39 : ADR 0025 — Conformite RGPD : consentements & demandes de droits
 --
 -- 1. consents : journal APPEND-ONLY des consentements (preuve, art. 7 RGPD).
 --    Le consentement courant pour (user, purpose) = la ligne la plus recente.

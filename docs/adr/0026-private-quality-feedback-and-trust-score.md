@@ -1,6 +1,6 @@
-# ADR 0023 — Canal qualité privé, baromètre de confiance & service recovery (« note inversée »)
+# ADR 0026 — Canal qualité privé, baromètre de confiance & service recovery (« note inversée »)
 
-**Statut** : Proposé — **v1 implémentable en l'état** (couche A ci-dessous). Les points marqués « À valider (juriste) » doivent être confirmés avant commercialisation. Ceci est une décision d'architecture, pas un avis juridique. Prolonge l'**ADR 0022** (gouvernance des données) et applique l'**ADR 0007** (métriques établissement invisibles côté client) **en miroir**.
+**Statut** : Proposé — **v1 implémentable en l'état** (couche A ci-dessous). Les points marqués « À valider (juriste) » doivent être confirmés avant commercialisation. Ceci est une décision d'architecture, pas un avis juridique. Prolonge l'**ADR 0025** (gouvernance des données) et applique l'**ADR 0007** (métriques établissement invisibles côté client) **en miroir**.
 
 ## Contexte
 
@@ -37,14 +37,14 @@ Posture assumée (« **bon père de famille** ») : on **encadre** l'usage au mi
 
 ### 4. Service recovery **médié par la plateforme** (le resto n'obtient jamais le contact brut)
 
-- Sur un incident, le membre peut **être mis en relation** avec l'établissement. L'échange se fait **via un fil in-app médié par la plateforme** ; l'établissement **ne reçoit ni numéro, ni email, ni identité brute** (même principe que le ciblage-service, ADR 0022 §2).
+- Sur un incident, le membre peut **être mis en relation** avec l'établissement. L'échange se fait **via un fil in-app médié par la plateforme** ; l'établissement **ne reçoit ni numéro, ni email, ni identité brute** (même principe que le ciblage-service, ADR 0025 §2).
 - **Opt-in par incident** : le membre choisit, retour par retour, s'il veut être recontacté. Par défaut : pas de recontact.
 - L'établissement peut **accuser réception** / répondre / remercier — toujours via la plateforme.
 - **Identité affichée au resto — pseudonymisée, pilotée par le sentiment.** Le resto voit un **pseudonyme persistant** (prénom + identifiant stable), **jamais** téléphone/email. Règle : **encouragement → prénom visible** (on construit le lien) ; **plainte / incident → anonyme par défaut** (le resto voit « un membre » + contexte, sans identité). Le membre peut **toujours forcer l'anonymat**. La médiation fonctionne même anonyme : la plateforme route la réponse vers le bon membre — l'anonymat est vis-à-vis du **resto**, pas de la plateforme.
 
 ### 5. Ce que voit le restaurateur : données **opérationnelles**, pas de gestion à sa place
 
-- **Baromètre de confiance** = **état de santé** (feu vert / orange / rouge) + **tendance** vs période précédente + **décomposition** (encouragements vs incidents, axes récurrents, taux de réponse) — **jamais une note chiffrée** ; **« pas assez de signaux »** sous un seuil de retours (§8). **Benchmark** vs pairs **anonymisés** (optionnel, seuil ≥ 20, ADR 0022).
+- **Baromètre de confiance** = **état de santé** (feu vert / orange / rouge) + **tendance** vs période précédente + **décomposition** (encouragements vs incidents, axes récurrents, taux de réponse) — **jamais une note chiffrée** ; **« pas assez de signaux »** sous un seuil de retours (§8). **Benchmark** vs pairs **anonymisés** (optionnel, seuil ≥ 20, ADR 0025).
 - **Incidents individuels** avec **contexte opérationnel grossi** : **jour + créneau** (fenêtre horaire), axes cochés, commentaire éventuel — **jamais** le Bestelnummer ni l'heure à la minute (`order_id` reste **côté serveur** : anti-faux-avis / dédoublonnage, non affiché). Grossir le contexte protège l'**anonymat** de la plainte (§4). *Risque connu assumé (v1)* : dans un très petit resto sur un créneau creux, même le créneau peut ré-identifier — le masquage sous seuil d'activité est un raffinement **couche B**.
 - **Regroupement des incidents par jour + créneau** (réutilise `orders.order_time` — OCR best-effort, ADR 0020 — et `order_date`, comme les pages admin `insights` / `sales` existantes) — **jamais** par personne. Quand `order_time` manque, l'incident n'est bucketisable que par **jour**. « Le vendredi 19-21 h ça coince » est actionnable sans nommer qui que ce soit.
 - **L'app ne calcule PAS l'« affluence / rush »** : `orders` ne contient que les commandes-programme scannées (fraction du trafic réel) → toute affluence serait un proxy biaisé. Le **rush reste la lecture du restaurateur** (il était là), qu'il **superpose** au regroupement des incidents — strict respect du principe « on fournit la donnée, il conclut ».
@@ -64,10 +64,10 @@ Posture assumée (« **bon père de famille** ») : on **encadre** l'usage au mi
 | Soumission d'un retour (encouragement / signalement + commentaire) | Acte **volontaire** du membre / exécution du service — *À valider* | Non (acte volontaire, informé) |
 | Mise en relation / recontact sur incident | **Consentement** (opt-in par incident) | **Oui** |
 | Baromètre de confiance & analytics **opérationnels** (resto) | Intérêt légitime (amélioration du service) — *À valider* | — |
-| Benchmark inter-établissements | Agrégats **anonymisés**, seuil **≥ 20** (ADR 0022) | — |
+| Benchmark inter-établissements | Agrégats **anonymisés**, seuil **≥ 20** (ADR 0025) | — |
 
 - **Nouvelle finalité** au **registre des traitements** (Art. 30) + **paragraphe** dédié dans la politique de confidentialité (`/privacy`).
-- Les retours sont des **données personnelles du membre** → inclus dans l'**export** (ADR 0022 §6) et l'**effacement / anonymisation** (le commentaire est anonymisé / supprimé ; l'incident peut rester en **statistique opérationnelle non nominative**).
+- Les retours sont des **données personnelles du membre** → inclus dans l'**export** (ADR 0025 §6) et l'**effacement / anonymisation** (le commentaire est anonymisé / supprimé ; l'incident peut rester en **statistique opérationnelle non nominative**).
 - Poids **AIPD** fortement réduit tant que §6 est respecté (pas de suivi systématique du personnel) — **à confirmer**.
 
 ### 8. Forme du baromètre & robustesse (anti-gaming)
@@ -93,7 +93,7 @@ Posture assumée (« **bon père de famille** ») : on **encadre** l'usage au mi
 - **Écrans resto** : baromètre (**état + tendance + décomposition**) ; liste d'incidents avec contexte opérationnel grossi ; regroupement par créneau / jour ; réponse médiée. **Aucun** filtre par employé (§6).
 - **APIs** : `POST /api/feedback` (créer), `GET /api/feedback/me` (mes retours), admin `GET /api/admin/feedback` (borné resto), `POST /api/admin/feedback/[id]/reply` (médié).
 - **Migration** `docs/mNN-quality-feedback.sql` (tables + RLS service-role) ; format non-cassant, idempotent ; **build vert**.
-- **Export / effacement** (ADR 0022) : étendre `lib/gdpr.ts` pour inclure / anonymiser `quality_feedback` + `feedback_messages`.
+- **Export / effacement** (ADR 0025) : étendre `lib/gdpr.ts` pour inclure / anonymiser `quality_feedback` + `feedback_messages`.
 
 ## Points à valider par un juriste (obligatoire avant commercialisation)
 
@@ -107,7 +107,7 @@ Posture assumée (« **bon père de famille** ») : on **encadre** l'usage au mi
 
 - **Note publique (modèle Google)** : rejetée — c'est exactement ce que la feature veut éviter (exposition, irréversibilité).
 - **Attribution nominative par employé dans l'app** : rejetée — surveillance du personnel, bascule en HR-tech réglementée ; laissée à l'appréciation **hors app** du restaurateur (§6).
-- **Contact direct resto ↔ client (contact transmis)** : rejetée — le recontact reste **médié par la plateforme** (cohérent ADR 0022), le membre garde la main (opt-in).
+- **Contact direct resto ↔ client (contact transmis)** : rejetée — le recontact reste **médié par la plateforme** (cohérent ADR 0025), le membre garde la main (opt-in).
 - **Texte libre seul** : rejeté au profit d'un **retour structuré** + commentaire optionnel (signal exploitable, risque réduit).
 - **Entonnoir / *review gating* (router les mécontents loin de Google, les contents vers Google)** : rejeté — contraire à la politique Google et risqué en droit de la consommation. Le canal qualité privé et la micro-récompense « avis Google » restent **strictement indépendants** ; aucun aiguillage selon le sentiment.
 - **« Score de confiance » (note chiffrée unique)** : rejeté — recrée l'angoisse d'une note qui juge (côté resto cette fois), peu actionnable, et « score » entre en **collision** avec le *score communautaire* (CONTEXT.md). Remplacé par le **baromètre** (état + tendance + décomposition).
