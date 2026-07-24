@@ -1,66 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase-browser";
+import { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import type { CommunityScore, Team } from "@/types";
 
-// total_spent (euros) ne doit jamais entrer dans ce composant — ADR 0007
+// total_spent (euros) n'entre JAMAIS dans ce composant — ADR 0007. Les mises à
+// jour se font par POLLING d'un endpoint euro-free (plus d'abonnement Realtime,
+// qui transportait la ligne complète — dont total_spent — sur le WebSocket).
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
 
+const fetcher = (url: string): Promise<LeaderboardRow[]> => fetch(url).then((r) => r.json());
+
 export function LeaderboardRealtime({
   initial,
   myTeamId,
+  restaurantId,
 }: {
   initial: LeaderboardRow[];
   myTeamId?: string;
+  restaurantId: string;
 }) {
-  const [rows, setRows] = useState<LeaderboardRow[]>(initial);
+  const { data } = useSWR<LeaderboardRow[]>(`/api/leaderboard/${restaurantId}`, fetcher, {
+    fallbackData: initial,
+    refreshInterval: 30_000,
+    revalidateOnFocus: true,
+  });
+
+  const rows = [...(data ?? initial)].sort((a, b) => b.score - a.score);
+
+  // Flash bref des lignes dont le score a bougé depuis le dernier snapshot.
+  const prevScores = useRef<Map<string, number>>(new Map(initial.map((r) => [r.team_id, r.score])));
   const [flash, setFlash] = useState<Set<string>>(new Set());
-
   useEffect(() => {
-    const supabase = createClient();
-
-    const channel = supabase
-      .channel("leaderboard-scores")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "community_scores" },
-        (payload) => {
-          // Ne reprendre que les champs autorisés côté client — le payload
-          // realtime contient la ligne complète (dont total_spent)
-          const updated = payload.new as CommunityScore;
-          setRows((prev) => {
-            const idx = prev.findIndex((r) => r.team_id === updated.team_id);
-            if (idx === -1) return prev;
-
-            const next = [...prev];
-            next[idx] = {
-              ...next[idx],
-              member_count: updated.member_count,
-              score: updated.score,
-              last_updated: updated.last_updated,
-            };
-            next.sort((a, b) => b.score - a.score);
-            return next;
-          });
-
-          // Flash the updated row briefly
-          setFlash((prev) => new Set(Array.from(prev).concat(updated.team_id)));
-          setTimeout(() => {
-            setFlash((prev) => {
-              const next = new Set(prev);
-              next.delete(updated.team_id);
-              return next;
-            });
-          }, 1500);
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    const changed = new Set<string>();
+    for (const r of rows) {
+      const prev = prevScores.current.get(r.team_id);
+      if (prev !== undefined && prev !== r.score) changed.add(r.team_id);
+      prevScores.current.set(r.team_id, r.score);
+    }
+    if (changed.size === 0) return;
+    setFlash(changed);
+    const t = setTimeout(() => setFlash(new Set()), 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   return (
     <div className="space-y-2">
@@ -94,7 +79,7 @@ export function LeaderboardRealtime({
             {/* Drapeau */}
             <span className="text-2xl">{entry.teams.flag_emoji}</span>
 
-            {/* Nom + stade */}
+            {/* Nom */}
             <div className="flex-1 min-w-0">
               <p className={`font-semibold text-sm truncate ${isMyTeam ? "text-brand-red" : "text-gray-900"}`}>
                 {entry.teams.name}

@@ -100,7 +100,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
           <span className="text-xs text-gray-400">{scores.length} équipes</span>
         </div>
 
-        <LeaderboardRealtime initial={scores} myTeamId={myTeamId} />
+        <LeaderboardRealtime initial={scores} myTeamId={myTeamId} restaurantId={restaurantId} />
       </div>
 
       {/* CTA si non connecté */}
