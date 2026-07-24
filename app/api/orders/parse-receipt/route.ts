@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { analyzeReceipt, isAllowedReceiptType } from "@/lib/receipt-ocr";
 import { getReceiptConfig } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 30;
 
@@ -16,6 +17,16 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+
+  // F8 (sécurité) — anti-abus de l'OCR (appels Claude Vision FACTURÉS) : au plus
+  // 20 analyses par heure et par membre. Fail-open tant que m44 n'est pas
+  // appliquée (voir lib/rate-limit.ts).
+  if (!(await checkRateLimit(user.id, "ocr_parse_receipt", 20, 3600))) {
+    return NextResponse.json(
+      { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
+      { status: 429 }
+    );
+  }
 
   const formData = await request.formData();
   const file = formData.get("receipt") as File | null;
