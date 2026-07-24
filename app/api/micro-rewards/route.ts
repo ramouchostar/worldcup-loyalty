@@ -17,6 +17,12 @@ export async function GET(request: NextRequest) {
 
   const restaurantId = request.nextUrl.searchParams.get("restaurantId");
   if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  // F6 (sécurité) — restaurantId est interpolé dans un filtre PostgREST .or() ;
+  // on le contraint au format slug (generateRestaurantSlug) pour éliminer tout
+  // caractère de contrôle PostgREST (virgule, point, parenthèses…).
+  if (!/^[a-z0-9-]{1,40}$/.test(restaurantId)) {
+    return NextResponse.json({ error: "restaurantId invalide." }, { status: 400 });
+  }
 
   const [{ data: rewards }, { data: claims }, gift] = await Promise.all([
     supabase

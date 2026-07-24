@@ -116,6 +116,23 @@ export async function createTeam(
 
   const admin = createAdminClient();
 
+  // F7 (sécurité) — l'établissement doit exister : bloque les restaurantId
+  // fabriqués et la création de données orphelines (teams/community_scores).
+  const { data: resto } = await admin.from("restaurants").select("id").eq("id", restaurantId).maybeSingle();
+  if (!resto) return { ok: false, status: 404, error: "Établissement introuvable." };
+
+  // F7 (sécurité) — anti-flood : au plus 3 équipes créées par membre et par
+  // heure (empêche le noyage du référentiel équipes / la pollution en masse).
+  const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const { count: recentCreated } = await admin
+    .from("teams")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", userId)
+    .gte("created_at", oneHourAgo);
+  if ((recentCreated ?? 0) >= 3) {
+    return { ok: false, status: 429, error: "Trop d'équipes créées récemment. Réessaie plus tard." };
+  }
+
   // join_code unique (quelques tentatives en cas de collision)
   let joinCode = randomCode();
   for (let i = 0; i < 5; i++) {

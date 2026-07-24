@@ -52,6 +52,9 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
     );
   }
 
+  // F5 (sécurité) — cost_euros réservé au service role (ADR 0007) : le
+  // catalogue de récompenses se lit via l'admin client (jamais la clé cliente).
+  const admin = createAdminClient();
   const [
     restaurant,
     { data: rewardsRaw },
@@ -60,7 +63,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
     memberActive,
   ] = await Promise.all([
     getRestaurant(restaurantId),
-    supabase
+    admin
       .from("rewards")
       .select("*")
       .eq("is_active", true)
@@ -83,7 +86,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
 
   // Couverture d'équipe (ADR 0017) — total_spent en euros lu via service role,
   // jamais rendu au client (ADR 0007) : il n'entre que dans le calcul du verrou.
-  const admin = createAdminClient();
+  // (admin déjà instancié plus haut pour le catalogue de récompenses, F5.)
   const [{ data: spentRaw }, budget] = await Promise.all([
     admin
       .from("community_scores")

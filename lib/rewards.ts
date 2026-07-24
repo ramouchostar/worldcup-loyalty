@@ -26,7 +26,10 @@ export async function getUnlockedRewards(
 ): Promise<Reward[]> {
   if (!restaurantThresholdUnlocked) return [];
 
-  const supabase = await createServerSupabaseClient();
+  // F5 (sécurité) — cost_euros est réservé au service role (ADR 0007), et
+  // cette fonction s'en sert pour la couverture (ADR 0017). Lecture du
+  // catalogue via l'admin client (données non user-scopées).
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from("rewards")
     .select("*")
