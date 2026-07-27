@@ -14,6 +14,14 @@ _Avoid_ : commande, achat, order — toujours qualifier de "directe" pour distin
 Achat passé via Uber Eats, Takeaway ou Deliveroo. Ne compte PAS dans le programme. Ne doit jamais apparaître dans la table `orders`.
 _Avoid_ : livraison (trop générique — on peut livrer directement).
 
+**Vente caisse** *(ADR 0027)* :
+Encaissement enregistré par le système de caisse du restaurateur (membre ou non), importé par CSV/Excel à part de `orders`. **Jamais affichée ligne à ligne** (le resto a le détail dans sa caisse) — c'est la matière brute du **forecast de CA total**. Ce qui EST montré, c'est la prévision qui en découle, réservée à l'**admin/restaurateur** (jamais côté client/membre — c'est la vue admin, qui a toujours le droit aux euros ; l'ADR 0007 ne vise que le membre). Table `restaurant_sales`, **service-role only**. Une **commande directe** est une vente caisse qui a *en plus* été scannée par un membre.
+_Avoid_ : vente (seul — ambigu), CA / chiffre d'affaires **côté client** (interdit ADR 0007 ; autorisé côté admin), commande (réservé aux commandes directes des membres).
+
+**Prévision (forecast)** *(ADR 0027)* :
+Estimation du **CA total** à venir de l'établissement, calculée **uniquement sur les ventes caisse** (jamais les commandes scannées). Réservée à l'**admin/restaurateur** — jamais côté membre (l'ADR 0007 ne vise que le membre). Toujours exprimée en **fourchette + niveau de confiance**, avec un **plancher** en dessous duquel elle ne s'affiche pas (« pas assez de données »). Moteur déterministe et explicable (facteurs visibles).
+_Avoid_ : prédiction (trop absolu — c'est une aide à la décision, pas une garantie), CA / chiffre d'affaires **côté client** (interdit ADR 0007).
+
 **Ticket de caisse** :
 Photo du reçu papier soumise par le membre comme preuve de sa commande directe. Stockée dans Supabase Storage bucket `receipts`. Obligatoire pour toute soumission de commande.
 _Avoid_ : reçu, preuve, justificatif.

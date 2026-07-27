@@ -17,6 +17,7 @@
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.44.4",
     "driver.js": "^1.4.0",
+    "fflate": "^0.8.3",
     "next": "^16.2.11",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",

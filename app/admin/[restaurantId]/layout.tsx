@@ -39,6 +39,7 @@ export default async function AdminLayout({
     { href: `${base}/broadcast`,         label: "📣 Broadcasts" },
     { href: `${base}/menu`,              label: "📋 Menu & coûts" },
     { href: `${base}/sales`,             label: "📈 Ventes" },
+    { href: `${base}/forecast`,          label: "🔮 Prévisions" },
     { href: `${base}/micro-rewards`,     label: "⭐ Actions" },
     { href: `${base}/referrals`,         label: "👥 Parrainages" },
     { href: `${base}/team-tiers`,        label: "🏆 Paliers d'équipe" },
