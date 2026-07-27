@@ -235,14 +235,23 @@ function FeedbackCard({ feedback, messages }: { feedback: QualityFeedback; messa
   async function reply() {
     if (!text.trim()) return;
     setBusy(true);
-    await fetch(`/api/feedback/${feedback.id}/reply`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: text }),
-    });
-    setText("");
-    setBusy(false);
-    router.refresh();
+    try {
+      const res = await fetch(`/api/feedback/${feedback.id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text }),
+      });
+      // Succès seulement : sinon on garde le texte saisi pour réessayer
+      // (plus de faux « envoyé » silencieux ni de bouton figé — M4).
+      if (res.ok) {
+        setText("");
+        router.refresh();
+      }
+    } catch {
+      // échec réseau — le texte reste, le bouton se réactive (finally)
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

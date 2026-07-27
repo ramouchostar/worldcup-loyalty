@@ -14,17 +14,22 @@ export function ExchangeButton({ tierId, disabled }: { tierId: string; disabled:
   async function handleExchange() {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/points/exchange", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurantId, tierId }),
-    });
-    if (res.ok) {
-      router.push(`/r/${restaurantId}/my-rewards`);
-      router.refresh();
-    } else {
+    try {
+      const res = await fetch("/api/points/exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId, tierId }),
+      });
+      if (res.ok) {
+        router.push(`/r/${restaurantId}/my-rewards`);
+        router.refresh();
+        return;
+      }
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Erreur lors de l'échange");
+      setError(body.error ?? "Erreur lors de l'échange.");
+    } catch {
+      setError("Erreur réseau. Réessaie.");
+    } finally {
       setBusy(false);
     }
   }

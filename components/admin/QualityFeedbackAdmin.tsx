@@ -99,18 +99,26 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
   const router = useRouter();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const isInc = item.sentiment === "incident";
 
   async function act(payload: { body?: string; resolve?: boolean }) {
     setBusy(true);
-    await fetch(`/api/admin/feedback/${item.id}/reply`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurantId, ...payload }),
-    });
-    setText("");
-    setBusy(false);
-    router.refresh();
+    setErr(null);
+    try {
+      const res = await fetch(`/api/admin/feedback/${item.id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId, ...payload }),
+      });
+      if (!res.ok) { setErr("Échec de l'envoi — réessaie."); return; }
+      setText("");
+      router.refresh();
+    } catch {
+      setErr("Erreur réseau — réessaie.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -176,6 +184,7 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
           </button>
         )}
       </div>
+      {err && <p className="text-xs text-red-600">{err}</p>}
     </div>
   );
 }

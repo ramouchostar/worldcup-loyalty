@@ -28,6 +28,7 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
   const [now, setNow] = useState(() => Date.now());
   const [redeemed, setRedeemed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -55,14 +56,17 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
 
   async function handleRedeem() {
     setBusy(true);
-    const res = await fetch(`/api/redemption/${token}/redeem`, { method: "POST" });
-    if (res.ok) {
-      setRedeemed(true);
-    } else {
+    setError(null);
+    try {
+      const res = await fetch(`/api/redemption/${token}/redeem`, { method: "POST" });
+      if (res.ok) { setRedeemed(true); return; }
       const body = await res.json().catch(() => ({}));
-      alert(body.error ?? "Erreur lors de la validation");
+      setError(body.error ?? "Erreur lors de la validation.");
+    } catch {
+      setError("Erreur réseau. Réessaie.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   if (redeemed) {
@@ -162,6 +166,9 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
               >
                 {busy ? "Validation…" : "✅ Cadeau remis"}
               </button>
+            )}
+            {isAdmin && error && (
+              <p className="mt-2 text-center text-sm text-red-600">{error}</p>
             )}
           </div>
         </div>

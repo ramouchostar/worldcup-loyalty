@@ -53,15 +53,18 @@ export function TeamManager({
     setBusy(true);
     setError(null);
     const zone = teamZone === "__custom__" ? customZone : teamZone;
-    const res = await fetch("/api/teams", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, restaurantId, zone: zone || null }),
-    });
-    const body = await res.json();
-    if (res.ok) router.refresh();
-    else {
+    try {
+      const res = await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, type, restaurantId, zone: zone || null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) { router.refresh(); return; }
       setError(body.error ?? "Erreur.");
+    } catch {
+      setError("Erreur réseau. Réessaie.");
+    } finally {
       setBusy(false);
     }
   }
@@ -69,15 +72,18 @@ export function TeamManager({
   async function join(payload: { code?: string; teamId?: string }) {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/teams/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payload, restaurantId }),
-    });
-    const body = await res.json();
-    if (res.ok) router.refresh();
-    else {
+    try {
+      const res = await fetch("/api/teams/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, restaurantId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) { router.refresh(); return; }
       setError(body.error ?? "Erreur.");
+    } catch {
+      setError("Erreur réseau. Réessaie.");
+    } finally {
       setBusy(false);
     }
   }
@@ -266,19 +272,24 @@ function ZonesCard({ zones, onSaved }: { zones: string[]; onSaved: () => void })
     }
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/profile/zones", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ zones: clean }),
-    });
-    const body = await res.json();
-    if (res.ok) {
-      setEditing(false);
-      onSaved();
-    } else {
-      setError(body.error ?? "Erreur.");
+    try {
+      const res = await fetch("/api/profile/zones", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zones: clean }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setEditing(false);
+        onSaved();
+      } else {
+        setError(body.error ?? "Erreur.");
+      }
+    } catch {
+      setError("Erreur réseau. Réessaie.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   if (!editing) {
