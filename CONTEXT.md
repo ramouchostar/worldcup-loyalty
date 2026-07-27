@@ -22,6 +22,17 @@ _Avoid_ : vente (seul — ambigu), CA / chiffre d'affaires **côté client** (in
 Estimation du **CA total** à venir de l'établissement, calculée **uniquement sur les ventes caisse** (jamais les commandes scannées). Réservée à l'**admin/restaurateur** — jamais côté membre (l'ADR 0007 ne vise que le membre). Toujours exprimée en **fourchette + niveau de confiance**, avec un **plancher** en dessous duquel elle ne s'affiche pas (« pas assez de données »). Moteur déterministe et explicable (facteurs visibles).
 _Avoid_ : prédiction (trop absolu — c'est une aide à la décision, pas une garantie), CA / chiffre d'affaires **côté client** (interdit ADR 0007).
 
+**Plan** *(ADR 0029)* :
+Niveau d'abonnement du **restaurateur** — jamais du membre (le membre ne paie jamais, expérience identique quel que soit le plan). Trois plans : **Gratuit** (programme membre complet + scan plafonné pour couvrir le coût OCR + parrainage + broadcast manuel + baromètre de base — le moteur qui génère la donnée et verrouille les membres), **Croissance** (l'**Analytique établissement**), **Pro** (Croissance + **Repères secteur**). Les fonctions payantes se débloquent *data-ready* ou à la 1ʳᵉ utilisation, 30 j d'essai, puis **paywall doux** (valeur visible mais verrouillée).
+_Avoid_ : freemium (jargon — on dit « plan ») ; abonnement du client (le client payant EST le restaurateur).
+
+**Analytique établissement** *(ADR 0029)* :
+Les fonctions payantes qui tournent sur les données **propres** du resto (forecast, ventes par plat, opportunités, broadcasts programmés, baromètre avancé) — le contenu du plan Croissance. À distinguer des **Repères secteur**.
+
+**Repères secteur** *(ADR 0029)* :
+Agrégats **anonymisés** de la donnée de **tous** les restos (Gratuit inclus contribue), consultables uniquement en plan **Pro** — « la médiane de ton secteur fait +18 % le jeudi ». Jamais de chiffres bruts identifiables ; **seuil plancher** (≥ N restos) anti-ré-identification (esprit ADR 0016) ; contribution actée en CGU.
+_Avoid_ : benchmark (anglicisme — « repères secteur ») ; données concurrents (ce ne sont jamais des chiffres identifiables d'un resto).
+
 **Ticket de caisse** :
 Photo du reçu papier soumise par le membre comme preuve de sa commande directe. Stockée dans Supabase Storage bucket `receipts`. Obligatoire pour toute soumission de commande.
 _Avoid_ : reçu, preuve, justificatif.
