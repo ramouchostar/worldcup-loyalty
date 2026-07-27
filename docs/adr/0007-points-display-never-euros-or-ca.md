@@ -1,6 +1,6 @@
 # ADR 0007 — Le client ne voit jamais d'euros ni de seuil CA
 
-**Statut** : Accepté
+**Statut** : Accepté — **amendé le 2026-07-27 par l'[ADR 0028](0028-points-decoupled-from-euros.md)** (le client ne voit plus AUCUN euro, même ses dépenses perso ; le score n'est plus `membres × euros`).
 
 ## Contexte
 
@@ -34,3 +34,12 @@ Montrer au client que le restaurant n'a pas atteint son objectif de CA revient �
 - Toutes les routes API publiques (`/api/leaderboard`, `/api/rewards`, `/api/dashboard`) calculent le statut débloqué/verrouillé côté serveur sans jamais exposer `target_revenue`, `current_revenue` ou `is_unlocked` dans la réponse JSON client.
 - L'interface admin (/admin/thresholds) est la seule vue où ces données sont visibles.
 - Les tests d'intégration doivent vérifier que les routes publiques ne leakent aucune donnée CA.
+
+## Amendement — 2026-07-27 (ADR 0028)
+
+Deux règles de cet ADR sont **remplacées** par l'[ADR 0028](0028-points-decoupled-from-euros.md), qui corrige deux fuites par lesquelles le client pouvait reconstituer les euros :
+
+1. **« Dépenses personnelles → euros autorisés » (section ci-dessus) est ANNULÉE.** Le client ne voit **plus aucun euro**, y compris ses propres dépenses (« Mes stats », historique, aperçu « ~€25 »). Tout passe en **points**. Seule exception : la **saisie** du montant du ticket à la soumission (donnée d'ingestion, pas d'affichage).
+2. **Le score n'est plus la « valeur brute `membres × euros` ».** Il devient une **somme de points courbés** (non-linéaires) par membre, de sorte que `score ÷ membres` ne redonne pas d'euros. Les points sont **délibérément non-convertibles** en euros (découplage structurel, pas obscurité).
+
+L'euro reste la vérité **serveur** (budget 0012, marge 0017, forecast 0027) et l'outil du **restaurateur** — il ne franchit jamais la frontière vers l'expérience client.
