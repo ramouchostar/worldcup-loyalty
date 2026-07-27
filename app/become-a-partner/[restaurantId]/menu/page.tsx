@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { MenuUploadForm } from "./MenuUploadForm";
@@ -28,6 +29,14 @@ export default async function OnboardingMenuPage({ params }: { params: Promise<{
         </div>
 
         <MenuUploadForm restaurantId={restaurantId} />
+
+        {/* Sortie in-app : ne pas piéger le restaurateur sans CSV prêt — il
+            pourra compléter son catalogue depuis l'admin (audit UX 2026-07). */}
+        <p className="text-center mt-4">
+          <Link href={`/admin/${restaurantId}`} className="text-xs text-gray-400 hover:text-gray-600 underline">
+            Configurer plus tard →
+          </Link>
+        </p>
       </div>
     </div>
   );

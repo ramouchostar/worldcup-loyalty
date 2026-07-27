@@ -136,6 +136,14 @@ export default function RegisterPage() {
           {loading ? "Création..." : "Continuer"}
         </button>
       </form>
+
+      {/* Sortie in-app : la complétion de profil est post-auth ; sans issue,
+          l'utilisateur qui hésite est piégé (audit UX 2026-07). */}
+      <form action="/api/auth/logout" method="POST" className="mt-4 text-center">
+        <button type="submit" className="text-xs text-gray-400 hover:text-gray-600 underline">
+          Annuler et se déconnecter
+        </button>
+      </form>
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase";
+import { getRestaurant } from "@/lib/restaurant";
 import { CouponClient } from "./CouponClient";
 
 export default async function CouponPage({
@@ -13,7 +14,7 @@ export default async function CouponPage({
   const { data: tokenRow } = await admin
     .from("redemption_tokens")
     .select(
-      "token, expires_at, redeemed_at, pending_rewards(solo_item, community_item, advancement_item), profiles(display_name), restaurants(name)"
+      "token, expires_at, redeemed_at, restaurant_id, pending_rewards(solo_item, community_item, advancement_item), profiles(display_name)"
     )
     .eq("token", token)
     .single();
@@ -35,7 +36,10 @@ export default async function CouponPage({
     items.push({ icon: "🏆", label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
 
   const profile = tokenRow.profiles as unknown as { display_name: string } | null;
-  const restaurant = tokenRow.restaurants as unknown as { name: string } | null;
+  // La table redemption_tokens n'a PAS de FK vers restaurants → l'embed
+  // PostgREST échouait et faisait 404 tout l'écran coupon (bug pré-existant,
+  // trouvé en vérif live 2026-07). On résout le nom via restaurant_id.
+  const restaurant = await getRestaurant(String(tokenRow.restaurant_id));
 
   return (
     <CouponClient
@@ -45,6 +49,7 @@ export default async function CouponPage({
       items={items}
       isAdmin={false}
       restaurantName={restaurant?.name}
+      backHref={`/r/${tokenRow.restaurant_id}/my-rewards`}
     />
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Item = { icon: string; label: string; sublabel: string };
 
@@ -11,6 +12,7 @@ type Props = {
   items: Item[];
   isAdmin?: boolean;
   restaurantName?: string;
+  backHref: string;
 };
 
 function initials(name: string) {
@@ -21,7 +23,8 @@ function initials(name: string) {
     .join("");
 }
 
-export function CouponClient({ token, expiresAt, memberName, items, isAdmin = false, restaurantName }: Props) {
+export function CouponClient({ token, expiresAt, memberName, items, isAdmin = false, restaurantName, backHref }: Props) {
+  const backLabel = isAdmin ? "← Retour à la file des cadeaux" : "← Retour à mes cadeaux";
   const [now, setNow] = useState(() => Date.now());
   const [redeemed, setRedeemed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,6 +72,9 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
           <div className="text-6xl mb-4">✅</div>
           <h1 className="text-2xl font-bold text-green-900">Cadeau remis !</h1>
           <p className="text-green-700 mt-2">Le coupon a été validé avec succès.</p>
+          <Link href={backHref} className="inline-block mt-6 text-sm font-medium text-green-800 underline">
+            {backLabel}
+          </Link>
         </div>
       </div>
     );
@@ -83,6 +89,9 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
           <p className="text-gray-500 mt-2 text-sm">
             Ce coupon de 10 minutes a expiré. Génère-en un nouveau depuis tes récompenses.
           </p>
+          <Link href={backHref} className="inline-block mt-6 text-sm font-medium text-gray-700 underline">
+            {backLabel}
+          </Link>
         </div>
       </div>
     );
@@ -162,6 +171,11 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
             Montre cette page au cashier {restaurantName ?? "du restaurant"} pour récupérer tes cadeaux.
           </p>
         )}
+        <p className="text-center mt-4">
+          <Link href={backHref} className="text-xs text-gray-400 hover:text-gray-600 underline">
+            {backLabel}
+          </Link>
+        </p>
       </div>
     </div>
   );

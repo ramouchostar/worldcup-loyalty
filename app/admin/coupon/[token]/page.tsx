@@ -82,6 +82,7 @@ export default async function AdminCouponPage({
       memberName={memberProfile?.display_name ?? "Membre"}
       items={items}
       isAdmin={true}
+      backHref={`/admin/${tokenRow.restaurant_id}/pending-rewards`}
     />
   );
 }
