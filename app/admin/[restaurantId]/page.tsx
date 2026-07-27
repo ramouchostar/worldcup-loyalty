@@ -96,7 +96,7 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
       badge: undefined,
     },
     {
-      href: r("/broadcast"),
+      href: null, // simple compteur → non cliquable (M9 : /broadcast était une destination surprenante)
       label: "Membres inscrits",
       value: totalMembers ?? 0,
       icon: "👥",
@@ -137,37 +137,41 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <Link
-            key={`${s.href}-${i}`}
-            href={s.href}
-            className={`bg-white rounded-2xl border p-4 hover:shadow-md transition-shadow ${
-              s.icon === "🚩" && s.urgent
-                ? "border-red-400 bg-red-50"
-                : s.urgent ? "border-amber-300" : "border-gray-100"
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <span className="text-2xl">{s.icon}</span>
-              {s.badge && (
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  s.icon === "🚩" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
-                }`}>
-                  {s.badge}
-                </span>
-              )}
-              {s.urgent && !s.badge && (
-                <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
-                  Action
-                </span>
-              )}
-            </div>
-            <p className={`text-3xl font-black mt-2 ${s.icon === "🚩" && s.urgent ? "text-red-700" : "text-gray-900"}`}>
-              {s.value}
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</p>
-          </Link>
-        ))}
+        {stats.map((s, i) => {
+          const cls = `bg-white rounded-2xl border p-4 transition-shadow ${s.href ? "hover:shadow-md" : ""} ${
+            s.icon === "🚩" && s.urgent
+              ? "border-red-400 bg-red-50"
+              : s.urgent ? "border-amber-300" : "border-gray-100"
+          }`;
+          const inner = (
+            <>
+              <div className="flex items-start justify-between">
+                <span className="text-2xl">{s.icon}</span>
+                {s.badge && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    s.icon === "🚩" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
+                  }`}>
+                    {s.badge}
+                  </span>
+                )}
+                {s.urgent && !s.badge && (
+                  <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                    Action
+                  </span>
+                )}
+              </div>
+              <p className={`text-3xl font-black mt-2 ${s.icon === "🚩" && s.urgent ? "text-red-700" : "text-gray-900"}`}>
+                {s.value}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</p>
+            </>
+          );
+          return s.href ? (
+            <Link key={`${s.label}-${i}`} href={s.href} className={cls}>{inner}</Link>
+          ) : (
+            <div key={`${s.label}-${i}`} className={cls}>{inner}</div>
+          );
+        })}
       </div>
 
       {/* Gains du programme — depuis le début */}

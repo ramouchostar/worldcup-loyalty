@@ -213,6 +213,11 @@ export default function AdminThresholdsPage() {
         <div className="space-y-3">
           {[1, 2].map((i) => <div key={i} className="bg-white rounded-xl h-32 animate-pulse border border-gray-100" />)}
         </div>
+      ) : thresholds.length === 0 ? (
+        <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+          Aucun objectif de CA défini pour l&apos;instant. Ajoute une période cible
+          pour suivre ta croissance et activer les bonus communautaires (double verrou).
+        </div>
       ) : (
         <div className="space-y-4">
           {thresholds.map((t) => {
