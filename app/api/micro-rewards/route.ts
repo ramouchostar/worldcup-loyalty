@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!body) return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   const { reward_type, restaurantId } = body;
 
   if (!reward_type || !VALID_TYPES.includes(reward_type as MicroRewardType)) {

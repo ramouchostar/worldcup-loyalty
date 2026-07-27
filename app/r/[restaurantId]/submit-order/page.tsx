@@ -141,23 +141,29 @@ export default function SubmitOrderPage() {
     if (noRestaurantHeader)      formData.append("no_restaurant_header", "true");
 
     // Délai artificiel 3–5s + fetch en parallèle (ADR 0008)
-    const [res] = await Promise.all([
-      fetch("/api/orders", { method: "POST", body: formData }),
-      sleep(randomDelay()),
-    ]);
+    try {
+      const [res] = await Promise.all([
+        fetch("/api/orders", { method: "POST", body: formData }),
+        sleep(randomDelay()),
+      ]);
 
-    if (res.status === 201) {
-      const data = await res.json();
-      setSubmitStatus(data.status === "validated" ? "success_validated" : "success_pending");
-      return;
-    }
+      const data = await res.json().catch(() => ({}) as { status?: string; error?: string });
 
-    const data = await res.json();
-    if (res.status === 409) {
-      setSubmitStatus("duplicate");
-    } else {
+      if (res.status === 201) {
+        setSubmitStatus(data.status === "validated" ? "success_validated" : "success_pending");
+        return;
+      }
+      if (res.status === 409) {
+        setSubmitStatus("duplicate");
+        return;
+      }
       setSubmitStatus("error");
       setErrorMsg(data.error ?? "Erreur inconnue.");
+    } catch {
+      // Coupure réseau pendant la soumission — ne jamais rester bloqué sur
+      // « Vérification en cours… » (audit UX 2026-07).
+      setSubmitStatus("error");
+      setErrorMsg("Erreur réseau. Vérifie ta connexion et réessaie.");
     }
   }
 

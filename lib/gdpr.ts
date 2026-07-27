@@ -62,7 +62,15 @@ export async function exportUserData(userId: string) {
     memberships,
     orders,
     order_items: orderItems,
-    pending_rewards: pendingRewards,
+    pending_rewards: pendingRewards.map((r) => {
+      // ADR 0007 — ne jamais exposer au membre les coûts de revient des cadeaux
+      // (données business du restaurant). On les retire de l'export RGPD.
+      const safe = { ...r };
+      delete safe.solo_cost;
+      delete safe.community_cost;
+      delete safe.advancement_cost;
+      return safe;
+    }),
     point_transactions: pointTx,
     push_subscriptions: push,
     notification_log: notif,
