@@ -6,6 +6,7 @@ import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { getPointsBalance } from "@/lib/points";
+import { pointsForOrder } from "@/lib/points-model";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
@@ -107,6 +108,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 
   // ── Hero preview ───────────────────────────────────────────────────────────
   const totalSpent = (validatedOrdersData ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
+  // Points perso cumulés (ADR 0028) — côté client, zéro euro même pour soi.
+  const totalPoints = (validatedOrdersData ?? []).reduce((s, o) => s + pointsForOrder(Number((o as { amount: number }).amount)), 0);
   const validCount = validatedOrderCount ?? 0;
   const memberActive = validCount > 0;
   const avgAmount = validCount > 0 ? totalSpent / validCount : 25;
@@ -163,7 +166,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 rounded-2xl p-5 text-white">
         <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">🎁 Ta prochaine commande</p>
-        <p className="text-xs text-gray-300 mb-4">Pour une commande de ~€{previewAmt} :</p>
+        <p className="text-xs text-gray-300 mb-4">Pour ta prochaine commande directe :</p>
 
         <div className="space-y-3">
           {heroSolo.item ? (
@@ -176,7 +179,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             </div>
           ) : (
             <div className="flex items-center justify-between opacity-40">
-              <span className="text-sm text-gray-400">Aucun cadeau solo (commande ≥ €15)</span>
+              <span className="text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</span>
             </div>
           )}
 
@@ -205,7 +208,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           <p className="text-sm text-gray-300">
             {heroCount > 0
               ? `${heroCount} cadeau${heroCount > 1 ? "x" : ""} t'attend${heroCount > 1 ? "ent" : ""} au comptoir`
-              : "Commande ≥ €15 pour débloquer"}
+              : "Commande pour débloquer tes cadeaux"}
           </p>
           <Link
             href={r("/submit-order")}
@@ -421,7 +424,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         <p className="text-center text-xs text-gray-400 py-1">
           {validCount} commande{validCount > 1 ? "s" : ""} validée{validCount > 1 ? "s" : ""}
           {" · "}
-          {totalSpent.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })} dépensés
+          {totalPoints.toLocaleString("fr-BE")} pts gagnés
           {(redeemedCount ?? 0) > 0 && (
             <> · {redeemedCount} cadeau{(redeemedCount ?? 0) > 1 ? "x" : ""} récupéré{(redeemedCount ?? 0) > 1 ? "s" : ""}</>
           )}
@@ -452,8 +455,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             {orderList.map((order) => (
               <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">
-                    {Number(order.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
+                  <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-400"}`}>
+                    {order.status === "validated"
+                      ? `+${pointsForOrder(Number(order.amount))} pts`
+                      : order.status === "pending" ? "En validation…" : "Non validée"}
                   </p>
                   <p className="text-xs text-gray-500 font-mono">
                     {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}

@@ -75,11 +75,13 @@ const LEGACY_SOLO_TIERS: GridTier[] = [
   { min: 40, item: "Menu 4 Tenders",  cost: 1.93 },
   { min: 60, item: "Chef's Combo",    cost: 1.92 },
 ];
+// Seuils en SCORE d'équipe — recalibrés à l'échelle « points courbés »
+// (ADR 0028, ~48 pts/commande) ; anciens seuils membres×euros obsolètes.
 const LEGACY_COMMUNITY_TIERS: GridTier[] = [
-  { min: 1000,  item: "Frites Medium",  cost: 0.24 },
-  { min: 3000,  item: "Churros 12 pcs", cost: 0.63 },
-  { min: 6000,  item: "Finest burger",  cost: 0.94 },
-  { min: 10000, item: "Menu 4 Tenders", cost: 1.93 },
+  { min: 500,  item: "Frites Medium",  cost: 0.24 },
+  { min: 1500, item: "Churros 12 pcs", cost: 0.63 },
+  { min: 3000, item: "Finest burger",  cost: 0.94 },
+  { min: 6000, item: "Menu 4 Tenders", cost: 1.93 },
 ];
 
 // Couche 3 (avancement Coupe du Monde) retirée — remplacée par les paliers
