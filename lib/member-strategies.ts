@@ -213,7 +213,7 @@ export async function runMemberStrategies(
           const usual = resolveSoloReward(grid, memberAvg);
           trigger = "winback";
           message = usual.item
-            ? `👋 Ça fait ${lapsed.daysSince} jours qu'on ne t'a pas vu chez ${restaurantName} ! Ta commande habituelle (~€${Math.round(memberAvg)}) te donne droit à « ${usual.item} » — il t'attend.`
+            ? `👋 Ça fait ${lapsed.daysSince} jours qu'on ne t'a pas vu chez ${restaurantName} ! Ta commande habituelle te donne droit à « ${usual.item} » — il t'attend.`
             : `👋 Ça fait ${lapsed.daysSince} jours qu'on ne t'a pas vu chez ${restaurantName} ! Reviens vite — ton prochain cadeau t'attend.`;
         }
       }
@@ -226,7 +226,9 @@ export async function runMemberStrategies(
         const recent = await countRecentByTrigger(admin, member.id, "tier_nudge", NUDGE_COOLDOWN_DAYS, now);
         if (recent === 0) {
           trigger = "tier_nudge";
-          message = `🎁 Le savais-tu ? Tu commandes en général ~€${Math.round(memberAvg)} chez ${restaurantName}. Dès €${nudge.target.min}, ton cadeau passe à « ${nudge.target.item} » — plus que €${Math.ceil(nudge.gap)} !`;
+          // ADR 0028 — zéro euro côté membre : on garde l'incitation (« commande
+          // un peu plus → meilleur cadeau ») sans jamais chiffrer en euros.
+          message = `🎁 Le savais-tu ? En commandant un peu plus chez ${restaurantName}, ton prochain cadeau passe à « ${nudge.target.item} » — tu y es presque !`;
         }
       }
     }

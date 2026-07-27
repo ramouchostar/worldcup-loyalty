@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const body = await request.json();
+  const body = (await request.json().catch(() => null)) ?? {};
   const { id, restaurantId, current_revenue, is_unlocked, period_label, target_revenue } = body;
 
   if (typeof restaurantId !== "string" || !restaurantId) {
@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const body = (await request.json().catch(() => null)) ?? {};
   const { restaurantId, period_label, target_revenue } = body;
 
   if (typeof restaurantId !== "string" || !restaurantId) {

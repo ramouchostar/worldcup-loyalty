@@ -42,7 +42,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!res.ok) return NextResponse.json({ error: res.reason }, { status: 400 });
   }
   if (resolve) {
-    await admin.from("quality_feedback").update({ status: "resolved" }).eq("id", id);
+    await admin.from("quality_feedback").update({ status: "resolved" }).eq("id", id).eq("restaurant_id", restaurantId);
   }
   return NextResponse.json({ ok: true });
 }

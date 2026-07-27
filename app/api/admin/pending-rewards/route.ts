@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { id, restaurantId } = await req.json();
+  const { id, restaurantId } = (await req.json().catch(() => null)) ?? {};
   if (typeof restaurantId !== "string" || !restaurantId) {
     return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
   }

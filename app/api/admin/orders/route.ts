@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const body = await request.json();
+  const body = (await request.json().catch(() => null)) ?? {};
   const { id, ids, action, rejection_reason, restaurantId } = body;
 
   if (typeof restaurantId !== "string" || !restaurantId) {

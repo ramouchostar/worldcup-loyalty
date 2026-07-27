@@ -85,6 +85,13 @@ export default function ResetPasswordPage() {
           {loading ? "Enregistrement..." : "Définir le mot de passe →"}
         </button>
       </form>
+
+      {/* M2 (audit UX) — sortie in-app : lien de récupération périmé / hésitation */}
+      <p className="text-center mt-4">
+        <a href="/login" className="text-xs text-gray-400 hover:text-gray-600 underline">
+          ← Retour à la connexion
+        </a>
+      </p>
     </>
   );
 }

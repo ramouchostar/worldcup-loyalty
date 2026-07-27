@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import {
   computeForecast,
   type SaleRow,
@@ -35,6 +36,7 @@ export default async function ForecastPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (!(await isEstablishmentAdmin(user.id, restaurantId))) redirect("/join");
 
   const admin = createAdminClient();
   const now = new Date();

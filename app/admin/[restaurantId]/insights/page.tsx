@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import {
   WEEKDAY_LABELS,
   MIN_ITEMS_FOR_INSIGHTS,
@@ -50,6 +51,8 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // Défense en profondeur — ne pas dépendre du seul layout (CVE-2025-29927).
+  if (!(await isEstablishmentAdmin(user.id, restaurantId))) redirect("/join");
 
   const admin = createAdminClient();
   const startDate = new Date(Date.now() - PERIOD_DAYS * 86_400_000).toISOString().slice(0, 10);

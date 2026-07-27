@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { isEstablishmentAdmin } from "@/lib/admin-guard";
 
 // Ventes par plat (ADR 0020) — agrégats des lignes d'articles lues sur les
 // tickets scannés par les membres. Surface admin uniquement : les euros et
@@ -46,6 +47,7 @@ export default async function AdminSalesPage({
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (!(await isEstablishmentAdmin(user.id, restaurantId))) redirect("/join");
 
   const days = PERIODS.some((p) => p.days === Number(rawDays))
     ? Number(rawDays)

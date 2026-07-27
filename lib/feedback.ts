@@ -204,6 +204,7 @@ export async function addFeedbackMessage(
       .from("quality_feedback")
       .update({ status: "acknowledged" })
       .eq("id", params.feedbackId)
+      .eq("restaurant_id", params.restaurantId) // borne tenant (F-B) — ceinture + bretelles
       .eq("status", "new");
   }
   return { ok: true };
