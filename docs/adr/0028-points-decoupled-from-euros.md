@@ -56,7 +56,7 @@ Tous les affichages euros côté client passent en **points** : « Mes stats » 
 - **Recompute du score d'équipe** : `community_scores.score` ne doit plus valoir `membres × total_spent`. Migration de **backfill** (recalcul depuis l'historique `orders`) + adaptation du trigger de score (m2/m35).
 - **`total_spent`** reste en base (vérité serveur pour 0012/0017) mais **ne sort ni n'est dérivable côté client** : le score cesse de l'encoder.
 - **Recalibrage des seuils** : paliers communautaires (`reward_tiers` + grilles legacy) et paliers de **réserve** (`saver`, ADR 0021) exprimés dans la nouvelle échelle de points.
-- **Réserve (ADR 0021)** : créditer les **points gagnés (courbés)**, plus `floor(montant €)`. Plafonds de coût cadeaux inchangés (euros serveur).
+- **Réserve (ADR 0021)** : **laissée inchangée après analyse** (2026-07-27). Le ledger reste en **valeur-euro** (`floor(montant)`, 1 pt = 1 €) mais est **déjà affiché en points** → conforme (aucun euro montré). Elle **ne fuit PAS le CA d'équipe** : le score d'équipe utilise la courbe (formule distincte), donc le taux 1:1 de la réserve ne révèle que la dépense *propre* du membre (qu'il connaît déjà). ⚠️ La basculer en points courbés **casserait le plafond de marge ADR 0017 à l'échange** (`cost ≤ seuil × budget_pct`, qui suppose 1 pt = 1 €). Toute évolution = **redesign délibéré** (base-euro explicite pour la marge), jamais une simple bascule du crédit.
 - **Sweep client zéro-euro** : tous les `€` / `toLocaleString(...currency...)` des surfaces membre (dashboard, my-rewards, reserve, historique) → points. Admin inchangé.
 - **APIs publiques** (`/api/leaderboard`, `/api/scores`) : ne renvoient qu'un score en points **non inversible** (fin de toute valeur ∝ euros) — clôt aussi H1.
 

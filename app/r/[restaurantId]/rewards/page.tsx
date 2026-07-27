@@ -3,10 +3,15 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getRestaurant } from "@/lib/restaurant";
-import { isMemberActive } from "@/lib/rewards";
+import { isMemberActive, loadRewardGrid } from "@/lib/rewards";
 import { getBudgetStatus } from "@/lib/budget";
 import { coverageSatisfied } from "@/lib/reward-sizing";
-import type { Reward, CommunityScore } from "@/types";
+
+// ADR 0028 / H3 — cette page lisait l'ancienne table `rewards` (jamais
+// alimentée hors resto legacy → paliers vides partout ailleurs). Elle lit
+// désormais la MÊME source que le dashboard : loadRewardGrid() (catalogue
+// reward_tiers, ADR 0013). Score et seuils en POINTS (ADR 0028) — jamais
+// d'euros côté client.
 
 export default async function RewardsPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -23,8 +28,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
 
   const membership = membershipRaw as { team_id: string | null } | null;
 
-  // ADR 0018 — pas d'équipe : invitation douce au lieu d'une redirection
-  // forcée. Les paliers collectifs sont l'incitation à rejoindre une équipe.
+  // ADR 0018 — pas d'équipe : invitation douce plutôt qu'une redirection.
   if (!membership?.team_id) {
     return (
       <div className="space-y-5 pb-4">
@@ -52,23 +56,13 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
     );
   }
 
-  // F5 (sécurité) — cost_euros réservé au service role (ADR 0007) : le
-  // catalogue de récompenses se lit via l'admin client (jamais la clé cliente).
+  // Catalogue (ADR 0013) via loadRewardGrid — mêmes paliers que le dashboard.
+  // Le score (points courbés, ADR 0028) et la couverture (coûts €, ADR 0017)
+  // se lisent en service-role : les euros ne sortent jamais au client (ADR 0007).
   const admin = createAdminClient();
-  const [
-    restaurant,
-    { data: rewardsRaw },
-    { data: scoreRaw },
-    restaurantUnlocked,
-    memberActive,
-  ] = await Promise.all([
+  const [restaurant, grid, { data: scoreRaw }, restaurantUnlocked, memberActive] = await Promise.all([
     getRestaurant(restaurantId),
-    admin
-      .from("rewards")
-      .select("*")
-      .eq("is_active", true)
-      .eq("restaurant_id", restaurantId)
-      .order("level"),
+    loadRewardGrid(restaurantId),
     supabase
       .from("community_scores")
       .select("score, member_count")
@@ -79,14 +73,10 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
     isMemberActive(user.id),
   ]);
 
-  const rewards = (rewardsRaw as Reward[]) ?? [];
-  const score = scoreRaw as Pick<CommunityScore, "score" | "member_count"> | null;
+  const score = scoreRaw as { score: number; member_count: number } | null;
   const currentScore = score?.score ?? 0;
   const memberCount = score?.member_count ?? 0;
 
-  // Couverture d'équipe (ADR 0017) — total_spent en euros lu via service role,
-  // jamais rendu au client (ADR 0007) : il n'entre que dans le calcul du verrou.
-  // (admin déjà instancié plus haut pour le catalogue de récompenses, F5.)
   const [{ data: spentRaw }, budget] = await Promise.all([
     admin
       .from("community_scores")
@@ -101,6 +91,8 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
     teamTotalSpent: Number((spentRaw as { total_spent: number } | null)?.total_spent ?? 0),
     budgetPct: budget.budgetPct,
   };
+
+  const communityTiers = grid.community; // GridTier[] : { min (seuil pts), item, cost }
 
   return (
     <div className="space-y-5 pb-4">
@@ -138,8 +130,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
       </div>
 
       {!restaurantUnlocked && (
-        // Message neutre (ADR 0007) — jamais de promesse d'échéance : le
-        // double verrou dépend de la croissance du resto, pas du calendrier.
+        // Message neutre (ADR 0007) — jamais de promesse d'échéance.
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
           <p className="font-semibold mb-1">Bonus communautaire en pause</p>
           <p className="text-xs">
@@ -149,112 +140,74 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
         </div>
       )}
 
-      {/* Liste des paliers */}
-      <div className="space-y-3">
-        {rewards.map((reward) => {
-          const isScoreReached = currentScore >= reward.score_threshold;
-          const isMemberCountReached = memberCount >= reward.min_member_count;
-          // Couverture ADR 0017 dans le verrou — jamais expliquée côté client
-          // (ADR 0007) : un palier non couvert s'affiche simplement verrouillé.
-          const isCovered = coverageSatisfied(coverage, Number(reward.cost_euros ?? 0));
-          const isUnlocked = isScoreReached && isMemberCountReached && restaurantUnlocked && isCovered;
-          const isClaimable = isUnlocked && memberActive;
-          const pct = Math.min(100, Math.round((currentScore / reward.score_threshold) * 100));
-          const isFinalTier = reward.min_member_count > 0;
+      {/* Liste des paliers communautaires (catalogue) */}
+      {communityTiers.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+          Les paliers collectifs de cet établissement arrivent bientôt — chaque
+          commande directe validée fait déjà grimper le score de ton équipe.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {communityTiers.map((tier, idx) => {
+            const isScoreReached = currentScore >= tier.min;
+            // Couverture ADR 0017 dans le verrou — jamais expliquée côté client.
+            const isCovered = coverageSatisfied(coverage, tier.cost);
+            const isUnlocked = isScoreReached && restaurantUnlocked && isCovered;
+            const isClaimable = isUnlocked && memberActive;
+            const pct = tier.min > 0 ? Math.min(100, Math.round((currentScore / tier.min) * 100)) : 100;
 
-          return (
-            <div
-              key={reward.id}
-              className={`bg-white rounded-2xl border p-5 ${
-                isUnlocked
-                  ? "border-green-300 shadow-sm"
-                  : isFinalTier
-                  ? "border-brand-gold/40 bg-amber-50/30"
-                  : "border-gray-100"
-              } ${!isScoreReached ? "opacity-75" : ""}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">
-                    {isUnlocked ? "🎁" : isFinalTier ? "🏆" : "🔒"}
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-900">{reward.title}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        isUnlocked
-                          ? "bg-green-100 text-green-800"
-                          : isFinalTier
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-gray-100 text-gray-500"
-                      }`}>
-                        Palier {reward.level}
-                      </span>
+            return (
+              <div
+                key={`${tier.item}-${idx}`}
+                className={`bg-white rounded-2xl border p-5 ${
+                  isUnlocked ? "border-green-300 shadow-sm" : "border-gray-100"
+                } ${!isScoreReached ? "opacity-75" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">{isUnlocked ? "🎁" : "🔒"}</span>
+                    <div>
+                      <p className="font-bold text-gray-900">{tier.item}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Palier communautaire</p>
                     </div>
-                    <p className="text-sm text-gray-600 mt-0.5">{reward.description}</p>
-                    {reward.gift_details && (
-                      <p className="text-sm font-medium text-brand-red mt-1">
-                        🎁 {reward.gift_details}
-                      </p>
-                    )}
-                    {isFinalTier && (
-                      <p className={`text-xs mt-1.5 font-medium ${isMemberCountReached ? "text-green-700" : "text-amber-700"}`}>
-                        👥 {isMemberCountReached ? `${memberCount}/${reward.min_member_count} membres ✓` : `${memberCount}/${reward.min_member_count} membres requis`}
-                      </p>
-                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-gray-400">Seuil</p>
+                    <p className="font-bold text-gray-900 text-sm tabular-nums">
+                      {Number(tier.min).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
+                    </p>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xs text-gray-400">Seuil</p>
-                  <p className="font-bold text-gray-900 text-sm tabular-nums">
-                    {Number(reward.score_threshold).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
-                  </p>
-                </div>
+
+                {!isScoreReached && (
+                  <div className="mt-4">
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div className="bg-brand-red h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 text-right">{pct}%</p>
+                  </div>
+                )}
+
+                {isClaimable && (
+                  <div className="mt-4 bg-green-50 rounded-lg p-3 text-center">
+                    <p className="text-green-800 text-sm font-semibold">
+                      🎉 Récompense disponible — présente-toi au comptoir {restaurant?.name ?? "du restaurant"} !
+                    </p>
+                  </div>
+                )}
+
+                {isUnlocked && !memberActive && (
+                  <div className="mt-4 bg-amber-50 rounded-lg p-3 text-center">
+                    <p className="text-amber-800 text-xs">
+                      Soumets et fais valider une commande pour récupérer cette récompense.
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {/* Barre de progression */}
-              {!isScoreReached && (
-                <div className="mt-4">
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div
-                      className="bg-brand-red h-2 rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1 text-right">{pct}%</p>
-                </div>
-              )}
-
-              {/* Score atteint mais communauté trop petite */}
-              {isScoreReached && isFinalTier && !isMemberCountReached && (
-                <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
-                  <p className="text-amber-800 text-xs font-medium">
-                    Score atteint — il faut encore{" "}
-                    <strong>{reward.min_member_count - memberCount} membre{reward.min_member_count - memberCount > 1 ? "s" : ""}</strong>{" "}
-                    pour débloquer {reward.title ? `« ${reward.title} »` : "ce palier"}.
-                  </p>
-                </div>
-              )}
-
-              {isClaimable && (
-                <div className="mt-4 bg-green-50 rounded-lg p-3 text-center">
-                  <p className="text-green-800 text-sm font-semibold">
-                    🎉 Récompense disponible — présente-toi au comptoir {restaurant?.name ?? "du restaurant"} !
-                  </p>
-                </div>
-              )}
-
-              {isUnlocked && !memberActive && (
-                <div className="mt-4 bg-amber-50 rounded-lg p-3 text-center">
-                  <p className="text-amber-800 text-xs">
-                    Soumet et fais valider une commande pour récupérer cette récompense.
-                  </p>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
