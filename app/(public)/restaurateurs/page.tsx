@@ -22,7 +22,7 @@ export const revalidate = 300;
 export const metadata = {
   title: "Programme de fidélité pour restaurateurs — gratuit pour démarrer",
   description:
-    "Transforme tes clients en communauté fidèle qui commande directement, sans commission de plateforme. Gratuit pour démarrer, aucune carte bancaire requise.",
+    "Un algorithme calcule automatiquement le bon cadeau pour chaque client, sans jamais toucher ta marge, et transforme ta clientèle en moteur de recrutement organique. Gratuit pour démarrer, aucune carte bancaire requise.",
 };
 
 const PAIN_POINTS = [
@@ -45,19 +45,14 @@ const PAIN_POINTS = [
 
 const MECHANICS = [
   {
-    icon: "👥",
-    title: "Tes clients se regroupent en équipes",
-    desc: "École, entreprise, quartier, taxis... chaque équipe cumule les commandes directes de ses membres et débloque des cadeaux ensemble. C'est ce qui transforme un client seul en ambassadeur d'un groupe entier.",
+    icon: "🧠",
+    title: "Un algorithme calcule le bon cadeau, pour chaque client, sans jamais toucher ta marge",
+    desc: "À partir de ta propre carte (prix de vente, prix de revient), le programme calibre automatiquement une récompense proportionnée à ce que le client vient de dépenser — jamais une remise générique. Le coût réel d'un cadeau reste toujours plafonné par rapport au chiffre d'affaires qu'il a généré : impossible que le programme te coûte plus qu'il ne rapporte. Tu n'as rien à calculer, rien à surveiller.",
   },
   {
-    icon: "🔗",
-    title: "Le parrainage tourne tout seul",
-    desc: "Chaque membre partage un lien unique par WhatsApp — gratuit, natif, zéro budget pub. Le jeton n'est crédité qu'à l'inscription réelle d'un ami, jamais au simple partage.",
-  },
-  {
-    icon: "🛡️",
-    title: "Ta marge est protégée par construction",
-    desc: "Le coût de chaque cadeau est plafonné automatiquement par rapport à ton panier moyen et à ton chiffre d'affaires. Le programme ne peut pas te coûter plus qu'il ne te rapporte.",
+    icon: "📈",
+    title: "Ta clientèle actuelle devient ton canal d'acquisition le plus rentable",
+    desc: "Chaque client peut recommander le restaurant via un lien personnel partagé sur WhatsApp — gratuit, instantané, zéro budget publicitaire. La récompense n'est créditée que lorsqu'un ami s'inscrit réellement, jamais pour un simple partage. Ce sont tes propres clients qui font le travail de recrutement, de façon totalement organique.",
   },
 ];
 
@@ -109,8 +104,9 @@ export default async function RestaurateursLandingPage() {
           </h1>
 
           <p className="text-gray-300 text-base sm:text-lg leading-relaxed mb-8 max-w-xl mx-auto">
-            Boosteats transforme chaque commande directe en cadeau collectif que tes clients
-            gagnent en équipe. Gratuit pour démarrer, aucune carte bancaire, en ligne en quelques jours.
+            Boosteats calcule automatiquement le bon cadeau pour chaque client — sans jamais toucher
+            ta marge — et transforme ta clientèle actuelle en moteur de recrutement. Gratuit pour
+            démarrer, aucune carte bancaire, en ligne en quelques jours.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
@@ -122,7 +118,7 @@ export default async function RestaurateursLandingPage() {
             </Link>
             <Link
               href="/secteurs"
-              className="flex-1 bg-white/10 text-white text-center py-4 rounded-2xl font-semibold hover:bg-white/20 transition-colors border border-white/20"
+              className="flex-1 bg-brand-gold text-brand-dark text-center py-4 rounded-2xl font-bold hover:brightness-95 transition-all"
             >
               Voir l&apos;activité de mon secteur
             </Link>
@@ -137,14 +133,31 @@ export default async function RestaurateursLandingPage() {
             </p>
           ) : (
             <p className="text-gray-400 text-sm mt-6">
-              Le réseau démarre — sois l&apos;un des premiers restaurants à construire ta communauté.
+              Le réseau démarre — sois l&apos;un des premiers restaurants à en profiter.
             </p>
           )}
         </div>
       </div>
 
+      {/* ── PREUVES RAPIDES ── */}
+      <div className="max-w-2xl mx-auto px-5 -mt-6">
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { icon: "🧠", label: "Marge protégée automatiquement" },
+            { icon: "📈", label: "Croissance portée par tes clients" },
+            { icon: "🎯", label: "0% de commission sur commande directe" },
+          ].map((s) => (
+            <div key={s.label} className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 text-center">
+              <p className="text-2xl">{s.icon}</p>
+              <p className="text-xs text-gray-600 font-semibold mt-1 leading-snug">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ── PAIN POINTS ── */}
       <div className="max-w-2xl mx-auto px-5 py-14">
+        <p className="text-brand-red text-xs font-bold uppercase tracking-widest text-center mb-3">Le problème</p>
         <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 text-center">
           Tu reconnais ces problèmes ?
         </h2>
@@ -166,11 +179,12 @@ export default async function RestaurateursLandingPage() {
       {/* ── MÉCANIQUE ── */}
       <div className="bg-gray-50 py-14">
         <div className="max-w-2xl mx-auto px-5">
+          <p className="text-brand-red text-xs font-bold uppercase tracking-widest text-center mb-3">Moteurs de croissance</p>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 text-center">
-            Comment le programme fait grossir ta clientèle
+            La technologie fait le travail à ta place
           </h2>
           <p className="text-gray-500 text-sm text-center mb-8">
-            Trois mécaniques, pensées pour que tes clients fassent le travail de recrutement à ta place.
+            Deux moteurs automatiques : l&apos;un protège ta rentabilité, l&apos;autre fait grossir ta base client.
           </p>
 
           <div className="space-y-4">
@@ -189,11 +203,21 @@ export default async function RestaurateursLandingPage() {
               </div>
             ))}
           </div>
+
+          <div className="mt-4 flex gap-3 bg-white/60 border border-dashed border-gray-300 rounded-2xl p-4 text-xs text-gray-500">
+            <span className="text-lg shrink-0">🎁</span>
+            <p className="leading-relaxed">
+              <span className="font-semibold text-gray-700">En complément</span> : tes clients peuvent aussi se
+              regrouper (école, entreprise, quartier) pour débloquer ensemble un cadeau collectif ponctuel — un
+              supplément qui renforce le lien avec ton établissement, pas le cœur du calcul de marge.
+            </p>
+          </div>
         </div>
       </div>
 
       {/* ── FONCTIONNALITÉS ── */}
       <div className="max-w-2xl mx-auto px-5 py-14">
+        <p className="text-brand-red text-xs font-bold uppercase tracking-widest text-center mb-3">Fonctionnalités</p>
         <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 text-center">
           Ce que tu reçois dès ton inscription
         </h2>
@@ -217,11 +241,12 @@ export default async function RestaurateursLandingPage() {
       {/* ── PLANS ── */}
       <div className="bg-gray-50 py-14">
         <div className="max-w-2xl mx-auto px-5">
+          <p className="text-brand-red text-xs font-bold uppercase tracking-widest text-center mb-3">Tarification</p>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 text-center">
             Gratuit pour démarrer, sans piège
           </h2>
           <p className="text-gray-500 text-sm text-center mb-8 max-w-lg mx-auto">
-            Le programme membre complet reste gratuit à vie — c&apos;est lui qui fait grossir ta communauté.
+            Le programme membre complet reste gratuit à vie — c&apos;est lui qui fait grossir ta clientèle.
             Des fonctions avancées pour piloter ton activité arrivent ensuite, sans surprise.
           </p>
 
@@ -232,7 +257,8 @@ export default async function RestaurateursLandingPage() {
               </span>
               <h3 className="font-black text-gray-900 text-lg mt-2 mb-3">Gratuit</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>✓ Équipes, récompenses et parrainage sans limite de temps</li>
+                <li>✓ Algorithme de récompenses à marge protégée, sans limite de temps</li>
+                <li>✓ Parrainage client illimité, sans budget publicitaire</li>
                 <li>✓ Validation des commandes automatisée</li>
                 <li>✓ Supports imprimables aux couleurs de ton établissement</li>
                 <li>✓ Tableau de bord admin complet</li>
@@ -296,8 +322,12 @@ export default async function RestaurateursLandingPage() {
                 a: "Non, tout se passe dans le navigateur via un simple lien ou QR code — aucune installation requise.",
               },
               {
-                q: "Comment le programme protège-t-il ma marge ?",
-                a: "Le coût de chaque récompense est calculé automatiquement à partir de ton prix de revient réel et plafonné par rapport au chiffre d'affaires qu'elle a généré. Le programme ne peut jamais te coûter plus qu'il ne rapporte.",
+                q: "Comment l'algorithme protège-t-il ma marge ?",
+                a: "Le coût de chaque récompense est calculé automatiquement à partir de ton prix de revient réel et plafonné par rapport au chiffre d'affaires qu'elle a généré. Le programme ne peut jamais te coûter plus qu'il ne rapporte — tu n'as aucun calcul à faire toi-même.",
+              },
+              {
+                q: "Comment ça m'aide vraiment à trouver de nouveaux clients ?",
+                a: "Chaque client peut partager un lien personnel par WhatsApp. La récompense n'est créditée qu'à l'inscription réelle d'un ami — jamais pour un simple partage. C'est ta clientèle existante qui recrute pour toi, sans que tu dépenses un centime en publicité.",
               },
               {
                 q: "Combien de temps avant d'être visible par mes clients ?",
@@ -320,7 +350,7 @@ export default async function RestaurateursLandingPage() {
       <div className="bg-brand-red text-white py-14">
         <div className="max-w-lg mx-auto px-5 text-center">
           <p className="text-4xl mb-4">🚀</p>
-          <h2 className="text-3xl font-black mb-3">Prêt à faire grossir ta communauté ?</h2>
+          <h2 className="text-3xl font-black mb-3">Prêt à faire grossir ta clientèle ?</h2>
           <p className="text-red-100 mb-8 leading-relaxed">
             Inscription gratuite en 2 minutes. Aucune carte bancaire, aucun engagement.
           </p>
