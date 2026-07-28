@@ -148,6 +148,11 @@ export default async function SectorsPage() {
           >
             Devenir partenaire →
           </Link>
+          <p className="mt-4">
+            <Link href="/restaurateurs" className="text-red-100 text-xs font-semibold hover:underline">
+              Voir comment fonctionne le programme →
+            </Link>
+          </p>
         </div>
       </div>
     </div>
