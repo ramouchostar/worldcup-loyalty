@@ -84,6 +84,9 @@ WHATSAPP_TOKEN=                     # API Meta directe (pas Twilio)
 AUTO_VALIDATE=false                 # true en dev uniquement
 ADMIN_EMAILS=                       # emails bootstrappés comme admin établissement (is_admin)
 SUPER_ADMIN_EMAILS=                 # emails bootstrappés comme super-admin plateforme (is_super_admin, ADR 0015 §7)
+RESEND_API_KEY=                     # emailing (lib/email.ts) — non configuré = envoi désactivé silencieusement
+EMAIL_FROM=                         # ex. "Boosteats <onboarding@resend.dev>"
+NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://worldcup-loyalty.vercel.app
 ```
 
 ### ADR 0011 — Coupon de récupération anti-fraude
