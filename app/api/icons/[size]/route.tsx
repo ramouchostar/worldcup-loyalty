@@ -23,7 +23,7 @@ export async function GET(
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#1A1A2E",
+          backgroundColor: "#0C1509",
           borderRadius: radius,
         }}
       >
@@ -31,7 +31,7 @@ export async function GET(
           style={{
             fontSize,
             lineHeight: 1,
-            color: "#C8102E",
+            color: "#6B7C3F",
             fontFamily: "serif",
             fontWeight: 900,
           }}
@@ -43,7 +43,7 @@ export async function GET(
             marginTop: Math.round(size * 0.04),
             fontSize: labelSize,
             fontWeight: 900,
-            color: "#F5A623",
+            color: "#EFF1E4",
             fontFamily: "sans-serif",
             letterSpacing: Math.round(size * 0.008),
           }}

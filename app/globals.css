@@ -4,11 +4,15 @@
 
 /* Couleurs de marque Boosteats par défaut (canaux RGB pour l'opacité Tailwind).
    Surchargées par établissement dans les layouts /r/[id] et /admin/[id] via
-   lib/branding.ts — un resto sans charte garde ces valeurs. */
+   lib/branding.ts — un resto sans charte garde ces valeurs.
+   Alignées le 2026-07-28 sur l'identité réelle Boosteats (agence marketing) :
+   vert olive + fond quasi noir à dominante verte + surfaces crème. Valeurs
+   échantillonnées sur le kit source ; --brand-gold est une teinte plus claire
+   dérivée du même vert (le kit source n'a qu'un seul accent). */
 :root {
-  --brand-red: 200 16 46;    /* #C8102E */
-  --brand-gold: 245 166 35;  /* #F5A623 */
-  --brand-dark: 26 26 46;    /* #1A1A2E */
+  --brand-red: 107 124 63;   /* #6B7C3F — vert olive (accent principal) */
+  --brand-gold: 169 187 110; /* #A9BB6E — vert olive clair (mise en avant) */
+  --brand-dark: 12 21 9;     /* #0C1509 — quasi noir, dominante verte */
 }
 
 @layer utilities {
@@ -20,9 +24,9 @@
   }
 }
 
-/* ── Driver.js — thème Belchicken ─────────────────────────────────────── */
+/* ── Driver.js — thème Boosteats ──────────────────────────────────────── */
 .brand-popover.driver-popover {
-  background-color: #1A1A2E;
+  background-color: #0C1509;
   color: #fff;
   border-radius: 1rem;
   border: none;
@@ -46,7 +50,7 @@
 }
 .brand-popover .driver-popover-next-btn,
 .brand-popover .driver-popover-done-btn {
-  background-color: #C8102E !important;
+  background-color: #6B7C3F !important;
   color: #fff !important;
   border: none !important;
   border-radius: 0.5rem !important;
@@ -55,7 +59,7 @@
 }
 .brand-popover .driver-popover-next-btn:hover,
 .brand-popover .driver-popover-done-btn:hover {
-  background-color: #a50d24 !important;
+  background-color: #56632F !important;
 }
 .brand-popover .driver-popover-prev-btn {
   background-color: transparent !important;
@@ -69,14 +73,14 @@
   border-color: #6b7280 !important;
 }
 .brand-popover .driver-popover-arrow-side-bottom .driver-popover-arrow {
-  border-top-color: #1A1A2E;
+  border-top-color: #0C1509;
 }
 .brand-popover .driver-popover-arrow-side-top .driver-popover-arrow {
-  border-bottom-color: #1A1A2E;
+  border-bottom-color: #0C1509;
 }
 .brand-popover .driver-popover-arrow-side-left .driver-popover-arrow {
-  border-right-color: #1A1A2E;
+  border-right-color: #0C1509;
 }
 .brand-popover .driver-popover-arrow-side-right .driver-popover-arrow {
-  border-left-color: #1A1A2E;
+  border-left-color: #0C1509;
 }

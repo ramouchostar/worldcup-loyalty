@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- Fond plein bord pour maskable icon (safe zone = 80% du centre) -->
-  <rect width="512" height="512" fill="#1A1A2E"/>
+  <rect width="512" height="512" fill="#0C1509"/>
   <text x="256" y="270" font-size="240" text-anchor="middle" dominant-baseline="middle">🏆</text>
-  <rect x="0" y="390" width="512" height="122" fill="#C8102E"/>
-  <text x="256" y="451" font-size="48" font-family="Arial,sans-serif" font-weight="900" text-anchor="middle" fill="#F5A623">WORLDCUP</text>
+  <rect x="0" y="390" width="512" height="122" fill="#6B7C3F"/>
+  <text x="256" y="451" font-size="48" font-family="Arial,sans-serif" font-weight="900" text-anchor="middle" fill="#EFF1E4">BOOSTEATS</text>
 </svg>
