@@ -1,4 +1,21 @@
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import {
+  TrendingDown,
+  EyeOff,
+  Tag,
+  BrainCircuit,
+  Share2,
+  Gift,
+  ShieldCheck,
+  TrendingUp,
+  Ban,
+  Printer,
+  CheckCircle2,
+  LayoutDashboard,
+  MapPin,
+  Rocket,
+} from "lucide-react";
 import { createAdminClient } from "@/lib/supabase";
 
 // Page de vente dédiée aux restaurateurs prospects — distincte du formulaire
@@ -16,6 +33,8 @@ import { createAdminClient } from "@/lib/supabase";
 //   (mêmes requêtes que /secteurs), pas de citations inventées.
 // - ADR 0007 ne s'applique pas ici (page B2B, pas client) — euros et
 //   mécanique de marge peuvent être mentionnés explicitement.
+// - Aucun emoji : icônes plates lucide-react, couleur unifiée (brand-red)
+//   dans une pastille arrondie, pour garder une identité visuelle cohérente.
 
 export const revalidate = 300;
 
@@ -25,19 +44,39 @@ export const metadata = {
     "Un algorithme calcule automatiquement le bon cadeau pour chaque client, sans jamais toucher ta marge, et transforme ta clientèle en moteur de recrutement organique. Gratuit pour démarrer, aucune carte bancaire requise.",
 };
 
+// Pastille d'icône plate, couleur unique — pas d'emoji, pas de dégradé.
+function IconTile({
+  icon: Icon,
+  size = "md",
+  tone = "red",
+}: {
+  icon: LucideIcon;
+  size?: "sm" | "md";
+  tone?: "red" | "onDark";
+}) {
+  const dims = size === "sm" ? "w-9 h-9" : "w-11 h-11";
+  const iconDims = size === "sm" ? "w-4 h-4" : "w-5 h-5";
+  const colors = tone === "onDark" ? "bg-white/15 text-white" : "bg-brand-red/10 text-brand-red";
+  return (
+    <div className={`${dims} ${colors} rounded-xl flex items-center justify-center shrink-0`}>
+      <Icon className={iconDims} strokeWidth={2} />
+    </div>
+  );
+}
+
 const PAIN_POINTS = [
   {
-    icon: "📉",
+    icon: TrendingDown,
     title: "Les plateformes de livraison rognent ta marge",
     desc: "Commission après commission, le client reste \"leur\" client — jamais le tien. Rien ne le pousse à repasser commande directement.",
   },
   {
-    icon: "🕳️",
+    icon: EyeOff,
     title: "Tes clients fidèles sont invisibles",
     desc: "Sans outil dédié, impossible de savoir qui revient, qui ramène du monde, ou qui est sur le point de décrocher.",
   },
   {
-    icon: "🎟️",
+    icon: Tag,
     title: "Les remises classiques mangent ta rentabilité",
     desc: "Un programme de points mal calibré peut coûter plus cher qu'il ne rapporte. La plupart des restaurateurs n'ont pas le temps de faire ce calcul à chaque promo.",
   },
@@ -45,12 +84,12 @@ const PAIN_POINTS = [
 
 const MECHANICS = [
   {
-    icon: "🧠",
+    icon: BrainCircuit,
     title: "Un algorithme calcule le bon cadeau, pour chaque client, sans jamais toucher ta marge",
     desc: "À partir de ta propre carte (prix de vente, prix de revient), le programme calibre automatiquement une récompense proportionnée à ce que le client vient de dépenser — jamais une remise générique. Le coût réel d'un cadeau reste toujours plafonné par rapport au chiffre d'affaires qu'il a généré : impossible que le programme te coûte plus qu'il ne rapporte. Tu n'as rien à calculer, rien à surveiller.",
   },
   {
-    icon: "📈",
+    icon: Share2,
     title: "Ta clientèle actuelle devient ton canal d'acquisition le plus rentable",
     desc: "Chaque client peut recommander le restaurant via un lien personnel partagé sur WhatsApp — gratuit, instantané, zéro budget publicitaire. La récompense n'est créditée que lorsqu'un ami s'inscrit réellement, jamais pour un simple partage. Ce sont tes propres clients qui font le travail de recrutement, de façon totalement organique.",
   },
@@ -58,25 +97,31 @@ const MECHANICS = [
 
 const FEATURES = [
   {
-    icon: "🖨️",
+    icon: Printer,
     title: "Supports prêts à imprimer",
     desc: "QR code, sticker de table, flyer, affiche caisse — générés automatiquement aux couleurs et au logo de ton établissement.",
   },
   {
-    icon: "✅",
+    icon: CheckCircle2,
     title: "Validation des tickets sans effort",
     desc: "Le client scanne son ticket, la commande est vérifiée et comptabilisée sans que tu aies à saisir quoi que ce soit.",
   },
   {
-    icon: "🎛️",
+    icon: LayoutDashboard,
     title: "Un tableau de bord pour piloter le programme",
     desc: "Équipes actives, commandes à revoir, seuils de récompenses — tout est configurable depuis ton espace admin.",
   },
   {
-    icon: "📍",
+    icon: MapPin,
     title: "Visibilité gratuite dans ton secteur",
     desc: "Une page publique montre l'activité de ton quartier aux clients qui cherchent où manger — sans rien débourser en publicité.",
   },
+];
+
+const TRUST_STRIP = [
+  { icon: ShieldCheck, label: "Marge protégée automatiquement" },
+  { icon: TrendingUp, label: "Croissance portée par tes clients" },
+  { icon: Ban, label: "0% de commission sur commande directe" },
 ];
 
 export default async function RestaurateursLandingPage() {
@@ -142,14 +187,10 @@ export default async function RestaurateursLandingPage() {
       {/* ── PREUVES RAPIDES ── */}
       <div className="max-w-2xl mx-auto px-5 -mt-6">
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { icon: "🧠", label: "Marge protégée automatiquement" },
-            { icon: "📈", label: "Croissance portée par tes clients" },
-            { icon: "🎯", label: "0% de commission sur commande directe" },
-          ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 text-center">
-              <p className="text-2xl">{s.icon}</p>
-              <p className="text-xs text-gray-600 font-semibold mt-1 leading-snug">{s.label}</p>
+          {TRUST_STRIP.map((s) => (
+            <div key={s.label} className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 text-center flex flex-col items-center gap-2">
+              <IconTile icon={s.icon} size="sm" />
+              <p className="text-xs text-gray-600 font-semibold leading-snug">{s.label}</p>
             </div>
           ))}
         </div>
@@ -168,8 +209,8 @@ export default async function RestaurateursLandingPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           {PAIN_POINTS.map((p) => (
             <div key={p.title} className="bg-gray-50 rounded-2xl p-5">
-              <span className="text-2xl">{p.icon}</span>
-              <h3 className="font-bold text-gray-900 mt-2 mb-1">{p.title}</h3>
+              <IconTile icon={p.icon} />
+              <h3 className="font-bold text-gray-900 mt-3 mb-1">{p.title}</h3>
               <p className="text-gray-500 text-sm leading-relaxed">{p.desc}</p>
             </div>
           ))}
@@ -188,16 +229,11 @@ export default async function RestaurateursLandingPage() {
           </p>
 
           <div className="space-y-4">
-            {MECHANICS.map((m, i) => (
+            {MECHANICS.map((m) => (
               <div key={m.title} className="flex gap-4 bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="w-10 h-10 bg-brand-dark text-brand-gold rounded-xl flex items-center justify-center font-black text-lg shrink-0">
-                  {i + 1}
-                </div>
+                <IconTile icon={m.icon} />
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl">{m.icon}</span>
-                    <h3 className="font-bold text-gray-900">{m.title}</h3>
-                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1">{m.title}</h3>
                   <p className="text-gray-500 text-sm leading-relaxed">{m.desc}</p>
                 </div>
               </div>
@@ -205,8 +241,8 @@ export default async function RestaurateursLandingPage() {
           </div>
 
           <div className="mt-4 flex gap-3 bg-white/60 border border-dashed border-gray-300 rounded-2xl p-4 text-xs text-gray-500">
-            <span className="text-lg shrink-0">🎁</span>
-            <p className="leading-relaxed">
+            <IconTile icon={Gift} size="sm" />
+            <p className="leading-relaxed self-center">
               <span className="font-semibold text-gray-700">En complément</span> : tes clients peuvent aussi se
               regrouper (école, entreprise, quartier) pour débloquer ensemble un cadeau collectif ponctuel — un
               supplément qui renforce le lien avec ton établissement, pas le cœur du calcul de marge.
@@ -228,7 +264,7 @@ export default async function RestaurateursLandingPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {FEATURES.map((f) => (
             <div key={f.title} className="flex gap-3 p-5 rounded-2xl border border-gray-100">
-              <span className="text-2xl shrink-0">{f.icon}</span>
+              <IconTile icon={f.icon} size="sm" />
               <div>
                 <h3 className="font-bold text-gray-900 text-sm mb-1">{f.title}</h3>
                 <p className="text-gray-500 text-xs leading-relaxed">{f.desc}</p>
@@ -257,12 +293,12 @@ export default async function RestaurateursLandingPage() {
               </span>
               <h3 className="font-black text-gray-900 text-lg mt-2 mb-3">Gratuit</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>✓ Algorithme de récompenses à marge protégée, sans limite de temps</li>
-                <li>✓ Parrainage client illimité, sans budget publicitaire</li>
-                <li>✓ Validation des commandes automatisée</li>
-                <li>✓ Supports imprimables aux couleurs de ton établissement</li>
-                <li>✓ Tableau de bord admin complet</li>
-                <li>✓ Visibilité sur la page réseau de ton secteur</li>
+                <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-brand-red shrink-0 mt-0.5" /><span>Algorithme de récompenses à marge protégée, sans limite de temps</span></li>
+                <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-brand-red shrink-0 mt-0.5" /><span>Parrainage client illimité, sans budget publicitaire</span></li>
+                <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-brand-red shrink-0 mt-0.5" /><span>Validation des commandes automatisée</span></li>
+                <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-brand-red shrink-0 mt-0.5" /><span>Supports imprimables aux couleurs de ton établissement</span></li>
+                <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-brand-red shrink-0 mt-0.5" /><span>Tableau de bord admin complet</span></li>
+                <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-brand-red shrink-0 mt-0.5" /><span>Visibilité sur la page réseau de ton secteur</span></li>
               </ul>
             </div>
 
@@ -349,7 +385,9 @@ export default async function RestaurateursLandingPage() {
       {/* ── CTA FINAL ── */}
       <div className="bg-brand-red text-white py-14">
         <div className="max-w-lg mx-auto px-5 text-center">
-          <p className="text-4xl mb-4">🚀</p>
+          <div className="flex justify-center mb-4">
+            <IconTile icon={Rocket} tone="onDark" />
+          </div>
           <h2 className="text-3xl font-black mb-3">Prêt à faire grossir ta clientèle ?</h2>
           <p className="text-red-100 mb-8 leading-relaxed">
             Inscription gratuite en 2 minutes. Aucune carte bancaire, aucun engagement.
