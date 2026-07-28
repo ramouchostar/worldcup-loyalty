@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
 import {
   TrendingDown,
   EyeOff,
@@ -17,6 +16,7 @@ import {
   Rocket,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase";
+import { IconTile } from "@/components/IconTile";
 
 // Page de vente dédiée aux restaurateurs prospects — distincte du formulaire
 // d'inscription (/become-a-partner). Rôle : convaincre avant de faire remplir
@@ -43,26 +43,6 @@ export const metadata = {
   description:
     "Un algorithme calcule automatiquement le bon cadeau pour chaque client, sans jamais toucher ta marge, et transforme ta clientèle en moteur de recrutement organique. Gratuit pour démarrer, aucune carte bancaire requise.",
 };
-
-// Pastille d'icône plate, couleur unique — pas d'emoji, pas de dégradé.
-function IconTile({
-  icon: Icon,
-  size = "md",
-  tone = "red",
-}: {
-  icon: LucideIcon;
-  size?: "sm" | "md";
-  tone?: "red" | "onDark";
-}) {
-  const dims = size === "sm" ? "w-9 h-9" : "w-11 h-11";
-  const iconDims = size === "sm" ? "w-4 h-4" : "w-5 h-5";
-  const colors = tone === "onDark" ? "bg-white/15 text-white" : "bg-brand-red/10 text-brand-red";
-  return (
-    <div className={`${dims} ${colors} rounded-xl flex items-center justify-center shrink-0`}>
-      <Icon className={iconDims} strokeWidth={2} />
-    </div>
-  );
-}
 
 const PAIN_POINTS = [
   {
