@@ -51,3 +51,30 @@ export async function requireAdmin(restaurantId: string): Promise<GuardResult> {
 
   return { ok: true, userId: user.id };
 }
+
+// Réservé à la PLATEFORME (profiles.is_super_admin) — pas au restaurateur.
+// ADR 0029 : le flip de plan (gratuit/croissance/pro) est une action plateforme
+// tant que Stripe n'est pas branché (Phase 5) ; un owner ne doit pas pouvoir se
+// mettre en Pro tout seul. Ne dépend d'aucun restaurantId (portée plateforme).
+export async function requireSuperAdmin(): Promise<GuardResult> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Non authentifié." }, { status: 401 }),
+    };
+  }
+
+  const admin = createAdminClient();
+  const { data } = await admin.from("profiles").select("is_super_admin").eq("id", user.id).single();
+  if (!(data as { is_super_admin: boolean } | null)?.is_super_admin) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Accès refusé." }, { status: 403 }),
+    };
+  }
+
+  return { ok: true, userId: user.id };
+}
