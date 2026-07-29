@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase";
 import { sanitizeZones } from "@/lib/zones";
 import { recordConsents } from "@/lib/consent";
+import { sendWelcomeEmail } from "@/lib/email";
 
 function ageFromISO(d: string): number | null {
   const dt = new Date(d);
@@ -113,6 +114,13 @@ export async function registerProfile(
     "signup",
     admin
   );
+
+  // Bienvenue — une seule fois, à la création du profil. Attendu (pas
+  // fire-and-forget) : une Server Action se termine à l'appel de redirect(),
+  // un envoi non attendu risquerait d'être coupé avant de partir. Best-effort
+  // côté résultat : un échec d'envoi ne bloque jamais l'inscription (cf.
+  // lib/email.ts, ne lève jamais).
+  if (user.email) await sendWelcomeEmail(user.email, displayName);
 
   // Arrivée via le QR / lien d'un établissement précis → on y retourne.
   const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;

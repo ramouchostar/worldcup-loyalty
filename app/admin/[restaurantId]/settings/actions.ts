@@ -103,7 +103,7 @@ export async function updateRestaurantBranding(
     if (raw === null) continue; // champ absent
     const v = String(raw).trim();
     if (!v) { update[field] = null; continue; }
-    if (!isValidHex(v)) return { error: `La couleur ${label} doit être au format hexadécimal (ex. #C8102E).` };
+    if (!isValidHex(v)) return { error: `La couleur ${label} doit être au format hexadécimal (ex. #6B7C3F).` };
     update[field] = v.toUpperCase();
   }
 

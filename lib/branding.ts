@@ -6,13 +6,14 @@ import type { CSSProperties } from "react";
 //   brand_primary → --brand-red   (accent principal, boutons)
 //   brand_dark    → --brand-dark  (en-têtes, fonds sombres)
 //   brand_accent  → --brand-gold  (mises en avant, badges)
-// Défauts = couleurs Boosteats (doivent correspondre EXACTEMENT à globals.css
-// et à l'ancienne config Tailwind, sinon régression visuelle).
+// Défauts = identité réelle Boosteats (agence), alignés le 2026-07-28 sur le
+// kit source (vert olive + fond quasi noir + surfaces crème). Doivent
+// correspondre EXACTEMENT à globals.css, sinon régression visuelle.
 
 export const BRAND_DEFAULTS = {
-  primary: "#C8102E",
-  dark: "#1A1A2E",
-  accent: "#F5A623",
+  primary: "#6B7C3F",
+  dark: "#0C1509",
+  accent: "#A9BB6E",
 } as const;
 
 export type Branding = {
