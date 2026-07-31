@@ -161,7 +161,10 @@ export async function createTeam(
   }
   const team = inserted as TeamSummary;
 
-  // Ligne de score : sans elle, le trigger de commande n'a rien à mettre à jour
+  // Ligne de score : sans elle, le trigger de commande n'a rien à mettre à jour.
+  // `score: 0` OBLIGATOIRE — depuis m47 la colonne est régulière SANS défaut ;
+  // l'omettre laisse score=NULL et l'accumulation reste bloquée (NULL + points
+  // = NULL). Le trigger est rendu COALESCE-safe en m49, ceci en est le pendant.
   const { data: existingScore } = await admin
     .from("community_scores")
     .select("team_id")
@@ -171,7 +174,7 @@ export async function createTeam(
   if (!existingScore || existingScore.length === 0) {
     await admin
       .from("community_scores")
-      .insert({ team_id: team.id, restaurant_id: restaurantId, member_count: 0, total_spent: 0 });
+      .insert({ team_id: team.id, restaurant_id: restaurantId, member_count: 0, total_spent: 0, score: 0 });
   }
 
   const assigned = await assignTeam(admin, userId, restaurantId, team.id);
