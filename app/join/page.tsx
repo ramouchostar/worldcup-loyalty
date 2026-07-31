@@ -45,7 +45,7 @@ export default async function JoinPage() {
                 <form action={joinRestaurant.bind(null, r.id)}>
                   <button
                     type="submit"
-                    className="bg-brand-red text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-red-700 transition-colors shrink-0"
+                    className="bg-brand-red text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-brand-red/85 transition-colors shrink-0"
                   >
                     Rejoindre
                   </button>

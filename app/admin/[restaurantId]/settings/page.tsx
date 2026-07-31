@@ -15,7 +15,7 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
   const admin = createAdminClient();
   const { data: restaurant } = await admin
     .from("restaurants")
-    .select("id, name, sector, address, cuisine_types, google_maps_url, instagram_url, tiktok_url, facebook_url")
+    .select("id, name, sector, address, cuisine_types, google_maps_url, website_url, instagram_url, tiktok_url, facebook_url")
     .eq("id", restaurantId)
     .maybeSingle();
   if (!restaurant) notFound();
@@ -40,6 +40,7 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
           address: restaurant.address ?? "",
           cuisine_types: (restaurant.cuisine_types ?? []).join(", "),
           google_maps_url: restaurant.google_maps_url ?? "",
+          website_url: restaurant.website_url ?? "",
           instagram_url: restaurant.instagram_url ?? "",
           tiktok_url: restaurant.tiktok_url ?? "",
           facebook_url: restaurant.facebook_url ?? "",
@@ -48,11 +49,14 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
 
       <BrandingForm
         restaurantId={restaurantId}
+        websiteUrl={restaurant.website_url ?? null}
         initial={{
           brand_primary: branding.brand_primary ?? "",
           brand_dark: branding.brand_dark ?? "",
           brand_accent: branding.brand_accent ?? "",
+          brand_font: branding.brand_font ?? "",
           logo_url: logoPublicUrl(branding.logo_url),
+          hero_image_url: logoPublicUrl(branding.hero_image_url),
         }}
       />
     </div>

@@ -27,7 +27,7 @@ export default async function FeedbackPage({ params }: { params: Promise<{ resta
   return (
     <div className="space-y-5 pb-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mon resto</h1>
+        <h1 className="text-2xl font-bold text-brand-dark">Mon resto</h1>
         <p className="text-gray-500 text-sm mt-1">
           Un espace privé, entre toi et ton resto. Encourage-le ou signale-lui un souci.
         </p>

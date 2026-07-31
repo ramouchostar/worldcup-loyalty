@@ -21,7 +21,20 @@ export type Branding = {
   brand_primary: string | null;
   brand_dark: string | null;
   brand_accent: string | null;
+  brand_font: string | null;
+  hero_image_url: string | null;
 };
+
+// Polices curées (m48) — liste fermée pour éviter d'injecter une police/domaine
+// arbitraire. `cssVar` référence la variable générée par next/font/google sur
+// <body> (voir app/layout.tsx) ; `key` est la valeur stockée en base.
+export const FONT_OPTIONS: { key: string; label: string; cssVar: string }[] = [
+  { key: "inter", label: "Inter", cssVar: "var(--font-inter)" },
+  { key: "poppins", label: "Poppins", cssVar: "var(--font-poppins)" },
+  { key: "playfair", label: "Playfair Display", cssVar: "var(--font-playfair)" },
+  { key: "dm_sans", label: "DM Sans", cssVar: "var(--font-dm-sans)" },
+  { key: "bebas_neue", label: "Bebas Neue", cssVar: "var(--font-bebas-neue)" },
+];
 
 const HEX = /^#([0-9a-fA-F]{6})$/;
 
@@ -52,5 +65,7 @@ export function brandStyle(b: Partial<Branding> | null | undefined): CSSProperti
   set("--brand-red", b?.brand_primary);
   set("--brand-dark", b?.brand_dark);
   set("--brand-gold", b?.brand_accent);
+  const font = FONT_OPTIONS.find((f) => f.key === b?.brand_font);
+  if (font) (style as Record<string, string>)["--brand-font"] = font.cssVar;
   return style as CSSProperties;
 }

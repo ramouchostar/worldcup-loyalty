@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { updateRestaurantBranding } from "./actions";
-import { BRAND_DEFAULTS } from "@/lib/branding";
+import { updateRestaurantBranding, detectRestaurantDesign } from "./actions";
+import { BRAND_DEFAULTS, FONT_OPTIONS } from "@/lib/branding";
 
 type Initial = {
   brand_primary: string;
   brand_dark: string;
   brand_accent: string;
+  brand_font: string;
   logo_url: string | null; // URL publique (déjà résolue) ou null
+  hero_image_url: string | null; // idem
 };
 
 const COLORS: { field: "brand_primary" | "brand_dark" | "brand_accent"; label: string; help: string; def: string }[] = [
@@ -17,17 +19,31 @@ const COLORS: { field: "brand_primary" | "brand_dark" | "brand_accent"; label: s
   { field: "brand_accent", label: "Couleur accent", help: "Badges et mises en avant", def: BRAND_DEFAULTS.accent },
 ];
 
-export function BrandingForm({ restaurantId, initial }: { restaurantId: string; initial: Initial }) {
+export function BrandingForm({
+  restaurantId,
+  initial,
+  websiteUrl,
+}: {
+  restaurantId: string;
+  initial: Initial;
+  websiteUrl: string | null;
+}) {
   const [colors, setColors] = useState({
     brand_primary: initial.brand_primary,
     brand_dark: initial.brand_dark,
     brand_accent: initial.brand_accent,
   });
+  const [font, setFont] = useState(initial.brand_font);
   const [logoPreview, setLogoPreview] = useState<string | null>(initial.logo_url);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
+  const [heroPreview, setHeroPreview] = useState<string | null>(initial.hero_image_url);
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [removeHero, setRemoveHero] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
+  const [detecting, setDetecting] = useState(false);
+  const [detectMessage, setDetectMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
 
   const eff = (field: keyof typeof colors, def: string) => colors[field] || def;
 
@@ -48,6 +64,39 @@ export function BrandingForm({ restaurantId, initial }: { restaurantId: string; 
     setRemoveLogo(true);
   }
 
+  function onHeroChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setHeroFile(f);
+    setRemoveHero(false);
+    if (f) setHeroPreview(URL.createObjectURL(f));
+  }
+
+  function clearHero() {
+    setHeroFile(null);
+    setHeroPreview(null);
+    setRemoveHero(true);
+  }
+
+  async function handleDetect() {
+    setDetecting(true);
+    setDetectMessage(null);
+    const result = await detectRestaurantDesign(restaurantId);
+    setDetecting(false);
+    if (result.error) {
+      setDetectMessage({ kind: "error", text: result.error });
+      return;
+    }
+    if (result.suggestion) {
+      const s = result.suggestion;
+      setColors({ brand_primary: s.brand_primary, brand_dark: s.brand_dark, brand_accent: s.brand_accent });
+      setFont(s.brand_font);
+      setDetectMessage({
+        kind: "success",
+        text: s.style_notes ? `Suggestion appliquée — ${s.style_notes}` : "Suggestion appliquée.",
+      });
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -56,8 +105,11 @@ export function BrandingForm({ restaurantId, initial }: { restaurantId: string; 
     fd.set("brand_primary", colors.brand_primary);
     fd.set("brand_dark", colors.brand_dark);
     fd.set("brand_accent", colors.brand_accent);
+    fd.set("brand_font", font);
     if (logoFile) fd.set("logo", logoFile);
     if (removeLogo) fd.set("remove_logo", "true");
+    if (heroFile) fd.set("hero", heroFile);
+    if (removeHero) fd.set("remove_hero", "true");
     const result = await updateRestaurantBranding(restaurantId, null, fd);
     setLoading(false);
     if (result.error) setMessage({ kind: "error", text: result.error });
@@ -70,9 +122,31 @@ export function BrandingForm({ restaurantId, initial }: { restaurantId: string; 
         <div>
           <h2 className="font-bold text-gray-900">Charte graphique</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Ton logo et tes couleurs s&apos;appliquent à ta page membre, à ta console et à tes QR codes.
-            Laisse une couleur vide pour garder le style par défaut.
+            Ton logo, tes couleurs et ta police s&apos;appliquent à ta page membre, à ta console et à tes QR codes.
+            Laisse un champ vide pour garder le style par défaut.
           </p>
+        </div>
+
+        {/* Détection depuis le site web */}
+        <div className="bg-gray-50 rounded-xl border border-gray-100 p-3.5">
+          <button
+            type="button"
+            onClick={handleDetect}
+            disabled={!websiteUrl || detecting}
+            className="w-full bg-brand-dark text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-brand-dark/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {detecting ? "Analyse en cours... (jusqu'à 15 secondes)" : "✨ Détecter mon design depuis mon site"}
+          </button>
+          <p className="text-xs text-gray-400 mt-1.5">
+            {websiteUrl
+              ? "Propose couleurs et police à partir de ton site (et Instagram/TikTok si renseignés) — à valider ci-dessous, rien n'est enregistré automatiquement."
+              : "Ajoute le lien de ton site dans « Infos & liens » ci-dessus pour activer la détection."}
+          </p>
+          {detectMessage && (
+            <p className={`text-sm mt-2 ${detectMessage.kind === "error" ? "text-red-600" : "text-green-700"}`}>
+              {detectMessage.text}
+            </p>
+          )}
         </div>
 
         {/* Logo */}
@@ -99,6 +173,58 @@ export function BrandingForm({ restaurantId, initial }: { restaurantId: string; 
               )}
               <p className="text-xs text-gray-400">PNG, JPG, WebP ou SVG — 2 Mo max.</p>
             </div>
+          </div>
+        </div>
+
+        {/* Image hero */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Image hero (dashboard membre)
+          </label>
+          <div className="flex items-center gap-4">
+            <div className="w-24 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+              {heroPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={heroPreview} alt="Hero" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-gray-300 text-xl">🖼️</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-3 py-1.5 rounded-lg inline-block w-fit transition-colors">
+                {heroPreview ? "Changer" : "Ajouter une image"}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onHeroChange} className="hidden" />
+              </label>
+              {heroPreview && (
+                <button type="button" onClick={clearHero} className="text-xs text-red-500 hover:underline w-fit">
+                  Retirer l&apos;image
+                </button>
+              )}
+              <p className="text-xs text-gray-400">En fond de la carte d&apos;accueil du dashboard membre — 2 Mo max.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Police */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Police</label>
+          <div className="grid grid-cols-2 gap-2">
+            {FONT_OPTIONS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFont(font === f.key ? "" : f.key)}
+                className={`text-left border rounded-lg px-3 py-2 transition-colors ${
+                  font === f.key ? "border-brand-red bg-brand-red/5" : "border-gray-200 hover:border-gray-300"
+                }`}
+                style={{ fontFamily: f.cssVar }}
+              >
+                <span className="text-sm font-medium text-gray-800">{f.label}</span>
+                <p className="text-xs text-gray-400" style={{ fontFamily: f.cssVar }}>
+                  Ton établissement
+                </p>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -136,7 +262,10 @@ export function BrandingForm({ restaurantId, initial }: { restaurantId: string; 
         {/* Aperçu live */}
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Aperçu</p>
-          <div className="rounded-xl overflow-hidden border border-gray-200">
+          <div
+            className="rounded-xl overflow-hidden border border-gray-200"
+            style={{ fontFamily: FONT_OPTIONS.find((f) => f.key === font)?.cssVar }}
+          >
             <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: eff("brand_dark", BRAND_DEFAULTS.dark) }}>
               {logoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -163,7 +292,7 @@ export function BrandingForm({ restaurantId, initial }: { restaurantId: string; 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+        className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Enregistrement..." : "Enregistrer la charte"}
       </button>

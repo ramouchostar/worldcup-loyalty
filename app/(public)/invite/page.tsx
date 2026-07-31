@@ -83,7 +83,7 @@ export default async function InvitePage({ searchParams }: Props) {
 
         <a
           href={joinPath}
-          className="block w-full bg-brand-red text-white py-4 rounded-2xl font-bold text-lg hover:bg-red-700 transition-colors"
+          className="block w-full bg-brand-red text-white py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors"
         >
           Rejoindre la communauté →
         </a>

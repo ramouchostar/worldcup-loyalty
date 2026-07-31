@@ -102,7 +102,7 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
           <button
             type="button"
             onClick={downloadTemplate}
-            className="text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors"
+            className="text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-lg hover:bg-brand-red/85 transition-colors"
           >
             📄 Télécharger le modèle CSV
           </button>
@@ -168,7 +168,7 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
         <button
           type="submit"
           disabled={loading || !csv}
-          className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? "Envoi..." : "Continuer →"}
         </button>

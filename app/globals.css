@@ -12,7 +12,11 @@
 :root {
   --brand-red: 107 124 63;   /* #6B7C3F — vert olive (accent principal) */
   --brand-gold: 169 187 110; /* #A9BB6E — vert olive clair (mise en avant) */
-  --brand-dark: 12 21 9;     /* #0C1509 — quasi noir, dominante verte */
+  --brand-dark: 12 21 9;     /* rgb(var(--brand-dark)) — quasi noir, dominante verte */
+  /* Police de marque (m48) — pile système par défaut, identique au rendu
+     Tailwind implicite d'avant m48 (zéro régression pour un resto sans
+     police choisie). Surchargée par établissement via brandStyle(). */
+  --brand-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @layer utilities {
@@ -24,9 +28,12 @@
   }
 }
 
-/* ── Driver.js — thème Boosteats ──────────────────────────────────────── */
+/* ── Driver.js — thème de marque ──────────────────────────────────────── */
+/* rgb(var(--brand-dark)) / rgb(var(--brand-red)) au lieu de hex figés (m48) :
+   le tour d'onboarding respecte désormais la charte de l'établissement au
+   lieu d'être toujours vert olive Boosteats. */
 .brand-popover.driver-popover {
-  background-color: #0C1509;
+  background-color: rgb(var(--brand-dark));
   color: #fff;
   border-radius: 1rem;
   border: none;
@@ -50,7 +57,7 @@
 }
 .brand-popover .driver-popover-next-btn,
 .brand-popover .driver-popover-done-btn {
-  background-color: #6B7C3F !important;
+  background-color: rgb(var(--brand-red)) !important;
   color: #fff !important;
   border: none !important;
   border-radius: 0.5rem !important;
@@ -59,7 +66,7 @@
 }
 .brand-popover .driver-popover-next-btn:hover,
 .brand-popover .driver-popover-done-btn:hover {
-  background-color: #56632F !important;
+  background-color: rgb(var(--brand-red) / 0.85) !important;
 }
 .brand-popover .driver-popover-prev-btn {
   background-color: transparent !important;
@@ -73,14 +80,14 @@
   border-color: #6b7280 !important;
 }
 .brand-popover .driver-popover-arrow-side-bottom .driver-popover-arrow {
-  border-top-color: #0C1509;
+  border-top-color: rgb(var(--brand-dark));
 }
 .brand-popover .driver-popover-arrow-side-top .driver-popover-arrow {
-  border-bottom-color: #0C1509;
+  border-bottom-color: rgb(var(--brand-dark));
 }
 .brand-popover .driver-popover-arrow-side-left .driver-popover-arrow {
-  border-right-color: #0C1509;
+  border-right-color: rgb(var(--brand-dark));
 }
 .brand-popover .driver-popover-arrow-side-right .driver-popover-arrow {
-  border-left-color: #0C1509;
+  border-left-color: rgb(var(--brand-dark));
 }

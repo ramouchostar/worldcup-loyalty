@@ -33,7 +33,7 @@ export function RedeemButton() {
       <button
         onClick={handleClick}
         disabled={busy}
-        className="text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-red-700 disabled:opacity-50 transition-colors"
+        className="text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
       >
         {busy ? "…" : "🎁 Récupérer"}
       </button>

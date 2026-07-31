@@ -123,7 +123,7 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
               <form action={redirectToLogin.bind(null, restaurantId)} className="flex-1">
                 <button
                   type="submit"
-                  className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-red-700 transition-colors shadow-lg"
+                  className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
                 >
                   Rejoindre gratuitement →
                 </button>
@@ -131,7 +131,7 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
             ) : isMember ? (
               <Link
                 href={`/r/${restaurantId}/dashboard`}
-                className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-red-700 transition-colors shadow-lg"
+                className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
               >
                 Continuer →
               </Link>
@@ -139,7 +139,7 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
               <form action={joinRestaurant.bind(null, restaurantId)} className="flex-1">
                 <button
                   type="submit"
-                  className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-red-700 transition-colors shadow-lg"
+                  className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
                 >
                   Rejoindre {restaurant.name} →
                 </button>

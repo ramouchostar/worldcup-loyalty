@@ -143,7 +143,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
             <Link
               href="/login"
-              className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-red-700 transition-colors shadow-lg"
+              className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
             >
               Rejoindre gratuitement →
             </Link>

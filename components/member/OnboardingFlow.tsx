@@ -258,7 +258,7 @@ export function OnboardingFlow() {
               <>
                 <button
                   onClick={donePWA}
-                  className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-red-700 transition-colors"
+                  className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-brand-red/85 transition-colors"
                 >
                   C&apos;est fait ✅
                 </button>
@@ -273,7 +273,7 @@ export function OnboardingFlow() {
               <>
                 <button
                   onClick={handleAndroidInstall}
-                  className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-red-700 transition-colors"
+                  className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-brand-red/85 transition-colors"
                 >
                   Installer l&apos;app
                 </button>
@@ -307,7 +307,7 @@ export function OnboardingFlow() {
           <button
             onClick={activatePush}
             disabled={pushBusy}
-            className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-red-700 transition-colors disabled:opacity-50"
+            className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-brand-red/85 transition-colors disabled:opacity-50"
           >
             {pushBusy ? "Activation…" : "Activer les notifications"}
           </button>

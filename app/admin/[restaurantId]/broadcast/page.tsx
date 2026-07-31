@@ -255,7 +255,7 @@ export default function AdminBroadcastPage() {
       <button
         onClick={send}
         disabled={sending || message.trim().length < 3}
-        className="px-5 py-2.5 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+        className="px-5 py-2.5 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-brand-red/85 disabled:opacity-50"
       >
         {sending ? "Envoi en cours…" : sendOn ? "Programmer le broadcast" : "Envoyer le broadcast"}
       </button>

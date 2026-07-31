@@ -47,7 +47,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
           </p>
           <Link
             href={`/r/${restaurantId}/my-team`}
-            className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors"
+            className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
           >
             Découvrir les équipes →
           </Link>

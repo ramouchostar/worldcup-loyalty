@@ -55,7 +55,7 @@ export default async function RestaurantLayout({
         facebook_url: restaurant.facebook_url,
       }}
     >
-    <div className="min-h-screen bg-gray-50" style={brandStyle(branding)}>
+    <div className="min-h-screen bg-gray-50 font-brand" style={brandStyle(branding)}>
       <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <RestaurantSwitcher
@@ -67,7 +67,7 @@ export default async function RestaurantLayout({
           ) : (
             <Link
               href="/login"
-              className="text-sm bg-brand-red px-3 py-1.5 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+              className="text-sm bg-brand-red px-3 py-1.5 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
             >
               Rejoindre →
             </Link>

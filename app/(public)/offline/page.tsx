@@ -17,7 +17,7 @@ export default function OfflinePage() {
         </p>
         <Link
           href="/"
-          className="inline-block bg-brand-red text-white font-bold px-6 py-3 rounded-xl hover:bg-red-700 transition-colors"
+          className="inline-block bg-brand-red text-white font-bold px-6 py-3 rounded-xl hover:bg-brand-red/85 transition-colors"
         >
           Réessayer
         </Link>
