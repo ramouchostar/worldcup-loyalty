@@ -52,7 +52,10 @@ export async function POST(request: Request) {
     restaurant_id: restaurantId,
     token,
     expires_at: expiresAt,
-    redeemed_at: now,
+    // redeemed_at reste NULL ici : il est posé par la remise en caisse
+    // (/api/redemption/[token]/redeem). Le poser dès la génération faisait
+    // court-circuiter la route caissier (idempotence) AVANT le contrôle
+    // d'expiration → « Cadeau remis » no-op + garde-fou 10 min désactivé.
   });
 
   if (tokenError) return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
