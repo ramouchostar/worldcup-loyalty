@@ -5,9 +5,16 @@
 Avant d'écrire ou modifier la moindre ligne, tu dois lire dans cet ordre :
 
 1. `CONTEXT.md` — glossaire complet du domaine, terminologie exacte, règles UI
-2. `docs/adr/0001` à `docs/adr/0021` — toutes les décisions architecturales
+2. **TOUS** les fichiers `docs/adr/000X-*.md` sans exception (le dossier grandit à chaque feature — ne pas se fier à une borne codée en dur, toujours relire le dossier en entier pour connaître le dernier numéro)
 
 Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Prompt_ClaudeCode.md` qui est le document source initial mais qui a été affiné par les ADRs.
+
+### Un ADR = une nouvelle feature côté restaurateurs
+
+- Chaque nouvelle fonctionnalité côté **restaurateurs** (admin, dashboard établissement, outils cashier/onboarding, etc.) doit être documentée par un **nouveau fichier ADR** dans `docs/adr/`, numéroté à la suite du dernier existant.
+- **Un ADR = une feature.** Ne jamais regrouper plusieurs features dans un seul ADR, et ne jamais réutiliser un ADR existant pour documenter autre chose que sa décision d'origine — si une feature amende une décision passée, créer un nouvel ADR qui référence l'ancien (voir ex. ADR 0028 amendant ADR 0007).
+- **Avant de rédiger ce nouvel ADR**, lire l'intégralité des ADR déjà présents dans `docs/adr/` pour éviter toute redondance ou contradiction et garantir la cohérence globale du projet (terminologie, tables, règles déjà tranchées).
+- Mettre à jour ce fichier (`CLAUDE.md`) si le nouvel ADR introduit une règle critique à ne jamais violer.
 
 ---
 
