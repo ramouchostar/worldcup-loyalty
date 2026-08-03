@@ -151,8 +151,8 @@ export default async function RestaurateursLandingPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4">
-            Tous tes outils réunis en{" "}
-            <span className="text-brand-gold">un seul</span>.<br />
+            Le seul outil dont{" "}
+            <span className="text-brand-gold">un resto indépendant</span> a besoin.<br />
             Gratuit.
           </h1>
 
