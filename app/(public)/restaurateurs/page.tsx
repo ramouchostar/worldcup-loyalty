@@ -41,7 +41,7 @@ export const revalidate = 300;
 export const metadata = {
   title: "Fidélité, parrainage, supports, pilotage — un seul outil gratuit",
   description:
-    "Fidélité, parrainage, supports imprimés, tableau de bord et visibilité locale : cinq outils que les restaurateurs achètent d'habitude séparément, réunis ici en un seul, gratuit pour démarrer.",
+    "Fidélité, parrainage, supports imprimés, tableau de bord et visibilité locale : tous les outils que les restaurateurs achètent d'habitude séparément, réunis ici en un seul, gratuit pour démarrer.",
 };
 
 const BUNDLE = [
@@ -151,7 +151,7 @@ export default async function RestaurateursLandingPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4">
-            Cinq outils réunis en{" "}
+            Tous tes outils réunis en{" "}
             <span className="text-brand-gold">un seul</span>.<br />
             Gratuit.
           </h1>
