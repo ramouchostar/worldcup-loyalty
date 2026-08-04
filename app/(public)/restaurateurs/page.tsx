@@ -133,13 +133,26 @@ const TRUST_STRIP = [
 ];
 
 export default async function RestaurateursLandingPage() {
-  const admin = createAdminClient();
-  const [{ count: restaurantCount }, { count: memberCount }] = await Promise.all([
-    admin.from("restaurants").select("id", { count: "exact", head: true }).eq("status", "active"),
-    admin.from("memberships").select("user_id", { count: "exact", head: true }),
-  ]);
+  // Preuve sociale best-effort : une landing publique ne doit jamais faire
+  // échouer le build (prérendu + revalidate 300) à cause d'une env/DB
+  // indisponible. Env Supabase absente ou requête en échec → on retombe sur
+  // l'état "le réseau démarre" au lieu de casser le déploiement (incident
+  // constaté sur PR #32 : Preview Vercel sans variables Supabase).
+  let restaurantCount = 0;
+  let memberCount = 0;
+  try {
+    const admin = createAdminClient();
+    const [restaurants, memberships] = await Promise.all([
+      admin.from("restaurants").select("id", { count: "exact", head: true }).eq("status", "active"),
+      admin.from("memberships").select("user_id", { count: "exact", head: true }),
+    ]);
+    restaurantCount = restaurants.count ?? 0;
+    memberCount = memberships.count ?? 0;
+  } catch {
+    // best-effort : compteurs à 0, la page rend quand même
+  }
 
-  const hasNetwork = (restaurantCount ?? 0) > 0;
+  const hasNetwork = restaurantCount > 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -180,9 +193,9 @@ export default async function RestaurateursLandingPage() {
           {hasNetwork ? (
             <p className="text-gray-400 text-sm mt-6">
               Déjà <span className="text-white font-bold">{restaurantCount}</span> établissement
-              {(restaurantCount ?? 0) > 1 ? "s" : ""} et{" "}
-              <span className="text-white font-bold">{memberCount ?? 0}</span> membre
-              {(memberCount ?? 0) > 1 ? "s" : ""} actifs sur le réseau.
+              {restaurantCount > 1 ? "s" : ""} et{" "}
+              <span className="text-white font-bold">{memberCount}</span> membre
+              {memberCount > 1 ? "s" : ""} actifs sur le réseau.
             </p>
           ) : (
             <p className="text-gray-400 text-sm mt-6">
