@@ -6,6 +6,7 @@ import { generateRestaurantSlug, isRestaurantOwner } from "@/lib/restaurant";
 import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
 import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
 import { isAllowedReceiptType } from "@/lib/receipt-ocr";
+import { parseHttpUrl } from "@/lib/url";
 import {
   discoverReceiptKey,
   validateProposedPattern,
@@ -23,10 +24,6 @@ export async function createPartnerRestaurant(
   const sector = (formData.get("sector") as string)?.trim();
   const address = (formData.get("address") as string)?.trim() || null;
   const cuisineTypes = formData.getAll("cuisine_types").map((v) => String(v).trim()).filter(Boolean);
-  const googleMapsUrl = (formData.get("google_maps_url") as string)?.trim() || null;
-  const instagramUrl = (formData.get("instagram_url") as string)?.trim() || null;
-  const tiktokUrl = (formData.get("tiktok_url") as string)?.trim() || null;
-  const facebookUrl = (formData.get("facebook_url") as string)?.trim() || null;
 
   if (!name || name.length < 2) {
     return { error: "Entre le nom de ton restaurant." };
@@ -53,10 +50,6 @@ export async function createPartnerRestaurant(
     cuisine_types: cuisineTypes,
     owner_id: user.id,
     status: "pending",
-    google_maps_url: googleMapsUrl,
-    instagram_url: instagramUrl,
-    tiktok_url: tiktokUrl,
-    facebook_url: facebookUrl,
   });
 
   if (error) {
@@ -96,7 +89,7 @@ export async function submitOnboardingMenu(
   // jetons) au lieu de laisser le resto sur la grille héritée. Non-destructif.
   await applyDefaultRewardConfig(restaurantId);
 
-  // Étape 3/3 (ADR 0019) : découverte de la clé unique des tickets.
+  // Étape 3/4 (ADR 0019) : découverte de la clé unique des tickets.
   redirect(`/become-a-partner/${restaurantId}/receipt`);
 }
 
@@ -204,7 +197,8 @@ export async function confirmReceiptConfig(
       updated_at: new Date().toISOString(),
     });
     if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
-    redirect(`/admin/${restaurantId}/menu`);
+    // Étape 4/4 (optionnelle) : liens réseaux sociaux.
+    redirect(`/become-a-partner/${restaurantId}/social`);
   }
 
   const keyLabel = (formData.get("key_label") as string)?.trim();
@@ -238,6 +232,35 @@ export async function confirmReceiptConfig(
     updated_at: new Date().toISOString(),
   });
   if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
+
+  // Étape 4/4 (optionnelle) : liens réseaux sociaux.
+  redirect(`/become-a-partner/${restaurantId}/social`);
+}
+
+// ─── Étape 4 (optionnelle) — liens réseaux sociaux ───────────────────────────
+// Alimentent les actions sociales du dashboard membre (Carte Actions).
+// Skippable : reconfigurable à tout moment depuis /admin/[restaurantId]/settings.
+export async function submitOnboardingSocial(
+  restaurantId: string,
+  _prevState: { error: string } | null,
+  formData: FormData
+): Promise<{ error: string } | null> {
+  const auth = await requireOwner(restaurantId);
+  if ("error" in auth) return { error: auth.error };
+
+  if (formData.get("skip") !== "true") {
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("restaurants")
+      .update({
+        google_maps_url: parseHttpUrl(formData.get("google_maps_url") as string),
+        instagram_url: parseHttpUrl(formData.get("instagram_url") as string),
+        tiktok_url: parseHttpUrl(formData.get("tiktok_url") as string),
+        facebook_url: parseHttpUrl(formData.get("facebook_url") as string),
+      })
+      .eq("id", restaurantId);
+    if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
+  }
 
   redirect(`/admin/${restaurantId}/menu`);
 }

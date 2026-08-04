@@ -78,6 +78,13 @@ export function ActionCardsSection() {
     const next = { ...postponed, [current.type]: Date.now() + SNOOZE_24H };
     setPostponed(next);
     localStorage.setItem(POSTPONE_PREFIX + restaurantId, JSON.stringify(next));
+    // Trace serveur (en plus du snooze local) : permet un rappel à 7 jours
+    // si la mission n'est toujours pas soumise (ADR 0024).
+    fetch("/api/micro-rewards/postpone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reward_type: current.type, restaurantId }),
+    }).catch(() => {});
   }
 
   return (

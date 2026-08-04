@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { analyzeReceiptSamples, confirmReceiptConfig } from "../../actions";
 import type { ReceiptKeyProposal } from "@/lib/receipt-key-discovery";
 
-// Étape 3/3 onboarding (ADR 0019). Deux phases :
+// Étape 3/4 onboarding (ADR 0019). Deux phases :
 // 1. upload 2-3 photos → analyse → proposition de clé unique ;
 // 2. le restaurateur confirme (ou corrige les champs, ou déclare qu'il n'a
 //    pas de numéro fiable). L'app propose, le restaurateur décide.
@@ -47,7 +47,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
     setConfirming(true);
     setError(null);
     const result = await confirmReceiptConfig(restaurantId, null, formData);
-    // Si pas d'erreur, l'action redirige vers /admin/[restaurantId]/menu.
+    // Si pas d'erreur, l'action redirige vers l'étape 4 (réseaux sociaux).
     if (result?.error) {
       setError(result.error);
       setConfirming(false);
@@ -208,7 +208,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
             disabled={confirming}
             className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
           >
-            {confirming ? "Enregistrement..." : "C'est bien ça — terminer l'inscription →"}
+            {confirming ? "Enregistrement..." : "C'est bien ça — continuer →"}
           </button>
         </form>
       )}

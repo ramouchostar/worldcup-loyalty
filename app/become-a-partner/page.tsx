@@ -11,11 +11,6 @@ export default function BecomeAPartnerPage() {
   const [address, setAddress] = useState("");
   const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
   const [cuisineInput, setCuisineInput] = useState("");
-  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
-  const [instagramUrl, setInstagramUrl] = useState("");
-  const [tiktokUrl, setTiktokUrl] = useState("");
-  const [facebookUrl, setFacebookUrl] = useState("");
-  const [showSocialHelp, setShowSocialHelp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,10 +53,6 @@ export default function BecomeAPartnerPage() {
     formData.set("sector", sector.trim());
     formData.set("address", address.trim());
     cuisineTypes.forEach((t) => formData.append("cuisine_types", t));
-    formData.set("google_maps_url", googleMapsUrl.trim());
-    formData.set("instagram_url", instagramUrl.trim());
-    formData.set("tiktok_url", tiktokUrl.trim());
-    formData.set("facebook_url", facebookUrl.trim());
 
     const result = await createPartnerRestaurant(null, formData);
 
@@ -79,7 +70,7 @@ export default function BecomeAPartnerPage() {
           <p className="text-4xl mb-2">🍗</p>
           <h1 className="text-2xl font-bold text-gray-900">Rejoins le réseau en tant que restaurateur</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Étape 1/3 — présente ton établissement. Il restera invisible aux clients
+            Étape 1/4 — présente ton établissement. Il restera invisible aux clients
             jusqu&apos;à validation par notre équipe.
           </p>
           <a href="/secteurs" className="inline-block text-xs font-semibold text-brand-red hover:underline mt-2">
@@ -172,62 +163,6 @@ export default function BecomeAPartnerPage() {
                 </button>
               </div>
             )}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">Réseaux sociaux (optionnel)</label>
-              <button
-                type="button"
-                onClick={() => setShowSocialHelp((v) => !v)}
-                className="text-xs font-semibold text-brand-red hover:underline"
-              >
-                {showSocialHelp ? "Masquer l'aide" : "Comment trouver mon lien ?"}
-              </button>
-            </div>
-            {showSocialHelp && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-xs text-blue-900 space-y-1">
-                <p>
-                  📱 Sur l&apos;appli (Instagram, TikTok, Facebook) : va sur <strong>ton profil</strong>, appuie sur{" "}
-                  <strong>&laquo;&nbsp;Partager le profil&nbsp;&raquo;</strong> puis <strong>&laquo;&nbsp;Copier le lien&nbsp;&raquo;</strong>.
-                </p>
-                <p>💻 Sur ordinateur : ouvre ton profil et copie l&apos;adresse dans la barre du navigateur.</p>
-                <p>Colle ensuite ce lien tel quel ci-dessous.</p>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <input
-                type="url"
-                value={googleMapsUrl}
-                onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                placeholder="Lien Google Maps"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 text-sm"
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <input
-                  type="url"
-                  value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
-                  placeholder="Instagram"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 text-xs"
-                />
-                <input
-                  type="url"
-                  value={tiktokUrl}
-                  onChange={(e) => setTiktokUrl(e.target.value)}
-                  placeholder="TikTok"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 text-xs"
-                />
-                <input
-                  type="url"
-                  value={facebookUrl}
-                  onChange={(e) => setFacebookUrl(e.target.value)}
-                  placeholder="Facebook"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 text-xs"
-                />
-              </div>
-            </div>
           </div>
 
           {error && <p className="text-red-600 text-sm bg-red-50 px-4 py-3 rounded-lg">{error}</p>}

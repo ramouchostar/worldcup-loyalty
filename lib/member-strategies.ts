@@ -5,19 +5,28 @@ import { getMenuItems } from "./menu";
 import { getAverageBasket } from "./avg-basket";
 import { getBudgetStatus, incrementRewardsCost } from "./budget";
 import { birthdayGiftCap, pickGenerousGift, type GiftCandidate } from "./reward-sizing";
+import { getActionLinks } from "./social-actions";
+import type { MicroRewardType } from "@/types";
 
-// ADR 0024 — Stratégies membres : trois notifications personnalisées, jouées
-// par le cron quotidien pour TOUS les membres de l'établissement (avec ou
-// sans équipe), sous l'enveloppe anti-spam d'ADR 0009 :
+// ADR 0024 — Stratégies membres : notifications personnalisées, jouées par
+// le cron quotidien pour TOUS les membres de l'établissement (avec ou sans
+// équipe), sous l'enveloppe anti-spam d'ADR 0009 :
 //
-// 1. birthday   — cadeau d'anniversaire calibré sur la dépense cumulée du
-//                 membre : la reconnaissance grandit avec la fidélité.
-// 2. winback    — le membre dont la fréquence décroche (silence ≥ 2× son
-//                 rythme habituel) reçoit un rappel personnalisé.
-// 3. tier_nudge — le membre dont le panier habituel est juste sous un palier
-//                 solo apprend ce qu'il gagnerait pour quelques euros de
-//                 plus. Zéro remise : la valeur perçue du cadeau fait le
-//                 travail, le coût est déjà plafonné par l'ADR 0017.
+// 1. birthday               — cadeau d'anniversaire calibré sur la dépense
+//                              cumulée du membre : la reconnaissance grandit
+//                              avec la fidélité.
+// 2. winback                — le membre dont la fréquence décroche (silence
+//                              ≥ 2× son rythme habituel) reçoit un rappel
+//                              personnalisé.
+// 3. tier_nudge              — le membre dont le panier habituel est juste
+//                              sous un palier solo apprend ce qu'il
+//                              gagnerait pour quelques euros de plus. Zéro
+//                              remise : la valeur perçue du cadeau fait le
+//                              travail, le coût est déjà plafonné par l'ADR
+//                              0017.
+// 4. action_postpone_reminder — une mission de la Carte Actions (dashboard)
+//                              reportée par le membre et toujours pas
+//                              soumise 7 jours après.
 //
 // Les euros cités dans les messages sont les dépenses PROPRES du membre
 // (panier habituel, seuils de palier solo) — autorisés côté membre, comme
@@ -38,6 +47,12 @@ export const WINBACK_COOLDOWN_DAYS = 30;
 
 // Un seul anniversaire par an (300 jours couvrent les décalages de cron).
 export const BIRTHDAY_DEDUPE_DAYS = 300;
+
+// Mission de la Carte Actions reportée ("plus tard") et toujours pas
+// soumise une semaine après — un seul rappel (cooldown long, pas un nudge
+// répété tant que le membre ne reporte pas à nouveau).
+export const ACTION_REMINDER_DELAY_DAYS = 7;
+export const ACTION_REMINDER_COOLDOWN_DAYS = 90;
 
 // ─── Décisions pures ─────────────────────────────────────────────────────────
 
@@ -124,12 +139,23 @@ export async function runMemberStrategies(
   }));
   if (members.length === 0) return { sent: 0, evaluated: 0 };
 
-  const [grid, avgBasket, budget, menuItems] = await Promise.all([
+  const [grid, avgBasket, budget, menuItems, { data: restaurantSocial }] = await Promise.all([
     loadRewardGrid(restaurantId),
     getAverageBasket(restaurantId),
     getBudgetStatus(restaurantId),
     getMenuItems(restaurantId),
+    admin
+      .from("restaurants")
+      .select("google_maps_url, instagram_url, tiktok_url, facebook_url")
+      .eq("id", restaurantId)
+      .single(),
   ]);
+  // Types de mission réellement actionnables pour cet établissement (lien
+  // configuré) — même résolution que la Carte Actions côté membre.
+  const actionLinks = getActionLinks(
+    restaurantSocial ?? { google_maps_url: null, instagram_url: null, tiktok_url: null, facebook_url: null },
+    restaurantId
+  );
   const giftCandidates: GiftCandidate[] = menuItems
     .filter((i) => i.is_active && i.reward_eligible)
     .map((i) => ({ id: i.id, name: i.name, menu_price: Number(i.menu_price), cost_price: Number(i.cost_price) }));
@@ -229,6 +255,36 @@ export async function runMemberStrategies(
           // ADR 0028 — zéro euro côté membre : on garde l'incitation (« commande
           // un peu plus → meilleur cadeau ») sans jamais chiffrer en euros.
           message = `🎁 Le savais-tu ? En commandant un peu plus chez ${restaurantName}, ton prochain cadeau passe à « ${nudge.target.item} » — tu y es presque !`;
+        }
+      }
+    }
+
+    // 4. Rappel de mission Carte Actions reportée — le membre a cliqué
+    // « plus tard » et, une semaine après, n'a toujours rien soumis.
+    if (!trigger) {
+      const [{ data: postponesRaw }, { data: claimsRaw }] = await Promise.all([
+        admin
+          .from("micro_reward_postpones")
+          .select("reward_type, postponed_at")
+          .eq("user_id", member.id)
+          .eq("restaurant_id", restaurantId),
+        admin
+          .from("micro_reward_claims")
+          .select("reward_type")
+          .eq("user_id", member.id),
+      ]);
+      const claimedTypes = new Set((claimsRaw ?? []).map((c) => c.reward_type as string));
+      const due = (postponesRaw ?? []).find((p) => {
+        const type = p.reward_type as MicroRewardType;
+        if (claimedTypes.has(type) || !actionLinks[type]) return false;
+        const daysSince = (now.getTime() - new Date(p.postponed_at).getTime()) / 86_400_000;
+        return daysSince >= ACTION_REMINDER_DELAY_DAYS;
+      });
+      if (due) {
+        const recent = await countRecentByTrigger(admin, member.id, "action_postpone_reminder", ACTION_REMINDER_COOLDOWN_DAYS, now);
+        if (recent === 0) {
+          trigger = "action_postpone_reminder";
+          message = `⭐ Tu avais prévu de gagner un jeton chez ${restaurantName} — l'action t'attend toujours, ça ne prend qu'une minute.`;
         }
       }
     }
