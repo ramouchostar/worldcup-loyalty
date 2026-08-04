@@ -7,7 +7,7 @@ export function PrintButton() {
   return (
     <button
       onClick={() => window.print()}
-      className="bg-brand-red text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-red-700 transition-colors"
+      className="bg-brand-red text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-red/85 transition-colors"
     >
       🖨️ Imprimer / Enregistrer en PDF
     </button>

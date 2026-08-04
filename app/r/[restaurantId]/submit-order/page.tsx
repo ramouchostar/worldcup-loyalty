@@ -194,7 +194,7 @@ export default function SubmitOrderPage() {
         </p>
         <button
           onClick={reset}
-          className="bg-brand-red text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+          className="bg-brand-red text-white px-6 py-2 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
         >
           Soumettre une autre commande
         </button>
@@ -212,7 +212,7 @@ export default function SubmitOrderPage() {
         </p>
         <button
           onClick={reset}
-          className="bg-brand-red text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+          className="bg-brand-red text-white px-6 py-2 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
         >
           Soumettre une autre commande
         </button>
@@ -280,7 +280,7 @@ export default function SubmitOrderPage() {
         <button
           onClick={analyseReceipt}
           disabled={parseStatus === "parsing"}
-          className="w-full bg-brand-red text-white py-3 px-4 rounded-xl font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors mb-4"
+          className="w-full bg-brand-red text-white py-3 px-4 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors mb-4"
         >
           {parseStatus === "parsing" ? "Analyse en cours..." : "Analyser le ticket"}
         </button>
@@ -407,7 +407,7 @@ export default function SubmitOrderPage() {
           <button
             type="submit"
             disabled={!noDelivery || submitStatus === "loading"}
-            className="w-full bg-brand-red text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-brand-red text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitStatus === "loading" ? "Vérification en cours..." : "Soumettre la commande"}
           </button>

@@ -131,7 +131,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading || !displayName.trim() || !acceptPolicy}
-          className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? "Création..." : "Continuer"}
         </button>

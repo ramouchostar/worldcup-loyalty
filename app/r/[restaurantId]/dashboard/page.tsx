@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus } from "@/lib/rewards";
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
@@ -24,6 +25,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const r = (path: string) => `/r/${restaurantId}${path}`;
+
+  // Image hero (m48) — décorative uniquement, aucun impact sur le contenu
+  // imposé par l'ADR 0010 (3 lignes par couche, fallback €25).
+  const branding = await getRestaurantBranding(restaurantId);
+  const heroImageUrl = logoPublicUrl(branding.hero_image_url);
 
   const [
     { data: membershipRaw },
@@ -164,7 +170,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       )}
 
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-brand-dark to-gray-800 rounded-2xl p-5 text-white">
+      <div
+        className="bg-gradient-to-br from-brand-dark to-brand-dark/70 bg-cover bg-center rounded-2xl p-5 text-white"
+        style={
+          heroImageUrl
+            ? {
+                backgroundImage: `linear-gradient(to bottom right, rgb(var(--brand-dark) / 0.88), rgb(var(--brand-dark) / 0.78)), url(${heroImageUrl})`,
+              }
+            : undefined
+        }
+      >
         <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">🎁 Ta prochaine commande</p>
         <p className="text-xs text-gray-300 mb-4">Pour ta prochaine commande directe :</p>
 
@@ -212,7 +227,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           </p>
           <Link
             href={r("/submit-order")}
-            className="bg-brand-red text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors shrink-0"
+            className="bg-brand-red text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-brand-red/85 transition-colors shrink-0"
           >
             Commander →
           </Link>
@@ -291,7 +306,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           </p>
           <Link
             href={r("/my-team")}
-            className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors"
+            className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
           >
             Voir mon équipe →
           </Link>
@@ -445,7 +460,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             <p className="text-gray-400 text-sm">Aucune commande soumise.</p>
             <Link
               href={r("/submit-order")}
-              className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+              className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
             >
               Soumettre ma première commande
             </Link>

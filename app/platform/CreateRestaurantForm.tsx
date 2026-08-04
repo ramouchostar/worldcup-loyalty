@@ -60,7 +60,7 @@ export function CreateRestaurantForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+        className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Création..." : "Créer l'établissement"}
       </button>

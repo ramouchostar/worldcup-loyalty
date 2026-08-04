@@ -143,15 +143,15 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
             <Link
               href="/login"
-              className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-red-700 transition-colors shadow-lg"
+              className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
             >
               Rejoindre gratuitement →
             </Link>
             <Link
-              href="/join"
+              href="#comment-ca-marche"
               className="flex-1 bg-brand-gold text-brand-dark text-center py-4 rounded-2xl font-bold hover:brightness-95 transition-all"
             >
-              Voir les restaurants
+              Comment ça marche
             </Link>
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── MÉCANIQUE ── */}
-      <div className="bg-gray-50 py-14">
+      <div id="comment-ca-marche" className="bg-gray-50 py-14 scroll-mt-6">
         <div className="max-w-2xl mx-auto px-5">
           <p className="text-brand-red text-xs font-bold uppercase tracking-widest text-center mb-3">Comment ça marche</p>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 text-center">

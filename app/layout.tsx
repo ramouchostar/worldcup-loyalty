@@ -1,6 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+
+// Polices curées de la charte graphique (m48, lib/branding.ts FONT_OPTIONS).
+// Toutes montées ici, quel que soit l'établissement — c'est --brand-font
+// (posé par brandStyle() dans les layouts /admin/[id] et /r/[id]) qui choisit
+// laquelle s'applique. Rester listé, jamais chargé depuis un domaine externe
+// à la requête (next/font auto-héberge les fichiers).
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-poppins", display: "swap" });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
+const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
+const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--font-bebas-neue", display: "swap" });
+const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable}`;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 
@@ -77,7 +90,7 @@ export default function RootLayout({
         <link rel="icon" href="/api/icons/192" type="image/png" sizes="192x192" />
         <link rel="apple-touch-icon" href="/api/icons/192" />
       </head>
-      <body className="bg-gray-50 text-gray-900 antialiased">
+      <body className={`${brandFontVariables} bg-gray-50 text-gray-900 antialiased`}>
         {children}
         <ServiceWorkerRegister />
       </body>

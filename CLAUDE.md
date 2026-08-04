@@ -87,6 +87,7 @@ SUPER_ADMIN_EMAILS=                 # emails bootstrappés comme super-admin pla
 RESEND_API_KEY=                     # emailing (lib/email.ts) — non configuré = envoi désactivé silencieusement
 EMAIL_FROM=                         # ex. "Boosteats <onboarding@resend.dev>"
 NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://worldcup-loyalty.vercel.app
+ANTHROPIC_API_KEY=                  # vision : OCR ticket, découverte clé ticket, suggestions menu, détection de design (m48)
 ```
 
 ### ADR 0011 — Coupon de récupération anti-fraude

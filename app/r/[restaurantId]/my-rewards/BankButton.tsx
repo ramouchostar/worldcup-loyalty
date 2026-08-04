@@ -46,7 +46,7 @@ export function BankButton({ points }: { points: number | null }) {
           <button
             onClick={handleBank}
             disabled={busy}
-            className="text-xs font-semibold text-white bg-brand-dark px-2.5 py-1.5 rounded-full hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            className="text-xs font-semibold text-white bg-brand-dark px-2.5 py-1.5 rounded-full hover:bg-brand-dark/80 disabled:opacity-50 transition-colors"
           >
             {busy ? "…" : "Oui"}
           </button>

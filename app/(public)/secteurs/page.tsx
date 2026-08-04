@@ -33,24 +33,37 @@ type SectorStats = {
 };
 
 export default async function SectorsPage() {
-  const admin = createAdminClient();
+  // Best-effort : une landing publique ne doit jamais faire échouer le build
+  // (prérendu + revalidate 300) à cause d'une env/DB indisponible. Env
+  // Supabase absente ou requête en échec → page vide plutôt que déploiement
+  // cassé (incident constaté sur PR #32 pour /restaurateurs, même motif ici).
+  let restaurantsRaw: { id: string; name: string; sector: string | null }[] = [];
+  let membershipsRaw: { restaurant_id: string }[] = [];
+  let teamsRaw: { restaurant_id: string }[] = [];
+  try {
+    const admin = createAdminClient();
+    // ADR 0016 §3 — seuls les établissements actifs comptent (pending/disabled
+    // restent invisibles, cohérent ADR 0015 §6).
+    const [restaurants, memberships, teams] = await Promise.all([
+      admin.from("restaurants").select("id, name, sector").eq("status", "active"),
+      admin.from("memberships").select("restaurant_id"),
+      admin.from("teams").select("restaurant_id").eq("is_active", true),
+    ]);
+    restaurantsRaw = restaurants.data ?? [];
+    membershipsRaw = memberships.data ?? [];
+    teamsRaw = teams.data ?? [];
+  } catch {
+    // best-effort : listes vides, la page rend quand même (état "le réseau démarre")
+  }
 
-  // ADR 0016 §3 — seuls les établissements actifs comptent (pending/disabled
-  // restent invisibles, cohérent ADR 0015 §6).
-  const [{ data: restaurantsRaw }, { data: membershipsRaw }, { data: teamsRaw }] = await Promise.all([
-    admin.from("restaurants").select("id, name, sector").eq("status", "active"),
-    admin.from("memberships").select("restaurant_id"),
-    admin.from("teams").select("restaurant_id").eq("is_active", true),
-  ]);
-
-  const restaurants = (restaurantsRaw ?? []) as { id: string; name: string; sector: string | null }[];
+  const restaurants = restaurantsRaw;
 
   const membersByRestaurant = new Map<string, number>();
-  for (const m of (membershipsRaw ?? []) as { restaurant_id: string }[]) {
+  for (const m of membershipsRaw) {
     membersByRestaurant.set(m.restaurant_id, (membersByRestaurant.get(m.restaurant_id) ?? 0) + 1);
   }
   const teamsByRestaurant = new Map<string, number>();
-  for (const t of (teamsRaw ?? []) as { restaurant_id: string }[]) {
+  for (const t of teamsRaw) {
     teamsByRestaurant.set(t.restaurant_id, (teamsByRestaurant.get(t.restaurant_id) ?? 0) + 1);
   }
 

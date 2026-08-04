@@ -39,10 +39,38 @@ import { IconTile } from "@/components/IconTile";
 export const revalidate = 300;
 
 export const metadata = {
-  title: "Programme de fidélité pour restaurateurs — gratuit pour démarrer",
+  title: "Fidélité, parrainage, supports, pilotage — un seul outil gratuit",
   description:
-    "Un algorithme calcule automatiquement le bon cadeau pour chaque client, sans jamais toucher ta marge, et transforme ta clientèle en moteur de recrutement organique. Gratuit pour démarrer, aucune carte bancaire requise.",
+    "Fidélité, parrainage, supports imprimés, tableau de bord et visibilité locale : tous les outils que les restaurateurs achètent d'habitude séparément, réunis ici en un seul, gratuit pour démarrer.",
 };
+
+const BUNDLE = [
+  {
+    icon: Gift,
+    title: "Programme de fidélité",
+    usually: "D'habitude : un logiciel de fidélité dédié, facturé au mois.",
+  },
+  {
+    icon: Share2,
+    title: "Parrainage client",
+    usually: "D'habitude : un outil de referral marketing à part.",
+  },
+  {
+    icon: Printer,
+    title: "Supports imprimés à ta charte",
+    usually: "D'habitude : un graphiste ou une plateforme de design.",
+  },
+  {
+    icon: LayoutDashboard,
+    title: "Tableau de bord de pilotage",
+    usually: "D'habitude : un outil analytics indépendant.",
+  },
+  {
+    icon: MapPin,
+    title: "Visibilité dans ton secteur",
+    usually: "D'habitude : une agence ou un budget publicitaire local.",
+  },
+];
 
 const PAIN_POINTS = [
   {
@@ -105,13 +133,26 @@ const TRUST_STRIP = [
 ];
 
 export default async function RestaurateursLandingPage() {
-  const admin = createAdminClient();
-  const [{ count: restaurantCount }, { count: memberCount }] = await Promise.all([
-    admin.from("restaurants").select("id", { count: "exact", head: true }).eq("status", "active"),
-    admin.from("memberships").select("user_id", { count: "exact", head: true }),
-  ]);
+  // Preuve sociale best-effort : une landing publique ne doit jamais faire
+  // échouer le build (prérendu + revalidate 300) à cause d'une env/DB
+  // indisponible. Env Supabase absente ou requête en échec → on retombe sur
+  // l'état "le réseau démarre" au lieu de casser le déploiement (incident
+  // constaté sur PR #32 : Preview Vercel sans variables Supabase).
+  let restaurantCount = 0;
+  let memberCount = 0;
+  try {
+    const admin = createAdminClient();
+    const [restaurants, memberships] = await Promise.all([
+      admin.from("restaurants").select("id", { count: "exact", head: true }).eq("status", "active"),
+      admin.from("memberships").select("user_id", { count: "exact", head: true }),
+    ]);
+    restaurantCount = restaurants.count ?? 0;
+    memberCount = memberships.count ?? 0;
+  } catch {
+    // best-effort : compteurs à 0, la page rend quand même
+  }
 
-  const hasNetwork = (restaurantCount ?? 0) > 0;
+  const hasNetwork = restaurantCount > 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -123,21 +164,21 @@ export default async function RestaurateursLandingPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4">
-            Fais revenir tes clients{" "}
-            <span className="text-brand-gold">directement</span>,<br />
-            sans commission de plateforme.
+            Le seul outil dont{" "}
+            <span className="text-brand-gold">un resto indépendant</span> a besoin.<br />
+            Gratuit.
           </h1>
 
           <p className="text-gray-300 text-base sm:text-lg leading-relaxed mb-8 max-w-xl mx-auto">
-            Boosteats calcule automatiquement le bon cadeau pour chaque client — sans jamais toucher
-            ta marge — et transforme ta clientèle actuelle en moteur de recrutement. Gratuit pour
-            démarrer, aucune carte bancaire, en ligne en quelques jours.
+            Fidélité, parrainage, supports imprimés, tableau de bord, visibilité dans ton secteur —
+            tout ce qu&apos;un restaurant indépendant achète d&apos;habitude séparément, réunis ici en un seul
+            outil, connecté de bout en bout. Sans commission sur tes commandes directes.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
             <Link
               href="/become-a-partner"
-              className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-red-700 transition-colors shadow-lg"
+              className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
             >
               Devenir partenaire gratuitement →
             </Link>
@@ -152,9 +193,9 @@ export default async function RestaurateursLandingPage() {
           {hasNetwork ? (
             <p className="text-gray-400 text-sm mt-6">
               Déjà <span className="text-white font-bold">{restaurantCount}</span> établissement
-              {(restaurantCount ?? 0) > 1 ? "s" : ""} et{" "}
-              <span className="text-white font-bold">{memberCount ?? 0}</span> membre
-              {(memberCount ?? 0) > 1 ? "s" : ""} actifs sur le réseau.
+              {restaurantCount > 1 ? "s" : ""} et{" "}
+              <span className="text-white font-bold">{memberCount}</span> membre
+              {memberCount > 1 ? "s" : ""} actifs sur le réseau.
             </p>
           ) : (
             <p className="text-gray-400 text-sm mt-6">
@@ -171,6 +212,33 @@ export default async function RestaurateursLandingPage() {
             <div key={s.label} className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 text-center flex flex-col items-center gap-2">
               <IconTile icon={s.icon} size="sm" />
               <p className="text-xs text-gray-600 font-semibold leading-snug">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CE QUE ÇA REMPLACE ── */}
+      <div className="max-w-2xl mx-auto px-5 py-14">
+        <p className="text-brand-red text-xs font-bold uppercase tracking-widest text-center mb-3">Un marché fragmenté</p>
+        <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 text-center">
+          Ce que ça remplace
+        </h2>
+        <p className="text-gray-500 text-sm text-center mb-8 max-w-lg mx-auto">
+          Chaque brique existe déjà séparément sur le marché, avec son propre abonnement. Ici, elles
+          sont connectées entre elles et incluses dans le même outil, gratuit.
+        </p>
+
+        <div className="space-y-3">
+          {BUNDLE.map((b) => (
+            <div key={b.title} className="flex items-center gap-4 bg-gray-50 rounded-2xl p-4">
+              <IconTile icon={b.icon} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 text-sm">{b.title}</p>
+                <p className="text-gray-500 text-xs">{b.usually}</p>
+              </div>
+              <span className="shrink-0 bg-brand-red/10 text-brand-red text-xs font-bold px-3 py-1.5 rounded-full">
+                Inclus
+              </span>
             </div>
           ))}
         </div>
@@ -328,6 +396,10 @@ export default async function RestaurateursLandingPage() {
               {
                 q: "C'est vraiment gratuit ?",
                 a: "Oui. Le programme membre complet (équipes, récompenses, parrainage, tableau de bord) est gratuit à vie, sans carte bancaire à l'inscription.",
+              },
+              {
+                q: "Comment vous pouvez proposer tout ça gratuitement ?",
+                a: "Le programme membre reste gratuit à vie — c'est lui qui fait grandir le réseau. Des fonctions avancées optionnelles arriveront plus tard pour les établissements qui veulent aller plus loin, sans jamais dégrader ce qui est gratuit aujourd'hui.",
               },
               {
                 q: "Dois-je changer de caisse ou de logiciel ?",

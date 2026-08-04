@@ -18,6 +18,11 @@ const config: Config = {
           dark: "rgb(var(--brand-dark) / <alpha-value>)",
         },
       },
+      fontFamily: {
+        // Police de marque par établissement (m48) — --brand-font posé par
+        // brandStyle() ; défaut neutre (pile système) dans app/globals.css.
+        brand: ["var(--brand-font)"],
+      },
     },
   },
   plugins: [],

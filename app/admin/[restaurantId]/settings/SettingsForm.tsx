@@ -9,6 +9,7 @@ type Initial = {
   address: string;
   cuisine_types: string;
   google_maps_url: string;
+  website_url: string;
   instagram_url: string;
   tiktok_url: string;
   facebook_url: string;
@@ -16,6 +17,7 @@ type Initial = {
 
 const SOCIAL_FIELDS: { name: keyof Initial; label: string; placeholder: string }[] = [
   { name: "google_maps_url", label: "⭐ Google Maps (avis)", placeholder: "https://maps.app.goo.gl/..." },
+  { name: "website_url", label: "🌐 Site web", placeholder: "https://tonsite.com" },
   { name: "instagram_url", label: "📸 Instagram", placeholder: "https://instagram.com/..." },
   { name: "tiktok_url", label: "🎵 TikTok", placeholder: "https://tiktok.com/@..." },
   { name: "facebook_url", label: "👍 Facebook", placeholder: "https://facebook.com/..." },
@@ -93,10 +95,11 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
 
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
         <div>
-          <h2 className="font-bold text-gray-900">Liens sociaux</h2>
+          <h2 className="font-bold text-gray-900">Infos & liens</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Utilisés par les actions sociales de tes membres (jetons) — un lien
-            vide masque le bouton correspondant.
+            Insta/TikTok/Facebook alimentent les actions sociales de tes membres
+            (jetons) — un lien vide masque le bouton correspondant. Le site web
+            sert aussi à la détection de design ci-dessous.
           </p>
         </div>
         {SOCIAL_FIELDS.map((f) => (
@@ -124,7 +127,7 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+        className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Enregistrement..." : "Enregistrer"}
       </button>

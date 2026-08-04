@@ -2,17 +2,24 @@ import { createServerSupabaseClient, createAdminClient } from "./supabase";
 import type { Branding } from "./branding";
 
 const LOGO_BUCKET = "restaurant-logos";
-const EMPTY_BRANDING: Branding = { logo_url: null, brand_primary: null, brand_dark: null, brand_accent: null };
+const EMPTY_BRANDING: Branding = {
+  logo_url: null,
+  brand_primary: null,
+  brand_dark: null,
+  brand_accent: null,
+  brand_font: null,
+  hero_image_url: null,
+};
 
-// Charte graphique d'un établissement (couleurs + logo, m37). Résilient : si
-// les colonnes n'existent pas encore (migration non appliquée), retourne les
-// défauts Boosteats au lieu de casser la page. Voir lib/branding.ts.
+// Charte graphique d'un établissement (couleurs + logo + police + hero, m37/m48).
+// Résilient : si les colonnes n'existent pas encore (migration non appliquée),
+// retourne les défauts Boosteats au lieu de casser la page. Voir lib/branding.ts.
 export async function getRestaurantBranding(restaurantId: string): Promise<Branding> {
   try {
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("restaurants")
-      .select("logo_url, brand_primary, brand_dark, brand_accent")
+      .select("logo_url, brand_primary, brand_dark, brand_accent, brand_font, hero_image_url")
       .eq("id", restaurantId)
       .maybeSingle();
     if (error || !data) return EMPTY_BRANDING;
@@ -22,7 +29,8 @@ export async function getRestaurantBranding(restaurantId: string): Promise<Brand
   }
 }
 
-// URL publique d'un logo à partir de son chemin de stockage (bucket public).
+// URL publique d'un fichier du bucket restaurant-logos à partir de son chemin
+// de stockage (bucket public) — sert aussi bien au logo qu'à l'image hero (m48).
 export function logoPublicUrl(path: string | null): string | null {
   if (!path) return null;
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -92,7 +92,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
         <button
           type="submit"
           disabled={analyzing || files.length < 2}
-          className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {analyzing ? "Analyse des tickets..." : "Analyser mes tickets"}
         </button>
@@ -206,7 +206,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
           <button
             type="submit"
             disabled={confirming}
-            className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+            className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
           >
             {confirming ? "Enregistrement..." : "C'est bien ça — terminer l'inscription →"}
           </button>

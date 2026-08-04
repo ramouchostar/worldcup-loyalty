@@ -225,7 +225,7 @@ export default function SandboxPage() {
             <button
               onClick={createOrder}
               disabled={!userId || orderBusy}
-              className="w-full bg-brand-red text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+              className="w-full bg-brand-red text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
             >
               {orderBusy ? "Création..." : "✅ Créer commande validée"}
             </button>

@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
-import { isValidHex } from "@/lib/branding";
+import { isValidHex, FONT_OPTIONS } from "@/lib/branding";
 import { LOGO_BUCKET } from "@/lib/restaurant";
+import { captureWebsiteScreenshot, fetchOgImage, fetchImageAsBlock, analyzeDesign, type ImageBlock, type DesignSuggestion } from "@/lib/design-detect";
 
 // Mise à jour des infos de l'établissement par son admin (owner, legacy ou
 // super-admin). Le slug (id) ne change JAMAIS : il est imprimé sur les QR
@@ -55,6 +56,7 @@ export async function updateRestaurantInfo(
       address,
       cuisine_types: cuisineTypes,
       google_maps_url: url("google_maps_url"),
+      website_url: url("website_url"),
       instagram_url: url("instagram_url"),
       tiktok_url: url("tiktok_url"),
       facebook_url: url("facebook_url"),
@@ -107,6 +109,18 @@ export async function updateRestaurantBranding(
     update[field] = v.toUpperCase();
   }
 
+  // Police (m48) : liste fermée, mêmes règles absent/vide/valeur que les couleurs.
+  const rawFont = formData.get("brand_font");
+  if (rawFont !== null) {
+    const v = String(rawFont).trim();
+    if (!v) { update.brand_font = null; }
+    else if (!FONT_OPTIONS.some((f) => f.key === v)) {
+      return { error: "Police invalide." };
+    } else {
+      update.brand_font = v;
+    }
+  }
+
   // Logo : upload si fourni, suppression si demandée.
   const logo = formData.get("logo");
   const removeLogo = formData.get("remove_logo") === "true";
@@ -125,6 +139,25 @@ export async function updateRestaurantBranding(
     update.logo_url = null;
   }
 
+  // Image hero (m48) : même bucket, même règles que le logo — utilisée en
+  // fond de la carte hero du dashboard membre (ADR 0010).
+  const hero = formData.get("hero");
+  const removeHero = formData.get("remove_hero") === "true";
+  if (hero instanceof File && hero.size > 0) {
+    const ext = LOGO_TYPES[hero.type];
+    if (!ext) return { error: "Image hero : formats acceptés PNG, JPG, WebP ou SVG." };
+    if (hero.size > 2 * 1024 * 1024) return { error: "Image hero : 2 Mo maximum." };
+    const path = `${restaurantId}/hero-${Date.now()}.${ext}`;
+    const bytes = await hero.arrayBuffer();
+    const { error: upErr } = await admin.storage
+      .from(LOGO_BUCKET)
+      .upload(path, bytes, { contentType: hero.type, upsert: true });
+    if (upErr) return { error: "Erreur lors de l'upload de l'image hero. Réessaie." };
+    update.hero_image_url = path;
+  } else if (removeHero) {
+    update.hero_image_url = null;
+  }
+
   if (Object.keys(update).length === 0) {
     return { success: "Aucun changement." };
   }
@@ -141,4 +174,63 @@ export async function updateRestaurantBranding(
   revalidatePath(`/admin/${restaurantId}`, "layout");
   revalidatePath(`/r/${restaurantId}`, "layout");
   return { success: "Charte graphique enregistrée." };
+}
+
+// Détection de design (m48) : propose une charte à partir du site web (+
+// bonus Insta/TikTok) via analyse vision. N'écrit JAMAIS en base — retourne
+// une suggestion que le restaurateur pré-remplit puis valide/ajuste dans
+// BrandingForm avant d'enregistrer (même principe que la grille par défaut
+// et les suggestions de cadeaux, ADR 0013/0017). Best-effort à chaque étape
+// réseau ; seul l'appel modèle peut faire échouer l'action (message neutre).
+export async function detectRestaurantDesign(
+  restaurantId: string
+): Promise<{ error?: string; suggestion?: DesignSuggestion }> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Non authentifié." };
+  if (!(await isEstablishmentAdmin(user.id, restaurantId))) {
+    return { error: "Accès refusé." };
+  }
+
+  const admin = createAdminClient();
+  const { data: restaurant } = await admin
+    .from("restaurants")
+    .select("name, website_url, instagram_url, tiktok_url")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  const websiteUrl = restaurant?.website_url as string | null | undefined;
+  if (!websiteUrl) {
+    return { error: "Ajoute d'abord le lien de ton site dans « Infos & liens » ci-dessus." };
+  }
+
+  const images: ImageBlock[] = [];
+  const screenshot = await captureWebsiteScreenshot(websiteUrl);
+  if (screenshot) images.push(screenshot);
+  else {
+    const ogUrl = await fetchOgImage(websiteUrl);
+    const ogBlock = ogUrl ? await fetchImageAsBlock(ogUrl) : null;
+    if (ogBlock) images.push(ogBlock);
+  }
+
+  // Bonus best-effort : ignoré silencieusement en cas d'échec (Insta/TikTok
+  // bloquent la plupart des requêtes non authentifiées — normal, attendu).
+  for (const social of [restaurant?.instagram_url, restaurant?.tiktok_url]) {
+    if (!social || images.length >= 3) continue;
+    const ogUrl = await fetchOgImage(social);
+    const block = ogUrl ? await fetchImageAsBlock(ogUrl) : null;
+    if (block) images.push(block);
+  }
+
+  if (images.length === 0) {
+    return { error: "Impossible de récupérer une image de ton site pour le moment. Réessaie plus tard ou personnalise directement ci-dessous." };
+  }
+
+  try {
+    const suggestion = await analyzeDesign(images, restaurant?.name ?? "ce restaurant");
+    return { suggestion };
+  } catch (err) {
+    console.error("detectRestaurantDesign: analyse vision échouée:", err);
+    return { error: "Analyse indisponible pour le moment — personnalise directement les couleurs et la police ci-dessous." };
+  }
 }

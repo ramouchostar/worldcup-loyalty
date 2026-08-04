@@ -498,7 +498,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
                         <div className="flex justify-end mt-2">
                           <Link
                             href={broadcast(card.message, card.sendOn, card.promoOn, card.targetType)}
-                            className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                            className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-red/85 transition-colors"
                           >
                             {card.sendOn ? "Programmer l'annonce →" : "Ajuster et envoyer →"}
                           </Link>

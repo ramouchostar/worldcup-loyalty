@@ -56,7 +56,7 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
             <p className="text-gray-400 text-sm">Aucune récompense en attente.</p>
             <Link
               href={`/r/${restaurantId}/submit-order`}
-              className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+              className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
             >
               Soumettre une commande →
             </Link>
@@ -128,7 +128,7 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
           </p>
           <Link
             href={`/r/${restaurantId}/submit-order`}
-            className="inline-block bg-brand-red text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+            className="inline-block bg-brand-red text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
           >
             Soumettre une commande
           </Link>
