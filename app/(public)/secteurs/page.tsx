@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase";
 
@@ -5,6 +6,18 @@ import { createAdminClient } from "@/lib/supabase";
 // restaurateur prospect (il y a déjà des clients fidélisés dans sa zone).
 // Agrégats non sensibles uniquement — jamais d'euros/CA (ADR 0007 s'applique
 // au public), jamais de volumes de commandes.
+//
+// Désactivée temporairement (2026-08-04, demande utilisateur) : le réseau
+// est encore trop petit pour que cette page serve de preuve sociale — tant
+// qu'elle affiche "le réseau démarre", elle joue contre l'argumentaire de
+// vente plutôt que pour. Tous les liens qui y menaient ont été retirés
+// (accueil, /restaurateurs, /become-a-partner) ; ce garde bloque aussi
+// l'accès direct par URL. Pour réactiver : retirer le bloc ci-dessous et
+// remettre les liens.
+
+// Type annoté en `boolean` (pas le littéral `true`) pour que TypeScript ne
+// réduise pas le reste du composant à `never` après le early-return.
+const SECTEURS_DISABLED: boolean = true;
 
 export const revalidate = 300;
 
@@ -33,6 +46,8 @@ type SectorStats = {
 };
 
 export default async function SectorsPage() {
+  if (SECTEURS_DISABLED) notFound();
+
   // Best-effort : une landing publique ne doit jamais faire échouer le build
   // (prérendu + revalidate 300) à cause d'une env/DB indisponible. Env
   // Supabase absente ou requête en échec → page vide plutôt que déploiement

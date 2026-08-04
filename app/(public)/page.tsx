@@ -337,7 +337,6 @@ export default function LandingPage() {
           <span className="font-bold text-gray-400">Boosteats</span>
           <div className="flex gap-4">
             <Link href="/join" className="hover:text-gray-300 transition-colors">Restaurants</Link>
-            <Link href="/secteurs" className="hover:text-gray-300 transition-colors">Secteurs</Link>
             <Link href="/restaurateurs" className="hover:text-gray-300 transition-colors">Devenir partenaire</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Connexion</Link>
           </div>

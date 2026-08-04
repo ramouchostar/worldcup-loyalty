@@ -82,9 +82,6 @@ export default function BecomeAPartnerPage() {
             Étape 1/3 — présente ton établissement. Il restera invisible aux clients
             jusqu&apos;à validation par notre équipe.
           </p>
-          <a href="/secteurs" className="inline-block text-xs font-semibold text-brand-red hover:underline mt-2">
-            Vois l&apos;activité du réseau dans ton secteur →
-          </a>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8 space-y-5">

@@ -183,10 +183,10 @@ export default async function RestaurateursLandingPage() {
               Devenir partenaire gratuitement →
             </Link>
             <Link
-              href="/secteurs"
+              href="#comment-ca-marche"
               className="flex-1 bg-brand-gold text-brand-dark text-center py-4 rounded-2xl font-bold hover:brightness-95 transition-all"
             >
-              Voir l&apos;activité de mon secteur
+              Comment ça marche
             </Link>
           </div>
 
@@ -266,7 +266,7 @@ export default async function RestaurateursLandingPage() {
       </div>
 
       {/* ── MÉCANIQUE ── */}
-      <div className="bg-gray-50 py-14">
+      <div id="comment-ca-marche" className="bg-gray-50 py-14 scroll-mt-6">
         <div className="max-w-2xl mx-auto px-5">
           <p className="text-brand-red text-xs font-bold uppercase tracking-widest text-center mb-3">Moteurs de croissance</p>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 text-center">
@@ -459,7 +459,6 @@ export default async function RestaurateursLandingPage() {
           <span className="font-bold text-gray-400">Boosteats</span>
           <div className="flex gap-4">
             <Link href="/" className="hover:text-gray-300 transition-colors">Accueil</Link>
-            <Link href="/secteurs" className="hover:text-gray-300 transition-colors">Secteurs</Link>
             <Link href="/become-a-partner" className="hover:text-gray-300 transition-colors">Devenir partenaire</Link>
           </div>
         </div>
