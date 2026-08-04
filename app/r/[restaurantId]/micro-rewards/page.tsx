@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
+import { ACTION_ICONS, getActionLinks } from "@/lib/social-actions";
 import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
 
 type SocialData = {
@@ -14,25 +15,17 @@ type SocialData = {
 
 const TOKENS_PER_PORTION = 4;
 
-// Resto historique : ses liens sociaux peuvent encore venir des variables
-// d'env globales (pré-ADR 0015). Tout autre établissement n'utilise QUE ses
-// propres colonnes — sinon un membre gagnerait un jeton en suivant les
-// réseaux d'un autre resto.
-const LEGACY_RESTAURANT_ID = "kraainem";
-
 export default function MicroRewardsPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const restaurant = useRestaurantInfo();
   const { name: restaurantName } = restaurant;
 
-  const legacyFallback = (envUrl: string | undefined) =>
-    restaurantId === LEGACY_RESTAURANT_ID ? envUrl : undefined;
-
+  const links = getActionLinks(restaurant, restaurantId);
   const ACTION_META: Record<MicroRewardType, { icon: string; link: string | undefined }> = {
-    google_review:    { icon: "⭐", link: restaurant.google_maps_url ?? legacyFallback(process.env.NEXT_PUBLIC_GOOGLE_MAPS_URL) },
-    instagram_follow: { icon: "📸", link: restaurant.instagram_url ?? legacyFallback(process.env.NEXT_PUBLIC_INSTAGRAM_URL) },
-    tiktok_follow:    { icon: "🎵", link: restaurant.tiktok_url ?? legacyFallback(process.env.NEXT_PUBLIC_TIKTOK_URL) },
-    facebook_follow:  { icon: "👍", link: restaurant.facebook_url ?? legacyFallback(process.env.NEXT_PUBLIC_FACEBOOK_URL) },
+    google_review:    { icon: ACTION_ICONS.google_review,    link: links.google_review },
+    instagram_follow: { icon: ACTION_ICONS.instagram_follow, link: links.instagram_follow },
+    tiktok_follow:    { icon: ACTION_ICONS.tiktok_follow,    link: links.tiktok_follow },
+    facebook_follow:  { icon: ACTION_ICONS.facebook_follow,  link: links.facebook_follow },
   };
   const [socialData, setSocialData] = useState<SocialData | null>(null);
   const [referralData, setReferralData] = useState<ReferralLinkData | null>(null);
