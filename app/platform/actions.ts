@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { setPlan, type Plan } from "@/lib/entitlements";
 import { settlePlanRequests, markPlanRequestHandled } from "@/lib/plan-requests";
+import { sendRestaurantActivatedEmail } from "@/lib/email";
 
 async function requireSuperAdmin() {
   const supabase = await createServerSupabaseClient();
@@ -19,6 +20,17 @@ export async function approveRestaurant(restaurantId: string) {
 
   const admin = createAdminClient();
   await admin.from("restaurants").update({ status: "active" }).eq("id", restaurantId);
+
+  const { data: restaurant } = await admin
+    .from("restaurants")
+    .select("name, profiles!restaurants_owner_id_fkey(email)")
+    .eq("id", restaurantId)
+    .single();
+  const ownerEmail = (restaurant?.profiles as unknown as { email: string | null } | null)?.email;
+  if (ownerEmail && restaurant?.name) {
+    await sendRestaurantActivatedEmail(ownerEmail, restaurant.name, restaurantId);
+  }
+
   revalidatePath("/platform");
 }
 

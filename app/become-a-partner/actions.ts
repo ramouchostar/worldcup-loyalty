@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { generateRestaurantSlug, isRestaurantOwner } from "@/lib/restaurant";
+import { sendPartnerApplicationReceivedEmail } from "@/lib/email";
 import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
 import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
 import { isAllowedReceiptType } from "@/lib/receipt-ocr";
@@ -54,6 +55,10 @@ export async function createPartnerRestaurant(
 
   if (error) {
     return { error: "Erreur lors de la création. Réessaie." };
+  }
+
+  if (user.email) {
+    await sendPartnerApplicationReceivedEmail(user.email, name, slug);
   }
 
   redirect(`/become-a-partner/${slug}/menu`);
