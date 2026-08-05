@@ -4,6 +4,7 @@ import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
+import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 
 export default async function AdminLayout({
   children,
@@ -42,25 +43,47 @@ export default async function AdminLayout({
 
   const branding = await getRestaurantBranding(restaurantId);
   const base = `/admin/${restaurantId}`;
-  // Ordonné par fréquence d'usage (audit 2026-07-23). Le sandbox (outil de
-  // dev) est volontairement hors nav — accessible par URL, gardé par le
-  // middleware comme le reste.
-  const navLinks = [
-    { href: base,                        label: "📊 Dashboard" },
-    { href: `${base}/orders`,            label: "🧾 Commandes" },
-    { href: `${base}/pending-rewards`,   label: "🎁 Cadeaux" },
-    { href: `${base}/insights`,          label: "💡 Opportunités" },
-    { href: `${base}/broadcast`,         label: "📣 Broadcasts" },
-    { href: `${base}/menu`,              label: "📋 Menu & coûts" },
-    { href: `${base}/sales`,             label: "📈 Ventes" },
-    { href: `${base}/forecast`,          label: "🔮 Prévisions" },
-    { href: `${base}/micro-rewards`,     label: "⭐ Actions" },
-    { href: `${base}/referrals`,         label: "👥 Parrainages" },
-    { href: `${base}/team-tiers`,        label: "🏆 Paliers d'équipe" },
-    { href: `${base}/thresholds`,        label: "🎯 Seuils CA" },
-    { href: `${base}/quality`,           label: "💬 Baromètre" },
-    { href: `${base}/qr`,                label: "🔲 QR code" },
-    { href: `${base}/settings`,          label: "⚙️ Réglages" },
+  // ADR 0030 §9 — nav en 4 sections thématiques (15+ entrées à plat ne
+  // passaient plus à l'échelle) : Au quotidien = le comptoir, Fidélisation =
+  // faire revenir, Pilotage = comprendre, Configuration = réglé une fois.
+  // Le sandbox (outil de dev) reste volontairement hors nav — accessible par
+  // URL, gardé par le middleware comme le reste.
+  const navSections = [
+    {
+      title: "📍 Au quotidien",
+      links: [
+        { href: base,                      label: "📊 Dashboard" },
+        { href: `${base}/orders`,          label: "🧾 Commandes" },
+        { href: `${base}/pending-rewards`, label: "🎁 Cadeaux" },
+      ],
+    },
+    {
+      title: "📣 Fidélisation",
+      links: [
+        { href: `${base}/broadcast`,     label: "📣 Broadcasts" },
+        { href: `${base}/micro-rewards`, label: "⭐ Actions" },
+        { href: `${base}/referrals`,     label: "👥 Parrainages" },
+        { href: `${base}/team-tiers`,    label: "🏆 Paliers d'équipe" },
+      ],
+    },
+    {
+      title: "📊 Pilotage",
+      links: [
+        { href: `${base}/sales`,    label: "📈 Ventes" },
+        { href: `${base}/forecast`, label: "🔮 Prévisions" },
+        { href: `${base}/insights`, label: "💡 Opportunités" },
+        { href: `${base}/quality`,  label: "💬 Baromètre" },
+      ],
+    },
+    {
+      title: "⚙️ Configuration",
+      links: [
+        { href: `${base}/menu`,       label: "📋 Menu & coûts" },
+        { href: `${base}/thresholds`, label: "🎯 Seuils CA" },
+        { href: `${base}/qr`,         label: "🔲 QR code" },
+        { href: `${base}/settings`,   label: "⚙️ Réglages" },
+      ],
+    },
   ];
 
   return (
@@ -103,34 +126,31 @@ export default async function AdminLayout({
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-4 py-6 flex gap-6">
-        {/* Sidebar */}
-        <nav className="hidden md:flex flex-col gap-1 w-48 shrink-0">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-red transition-colors"
-            >
-              {link.label}
-            </Link>
+      <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-0 md:gap-6">
+        {/* Sidebar desktop — sections avec intertitres (ADR 0030 §9) */}
+        <nav className="hidden md:flex flex-col gap-4 w-48 shrink-0">
+          {navSections.map((section) => (
+            <div key={section.title}>
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
+                {section.title}
+              </p>
+              <div className="flex flex-col gap-0.5">
+                {section.links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-red transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
-        {/* Mobile nav */}
-        <div className="md:hidden w-full mb-4">
-          <div className="flex overflow-x-auto gap-2 pb-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="shrink-0 px-3 py-2 bg-white rounded-lg text-sm font-medium text-gray-700 hover:text-brand-red border border-gray-200"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+        {/* Mobile — menu hamburger par sections (ADR 0030 §9) */}
+        <AdminMobileNav sections={navSections} />
 
         {/* Content */}
         <main className="flex-1 min-w-0">{children}</main>
