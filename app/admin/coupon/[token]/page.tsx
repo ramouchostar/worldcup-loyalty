@@ -38,7 +38,8 @@ export default async function AdminCouponPage({
 
   const isLegacyAdmin = !!profile?.is_admin && tokenRow.restaurant_id === getRestaurantId();
   const isOwner = await isRestaurantOwner(user.id, tokenRow.restaurant_id);
-  if (!isLegacyAdmin && !isOwner && !profile?.is_super_admin) redirect("/join");
+  if (!isLegacyAdmin && !isOwner && !profile?.is_super_admin)
+    redirect("/join?reason=admin-required");
 
   const reward = tokenRow.pending_rewards as unknown as {
     solo_item: string | null;

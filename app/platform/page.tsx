@@ -27,7 +27,7 @@ export default async function PlatformPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
-  if (!profile?.is_super_admin) redirect("/join");
+  if (!profile?.is_super_admin) redirect("/join?reason=platform-required");
 
   const admin = createAdminClient();
 

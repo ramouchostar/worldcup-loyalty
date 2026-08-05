@@ -22,7 +22,8 @@ export default async function AdminLayout({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const access = await getAdminAccess(user.id, restaurantId);
-  if (!access.isLegacyAdmin && !access.isOwner && !access.isSuperAdmin) redirect("/join");
+  if (!access.isLegacyAdmin && !access.isOwner && !access.isSuperAdmin)
+    redirect("/join?reason=admin-required");
 
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();

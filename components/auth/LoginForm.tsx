@@ -11,6 +11,8 @@ export default function LoginForm() {
   // ADR 0030 §1 — habillage « Espace restaurateur » : même formulaire, même
   // auth ; seul l'habillage et la destination post-login changent.
   const asResto = searchParams.get("as") === "resto";
+  // ADR 0030 §8 — refus parlant : arrivé ici depuis une page protégée.
+  const loginRequired = searchParams.get("reason") === "login-required";
   const [error, setError] = useState<string | null>(
     searchParams.get("error") ? "Connexion échouée. Réessaie." : null
   );
@@ -58,6 +60,11 @@ export default function LoginForm() {
             Espace restaurateur
           </span>
         </div>
+      )}
+      {loginRequired && (
+        <p className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-lg mb-4">
+          🔑 Connecte-toi pour accéder à cette page.
+        </p>
       )}
       <h2 className="text-xl font-bold text-gray-900 mb-1">Connexion</h2>
       <p className="text-gray-500 text-sm mb-6">

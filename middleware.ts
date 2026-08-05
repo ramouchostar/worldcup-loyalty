@@ -90,9 +90,10 @@ export async function middleware(request: NextRequest) {
   const isBecomePartnerRoute = path.startsWith("/become-a-partner");
   const isPlatformRoute = path.startsWith("/platform");
 
-  // Routes protégées : authentification requise
+  // Routes protégées : authentification requise. `reason` → bandeau clair
+  // sur la page de login (ADR 0030 §8 — refus parlants, jamais silencieux).
   if ((isRestaurantRoute || isAdminRoute || isJoinRoute || isBecomePartnerRoute || isPlatformRoute) && !user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login?reason=login-required", request.url));
   }
 
   // Route établissement : le membre doit avoir une adhésion pour CET
@@ -130,7 +131,8 @@ export async function middleware(request: NextRequest) {
     // établissement (support, gestion des données — ADR 0015 §7).
     const isSuperAdmin = !!profile?.is_super_admin;
     if (!isLegacyAdmin && !isOwner && !isSuperAdmin) {
-      return NextResponse.redirect(new URL("/join", request.url));
+      // ADR 0030 §8 — refus parlant : /join affiche pourquoi on atterrit là.
+      return NextResponse.redirect(new URL("/join?reason=admin-required", request.url));
     }
   }
 
@@ -143,7 +145,8 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
     if (!profile?.is_super_admin) {
-      return NextResponse.redirect(new URL("/join", request.url));
+      // ADR 0030 §8 — refus parlant.
+      return NextResponse.redirect(new URL("/join?reason=platform-required", request.url));
     }
   }
 

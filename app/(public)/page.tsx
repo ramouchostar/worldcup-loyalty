@@ -336,7 +336,9 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <span className="font-bold text-gray-400">Boosteats</span>
           <div className="flex gap-4">
-            <Link href="/join" className="hover:text-gray-300 transition-colors">Restaurants</Link>
+            {/* /join est protégée — un visiteur anonyme subissait un double
+                saut /join → /login (ADR 0030 §8) */}
+            <Link href="/signup" className="hover:text-gray-300 transition-colors">Restaurants</Link>
             <Link href="/restaurateurs" className="hover:text-gray-300 transition-colors">Devenir partenaire</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Connexion</Link>
           </div>
