@@ -5,6 +5,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { isValidHex, FONT_OPTIONS } from "@/lib/branding";
 import { LOGO_BUCKET } from "@/lib/restaurant";
+import { parseHttpUrl } from "@/lib/url";
 import { captureWebsiteScreenshot, fetchOgImage, fetchImageAsBlock, analyzeDesign, type ImageBlock, type DesignSuggestion } from "@/lib/design-detect";
 
 // Mise à jour des infos de l'établissement par son admin (owner, legacy ou
@@ -31,18 +32,6 @@ export async function updateRestaurantInfo(
     .filter(Boolean)
     .slice(0, 5);
 
-  const url = (field: string) => {
-    const v = (formData.get(field) as string)?.trim();
-    if (!v) return null;
-    try {
-      const parsed = new URL(v);
-      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
-      return v;
-    } catch {
-      return null;
-    }
-  };
-
   if (!name || name.length < 2) return { error: "Le nom est requis." };
   // ADR 0016 §2 — le secteur alimente la page publique /secteurs
   if (!sector || sector.length < 2) return { error: "Le secteur (ville/quartier) est requis." };
@@ -55,11 +44,11 @@ export async function updateRestaurantInfo(
       sector,
       address,
       cuisine_types: cuisineTypes,
-      google_maps_url: url("google_maps_url"),
-      website_url: url("website_url"),
-      instagram_url: url("instagram_url"),
-      tiktok_url: url("tiktok_url"),
-      facebook_url: url("facebook_url"),
+      google_maps_url: parseHttpUrl(formData.get("google_maps_url") as string),
+      website_url: parseHttpUrl(formData.get("website_url") as string),
+      instagram_url: parseHttpUrl(formData.get("instagram_url") as string),
+      tiktok_url: parseHttpUrl(formData.get("tiktok_url") as string),
+      facebook_url: parseHttpUrl(formData.get("facebook_url") as string),
     })
     .eq("id", restaurantId);
 

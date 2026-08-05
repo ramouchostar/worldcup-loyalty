@@ -23,7 +23,7 @@ export default async function OnboardingMenuPage({ params }: { params: Promise<{
           <p className="text-4xl mb-2">🧾</p>
           <h1 className="text-2xl font-bold text-gray-900">Le catalogue de {restaurant.name}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Étape 2/3 — soumets ton menu avec les coûts. Ces données restent internes,
+            Étape 2/4 — soumets ton menu avec les coûts. Ces données restent internes,
             jamais visibles des clients.
           </p>
         </div>

@@ -11,6 +11,7 @@ import { pointsForOrder } from "@/lib/points-model";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
+import { ActionCardsSection } from "@/components/member/ActionCardsSection";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
 
@@ -295,6 +296,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           </div>
         </div>
       )}
+
+      {/* ── Carte Actions — missions sociales séquentielles (jetons) ───────
+          Une seule action affichée à la fois ; la suivante n'apparaît
+          qu'une fois la précédente accomplie (ou soumise en validation). */}
+      <ActionCardsSection />
 
       {/* ── SECTION 2 — Progression d'équipe ──────────────────────────────── */}
       {!team ? (

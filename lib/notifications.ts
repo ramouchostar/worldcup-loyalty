@@ -12,7 +12,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 
 export type CommunityTriggerType = "tier_upgrade" | "member_inactive" | "tier_approaching" | "advancement";
 // Stratégies membres (ADR 0024) — messages construits dans member-strategies.ts
-export type TriggerType = CommunityTriggerType | "tier_nudge" | "birthday" | "winback";
+export type TriggerType = CommunityTriggerType | "tier_nudge" | "birthday" | "winback" | "action_postpone_reminder";
 export type Channel = "push" | "whatsapp" | "in_app";
 
 export function buildMessage(

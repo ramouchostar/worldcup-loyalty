@@ -7,7 +7,7 @@ import { ReceiptSetupForm } from "./ReceiptSetupForm";
 // timeout serverless par défaut — la server action hérite de ce segment.
 export const maxDuration = 60;
 
-// Étape 3/3 de l'onboarding (ADR 0019) — découverte de la clé unique qui
+// Étape 3/4 de l'onboarding (ADR 0019) — découverte de la clé unique qui
 // identifie une commande sur le format de ticket de cet établissement.
 export default async function OnboardingReceiptPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -28,7 +28,7 @@ export default async function OnboardingReceiptPage({ params }: { params: Promis
           <p className="text-4xl mb-2">🎫</p>
           <h1 className="text-2xl font-bold text-gray-900">Tes tickets de caisse</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Étape 3/3 — envoie 2 ou 3 photos de tickets récents. On y repère le
+            Étape 3/4 — envoie 2 ou 3 photos de tickets récents. On y repère le
             numéro qui identifie chaque commande, pour reconnaître les tickets
             de tes clients sans jamais compter deux fois la même commande.
           </p>
