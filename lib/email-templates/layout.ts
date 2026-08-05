@@ -21,7 +21,15 @@ export const EMAIL_COLORS = {
 
 // Enveloppe complète (<html>...<table>...) autour d'un bloc de contenu déjà
 // construit avec les helpers ci-dessous (emailParagraph, emailButton...).
-export function emailShell(subject: string, contentHtml: string): string {
+// logoUrl : logo de l'établissement (restaurants.logo_url) quand l'email est
+// scopé à un resto qui en a configuré un (lib/branding.ts) — remplace le
+// wordmark Boosteats générique dans l'en-tête. Absent (email membre sans
+// contexte resto, ex. bienvenue, ou resto sans logo) → wordmark par défaut.
+export function emailShell(subject: string, contentHtml: string, logoUrl?: string | null): string {
+  const header = logoUrl
+    ? `<img src="${logoUrl}" alt="Logo" height="32" style="height:32px; max-height:32px; width:auto; display:block; border:0;" />`
+    : `<span style="color:#FFFFFF; font-size:20px; font-weight:900; letter-spacing:0.02em;">Boosteats</span>`;
+
   return `<!DOCTYPE html>
 <html lang="fr">
   <head>
@@ -36,7 +44,7 @@ export function emailShell(subject: string, contentHtml: string): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:${EMAIL_COLORS.cardBg}; border-radius:16px; overflow:hidden;">
             <tr>
               <td style="background-color:${EMAIL_COLORS.dark}; padding:28px 32px;">
-                <span style="color:#FFFFFF; font-size:20px; font-weight:900; letter-spacing:0.02em;">Boosteats</span>
+                ${header}
               </td>
             </tr>
             <tr>

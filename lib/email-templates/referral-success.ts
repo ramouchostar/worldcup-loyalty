@@ -9,7 +9,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.ver
 export function referralSuccessEmail(
   firstName: string,
   restaurantId: string,
-  conversionsCount: number
+  conversionsCount: number,
+  logoUrl?: string | null
 ): { subject: string; html: string; text: string } {
   const microRewardsUrl = `${APP_URL}/r/${restaurantId}/micro-rewards`;
   const remainder = conversionsCount % 5;
@@ -24,7 +25,7 @@ export function referralSuccessEmail(
     emailButton("Voir ma progression →", microRewardsUrl),
     emailDivider(),
     emailFootNote("5 amis inscrits via ton lien = 1 jeton. Illimité — continue de partager pour en accumuler plusieurs."),
-  ].join("\n"));
+  ].join("\n"), logoUrl);
 
   const text = `Un ami vient de te rejoindre !
 

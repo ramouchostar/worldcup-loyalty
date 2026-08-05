@@ -10,7 +10,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.ver
 
 export function restaurantActivatedEmail(
   restaurantName: string,
-  restaurantId: string
+  restaurantId: string,
+  logoUrl?: string | null
 ): { subject: string; html: string; text: string } {
   const qrUrl = `${APP_URL}/admin/${restaurantId}/qr`;
   const subject = `${restaurantName} est en ligne !`;
@@ -26,7 +27,7 @@ export function restaurantActivatedEmail(
     emailFootNote(
       "Les supports (sticker, flyer, affiche) sont générés automatiquement aux couleurs de ton établissement."
     ),
-  ].join("\n"));
+  ].join("\n"), logoUrl);
 
   const text = `${restaurantName} est en ligne !
 

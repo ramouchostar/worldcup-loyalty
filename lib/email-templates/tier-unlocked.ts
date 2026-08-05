@@ -12,7 +12,8 @@ export function tierUnlockedEmail(
   restaurantName: string,
   teamName: string,
   teamFlag: string,
-  newReward: string
+  newReward: string,
+  logoUrl?: string | null
 ): { subject: string; html: string; text: string } {
   const dashboardUrl = `${APP_URL}/r/${restaurantId}/dashboard`;
   const subject = `${teamFlag} ${teamName} vient de débloquer un palier !`;
@@ -26,7 +27,7 @@ export function tierUnlockedEmail(
     emailButton("Voir mon tableau de bord →", dashboardUrl),
     emailDivider(),
     emailFootNote("Plus votre équipe commande directement, plus vous débloquez de cadeaux ensemble."),
-  ].join("\n"));
+  ].join("\n"), logoUrl);
 
   const text = `Palier débloqué !
 

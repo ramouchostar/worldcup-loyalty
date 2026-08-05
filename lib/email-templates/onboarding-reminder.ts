@@ -9,7 +9,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.ver
 export function onboardingReminderEmail(
   restaurantName: string,
   restaurantId: string,
-  stuckAtStep: 2 | 3
+  stuckAtStep: 2 | 3,
+  logoUrl?: string | null
 ): { subject: string; html: string; text: string } {
   const url =
     stuckAtStep === 2
@@ -31,7 +32,7 @@ export function onboardingReminderEmail(
     emailFootNote(
       "Ton établissement reste invisible aux clients tant que l'inscription n'est pas terminée."
     ),
-  ].join("\n"));
+  ].join("\n"), logoUrl);
 
   const text = `Encore une étape !
 

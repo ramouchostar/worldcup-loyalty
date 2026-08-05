@@ -9,7 +9,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.ver
 
 export function partnerApplicationReceivedEmail(
   restaurantName: string,
-  restaurantId: string
+  restaurantId: string,
+  logoUrl?: string | null
 ): { subject: string; html: string; text: string } {
   const menuUrl = `${APP_URL}/become-a-partner/${restaurantId}/menu`;
   const subject = `${restaurantName} — ta candidature est bien reçue`;
@@ -26,7 +27,7 @@ export function partnerApplicationReceivedEmail(
       "Ton établissement restera invisible aux clients jusqu'à validation par notre équipe — un " +
       "contrôle qualité rapide, pas un long processus commercial."
     ),
-  ].join("\n"));
+  ].join("\n"), logoUrl);
 
   const text = `C'est parti !
 

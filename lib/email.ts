@@ -83,6 +83,24 @@ export async function wasEmailSentRecently(
   }
 }
 
+// Logo de l'établissement (lib/branding.ts, restaurants.logo_url) pour
+// l'en-tête des emails scopés à un resto — remplace le wordmark Boosteats
+// générique quand il est configuré (app/admin/[restaurantId]/settings).
+async function getRestaurantLogoUrl(restaurantId: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("restaurants")
+      .select("logo_url")
+      .eq("id", restaurantId)
+      .maybeSingle();
+    return data?.logo_url ?? null;
+  } catch (err) {
+    console.error("getRestaurantLogoUrl threw:", err);
+    return null;
+  }
+}
+
 async function logEmailSent(
   recipientType: EmailRecipientType,
   recipientId: string,
@@ -113,7 +131,8 @@ export async function sendPartnerApplicationReceivedEmail(
   restaurantName: string,
   restaurantId: string
 ): Promise<boolean> {
-  const sent = await dispatch(to, partnerApplicationReceivedEmail(restaurantName, restaurantId));
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  const sent = await dispatch(to, partnerApplicationReceivedEmail(restaurantName, restaurantId, logoUrl));
   if (sent) await logEmailSent("restaurant", restaurantId, "partner_application_received", restaurantId);
   return sent;
 }
@@ -123,7 +142,8 @@ export async function sendRestaurantActivatedEmail(
   restaurantName: string,
   restaurantId: string
 ): Promise<boolean> {
-  const sent = await dispatch(to, restaurantActivatedEmail(restaurantName, restaurantId));
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  const sent = await dispatch(to, restaurantActivatedEmail(restaurantName, restaurantId, logoUrl));
   if (sent) await logEmailSent("restaurant", restaurantId, "restaurant_activated", restaurantId);
   return sent;
 }
@@ -134,7 +154,8 @@ export async function sendOnboardingReminderEmail(
   restaurantId: string,
   stuckAtStep: 2 | 3
 ): Promise<boolean> {
-  const sent = await dispatch(to, onboardingReminderEmail(restaurantName, restaurantId, stuckAtStep));
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  const sent = await dispatch(to, onboardingReminderEmail(restaurantName, restaurantId, stuckAtStep, logoUrl));
   if (sent) await logEmailSent("restaurant", restaurantId, "onboarding_reminder", restaurantId);
   return sent;
 }
@@ -146,9 +167,10 @@ export async function sendPendingRequestsReminderEmail(
   totalPending: number,
   oldestPendingHours: number
 ): Promise<boolean> {
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
   const sent = await dispatch(
     to,
-    pendingRequestsReminderEmail(restaurantName, restaurantId, totalPending, oldestPendingHours)
+    pendingRequestsReminderEmail(restaurantName, restaurantId, totalPending, oldestPendingHours, logoUrl)
   );
   if (sent) await logEmailSent("restaurant", restaurantId, "pending_requests_reminder", restaurantId);
   return sent;
@@ -162,7 +184,8 @@ export async function sendRewardReadyEmail(
   restaurantName: string,
   hoursRemaining: number
 ): Promise<boolean> {
-  const sent = await dispatch(to, rewardReadyEmail(firstName, restaurantId, restaurantName, hoursRemaining));
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  const sent = await dispatch(to, rewardReadyEmail(firstName, restaurantId, restaurantName, hoursRemaining, logoUrl));
   if (sent) await logEmailSent("member", userId, "reward_ready", restaurantId);
   return sent;
 }
@@ -177,9 +200,10 @@ export async function sendTierUnlockedEmail(
   teamFlag: string,
   newReward: string
 ): Promise<boolean> {
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
   const sent = await dispatch(
     to,
-    tierUnlockedEmail(firstName, restaurantId, restaurantName, teamName, teamFlag, newReward)
+    tierUnlockedEmail(firstName, restaurantId, restaurantName, teamName, teamFlag, newReward, logoUrl)
   );
   if (sent) await logEmailSent("member", userId, "tier_unlocked", restaurantId);
   return sent;
@@ -192,7 +216,8 @@ export async function sendReferralSuccessEmail(
   restaurantId: string,
   conversionsCount: number
 ): Promise<boolean> {
-  const sent = await dispatch(to, referralSuccessEmail(firstName, restaurantId, conversionsCount));
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  const sent = await dispatch(to, referralSuccessEmail(firstName, restaurantId, conversionsCount, logoUrl));
   if (sent) await logEmailSent("member", userId, "referral_success", restaurantId);
   return sent;
 }

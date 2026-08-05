@@ -12,7 +12,8 @@ export function pendingRequestsReminderEmail(
   restaurantName: string,
   restaurantId: string,
   totalPending: number,
-  oldestPendingHours: number
+  oldestPendingHours: number,
+  logoUrl?: string | null
 ): { subject: string; html: string; text: string } {
   const dashboardUrl = `${APP_URL}/admin/${restaurantId}`;
   const subject = `${restaurantName} — ${totalPending} demande${totalPending > 1 ? "s" : ""} en attente`;
@@ -39,7 +40,7 @@ export function pendingRequestsReminderEmail(
       "Tu ne reçois cet email que lorsque ça s'accumule (plus de 15 demandes, ou une bloquée depuis " +
       "plus de 48h) — jamais pour une simple demande isolée."
     ),
-  ].join("\n"));
+  ].join("\n"), logoUrl);
 
   const text = `Quelques demandes t'attendent
 

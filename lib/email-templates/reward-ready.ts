@@ -11,7 +11,8 @@ export function rewardReadyEmail(
   firstName: string,
   restaurantId: string,
   restaurantName: string,
-  hoursRemaining: number
+  hoursRemaining: number,
+  logoUrl?: string | null
 ): { subject: string; html: string; text: string } {
   const rewardsUrl = `${APP_URL}/r/${restaurantId}/my-rewards`;
   const subject = `${firstName}, ton cadeau chez ${restaurantName} expire bientôt`;
@@ -26,7 +27,7 @@ export function rewardReadyEmail(
     emailButton("Voir mon cadeau →", rewardsUrl),
     emailDivider(),
     emailFootNote("Passé ce délai, le cadeau n'est plus disponible — une nouvelle commande en génère un autre."),
-  ].join("\n"));
+  ].join("\n"), logoUrl);
 
   const text = `Ton cadeau t'attend !
 
