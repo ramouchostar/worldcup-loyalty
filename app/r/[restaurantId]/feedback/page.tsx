@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getMyFeedback, isEligibleForFeedback } from "@/lib/feedback";
 import { FeedbackClient } from "@/components/member/FeedbackClient";
@@ -26,11 +27,21 @@ export default async function FeedbackPage({ params }: { params: Promise<{ resta
 
   return (
     <div className="space-y-5 pb-4">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-dark">Mon resto</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Un espace privé, entre toi et ton resto. Encourage-le ou signale-lui un souci.
-        </p>
+      {/* ADR 0030 §5 — page hors BottomNav : retour vers son parent logique */}
+      <div className="flex items-center gap-3">
+        <Link
+          href={`/r/${restaurantId}/dashboard`}
+          aria-label="Retour à l'accueil"
+          className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+        >
+          ←
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-brand-dark">Mon resto</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Un espace privé, entre toi et ton resto. Encourage-le ou signale-lui un souci.
+          </p>
+        </div>
       </div>
       <FeedbackClient restaurantId={restaurantId} eligible={eligible} feedback={feedback} messages={messages} />
     </div>

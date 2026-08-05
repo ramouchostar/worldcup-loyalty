@@ -32,11 +32,21 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
   if (!membership?.team_id) {
     return (
       <div className="space-y-5 pb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Récompenses</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Les paliers collectifs se débloquent en équipe.
-          </p>
+        {/* ADR 0030 §5 — page hors BottomNav : retour vers son parent logique */}
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/r/${restaurantId}/dashboard`}
+            aria-label="Retour à l'accueil"
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+          >
+            ←
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Récompenses</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              Les paliers collectifs se débloquent en équipe.
+            </p>
+          </div>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-4xl mb-3">👥</p>
@@ -96,7 +106,16 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
 
   return (
     <div className="space-y-5 pb-4">
-      <div>
+      {/* ADR 0030 §5 — page hors BottomNav : retour vers son parent logique */}
+      <div className="flex items-center gap-3">
+        <Link
+          href={`/r/${restaurantId}/dashboard`}
+          aria-label="Retour à l'accueil"
+          className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+        >
+          ←
+        </Link>
+        <div>
         <h1 className="text-2xl font-bold text-gray-900">Récompenses</h1>
         <p className="text-gray-500 text-sm mt-1">
           Score actuel de ta communauté :{" "}
@@ -105,6 +124,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
           </span>
           <span className="text-gray-400 ml-2">({memberCount} membre{memberCount !== 1 ? "s" : ""})</span>
         </p>
+        </div>
       </div>
 
       {/* Statut double verrou */}

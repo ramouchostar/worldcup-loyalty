@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { ReceiptSetupForm } from "./ReceiptSetupForm";
@@ -24,6 +25,13 @@ export default async function OnboardingReceiptPage({ params }: { params: Promis
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
       <div className="w-full max-w-lg">
+        {/* ADR 0030 §5 — hors layout admin : retour explicite vers la console */}
+        <Link
+          href={`/admin/${restaurantId}`}
+          className="inline-block text-sm text-gray-400 hover:text-gray-600 mb-4"
+        >
+          ← Retour à la console
+        </Link>
         <div className="text-center mb-6">
           <p className="text-4xl mb-2">🎫</p>
           <h1 className="text-2xl font-bold text-gray-900">Tes tickets de caisse</h1>

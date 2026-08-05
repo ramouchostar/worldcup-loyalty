@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 type Member = {
   id: string;
@@ -162,6 +163,13 @@ export default function SandboxPage() {
   return (
     <div className="space-y-5">
       <div>
+        {/* ADR 0030 §5 — hors sidebar admin : retour explicite au dashboard */}
+        <Link
+          href={`/admin/${restaurantId}`}
+          className="inline-block text-xs text-gray-400 hover:text-gray-600 mb-1"
+        >
+          ← Retour au dashboard
+        </Link>
         <h1 className="text-2xl font-bold text-gray-900">🧪 Sandbox</h1>
         <p className="text-gray-500 text-sm mt-1">
           Simule des commandes, scores et notifications sans passer par l&apos;OCR.

@@ -53,6 +53,11 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
   const scores = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter(s => s.teams?.is_active);
   const myTeamId = (membershipResult.data as { team_id: string | null } | null)?.team_id ?? undefined;
 
+  // ADR 0030 §5 — parent logique : l'onglet Équipe pour un membre de cet
+  // établissement, la landing publique pour un visiteur (page publique sans
+  // BottomNav — c'était un cul-de-sac total en anonyme).
+  const backHref = user && membershipResult.data ? `/r/${restaurantId}/my-team` : `/r/${restaurantId}`;
+
   const totalMembers = scores.reduce((sum, s) => sum + s.member_count, 0);
   const activeTeams = scores.filter((s) => s.teams.is_active).length;
   const topScore = scores[0]?.score ?? 0;
@@ -61,6 +66,12 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
     <div className="space-y-5 pb-4">
       {/* Hero */}
       <div className="bg-brand-dark text-white rounded-2xl px-4 py-6 -mx-4 -mt-6 sm:mx-0 sm:mt-0 sm:rounded-2xl">
+        <Link
+          href={backHref}
+          className="inline-block text-xs text-gray-400 hover:text-white transition-colors mb-2"
+        >
+          ← Retour
+        </Link>
         <h1 className="text-2xl font-black">🏆 Classement des équipes</h1>
         <p className="text-gray-400 text-sm mt-1">
           Quelle équipe mange le plus chez {restaurant?.name ?? "nous"} ?

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
@@ -181,6 +182,9 @@ export default function SubmitOrderPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  // ADR 0030 §6 — après un scan réussi, la suite naturelle est « qu'est-ce
+  // que ça m'a rapporté ? » (libellés neutres : la validation est différée,
+  // ADR 0008 — ne jamais promettre un cadeau déjà là).
   if (submitStatus === "success_validated") {
     return (
       <div className="text-center py-12">
@@ -192,12 +196,23 @@ export default function SubmitOrderPage() {
         <p className="text-gray-500 text-xs mb-6">
           Passe au comptoir lors de ta prochaine visite pour récupérer tes cadeaux.
         </p>
-        <button
-          onClick={reset}
-          className="bg-brand-red text-white px-6 py-2 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
-        >
-          Soumettre une autre commande
-        </button>
+        <div className="max-w-xs mx-auto space-y-3">
+          <Link
+            href={`/r/${restaurantId}/my-rewards`}
+            className="block bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+          >
+            Voir mes cadeaux →
+          </Link>
+          <Link
+            href={`/r/${restaurantId}/dashboard`}
+            className="block bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+          >
+            Retour à l&apos;accueil
+          </Link>
+          <button onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline">
+            Soumettre une autre commande
+          </button>
+        </div>
       </div>
     );
   }
@@ -210,12 +225,17 @@ export default function SubmitOrderPage() {
         <p className="text-gray-600 text-sm mb-6">
           Ton ticket est en cours de traitement. Tu seras notifié dès que la vérification est terminée.
         </p>
-        <button
-          onClick={reset}
-          className="bg-brand-red text-white px-6 py-2 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
-        >
-          Soumettre une autre commande
-        </button>
+        <div className="max-w-xs mx-auto space-y-3">
+          <Link
+            href={`/r/${restaurantId}/dashboard`}
+            className="block bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+          >
+            Retour à l&apos;accueil
+          </Link>
+          <button onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline">
+            Soumettre une autre commande
+          </button>
+        </div>
       </div>
     );
   }

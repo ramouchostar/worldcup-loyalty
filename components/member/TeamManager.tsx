@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MAX_ZONES, sanitizeZones } from "@/lib/zones";
 import type { TeamType } from "@/types";
 
@@ -48,6 +49,9 @@ export function TeamManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showChange, setShowChange] = useState(false);
+  // ADR 0030 §6 — suite de parcours : après avoir créé/rejoint, on célèbre et
+  // on propose le classement (l'état survit au router.refresh(), même instance).
+  const [justJoined, setJustJoined] = useState(false);
 
   async function create() {
     setBusy(true);
@@ -60,7 +64,7 @@ export function TeamManager({
         body: JSON.stringify({ name, type, restaurantId, zone: zone || null }),
       });
       const body = await res.json().catch(() => ({}));
-      if (res.ok) { router.refresh(); return; }
+      if (res.ok) { setJustJoined(true); setShowChange(false); router.refresh(); return; }
       setError(body.error ?? "Erreur.");
     } catch {
       setError("Erreur réseau. Réessaie.");
@@ -79,7 +83,7 @@ export function TeamManager({
         body: JSON.stringify({ ...payload, restaurantId }),
       });
       const body = await res.json().catch(() => ({}));
-      if (res.ok) { router.refresh(); return; }
+      if (res.ok) { setJustJoined(true); setShowChange(false); router.refresh(); return; }
       setError(body.error ?? "Erreur.");
     } catch {
       setError("Erreur réseau. Réessaie.");
@@ -97,6 +101,21 @@ export function TeamManager({
     const wa = `https://wa.me/?text=${encodeURIComponent(`Rejoins mon équipe ${team.name} 🎁 ${link}`)}`;
 
     return (
+      <div className="space-y-3">
+        {justJoined && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center space-y-2">
+            <p className="font-bold text-green-900">🎉 Te voilà dans l&apos;équipe {team.name} !</p>
+            <p className="text-xs text-green-700">
+              Chaque commande directe de l&apos;équipe fait grimper votre score.
+            </p>
+            <Link
+              href={`/r/${restaurantId}/leaderboard`}
+              className="inline-block bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors"
+            >
+              Voir le classement →
+            </Link>
+          </div>
+        )}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
         <div>
           <p className="text-sm font-semibold text-gray-900">Inviter dans ton équipe</p>
@@ -122,6 +141,7 @@ export function TeamManager({
         <button onClick={() => setShowChange(true)} className="text-xs text-gray-400 hover:text-gray-600 underline">
           Changer d&apos;équipe
         </button>
+      </div>
       </div>
     );
   }
