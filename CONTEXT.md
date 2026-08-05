@@ -279,6 +279,42 @@ _Avoid_ : campagne, marketing de masse, newsletter.
 
 ---
 
+### Navigation & parcours *(ADR 0030)*
+
+**Règle du retour** :
+Toute page qui n'est pas un onglet de la BottomNav (membre) ou une entrée de la sidebar (admin) DOIT avoir un header avec `←` vers son parent logique. Pas de breadcrumb (profondeur max 2, PWA mobile). S'applique à toute nouvelle vue.
+_Avoid_ : breadcrumb, fil d'Ariane.
+
+**Hub membre** :
+Le dashboard membre comme point d'accès permanent à toutes les fonctionnalités. Principe : **on ne cache jamais une fonctionnalité, on montre ce qui manque pour l'utiliser** — un lien conditionnel devient une entrée permanente à état progressif (« Encore 2 commandes pour donner ton avis »). Ordre des sections : carte gérant → hero (ADR 0010) → carte Actions (ADR 0024) → progression équipe → tuiles d'accès → historique.
+_Avoid_ : page d'accueil (vague), menu (réservé au catalogue).
+
+**Tuile d'accès** :
+Petite tuile permanente du hub membre (grille compacte 2×2) : icône + label + **micro-état** (« 2 paliers atteints », « 3ᵉ/12 », solde réserve). Jamais de grande carte empilée. Tuiles v1 : Récompenses · Classement · Avis · Réserve.
+_Avoid_ : carte (réservé aux grandes sections du dashboard), widget.
+
+**Carte gérant** :
+Carte en position 0 du dashboard membre, visible uniquement par l'owner du resto courant : « Vous êtes le gérant de ce restaurant → Console ». Le pont membre → admin.
+_Avoid_ : bannière admin.
+
+**Mode plateforme** :
+État de la console admin quand le viewer est super-admin mais pas owner du resto : bandeau « 🛠️ Mode plateforme — vous consultez [resto] · ← Retour à la plateforme ». Mêmes pouvoirs que le gérant (outil de support) — seule la signalétique change.
+_Avoid_ : mode support, impersonation (le super-admin agit en son nom).
+
+**Refus parlant** :
+Tout refus d'autorisation redirige avec `?reason=…` et la page d'atterrissage affiche un bandeau clair (« Cette section est réservée aux restaurateurs », « Ta demande est en cours d'examen »). Jamais de redirection silencieuse vers `/join`.
+_Avoid_ : page d'erreur (pas de nouvelle page — un bandeau contextuel).
+
+**Membres (écran plateforme)** :
+Liste nominative complète des membres (nom, email, inscription, équipe, points, dernière activité, nb commandes) — **réservée au super-admin** (la plateforme est l'unique responsable de traitement, ADR 0025). Accessible depuis `/platform` et depuis la console d'un resto en mode plateforme.
+_Avoid_ : CRM, fichier client, annuaire.
+
+**Mes clients (écran resto)** :
+Liste d'activité **pseudonymisée** des membres d'un établissement pour son restaurateur : prénom/pseudo, équipe, points, nb commandes, dernière visite. **Jamais** email/téléphone, **jamais** d'export (ADR 0025 : le resto ne reçoit pas de coordonnées ; il agit via le ciblage broadcast). Entrée dédiée en sidebar, section Fidélisation.
+_Avoid_ : fichier client, export clients, contacts.
+
+---
+
 ### Qualité & retours *(ADR 0023 — proposé)*
 
 **Retour** :
