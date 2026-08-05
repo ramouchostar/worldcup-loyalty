@@ -95,7 +95,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // Score (points, côté membre) + dépense cumulée d'équipe (euros, service role —
   // jamais rendue, sert seulement à résoudre la couche 3). ADR 0007.
   const admin = createAdminClient();
-  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }] = await Promise.all([
+  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }, rankResult] = await Promise.all([
     hasTeam
       ? supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
       : Promise.resolve({ data: null }),
@@ -103,7 +103,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       ? admin.from("community_scores").select("total_spent").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
       : Promise.resolve({ data: null }),
     loadTeamTiers(restaurantId),
-    // Réserve de points (ADR 0021) — tuile affichée si solde > 0 ou paliers configurés
+    // Réserve de points (ADR 0021) — micro-état de la tuile d'accès
     getPointsBalance(user.id, restaurantId),
     admin
       .from("reward_tiers")
@@ -111,13 +111,26 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       .eq("restaurant_id", restaurantId)
       .eq("layer", "saver")
       .eq("is_active", true),
+    // Rang de l'équipe (micro-état tuile Classement, ADR 0030 §4) — colonnes
+    // publiques uniquement (score/member_count, m41), petit volume par resto.
+    hasTeam
+      ? supabase
+          .from("community_scores")
+          .select("team_id, score")
+          .eq("restaurant_id", restaurantId)
+          .order("score", { ascending: false })
+      : Promise.resolve({ data: null }),
   ]);
-  const showReserve = reserveBalance > 0 || (saverTierCount ?? 0) > 0;
   const scoreRaw = scoreResult.data;
   const spentRaw = spentResult.data;
 
   const score = (scoreRaw as { score: number } | null)?.score ?? 0;
   const memberCount = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
+
+  // Micro-états des tuiles d'accès (ADR 0030 §4)
+  const rankRows = (rankResult.data as { team_id: string; score: number }[] | null) ?? [];
+  const teamRank = hasTeam ? rankRows.findIndex((row) => row.team_id === membership!.team_id) + 1 : 0;
+  const teamCount = rankRows.length;
   const teamTotalSpent = Number((spentRaw as { total_spent: number } | null)?.total_spent ?? 0);
   const pendingRewards = (pendingRaw as PendingReward[] ?? []);
   const orderList = (orders as Order[] ?? []);
@@ -179,23 +192,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       )}
 
       <OnboardingFlow />
-
-      {/* ── Invite canal qualité (ADR 0023) — après N commandes validées ───── */}
-      {(validatedOrderCount ?? 0) >= FEEDBACK_ELIGIBILITY_MIN && (
-        <Link
-          href={r("/feedback")}
-          className="block bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl" aria-hidden="true">💬</span>
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-900 text-sm">Tu es un habitué 💛</p>
-              <p className="text-gray-500 text-xs">Encourage ton resto ou signale-lui un souci — en privé.</p>
-            </div>
-            <span className="ml-auto text-brand-red text-lg" aria-hidden="true">→</span>
-          </div>
-        </Link>
-      )}
 
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div
@@ -356,17 +352,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
         />
 
-        {/* /rewards et /leaderboard ne sont plus dans la nav basse (5 onglets
-            max, audit 2026-07-23) — la carte d'équipe est leur porte d'entrée. */}
-        <div className="mt-3 flex gap-4 text-xs font-semibold">
-          <Link href={r("/rewards")} className="text-brand-red hover:underline">
-            🎁 Paliers de l&apos;équipe →
-          </Link>
-          <Link href={r("/leaderboard")} className="text-brand-red hover:underline">
-            🏆 Classement →
-          </Link>
-        </div>
-
         <div className="mt-4 pt-4 border-t border-gray-100">
           {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
           {!budget.communityBonusActive && (
@@ -446,26 +431,67 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       </div>
       )}
 
-      {/* ── Ma réserve (ADR 0021) — perso, comme les stats ──────────────────── */}
-      {showReserve && (
+      {/* ── SECTION tuiles d'accès (ADR 0030 §4) — permanentes, à états
+          progressifs : on ne cache jamais une fonctionnalité, on montre ce
+          qui manque pour l'utiliser. */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          href={r("/rewards")}
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
+        >
+          <p className="text-xl mb-1" aria-hidden="true">🎁</p>
+          <p className="font-bold text-gray-900 text-sm">Récompenses</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {!hasTeam
+              ? "Rejoins une équipe"
+              : (() => {
+                  const unlocked = communityTiers.filter((t) => t.score <= score).length;
+                  return unlocked > 0
+                    ? `${unlocked} palier${unlocked > 1 ? "s" : ""} atteint${unlocked > 1 ? "s" : ""}`
+                    : "Découvre les paliers";
+                })()}
+          </p>
+        </Link>
+
+        <Link
+          href={r("/leaderboard")}
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
+        >
+          <p className="text-xl mb-1" aria-hidden="true">🏆</p>
+          <p className="font-bold text-gray-900 text-sm">Classement</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
+          </p>
+        </Link>
+
+        <Link
+          href={r("/feedback")}
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
+        >
+          <p className="text-xl mb-1" aria-hidden="true">💬</p>
+          <p className="font-bold text-gray-900 text-sm">Mon resto</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {validCount >= FEEDBACK_ELIGIBILITY_MIN
+              ? "Encourage ou signale, en privé"
+              : `Encore ${FEEDBACK_ELIGIBILITY_MIN - validCount} commande${FEEDBACK_ELIGIBILITY_MIN - validCount > 1 ? "s" : ""} pour donner ton avis`}
+          </p>
+        </Link>
+
         <Link
           href={r("/reserve")}
-          className="block bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-gold/40 transition-colors"
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-gold/60 transition-colors"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-bold text-gray-900 text-sm">💰 Ma réserve</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Mets tes cadeaux de côté pour en obtenir un plus gros
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-black text-brand-dark tabular-nums">{reserveBalance}</p>
-              <p className="text-xs text-gray-400">voir →</p>
-            </div>
-          </div>
+          <p className="text-xl mb-1" aria-hidden="true">💰</p>
+          <p className="font-bold text-gray-900 text-sm">Ma réserve</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {reserveBalance > 0
+              ? `${reserveBalance} de côté`
+              : (saverTierCount ?? 0) > 0
+                ? "Échange-la contre un gros cadeau"
+                : "Mets tes cadeaux de côté"}
+          </p>
         </Link>
-      )}
+      </div>
 
       {/* ── SECTION 3 — Stats perso (subtil, bas de page) ─────────────────── */}
       {memberActive && (

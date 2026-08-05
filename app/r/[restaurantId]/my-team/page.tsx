@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { TeamManager, type NearbyTeam } from "@/components/member/TeamManager";
@@ -101,6 +102,13 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
           zones={memberZones}
           nearbyTeams={nearbyTeams}
         />
+        {/* ADR 0030 §4 — le classement reste explorable sans équipe */}
+        <Link
+          href={`/r/${restaurantId}/leaderboard`}
+          className="block text-center text-sm font-semibold text-brand-red hover:underline"
+        >
+          🏆 Voir le classement des équipes →
+        </Link>
       </div>
     );
   }
@@ -165,7 +173,16 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
 
       {leaderboard.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h3 className="font-bold text-gray-900 mb-4">Classement des équipes</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-gray-900">Classement des équipes</h3>
+            {/* ADR 0030 §4 — mon équipe → son classement complet */}
+            <Link
+              href={`/r/${restaurantId}/leaderboard`}
+              className="text-xs font-semibold text-brand-red hover:underline"
+            >
+              Classement complet →
+            </Link>
+          </div>
           <div className="space-y-2">
             {leaderboard.map((entry, idx) => {
               const isMine = entry.team_id === t.id;
