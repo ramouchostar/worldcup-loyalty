@@ -60,6 +60,7 @@ export default async function AdminLayout({
     {
       title: "📣 Fidélisation",
       links: [
+        { href: `${base}/clients`,       label: "👤 Mes clients" },
         { href: `${base}/broadcast`,     label: "📣 Broadcasts" },
         { href: `${base}/micro-rewards`, label: "⭐ Actions" },
         { href: `${base}/referrals`,     label: "👥 Parrainages" },
@@ -119,9 +120,17 @@ export default async function AdminLayout({
             <span className="text-amber-900 font-semibold truncate">
               🛠️ Mode plateforme — vous consultez « {restaurant.name} »
             </span>
-            <Link href="/platform" className="text-amber-900 font-bold hover:underline shrink-0">
-              ← Retour à la plateforme
-            </Link>
+            <div className="flex items-center gap-3 shrink-0">
+              <Link
+                href={`/platform/members?restaurant=${restaurantId}`}
+                className="text-amber-900 font-bold hover:underline"
+              >
+                👥 Membres
+              </Link>
+              <Link href="/platform" className="text-amber-900 font-bold hover:underline">
+                ← Retour à la plateforme
+              </Link>
+            </div>
           </div>
         </div>
       )}

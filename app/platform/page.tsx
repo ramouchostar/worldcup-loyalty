@@ -83,6 +83,10 @@ export default async function PlatformPage() {
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <span className="text-brand-gold font-black text-lg">🛠️ Plateforme</span>
           <div className="flex items-center gap-3">
+            {/* ADR 0030 §7 — annuaire nominatif du réseau (super-admin only) */}
+            <Link href="/platform/members" className="text-xs text-brand-gold hover:text-white transition-colors">
+              👥 Membres
+            </Link>
             <Link href={backHref} className="text-xs text-gray-400 hover:text-white transition-colors">
               ← Retour à l&apos;app
             </Link>
