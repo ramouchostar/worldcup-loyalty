@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase";
+import { resolvePostLoginDestination } from "@/lib/post-login";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -94,19 +95,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/r/${pendingRestaurantId}`);
       }
 
-      // ADR 0015 §2 — ouvre sur le dernier établissement rejoint, ou /join
-      // si le membre a un profil mais n'a encore rejoint aucun restaurant.
-      const { data: membership } = await supabase
-        .from("memberships")
-        .select("restaurant_id")
-        .eq("user_id", user.id)
-        .order("joined_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      return NextResponse.redirect(
-        `${origin}${membership ? `/r/${membership.restaurant_id}/dashboard` : "/join"}`
-      );
+      // ADR 0030 §1 — destination par rôle (plateforme > console > membre).
+      return NextResponse.redirect(`${origin}${await resolvePostLoginDestination(user.id)}`);
     }
     return NextResponse.redirect(`${origin}/join`);
   }

@@ -31,13 +31,23 @@ export default async function PlatformPage() {
 
   const admin = createAdminClient();
 
-  const [{ data: allRaw }, { count: memberCount }] = await Promise.all([
+  const [{ data: allRaw }, { count: memberCount }, { data: myMembership }] = await Promise.all([
     admin
       .from("restaurants")
       .select("id, name, sector, status, owner_id, created_at")
       .order("created_at", { ascending: false }),
     admin.from("memberships").select("user_id", { count: "exact", head: true }),
+    // ADR 0030 §2 — sortie de la console : retour vers l'app membre (dernier
+    // établissement rejoint), /join si le super-admin n'est membre nulle part.
+    supabase
+      .from("memberships")
+      .select("restaurant_id")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+  const backHref = myMembership ? `/r/${myMembership.restaurant_id}/dashboard` : "/join";
 
   const all = (allRaw ?? []) as RestaurantRow[];
   const pendingList = all.filter((r) => r.status === "pending");
@@ -67,8 +77,28 @@ export default async function PlatformPage() {
   const membersById = new Map(all.map((r, i) => [r.id, memberCounts[i].count ?? 0]));
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header de sortie (ADR 0030 §2 — /platform était une impasse totale) */}
+      <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <span className="text-brand-gold font-black text-lg">🛠️ Plateforme</span>
+          <div className="flex items-center gap-3">
+            <Link href={backHref} className="text-xs text-gray-400 hover:text-white transition-colors">
+              ← Retour à l&apos;app
+            </Link>
+            <form action="/api/auth/logout" method="POST">
+              <button
+                type="submit"
+                className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-white/10 transition-colors"
+              >
+                Déco
+              </button>
+            </form>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-2xl mx-auto space-y-6 py-8 px-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Console plateforme</h1>
           <p className="text-gray-500 text-sm mt-1">Validation des établissements et stats réseau.</p>

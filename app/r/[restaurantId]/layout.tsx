@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
+import { getRestaurant, getRestaurantBranding, getRestaurantId } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
 import { UserNav } from "@/components/member/UserNav";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
@@ -27,16 +27,30 @@ export default async function RestaurantLayout({
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: membershipsRaw }, { data: profileRaw }] = user
+  const [{ data: membershipsRaw }, { data: profileRaw }, { data: ownedRaw }] = user
     ? await Promise.all([
         supabase
           .from("memberships")
           .select("restaurant_id, restaurants(id, name)")
           .eq("user_id", user.id),
-        supabase.from("profiles").select("is_super_admin").eq("id", user.id).single(),
+        supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
+        supabase.from("restaurants").select("id").eq("owner_id", user.id),
       ])
-    : [{ data: null }, { data: null }];
-  const isSuperAdmin = !!(profileRaw as { is_super_admin: boolean } | null)?.is_super_admin;
+    : [{ data: null }, { data: null }, { data: null }];
+  const profile = profileRaw as { is_admin: boolean; is_super_admin: boolean } | null;
+  const isSuperAdmin = !!profile?.is_super_admin;
+
+  // ADR 0030 §2 — pont membre → admin : « Ma console » dans le UserNav.
+  // Owner du resto courant (ou admin legacy sur le resto par défaut) → sa
+  // console directe ; owner d'autres établissements → le sélecteur /admin.
+  const ownedIds = ((ownedRaw as { id: string }[] | null) ?? []).map((o) => o.id);
+  const isAdminOfCurrent =
+    ownedIds.includes(restaurantId) || (!!profile?.is_admin && restaurantId === getRestaurantId());
+  const adminHref = isAdminOfCurrent
+    ? `/admin/${restaurantId}`
+    : ownedIds.length > 0 || profile?.is_admin
+      ? "/admin"
+      : null;
 
   const restaurants = (
     (membershipsRaw as unknown as { restaurants: { id: string; name: string } | null }[]) ?? []
@@ -63,7 +77,7 @@ export default async function RestaurantLayout({
             restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
           />
           {user ? (
-            <UserNav email={user.email ?? ""} isSuperAdmin={isSuperAdmin} />
+            <UserNav email={user.email ?? ""} isSuperAdmin={isSuperAdmin} adminHref={adminHref} />
           ) : (
             <Link
               href="/login"

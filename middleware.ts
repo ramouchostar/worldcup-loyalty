@@ -47,19 +47,35 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirige les utilisateurs déjà connectés hors des pages auth vers leur
-  // établissement le plus récent (ADR 0015 §1-2 — plusieurs établissements
-  // possibles, on ouvre sur le dernier rejoint), ou /join s'il n'en a aucun.
+  // Redirige les utilisateurs déjà connectés hors des pages auth, par rôle
+  // (ADR 0030 §1 — plateforme > console > membre ; `as=resto` force la
+  // console). Même hiérarchie que lib/post-login.ts, dupliquée ici car le
+  // middleware n'embarque pas la clé service-role — garder les deux en phase.
   const isAuthRoute = path === "/login" || path === "/signup";
   if (isAuthRoute && user) {
-    const { data: membership } = await supabase
-      .from("memberships")
-      .select("restaurant_id")
-      .eq("user_id", user.id)
-      .order("joined_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const dest = membership ? `/r/${membership.restaurant_id}/dashboard` : "/join";
+    const [{ data: profile }, { data: owned }, { data: membership }] = await Promise.all([
+      supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
+      supabase.from("restaurants").select("id").eq("owner_id", user.id).limit(1),
+      supabase
+        .from("memberships")
+        .select("restaurant_id")
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    const hasConsole = (owned ?? []).length > 0 || !!profile?.is_admin;
+    const asResto = request.nextUrl.searchParams.get("as") === "resto";
+    let dest: string;
+    if (asResto) {
+      dest = hasConsole ? "/admin" : profile?.is_super_admin ? "/platform" : "/become-a-partner";
+    } else if (profile?.is_super_admin) {
+      dest = "/platform";
+    } else if (hasConsole) {
+      dest = "/admin";
+    } else {
+      dest = membership ? `/r/${membership.restaurant_id}/dashboard` : "/join";
+    }
     return NextResponse.redirect(new URL(dest, request.url));
   }
 

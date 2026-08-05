@@ -16,7 +16,16 @@ type GuardResult =
 //   établissement (nouveau modèle self-service, /become-a-partner).
 // - isSuperAdmin : profiles.is_super_admin — la plateforme accède à la
 //   console de n'importe quel établissement (support, gestion des données).
-export async function isEstablishmentAdmin(userId: string, restaurantId: string): Promise<boolean> {
+export type AdminAccess = {
+  isLegacyAdmin: boolean;
+  isOwner: boolean;
+  isSuperAdmin: boolean;
+};
+
+// Détail des trois mécaniques — utilisé par le layout admin pour la garde ET
+// la signalétique « Mode plateforme » (ADR 0030 §3 : le super-admin voit la
+// même console que le gérant, seul un bandeau signale le contexte).
+export async function getAdminAccess(userId: string, restaurantId: string): Promise<AdminAccess> {
   const admin = createAdminClient();
   const [{ data: profile }, { data: restaurant }] = await Promise.all([
     admin.from("profiles").select("is_admin, is_super_admin").eq("id", userId).single(),
@@ -24,11 +33,16 @@ export async function isEstablishmentAdmin(userId: string, restaurantId: string)
   ]);
 
   const p = profile as { is_admin: boolean; is_super_admin: boolean } | null;
-  const isLegacyAdmin = !!p?.is_admin && restaurantId === getRestaurantId();
-  const isOwner = (restaurant as { owner_id: string | null } | null)?.owner_id === userId;
-  const isSuperAdmin = !!p?.is_super_admin;
+  return {
+    isLegacyAdmin: !!p?.is_admin && restaurantId === getRestaurantId(),
+    isOwner: (restaurant as { owner_id: string | null } | null)?.owner_id === userId,
+    isSuperAdmin: !!p?.is_super_admin,
+  };
+}
 
-  return isLegacyAdmin || isOwner || isSuperAdmin;
+export async function isEstablishmentAdmin(userId: string, restaurantId: string): Promise<boolean> {
+  const access = await getAdminAccess(userId, restaurantId);
+  return access.isLegacyAdmin || access.isOwner || access.isSuperAdmin;
 }
 
 export async function requireAdmin(restaurantId: string): Promise<GuardResult> {

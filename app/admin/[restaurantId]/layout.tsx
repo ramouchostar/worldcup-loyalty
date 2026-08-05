@@ -2,8 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
-import { createServerSupabaseClient } from "@/lib/supabase";
-import { isEstablishmentAdmin } from "@/lib/admin-guard";
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { getAdminAccess } from "@/lib/admin-guard";
 
 export default async function AdminLayout({
   children,
@@ -21,10 +21,23 @@ export default async function AdminLayout({
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  if (!(await isEstablishmentAdmin(user.id, restaurantId))) redirect("/join");
+  const access = await getAdminAccess(user.id, restaurantId);
+  if (!access.isLegacyAdmin && !access.isOwner && !access.isSuperAdmin) redirect("/join");
 
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();
+
+  // ADR 0030 §3 — super-admin en visite sur un resto qui n'est pas le sien :
+  // même console, mais un bandeau signale le contexte (anti-erreur de resto).
+  const isPlatformMode = access.isSuperAdmin && !access.isOwner && !access.isLegacyAdmin;
+
+  // ADR 0030 §2 — « Mes établissements » si l'utilisateur en administre
+  // plusieurs (le sélecteur /admin cessait d'être orphelin).
+  const { count: ownedCount } = await createAdminClient()
+    .from("restaurants")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", user.id);
+  const showEstablishmentSwitcher = (ownedCount ?? 0) > 1;
 
   const branding = await getRestaurantBranding(restaurantId);
   const base = `/admin/${restaurantId}`;
@@ -52,16 +65,42 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-gray-100 font-brand" style={brandStyle(branding)}>
       <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-brand-gold font-black text-lg">⚙️ Admin</span>
-            <span className="text-gray-500 text-sm">{restaurant.name}</span>
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-brand-gold font-black text-lg shrink-0">⚙️ Admin</span>
+            <span className="text-gray-500 text-sm truncate">{restaurant.name}</span>
           </div>
-          <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors">
-            ← Retour membre
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            {access.isSuperAdmin && (
+              <Link href="/platform" className="text-xs text-brand-gold hover:text-white transition-colors">
+                🛠️ Plateforme
+              </Link>
+            )}
+            {showEstablishmentSwitcher && (
+              <Link href="/admin" className="text-xs text-gray-400 hover:text-white transition-colors">
+                Mes établissements
+              </Link>
+            )}
+            <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors">
+              ← Retour membre
+            </Link>
+          </div>
         </div>
       </header>
+
+      {/* Bandeau Mode plateforme (ADR 0030 §3) */}
+      {isPlatformMode && (
+        <div className="bg-brand-gold/15 border-b border-brand-gold/30">
+          <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs">
+            <span className="text-amber-900 font-semibold truncate">
+              🛠️ Mode plateforme — vous consultez « {restaurant.name} »
+            </span>
+            <Link href="/platform" className="text-amber-900 font-bold hover:underline shrink-0">
+              ← Retour à la plateforme
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-5xl mx-auto px-4 py-6 flex gap-6">
         {/* Sidebar */}

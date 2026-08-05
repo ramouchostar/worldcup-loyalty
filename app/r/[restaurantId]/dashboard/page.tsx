@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
+import { getRestaurantBranding, logoPublicUrl, getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus } from "@/lib/rewards";
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
@@ -41,6 +41,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     budget,
     { data: validatedOrdersData, count: validatedOrderCount },
     grid,
+    isOwnerOfCurrent,
+    { data: profileFlags },
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -77,7 +79,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       .eq("restaurant_id", restaurantId)
       .eq("status", "validated"),
     loadRewardGrid(restaurantId),
+    isRestaurantOwner(user.id, restaurantId),
+    supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
   ]);
+
+  // Carte gérant (ADR 0030 §2) — owner de CE resto ou admin legacy sur le
+  // resto par défaut. Pas le super-admin (il a son entrée Plateforme).
+  const isManager =
+    isOwnerOfCurrent ||
+    (!!(profileFlags as { is_admin: boolean } | null)?.is_admin && restaurantId === getRestaurantId());
 
   const membership = membershipRaw as unknown as MembershipWithTeam | null;
   const hasTeam = !!membership?.team_id;
@@ -151,6 +161,23 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 
   return (
     <div className="space-y-5 pb-4">
+      {/* ── Carte gérant (ADR 0030 §2, position 0) ─────────────────────────── */}
+      {isManager && (
+        <Link
+          href={`/admin/${restaurantId}`}
+          className="flex items-center justify-between bg-brand-dark text-white rounded-2xl p-4 hover:bg-gray-800 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl" aria-hidden="true">🍽️</span>
+            <div>
+              <p className="font-bold text-sm">Vous êtes le gérant de ce restaurant</p>
+              <p className="text-xs text-gray-400">Commandes, ventes, broadcasts, réglages…</p>
+            </div>
+          </div>
+          <span className="text-brand-gold font-semibold text-sm shrink-0">Console →</span>
+        </Link>
+      )}
+
       <OnboardingFlow />
 
       {/* ── Invite canal qualité (ADR 0023) — après N commandes validées ───── */}

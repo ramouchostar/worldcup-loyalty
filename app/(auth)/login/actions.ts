@@ -3,6 +3,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { resolvePostLoginDestination } from "@/lib/post-login";
 
 export async function signIn(
   _prevState: { error: string } | null,
@@ -46,16 +47,7 @@ export async function signIn(
     redirect(`/r/${pendingRestaurantId}`);
   }
 
-  // ADR 0015 §2 — un membre peut avoir plusieurs établissements ; on ouvre
-  // sur le dernier rejoint. Aucune adhésion → direction /register (ou /join
-  // si le profil a déjà un nom, cf. registerProfile()).
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("restaurant_id")
-    .eq("user_id", data.user.id)
-    .order("joined_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  redirect(membership ? `/r/${membership.restaurant_id}/dashboard` : "/register");
+  // ADR 0030 §1 — destination par rôle (plateforme > console > membre),
+  // `as=resto` (Espace restaurateur) force la console.
+  redirect(await resolvePostLoginDestination(data.user.id, { as: formData.get("as") as string | null }));
 }

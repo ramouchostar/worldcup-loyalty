@@ -190,6 +190,15 @@ export default async function RestaurateursLandingPage() {
             </Link>
           </div>
 
+          {/* Porte d'entrée dédiée des restaurateurs existants (ADR 0030 §1) —
+              même login que tout le monde, habillage + destination console. */}
+          <p className="text-gray-400 text-sm mt-4">
+            Déjà partenaire ?{" "}
+            <Link href="/login?as=resto" className="text-brand-gold font-semibold hover:underline">
+              Accéder à mon espace restaurateur →
+            </Link>
+          </p>
+
           {hasNetwork ? (
             <p className="text-gray-400 text-sm mt-6">
               Déjà <span className="text-white font-bold">{restaurantCount}</span> établissement

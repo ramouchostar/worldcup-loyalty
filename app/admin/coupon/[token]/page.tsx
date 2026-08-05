@@ -27,16 +27,18 @@ export default async function AdminCouponPage({
 
   // ADR 0015 §7 — validé par le token, pas par navigation d'établissement :
   // on résout le restaurant du coupon puis on vérifie l'accès (pont legacy
-  // is_admin sur le restaurant par défaut, ou owner_id pour le self-service).
+  // is_admin sur le restaurant par défaut, owner_id pour le self-service, ou
+  // super-admin plateforme — ADR 0030 §3 : c'était la seule surface admin qui
+  // le rejetait).
   const { data: profile } = await admin
     .from("profiles")
-    .select("is_admin")
+    .select("is_admin, is_super_admin")
     .eq("id", user.id)
     .single();
 
   const isLegacyAdmin = !!profile?.is_admin && tokenRow.restaurant_id === getRestaurantId();
   const isOwner = await isRestaurantOwner(user.id, tokenRow.restaurant_id);
-  if (!isLegacyAdmin && !isOwner) redirect("/join");
+  if (!isLegacyAdmin && !isOwner && !profile?.is_super_admin) redirect("/join");
 
   const reward = tokenRow.pending_rewards as unknown as {
     solo_item: string | null;

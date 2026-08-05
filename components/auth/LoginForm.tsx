@@ -8,6 +8,9 @@ import { signIn } from "@/app/(auth)/login/actions";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
+  // ADR 0030 §1 — habillage « Espace restaurateur » : même formulaire, même
+  // auth ; seul l'habillage et la destination post-login changent.
+  const asResto = searchParams.get("as") === "resto";
   const [error, setError] = useState<string | null>(
     searchParams.get("error") ? "Connexion échouée. Réessaie." : null
   );
@@ -49,10 +52,22 @@ export default function LoginForm() {
 
   return (
     <>
+      {asResto && (
+        <div className="inline-flex items-center gap-2 bg-brand-dark rounded-full px-3 py-1 mb-3">
+          <span className="text-brand-gold text-xs font-bold uppercase tracking-widest">
+            Espace restaurateur
+          </span>
+        </div>
+      )}
       <h2 className="text-xl font-bold text-gray-900 mb-1">Connexion</h2>
-      <p className="text-gray-500 text-sm mb-6">Connecte-toi à ton compte.</p>
+      <p className="text-gray-500 text-sm mb-6">
+        {asResto
+          ? "Connecte-toi pour retrouver ta console d'établissement."
+          : "Connecte-toi à ton compte."}
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-4">
+        {asResto && <input type="hidden" name="as" value="resto" />}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
@@ -125,10 +140,21 @@ export default function LoginForm() {
       </div>
 
       <p className="text-center text-sm text-gray-500 mt-6">
-        Pas encore inscrit ?{" "}
-        <Link href="/signup" className="text-brand-red font-semibold hover:underline">
-          Créer un compte
-        </Link>
+        {asResto ? (
+          <>
+            Pas encore partenaire ?{" "}
+            <Link href="/become-a-partner" className="text-brand-red font-semibold hover:underline">
+              Inscrire mon restaurant
+            </Link>
+          </>
+        ) : (
+          <>
+            Pas encore inscrit ?{" "}
+            <Link href="/signup" className="text-brand-red font-semibold hover:underline">
+              Créer un compte
+            </Link>
+          </>
+        )}
       </p>
     </>
   );
