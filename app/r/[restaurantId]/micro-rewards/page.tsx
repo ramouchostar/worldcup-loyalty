@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
-import { ACTION_ICONS, getActionLinks } from "@/lib/social-actions";
+import { ACTION_ICONS, TOKENS_PER_PORTION, getActionLinks } from "@/lib/social-actions";
 import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
 
 type SocialData = {
@@ -12,8 +12,6 @@ type SocialData = {
   // Cadeau des 4 jetons de l'établissement (ADR 0017) — nom uniquement, jamais de coût
   giftName?: string;
 };
-
-const TOKENS_PER_PORTION = 4;
 
 export default function MicroRewardsPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();

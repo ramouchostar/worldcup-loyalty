@@ -3,8 +3,9 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
-import { ACTION_BUTTON_LABELS, ACTION_ORDER, getActionLinks, getSocialHandle } from "@/lib/social-actions";
+import { ACTION_BUTTON_LABELS, ACTION_ORDER, TOKENS_PER_PORTION, getActionLinks, getSocialHandle } from "@/lib/social-actions";
 import { InstagramIcon, TiktokIcon, FacebookIcon, GoogleIcon } from "@/components/member/SocialIcons";
+import { TokenProgressRing } from "@/components/member/TokenProgressRing";
 import type { MicroReward, MicroRewardClaim, MicroRewardType } from "@/types";
 
 const ACTION_LOGOS: Record<MicroRewardType, ComponentType<{ className?: string }>> = {
@@ -64,10 +65,33 @@ export function ActionCardsSection() {
     (r) => !claimedTypes.has(r.type) && !(postponed[r.type] && now < postponed[r.type])
   );
 
-  if (queue.length === 0 || eligible.length === 0) return null;
+  if (eligible.length === 0) return null;
+
+  const claimedCount = eligible.length - queue.length;
+
+  if (queue.length === 0) {
+    const allValidated = eligible.every(
+      (r) => claims.find((c) => c.reward_type === r.type)?.status === "validated"
+    );
+    // Tout est réclamé mais pas encore validé — encore rien à faire, mais on
+    // le confirme plutôt que de faire disparaître la carte sans explication.
+    if (allValidated) return null;
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center gap-4">
+          <TokenProgressRing total={TOKENS_PER_PORTION} completed={claimedCount} size={56} />
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-gray-900 text-base">Toutes les actions sont faites</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Tes {claimedCount} jeton{claimedCount > 1 ? "s" : ""} seront validés sous 24h.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const current = queue[0];
-  const stepNumber = eligible.length - queue.length + 1;
   const Logo = ACTION_LOGOS[current.type];
   const handle = getSocialHandle(current.type, links[current.type]);
 
@@ -103,11 +127,7 @@ export function ActionCardsSection() {
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
           Action à faire
         </h2>
-        {eligible.length > 1 && (
-          <span className="text-xs font-medium text-gray-400">
-            {stepNumber}/{eligible.length}
-          </span>
-        )}
+        <TokenProgressRing total={TOKENS_PER_PORTION} completed={claimedCount} size={40} />
       </div>
 
       <div className="flex items-center gap-4 mb-6">
