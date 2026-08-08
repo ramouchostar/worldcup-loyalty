@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
-import { ACTION_ICONS, ACTION_BUTTON_LABELS, ACTION_ORDER, getActionLinks } from "@/lib/social-actions";
-import type { MicroReward, MicroRewardClaim } from "@/types";
+import { ACTION_BUTTON_LABELS, ACTION_ORDER, getActionLinks, getSocialHandle } from "@/lib/social-actions";
+import { InstagramIcon, TiktokIcon, FacebookIcon, GoogleIcon } from "@/components/member/SocialIcons";
+import type { MicroReward, MicroRewardClaim, MicroRewardType } from "@/types";
+
+const ACTION_LOGOS: Record<MicroRewardType, ComponentType<{ className?: string }>> = {
+  instagram_follow: InstagramIcon,
+  tiktok_follow: TiktokIcon,
+  facebook_follow: FacebookIcon,
+  google_review: GoogleIcon,
+};
 
 // « Je le ferai plus tard » : snooze local (par device), même convention que
 // OnboardingFlow — pas de colonne serveur, ça reviendra dans 24h.
@@ -60,6 +68,8 @@ export function ActionCardsSection() {
 
   const current = queue[0];
   const stepNumber = eligible.length - queue.length + 1;
+  const Logo = ACTION_LOGOS[current.type];
+  const handle = getSocialHandle(current.type, links[current.type]);
 
   async function handleAccomplish() {
     const link = links[current.type];
@@ -88,8 +98,8 @@ export function ActionCardsSection() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
           Action à faire
         </h2>
@@ -100,26 +110,29 @@ export function ActionCardsSection() {
         )}
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-3xl shrink-0" aria-hidden="true">{ACTION_ICONS[current.type]}</span>
-        <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 text-sm">{current.title}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">{current.description}</p>
+      <div className="flex items-center gap-4 mb-6">
+        <Logo className="w-16 h-16 shrink-0 rounded-2xl shadow-sm" />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-bold text-gray-900 text-base">{current.title}</h3>
+          {handle && (
+            <p className="text-sm font-semibold text-gray-600 truncate mt-0.5">{handle}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">{current.description}</p>
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <button
           onClick={handleAccomplish}
           disabled={busy}
-          className="flex-1 bg-green-500 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors"
+          className="flex-1 bg-green-500 text-white py-3.5 rounded-xl font-semibold text-base hover:bg-green-600 disabled:opacity-50 transition-colors"
         >
           {busy ? "…" : ACTION_BUTTON_LABELS[current.type]}
         </button>
         <button
           onClick={handlePostpone}
           disabled={busy}
-          className="flex-1 bg-amber-500 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-amber-600 disabled:opacity-50 transition-colors"
+          className="flex-1 bg-amber-500 text-white py-3.5 rounded-xl font-semibold text-base hover:bg-amber-600 disabled:opacity-50 transition-colors"
         >
           Je le ferai plus tard
         </button>
