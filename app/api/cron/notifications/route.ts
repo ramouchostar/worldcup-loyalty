@@ -6,6 +6,13 @@ import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { coverageSatisfied, type TeamCoverage } from "@/lib/reward-sizing";
 import { runMemberStrategies } from "@/lib/member-strategies";
+import {
+  wasEmailSentRecently,
+  sendTierUnlockedEmail,
+  sendPendingRequestsReminderEmail,
+  sendOnboardingReminderEmail,
+  sendRewardReadyEmail,
+} from "@/lib/email";
 
 // Paliers communautaires : catalogue de l'établissement (ADR 0013), fallback
 // grille héritée — même source de vérité que la résolution des récompenses.
@@ -32,6 +39,21 @@ const APPROACHING_RATIO = 0.90;
 const SPAM_HOURS        = 48;
 const MAX_PER_WEEK      = 3;
 
+// Rappel restaurateur "demandes clients en attente" (orders + micro_reward_claims
+// combinés) — n'envoie que si ça vaut le coup de déranger.
+const PENDING_REQUESTS_COUNT_THRESHOLD = 15;
+const PENDING_REQUESTS_AGE_HOURS       = 48;
+const PENDING_REQUESTS_EMAIL_COOLDOWN  = 20; // ~1x/jour tant que ça persiste
+
+// Relance onboarding self-service inachevé (étape 2 ou 3)
+const ONBOARDING_STUCK_HOURS   = 48;
+const ONBOARDING_EMAIL_COOLDOWN = 48;
+
+// Rappel cadeau prêt à récupérer avant expiration (ADR 0011 : 48h)
+const REWARD_EXPIRY_HOURS           = 48;
+const REWARD_READY_REMAINING_HOURS  = 12; // envoi quand il reste ≤ 12h
+const REWARD_READY_EMAIL_COOLDOWN   = 48;
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -45,9 +67,13 @@ export async function GET(request: Request) {
   // évalue chaque restaurant actif, plus seulement celui de l'environnement.
   const { data: restaurantsRaw } = await admin
     .from("restaurants")
-    .select("id, name")
+    .select("id, name, profiles!restaurants_owner_id_fkey(email)")
     .eq("status", "active");
-  const restaurants = (restaurantsRaw ?? []) as { id: string; name: string }[];
+  const restaurants = (restaurantsRaw ?? []).map((r: any) => ({
+    id: r.id as string,
+    name: r.name as string,
+    ownerEmail: (r.profiles?.email as string | null | undefined) ?? null,
+  }));
 
   let sent = 0;
   let evaluated = 0;
@@ -66,12 +92,14 @@ export async function GET(request: Request) {
   // dans memberships, pas dans profiles (colonne conservée mais plus lue).
   const { data: membershipsRaw } = await admin
     .from("memberships")
-    .select("user_id, team_id, profiles!inner(phone, last_notified_at), teams!inner(name, flag_emoji, is_active)")
+    .select("user_id, team_id, profiles!inner(email, display_name, phone, last_notified_at), teams!inner(name, flag_emoji, is_active)")
     .eq("restaurant_id", restaurantId)
     .not("team_id", "is", null);
 
   const members = (membershipsRaw ?? []).map((m: any) => ({
     id: m.user_id,
+    email: m.profiles.email,
+    display_name: m.profiles.display_name,
     phone: m.profiles.phone,
     last_notified_at: m.profiles.last_notified_at,
     team_id: m.team_id,
@@ -144,6 +172,7 @@ export async function GET(request: Request) {
 
     let trigger: TriggerType | null = null;
     let message: string | null = null;
+    let tierUnlockedReward: string | null = null;
 
     // 1. Palier franchi (haute priorité) — uniquement si le bonus serait
     // réellement délivré (double verrou + budget + couverture ADR 0017)
@@ -159,6 +188,7 @@ export async function GET(request: Request) {
         if ((prevUpgrade ?? 0) === 0) {
           trigger = "tier_upgrade";
           message = buildMessage("tier_upgrade", team.name, team.flag_emoji, restaurant.name, { newReward: reachedTier.item });
+          tierUnlockedReward = reachedTier.item;
         }
       }
     }
@@ -215,8 +245,133 @@ export async function GET(request: Request) {
     }
     await logNotification(member.id, restaurantId, trigger, channel, message, teamScore);
     sent++;
+
+    // Canal email en plus du push/WhatsApp (ADR 0009 inchangé, ajout emailing)
+    if (trigger === "tier_upgrade" && tierUnlockedReward && (member as any).email) {
+      const memberFirstName = (member as any).display_name?.trim().split(/\s+/)[0] || "toi";
+      await sendTierUnlockedEmail(
+        (member as any).email,
+        member.id,
+        memberFirstName,
+        restaurantId,
+        restaurant.name,
+        team.name,
+        team.flag_emoji,
+        tierUnlockedReward
+      );
+    }
+  }
+
+  // ── Cadeau prêt à récupérer avant expiration (ADR 0011, 48h) ────────────
+  const { data: readyRewardsRaw } = await admin
+    .from("pending_rewards")
+    .select("id, user_id, created_at, profiles!inner(email, display_name)")
+    .eq("restaurant_id", restaurantId)
+    .eq("status", "available");
+
+  for (const reward of (readyRewardsRaw ?? []) as any[]) {
+    const hoursSince = (now.getTime() - new Date(reward.created_at).getTime()) / 3_600_000;
+    const hoursRemaining = REWARD_EXPIRY_HOURS - hoursSince;
+    if (hoursRemaining <= 0 || hoursRemaining > REWARD_READY_REMAINING_HOURS) continue;
+    if (!reward.profiles?.email) continue;
+
+    const alreadySent = await wasEmailSentRecently(
+      "member",
+      reward.user_id,
+      "reward_ready",
+      REWARD_READY_EMAIL_COOLDOWN
+    );
+    if (alreadySent) continue;
+
+    const rewardFirstName = reward.profiles.display_name?.trim().split(/\s+/)[0] || "toi";
+    await sendRewardReadyEmail(
+      reward.profiles.email,
+      reward.user_id,
+      rewardFirstName,
+      restaurantId,
+      restaurant.name,
+      hoursRemaining
+    );
+  }
+
+  // ── Rappel restaurateur : demandes clients en attente (orders + micro_reward_claims) ──
+  if (restaurant.ownerEmail) {
+    const [{ data: pendingOrders }, { data: pendingClaims }] = await Promise.all([
+      admin
+        .from("orders")
+        .select("submitted_at")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "pending"),
+      admin
+        .from("micro_reward_claims")
+        .select("claimed_at")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "pending"),
+    ]);
+
+    const pendingOrdersList = pendingOrders ?? [];
+    const pendingClaimsList = pendingClaims ?? [];
+    const totalPending = pendingOrdersList.length + pendingClaimsList.length;
+
+    if (totalPending > 0) {
+      const oldestTimestamps = [
+        ...pendingOrdersList.map((o) => new Date(o.submitted_at).getTime()),
+        ...pendingClaimsList.map((c) => new Date(c.claimed_at).getTime()),
+      ];
+      const oldestPendingHours = (now.getTime() - Math.min(...oldestTimestamps)) / 3_600_000;
+
+      if (totalPending > PENDING_REQUESTS_COUNT_THRESHOLD || oldestPendingHours > PENDING_REQUESTS_AGE_HOURS) {
+        const alreadySent = await wasEmailSentRecently(
+          "restaurant",
+          restaurantId,
+          "pending_requests_reminder",
+          PENDING_REQUESTS_EMAIL_COOLDOWN
+        );
+        if (!alreadySent) {
+          await sendPendingRequestsReminderEmail(
+            restaurant.ownerEmail,
+            restaurant.name,
+            restaurantId,
+            totalPending,
+            oldestPendingHours
+          );
+        }
+      }
+    }
   }
   } // fin boucle restaurants
+
+  // ── Relance onboarding self-service inachevé (étape 2 ou 3, ADR 0019) ──
+  const { data: pendingRestaurantsRaw } = await admin
+    .from("restaurants")
+    .select("id, name, created_at, profiles!restaurants_owner_id_fkey(email)")
+    .eq("status", "pending");
+
+  for (const r of (pendingRestaurantsRaw ?? []) as any[]) {
+    const hoursSinceCreated = (now.getTime() - new Date(r.created_at).getTime()) / 3_600_000;
+    if (hoursSinceCreated < ONBOARDING_STUCK_HOURS) continue;
+
+    const ownerEmail = r.profiles?.email;
+    if (!ownerEmail) continue;
+
+    const [{ count: menuItemsCount }, { data: receiptConfig }] = await Promise.all([
+      admin.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", r.id),
+      admin.from("restaurant_receipt_config").select("confirmed_at").eq("restaurant_id", r.id).maybeSingle(),
+    ]);
+
+    let stuckAtStep: 2 | 3 | null = null;
+    if ((menuItemsCount ?? 0) === 0) {
+      stuckAtStep = 2;
+    } else if (!receiptConfig?.confirmed_at) {
+      stuckAtStep = 3;
+    }
+    if (stuckAtStep === null) continue; // onboarding terminé, en attente de validation — pas une relance
+
+    const alreadySent = await wasEmailSentRecently("restaurant", r.id, "onboarding_reminder", ONBOARDING_EMAIL_COOLDOWN);
+    if (alreadySent) continue;
+
+    await sendOnboardingReminderEmail(ownerEmail, r.name, r.id, stuckAtStep);
+  }
 
   return NextResponse.json({ sent, evaluated, restaurants: restaurants.length });
 }

@@ -271,7 +271,8 @@ export async function runMemberStrategies(
         admin
           .from("micro_reward_claims")
           .select("reward_type")
-          .eq("user_id", member.id),
+          .eq("user_id", member.id)
+          .eq("restaurant_id", restaurantId),
       ]);
       const claimedTypes = new Set((claimsRaw ?? []).map((c) => c.reward_type as string));
       const due = (postponesRaw ?? []).find((p) => {

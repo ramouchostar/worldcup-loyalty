@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { sendReferralSuccessEmail } from "@/lib/email";
 
 // ADR 0015 §3 — adhésion à un établissement = libre, pas d'invitation requise.
 export async function joinRestaurant(restaurantId: string) {
@@ -36,6 +37,27 @@ export async function joinRestaurant(restaurantId: string) {
         referee_id: user.id,
         restaurant_id: restaurantId,
       });
+
+      const { data: referrer } = await admin
+        .from("profiles")
+        .select("email, display_name")
+        .eq("id", refLink.user_id)
+        .single();
+      const { data: updatedLink } = await admin
+        .from("referral_links")
+        .select("conversions")
+        .eq("user_id", refLink.user_id)
+        .eq("restaurant_id", restaurantId)
+        .single();
+      if (referrer?.email && updatedLink) {
+        await sendReferralSuccessEmail(
+          referrer.email,
+          refLink.user_id,
+          referrer.display_name ?? "toi",
+          restaurantId,
+          updatedLink.conversions
+        );
+      }
     }
 
     cookieStore.set("belchicken_ref", "", { maxAge: 0, path: "/" });
