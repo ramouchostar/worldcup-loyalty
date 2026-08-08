@@ -5,6 +5,7 @@ import { brandStyle } from "@/lib/branding";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
+import { AdminDesktopNav } from "@/components/admin/AdminDesktopNav";
 import { getPlan } from "@/lib/entitlements";
 
 export default async function AdminLayout({
@@ -59,52 +60,61 @@ export default async function AdminLayout({
   // faire revenir, Pilotage = comprendre, Configuration = réglé une fois.
   // Le sandbox (outil de dev) reste volontairement hors nav — accessible par
   // URL, gardé par le middleware comme le reste.
+  // Icônes (clé → components/admin/AdminNavIcons.tsx) au lieu d'émojis
+  // (redesign m54) — rendu console pro plutôt que grand public.
   const navSections = [
     {
-      title: "📍 Au quotidien",
+      title: "Au quotidien",
       links: [
-        { href: base,                      label: "📊 Dashboard" },
-        { href: `${base}/orders`,          label: "🧾 Commandes" },
-        { href: `${base}/pending-rewards`, label: "🎁 Cadeaux" },
+        { href: base,                      label: "Dashboard", icon: "dashboard" },
+        { href: `${base}/orders`,          label: "Commandes", icon: "orders" },
+        { href: `${base}/pending-rewards`, label: "Cadeaux",   icon: "gifts" },
       ],
     },
     {
-      title: "📣 Fidélisation",
+      title: "Fidélisation",
       links: [
-        { href: `${base}/clients`,       label: "👤 Mes clients" },
-        { href: `${base}/broadcast`,     label: "📣 Broadcasts" },
-        { href: `${base}/micro-rewards`, label: "⭐ Actions" },
-        { href: `${base}/referrals`,     label: "👥 Parrainages" },
-        { href: `${base}/team-tiers`,    label: "🏆 Paliers d'équipe" },
+        { href: `${base}/clients`,       label: "Mes clients",      icon: "clients" },
+        { href: `${base}/broadcast`,     label: "Broadcasts",       icon: "broadcasts" },
+        { href: `${base}/micro-rewards`, label: "Actions",          icon: "actions" },
+        { href: `${base}/referrals`,     label: "Parrainages",      icon: "referrals" },
+        { href: `${base}/team-tiers`,    label: "Paliers d'équipe", icon: "team-tiers" },
       ],
     },
     {
-      title: "📊 Pilotage",
+      title: "Pilotage",
       links: [
-        { href: `${base}/sales`,    label: "📈 Ventes" },
-        { href: `${base}/forecast`, label: "🔮 Prévisions" },
-        { href: `${base}/insights`, label: "💡 Opportunités" },
-        { href: `${base}/quality`,  label: "💬 Baromètre" },
+        { href: `${base}/sales`,    label: "Ventes",       icon: "sales" },
+        { href: `${base}/forecast`, label: "Prévisions",   icon: "forecast" },
+        { href: `${base}/insights`, label: "Opportunités", icon: "insights" },
+        { href: `${base}/quality`,  label: "Baromètre",    icon: "quality" },
       ],
     },
     {
-      title: "⚙️ Configuration",
+      title: "Configuration",
       links: [
-        { href: `${base}/menu`,       label: "📋 Menu & coûts" },
-        { href: `${base}/thresholds`, label: "🎯 Seuils CA" },
-        { href: `${base}/qr`,         label: "🔲 QR code" },
-        { href: `${base}/settings`,   label: "⚙️ Réglages" },
+        { href: `${base}/menu`,       label: "Menu & coûts", icon: "menu" },
+        { href: `${base}/thresholds`, label: "Seuils CA",    icon: "thresholds" },
+        { href: `${base}/qr`,         label: "QR code",      icon: "qr" },
+        { href: `${base}/settings`,   label: "Réglages",     icon: "settings" },
       ],
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 font-brand" style={brandStyle(branding)}>
-      <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
+    <div className="min-h-screen bg-paper font-brand" style={brandStyle(branding)}>
+      <header className="bg-brand-dark text-white sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="text-brand-gold font-black text-lg shrink-0">⚙️ Admin</span>
-            <span className="text-gray-500 text-sm truncate">{restaurant.name}</span>
+            <span className="w-8 h-8 rounded-lg bg-brand-red flex items-center justify-center font-display font-bold text-brand-dark text-[15px] shrink-0">
+              {restaurant.name.charAt(0).toUpperCase()}
+            </span>
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="text-white font-semibold text-sm truncate">{restaurant.name}</span>
+              <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-brand-gold">
+                Console restaurateur
+              </span>
+            </div>
             <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${planBadge.cls}`}>
               {planBadge.label}
             </span>
@@ -112,7 +122,7 @@ export default async function AdminLayout({
           <div className="flex items-center gap-3 shrink-0">
             {access.isSuperAdmin && (
               <Link href="/platform" className="text-xs text-brand-gold hover:text-white transition-colors">
-                🛠️ Plateforme
+                Plateforme
               </Link>
             )}
             {showEstablishmentSwitcher && (
@@ -121,7 +131,7 @@ export default async function AdminLayout({
               </Link>
             )}
             <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors">
-              ← Retour membre
+              ← Retour espace membre
             </Link>
           </div>
         </div>
@@ -149,28 +159,9 @@ export default async function AdminLayout({
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-0 md:gap-6">
-        {/* Sidebar desktop — sections avec intertitres (ADR 0030 §9) */}
-        <nav className="hidden md:flex flex-col gap-4 w-48 shrink-0">
-          {navSections.map((section) => (
-            <div key={section.title}>
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                {section.title}
-              </p>
-              <div className="flex flex-col gap-0.5">
-                {section.links.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-red transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </nav>
+      <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-0 md:gap-8">
+        {/* Sidebar desktop — état actif + icônes (redesign m54) */}
+        <AdminDesktopNav sections={navSections} />
 
         {/* Mobile — menu hamburger par sections (ADR 0030 §9) */}
         <AdminMobileNav sections={navSections} />
