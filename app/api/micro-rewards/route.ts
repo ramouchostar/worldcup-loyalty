@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
     supabase
       .from("micro_reward_claims")
       .select("id, reward_type, proof_url, status, claimed_at")
-      .eq("user_id", user.id),
+      .eq("user_id", user.id)
+      .eq("restaurant_id", restaurantId),
     // Cadeau des 4 jetons de l'établissement (ADR 0017) — nom uniquement
     getJetonsGift(restaurantId),
   ]);
