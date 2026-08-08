@@ -37,6 +37,38 @@ type RestaurantSocialLinks = {
   facebook_url: string | null;
 };
 
+// Déduit le nom de page affiché sous le titre de l'action, à partir du lien
+// que le restaurateur a renseigné à l'inscription — jamais saisi à la main.
+export function getSocialHandle(type: MicroRewardType, url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const { pathname, searchParams } = new URL(url);
+    const segments = pathname.split("/").filter(Boolean);
+
+    if (type === "instagram_follow" || type === "facebook_follow") {
+      const slug = segments[0];
+      if (!slug || slug === "profile.php" || slug === "people" || slug === "share") return null;
+      return type === "instagram_follow" ? `@${slug}` : slug.replace(/[-.]/g, " ");
+    }
+
+    if (type === "tiktok_follow") {
+      const handle = segments.find((s) => s.startsWith("@"));
+      return handle ?? null;
+    }
+
+    if (type === "google_review") {
+      const placeIndex = segments.indexOf("place");
+      const raw = placeIndex >= 0 ? segments[placeIndex + 1] : searchParams.get("q") ?? searchParams.get("query");
+      if (!raw) return null;
+      return decodeURIComponent(raw.replace(/\+/g, " "));
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function getActionLinks(
   restaurant: RestaurantSocialLinks,
   restaurantId: string
