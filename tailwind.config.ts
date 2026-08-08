@@ -17,11 +17,36 @@ const config: Config = {
           gold: "rgb(var(--brand-gold) / <alpha-value>)",
           dark: "rgb(var(--brand-dark) / <alpha-value>)",
         },
+        // Neutres fixes de la console restaurateur (redesign m54) — jamais
+        // pilotés par établissement (contrairement à brand-*), au même titre
+        // que l'ancien bg-gray-100 : un canevas neutre professionnel commun
+        // à toutes les consoles, quelle que soit la charte du restaurant.
+        ink: {
+          DEFAULT: "#0A0A0A",
+          body: "#3D3D3D",
+          muted: "#5C5C56",
+          faint: "#9A9A92",
+        },
+        paper: {
+          DEFAULT: "#FAFAF7",
+          subtle: "#F0F0EC",
+          border: "#E2E2DC",
+        },
+        // Couleurs sémantiques de statut (redesign m54) — plus sourdes que
+        // les red-600/amber-500 par défaut de Tailwind, cohérentes avec le
+        // ton "console pro" plutôt qu'alerte grand public.
+        danger: "#B8443A",
+        warn: "#D4933A",
+        good: "#4A8C3F",
       },
       fontFamily: {
         // Police de marque par établissement (m48) — --brand-font posé par
         // brandStyle() ; défaut neutre (pile système) dans app/globals.css.
         brand: ["var(--brand-font)"],
+        // Identité fixe de la console restaurateur (redesign m54) — titres et
+        // étiquettes techniques, indépendants de la police d'établissement.
+        display: ["var(--font-space-grotesk)"],
+        mono: ["var(--font-jetbrains-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
     },
   },
