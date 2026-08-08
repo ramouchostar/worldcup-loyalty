@@ -6,6 +6,9 @@ import type { MicroRewardType } from "@/types";
 // réseaux d'un autre resto.
 const LEGACY_RESTAURANT_ID = "kraainem";
 
+// 4 actions sociales = 4 jetons = 1 récompense (cadeau jetons, ADR 0017).
+export const TOKENS_PER_PORTION = 4;
+
 export const ACTION_ICONS: Record<MicroRewardType, string> = {
   google_review: "⭐",
   instagram_follow: "📸",
