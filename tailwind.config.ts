@@ -38,6 +38,27 @@ const config: Config = {
         danger: "#B8443A",
         warn: "#D4933A",
         good: "#4A8C3F",
+        // Accent éditorial du site vitrine restaurateurs (redesign m55, design
+        // Claude "Landing Restaurateurs") — fixe, indépendant des couleurs
+        // brand-* par établissement (au même titre que ink/paper pour la
+        // console admin).
+        moss: {
+          DEFAULT: "#7A8F3F",
+          light: "#93A857",
+          dark: "#677A33",
+          tint: "#E8EDDC",
+          tint2: "#CFDBB0",
+        },
+        // Surfaces sombres du site vitrine restaurateurs (redesign m55) —
+        // hero, mockups produit, sections CTA. ink.DEFAULT reste le noir de
+        // référence commun aux deux (console admin ET vitrine).
+        night: {
+          raised: "#141414",
+          chrome: "#1F1F1F",
+          line: "#2A2A2A",
+          text: "#B8B8B0",
+          faint: "#6E6E68",
+        },
       },
       fontFamily: {
         // Police de marque par établissement (m48) — --brand-font posé par
@@ -47,6 +68,8 @@ const config: Config = {
         // étiquettes techniques, indépendants de la police d'établissement.
         display: ["var(--font-space-grotesk)"],
         mono: ["var(--font-jetbrains-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+        // Corps de texte du site vitrine restaurateurs (redesign m55).
+        landing: ["var(--font-archivo)", "system-ui", "sans-serif"],
       },
     },
   },
