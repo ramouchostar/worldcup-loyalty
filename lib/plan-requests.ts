@@ -1,5 +1,5 @@
 import { createAdminClient } from "./supabase";
-import type { Feature, Plan } from "./entitlements";
+import type { Plan } from "./entitlements";
 
 // ADR 0029 Phase 2 — demandes de plan (paywall doux sans Stripe, m51).
 // Le restaurateur clique « Demander le plan Croissance/Pro » ; le super-admin
@@ -22,7 +22,9 @@ export type RequestPlanResult = "created" | "already_pending" | "error";
 export async function requestPlan(
   restaurantId: string,
   plan: Exclude<Plan, "gratuit">,
-  feature: Feature | null,
+  // Surface d'origine du clic (colonne texte libre m51) : une Feature connue
+  // ou « scan_cap » (nudge Phase 3) — la route neutralise tout le reste.
+  feature: string | null,
   requestedBy: string
 ): Promise<RequestPlanResult> {
   try {

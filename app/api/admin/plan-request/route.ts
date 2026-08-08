@@ -9,9 +9,11 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) ?? {};
   const restaurantId = typeof body.restaurantId === "string" ? body.restaurantId : null;
   const plan = body.plan === "pro" ? "pro" : body.plan === "croissance" ? "croissance" : null;
+  // Contexte commercial du clic : une surface payante connue, ou le nudge de
+  // scans (Phase 3) — tout le reste est neutralisé à null.
   const feature =
-    typeof body.feature === "string" && body.feature in FEATURE_PLAN
-      ? (body.feature as Feature)
+    typeof body.feature === "string" && (body.feature in FEATURE_PLAN || body.feature === "scan_cap")
+      ? (body.feature as Feature | "scan_cap")
       : null;
 
   if (!restaurantId || !plan) {

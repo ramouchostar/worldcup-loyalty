@@ -3,6 +3,9 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getRestaurant } from "@/lib/restaurant";
+import { getPlan } from "@/lib/entitlements";
+import { getScanUsage, SCAN_CAP_GRATUIT } from "@/lib/scan-meter";
+import { RequestPlanButton } from "@/components/admin/Paywall";
 
 export default async function AdminDashboardPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -56,6 +59,11 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
   const flaggedCount = (pendingOrdersData ?? []).filter(
     (o: { flag_reasons: string[] | null }) => Array.isArray(o.flag_reasons) && o.flag_reasons.length > 0
   ).length;
+
+  // ADR 0029 §6 (Phase 3) — nudge de croissance positif si le volume de
+  // scans du mois dépasse la couverture du plan Gratuit. Jamais bloquant.
+  const plan = await getPlan(restaurantId);
+  const scanUsage = await getScanUsage(restaurantId, plan);
 
   const th = threshold as {
     period_label: string;
@@ -132,6 +140,28 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
               3/3 · Configurer le ticket de caisse →
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* Nudge scans (ADR 0029 §6) — ton POSITIF : l'élan du resto, jamais
+          « quota dépassé, paie ». Rien ne s'arrête au-dessus du plafond. */}
+      {scanUsage.over && (
+        <div className="bg-green-50 border border-green-300 rounded-2xl p-4">
+          <p className="font-bold text-green-900 text-sm mb-1">
+            🚀 {scanUsage.count} tickets scannés ce mois-ci — tes clients jouent le jeu !
+          </p>
+          <p className="text-xs text-green-800 mb-3">
+            Ton programme dépasse le volume couvert par le plan Gratuit ({SCAN_CAP_GRATUIT}{" "}
+            scans/mois). Rien ne s&apos;arrête — mais avec le plan Croissance, les scans
+            deviennent illimités et tu touches cette communauté avec des promos ciblées,
+            des prévisions et tes ventes par plat.
+          </p>
+          <RequestPlanButton
+            restaurantId={restaurantId}
+            feature="scan_cap"
+            requiredPlan="croissance"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-colors"
+          />
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { analyzeReceipt, isAllowedReceiptType } from "@/lib/receipt-ocr";
 import { getReceiptConfig } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { recordScan } from "@/lib/scan-meter";
 
 export const maxDuration = 30;
 
@@ -57,6 +58,11 @@ export async function POST(request: NextRequest) {
       { status: 502 }
     );
   }
+
+  // ADR 0029 §6 (Phase 3) — métering du volume OCR par resto/mois. L'appel
+  // Vision vient d'être facturé, on le compte — best-effort, ne bloque JAMAIS
+  // le scan du membre (le plafond Gratuit ne déclenche qu'un nudge admin).
+  await recordScan(String(rawRestaurantId));
 
   if (!analysis.has_restaurant_header) {
     return NextResponse.json(
