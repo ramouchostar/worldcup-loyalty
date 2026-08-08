@@ -1,8 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 
 // Pastille d'icône plate, couleur unique — pas d'emoji, pas de dégradé.
-// Partagée entre les landing pages publiques (restaurateurs, clients) pour
-// garder un langage visuel cohérent (session branding du 2026-07-28).
+// Utilisée par la landing publique clients (session branding du 2026-07-28).
+// La landing restaurateurs a sa propre identité visuelle depuis le redesign
+// m55 (components/restaurateurs/) et n'en dépend plus.
 export function IconTile({
   icon: Icon,
   size = "md",

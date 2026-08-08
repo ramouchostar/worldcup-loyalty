@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
@@ -19,7 +19,13 @@ const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--f
 // les titres, JetBrains Mono pour les étiquettes techniques (labels, badges).
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-space-grotesk", display: "swap" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-jetbrains-mono", display: "swap" });
-const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`;
+// Landing publique restaurateurs (redesign m55, design Claude "Landing
+// Restaurateurs") — identité éditoriale du site vitrine Boosteats, distincte
+// de --brand-font (par établissement) et de Space Grotesk/JetBrains Mono
+// (console admin). Chargée globalement comme les autres polices curées, mais
+// appliquée seulement via la classe utilitaire font-landing.
+const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700"], style: ["normal", "italic"], variable: "--font-archivo", display: "swap" });
+const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable}`;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 

@@ -7,6 +7,7 @@ const CACHE_NAME = "worldcup-loyalty-v2";
 // Ressources à mettre en cache lors de l'installation
 const PRECACHE_URLS = [
   "/",
+  "/membres",
   "/offline",
   "/api/icons/192",
 ];

@@ -6,8 +6,10 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Boosteats",
     description:
       "Programme de fidélité communautaire par équipes. Mangez directement au restaurant, gagnez ensemble.",
-    id: "/",
-    start_url: "/",
+    // "/" est devenue la landing restaurateurs (2026-08-08) ; l'app installée
+    // reste celle des membres, qui vit désormais sur /membres.
+    id: "/membres",
+    start_url: "/membres",
     display: "standalone",
     background_color: "#0C1509",
     theme_color: "#6B7C3F",
