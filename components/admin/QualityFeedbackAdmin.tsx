@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DIMENSION_LABELS } from "@/lib/feedback-constants";
+import { RequestPlanButton } from "@/components/admin/Paywall";
 import type { AdminFeedbackItem, Barometer } from "@/types";
 
 // ADR 0023 §8 — le baromètre est un ÉTAT + une TENDANCE + une DÉCOMPOSITION,
@@ -25,10 +26,14 @@ export function QualityFeedbackAdmin({
   restaurantId,
   barometer,
   items,
+  advancedLocked = false,
 }: {
   restaurantId: string;
   barometer: Barometer;
   items: AdminFeedbackItem[];
+  // ADR 0029 — baromètre AVANCÉ (tendance + décomposition) verrouillé hors
+  // plan Croissance ; l'état, les compteurs et les réponses restent Gratuit.
+  advancedLocked?: boolean;
 }) {
   const incidents = items.filter((i) => i.sentiment === "incident");
   const encouragements = items.filter((i) => i.sentiment === "encouragement");
@@ -40,7 +45,9 @@ export function QualityFeedbackAdmin({
       <div className={`rounded-2xl border p-5 ${st.cls}`}>
         <div className="flex items-center justify-between">
           <span className="text-lg font-bold">{st.emoji} {st.label}</span>
-          {barometer.trend !== "na" && <span className="text-sm font-medium">{TREND[barometer.trend]}</span>}
+          {!advancedLocked && barometer.trend !== "na" && (
+            <span className="text-sm font-medium">{TREND[barometer.trend]}</span>
+          )}
         </div>
 
         {barometer.state === "insufficient" ? (
@@ -55,14 +62,29 @@ export function QualityFeedbackAdmin({
               <span>🙋 {barometer.incidents} signalement{barometer.incidents > 1 ? "s" : ""}</span>
               {barometer.unresolved > 0 && <span className="font-semibold">⚠️ {barometer.unresolved} sans réponse</span>}
             </div>
-            {barometer.topDimensions.length > 0 && (
-              <p className="mt-2 text-sm">
-                Reviennent le plus :{" "}
-                {barometer.topDimensions
-                  .slice(0, 3)
-                  .map((d) => `${DIMENSION_LABELS[d.dimension]} (${d.count})`)
-                  .join(" · ")}
-              </p>
+            {advancedLocked ? (
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/70 border border-gray-200 rounded-xl px-3 py-2.5">
+                <p className="text-xs text-gray-600">
+                  🔒 La <strong>tendance</strong> et les <strong>axes récurrents</strong> font
+                  partie du baromètre avancé (plan Croissance).
+                </p>
+                <RequestPlanButton
+                  restaurantId={restaurantId}
+                  feature="barometer_advanced"
+                  requiredPlan="croissance"
+                  className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shrink-0"
+                />
+              </div>
+            ) : (
+              barometer.topDimensions.length > 0 && (
+                <p className="mt-2 text-sm">
+                  Reviennent le plus :{" "}
+                  {barometer.topDimensions
+                    .slice(0, 3)
+                    .map((d) => `${DIMENSION_LABELS[d.dimension]} (${d.count})`)
+                    .join(" · ")}
+                </p>
+              )
             )}
           </>
         )}

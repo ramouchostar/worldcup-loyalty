@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { setPlan, type Plan } from "@/lib/entitlements";
+import { settlePlanRequests, markPlanRequestHandled } from "@/lib/plan-requests";
 
 async function requireSuperAdmin() {
   const supabase = await createServerSupabaseClient();
@@ -40,6 +42,38 @@ export async function setRestaurantStatus(restaurantId: string, status: "active"
 
   const admin = createAdminClient();
   await admin.from("restaurants").update({ status }).eq("id", restaurantId);
+  revalidatePath("/platform");
+}
+
+// ADR 0029 — flip de plan manuel (Phase 2, en attendant Stripe). Activer un
+// plan solde automatiquement les demandes qu'il couvre (m51).
+export async function setRestaurantPlanFromForm(formData: FormData) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+
+  const restaurantId = (formData.get("restaurantId") as string) ?? "";
+  const plan = formData.get("plan") as Plan;
+  if (!restaurantId || !["gratuit", "croissance", "pro"].includes(plan)) return;
+
+  await setPlan(restaurantId, plan);
+  await settlePlanRequests(restaurantId, plan);
+  revalidatePath("/platform");
+}
+
+// Activer le plan exactement demandé (bouton de la section « Demandes de plan »).
+export async function grantPlanRequest(restaurantId: string, plan: Plan) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+  await setPlan(restaurantId, plan);
+  await settlePlanRequests(restaurantId, plan);
+  revalidatePath("/platform");
+}
+
+// Ignorer une demande sans changer le plan (lead traité hors app, refus…).
+export async function dismissPlanRequest(requestId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+  await markPlanRequestHandled(requestId);
   revalidatePath("/platform");
 }
 

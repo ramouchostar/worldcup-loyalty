@@ -1,7 +1,16 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { approveRestaurant, rejectRestaurant, setRestaurantStatus } from "./actions";
+import {
+  approveRestaurant,
+  rejectRestaurant,
+  setRestaurantStatus,
+  setRestaurantPlanFromForm,
+  grantPlanRequest,
+  dismissPlanRequest,
+} from "./actions";
+import { getPendingPlanRequests } from "@/lib/plan-requests";
+import type { Plan } from "@/lib/entitlements";
 import { CreateRestaurantForm } from "./CreateRestaurantForm";
 import { AssignOwnerForm } from "./AssignOwnerForm";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -31,23 +40,32 @@ export default async function PlatformPage() {
 
   const admin = createAdminClient();
 
-  const [{ data: allRaw }, { count: memberCount }, { data: myMembership }] = await Promise.all([
-    admin
-      .from("restaurants")
-      .select("id, name, sector, status, owner_id, created_at")
-      .order("created_at", { ascending: false }),
-    admin.from("memberships").select("user_id", { count: "exact", head: true }),
-    // ADR 0030 §2 — sortie de la console : retour vers l'app membre (dernier
-    // établissement rejoint), /join si le super-admin n'est membre nulle part.
-    supabase
-      .from("memberships")
-      .select("restaurant_id")
-      .eq("user_id", user.id)
-      .order("joined_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const [{ data: allRaw }, { count: memberCount }, { data: myMembership }, { data: subsRaw }, planRequests] =
+    await Promise.all([
+      admin
+        .from("restaurants")
+        .select("id, name, sector, status, owner_id, created_at")
+        .order("created_at", { ascending: false }),
+      admin.from("memberships").select("user_id", { count: "exact", head: true }),
+      // ADR 0030 §2 — sortie de la console : retour vers l'app membre (dernier
+      // établissement rejoint), /join si le super-admin n'est membre nulle part.
+      supabase
+        .from("memberships")
+        .select("restaurant_id")
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      // ADR 0029 — plans courants (m48) + demandes de plan (m51)
+      admin.from("restaurant_subscriptions").select("restaurant_id, plan, status"),
+      getPendingPlanRequests(),
+    ]);
   const backHref = myMembership ? `/r/${myMembership.restaurant_id}/dashboard` : "/join";
+  const planById = new Map(
+    (((subsRaw as { restaurant_id: string; plan: Plan; status: string }[] | null) ?? []))
+      .filter((s) => s.status === "active")
+      .map((s) => [s.restaurant_id, s.plan])
+  );
 
   const all = (allRaw ?? []) as RestaurantRow[];
   const pendingList = all.filter((r) => r.status === "pending");
@@ -174,6 +192,57 @@ export default async function PlatformPage() {
           )}
         </div>
 
+        {/* Demandes de plan (ADR 0029 — CTA du paywall doux, m51) */}
+        {planRequests.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+            <h2 className="font-bold text-gray-900 mb-4">
+              Demandes de plan
+              <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {planRequests.length}
+              </span>
+            </h2>
+            <div className="space-y-3">
+              {planRequests.map((req) => {
+                const resto = all.find((r) => r.id === req.restaurant_id);
+                return (
+                  <div key={req.id} className="border border-gray-200 rounded-xl p-4">
+                    <p className="font-semibold text-gray-900">
+                      {resto?.name ?? req.restaurant_id}
+                      <span className="ml-2 text-xs font-bold text-brand-red uppercase">
+                        → {req.requested_plan}
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {new Date(req.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
+                      {req.feature && <> · depuis « {req.feature} »</>}
+                      {" · plan actuel : "}
+                      {planById.get(req.restaurant_id) ?? "gratuit"}
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <form action={grantPlanRequest.bind(null, req.restaurant_id, req.requested_plan)}>
+                        <button
+                          type="submit"
+                          className="bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          Activer {req.requested_plan}
+                        </button>
+                      </form>
+                      <form action={dismissPlanRequest.bind(null, req.id)}>
+                        <button
+                          type="submit"
+                          className="bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          Ignorer
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Tous les établissements */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h2 className="font-bold text-gray-900 mb-4">Tous les établissements ({all.length})</h2>
@@ -218,6 +287,25 @@ export default async function PlatformPage() {
                       >
                         Page publique ↗
                       </Link>
+                      {/* ADR 0029 — flip de plan manuel (Stripe en Phase 5) */}
+                      <form action={setRestaurantPlanFromForm} className="flex items-center gap-1">
+                        <input type="hidden" name="restaurantId" value={r.id} />
+                        <select
+                          name="plan"
+                          defaultValue={planById.get(r.id) ?? "gratuit"}
+                          className="text-xs border border-gray-200 rounded-lg px-1.5 py-1.5 bg-white"
+                        >
+                          <option value="gratuit">Gratuit</option>
+                          <option value="croissance">Croissance</option>
+                          <option value="pro">Pro</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          OK
+                        </button>
+                      </form>
                       {r.status === "active" ? (
                         <form action={setRestaurantStatus.bind(null, r.id, "disabled")} className="ml-auto">
                           <ConfirmSubmitButton

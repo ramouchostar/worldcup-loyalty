@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireSuperAdmin } from "@/lib/admin-guard";
 import { getPlan, setPlan, type Plan } from "@/lib/entitlements";
+import { settlePlanRequests } from "@/lib/plan-requests";
 
 const PLANS: Plan[] = ["gratuit", "croissance", "pro"];
 
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await setPlan(restaurantId, plan);
+    // Solde les demandes de plan couvertes (m51 — best-effort).
+    await settlePlanRequests(restaurantId, plan);
     return NextResponse.json({ ok: true, restaurantId, plan });
   } catch (e) {
     console.error("[api/admin/subscription] setPlan failed:", (e as Error).message);

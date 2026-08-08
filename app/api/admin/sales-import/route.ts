@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
 import { parseSalesRows, parseRowsFromGrid, type ColumnMapping } from "@/lib/sales-import";
+import { ensureTrialStarted } from "@/lib/entitlements";
 
 // Import des ventes de caisse (ADR 0027). Surface ADMIN uniquement — jamais
 // une API publique ne renvoie de vente caisse (régression ADR 0007 sinon).
@@ -95,6 +96,13 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: "Échec de l'import des ventes." }, { status: 500 });
   }
+
+  // ADR 0029 §5 — l'import rend forecast/ventes data-ready : l'essai 30 j
+  // démarre maintenant (idempotent, best-effort).
+  await Promise.all([
+    ensureTrialStarted(restaurantId, "forecast"),
+    ensureTrialStarted(restaurantId, "sales"),
+  ]);
 
   return NextResponse.json({
     ok: true,

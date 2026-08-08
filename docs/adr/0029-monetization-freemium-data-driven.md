@@ -1,6 +1,6 @@
 # ADR 0029 — Modèle de monétisation (freemium piloté par la donnée)
 
-**Statut** : Accepté (2026-07-27) — **modèle décidé, PAS encore implémenté**. Le client payant est le **restaurateur** ; le **membre ne paie jamais** et son expérience est identique quel que soit le plan du resto (ADR 0007 / 0028 intacts). Montants € : à caler.
+**Statut** : Accepté (2026-07-27) — **Phases 1 et 2 implémentées** (2026-08-08) : entitlements m48 + `lib/entitlements.ts` (Phase 1) ; gating des 5 surfaces Croissance avec essais 30 j au data-ready/1ʳᵉ utilisation, paywall doux (contenu flouté + CTA), badge de plan console, demandes de plan m51 + section /platform, flip manuel super-admin (Phase 2). Restent : métering scans (Phase 3), repères secteur (Phase 4), Stripe (Phase 5), clause CGU. Le client payant est le **restaurateur** ; le **membre ne paie jamais** et son expérience est identique quel que soit le plan du resto (ADR 0007 / 0028 intacts). Montants € : à caler.
 
 ## Contexte
 

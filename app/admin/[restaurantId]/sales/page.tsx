@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
+import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
+import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
 
 // Ventes par plat (ADR 0020) — agrégats des lignes d'articles lues sur les
 // tickets scannés par les membres. Surface admin uniquement : les euros et
@@ -49,6 +51,8 @@ export default async function AdminSalesPage({
   if (!user) redirect("/login");
   if (!(await isEstablishmentAdmin(user.id, restaurantId))) redirect("/join");
 
+  // ADR 0029 §5 — « Ventes par plat » = analytique établissement (Croissance).
+  // Essai à la 1re visite avec de la donnée ; paywall doux ensuite.
   const days = PERIODS.some((p) => p.days === Number(rawDays))
     ? Number(rawDays)
     : 30;
@@ -137,6 +141,9 @@ export default async function AdminSalesPage({
 
   const r = (d: number) => `/admin/${restaurantId}/sales?days=${d}`;
 
+  if (orders.length > 0) await ensureTrialStarted(restaurantId, "sales");
+  const ent = await getEntitlement(restaurantId, "sales");
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -164,6 +171,16 @@ export default async function AdminSalesPage({
         </div>
       </div>
 
+      <TrialBanner ent={ent} restaurantId={restaurantId} feature="sales" />
+
+      <PaywallSection
+        ent={ent}
+        restaurantId={restaurantId}
+        feature="sales"
+        title="Débloque tes ventes par plat"
+        pitch="CA, marge et volume plat par plat, heures et jours forts — calculés sur les tickets de tes membres. Passe au plan Croissance pour les consulter."
+      >
+      <div className="space-y-6">
       {/* Totaux de la période */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
@@ -302,6 +319,8 @@ export default async function AdminSalesPage({
           </div>
         </>
       )}
+      </div>
+      </PaywallSection>
     </div>
   );
 }

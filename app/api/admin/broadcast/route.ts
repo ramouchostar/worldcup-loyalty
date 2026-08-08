@@ -9,6 +9,7 @@ import {
   type BroadcastTarget,
 } from "@/lib/broadcast";
 import { isTeamType } from "@/lib/teams";
+import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const dayDiff = (a: string, b: string) =>
@@ -59,6 +60,21 @@ export async function POST(req: Request) {
   const promoOn = typeof body?.promoOn === "string" && DATE_RE.test(body.promoOn) ? body.promoOn : null;
 
   if (sendOn) {
+    // ADR 0029 — la PROGRAMMATION est une fonction Croissance (le broadcast
+    // manuel immédiat reste Gratuit). Essai 30 j à la 1re utilisation, puis
+    // paywall doux : on refuse avec un message clair, jamais silencieusement.
+    await ensureTrialStarted(restaurantId, "broadcast_scheduled");
+    const ent = await getEntitlement(restaurantId, "broadcast_scheduled");
+    if (!ent.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "La programmation de broadcasts fait partie du plan Croissance — ton essai gratuit est terminé. L'envoi immédiat reste disponible.",
+          paywall: true,
+        },
+        { status: 403 }
+      );
+    }
     const today = todayInBrussels();
     if (dayDiff(today, sendOn) < 0) {
       return NextResponse.json({ error: "La date d'envoi est déjà passée." }, { status: 400 });

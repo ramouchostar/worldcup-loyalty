@@ -11,6 +11,8 @@ import {
 } from "@/lib/forecast";
 import SalesImport from "@/components/admin/SalesImport";
 import LocalEventManager, { type EventItem } from "@/components/admin/LocalEventManager";
+import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
+import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
 
 // Prévisions de CA (ADR 0027). Surface ADMIN uniquement — le restaurateur a
 // le droit de voir ses euros (l'ADR 0007 ne vise que le membre). Rien ici
@@ -92,6 +94,14 @@ export default async function ForecastPage({
     schoolCommunity: community,
   });
 
+  // ADR 0029 §5 — l'essai démarre quand la fonction devient data-ready (le
+  // forecast peut impressionner), puis paywall doux à l'expiration. L'import
+  // de ventes, lui, reste TOUJOURS ouvert (la donnée est l'actif, §3).
+  if (forecast.status !== "insufficient_data") {
+    await ensureTrialStarted(restaurantId, "forecast");
+  }
+  const ent = await getEntitlement(restaurantId, "forecast");
+
   return (
     <div className="space-y-6">
       <div>
@@ -105,6 +115,8 @@ export default async function ForecastPage({
 
       <SalesImport restaurantId={restaurantId} lastImport={importRes.data ?? null} />
 
+      <TrialBanner ent={ent} restaurantId={restaurantId} feature="forecast" />
+
       {forecast.status === "insufficient_data" ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center">
           <p className="text-lg font-bold text-gray-900">Pas encore assez de données</p>
@@ -115,6 +127,13 @@ export default async function ForecastPage({
           </p>
         </div>
       ) : (
+        <PaywallSection
+          ent={ent}
+          restaurantId={restaurantId}
+          feature="forecast"
+          title="Débloque tes prévisions"
+          pitch="Ta prévision de la semaine est prête — fourchette jour par jour, paye, vacances et événements calibrés sur ton historique. Passe au plan Croissance pour la consulter."
+        >
         <>
           {/* Hero — total semaine */}
           <div className="bg-brand-dark text-white rounded-2xl p-5">
@@ -154,6 +173,7 @@ export default async function ForecastPage({
             </p>
           </div>
         </>
+        </PaywallSection>
       )}
 
       <LocalEventManager restaurantId={restaurantId} events={events} />

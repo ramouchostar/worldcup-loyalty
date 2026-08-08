@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
+import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
+import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
 import {
   WEEKDAY_LABELS,
   MIN_ITEMS_FOR_INSIGHTS,
@@ -423,6 +425,13 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     });
   }
 
+  // ADR 0029 §5 — Opportunités = analytique établissement (Croissance).
+  // Essai dès qu'il y a assez de données pour impressionner ; les états
+  // vides ne sont jamais verrouillés.
+  const insightsReady = totalItems >= MIN_ITEMS_FOR_INSIGHTS;
+  if (insightsReady) await ensureTrialStarted(restaurantId, "insights");
+  const ent = await getEntitlement(restaurantId, "insights");
+
   return (
     <div className="space-y-6">
       <div>
@@ -433,6 +442,17 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
         </p>
       </div>
 
+      <TrialBanner ent={ent} restaurantId={restaurantId} feature="insights" />
+
+      <PaywallSection
+        ent={ent}
+        restaurantId={restaurantId}
+        feature="insights"
+        enabled={insightsReady}
+        title="Débloque tes opportunités"
+        pitch="Jours creux, promos sûres, combos gagnants et l'audit de ta carte — calculés sur tes propres ventes, marge préservée. Passe au plan Croissance pour les consulter."
+      >
+      <div className="space-y-6">
       {totalItems < MIN_ITEMS_FOR_INSIGHTS ? (
         <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center">
           <p className="text-3xl mb-2">🌱</p>
@@ -547,6 +567,8 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
           </div>
         </div>
       )}
+      </div>
+      </PaywallSection>
 
       <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
         <p>

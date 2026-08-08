@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getEstablishmentFeedback } from "@/lib/feedback";
 import { barometerFromItems } from "@/lib/barometer";
 import { QualityFeedbackAdmin } from "@/components/admin/QualityFeedbackAdmin";
+import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
+import { TrialBanner } from "@/components/admin/Paywall";
 
 export const metadata = { title: "Baromètre de confiance" };
 
@@ -21,6 +23,14 @@ export default async function AdminQualityPage({ params }: { params: Promise<{ r
     new Date()
   );
 
+  // ADR 0029 — baromètre de BASE (état, compteurs, réponses) = Gratuit ;
+  // tendance + décomposition = baromètre AVANCÉ (Croissance). Essai dès que
+  // le baromètre a assez de signaux pour impressionner.
+  if (barometer.state !== "insufficient") {
+    await ensureTrialStarted(restaurantId, "barometer_advanced");
+  }
+  const ent = await getEntitlement(restaurantId, "barometer_advanced");
+
   return (
     <div className="space-y-6">
       <div>
@@ -30,7 +40,13 @@ export default async function AdminQualityPage({ params }: { params: Promise<{ r
           Visible par toi seul, jamais par le client.
         </p>
       </div>
-      <QualityFeedbackAdmin restaurantId={restaurantId} barometer={barometer} items={items} />
+      <TrialBanner ent={ent} restaurantId={restaurantId} feature="barometer_advanced" />
+      <QualityFeedbackAdmin
+        restaurantId={restaurantId}
+        barometer={barometer}
+        items={items}
+        advancedLocked={ent.state === "verrouille"}
+      />
     </div>
   );
 }

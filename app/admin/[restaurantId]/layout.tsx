@@ -5,6 +5,7 @@ import { brandStyle } from "@/lib/branding";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
+import { getPlan } from "@/lib/entitlements";
 
 export default async function AdminLayout({
   children,
@@ -35,11 +36,21 @@ export default async function AdminLayout({
 
   // ADR 0030 §2 — « Mes établissements » si l'utilisateur en administre
   // plusieurs (le sélecteur /admin cessait d'être orphelin).
-  const { count: ownedCount } = await createAdminClient()
-    .from("restaurants")
-    .select("id", { count: "exact", head: true })
-    .eq("owner_id", user.id);
+  const [{ count: ownedCount }, plan] = await Promise.all([
+    createAdminClient()
+      .from("restaurants")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id),
+    // ADR 0029 — badge de plan : le restaurateur sait toujours où il en est.
+    getPlan(restaurantId),
+  ]);
   const showEstablishmentSwitcher = (ownedCount ?? 0) > 1;
+  const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
+    gratuit: { label: "Gratuit", cls: "bg-white/10 text-gray-300" },
+    croissance: { label: "Croissance", cls: "bg-brand-gold/20 text-brand-gold" },
+    pro: { label: "Pro", cls: "bg-brand-gold text-brand-dark" },
+  };
+  const planBadge = PLAN_BADGE[plan] ?? PLAN_BADGE.gratuit;
 
   const branding = await getRestaurantBranding(restaurantId);
   const base = `/admin/${restaurantId}`;
@@ -94,6 +105,9 @@ export default async function AdminLayout({
           <div className="flex items-center gap-3 min-w-0">
             <span className="text-brand-gold font-black text-lg shrink-0">⚙️ Admin</span>
             <span className="text-gray-500 text-sm truncate">{restaurant.name}</span>
+            <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${planBadge.cls}`}>
+              {planBadge.label}
+            </span>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {access.isSuperAdmin && (
