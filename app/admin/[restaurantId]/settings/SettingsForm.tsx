@@ -8,6 +8,7 @@ type Initial = {
   sector: string;
   address: string;
   cuisine_types: string;
+  school_calendar: string;
   google_maps_url: string;
   website_url: string;
   instagram_url: string;
@@ -90,6 +91,27 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
             placeholder="Ex : Burger artisanal, Halal, Dessert"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
           />
+        </div>
+        {/* ADR 0027 §5 — communauté scolaire : pilote le facteur « vacances »
+            des prévisions. Aucune UI n'existait pour l'ajuster (audit 2026-08). */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            🗓️ Calendrier scolaire de ta clientèle
+          </label>
+          <select
+            name="school_calendar"
+            defaultValue={initial.school_calendar}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Non défini (facteur vacances inactif)</option>
+            <option value="FR">🇧🇪 Communauté française (Wallonie–Bruxelles)</option>
+            <option value="NL">🇧🇪 Communauté flamande</option>
+            <option value="DE">🇧🇪 Communauté germanophone</option>
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            Les congés scolaires diffèrent selon la communauté depuis 2022 — tes
+            Prévisions s&apos;en servent pour anticiper l&apos;affluence.
+          </p>
         </div>
       </div>
 

@@ -36,6 +36,12 @@ export async function updateRestaurantInfo(
   // ADR 0016 §2 — le secteur alimente la page publique /secteurs
   if (!sector || sector.length < 2) return { error: "Le secteur (ville/quartier) est requis." };
 
+  // ADR 0027 §5 — communauté scolaire (facteur vacances des prévisions).
+  const rawCalendar = ((formData.get("school_calendar") as string) ?? "").trim();
+  if (rawCalendar && !["FR", "NL", "DE"].includes(rawCalendar)) {
+    return { error: "Calendrier scolaire invalide." };
+  }
+
   const admin = createAdminClient();
   const { error } = await admin
     .from("restaurants")
@@ -44,6 +50,7 @@ export async function updateRestaurantInfo(
       sector,
       address,
       cuisine_types: cuisineTypes,
+      school_calendar: rawCalendar || null,
       google_maps_url: parseHttpUrl(formData.get("google_maps_url") as string),
       website_url: parseHttpUrl(formData.get("website_url") as string),
       instagram_url: parseHttpUrl(formData.get("instagram_url") as string),
