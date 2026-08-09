@@ -44,7 +44,11 @@ export function ScaledFrame({
     <div
       ref={outerRef}
       className={className}
-      style={{ height: height || undefined, overflow: "hidden" }}
+      // minWidth: 0 défensif — un parent flex/grid ne mesurerait sinon jamais
+      // en dessous de la largeur intrinsèque du contenu enfant (width fixe
+      // ci-dessous), ce qui a déjà empêché ce conteneur de rétrécir sur
+      // mobile dans une grille (bug constaté sur ProductSection, 2026-08-08).
+      style={{ height: height || undefined, overflow: "hidden", minWidth: 0 }}
     >
       <div
         ref={innerRef}

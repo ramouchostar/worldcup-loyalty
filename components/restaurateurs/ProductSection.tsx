@@ -4,6 +4,9 @@ import { Reveal } from "./motion";
 import { BrowserWindow } from "./BrowserWindow";
 import { InsightsMockup } from "./InsightsMockup";
 import { ForecastMockup } from "./ForecastMockup";
+import { MobileScreenCard } from "./MobileScreenCard";
+import { InsightsMockupMobile } from "./InsightsMockupMobile";
+import { ForecastMockupMobile } from "./ForecastMockupMobile";
 
 const OPPORTUNITY_POINTS = [
   "Calcul déterministe — chaque promo est explicable par ses chiffres",
@@ -30,17 +33,31 @@ export function ProductSection() {
         </Reveal>
 
         <Reveal delay={120} y={28}>
-          <BrowserWindow url="/admin/belchicken/insights" scaleWidth={900}>
-            <InsightsMockup />
-          </BrowserWindow>
+          <div className="md:hidden">
+            <MobileScreenCard url="/admin/belchicken/insights">
+              <InsightsMockupMobile />
+            </MobileScreenCard>
+          </div>
+          <div className="hidden md:block">
+            <BrowserWindow url="/admin/belchicken/insights" scaleWidth={900}>
+              <InsightsMockup />
+            </BrowserWindow>
+          </div>
         </Reveal>
       </div>
 
       <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center pt-24 pb-24">
         <Reveal y={28} className="order-2 lg:order-1">
-          <BrowserWindow url="/admin/belchicken/forecast" scaleWidth={900}>
-            <ForecastMockup />
-          </BrowserWindow>
+          <div className="md:hidden">
+            <MobileScreenCard url="/admin/belchicken/forecast">
+              <ForecastMockupMobile />
+            </MobileScreenCard>
+          </div>
+          <div className="hidden md:block">
+            <BrowserWindow url="/admin/belchicken/forecast" scaleWidth={900}>
+              <ForecastMockup />
+            </BrowserWindow>
+          </div>
         </Reveal>
 
         <Reveal delay={120} className="order-1 lg:order-2">
