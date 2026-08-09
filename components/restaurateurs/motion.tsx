@@ -316,3 +316,61 @@ export function useParallaxOffset(speed: number) {
 
   return ref;
 }
+
+// Fait défiler `contentRef` verticalement à l'intérieur de `viewportRef`
+// (hauteur fixe, overflow caché) en suivant la position de `viewportRef`
+// dans la fenêtre : 0% de progression quand son haut entre par le bas de
+// l'écran, 100% quand son bas en est sorti par le haut — un scrub réversible
+// piloté par le scroll réel, pas une animation qui se joue une fois. Mutation
+// DOM directe (pas de re-render par tick de scroll), désactivé si
+// prefers-reduced-motion (le contenu reste alors figé en haut).
+export function useScrollScrub<
+  V extends HTMLElement = HTMLDivElement,
+  C extends HTMLElement = HTMLDivElement,
+>() {
+  const viewportRef = useRef<V>(null);
+  const contentRef = useRef<C>(null);
+  const reduced = usePrefersReducedMotion();
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const content = contentRef.current;
+    if (!viewport || !content) return;
+
+    if (reduced) {
+      content.style.transform = "translate3d(0, 0, 0)";
+      return;
+    }
+
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const rect = viewport.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const total = rect.height + vh;
+      const traveled = vh - rect.top;
+      const progress = total > 0 ? Math.min(1, Math.max(0, traveled / total)) : 0;
+      const maxScroll = Math.max(0, content.scrollHeight - viewport.clientHeight);
+      content.style.transform = `translate3d(0, ${-progress * maxScroll}px, 0)`;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    const ro = new ResizeObserver(update);
+    ro.observe(content);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      ro.disconnect();
+    };
+  }, [reduced]);
+
+  return { viewportRef, contentRef };
+}
