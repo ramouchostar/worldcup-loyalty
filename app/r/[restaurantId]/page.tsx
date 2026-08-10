@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
+import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import type { CommunityScore, Team } from "@/types";
@@ -10,12 +10,15 @@ type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
 
+// Étape 1 volontairement centrée sur le scan plutôt que sur l'équipe — les
+// équipes ne doivent pas être mises en avant à ce stade du funnel (retour
+// restaurateur, 2026-08-10).
 const STEPS = [
   {
     num: "1",
-    icon: "👥",
-    title: "Rejoins ou crée ton équipe",
-    desc: "École, entreprise, quartier, taxis... crée ton équipe ou rejoins celle de tes proches.",
+    icon: "📱",
+    title: "Scanne le QR code",
+    desc: "Au comptoir ou sur ta table, un scan suffit pour rejoindre le programme.",
   },
   {
     num: "2",
@@ -62,7 +65,7 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
     );
   }
 
-  const [{ data: membership }, { data: scoresRaw }] = await Promise.all([
+  const [{ data: membership }, { data: scoresRaw }, branding] = await Promise.all([
     user
       ? supabase.from("memberships").select("user_id").eq("user_id", user.id).eq("restaurant_id", restaurantId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -75,17 +78,26 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
       .eq("teams.restaurant_id", restaurantId)
       .order("score", { ascending: false })
       .limit(5),
+    getRestaurantBranding(restaurantId),
   ]);
 
   const top5 = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter((s) => s.teams?.is_active);
+  // Sous ce seuil, le nombre reste peu flatteur à afficher publiquement —
+  // retour restaurateur, on préfère se taire tant que ça ne fait pas nombre.
   const totalMembers = top5.reduce((sum, s) => sum + s.member_count, 0);
   const isMember = !!membership;
+  const isKraainem = restaurantId === "kraainem";
+  const logo = logoPublicUrl(branding.logo_url);
 
   return (
     <div className="min-h-screen bg-white">
       {/* ── HERO ── */}
       <div className="bg-brand-dark text-white">
         <div className="max-w-lg mx-auto px-5 pt-12 pb-10">
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt={restaurant.name} className="h-12 w-auto object-contain mb-5" />
+          ) : null}
           <div className="inline-flex items-center gap-2 bg-brand-red/20 border border-brand-red/40 rounded-full px-3 py-1 mb-5">
             <span className="text-brand-gold text-xs font-bold uppercase tracking-widest">{restaurant.name}</span>
           </div>
@@ -153,7 +165,7 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
             </Link>
           </div>
 
-          {totalMembers > 0 && (
+          {totalMembers > 100 && (
             <p className="text-center text-gray-400 text-sm mt-6">
               <span className="text-white font-bold">{totalMembers}</span> membres inscrits chez {restaurant.name}
             </p>
@@ -185,7 +197,10 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
       </div>
 
       {/* ── TOP 5 ÉQUIPES ── */}
-      {top5.length > 0 && (
+      {/* Masqué pour Kraainem le temps de valider si le concept d'équipe
+          prend (retour restaurateur, 2026-08-10) — réactivable en retirant
+          isKraainem de cette condition. */}
+      {!isKraainem && top5.length > 0 && (
         <div className="bg-gray-50 py-10">
           <div className="max-w-lg mx-auto px-5">
             <div className="flex items-center justify-between mb-5">
@@ -234,7 +249,7 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
           <p className="text-4xl mb-4">🎁</p>
           <h2 className="text-3xl font-black mb-3">Prêt à rejoindre {restaurant.name} ?</h2>
           <p className="text-red-100 mb-8 leading-relaxed">
-            Inscription gratuite en 30 secondes. Aucune application à télécharger.
+            Inscription gratuite en 30 secondes. Des cadeaux à gagner lors des prochaines commandes et des promotions exclusives.
           </p>
           {!user ? (
             <form action={redirectToLogin.bind(null, restaurantId)}>
@@ -273,6 +288,17 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
             <Link href={`/r/${restaurantId}/leaderboard`} className="hover:text-gray-300 transition-colors">Classement</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Connexion</Link>
           </div>
+        </div>
+        <div className="max-w-lg mx-auto px-5 mt-4 pt-4 border-t border-white/10 text-center text-[11px] text-gray-500">
+          Launched by{" "}
+          <a
+            href="https://www.boosteats.tech"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-gold hover:underline font-semibold"
+          >
+            BOOSTEATS
+          </a>
         </div>
       </footer>
     </div>
