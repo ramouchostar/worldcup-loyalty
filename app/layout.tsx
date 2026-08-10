@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo } from "next/font/google";
+import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
@@ -25,7 +25,11 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"
 // (console admin). Chargée globalement comme les autres polices curées, mais
 // appliquée seulement via la classe utilitaire font-landing.
 const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700"], style: ["normal", "italic"], variable: "--font-archivo", display: "swap" });
-const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable}`;
+// Template QR Belchicken Kraainem (design Claude "Templates QR Belchicken")
+// — display du support imprimé, distinct d'Archivo (corps) et non exposé
+// dans FONT_OPTIONS (pas sélectionnable comme --brand-font).
+const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
+const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 

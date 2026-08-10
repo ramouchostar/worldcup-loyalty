@@ -21,31 +21,43 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
   if (!restaurant) notFound();
 
   const branding = await getRestaurantBranding(restaurantId);
+  const isKraainem = restaurantId === "kraainem";
   const dark = branding.brand_dark ?? BRAND_DEFAULTS.dark;
   const targetUrl = `${APP_URL}/r/${restaurantId}`;
+
+  // Belchicken Kraainem : QR toujours noir pur sur blanc pur (règle dure du
+  // design "Templates QR Belchicken"), même sur l'export brut destiné à un
+  // imprimeur pro — jamais teinté à la couleur de marque.
+  const qrColor = isKraainem ? "#0A0A0A" : dark;
 
   const [svg, pngDataUrl] = await Promise.all([
     QRCode.toString(targetUrl, {
       type: "svg",
       errorCorrectionLevel: "M",
       margin: 2,
-      color: { dark, light: "#FFFFFF" },
+      color: { dark: qrColor, light: "#FFFFFF" },
     }),
     QRCode.toDataURL(targetUrl, {
       errorCorrectionLevel: "M",
       width: 2048, // impression nette jusqu'au format affiche
       margin: 2,
-      color: { dark, light: "#FFFFFF" },
+      color: { dark: qrColor, light: "#FFFFFF" },
     }),
   ]);
 
   const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
-  const formats: { key: string; icon: string; label: string; desc: string }[] = [
-    { key: "a6", icon: "🍽️", label: "Sticker de table", desc: "A6 · 105 × 148 mm — à coller sur les tables" },
-    { key: "flyer", icon: "🛍️", label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },
-    { key: "a4", icon: "🧾", label: "Affiche caisse", desc: "A4 · 210 × 297 mm — à afficher au comptoir" },
-  ];
+  const formats: { key: string; icon: string; label: string; desc: string }[] = isKraainem
+    ? [
+        { key: "sticker", icon: "🍽️", label: "Sticker vitrine", desc: "80 × 80 mm — vitrine & caisse" },
+        { key: "flyer", icon: "🛍️", label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },
+        { key: "affiche", icon: "🧾", label: "Affiche murale", desc: "A3 · 297 × 420 mm — mur & entrée" },
+      ]
+    : [
+        { key: "a6", icon: "🍽️", label: "Sticker de table", desc: "A6 · 105 × 148 mm — à coller sur les tables" },
+        { key: "flyer", icon: "🛍️", label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },
+        { key: "a4", icon: "🧾", label: "Affiche caisse", desc: "A4 · 210 × 297 mm — à afficher au comptoir" },
+      ];
 
   return (
     <div className="space-y-6 max-w-lg">
