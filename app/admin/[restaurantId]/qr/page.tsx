@@ -24,6 +24,9 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
   const isKraainem = restaurantId === "kraainem";
   const dark = branding.brand_dark ?? BRAND_DEFAULTS.dark;
   const targetUrl = `${APP_URL}/r/${restaurantId}`;
+  // UTM sur le QR encodé uniquement — jamais sur l'URL affichée en clair
+  // sous l'aperçu, pour ne pas exposer une chaîne illisible à l'écran.
+  const qrTargetUrl = `${targetUrl}?utm_source=qr_code&utm_medium=print&utm_campaign=loyalty_signup`;
 
   // Belchicken Kraainem : QR toujours noir pur sur blanc pur (règle dure du
   // design "Templates QR Belchicken"), même sur l'export brut destiné à un
@@ -31,13 +34,13 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
   const qrColor = isKraainem ? "#0A0A0A" : dark;
 
   const [svg, pngDataUrl] = await Promise.all([
-    QRCode.toString(targetUrl, {
+    QRCode.toString(qrTargetUrl, {
       type: "svg",
       errorCorrectionLevel: "M",
       margin: 2,
       color: { dark: qrColor, light: "#FFFFFF" },
     }),
-    QRCode.toDataURL(targetUrl, {
+    QRCode.toDataURL(qrTargetUrl, {
       errorCorrectionLevel: "M",
       width: 2048, // impression nette jusqu'au format affiche
       margin: 2,
