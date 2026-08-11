@@ -246,11 +246,13 @@ function FeedbackCard({ feedback, messages }: { feedback: QualityFeedback; messa
   const router = useRouter();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [replyError, setReplyError] = useState(false);
   const isEnc = feedback.sentiment === "encouragement";
 
   async function reply() {
     if (!text.trim()) return;
     setBusy(true);
+    setReplyError(false);
     try {
       const res = await fetch(`/api/feedback/${feedback.id}/reply`, {
         method: "POST",
@@ -262,9 +264,12 @@ function FeedbackCard({ feedback, messages }: { feedback: QualityFeedback; messa
       if (res.ok) {
         setText("");
         router.refresh();
+      } else {
+        setReplyError(true);
       }
     } catch {
       // échec réseau — le texte reste, le bouton se réactive (finally)
+      setReplyError(true);
     } finally {
       setBusy(false);
     }
@@ -306,17 +311,23 @@ function FeedbackCard({ feedback, messages }: { feedback: QualityFeedback; messa
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Répondre…"
+              aria-label="Ta réponse"
               className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={reply}
               disabled={busy || !text.trim()}
-              className="rounded-xl bg-brand-red text-white px-4 text-sm disabled:opacity-40"
+              className="rounded-xl bg-brand-red text-white px-4 py-2.5 min-h-[44px] text-sm disabled:opacity-40 shrink-0"
             >
-              {busy ? "…" : "Envoyer"}
+              {busy ? "…" : "Envoyer à mon resto"}
             </button>
           </div>
+          {replyError && (
+            <p className="text-sm text-brand-red">
+              L&apos;envoi a échoué. Vérifie ta connexion et réessaie.
+            </p>
+          )}
         </div>
       )}
     </div>

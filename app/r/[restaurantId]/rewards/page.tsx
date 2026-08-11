@@ -187,9 +187,10 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
                 {!isScoreReached && (
                   <div className="mt-4">
                     <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="bg-brand-red h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      {/* Plancher visuel : une barre jamais à 0 % (progression dotée, audit UX) */}
+                      <div className="bg-brand-red h-2 rounded-full transition-all" style={{ width: `${Math.max(pct, 6)}%` }} />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 text-right">{pct}%</p>
+                    {pct > 0 && <p className="text-xs text-gray-500 mt-1 text-right">{pct}%</p>}
                   </div>
                 )}
 

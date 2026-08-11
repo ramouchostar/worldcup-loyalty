@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { LeaderboardRealtime } from "@/components/LeaderboardRealtime";
 import Link from "next/link";
+import { BackLink } from "@/components/member/BackLink";
 import type { CommunityScore, Team } from "@/types";
 
 // total_spent (euros) jamais sélectionné côté client — ADR 0007
@@ -64,14 +65,11 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
 
   return (
     <div className="space-y-5 pb-4">
+      {/* Lien retour unifié (BackLink) — hors du hero sombre pour le contraste */}
+      <BackLink href={backHref} label={user && membershipResult.data ? "Mon équipe" : "Retour"} />
+
       {/* Hero */}
-      <div className="bg-brand-dark text-white rounded-2xl px-4 py-6 -mx-4 -mt-6 sm:mx-0 sm:mt-0 sm:rounded-2xl">
-        <Link
-          href={backHref}
-          className="inline-block text-xs text-gray-400 hover:text-white transition-colors mb-2"
-        >
-          ← Retour
-        </Link>
+      <div className="bg-brand-dark text-white rounded-2xl px-4 py-6 -mx-4 sm:mx-0 sm:rounded-2xl">
         <h1 className="text-2xl font-black">🏆 Classement des équipes</h1>
         <p className="text-gray-400 text-sm mt-1">
           Quelle équipe mange le plus chez {restaurant?.name ?? "nous"} ?
@@ -118,7 +116,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
       {!user && (
         <div className="bg-brand-red rounded-2xl p-5 text-center text-white">
           <p className="font-bold text-lg mb-1">Rejoins ta communauté</p>
-          <p className="text-red-100 text-sm mb-4">
+          <p className="text-red-50 text-sm mb-4">
             Chaque commande chez {restaurant?.name ?? "nous"} fait monter le score de ton équipe.
           </p>
           <Link

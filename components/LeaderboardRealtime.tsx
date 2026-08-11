@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
+import Link from "next/link";
 import type { CommunityScore, Team } from "@/types";
 
 // total_spent (euros) n'entre JAMAIS dans ce composant — ADR 0007. Les mises à
