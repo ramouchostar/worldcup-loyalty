@@ -17,7 +17,7 @@ export async function resolvePostLoginDestination(
   const [{ data: profileRaw }, { data: owned }, { data: membership }] = await Promise.all([
     admin
       .from("profiles")
-      .select("is_admin, is_super_admin, display_name")
+      .select("is_admin, is_super_admin, display_name, birth_date")
       .eq("id", userId)
       .single(),
     admin.from("restaurants").select("id").eq("owner_id", userId).limit(1),
@@ -34,6 +34,7 @@ export async function resolvePostLoginDestination(
     is_admin: boolean;
     is_super_admin: boolean;
     display_name: string | null;
+    birth_date: string | null;
   } | null;
   // is_admin legacy (ADMIN_EMAILS) donne accès à la console du restaurant par
   // défaut — même logique que /admin (app/admin/page.tsx, pont legacy).
@@ -51,5 +52,9 @@ export async function resolvePostLoginDestination(
 
   if (membership) return `/r/${membership.restaurant_id}/dashboard`;
   // Compte sans profil complété → finir l'inscription (cf. registerProfile).
-  return profile?.display_name ? "/join" : "/register";
+  // birth_date est le vrai signal de complétude : le trigger m29b dérive un
+  // display_name du préfixe email (jamais vide pour un compte Google), ce qui
+  // faisait sauter /register — zones et consentements compris — aux inscrits
+  // OAuth. Seul registerProfile pose birth_date.
+  return profile?.display_name && profile?.birth_date ? "/join" : "/register";
 }

@@ -77,13 +77,18 @@ export async function GET(request: NextRequest) {
           .eq("id", user.id);
       }
 
+      // birth_date est le vrai signal de complétude : le trigger m29b dérive
+      // toujours un display_name du préfixe email (jamais vide pour un compte
+      // Google), ce qui faisait sauter /register — donc zones, date de
+      // naissance et consentements ADR 0025 — aux inscrits OAuth. Seul
+      // registerProfile pose birth_date.
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, birth_date")
         .eq("id", user.id)
         .single();
 
-      if (!profile?.display_name) {
+      if (!profile?.display_name || !profile?.birth_date) {
         return NextResponse.redirect(`${origin}/register`);
       }
 
