@@ -48,6 +48,25 @@ export function LeaderboardRealtime({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  // État vide instructif (audit UX 2026-08-11) — jamais un tableau muet.
+  if (rows.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-4xl mb-3" aria-hidden="true">🏆</p>
+        <p className="font-bold text-gray-900 mb-1">Aucune équipe pour l&apos;instant.</p>
+        <p className="text-sm text-gray-500 mb-4">
+          Crée la première et prends la tête du classement !
+        </p>
+        <Link
+          href={`/r/${restaurantId}/my-team`}
+          className="inline-flex items-center bg-brand-red text-white text-sm font-semibold px-5 py-3 min-h-[48px] rounded-xl hover:bg-brand-red/85 transition-colors"
+        >
+          Créer mon équipe →
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {rows.map((entry, idx) => {
