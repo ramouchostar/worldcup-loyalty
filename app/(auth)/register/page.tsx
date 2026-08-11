@@ -68,31 +68,31 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ton prénom</label>
-          <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ex: Karim" required className={inputCls} />
+          <label htmlFor="register-display-name" className="block text-sm font-medium text-gray-700 mb-1">Ton prénom</label>
+          <input id="register-display-name" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ex: Karim" required className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
-          <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} required className={inputCls} />
+          <label htmlFor="register-birth-date" className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
+          <input id="register-birth-date" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} required className={inputCls} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ta zone (ville ou quartier)</label>
-          <input type="text" value={zoneHome} onChange={(e) => setZoneHome(e.target.value)} placeholder="Ex : Molenbeek" required maxLength={40} className={inputCls} />
+          <label htmlFor="register-zone-home" className="block text-sm font-medium text-gray-700 mb-1">Ta zone (ville ou quartier)</label>
+          <input id="register-zone-home" type="text" value={zoneHome} onChange={(e) => setZoneHome(e.target.value)} placeholder="Ex : Molenbeek" required maxLength={40} className={inputCls} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="register-zone-work" className="block text-sm font-medium text-gray-700 mb-1">
               Zone de travail <span className="text-gray-400 font-normal">(facultatif)</span>
             </label>
-            <input type="text" value={zoneWork} onChange={(e) => setZoneWork(e.target.value)} placeholder="Ex : Anderlecht" maxLength={40} className={inputCls} />
+            <input id="register-zone-work" type="text" value={zoneWork} onChange={(e) => setZoneWork(e.target.value)} placeholder="Ex : Anderlecht" maxLength={40} className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="register-zone-school" className="block text-sm font-medium text-gray-700 mb-1">
               Zone d&apos;école <span className="text-gray-400 font-normal">(facultatif)</span>
             </label>
-            <input type="text" value={zoneSchool} onChange={(e) => setZoneSchool(e.target.value)} placeholder="Ex : Ixelles" maxLength={40} className={inputCls} />
+            <input id="register-zone-school" type="text" value={zoneSchool} onChange={(e) => setZoneSchool(e.target.value)} placeholder="Ex : Ixelles" maxLength={40} className={inputCls} />
           </div>
         </div>
 
@@ -101,7 +101,10 @@ export default function RegisterPage() {
             <p className="text-xs text-amber-800">
               Tu as moins de 13 ans : l&apos;accord d&apos;un parent est nécessaire. Indique son email — il recevra une demande de confirmation.
             </p>
-            <input type="email" value={parentalEmail} onChange={(e) => setParentalEmail(e.target.value)} placeholder="Email d'un parent" className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm" />
+            <label htmlFor="register-parental-email" className="block text-sm font-medium text-amber-900">
+              Email d&apos;un parent
+            </label>
+            <input id="register-parental-email" type="email" value={parentalEmail} onChange={(e) => setParentalEmail(e.target.value)} placeholder="parent@exemple.com" autoComplete="email" className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm" />
           </div>
         )}
 
@@ -128,19 +131,27 @@ export default function RegisterPage() {
 
         {error && <p className="text-red-600 text-sm bg-red-50 px-4 py-3 rounded-lg">{error}</p>}
 
+        {/* Le bouton reste désactivé tant que la case n'est pas cochée : on
+            explique pourquoi au lieu de laisser un bouton mort (audit UX 2026-08). */}
+        {!acceptPolicy && (
+          <p className="text-sm text-gray-600 text-center">
+            Coche la case ci-dessus pour continuer.
+          </p>
+        )}
+
         <button
           type="submit"
           disabled={loading || !displayName.trim() || !acceptPolicy}
           className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? "Création..." : "Continuer"}
+          {loading ? "Création..." : "Découvrir mon restaurant →"}
         </button>
       </form>
 
       {/* Sortie in-app : la complétion de profil est post-auth ; sans issue,
           l'utilisateur qui hésite est piégé (audit UX 2026-07). */}
       <form action="/api/auth/logout" method="POST" className="mt-4 text-center">
-        <button type="submit" className="text-xs text-gray-400 hover:text-gray-600 underline">
+        <button type="submit" className="text-sm text-gray-600 hover:text-gray-800 underline inline-flex min-h-[44px] items-center">
           Annuler et se déconnecter
         </button>
       </form>

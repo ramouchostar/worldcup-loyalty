@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import { frenchAuthError } from "@/lib/auth-errors";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setError(error.message);
+      setError(frenchAuthError(error));
       setLoading(false);
       return;
     }
@@ -44,31 +45,35 @@ export default function ResetPasswordPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="reset-password" className="block text-sm font-medium text-gray-700 mb-1">
             Nouveau mot de passe
           </label>
           <input
+            id="reset-password"
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="••••••••"
             required
             minLength={8}
+            autoComplete="new-password"
             autoFocus
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="reset-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
             Confirmer le mot de passe
           </label>
           <input
+            id="reset-confirm-password"
             type="password"
             value={confirm}
             onChange={e => setConfirm(e.target.value)}
             placeholder="••••••••"
             required
             minLength={8}
+            autoComplete="new-password"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
           />
         </div>
@@ -88,7 +93,7 @@ export default function ResetPasswordPage() {
 
       {/* M2 (audit UX) — sortie in-app : lien de récupération périmé / hésitation */}
       <p className="text-center mt-4">
-        <a href="/login" className="text-xs text-gray-400 hover:text-gray-600 underline">
+        <a href="/login" className="text-sm text-gray-600 hover:text-gray-800 underline inline-flex min-h-[44px] items-center">
           ← Retour à la connexion
         </a>
       </p>
