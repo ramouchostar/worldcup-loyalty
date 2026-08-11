@@ -195,8 +195,8 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
         )}
       </div>
 
+      {/* Échéance 48 h = information porteuse → text-sm (audit UX 2026-08-11) */}
       {isAvailable && (
-        {/* Échéance 48 h = information porteuse → text-sm (audit UX 2026-08-11) */}
         <div className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium mb-2 ${
           isUrgent ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
         }`}>
