@@ -86,10 +86,11 @@ export default async function AdminLayout({
     {
       title: "Pilotage",
       links: [
-        { href: `${base}/sales`,    label: "Ventes",       icon: "sales" },
-        { href: `${base}/forecast`, label: "Prévisions",   icon: "forecast" },
-        { href: `${base}/insights`, label: "Opportunités", icon: "insights" },
-        { href: `${base}/quality`,  label: "Baromètre",    icon: "quality" },
+        { href: `${base}/sales`,      label: "Ventes",          icon: "sales" },
+        { href: `${base}/forecast`,   label: "Prévisions",      icon: "forecast" },
+        { href: `${base}/insights`,   label: "Opportunités",    icon: "insights" },
+        { href: `${base}/quality`,    label: "Baromètre",       icon: "quality" },
+        { href: `${base}/benchmarks`, label: "Repères secteur", icon: "benchmarks" },
       ],
     },
     {
