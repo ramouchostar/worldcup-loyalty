@@ -44,7 +44,7 @@ export function ExchangeButton({ tierId, disabled }: { tierId: string; disabled:
       >
         {busy ? "Échange en cours…" : "Échanger contre ce cadeau"}
       </button>
-      {error && <p className="text-xs text-red-600 mt-1 max-w-[200px]">{error}</p>}
+      {error && <p className="text-sm text-red-600 mt-1 max-w-[200px]">{error}</p>}
     </div>
   );
 }

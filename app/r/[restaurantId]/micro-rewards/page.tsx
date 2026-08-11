@@ -85,7 +85,7 @@ export default function MicroRewardsPage() {
             Présente-toi au comptoir {restaurantName} pour les récupérer.
           </p>
           <div className="mt-3 bg-green-100 rounded-xl p-3 text-center">
-            <p className="text-xs text-green-700">
+            <p className="text-sm text-green-700">
               {totalTokens} jeton{totalTokens > 1 ? "s" : ""} au total · encore {tokensToNext} pour un nouveau cadeau
             </p>
           </div>
@@ -94,12 +94,13 @@ export default function MicroRewardsPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Cadeau à débloquer</p>
+              {/* Uppercase retiré (FALC), taille sm (libellé porteur) — audit UX 2026-08-11 */}
+              <p className="text-sm text-gray-500 font-medium">Cadeau à débloquer</p>
               <p className="font-bold text-gray-900 text-lg mt-0.5">🎁 {giftName} offert</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-brand-red">{totalTokens}</p>
-              <p className="text-xs text-gray-400">/ {TOKENS_PER_PORTION} jetons</p>
+              <p className="text-sm text-gray-500">/ {TOKENS_PER_PORTION} jetons</p>
             </div>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2.5">
@@ -109,7 +110,7 @@ export default function MicroRewardsPage() {
               style={{ width: `${Math.max(Math.min((totalTokens / TOKENS_PER_PORTION) * 100, 100), 6)}%` }}
             />
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-sm text-gray-500 mt-2">
             {tokensToNext} jeton{tokensToNext > 1 ? "s" : ""} de plus pour gagner ton premier cadeau
           </p>
         </div>
@@ -117,7 +118,8 @@ export default function MicroRewardsPage() {
 
       {/* Social actions */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        {/* Uppercase retiré des titres de section (FALC, audit UX 2026-08-11) */}
+        <h2 className="text-sm font-semibold text-gray-600 mb-3">
           Actions sociales — 1 jeton chacune
         </h2>
         <div className="space-y-3">
@@ -194,7 +196,7 @@ function ActionCard({
           <span className="text-2xl shrink-0">{meta?.icon}</span>
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-gray-900 text-sm">{reward.title}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{reward.description}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{reward.description}</p>
           </div>
           <div className="shrink-0">
             {status === "validated" && <span className="text-xl">✅</span>}
@@ -208,17 +210,17 @@ function ActionCard({
         </div>
 
         {status === "validated" && (
-          <div className="mt-3 bg-green-50 px-3 py-2 rounded-lg text-xs font-medium text-green-800">
+          <div className="mt-3 bg-green-50 px-3 py-2 rounded-lg text-sm font-medium text-green-800">
             ✅ Validée — +1 jeton obtenu
           </div>
         )}
         {status === "pending" && (
-          <div className="mt-3 bg-amber-50 px-3 py-2 rounded-lg text-xs font-medium text-amber-800">
+          <div className="mt-3 bg-amber-50 px-3 py-2 rounded-lg text-sm font-medium text-amber-800">
             ⏳ On vérifie — réponse sous 24 h
           </div>
         )}
         {status === "rejected" && (
-          <div className="mt-3 bg-red-50 px-3 py-2 rounded-lg text-xs text-red-800">
+          <div className="mt-3 bg-red-50 px-3 py-2 rounded-lg text-sm text-red-800">
             On n&apos;a pas pu confirmer cette action. Parles-en au comptoir ou via la{" "}
             <Link href={`/r/${restaurantId}/aide`} className="font-semibold underline">
               page Aide
@@ -247,7 +249,7 @@ function ActionCard({
               {submitting ? "Envoi…" : "C'est fait ✓"}
             </button>
             {error && (
-              <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+              <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>
             )}
           </div>
         )}
@@ -291,7 +293,7 @@ function ReferralSection({
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+      <h2 className="text-sm font-semibold text-gray-600 mb-3">
         Parrainages — 5 inscrits = 1 jeton
       </h2>
 
@@ -299,11 +301,11 @@ function ReferralSection({
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">Amis inscrits via ton lien</p>
+              <p className="text-sm text-gray-500">Amis inscrits via ton lien</p>
               <p className="text-2xl font-bold text-gray-900">{validatedCount}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500">Jetons parrainages</p>
+              <p className="text-sm text-gray-500">Jetons parrainages</p>
               <p className="text-2xl font-bold text-brand-red">{referralTokens}</p>
             </div>
           </div>
@@ -315,7 +317,7 @@ function ReferralSection({
                 style={{ width: `${Math.max((progressToToken / 5) * 100, 6)}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               {progressToToken}/5 · encore {nextTokenIn} inscription{nextTokenIn > 1 ? "s" : ""} pour un nouveau jeton
             </p>
           </div>
@@ -331,7 +333,7 @@ function ReferralSection({
               <p className="flex-1 text-xs text-gray-600 truncate font-mono">{joinUrl}</p>
               <button
                 onClick={copyLink}
-                className="px-3 py-2.5 min-h-[44px] shrink-0 rounded-lg bg-gray-100 text-xs font-semibold text-brand-red hover:bg-gray-200 transition-colors"
+                className="px-3 py-2.5 min-h-[44px] shrink-0 rounded-lg bg-gray-100 text-sm font-semibold text-brand-red hover:bg-gray-200 transition-colors"
               >
                 {copied ? "✓ Copié" : "Copier"}
               </button>

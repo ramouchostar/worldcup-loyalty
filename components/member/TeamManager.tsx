@@ -107,7 +107,7 @@ export function TeamManager({
         {justJoined && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center space-y-2">
             <p className="font-bold text-green-900">🎉 Te voilà dans l&apos;équipe {team.name} !</p>
-            <p className="text-xs text-green-700">
+            <p className="text-sm text-green-700">
               Chaque commande directe de l&apos;équipe fait grimper votre score.
             </p>
             <Link
@@ -121,7 +121,7 @@ export function TeamManager({
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
         <div>
           <p className="text-sm font-semibold text-gray-900">Inviter dans ton équipe</p>
-          <p className="text-xs text-gray-500">Partage ce lien — chaque membre fait grandir l&apos;équipe.</p>
+          <p className="text-sm text-gray-600">Partage ce lien — chaque membre fait grandir l&apos;équipe.</p>
         </div>
         <div className="flex items-center gap-2">
           <input readOnly value={link} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-gray-50" />
@@ -176,12 +176,12 @@ export function TeamManager({
         <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
           <div>
             <p className="font-semibold text-gray-900">Équipes dans ta zone</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-gray-600">
               Actives à {zones.join(", ")} — rejoins-en une en un clic.
             </p>
           </div>
           {nearbyTeams.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-3">
+            <p className="text-sm text-gray-500 text-center py-3">
               Aucune équipe dans tes zones pour l&apos;instant — sois la première à en créer une ! 👇
             </p>
           ) : (
@@ -213,7 +213,7 @@ export function TeamManager({
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
         <p className="font-semibold text-gray-900">Rejoindre avec un code d&apos;invitation</p>
         {initialJoinCode && !team && (
-          <p className="text-xs text-brand-red">Un lien d&apos;invitation t&apos;attend — code prérempli.</p>
+          <p className="text-sm text-brand-red">Un lien d&apos;invitation t&apos;attend — code prérempli.</p>
         )}
         <div>
           <label htmlFor="team-join-code" className="block text-sm text-gray-700 mb-1">
@@ -361,7 +361,7 @@ function ZonesCard({ zones, onSaved }: { zones: string[]; onSaved: () => void })
     return (
       <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className="text-xs text-gray-500 shrink-0">Tes zones :</span>
+          <span className="text-sm text-gray-500 shrink-0">Tes zones :</span>
           {zones.map((z) => (
             <span key={z} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
               📍 {z}
@@ -383,13 +383,14 @@ function ZonesCard({ zones, onSaved }: { zones: string[]; onSaved: () => void })
     <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
       <div>
         <p className="font-semibold text-gray-900">Tes zones</p>
-        <p className="text-xs text-gray-500">
+        <p className="text-sm text-gray-600">
           Ville ou quartier — on te propose les équipes actives dans tes zones (max {MAX_ZONES}).
         </p>
       </div>
       {fields.map((v, i) => (
         <div key={i}>
-          <label className="block text-xs text-gray-500 mb-1">{LABELS[i]}</label>
+          {/* Libellé de champ = porteur → même gabarit que les autres labels du formulaire */}
+          <label className="block text-sm text-gray-700 mb-1">{LABELS[i]}</label>
           <input
             value={v}
             onChange={(e) =>
@@ -401,7 +402,7 @@ function ZonesCard({ zones, onSaved }: { zones: string[]; onSaved: () => void })
           />
         </div>
       ))}
-      {error && <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+      {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
       <div className="flex items-center gap-2">
         <button
           onClick={save}

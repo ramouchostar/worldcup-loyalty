@@ -108,7 +108,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
           <span className="font-bold text-gray-900">
             {currentScore.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
           </span>
-          <span className="text-gray-400 ml-2">({memberCount} membre{memberCount !== 1 ? "s" : ""})</span>
+          <span className="text-gray-500 ml-2">({memberCount} membre{memberCount !== 1 ? "s" : ""})</span>
         </p>
       </div>
 
@@ -116,19 +116,19 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
       <div className="grid grid-cols-2 gap-3">
         <div className={`rounded-xl p-3 text-center ${restaurantUnlocked ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}>
           <p className="text-xl mb-1">{restaurantUnlocked ? "🔓" : "🔒"}</p>
-          <p className={`text-xs font-semibold ${restaurantUnlocked ? "text-green-800" : "text-amber-800"}`}>
+          <p className={`text-sm font-semibold ${restaurantUnlocked ? "text-green-800" : "text-amber-800"}`}>
             Bonus communautaire
           </p>
-          <p className={`text-xs mt-0.5 ${restaurantUnlocked ? "text-green-600" : "text-amber-600"}`}>
+          <p className={`text-sm mt-0.5 ${restaurantUnlocked ? "text-green-600" : "text-amber-600"}`}>
             {restaurantUnlocked ? "Actif" : "Verrouillé"}
           </p>
         </div>
         <div className={`rounded-xl p-3 text-center ${memberActive ? "bg-green-50 border border-green-200" : "bg-gray-50 border border-gray-200"}`}>
           <p className="text-xl mb-1">{memberActive ? "✅" : "⏳"}</p>
-          <p className={`text-xs font-semibold ${memberActive ? "text-green-800" : "text-gray-600"}`}>
+          <p className={`text-sm font-semibold ${memberActive ? "text-green-800" : "text-gray-600"}`}>
             Toi
           </p>
-          <p className={`text-xs mt-0.5 ${memberActive ? "text-green-600" : "text-gray-500"}`}>
+          <p className={`text-sm mt-0.5 ${memberActive ? "text-green-600" : "text-gray-500"}`}>
             {memberActive ? "Membre actif" : "Scanne un premier ticket pour commencer"}
           </p>
         </div>
@@ -138,7 +138,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
         // Message neutre (ADR 0007) — jamais de promesse d'échéance.
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
           <p className="font-semibold mb-1">Bonus communautaire en pause</p>
-          <p className="text-xs">
+          <p className="text-sm">
             Ton cadeau de base reste garanti à chaque commande — et chaque commande
             validée fait progresser ta communauté.
           </p>
@@ -173,11 +173,12 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
                     <span className="text-2xl">{isUnlocked ? "🎁" : "🔒"}</span>
                     <div>
                       <p className="font-bold text-gray-900">{tier.item}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Palier communautaire</p>
+                      <p className="text-sm text-gray-500 mt-0.5">Palier communautaire</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xs text-gray-400">Seuil</p>
+                    {/* Micro-étiquette d'une valeur : text-xs conservé, gray-500 pour le contraste */}
+                    <p className="text-xs text-gray-500">Seuil</p>
                     <p className="font-bold text-gray-900 text-sm tabular-nums">
                       {Number(tier.min).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
                     </p>
@@ -204,7 +205,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
 
                 {isUnlocked && !memberActive && (
                   <div className="mt-4 bg-amber-50 rounded-lg p-3 text-center">
-                    <p className="text-amber-800 text-xs">
+                    <p className="text-amber-800 text-sm">
                       Soumets et fais valider une commande pour récupérer cette récompense.
                     </p>
                   </div>

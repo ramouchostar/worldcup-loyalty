@@ -37,7 +37,7 @@ export function RedeemButton() {
       >
         {busy ? "Préparation…" : "🎁 Récupérer"}
       </button>
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-sm text-red-600">{error}</span>}
     </span>
   );
 }

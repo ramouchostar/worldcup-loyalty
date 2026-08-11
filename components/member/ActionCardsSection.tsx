@@ -82,7 +82,7 @@ export function ActionCardsSection() {
           <TokenProgressRing total={TOKENS_PER_PORTION} completed={claimedCount} size={56} />
           <div className="min-w-0 flex-1">
             <h3 className="font-bold text-gray-900 text-base">Toutes les actions sont faites</h3>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               Tes {claimedCount} jeton{claimedCount > 1 ? "s" : ""} seront validés sous 24h.
             </p>
           </div>
@@ -124,7 +124,8 @@ export function ActionCardsSection() {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+        {/* Uppercase retiré (FALC, audit UX 2026-08-11) */}
+        <h2 className="text-sm font-semibold text-gray-600">
           Action à faire
         </h2>
         <TokenProgressRing total={TOKENS_PER_PORTION} completed={claimedCount} size={40} />
@@ -137,7 +138,7 @@ export function ActionCardsSection() {
           {handle && (
             <p className="text-sm font-semibold text-gray-600 truncate mt-0.5">{handle}</p>
           )}
-          <p className="text-xs text-gray-500 mt-1">{current.description}</p>
+          <p className="text-sm text-gray-500 mt-1">{current.description}</p>
         </div>
       </div>
 

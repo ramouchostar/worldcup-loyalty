@@ -152,7 +152,7 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
           {rank > 0 && (
             <div className="text-right">
               <p className="text-3xl font-black text-brand-red">#{rank}</p>
-              <p className="text-xs text-gray-400">au classement</p>
+              <p className="text-sm text-gray-500">au classement</p>
             </div>
           )}
         </div>
@@ -178,7 +178,7 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
             {/* ADR 0030 §4 — mon équipe → son classement complet */}
             <Link
               href={`/r/${restaurantId}/leaderboard`}
-              className="text-xs font-semibold text-brand-red hover:underline"
+              className="text-sm font-semibold text-brand-red hover:underline"
             >
               Classement complet →
             </Link>
@@ -191,7 +191,7 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
                   key={entry.team_id}
                   className={`flex items-center gap-3 p-3 rounded-lg ${isMine ? "bg-red-50 border border-brand-red" : "bg-gray-50"}`}
                 >
-                  <span className="w-7 text-center font-bold text-sm text-gray-400">
+                  <span className="w-7 text-center font-bold text-sm text-gray-500">
                     {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
                   </span>
                   <span className="text-xl">{entry.teams.flag_emoji}</span>

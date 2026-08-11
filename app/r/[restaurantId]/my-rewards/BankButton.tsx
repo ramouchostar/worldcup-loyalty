@@ -60,7 +60,7 @@ export function BankButton({ points }: { points: number | null }) {
             Non, garder le cadeau
           </button>
         </span>
-        {error && <span className="text-xs text-red-600">{error}</span>}
+        {error && <span className="text-sm text-red-600">{error}</span>}
       </span>
     );
   }

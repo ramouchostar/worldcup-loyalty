@@ -269,10 +269,12 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       {pendingRewards.length > 0 && (
         <div className="bg-gradient-to-br from-brand-gold/15 to-brand-red/5 rounded-2xl border-2 border-brand-gold/40 p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-brand-gold uppercase tracking-widest">
+            {/* Fond clair : brand-gold illisible en texte (2,10:1) → brand-red ;
+                uppercase retiré (FALC), taille sm (libellé porteur). Audit UX 2026-08-11. */}
+            <p className="text-sm font-bold text-brand-red">
               🛎 À récupérer au comptoir
               {pendingRewards.length > 1 && (
-                <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                <span className="ml-2 bg-brand-red text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                   {pendingRewards.length}
                 </span>
               )}
@@ -285,28 +287,28 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             {pendingRewards.map((r2, idx) => (
               <div key={r2.id} className={idx > 0 ? "pt-3 border-t border-brand-gold/20" : ""}>
                 {pendingRewards.length > 1 && (
-                  <p className="text-xs text-gray-400 mb-1.5">Commande {pendingRewards.length - idx}</p>
+                  <p className="text-xs text-gray-500 mb-1.5">Commande {pendingRewards.length - idx}</p>
                 )}
                 <div className="space-y-1.5">
                   {r2.solo_item && (
                     <div className="flex items-center gap-2">
                       <span>🍗</span>
                       <span className="font-bold text-gray-900">{r2.solo_item}</span>
-                      <span className="text-xs text-gray-500 ml-auto">cadeau de base</span>
+                      <span className="text-sm text-gray-500 ml-auto">cadeau de base</span>
                     </div>
                   )}
                   {r2.community_item && (
                     <div className="flex items-center gap-2">
                       <span>👥</span>
                       <span className="font-bold text-gray-900">+ {r2.community_item}</span>
-                      <span className="text-xs text-gray-500 ml-auto">bonus communautaire</span>
+                      <span className="text-sm text-gray-500 ml-auto">bonus communautaire</span>
                     </div>
                   )}
                   {r2.advancement_item && (
                     <div className="flex items-center gap-2">
                       <span>🏆</span>
                       <span className="font-bold text-gray-900">+ {r2.advancement_item}</span>
-                      <span className="text-xs text-gray-500 ml-auto">bonus d&apos;équipe</span>
+                      <span className="text-sm text-gray-500 ml-auto">bonus d&apos;équipe</span>
                     </div>
                   )}
                 </div>
@@ -315,7 +317,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           </div>
           <div className="mt-3 pt-3 border-t border-brand-gold/20 flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm text-gray-500">
                 {pendingRewards.length > 1
                   ? `${pendingRewards.length} cadeaux à récupérer au comptoir`
                   : "Cadeau à récupérer au comptoir"}
@@ -364,7 +366,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           {!budget.communityBonusActive && (
             <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
               <span className="text-sm">⏸️</span>
-              <p className="text-xs font-medium text-gray-600">
+              <p className="text-sm font-medium text-gray-600">
                 Bonus communautaire en pause — ton cadeau de base reste garanti à chaque commande.
               </p>
             </div>
@@ -373,12 +375,12 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           {communityTiers.length === 0 ? (
             // Aucun palier communautaire configuré (resto sans grille) —
             // aucune promesse d'article, message neutre (ADR 0007)
-            <p className="text-xs text-gray-400 text-center py-1">
+            <p className="text-sm text-gray-500 text-center py-1">
               Le score de ton équipe grandit à chaque commande directe.
             </p>
           ) : nextTier ? (
             <>
-              <div className="flex justify-between text-xs text-gray-500 mb-1.5 tabular-nums">
+              <div className="flex justify-between text-sm text-gray-500 mb-1.5 tabular-nums">
                 <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
                 <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
               </div>
@@ -398,7 +400,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                       {(nextTier.score - score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}{" "}
                       pts du 1er bonus communautaire
                     </p>
-                    <p className="text-xs text-blue-700 mt-1">
+                    <p className="text-sm text-blue-700 mt-1">
                       Chaque commande de tes coéquipiers vous rapproche du bonus&nbsp;
                       <span className="font-semibold">+ {nextTier.item}</span>.
                     </p>
@@ -415,11 +417,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                   <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
                     <span className="text-lg">👥</span>
                     <div>
-                      <p className="text-xs text-gray-500">Prochain bonus communautaire</p>
+                      <p className="text-sm text-gray-500">Prochain bonus communautaire</p>
                       <p className="font-semibold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2 text-center">
+                  <p className="text-sm text-gray-600 mt-2 text-center">
                     💡 Chaque commande directe de ton équipe vous rapproche.
                   </p>
                 </>
@@ -430,7 +432,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               <p className="text-2xl mb-1">🏆</p>
               <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
               {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
-              <p className="text-xs text-gray-500">
+              <p className="text-sm text-gray-500">
                 + {heroCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque commande
               </p>
             </div>
@@ -451,7 +453,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
             Paliers d&apos;équipe <span className="text-gray-400" aria-hidden="true">→</span>
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 mt-0.5">
             {!hasTeam
               ? "Rejoins une équipe"
               : (() => {
@@ -471,7 +473,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
             Classement <span className="text-gray-400" aria-hidden="true">→</span>
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 mt-0.5">
             {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
           </p>
         </Link>
@@ -484,7 +486,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
             Mon resto <span className="text-gray-400" aria-hidden="true">→</span>
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 mt-0.5">
             {validCount >= FEEDBACK_ELIGIBILITY_MIN
               ? "Encourage ou signale, en privé"
               : `Encore ${FEEDBACK_ELIGIBILITY_MIN - validCount} commande${FEEDBACK_ELIGIBILITY_MIN - validCount > 1 ? "s" : ""} pour donner ton avis`}
@@ -499,7 +501,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
             Ma réserve <span className="text-gray-400" aria-hidden="true">→</span>
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 mt-0.5">
             {reserveBalance > 0
               ? `${reserveBalance} de côté`
               : (saverTierCount ?? 0) > 0
@@ -511,7 +513,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 
       {/* ── SECTION 3 — Stats perso (subtil, bas de page) ─────────────────── */}
       {memberActive && (
-        <p className="text-center text-xs text-gray-400 py-1">
+        <p className="text-center text-xs text-gray-500 py-1">
           {validCount} commande{validCount > 1 ? "s" : ""} validée{validCount > 1 ? "s" : ""}
           {" · "}
           {totalPoints.toLocaleString("fr-BE")} pts gagnés
@@ -532,7 +534,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 
         {orderList.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-gray-400 text-sm">Aucun ticket scanné pour l&apos;instant.</p>
+            <p className="text-gray-500 text-sm">Aucun ticket scanné pour l&apos;instant.</p>
             <Link
               href={r("/submit-order")}
               className="inline-flex items-center mt-3 bg-brand-red text-white px-5 py-3 min-h-[48px] rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
@@ -545,7 +547,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             {orderList.map((order) => (
               <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                 <div>
-                  <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-400"}`}>
+                  <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-500"}`}>
                     {order.status === "validated"
                       ? `+${pointsForOrder(Number(order.amount))} pts`
                       : order.status === "pending" ? "En validation…" : "Non validée"}
@@ -553,7 +555,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                   <p className="text-xs text-gray-500 font-mono">
                     {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}
                   </p>
-                  {order.rejection_reason && <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>}
+                  {order.rejection_reason && <p className="text-sm text-red-600 mt-0.5">{order.rejection_reason}</p>}
                 </div>
                 <StatusBadge status={order.status} />
               </div>

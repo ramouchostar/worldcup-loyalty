@@ -123,7 +123,8 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
           <div className="p-6">
             {/* Live clock — clé anti-capture d'écran */}
             <div className="flex items-center justify-between mb-5">
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Il est</span>
+              {/* Fond clair : gray-500 + uppercase retiré (audit UX 2026-08-11) */}
+              <span className="text-sm text-gray-500">Il est</span>
               <span className="text-sm font-mono font-bold text-gray-700 tabular-nums">
                 {liveTime}
               </span>
@@ -136,7 +137,7 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
               </div>
               <div>
                 <p className="font-bold text-gray-900">{memberName}</p>
-                <p className="text-xs text-gray-400">Coupon unique · valide 10 min</p>
+                <p className="text-sm text-gray-500">Coupon unique · valide 10 min</p>
               </div>
             </div>
 
@@ -155,14 +156,16 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-lg">{item.icon}</span>
                   <span className="font-semibold text-gray-900 text-sm flex-1">{item.label}</span>
-                  <span className="text-xs text-gray-400">{item.sublabel}</span>
+                  {/* Étiquette de couche = information porteuse → text-sm gray-500 */}
+                  <span className="text-sm text-gray-500">{item.sublabel}</span>
                 </div>
               ))}
             </div>
 
             {/* Token visible pour le cashier */}
             <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-              <p className="text-xs text-gray-600 font-mono tracking-widest">{token}</p>
+              {/* Lu au comptoir par le cashier → text-sm (tracking conservé : code, pas une phrase) */}
+              <p className="text-sm text-gray-600 font-mono tracking-widest">{token}</p>
             </div>
 
             {/* Bouton cashier */}

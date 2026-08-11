@@ -114,7 +114,7 @@ export function FeedbackClient({
                   <span className="text-2xl" aria-hidden="true">💛</span>
                   <span>
                     <span className="block font-semibold text-gray-900 text-sm">Encourager mon resto</span>
-                    <span className="block text-gray-500 text-xs">Dire ce qui était bien (ton prénom sera visible)</span>
+                    <span className="block text-gray-600 text-sm">Dire ce qui était bien (ton prénom sera visible)</span>
                   </span>
                 </button>
                 <button
@@ -125,7 +125,7 @@ export function FeedbackClient({
                   <span className="text-2xl" aria-hidden="true">🙋</span>
                   <span>
                     <span className="block font-semibold text-gray-900 text-sm">Signaler un souci</span>
-                    <span className="block text-gray-500 text-xs">En privé et anonyme — juste entre le resto et toi</span>
+                    <span className="block text-gray-600 text-sm">En privé et anonyme — juste entre le resto et toi</span>
                   </span>
                 </button>
               </div>
@@ -218,7 +218,7 @@ export function FeedbackClient({
                 </button>
               </div>
               {mode === "incident" && dimensions.length === 0 && (
-                <p className="text-xs text-gray-400">Coche au moins un point qui a coincé.</p>
+                <p className="text-sm text-gray-600">Coche au moins un point qui a coincé.</p>
               )}
             </>
           )}
@@ -281,7 +281,8 @@ function FeedbackCard({ feedback, messages }: { feedback: QualityFeedback; messa
         <span className="text-sm font-semibold text-gray-900">
           {isEnc ? "💛 Encouragement" : "🙋 Signalement"}
         </span>
-        <span className="text-xs text-gray-400">{new Date(feedback.created_at).toLocaleDateString("fr-BE")}</span>
+        {/* Date d'historique = métadonnée : text-xs conservé, gray-500 pour le contraste */}
+        <span className="text-xs text-gray-500">{new Date(feedback.created_at).toLocaleDateString("fr-BE")}</span>
       </div>
       {!isEnc && feedback.dimensions.length > 0 && (
         <p className="text-xs text-gray-500">{feedback.dimensions.map((d) => DIMENSION_LABELS[d]).join(" · ")}</p>
@@ -300,7 +301,7 @@ function FeedbackCard({ feedback, messages }: { feedback: QualityFeedback; messa
                 m.sender === "establishment" ? "bg-brand-red/5 text-gray-800" : "bg-gray-100 text-gray-700"
               }`}
             >
-              <span className="block text-xs text-gray-400 mb-0.5">
+              <span className="block text-xs text-gray-500 mb-0.5">
                 {m.sender === "establishment" ? "Le resto" : "Toi"}
               </span>
               {m.body}

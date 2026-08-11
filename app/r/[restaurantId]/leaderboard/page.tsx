@@ -79,23 +79,24 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
         <div className="grid grid-cols-3 gap-3 mt-5">
           <div className="bg-white/10 rounded-xl p-3 text-center">
             <p className="text-xl font-black text-brand-gold">{totalMembers}</p>
-            <p className="text-xs text-gray-400">membres</p>
+            {/* Fond sombre : gray-400 y contraste bien — taille sm (étiquette de valeur) */}
+            <p className="text-sm text-gray-400">membres</p>
           </div>
           <div className="bg-white/10 rounded-xl p-3 text-center">
             <p className="text-xl font-black text-brand-gold">{activeTeams}</p>
-            <p className="text-xs text-gray-400">équipes actives</p>
+            <p className="text-sm text-gray-400">équipes actives</p>
           </div>
           <div className="bg-white/10 rounded-xl p-3 text-center">
             <p className="text-xl font-black text-brand-gold">
               {Number(topScore).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
             </p>
-            <p className="text-xs text-gray-400">équipe en tête</p>
+            <p className="text-sm text-gray-400">équipe en tête</p>
           </div>
         </div>
       </div>
 
       {/* Légende score */}
-      <div className="bg-white rounded-xl border border-gray-100 p-3 flex items-center gap-2 text-xs text-gray-500">
+      <div className="bg-white rounded-xl border border-gray-100 p-3 flex items-center gap-2 text-sm text-gray-600">
         <span>📡</span>
         <span>
           Classement mis à jour en <strong>temps réel</strong> — le score reflète la fidélité et la taille de chaque communauté
@@ -106,7 +107,8 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-gray-900">Toutes les communautés</h2>
-          <span className="text-xs text-gray-400">{scores.length} équipes</span>
+          {/* Compteur = métadonnée : text-xs conservé, gray-500 pour le contraste */}
+          <span className="text-xs text-gray-500">{scores.length} équipes</span>
         </div>
 
         <LeaderboardRealtime initial={scores} myTeamId={myTeamId} restaurantId={restaurantId} />

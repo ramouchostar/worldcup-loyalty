@@ -61,12 +61,13 @@ export default async function MyRewardsPage({
 
       {/* À récupérer */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        {/* Uppercase retiré des titres de section (FALC, audit UX 2026-08-11) */}
+        <h2 className="text-sm font-semibold text-gray-600 mb-3">
           🛎 À récupérer ({available.length})
         </h2>
         {available.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
-            <p className="text-gray-400 text-sm">Aucune récompense en attente.</p>
+            <p className="text-gray-500 text-sm">Aucune récompense en attente.</p>
             <Link
               href={`/r/${restaurantId}/submit-order`}
               className="inline-flex items-center mt-3 bg-brand-red text-white px-5 py-3 min-h-[48px] rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
@@ -86,7 +87,7 @@ export default async function MyRewardsPage({
       {/* Mises de côté (ADR 0021) */}
       {banked.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <h2 className="text-sm font-semibold text-gray-600 mb-3">
             💰 Mises de côté ({banked.length})
           </h2>
           <div className="space-y-3 opacity-70">
@@ -94,7 +95,7 @@ export default async function MyRewardsPage({
               <RewardCard key={r.id} reward={r} />
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-sm text-gray-500 mt-2">
             Ces cadeaux ont rejoint{" "}
             <Link href={`/r/${restaurantId}/reserve`} className="underline">
               ta réserve
@@ -107,7 +108,7 @@ export default async function MyRewardsPage({
       {/* Récupérées */}
       {redeemed.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <h2 className="text-sm font-semibold text-gray-600 mb-3">
             ✅ Récupérées ({redeemed.length})
           </h2>
           <div className="space-y-3 opacity-60">
@@ -121,7 +122,7 @@ export default async function MyRewardsPage({
       {/* Expirées */}
       {expired.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <h2 className="text-sm font-semibold text-gray-600 mb-3">
             ⏱ Expirées ({expired.length})
           </h2>
           <div className="space-y-3 opacity-40">
@@ -175,27 +176,28 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
           <div className="flex items-center gap-2">
             <span>🍗</span>
             <span className="font-bold text-gray-900 text-sm">{reward.solo_item}</span>
-            <span className="text-xs text-gray-500 ml-auto">cadeau de base</span>
+            <span className="text-sm text-gray-500 ml-auto">cadeau de base</span>
           </div>
         )}
         {reward.community_item && (
           <div className="flex items-center gap-2">
             <span>👥</span>
             <span className="font-bold text-gray-900 text-sm">+ {reward.community_item}</span>
-            <span className="text-xs text-gray-500 ml-auto">bonus communautaire</span>
+            <span className="text-sm text-gray-500 ml-auto">bonus communautaire</span>
           </div>
         )}
         {reward.advancement_item && (
           <div className="flex items-center gap-2">
             <span>🏆</span>
             <span className="font-bold text-gray-900 text-sm">+ {reward.advancement_item}</span>
-            <span className="text-xs text-gray-500 ml-auto">bonus d&apos;équipe</span>
+            <span className="text-sm text-gray-500 ml-auto">bonus d&apos;équipe</span>
           </div>
         )}
       </div>
 
       {isAvailable && (
-        <div className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium mb-2 ${
+        {/* Échéance 48 h = information porteuse → text-sm (audit UX 2026-08-11) */}
+        <div className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium mb-2 ${
           isUrgent ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
         }`}>
           <span>⏰</span>
@@ -209,7 +211,8 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
       )}
 
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
-        <p className="text-xs text-gray-400">
+        {/* Date d'historique = métadonnée : text-xs conservé, gray-500 pour le contraste */}
+        <p className="text-xs text-gray-500">
           {new Date(reward.created_at).toLocaleDateString("fr-BE", {
             day: "numeric",
             month: "short",
@@ -231,7 +234,7 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
             💰 Mis de côté{bankPoints !== null ? ` (+${bankPoints})` : ""}
           </span>
         ) : (
-          <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+          <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
             Expiré
           </span>
         )}

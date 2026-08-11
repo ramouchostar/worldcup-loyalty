@@ -91,7 +91,7 @@ export function LeaderboardRealtime({
               idx === 0 ? "text-yellow-500 text-lg" :
               idx === 1 ? "text-gray-400 text-base" :
               idx === 2 ? "text-amber-600 text-base" :
-              "text-gray-400"
+              "text-gray-500"
             }`}>
               {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
             </span>
@@ -106,7 +106,7 @@ export function LeaderboardRealtime({
                 {isMyTeam && <span className="ml-1 text-xs font-normal text-brand-red">← toi</span>}
               </p>
               {!entry.teams.is_active && (
-                <p className="text-xs text-gray-400">inactive</p>
+                <p className="text-xs text-gray-500">inactive</p>
               )}
             </div>
 
@@ -116,7 +116,7 @@ export function LeaderboardRealtime({
                 {Number(entry.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
                 {isFlashing && <span className="ml-1 text-yellow-500 text-xs">▲</span>}
               </p>
-              <p className="text-xs text-gray-400 tabular-nums">
+              <p className="text-xs text-gray-500 tabular-nums">
                 {entry.member_count} membres
               </p>
             </div>

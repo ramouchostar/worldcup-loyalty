@@ -51,7 +51,7 @@ export default async function JoinPage({
             <span className="text-xl" aria-hidden="true">{banner.icon}</span>
             <div>
               <p className="font-semibold text-amber-900 text-sm">{banner.title}</p>
-              <p className="text-amber-700 text-xs mt-0.5">{banner.text}</p>
+              <p className="text-amber-700 text-sm mt-0.5">{banner.text}</p>
             </div>
           </div>
         )}
@@ -63,7 +63,7 @@ export default async function JoinPage({
               <p className="font-semibold text-blue-900 text-sm">
                 Ta demande pour « {o.name} » est en cours d&apos;examen
               </p>
-              <p className="text-blue-700 text-xs mt-0.5">
+              <p className="text-blue-700 text-sm mt-0.5">
                 On vérifie chaque établissement avant sa mise en ligne — tu seras prévenu dès la validation.
               </p>
             </div>
@@ -80,7 +80,7 @@ export default async function JoinPage({
 
         <div className="bg-white rounded-2xl shadow-xl p-4 space-y-2">
           {(restaurants ?? []).length === 0 && (
-            <p className="text-center text-sm text-gray-400 py-4">Aucun établissement disponible pour le moment.</p>
+            <p className="text-center text-sm text-gray-500 py-4">Aucun établissement disponible pour le moment.</p>
           )}
 
           {(restaurants ?? []).map((r) => (

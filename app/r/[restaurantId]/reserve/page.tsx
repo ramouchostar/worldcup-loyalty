@@ -82,7 +82,8 @@ export default async function ReservePage({
 
       {/* Solde */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 text-white rounded-2xl p-6 text-center">
-        <p className="text-xs uppercase tracking-widest text-brand-gold font-bold mb-1">💰 Ma réserve</p>
+        {/* Fond sombre : brand-gold y contraste bien — uppercase retiré (FALC), taille sm */}
+        <p className="text-sm text-brand-gold font-bold mb-1">💰 Ma réserve</p>
         <p className="text-5xl font-black tabular-nums">{balance}</p>
         {/* Première cible visible dès le solde 0 (progression dotée, audit UX) —
             nom + seuil uniquement, jamais de coût (ADR 0021 / ADR 0007). */}
@@ -91,7 +92,7 @@ export default async function ReservePage({
             Premier gros cadeau : {tiers[0].item_name} à {tiers[0].min_threshold}
           </p>
         )}
-        <p className="text-gray-300 text-xs mt-2">
+        <p className="text-gray-300 text-sm mt-2">
           Chaque cadeau mis de côté depuis{" "}
           <Link href={`/r/${restaurantId}/my-rewards`} className="underline">
             Mes récompenses
@@ -102,12 +103,13 @@ export default async function ReservePage({
 
       {/* Gros cadeaux */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        {/* Uppercase retiré des titres de section (FALC, audit UX 2026-08-11) */}
+        <h2 className="text-sm font-semibold text-gray-600 mb-3">
           🎁 À échanger
         </h2>
         {tiers.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-500 text-sm">
               Les gros cadeaux arrivent bientôt — continue de mettre de côté.
             </p>
           </div>
@@ -125,7 +127,8 @@ export default async function ReservePage({
                 >
                   <div>
                     <p className="font-bold text-gray-900 text-sm">{tier.item_name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    {/* Seuil + restant = information porteuse → text-sm gray-500 (audit UX) */}
+                    <p className="text-sm text-gray-500 mt-0.5">
                       {tier.min_threshold} de réserve
                       {!reachable && ` — encore ${missing}`}
                     </p>
@@ -141,7 +144,7 @@ export default async function ReservePage({
       {/* Historique */}
       {transactions.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <h2 className="text-sm font-semibold text-gray-600 mb-3">
             📜 Mouvements
           </h2>
           <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
@@ -149,7 +152,8 @@ export default async function ReservePage({
               <div key={tx.id} className="flex items-center justify-between px-4 py-2.5">
                 <div>
                   <p className="text-sm text-gray-700">{REASON_LABELS[tx.reason]}</p>
-                  <p className="text-xs text-gray-400">
+                  {/* Date d'historique = métadonnée : text-xs conservé, gray-500 pour le contraste */}
+                  <p className="text-xs text-gray-500">
                     {new Date(tx.created_at).toLocaleDateString("fr-BE", {
                       day: "numeric",
                       month: "short",
