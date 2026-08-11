@@ -16,6 +16,8 @@ function randomDelay() {
   return Math.floor(Math.random() * 2000) + 3000; // 3000–5000ms
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 Mo
+
 export default function SubmitOrderPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { name: restaurantName } = useRestaurantInfo();
@@ -24,6 +26,9 @@ export default function SubmitOrderPage() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
   const [parseError, setParseError] = useState("");
+  // true uniquement si la lecture elle-même a échoué (pas une erreur réseau/timeout)
+  const [parseFailedReading, setParseFailedReading] = useState(false);
+  const [amountError, setAmountError] = useState("");
 
   const [orderNumber, setOrderNumber] = useState("");
   const [orderNumberEditable, setOrderNumberEditable] = useState(false);
@@ -38,41 +43,51 @@ export default function SubmitOrderPage() {
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function acceptFile(file: File) {
+    if (file.size > MAX_FILE_SIZE) {
+      setReceiptFile(null);
+      setPreview(null);
+      setParseStatus("error");
+      setParseFailedReading(false);
+      setParseError("Ta photo est trop lourde (max 5 Mo). Réessaie avec une photo plus légère.");
+      return;
+    }
     setReceiptFile(file);
     setPreview(URL.createObjectURL(file));
-    setParseStatus("idle");
     setParseError("");
+    setParseFailedReading(false);
     setOrderNumber("");
     setOrderNumberEditable(false);
     setAmount("");
+    setAmountError("");
+    // La lecture démarre dès le choix de la photo — un tap de moins (audit UX 2026-08)
+    void analyseReceipt(file);
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    acceptFile(file);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLLabelElement>) {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (!file) return;
-    setReceiptFile(file);
-    setPreview(URL.createObjectURL(file));
-    setParseStatus("idle");
-    setParseError("");
-    setOrderNumber("");
-    setAmount("");
+    acceptFile(file);
   }
 
-  async function analyseReceipt() {
-    if (!receiptFile) return;
+  async function analyseReceipt(file: File) {
     setParseStatus("parsing");
     setParseError("");
+    setParseFailedReading(false);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 25000);
 
     try {
       const formData = new FormData();
-      formData.append("receipt", receiptFile);
+      formData.append("receipt", file);
       formData.append("restaurantId", restaurantId);
 
       const res = await fetch("/api/orders/parse-receipt", {
@@ -93,7 +108,8 @@ export default function SubmitOrderPage() {
 
       if (!res.ok) {
         setParseStatus("error");
-        setParseError(data.error ?? "Erreur lors de l'analyse.");
+        setParseFailedReading(true);
+        setParseError(data.error ?? "La lecture du ticket n'a pas fonctionné.");
         return;
       }
 
@@ -115,8 +131,9 @@ export default function SubmitOrderPage() {
       setNoRestaurantHeader(!(data.has_restaurant_header ?? true));
     } catch (err) {
       setParseStatus("error");
+      setParseFailedReading(false);
       if (err instanceof DOMException && err.name === "AbortError") {
-        setParseError("L'analyse a pris trop de temps. Réessaie avec une photo plus légère.");
+        setParseError("La lecture a pris trop de temps. Réessaie avec une photo plus légère.");
       } else {
         setParseError("Erreur réseau. Vérifie ta connexion et réessaie.");
       }
@@ -129,13 +146,26 @@ export default function SubmitOrderPage() {
     e.preventDefault();
     if (!noDelivery || !receiptFile) return;
 
+    // Validation maison du montant (messages en français, virgule acceptée)
+    const normalizedAmount = amount.replace(",", ".").trim();
+    const amountValue = Number(normalizedAmount);
+    if (!normalizedAmount || Number.isNaN(amountValue)) {
+      setAmountError("Entre le montant du ticket, par exemple 12,50");
+      return;
+    }
+    if (amountValue < 1 || amountValue > 500) {
+      setAmountError("Le montant doit être entre 1 € et 500 €.");
+      return;
+    }
+    setAmountError("");
+
     setSubmitStatus("loading");
     setErrorMsg("");
 
     const formData = new FormData();
     formData.append("receipt", receiptFile);
     formData.append("order_number", orderNumber);
-    formData.append("amount", amount);
+    formData.append("amount", normalizedAmount);
     formData.append("restaurantId", restaurantId);
     if (ocrAmount !== null)      formData.append("ocr_amount", String(ocrAmount));
     if (ocrConfidence !== null)  formData.append("ocr_confidence", String(ocrConfidence));
@@ -173,9 +203,11 @@ export default function SubmitOrderPage() {
     setReceiptFile(null);
     setParseStatus("idle");
     setParseError("");
+    setParseFailedReading(false);
     setOrderNumber("");
     setOrderNumberEditable(false);
     setAmount("");
+    setAmountError("");
     setNoDelivery(false);
     setSubmitStatus("idle");
     setErrorMsg("");
@@ -209,8 +241,11 @@ export default function SubmitOrderPage() {
           >
             Retour à l&apos;accueil
           </Link>
-          <button onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline">
-            Soumettre une autre commande
+          <button
+            onClick={reset}
+            className="text-sm text-gray-600 hover:text-gray-800 underline min-h-[44px] inline-flex items-center"
+          >
+            Scanner un autre ticket
           </button>
         </div>
       </div>
@@ -232,8 +267,11 @@ export default function SubmitOrderPage() {
           >
             Retour à l&apos;accueil
           </Link>
-          <button onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline">
-            Soumettre une autre commande
+          <button
+            onClick={reset}
+            className="text-sm text-gray-600 hover:text-gray-800 underline min-h-[44px] inline-flex items-center"
+          >
+            Scanner un autre ticket
           </button>
         </div>
       </div>
@@ -243,7 +281,7 @@ export default function SubmitOrderPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Soumettre une commande</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Scanner mon ticket</h1>
         <p className="text-gray-500 text-sm mt-1">
           Prends en photo ton ticket de caisse — on s&apos;occupe du reste.
         </p>
@@ -260,58 +298,67 @@ export default function SubmitOrderPage() {
         </div>
       </div>
 
-      {/* Zone upload */}
-      <div
-        className="border-2 border-dashed border-gray-300 rounded-xl p-6 mb-4 text-center cursor-pointer hover:border-brand-red transition-colors"
-        onClick={() => fileInputRef.current?.click()}
+      {/* Zone upload — <label> reliée à l'input pour l'accès clavier */}
+      <label
+        htmlFor="receipt-photo"
+        className="block border-2 border-dashed border-gray-300 rounded-xl p-6 mb-4 text-center cursor-pointer hover:border-brand-red focus-within:ring-2 focus-within:ring-brand-red transition-colors"
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
       >
         {preview ? (
-          <div className="relative">
+          <span className="block relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={preview}
               alt="Ticket de caisse"
               className="max-h-56 mx-auto rounded-lg object-contain"
             />
-            <p className="text-xs text-gray-400 mt-2">Clique pour changer la photo</p>
-          </div>
+            <span className="block text-sm text-gray-600 mt-2">Appuie pour changer la photo</span>
+          </span>
         ) : (
-          <div className="py-4">
-            <p className="text-4xl mb-3">🧾</p>
-            <p className="font-semibold text-gray-700">Photo du ticket de caisse</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Clique ici ou glisse ta photo (JPG, PNG, WebP — max 5 Mo)
-            </p>
-          </div>
+          <span className="block py-4">
+            <span className="block text-4xl mb-3">🧾</span>
+            <span className="block font-semibold text-gray-700">Photo du ticket de caisse</span>
+            <span className="block text-sm text-gray-600 mt-1">
+              Appuie ici pour prendre ou choisir une photo
+            </span>
+          </span>
         )}
         <input
+          id="receipt-photo"
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          className="hidden"
+          className="sr-only"
           onChange={handleFileChange}
         />
-      </div>
+      </label>
 
-      {/* Bouton analyser */}
-      {preview && parseStatus !== "done" && (
-        <button
-          onClick={analyseReceipt}
-          disabled={parseStatus === "parsing"}
-          className="w-full bg-brand-red text-white py-3 px-4 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors mb-4"
-        >
-          {parseStatus === "parsing" ? "Analyse en cours..." : "Analyser le ticket"}
-        </button>
+      {/* Lecture en cours — lancée dès le choix de la photo */}
+      {parseStatus === "parsing" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center gap-3">
+          <span className="text-xl animate-spin">⏳</span>
+          <p className="text-blue-800 text-sm font-semibold">Lecture du ticket…</p>
+        </div>
       )}
 
       {parseStatus === "error" && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
           <p className="text-red-700 text-sm">{parseError}</p>
-          <p className="text-red-500 text-xs mt-1">
-            Assure-toi que le numéro de commande est bien visible sur la photo.
-          </p>
+          {parseFailedReading && (
+            <p className="text-red-600 text-sm mt-1">
+              Assure-toi que le numéro de commande est bien visible sur la photo.
+            </p>
+          )}
+          {receiptFile && (
+            <button
+              type="button"
+              onClick={() => analyseReceipt(receiptFile)}
+              className="mt-3 w-full bg-brand-red text-white py-3 px-4 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+            >
+              Réessayer la lecture
+            </button>
+          )}
         </div>
       )}
 
@@ -321,7 +368,7 @@ export default function SubmitOrderPage() {
           <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2 items-start">
             <span className="text-green-600">✓</span>
             <p className="text-green-800 text-sm">
-              Ticket analysé. Vérifie que les informations ci-dessous correspondent à ton reçu.
+              C&apos;est lu ! Vérifie les infos ci-dessous.
             </p>
           </div>
 
@@ -329,22 +376,28 @@ export default function SubmitOrderPage() {
           {orderNumberEditable && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
               <p className="text-orange-800 text-sm font-semibold">{keyLabel} non détecté</p>
-              <p className="text-orange-700 text-xs mt-1">
+              <p className="text-sm text-gray-600 mt-1">
                 Entre le numéro manuellement si tu le vois sur ton ticket,
                 ou laisse vide — ta commande sera vérifiée manuellement sous 2h.
               </p>
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor={orderNumberEditable ? "order-number" : undefined}
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {keyLabel}
             </label>
             {orderNumberEditable ? (
               <input
+                id="order-number"
                 type="text"
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
                 placeholder={keyExample ?? ""}
+                autoCapitalize="characters"
+                autoComplete="off"
                 className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono text-sm"
               />
             ) : (
@@ -355,29 +408,41 @@ export default function SubmitOrderPage() {
             )}
           </div>
 
-          {/* Montant — editable */}
+          {/* Montant — editable, validation JS maison (virgule acceptée) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
               Montant total (€)
             </label>
             <div className="relative">
               <input
-                type="number"
+                id="amount"
+                type="text"
                 inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                min="1"
-                max="500"
-                step="0.01"
-                placeholder="Ex : 12.50"
-                required
-                className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setAmountError("");
+                }}
+                placeholder="Ex : 12,50"
+                aria-invalid={amountError ? true : undefined}
+                aria-describedby={amountError ? "amount-error" : undefined}
+                className={`w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-gray-900 ${
+                  amountError
+                    ? "border-red-400 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-brand-red"
+                }`}
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
                 €
               </span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">Corrige si le montant lu est incorrect</p>
+            {amountError ? (
+              <p id="amount-error" className="text-sm text-red-600 mt-1">
+                {amountError}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-600 mt-1">Corrige si le montant lu est incorrect</p>
+            )}
           </div>
 
           <label className="flex items-start gap-3 cursor-pointer p-4 rounded-xl border-2 border-gray-200 hover:border-brand-red transition-colors">
@@ -388,12 +453,9 @@ export default function SubmitOrderPage() {
               className="mt-0.5 w-5 h-5 accent-brand-red shrink-0"
             />
             <span className="text-sm text-gray-700">
-              <span className="font-semibold">Je confirme</span> que cette commande a été passée
-              directement au restaurant {restaurantName} (sur place ou téléphone/WhatsApp),{" "}
-              <span className="font-semibold text-brand-red">
-                et non via une plateforme de livraison
-              </span>
-              .
+              <span className="font-semibold">Je confirme :</span> j&apos;ai commandé directement
+              au restaurant {restaurantName} (sur place, téléphone ou WhatsApp).{" "}
+              <span className="font-semibold text-brand-red">Pas via une app de livraison.</span>
             </span>
           </label>
 
@@ -411,9 +473,12 @@ export default function SubmitOrderPage() {
 
           {submitStatus === "duplicate" && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-              <p className="font-semibold text-orange-900 text-sm">Commande déjà soumise</p>
-              <p className="text-orange-700 text-xs mt-1">
-                Ce numéro de ticket a déjà été enregistré dans le système.
+              <p className="font-semibold text-orange-900 text-sm">Ticket déjà utilisé</p>
+              <p className="text-orange-800 text-sm mt-1">
+                Ce ticket a déjà été utilisé. Un ticket = un cadeau.
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                Vérifie dans Mes cadeaux, ou parles-en au comptoir si c&apos;est une erreur.
               </p>
             </div>
           )}
@@ -429,12 +494,12 @@ export default function SubmitOrderPage() {
             disabled={!noDelivery || submitStatus === "loading"}
             className="w-full bg-brand-red text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {submitStatus === "loading" ? "Vérification en cours..." : "Soumettre la commande"}
+            {submitStatus === "loading" ? "Vérification en cours..." : "Envoyer mon ticket"}
           </button>
 
           {!noDelivery && (
-            <p className="text-center text-xs text-gray-400">
-              Coche la case de confirmation pour soumettre
+            <p className="text-center text-sm text-gray-600">
+              Coche la case de confirmation pour envoyer ton ticket
             </p>
           )}
         </form>

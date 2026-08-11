@@ -50,7 +50,10 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
   });
 
   const timerColor =
-    remaining > 300 ? "text-green-600" : remaining > 120 ? "text-amber-500" : "text-red-600";
+    remaining > 300 ? "text-green-600" : remaining > 120 ? "text-amber-700" : "text-red-600";
+  // Libellé d'état textuel — l'information ne repose jamais sur la couleur seule
+  const timerLabel =
+    remaining > 300 ? "Tu as le temps" : remaining > 120 ? "Dépêche-toi" : "Vite !";
   const barColor =
     remaining > 300 ? "bg-green-500" : remaining > 120 ? "bg-amber-400" : "bg-red-500";
 
@@ -90,10 +93,14 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
         <div className="text-center px-6">
           <div className="text-5xl mb-4">⏱</div>
           <h1 className="text-xl font-bold text-gray-900">Coupon expiré</h1>
-          <p className="text-gray-500 mt-2 text-sm">
-            Ce coupon de 10 minutes a expiré. Génère-en un nouveau depuis tes récompenses.
+          <p className="text-gray-600 mt-2 text-sm">
+            Ce coupon de 10 minutes a expiré. Ton cadeau reste disponible tant qu&apos;il n&apos;a
+            pas expiré : retourne dans Mes cadeaux et appuie sur Récupérer.
           </p>
-          <Link href={backHref} className="inline-block mt-6 text-sm font-medium text-gray-700 underline">
+          <Link
+            href={backHref}
+            className="mt-4 text-sm font-medium text-gray-700 underline min-h-[44px] inline-flex items-center"
+          >
             {backLabel}
           </Link>
         </div>
@@ -138,7 +145,8 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
               <span className={`text-5xl font-mono font-black tabular-nums ${timerColor}`}>
                 {mm}:{ss}
               </span>
-              <p className="text-xs text-gray-400 mt-1">restantes pour récupérer</p>
+              <p className="text-sm text-gray-600 mt-1">restantes pour récupérer</p>
+              <p className={`text-sm font-semibold mt-1 ${timerColor}`}>{timerLabel}</p>
             </div>
 
             {/* Cadeaux */}
@@ -154,7 +162,7 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
 
             {/* Token visible pour le cashier */}
             <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-              <p className="text-xs text-gray-300 font-mono tracking-widest">{token}</p>
+              <p className="text-xs text-gray-600 font-mono tracking-widest">{token}</p>
             </div>
 
             {/* Bouton cashier */}
@@ -174,12 +182,15 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
         </div>
 
         {!isAdmin && (
-          <p className="text-center text-xs text-gray-400 mt-4">
-            Montre cette page au cashier {restaurantName ?? "du restaurant"} pour récupérer tes cadeaux.
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Montre cette page au comptoir {restaurantName ? `de ${restaurantName}` : "du restaurant"} pour récupérer tes cadeaux.
           </p>
         )}
         <p className="text-center mt-4">
-          <Link href={backHref} className="text-xs text-gray-400 hover:text-gray-600 underline">
+          <Link
+            href={backHref}
+            className="text-sm text-gray-600 hover:text-gray-800 underline min-h-[44px] inline-flex items-center"
+          >
             {backLabel}
           </Link>
         </p>
