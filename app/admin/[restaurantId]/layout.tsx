@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { Space_Grotesk, Archivo, Archivo_Black } from "next/font/google";
 import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
@@ -7,6 +8,20 @@ import { getAdminAccess } from "@/lib/admin-guard";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 import { AdminDesktopNav } from "@/components/admin/AdminDesktopNav";
 import { getPlan } from "@/lib/entitlements";
+
+// Polices du segment admin — déplacées du layout racine (audit UX 2026-08-11,
+// perf vieux appareils : les membres ne doivent pas télécharger les polices de
+// la console). Identité visuelle fixe de l'outil d'administration (m54),
+// indépendante de --brand-font (réservé à la page membre par établissement).
+// Space Grotesk = titres (font-display). JetBrains Mono (font-mono) reste
+// chargée par le layout racine car utilisée aussi côté membre.
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-space-grotesk", display: "swap" });
+// Archivo + Archivo Black : template QR Belchicken Kraainem
+// (qr/print/kraainem-sheet.tsx, sous ce layout). Archivo Black n'est pas dans
+// FONT_OPTIONS (jamais sélectionnable comme --brand-font).
+const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700"], style: ["normal", "italic"], variable: "--font-archivo", display: "swap" });
+const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
+const adminFontVariables = `${spaceGrotesk.variable} ${archivo.variable} ${archivoBlack.variable}`;
 
 export default async function AdminLayout({
   children,
@@ -102,7 +117,7 @@ export default async function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-paper font-brand" style={brandStyle(branding)}>
+    <div className={`min-h-screen bg-paper font-brand ${adminFontVariables}`} style={brandStyle(branding)}>
       <header className="bg-brand-dark text-white sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">

@@ -1,35 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black } from "next/font/google";
+import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
-// Polices curées de la charte graphique (m48, lib/branding.ts FONT_OPTIONS).
-// Toutes montées ici, quel que soit l'établissement — c'est --brand-font
-// (posé par brandStyle() dans les layouts /admin/[id] et /r/[id]) qui choisit
-// laquelle s'applique. Rester listé, jamais chargé depuis un domaine externe
-// à la requête (next/font auto-héberge les fichiers).
+// Polices du layout racine — audit UX 2026-08-11 (perf vieux appareils) :
+// seules restent ici les familles réellement nécessaires sur TOUTES les
+// surfaces (membres comprises). Le reste est chargé par segment :
+//
+// • Inter, Poppins, Playfair, DM Sans, Bebas Neue : polices curées m48
+//   (lib/branding.ts FONT_OPTIONS + contrainte restaurants_brand_font_chk).
+//   N'IMPORTE quel établissement peut en faire son --brand-font via
+//   brandStyle() sur les surfaces membres /r/[id] → obligées de rester
+//   globales. Jamais chargées depuis un domaine externe à la requête
+//   (next/font auto-héberge les fichiers).
+// • JetBrains Mono : la classe Tailwind `font-mono` (var --font-jetbrains-mono)
+//   est utilisée sur des surfaces membres (timer du coupon, dashboard,
+//   submit-order, micro-rewards) et sur /platform — et une var() non définie
+//   invalide toute la pile font-family (les fallbacks ne s'appliquent pas).
+//   Reste donc globale.
+// • Space Grotesk (font-display, console admin m54) + Archivo (font-landing,
+//   vitrine m55) + Archivo Black (template QR Kraainem) : déplacées vers
+//   app/admin/[restaurantId]/layout.tsx et
+//   components/restaurateurs/RestaurateursLanding.tsx — aucune classe qui les
+//   référence n'apparaît sur les surfaces membres (vérifié par grep de
+//   font-display / font-landing / --font-archivo-black au 2026-08-11).
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-poppins", display: "swap" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
 const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--font-bebas-neue", display: "swap" });
-// Console restaurateur (redesign m54) — identité visuelle fixe de l'outil
-// d'administration, indépendante de --brand-font (qui reste réservé à la
-// page membre/QR par établissement, cf. BrandingForm). Space Grotesk pour
-// les titres, JetBrains Mono pour les étiquettes techniques (labels, badges).
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-space-grotesk", display: "swap" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-jetbrains-mono", display: "swap" });
-// Landing publique restaurateurs (redesign m55, design Claude "Landing
-// Restaurateurs") — identité éditoriale du site vitrine Boosteats, distincte
-// de --brand-font (par établissement) et de Space Grotesk/JetBrains Mono
-// (console admin). Chargée globalement comme les autres polices curées, mais
-// appliquée seulement via la classe utilitaire font-landing.
-const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700"], style: ["normal", "italic"], variable: "--font-archivo", display: "swap" });
-// Template QR Belchicken Kraainem (design Claude "Templates QR Belchicken")
-// — display du support imprimé, distinct d'Archivo (corps) et non exposé
-// dans FONT_OPTIONS (pas sélectionnable comme --brand-font).
-const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
-const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
+const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${jetbrainsMono.variable}`;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 
