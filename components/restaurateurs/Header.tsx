@@ -29,10 +29,10 @@ export function Header() {
           </Link>
         </nav>
         <Link
-          href="/become-a-partner"
+          href="/login?as=resto"
           className="md:hidden bg-moss text-white text-[13px] font-bold px-3.5 py-2 rounded-lg hover:bg-moss-dark transition-colors"
         >
-          Partenaire
+          Connexion
         </Link>
       </div>
     </header>
