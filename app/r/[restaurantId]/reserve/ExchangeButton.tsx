@@ -21,7 +21,8 @@ export function ExchangeButton({ tierId, disabled }: { tierId: string; disabled:
         body: JSON.stringify({ restaurantId, tierId }),
       });
       if (res.ok) {
-        router.push(`/r/${restaurantId}/my-rewards`);
+        // Bandeau de succès sur « Mes cadeaux » (audit UX 2026-08-11).
+        router.push(`/r/${restaurantId}/my-rewards?exchanged=1`);
         router.refresh();
         return;
       }
@@ -39,9 +40,9 @@ export function ExchangeButton({ tierId, disabled }: { tierId: string; disabled:
       <button
         onClick={handleExchange}
         disabled={disabled || busy}
-        className="text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-brand-red/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="text-sm font-semibold text-white bg-brand-red px-5 py-3 min-h-[48px] rounded-xl hover:bg-brand-red/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
-        {busy ? "…" : "Échanger"}
+        {busy ? "Échange en cours…" : "Échanger contre ce cadeau"}
       </button>
       {error && <p className="text-xs text-red-600 mt-1 max-w-[200px]">{error}</p>}
     </div>

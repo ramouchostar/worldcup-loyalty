@@ -23,7 +23,9 @@ export function BankButton({ points }: { points: number | null }) {
         body: JSON.stringify({ restaurantId }),
       });
       if (res.ok) {
-        router.push(`/r/${restaurantId}/reserve`);
+        // Bandeau de succès sur la page réserve (audit UX 2026-08-11) —
+        // le nombre s'affiche sans le mot « points » (ADR 0021).
+        router.push(`/r/${restaurantId}/reserve?banked=${points ?? 0}`);
         router.refresh();
         return;
       }
@@ -38,24 +40,24 @@ export function BankButton({ points }: { points: number | null }) {
 
   if (confirming) {
     return (
-      <span className="inline-flex flex-col items-end gap-1">
-        <span className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">
-            {points !== null ? `+${points} dans ta réserve ?` : "Convertir en réserve ?"}
-          </span>
+      <span className="inline-flex flex-col items-end gap-2">
+        <span className="text-sm text-gray-500">
+          {points !== null ? `+${points} dans ta réserve ?` : "Mettre ce cadeau de côté ?"}
+        </span>
+        <span className="flex items-center gap-3">
           <button
             onClick={handleBank}
             disabled={busy}
-            className="text-xs font-semibold text-white bg-brand-dark px-2.5 py-1.5 rounded-full hover:bg-brand-dark/80 disabled:opacity-50 transition-colors"
+            className="text-sm font-semibold text-white bg-brand-dark px-4 py-3 min-h-[44px] rounded-xl hover:bg-brand-dark/80 disabled:opacity-50 transition-colors"
           >
-            {busy ? "…" : "Oui"}
+            {busy ? "…" : "Oui, mettre de côté"}
           </button>
           <button
             onClick={() => setConfirming(false)}
             disabled={busy}
-            className="text-xs font-semibold text-gray-500 px-2 py-1.5 rounded-full hover:text-gray-700 disabled:opacity-50"
+            className="text-sm font-semibold text-gray-700 bg-gray-100 px-4 py-3 min-h-[44px] rounded-xl hover:bg-gray-200 disabled:opacity-50 transition-colors"
           >
-            Non
+            Non, garder le cadeau
           </button>
         </span>
         {error && <span className="text-xs text-red-600">{error}</span>}
@@ -66,7 +68,7 @@ export function BankButton({ points }: { points: number | null }) {
   return (
     <button
       onClick={() => setConfirming(true)}
-      className="text-xs font-semibold text-brand-dark bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors"
+      className="text-sm font-semibold text-brand-dark bg-gray-100 px-5 py-3 min-h-[48px] rounded-xl hover:bg-gray-200 transition-colors"
     >
       💰 Mettre de côté
     </button>

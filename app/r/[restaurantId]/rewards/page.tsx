@@ -6,6 +6,7 @@ import { getRestaurant } from "@/lib/restaurant";
 import { isMemberActive, loadRewardGrid } from "@/lib/rewards";
 import { getBudgetStatus } from "@/lib/budget";
 import { coverageSatisfied } from "@/lib/reward-sizing";
+import { BackLink } from "@/components/member/BackLink";
 
 // ADR 0028 / H3 — cette page lisait l'ancienne table `rewards` (jamais
 // alimentée hors resto legacy → paliers vides partout ailleurs). Elle lit
@@ -33,20 +34,12 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
     return (
       <div className="space-y-5 pb-4">
         {/* ADR 0030 §5 — page hors BottomNav : retour vers son parent logique */}
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/r/${restaurantId}/dashboard`}
-            aria-label="Retour à l'accueil"
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-          >
-            ←
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Récompenses</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Les paliers collectifs se débloquent en équipe.
-            </p>
-          </div>
+        <div>
+          <BackLink href={`/r/${restaurantId}/dashboard`} />
+          <h1 className="text-2xl font-bold text-gray-900 mt-1">Paliers d&apos;équipe</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Les paliers collectifs se débloquent en équipe.
+          </p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-4xl mb-3">👥</p>
@@ -107,16 +100,9 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
   return (
     <div className="space-y-5 pb-4">
       {/* ADR 0030 §5 — page hors BottomNav : retour vers son parent logique */}
-      <div className="flex items-center gap-3">
-        <Link
-          href={`/r/${restaurantId}/dashboard`}
-          aria-label="Retour à l'accueil"
-          className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-        >
-          ←
-        </Link>
-        <div>
-        <h1 className="text-2xl font-bold text-gray-900">Récompenses</h1>
+      <div>
+        <BackLink href={`/r/${restaurantId}/dashboard`} />
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">Paliers d&apos;équipe</h1>
         <p className="text-gray-500 text-sm mt-1">
           Score actuel de ta communauté :{" "}
           <span className="font-bold text-gray-900">
@@ -124,7 +110,6 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
           </span>
           <span className="text-gray-400 ml-2">({memberCount} membre{memberCount !== 1 ? "s" : ""})</span>
         </p>
-        </div>
       </div>
 
       {/* Statut double verrou */}
@@ -141,10 +126,10 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
         <div className={`rounded-xl p-3 text-center ${memberActive ? "bg-green-50 border border-green-200" : "bg-gray-50 border border-gray-200"}`}>
           <p className="text-xl mb-1">{memberActive ? "✅" : "⏳"}</p>
           <p className={`text-xs font-semibold ${memberActive ? "text-green-800" : "text-gray-600"}`}>
-            Ton statut
+            Toi
           </p>
           <p className={`text-xs mt-0.5 ${memberActive ? "text-green-600" : "text-gray-500"}`}>
-            {memberActive ? "Membre actif" : "Pas encore de commande validée"}
+            {memberActive ? "Membre actif" : "Scanne un premier ticket pour commencer"}
           </p>
         </div>
       </div>

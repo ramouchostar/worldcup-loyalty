@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
+import { PendingButton } from "@/components/PendingButton";
 import { joinRestaurant } from "./actions";
 
 // ADR 0030 §8 — /join est la destination de plusieurs refus d'autorisation :
@@ -88,18 +89,18 @@ export default async function JoinPage({
               {joinedIds.has(r.id) ? (
                 <Link
                   href={`/r/${r.id}/dashboard`}
-                  className="text-sm font-semibold text-brand-red hover:underline shrink-0"
+                  className="inline-flex items-center justify-center bg-brand-red text-white text-sm font-semibold px-5 py-3 min-h-[48px] rounded-xl hover:bg-brand-red/85 transition-colors shrink-0"
                 >
-                  Continuer →
+                  Ouvrir mon espace →
                 </Link>
               ) : (
                 <form action={joinRestaurant.bind(null, r.id)}>
-                  <button
-                    type="submit"
-                    className="bg-brand-red text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-brand-red/85 transition-colors shrink-0"
+                  <PendingButton
+                    pendingLabel="Un instant…"
+                    className="bg-brand-red text-white text-sm font-semibold px-5 py-3 min-h-[48px] rounded-xl hover:bg-brand-red/85 transition-colors shrink-0"
                   >
                     Rejoindre
-                  </button>
+                  </PendingButton>
                 </form>
               )}
             </div>

@@ -35,12 +35,11 @@ export function BottomNav({ restaurantId }: { restaurantId: string }) {
               key={link.href}
               href={href}
               id={link.id}
-              className={`flex flex-col items-center py-2 px-1 text-xs min-w-0 transition-colors ${
+              className={`relative flex flex-col items-center py-2 px-1 text-[13px] min-w-0 transition-colors ${
                 active
                   ? "text-brand-red font-semibold"
                   : "text-gray-500 hover:text-brand-red"
               }`}
-              aria-label={link.label}
               aria-current={active ? "page" : undefined}
             >
               <span className="text-lg leading-none mb-0.5" aria-hidden="true">

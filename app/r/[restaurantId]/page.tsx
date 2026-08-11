@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
+import { PendingButton } from "@/components/PendingButton";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
@@ -121,33 +122,33 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
           <div className="flex flex-col sm:flex-row gap-3">
             {!user ? (
               <form action={redirectToLogin.bind(null, restaurantId)} className="flex-1">
-                <button
-                  type="submit"
+                <PendingButton
+                  pendingLabel="Un instant…"
                   className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
                 >
                   Rejoindre gratuitement →
-                </button>
+                </PendingButton>
               </form>
             ) : isMember ? (
               <Link
                 href={`/r/${restaurantId}/dashboard`}
                 className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
               >
-                Continuer →
+                Ouvrir mon espace →
               </Link>
             ) : (
               <form action={joinRestaurant.bind(null, restaurantId)} className="flex-1">
-                <button
-                  type="submit"
+                <PendingButton
+                  pendingLabel="Un instant…"
                   className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
                 >
                   Rejoindre {restaurant.name} →
-                </button>
+                </PendingButton>
               </form>
             )}
             <Link
               href={`/r/${restaurantId}/leaderboard`}
-              className="flex-1 bg-white/10 text-white text-center py-4 rounded-2xl font-semibold hover:bg-white/20 transition-colors border border-white/20"
+              className="flex-1 bg-white text-brand-dark text-center py-4 rounded-2xl font-semibold hover:bg-gray-100 transition-colors"
             >
               🏆 Classement live
             </Link>
@@ -238,28 +239,28 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
           </p>
           {!user ? (
             <form action={redirectToLogin.bind(null, restaurantId)}>
-              <button
-                type="submit"
+              <PendingButton
+                pendingLabel="Un instant…"
                 className="inline-block bg-white text-brand-red font-black text-lg px-8 py-4 rounded-2xl hover:bg-red-50 transition-colors shadow-lg"
               >
                 Je rejoins ma communauté →
-              </button>
+              </PendingButton>
             </form>
           ) : isMember ? (
             <Link
               href={`/r/${restaurantId}/dashboard`}
               className="inline-block bg-white text-brand-red font-black text-lg px-8 py-4 rounded-2xl hover:bg-red-50 transition-colors shadow-lg"
             >
-              Continuer →
+              Ouvrir mon espace →
             </Link>
           ) : (
             <form action={joinRestaurant.bind(null, restaurantId)}>
-              <button
-                type="submit"
+              <PendingButton
+                pendingLabel="Un instant…"
                 className="inline-block bg-white text-brand-red font-black text-lg px-8 py-4 rounded-2xl hover:bg-red-50 transition-colors shadow-lg"
               >
                 Je rejoins ma communauté →
-              </button>
+              </PendingButton>
             </form>
           )}
         </div>

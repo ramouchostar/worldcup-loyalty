@@ -49,6 +49,8 @@ export function TeamManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showChange, setShowChange] = useState(false);
+  // Feedback « ✓ Copié » pendant 2 s après le tap (audit UX 2026-08-11)
+  const [copied, setCopied] = useState(false);
   // ADR 0030 §6 — suite de parcours : après avoir créé/rejoint, on célèbre et
   // on propose le classement (l'état survit au router.refresh(), même instance).
   const [justJoined, setJustJoined] = useState(false);
@@ -124,21 +126,28 @@ export function TeamManager({
         <div className="flex items-center gap-2">
           <input readOnly value={link} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-gray-50" />
           <button
-            onClick={() => navigator.clipboard?.writeText(link)}
-            className="px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 shrink-0"
+            onClick={() => {
+              navigator.clipboard?.writeText(link);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="px-3 py-2 min-h-[44px] bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 shrink-0"
           >
-            Copier
+            {copied ? "✓ Copié" : "Copier"}
           </button>
         </div>
         <a
           href={wa}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-green-600"
+          className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-green-600"
         >
           📲 Partager sur WhatsApp
         </a>
-        <button onClick={() => setShowChange(true)} className="text-xs text-gray-400 hover:text-gray-600 underline">
+        <button
+          onClick={() => setShowChange(true)}
+          className="text-sm text-gray-600 hover:text-gray-800 underline min-h-[44px] inline-flex items-center px-2"
+        >
           Changer d&apos;équipe
         </button>
       </div>
@@ -150,7 +159,10 @@ export function TeamManager({
   return (
     <div className="space-y-4">
       {team && (
-        <button onClick={() => setShowChange(false)} className="text-xs text-gray-400 hover:text-gray-600 underline">
+        <button
+          onClick={() => setShowChange(false)}
+          className="text-sm text-gray-600 hover:text-gray-800 underline min-h-[44px] inline-flex items-center px-2"
+        >
           ← Revenir à mon équipe
         </button>
       )}
@@ -187,7 +199,7 @@ export function TeamManager({
                   <button
                     onClick={() => join({ teamId: t.id })}
                     disabled={busy}
-                    className="px-3 py-1.5 bg-brand-red text-white rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-brand-red/85 shrink-0"
+                    className="px-4 py-3 min-h-[44px] bg-brand-red text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-brand-red/85 shrink-0"
                   >
                     Rejoindre
                   </button>
@@ -201,69 +213,102 @@ export function TeamManager({
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
         <p className="font-semibold text-gray-900">Rejoindre avec un code d&apos;invitation</p>
         {initialJoinCode && !team && (
-          <p className="text-xs text-brand-gold">Un lien d&apos;invitation t&apos;attend — code prérempli.</p>
+          <p className="text-xs text-brand-red">Un lien d&apos;invitation t&apos;attend — code prérempli.</p>
         )}
-        <div className="flex items-center gap-2">
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="Code (ex. ABC123)"
-            maxLength={6}
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase tracking-widest"
-          />
-          <button
-            onClick={() => join({ code })}
-            disabled={busy || code.length !== 6}
-            className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold disabled:opacity-50 shrink-0"
-          >
-            Rejoindre
-          </button>
+        <div>
+          <label htmlFor="team-join-code" className="block text-sm text-gray-700 mb-1">
+            Code d&apos;invitation
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="team-join-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="Code (ex. ABC123)"
+              maxLength={6}
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase tracking-widest"
+            />
+            <button
+              onClick={() => join({ code })}
+              disabled={busy || code.length !== 6}
+              className="px-4 py-3 bg-brand-dark text-white rounded-lg text-sm font-semibold disabled:opacity-50 shrink-0"
+            >
+              Rejoindre
+            </button>
+          </div>
+          {code.length !== 6 && (
+            <p className="text-sm text-gray-500 mt-1">Le code fait 6 caractères.</p>
+          )}
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
         <p className="font-semibold text-gray-900">Créer une équipe</p>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nom (ex. École Saint-Jean)"
-          maxLength={60}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-        />
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as TeamType)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-        >
-          {TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        {/* Zone de l'équipe : proposée aux membres de cette zone (ADR 0018) */}
-        <select
-          value={teamZone}
-          onChange={(e) => setTeamZone(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-        >
-          {zones.map((z) => (
-            <option key={z} value={z}>📍 {z}</option>
-          ))}
-          <option value="__custom__">Autre zone…</option>
-          <option value="">Sans zone (invitation uniquement)</option>
-        </select>
-        {teamZone === "__custom__" && (
+        <div>
+          <label htmlFor="team-name" className="block text-sm text-gray-700 mb-1">
+            Nom de l&apos;équipe
+          </label>
           <input
-            value={customZone}
-            onChange={(e) => setCustomZone(e.target.value)}
-            placeholder="Ville ou quartier de l'équipe"
-            maxLength={40}
+            id="team-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ex. École Saint-Jean"
+            maxLength={60}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
           />
+        </div>
+        <div>
+          <label htmlFor="team-type" className="block text-sm text-gray-700 mb-1">
+            Type d&apos;équipe
+          </label>
+          <select
+            id="team-type"
+            value={type}
+            onChange={(e) => setType(e.target.value as TeamType)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            {TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        {/* Zone de l'équipe : proposée aux membres de cette zone (ADR 0018) */}
+        <div>
+          <label htmlFor="team-zone" className="block text-sm text-gray-700 mb-1">
+            Zone
+          </label>
+          <select
+            id="team-zone"
+            value={teamZone}
+            onChange={(e) => setTeamZone(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            {zones.map((z) => (
+              <option key={z} value={z}>📍 {z}</option>
+            ))}
+            <option value="__custom__">Autre zone…</option>
+            <option value="">Sans zone (invitation uniquement)</option>
+          </select>
+        </div>
+        {teamZone === "__custom__" && (
+          <div>
+            <label htmlFor="team-custom-zone" className="block text-sm text-gray-700 mb-1">
+              Nom de la zone
+            </label>
+            <input
+              id="team-custom-zone"
+              value={customZone}
+              onChange={(e) => setCustomZone(e.target.value)}
+              placeholder="Ville ou quartier de l'équipe"
+              maxLength={40}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
         )}
         <button
           onClick={create}
           disabled={busy || name.trim().length < 2}
-          className="w-full px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-brand-red/85"
+          className="w-full px-4 py-3 min-h-[48px] bg-brand-red text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-brand-red/85"
         >
           {busy ? "…" : "Créer mon équipe"}
         </button>
@@ -325,7 +370,7 @@ function ZonesCard({ zones, onSaved }: { zones: string[]; onSaved: () => void })
         </div>
         <button
           onClick={() => setEditing(true)}
-          className="text-xs text-gray-400 hover:text-gray-600 underline shrink-0"
+          className="text-sm text-gray-600 hover:text-gray-800 underline min-h-[44px] inline-flex items-center px-2 shrink-0"
         >
           Modifier
         </button>
@@ -361,12 +406,15 @@ function ZonesCard({ zones, onSaved }: { zones: string[]; onSaved: () => void })
         <button
           onClick={save}
           disabled={busy}
-          className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold disabled:opacity-50"
+          className="px-4 py-3 bg-brand-dark text-white rounded-lg text-sm font-semibold disabled:opacity-50"
         >
           {busy ? "…" : "Enregistrer"}
         </button>
         {zones.length > 0 && (
-          <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 underline">
+          <button
+            onClick={() => setEditing(false)}
+            className="text-sm text-gray-600 hover:text-gray-800 underline min-h-[44px] inline-flex items-center px-2"
+          >
             Annuler
           </button>
         )}

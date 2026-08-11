@@ -17,6 +17,16 @@ export function RestaurantSwitcher({
   const [open, setOpen] = useState(false);
   const others = restaurants.filter((r) => r.id !== current.id);
 
+  // Cas ultra-majoritaire : un seul établissement — pas de chevron ni de
+  // dropdown, juste le nom (audit UX 2026-08-11 : affordance parasite).
+  if (restaurants.length <= 1) {
+    return (
+      <span className="flex items-center gap-1.5 font-bold text-lg tracking-tight">
+        🍗 <span className="text-brand-gold">{current.name}</span>
+      </span>
+    );
+  }
+
   return (
     <div className="relative">
       <button
@@ -42,7 +52,7 @@ export function RestaurantSwitcher({
               <Link
                 key={r.id}
                 href={`/r/${r.id}/dashboard`}
-                className="block px-3 py-2 text-sm hover:bg-gray-50"
+                className="block px-3 py-3 text-sm hover:bg-gray-50"
                 onClick={() => setOpen(false)}
               >
                 {r.name}
@@ -50,7 +60,7 @@ export function RestaurantSwitcher({
             ))}
             <Link
               href="/join"
-              className="block px-3 py-2 text-sm font-semibold text-brand-red hover:bg-red-50 border-t border-gray-100 mt-1"
+              className="block px-3 py-3 text-sm font-semibold text-brand-red hover:bg-red-50 border-t border-gray-100 mt-1"
               onClick={() => setOpen(false)}
             >
               + Rejoindre un autre restaurant

@@ -191,7 +191,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         </Link>
       )}
 
-      <OnboardingFlow />
+      <OnboardingFlow hasValidatedOrder={validCount > 0} />
 
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div
@@ -218,7 +218,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             </div>
           ) : (
             <div className="flex items-center justify-between opacity-40">
-              <span className="text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</span>
+              <span className="text-sm text-gray-400">Pas encore de cadeau de base</span>
             </div>
           )}
 
@@ -238,7 +238,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 <span>🏆</span>
                 <span className="font-bold text-brand-gold">+ {heroTeamTier.item}</span>
               </div>
-              <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
+              <span className="text-xs text-gray-400">← bonus d&apos;équipe débloqué</span>
             </div>
           )}
         </div>
@@ -251,9 +251,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           </p>
           <Link
             href={r("/submit-order")}
-            className="bg-brand-red text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-brand-red/85 transition-colors shrink-0"
+            className="inline-flex items-center bg-brand-red text-white text-sm font-bold px-5 py-3 min-h-[48px] rounded-lg hover:bg-brand-red/85 transition-colors shrink-0"
           >
-            Commander →
+            Scanner mon ticket →
           </Link>
         </div>
       </div>
@@ -270,7 +270,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 </span>
               )}
             </p>
-            <Link href={r("/my-rewards")} className="text-xs text-gray-400 hover:text-gray-600 underline">
+            <Link href={r("/my-rewards")} className="text-sm min-h-[44px] inline-flex items-center text-gray-500 hover:text-gray-700 underline">
               Historique →
             </Link>
           </div>
@@ -285,21 +285,21 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                     <div className="flex items-center gap-2">
                       <span>🍗</span>
                       <span className="font-bold text-gray-900">{r2.solo_item}</span>
-                      <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
+                      <span className="text-xs text-gray-500 ml-auto">cadeau de base</span>
                     </div>
                   )}
                   {r2.community_item && (
                     <div className="flex items-center gap-2">
                       <span>👥</span>
                       <span className="font-bold text-gray-900">+ {r2.community_item}</span>
-                      <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
+                      <span className="text-xs text-gray-500 ml-auto">bonus communautaire</span>
                     </div>
                   )}
                   {r2.advancement_item && (
                     <div className="flex items-center gap-2">
                       <span>🏆</span>
                       <span className="font-bold text-gray-900">+ {r2.advancement_item}</span>
-                      <span className="text-xs text-gray-400 ml-auto">bonus d&apos;équipe</span>
+                      <span className="text-xs text-gray-500 ml-auto">bonus d&apos;équipe</span>
                     </div>
                   )}
                 </div>
@@ -313,7 +313,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                   ? `${pendingRewards.length} cadeaux à récupérer au comptoir`
                   : "Cadeau à récupérer au comptoir"}
               </p>
-              <p className="text-xs text-amber-600 font-medium mt-0.5">⏰ 48h pour récupérer avant expiration</p>
+              <p className="text-sm text-amber-700 font-medium mt-0.5">⏰ 48h pour récupérer avant expiration</p>
             </div>
             <RedeemButton />
           </div>
@@ -371,14 +371,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             </p>
           ) : nextTier ? (
             <>
-              <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
+              <div className="flex justify-between text-xs text-gray-500 mb-1.5 tabular-nums">
                 <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
                 <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">
                 <div
                   className="bg-brand-red h-2 rounded-full transition-all duration-700"
-                  style={{ width: `${tierPct}%` }}
+                  // Plancher visuel : une barre jamais à 0 % (progression dotée, audit UX)
+                  style={{ width: `${Math.max(tierPct, 6)}%` }}
                 />
               </div>
 
@@ -440,7 +441,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
         >
           <p className="text-xl mb-1" aria-hidden="true">🎁</p>
-          <p className="font-bold text-gray-900 text-sm">Récompenses</p>
+          <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
+            Paliers d&apos;équipe <span className="text-gray-400" aria-hidden="true">→</span>
+          </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {!hasTeam
               ? "Rejoins une équipe"
@@ -458,7 +461,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
         >
           <p className="text-xl mb-1" aria-hidden="true">🏆</p>
-          <p className="font-bold text-gray-900 text-sm">Classement</p>
+          <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
+            Classement <span className="text-gray-400" aria-hidden="true">→</span>
+          </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
           </p>
@@ -469,7 +474,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
         >
           <p className="text-xl mb-1" aria-hidden="true">💬</p>
-          <p className="font-bold text-gray-900 text-sm">Mon resto</p>
+          <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
+            Mon resto <span className="text-gray-400" aria-hidden="true">→</span>
+          </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {validCount >= FEEDBACK_ELIGIBILITY_MIN
               ? "Encourage ou signale, en privé"
@@ -482,12 +489,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-gold/60 transition-colors"
         >
           <p className="text-xl mb-1" aria-hidden="true">💰</p>
-          <p className="font-bold text-gray-900 text-sm">Ma réserve</p>
+          <p className="font-bold text-gray-900 text-sm flex items-center justify-between gap-1">
+            Ma réserve <span className="text-gray-400" aria-hidden="true">→</span>
+          </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {reserveBalance > 0
               ? `${reserveBalance} de côté`
               : (saverTierCount ?? 0) > 0
-                ? "Échange-la contre un gros cadeau"
+                ? "Mets tes cadeaux de côté pour viser plus gros"
                 : "Mets tes cadeaux de côté"}
           </p>
         </Link>
@@ -509,19 +518,19 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-bold text-gray-900">Mes commandes</h3>
-          <Link href={r("/submit-order")} className="text-brand-red text-sm font-semibold hover:underline">
-            + Ajouter
+          <Link href={r("/submit-order")} className="text-brand-red text-sm font-semibold hover:underline min-h-[44px] inline-flex items-center px-2">
+            + Scanner un ticket
           </Link>
         </div>
 
         {orderList.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-gray-400 text-sm">Aucune commande soumise.</p>
+            <p className="text-gray-400 text-sm">Aucun ticket scanné pour l&apos;instant.</p>
             <Link
               href={r("/submit-order")}
-              className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
+              className="inline-flex items-center mt-3 bg-brand-red text-white px-5 py-3 min-h-[48px] rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
             >
-              Soumettre ma première commande
+              Scanner mon premier ticket
             </Link>
           </div>
         ) : (

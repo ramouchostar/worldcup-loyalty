@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { ACTION_ICONS, TOKENS_PER_PORTION, getActionLinks } from "@/lib/social-actions";
@@ -104,7 +105,8 @@ export default function MicroRewardsPage() {
           <div className="w-full bg-gray-100 rounded-full h-2.5">
             <div
               className="bg-brand-red h-2.5 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min((totalTokens / TOKENS_PER_PORTION) * 100, 100)}%` }}
+              // Plancher visuel 6 % (audit UX 2026-08-11) — une barre jamais à zéro
+              style={{ width: `${Math.max(Math.min((totalTokens / TOKENS_PER_PORTION) * 100, 100), 6)}%` }}
             />
           </div>
           <p className="text-xs text-gray-400 mt-2">
@@ -212,12 +214,16 @@ function ActionCard({
         )}
         {status === "pending" && (
           <div className="mt-3 bg-amber-50 px-3 py-2 rounded-lg text-xs font-medium text-amber-800">
-            ⏳ En attente de validation par notre équipe
+            ⏳ On vérifie — réponse sous 24 h
           </div>
         )}
         {status === "rejected" && (
           <div className="mt-3 bg-red-50 px-3 py-2 rounded-lg text-xs text-red-800">
-            ❌ Rejetée — contacte-nous pour plus d&apos;informations.
+            On n&apos;a pas pu confirmer cette action. Parles-en au comptoir ou via la{" "}
+            <Link href={`/r/${restaurantId}/aide`} className="font-semibold underline">
+              page Aide
+            </Link>
+            .
           </div>
         )}
 
@@ -236,9 +242,9 @@ function ActionCard({
             <button
               onClick={handleClaim}
               disabled={submitting}
-              className="w-full bg-brand-dark text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              className="w-full bg-brand-dark text-white py-3 rounded-xl font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
-              {submitting ? "Envoi…" : "J'ai effectué cette action ✓"}
+              {submitting ? "Envoi…" : "C'est fait ✓"}
             </button>
             {error && (
               <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>
@@ -305,7 +311,8 @@ function ReferralSection({
             <div className="w-full bg-gray-100 rounded-full h-2">
               <div
                 className="bg-brand-red h-2 rounded-full transition-all duration-500"
-                style={{ width: `${(progressToToken / 5) * 100}%` }}
+                // Plancher visuel 6 % (audit UX 2026-08-11) — une barre jamais à zéro
+                style={{ width: `${Math.max((progressToToken / 5) * 100, 6)}%` }}
               />
             </div>
             <p className="text-xs text-gray-400 mt-1">
@@ -324,7 +331,7 @@ function ReferralSection({
               <p className="flex-1 text-xs text-gray-600 truncate font-mono">{joinUrl}</p>
               <button
                 onClick={copyLink}
-                className="shrink-0 text-xs font-semibold text-brand-red hover:text-red-700 transition-colors"
+                className="px-3 py-2.5 min-h-[44px] shrink-0 rounded-lg bg-gray-100 text-xs font-semibold text-brand-red hover:bg-gray-200 transition-colors"
               >
                 {copied ? "✓ Copié" : "Copier"}
               </button>

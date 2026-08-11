@@ -143,7 +143,7 @@ export function FeedbackClient({
                       key={d}
                       type="button"
                       onClick={() => toggleDim(d)}
-                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                      className={`rounded-full border px-4 py-2.5 text-sm min-h-[44px] transition-colors ${
                         on ? "border-brand-red bg-brand-red/10 text-brand-red font-semibold" : "border-gray-200 text-gray-600"
                       }`}
                     >
@@ -152,14 +152,20 @@ export function FeedbackClient({
                   );
                 })}
               </div>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                maxLength={1000}
-                rows={3}
-                placeholder="Un détail à ajouter ? (optionnel)"
-                className="w-full rounded-xl border border-gray-200 p-3 text-sm"
-              />
+              <div>
+                <label htmlFor="feedback-comment-incident" className="block text-sm text-gray-700 mb-1">
+                  Ton message (facultatif)
+                </label>
+                <textarea
+                  id="feedback-comment-incident"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder="Un détail à ajouter ?"
+                  className="w-full rounded-xl border border-gray-200 p-3 text-sm"
+                />
+              </div>
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={contactOptIn} onChange={(e) => setContactOptIn(e.target.checked)} />
                 Je veux que le resto puisse me répondre (tu restes anonyme)
@@ -170,14 +176,20 @@ export function FeedbackClient({
           {mode === "encouragement" && (
             <div className="space-y-3">
               <p className="font-semibold text-gray-900 text-sm">Un petit mot pour ton resto 💛</p>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                maxLength={1000}
-                rows={3}
-                placeholder="Ce qui était bien… (optionnel)"
-                className="w-full rounded-xl border border-gray-200 p-3 text-sm"
-              />
+              <div>
+                <label htmlFor="feedback-comment-encouragement" className="block text-sm text-gray-700 mb-1">
+                  Ton message (facultatif)
+                </label>
+                <textarea
+                  id="feedback-comment-encouragement"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder="Ce qui était bien…"
+                  className="w-full rounded-xl border border-gray-200 p-3 text-sm"
+                />
+              </div>
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={anon} onChange={(e) => setAnon(e.target.checked)} />
                 Rester anonyme
@@ -195,9 +207,13 @@ export function FeedbackClient({
                   disabled={busy || (mode === "incident" && dimensions.length === 0)}
                   className="flex-1 rounded-xl bg-brand-red text-white font-semibold py-2.5 text-sm disabled:opacity-40"
                 >
-                  {busy ? "Envoi…" : "Envoyer"}
+                  {busy ? "Envoi…" : "Envoyer à mon resto"}
                 </button>
-                <button type="button" onClick={reset} className="rounded-xl border border-gray-200 px-4 text-sm text-gray-600">
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="rounded-xl bg-gray-100 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-200 transition-colors"
+                >
                   Annuler
                 </button>
               </div>

@@ -70,14 +70,18 @@ function pushEligible(): boolean {
   );
 }
 
-function computeStage(): Stage {
+// Audit UX 2026-08-11 (C3) — les modales PWA et push sont différées après la
+// première commande validée (moment de valeur). Le tour, lui, reste à la
+// première visite : c'est lui qui apprend la navigation.
+function computeStage(hasValidatedOrder: boolean): Stage {
   if (
+    hasValidatedOrder &&
     !standalone() &&
     localStorage.getItem(K_PWA_DONE) !== "true" &&
     !snoozed(K_PWA_SNZ)
   ) return "pwa";
 
-  if (pushEligible()) return "push";
+  if (hasValidatedOrder && pushEligible()) return "push";
 
   if (localStorage.getItem(K_TOUR) !== "true") return "tour";
 
@@ -97,7 +101,13 @@ const TOUR_STEPS = [
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
-export function OnboardingFlow() {
+export function OnboardingFlow({
+  hasValidatedOrder = false,
+}: {
+  /** Passé par le dashboard (`hasValidatedOrder={validCount > 0}`) — les
+      modales PWA/push n'apparaissent qu'après la 1re commande validée. */
+  hasValidatedOrder?: boolean;
+}) {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const [stage, setStage]     = useState<Stage | null>(null);
   const [isIOS, setIsIOS]     = useState(false);
@@ -114,16 +124,19 @@ export function OnboardingFlow() {
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     setIsIOS(iosSafari());
-    setStage(computeStage());
+    setStage(computeStage(hasValidatedOrder));
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
+  }, [hasValidatedOrder]);
 
   // Launch driver.js when we reach the tour stage
   useEffect(() => {
     if (stage !== "tour") return;
     const driverObj = driver({
       popoverClass: "brand-popover",
-      allowClose: false,
+      // Tour passable (audit C3) : croix driver.js + tap sur l'overlay —
+      // onDestroyStarted marque le tour comme fait dans les deux cas.
+      allowClose: true,
+      showButtons: ["next", "previous", "close"],
       showProgress: true,
       progressText: "{{current}} / {{total}}",
       nextBtnText: "Suivant →",
@@ -215,7 +228,12 @@ export function OnboardingFlow() {
   if (stage === "pwa") {
     return (
       <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Installer l'application sur ton téléphone"
+          className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl"
+        >
           <div className="text-center mb-5">
             <p className="text-4xl mb-3">📲</p>
             <h2 className="text-xl font-black text-gray-900">
@@ -264,7 +282,7 @@ export function OnboardingFlow() {
                 </button>
                 <button
                   onClick={snoozePWA}
-                  className="w-full text-gray-400 text-sm py-2 hover:text-gray-600 transition-colors"
+                  className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
                 >
                   Plus tard
                 </button>
@@ -279,7 +297,7 @@ export function OnboardingFlow() {
                 </button>
                 <button
                   onClick={snoozePWA}
-                  className="w-full text-gray-400 text-sm py-2 hover:text-gray-600 transition-colors"
+                  className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
                 >
                   Plus tard
                 </button>
@@ -294,7 +312,12 @@ export function OnboardingFlow() {
   // ── Push modal ─────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Activer les notifications"
+        className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl"
+      >
         <div className="text-center mb-6">
           <p className="text-4xl mb-3">🔔</p>
           <h2 className="text-xl font-black text-gray-900">Ne rate aucun cadeau</h2>
@@ -314,14 +337,14 @@ export function OnboardingFlow() {
           <button
             onClick={snoozePush}
             disabled={pushBusy}
-            className="w-full text-gray-400 text-sm py-2 hover:text-gray-600 transition-colors"
+            className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
             Plus tard
           </button>
           <button
             onClick={refusePush}
             disabled={pushBusy}
-            className="w-full text-gray-400 text-sm py-1 hover:text-gray-500 transition-colors"
+            className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
             Non merci
           </button>

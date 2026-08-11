@@ -340,7 +340,7 @@ export default function LandingPage() {
           <div className="flex gap-4">
             {/* /join est protégée — un visiteur anonyme subissait un double
                 saut /join → /login (ADR 0030 §8) */}
-            <Link href="/signup" className="hover:text-gray-300 transition-colors">Restaurants</Link>
+            <Link href="/signup" className="hover:text-gray-300 transition-colors">Créer un compte</Link>
             <Link href="/" className="hover:text-gray-300 transition-colors">Devenir partenaire</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Connexion</Link>
           </div>

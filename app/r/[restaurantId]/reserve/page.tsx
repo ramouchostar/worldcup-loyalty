@@ -4,6 +4,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getPointsBalance } from "@/lib/points";
 import type { PointTransaction } from "@/types";
 import { ExchangeButton } from "./ExchangeButton";
+import { BackLink } from "@/components/member/BackLink";
 
 // ADR 0021 — « Ma réserve » : solde de points personnels, gros cadeaux
 // échangeables, historique des mouvements. Surface membre : seuils en
@@ -15,8 +16,18 @@ const REASON_LABELS: Record<PointTransaction["reason"], string> = {
   admin_adjust: "Ajustement",
 };
 
-export default async function ReservePage({ params }: { params: Promise<{ restaurantId: string }> }) {
+export default async function ReservePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ restaurantId: string }>;
+  searchParams: Promise<{ banked?: string }>;
+}) {
   const { restaurantId } = await params;
+  const { banked } = await searchParams;
+  // Bandeau de succès après « Mettre de côté » (audit UX 2026-08-11) —
+  // nombre sans le mot « points » (ADR 0021).
+  const bankedPoints = banked !== undefined ? Number.parseInt(banked, 10) : null;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -53,20 +64,33 @@ export default async function ReservePage({ params }: { params: Promise<{ restau
 
   return (
     <div className="space-y-5 pb-4">
-      <div className="flex items-center gap-3">
-        <Link href={`/r/${restaurantId}/dashboard`} className="text-gray-400 hover:text-gray-600">←</Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ma réserve</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            Mets tes cadeaux de côté, échange-les plus tard contre un plus gros
-          </p>
-        </div>
+      <div>
+        <BackLink href={`/r/${restaurantId}/dashboard`} />
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">Ma réserve</h1>
+        <p className="text-gray-500 text-sm mt-0.5">
+          Mets tes cadeaux de côté, échange-les plus tard contre un plus gros
+        </p>
       </div>
+
+      {banked !== undefined && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm font-semibold text-green-800">
+          {bankedPoints !== null && bankedPoints > 0
+            ? `✅ +${bankedPoints} dans ta réserve`
+            : "✅ Cadeau mis de côté dans ta réserve"}
+        </div>
+      )}
 
       {/* Solde */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 text-white rounded-2xl p-6 text-center">
         <p className="text-xs uppercase tracking-widest text-brand-gold font-bold mb-1">💰 Ma réserve</p>
         <p className="text-5xl font-black tabular-nums">{balance}</p>
+        {/* Première cible visible dès le solde 0 (progression dotée, audit UX) —
+            nom + seuil uniquement, jamais de coût (ADR 0021 / ADR 0007). */}
+        {balance === 0 && tiers.length > 0 && (
+          <p className="text-sm text-brand-gold font-semibold mt-2">
+            Premier gros cadeau : {tiers[0].item_name} à {tiers[0].min_threshold}
+          </p>
+        )}
         <p className="text-gray-300 text-xs mt-2">
           Chaque cadeau mis de côté depuis{" "}
           <Link href={`/r/${restaurantId}/my-rewards`} className="underline">

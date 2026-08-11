@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import type { PendingReward } from "@/types";
 import { RedeemButton } from "./RedeemButton";
 import { BankButton } from "./BankButton";
+import { BackLink } from "@/components/member/BackLink";
 
 // Montant de la commande d'origine (jointure RLS own-read) — sert à
 // afficher les points de réserve avant le choix « Mettre de côté »
@@ -13,8 +14,15 @@ type RewardWithOrder = Omit<PendingReward, "user_id" | "restaurant_id" | "solo_c
   orders: { amount: number } | null;
 };
 
-export default async function MyRewardsPage({ params }: { params: Promise<{ restaurantId: string }> }) {
+export default async function MyRewardsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ restaurantId: string }>;
+  searchParams: Promise<{ exchanged?: string }>;
+}) {
   const { restaurantId } = await params;
+  const { exchanged } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -36,15 +44,20 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
 
   return (
     <div className="space-y-5 pb-4">
-      <div className="flex items-center gap-3">
-        <Link href={`/r/${restaurantId}/dashboard`} className="text-gray-400 hover:text-gray-600">←</Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mes récompenses</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            Historique de tes cadeaux
-          </p>
-        </div>
+      <div>
+        <BackLink href={`/r/${restaurantId}/dashboard`} />
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">Mes cadeaux</h1>
+        <p className="text-gray-500 text-sm mt-0.5">
+          Historique de tes cadeaux
+        </p>
       </div>
+
+      {/* Bandeau de succès après un échange depuis la réserve (audit UX 2026-08-11) */}
+      {exchanged === "1" && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm font-semibold text-green-800">
+          🎉 Ton cadeau est prêt — récupère-le au comptoir sous 48&nbsp;h
+        </div>
+      )}
 
       {/* À récupérer */}
       <section>
@@ -56,9 +69,9 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
             <p className="text-gray-400 text-sm">Aucune récompense en attente.</p>
             <Link
               href={`/r/${restaurantId}/submit-order`}
-              className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
+              className="inline-flex items-center mt-3 bg-brand-red text-white px-5 py-3 min-h-[48px] rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
             >
-              Soumettre une commande →
+              Scanner mon ticket →
             </Link>
           </div>
         ) : (
@@ -122,15 +135,15 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
       {rewards.length === 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
           <p className="text-4xl mb-3">🎁</p>
-          <p className="font-bold text-gray-900">Pas encore de récompenses</p>
+          <p className="font-bold text-gray-900">Pas encore de cadeaux</p>
           <p className="text-gray-500 text-sm mt-1 mb-4">
-            Chaque commande directe validée génère un cadeau à récupérer au comptoir.
+            Chaque ticket scanné te donne un cadeau à récupérer au comptoir.
           </p>
           <Link
             href={`/r/${restaurantId}/submit-order`}
-            className="inline-block bg-brand-red text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+            className="inline-flex items-center bg-brand-red text-white px-6 py-3 min-h-[48px] rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
           >
-            Soumettre une commande
+            Scanner mon ticket →
           </Link>
         </div>
       )}
@@ -162,21 +175,21 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
           <div className="flex items-center gap-2">
             <span>🍗</span>
             <span className="font-bold text-gray-900 text-sm">{reward.solo_item}</span>
-            <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
+            <span className="text-xs text-gray-500 ml-auto">cadeau de base</span>
           </div>
         )}
         {reward.community_item && (
           <div className="flex items-center gap-2">
             <span>👥</span>
             <span className="font-bold text-gray-900 text-sm">+ {reward.community_item}</span>
-            <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
+            <span className="text-xs text-gray-500 ml-auto">bonus communautaire</span>
           </div>
         )}
         {reward.advancement_item && (
           <div className="flex items-center gap-2">
             <span>🏆</span>
             <span className="font-bold text-gray-900 text-sm">+ {reward.advancement_item}</span>
-            <span className="text-xs text-gray-400 ml-auto">bonus d&apos;équipe</span>
+            <span className="text-xs text-gray-500 ml-auto">bonus d&apos;équipe</span>
           </div>
         )}
       </div>
@@ -204,7 +217,8 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
           })}
         </p>
         {isAvailable ? (
-          <span className="flex items-center gap-2">
+          // Boutons ≥ 48 px : empilés avec gap-3 pour rester dans la carte mobile
+          <span className="flex flex-col items-end gap-3">
             {canBank && <BankButton points={bankPoints} />}
             <RedeemButton />
           </span>

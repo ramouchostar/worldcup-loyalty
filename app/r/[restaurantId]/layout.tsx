@@ -76,16 +76,26 @@ export default async function RestaurantLayout({
             current={{ id: restaurant.id, name: restaurant.name }}
             restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
           />
-          {user ? (
-            <UserNav email={user.email ?? ""} isSuperAdmin={isSuperAdmin} adminHref={adminHref} />
-          ) : (
+          <div className="flex items-center gap-1">
+            {/* Audit UX C2 — lien d'aide permanent, même place sur chaque
+                écran, visible connecté comme anonyme */}
             <Link
-              href="/login"
-              className="text-sm bg-brand-red px-3 py-1.5 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
+              href={`/r/${restaurantId}/aide`}
+              className="text-sm px-3 py-2.5 font-medium text-white/90 hover:text-white transition-colors"
             >
-              Rejoindre →
+              Aide
             </Link>
-          )}
+            {user ? (
+              <UserNav email={user.email ?? ""} isSuperAdmin={isSuperAdmin} adminHref={adminHref} />
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm bg-brand-red px-3 py-1.5 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
+              >
+                Rejoindre →
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

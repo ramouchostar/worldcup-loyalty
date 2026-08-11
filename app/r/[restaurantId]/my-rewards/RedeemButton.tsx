@@ -33,9 +33,9 @@ export function RedeemButton() {
       <button
         onClick={handleClick}
         disabled={busy}
-        className="text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className="text-sm font-semibold text-white bg-brand-red px-5 py-3 min-h-[48px] rounded-xl hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
       >
-        {busy ? "…" : "🎁 Récupérer"}
+        {busy ? "Préparation…" : "🎁 Récupérer"}
       </button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </span>
