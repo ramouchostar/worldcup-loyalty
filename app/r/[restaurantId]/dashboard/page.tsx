@@ -184,7 +184,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             <span className="text-2xl" aria-hidden="true">🍽️</span>
             <div>
               <p className="font-bold text-sm">Vous êtes le gérant de ce restaurant</p>
-              <p className="text-xs text-gray-400">Commandes, ventes, broadcasts, réglages…</p>
+              {/* Fond sombre : gray-400 y contraste bien — seule la taille passe à sm (porteur) */}
+              <p className="text-sm text-gray-400">Commandes, ventes, broadcasts, réglages…</p>
             </div>
           </div>
           <span className="text-brand-gold font-semibold text-sm shrink-0">Console →</span>
@@ -199,13 +200,19 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         style={
           heroImageUrl
             ? {
-                backgroundImage: `linear-gradient(to bottom right, rgb(var(--brand-dark) / 0.88), rgb(var(--brand-dark) / 0.78)), url(${heroImageUrl})`,
+                // Transformation Supabase Storage (audit UX 2026-08-11, perf) : les
+                // paramètres width/quality sont ceux de l'Image Transformation
+                // Supabase (plan Pro requis, servie via /render/image/). Sur l'URL
+                // publique /object/ les query params inconnus sont ignorés →
+                // fallback gracieux : l'original est servi tel quel.
+                backgroundImage: `linear-gradient(to bottom right, rgb(var(--brand-dark) / 0.88), rgb(var(--brand-dark) / 0.78)), url(${heroImageUrl}?width=800&quality=75)`,
               }
             : undefined
         }
       >
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">🎁 Ta prochaine commande</p>
-        <p className="text-xs text-gray-300 mb-4">Pour ta prochaine commande directe :</p>
+        {/* Fond sombre : gray-400/300 y contrastent bien — uppercase retiré (FALC), taille sm (porteur) */}
+        <p className="text-sm font-semibold text-gray-400 mb-1">🎁 Ta prochaine commande</p>
+        <p className="text-sm text-gray-300 mb-4">Pour ta prochaine commande directe :</p>
 
         <div className="space-y-3">
           {heroSolo.item ? (
@@ -214,7 +221,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 <span>🍗</span>
                 <span className="font-bold">{heroSolo.item}</span>
               </div>
-              <span className="text-xs text-gray-400">← ton cadeau de base</span>
+              <span className="text-sm text-gray-400">← ton cadeau de base</span>
             </div>
           ) : (
             <div className="flex items-center justify-between opacity-40">
@@ -228,7 +235,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 <span>👥</span>
                 <span className="font-bold text-brand-gold">+ {heroCommunity.item}</span>
               </div>
-              <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
+              <span className="text-sm text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
             </div>
           )}
 
@@ -238,7 +245,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 <span>🏆</span>
                 <span className="font-bold text-brand-gold">+ {heroTeamTier.item}</span>
               </div>
-              <span className="text-xs text-gray-400">← bonus d&apos;équipe débloqué</span>
+              <span className="text-sm text-gray-400">← bonus d&apos;équipe débloqué</span>
             </div>
           )}
         </div>
