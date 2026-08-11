@@ -3,22 +3,36 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
-import { sanitizeZones } from "@/lib/zones";
 import { frenchAuthError } from "@/lib/auth-errors";
+import { FieldError } from "@/components/FieldError";
+
+// Audit UX 2026-08-11 (C1, sprint 2 §9) — /signup réduit à l'essentiel :
+// email + mot de passe. Le profil (prénom, date de naissance, zones,
+// consentements) est complété sur /register, comme le flux Google OAuth.
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function emailFormatError(value: string): string | null {
+  if (!value.trim()) return "Entre ton adresse email.";
+  if (!EMAIL_RE.test(value.trim()))
+    return "Cette adresse ne semble pas complète. Vérifie le @ et le point.";
+  return null;
+}
+
+function passwordLengthError(value: string): string | null {
+  if (value.length < 8) return "Choisis un mot de passe d'au moins 8 caractères.";
+  return null;
+}
+
+const inputBase =
+  "w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900";
 
 export default function SignupPage() {
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    birthDate: "",
-    zoneHome: "",
-    zoneWork: "",
-    zoneSchool: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
+  // Erreurs par champ (audit UX sprint 2 §12) — posées au blur ou au submit,
+  // jamais à la frappe ; effacées dès que l'utilisateur retouche le champ.
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,41 +48,49 @@ export default function SignupPage() {
   }, [cooldown]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const name = e.target.name as "email" | "password";
+    setForm((prev) => ({ ...prev, [name]: e.target.value }));
+    // Re-saisie → on efface l'erreur du champ (jamais de validation à la frappe)
+    setFieldErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
+  }
+
+  function handleEmailBlur() {
+    // Au blur, on ne signale que le format ; « champ vide » attend le submit.
+    if (!form.email.trim()) return;
+    setFieldErrors((prev) => ({ ...prev, email: emailFormatError(form.email) ?? undefined }));
+  }
+
+  function handlePasswordBlur() {
+    if (!form.password) return;
+    setFieldErrors((prev) => ({ ...prev, password: passwordLengthError(form.password) ?? undefined }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) {
-      setError("Les mots de passe ne correspondent pas.");
-      return;
-    }
-    if (form.password.length < 8) {
-      setError("Choisis un mot de passe d'au moins 8 caractères.");
-      return;
-    }
-    // ADR 0018 — au moins la zone où tu vis, pour la découverte d'équipes
-    const zones = sanitizeZones([form.zoneHome, form.zoneWork, form.zoneSchool]);
-    if (zones.length === 0) {
-      setError("Indique au moins ta zone (ville ou quartier où tu vis).");
+    const emailErr = emailFormatError(form.email);
+    const passwordErr = passwordLengthError(form.password);
+    if (emailErr || passwordErr) {
+      setFieldErrors({ email: emailErr ?? undefined, password: passwordErr ?? undefined });
       return;
     }
 
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const displayName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
 
+    const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
       email: form.email.trim(),
       password: form.password,
       options: {
-        data: {
-          display_name: displayName,
-          phone: form.phone.trim() || null,
-          birth_date: form.birthDate || null,
-          zones, // copiées dans profiles.zones par handle_new_user (m29)
-        },
+        // display_name volontairement vide : sans métadonnée, handle_new_user
+        // (docs/m29b-fix-handle-new-user.sql) dériverait un display_name
+        // provisoire depuis l'email (partie avant @) — le routage vers
+        // /register (auth/callback/route.ts + lib/post-login.ts) teste
+        // `!display_name` et ne se déclencherait alors jamais. La chaîne vide
+        // traverse le COALESCE du trigger, satisfait le NOT NULL DEFAULT ''
+        // (m2) et reste falsy côté JS → le membre finit bien son profil sur
+        // /register (vrai prénom, date de naissance, zones, consentements).
+        data: { display_name: "" },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -156,9 +178,6 @@ export default function SignupPage() {
     );
   }
 
-  const maxBirthDate = new Date();
-  maxBirthDate.setFullYear(maxBirthDate.getFullYear() - 13);
-
   return (
     <>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Créer un compte</h2>
@@ -194,38 +213,9 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 mb-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="signup-first-name" className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-            <input
-              id="signup-first-name"
-              name="firstName"
-              type="text"
-              value={form.firstName}
-              onChange={handleChange}
-              placeholder="Karim"
-              required
-              autoComplete="given-name"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-            />
-          </div>
-          <div>
-            <label htmlFor="signup-last-name" className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-            <input
-              id="signup-last-name"
-              name="lastName"
-              type="text"
-              value={form.lastName}
-              onChange={handleChange}
-              placeholder="Benzema"
-              required
-              autoComplete="family-name"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-            />
-          </div>
-        </div>
-
+      {/* noValidate : les erreurs sont affichées par champ (FieldError), pas
+          par les bulles natives du navigateur */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-4 mb-4">
         <div>
           <label htmlFor="signup-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
@@ -234,127 +224,47 @@ export default function SignupPage() {
             type="email"
             value={form.email}
             onChange={handleChange}
+            onBlur={handleEmailBlur}
             placeholder="toi@exemple.com"
             required
             autoComplete="email"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+            aria-invalid={fieldErrors.email ? true : undefined}
+            aria-describedby={fieldErrors.email ? "signup-email-error" : undefined}
+            className={`${inputBase} ${fieldErrors.email ? "border-red-500" : "border-gray-300"}`}
           />
-        </div>
-
-        <div>
-          <label htmlFor="signup-phone" className="block text-sm font-medium text-gray-700 mb-1">
-            Téléphone <span className="text-gray-400 font-normal">(facultatif)</span>
-          </label>
-          <input
-            id="signup-phone"
-            name="phone"
-            type="tel"
-            value={form.phone}
-            onChange={handleChange}
-            placeholder="+32 470 00 00 00"
-            autoComplete="tel"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="signup-birth-date" className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
-          <input
-            id="signup-birth-date"
-            name="birthDate"
-            type="date"
-            value={form.birthDate}
-            onChange={handleChange}
-            required
-            autoComplete="bday"
-            max={maxBirthDate.toISOString().split("T")[0]}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-          />
-        </div>
-
-        {/* ADR 0018 — zones du membre : découverte des équipes proches */}
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="signup-zone-home" className="block text-sm font-medium text-gray-700 mb-1">Ta zone (ville ou quartier)</label>
-            <input
-              id="signup-zone-home"
-              name="zoneHome"
-              type="text"
-              value={form.zoneHome}
-              onChange={handleChange}
-              placeholder="Ex : Molenbeek"
-              required
-              maxLength={40}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              On te proposera les équipes actives dans tes zones.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="signup-zone-work" className="block text-sm font-medium text-gray-700 mb-1">
-                Zone de travail <span className="text-gray-400 font-normal">(facultatif)</span>
-              </label>
-              <input
-                id="signup-zone-work"
-                name="zoneWork"
-                type="text"
-                value={form.zoneWork}
-                onChange={handleChange}
-                placeholder="Ex : Anderlecht"
-                maxLength={40}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-              />
-            </div>
-            <div>
-              <label htmlFor="signup-zone-school" className="block text-sm font-medium text-gray-700 mb-1">
-                Zone d&apos;école <span className="text-gray-400 font-normal">(facultatif)</span>
-              </label>
-              <input
-                id="signup-zone-school"
-                name="zoneSchool"
-                type="text"
-                value={form.zoneSchool}
-                onChange={handleChange}
-                placeholder="Ex : Ixelles"
-                maxLength={40}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-              />
-            </div>
-          </div>
+          <FieldError id="signup-email-error" message={fieldErrors.email} />
         </div>
 
         <div>
           <label htmlFor="signup-password" className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
-          <input
-            id="signup-password"
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="••••••••"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="signup-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">Confirmer le mot de passe</label>
-          <input
-            id="signup-confirm-password"
-            name="confirmPassword"
-            type="password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            placeholder="••••••••"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-          />
+          <div className="relative">
+            <input
+              id="signup-password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={form.password}
+              onChange={handleChange}
+              onBlur={handlePasswordBlur}
+              placeholder="8 caractères minimum"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              aria-invalid={fieldErrors.password ? true : undefined}
+              aria-describedby={fieldErrors.password ? "signup-password-error" : undefined}
+              className={`${inputBase} pr-24 ${fieldErrors.password ? "border-red-500" : "border-gray-300"}`}
+            />
+            {/* Afficher/Masquer remplace la confirmation de mot de passe
+                (audit UX sprint 2 §9) — cible ≥ 44 px */}
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 min-h-[44px] min-w-[44px] px-3 text-sm font-semibold text-gray-600 hover:text-gray-900"
+            >
+              {showPassword ? "Masquer" : "Afficher"}
+            </button>
+          </div>
+          <FieldError id="signup-password-error" message={fieldErrors.password} />
         </div>
 
         {error && <p className="text-red-600 text-sm bg-red-50 px-4 py-3 rounded-lg">{error}</p>}

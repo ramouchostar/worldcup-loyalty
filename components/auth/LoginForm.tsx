@@ -5,6 +5,16 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 import { signIn } from "@/app/(auth)/login/actions";
+import { FieldError } from "@/components/FieldError";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function emailFormatError(value: string): string | null {
+  if (!value.trim()) return "Entre ton adresse email.";
+  if (!EMAIL_RE.test(value.trim()))
+    return "Cette adresse ne semble pas complète. Vérifie le @ et le point.";
+  return null;
+}
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
@@ -16,6 +26,10 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(
     searchParams.get("error") ? "Connexion échouée. Réessaie." : null
   );
+  // Erreurs par champ (audit UX sprint 2 §12) — posées au blur ou au submit,
+  // jamais à la frappe ; effacées à la re-saisie.
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [showPassword, setShowPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,10 +39,20 @@ export default function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    const formData = new FormData(e.currentTarget);
+    const emailErr = emailFormatError((formData.get("email") as string) ?? "");
+    const passwordErr = !((formData.get("password") as string) ?? "")
+      ? "Entre ton mot de passe."
+      : null;
+    if (emailErr || passwordErr) {
+      setFieldErrors({ email: emailErr ?? undefined, password: passwordErr ?? undefined });
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
     const result = await signIn(null, formData);
 
     if (result?.error) {
@@ -101,7 +125,9 @@ export default function LoginForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 mb-4">
+      {/* noValidate : les erreurs sont affichées par champ (FieldError), pas
+          par les bulles natives du navigateur */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-4 mb-4">
         {asResto && <input type="hidden" name="as" value="resto" />}
         <div>
           <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -112,8 +138,22 @@ export default function LoginForm() {
             placeholder="toi@exemple.com"
             required
             autoComplete="email"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+            onChange={() =>
+              setFieldErrors((prev) => (prev.email ? { ...prev, email: undefined } : prev))
+            }
+            onBlur={(e) => {
+              // Validation au blur uniquement si une valeur a été saisie
+              if (!e.target.value.trim()) return;
+              setFieldErrors((prev) => ({
+                ...prev,
+                email: emailFormatError(e.target.value) ?? undefined,
+              }));
+            }}
+            aria-invalid={fieldErrors.email ? true : undefined}
+            aria-describedby={fieldErrors.email ? "login-email-error" : undefined}
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 ${fieldErrors.email ? "border-red-500" : "border-gray-300"}`}
           />
+          <FieldError id="login-email-error" message={fieldErrors.email} />
         </div>
         <div>
           <div className="flex items-center justify-between mb-1">
@@ -125,15 +165,32 @@ export default function LoginForm() {
               Mot de passe oublié ?
             </Link>
           </div>
-          <input
-            id="login-password"
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            autoComplete="current-password"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-          />
+          <div className="relative">
+            <input
+              id="login-password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              onChange={() =>
+                setFieldErrors((prev) => (prev.password ? { ...prev, password: undefined } : prev))
+              }
+              aria-invalid={fieldErrors.password ? true : undefined}
+              aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
+              className={`w-full px-4 py-3 pr-24 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 ${fieldErrors.password ? "border-red-500" : "border-gray-300"}`}
+            />
+            {/* Afficher/Masquer le mot de passe (audit UX sprint 2 §9) — cible ≥ 44 px */}
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 min-h-[44px] min-w-[44px] px-3 text-sm font-semibold text-gray-600 hover:text-gray-900"
+            >
+              {showPassword ? "Masquer" : "Afficher"}
+            </button>
+          </div>
+          <FieldError id="login-password-error" message={fieldErrors.password} />
         </div>
 
         {error && (
