@@ -184,6 +184,26 @@ export type PendingReward = {
   banked_at: string | null;
 };
 
+// Récap de l'écran de succès du scan (audit UX 2026-08, C3) — détail des
+// 3 couches (ADR 0006) renvoyé au 201 quand la commande est validée.
+// Noms d'articles UNIQUEMENT : jamais de coûts, d'euros, de seuils ni de
+// raison de verrou (ADR 0007). Une couche verrouillée/absente est omise.
+export type OrderRewardLineLayer = "base" | "community" | "team";
+
+export type OrderRewardLine = {
+  layer: OrderRewardLineLayer;
+  label: string; // nom du cadeau (catalogue ADR 0013)
+};
+
+export type SubmitOrderResponse = {
+  success: boolean;
+  status: "validated" | "pending";
+  // Absent si aucune récompense n'a été créée (ADR 0011 : un seul cadeau
+  // actif) ou si le détail n'a pas pu être relu — le récap est additif,
+  // l'écran de succès doit fonctionner sans.
+  reward_lines?: OrderRewardLine[];
+};
+
 // ADR 0021 — mouvement de la réserve de points personnelle (deltas en
 // points, jamais d'euros côté membre)
 export type PointTransaction = {

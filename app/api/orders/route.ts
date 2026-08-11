@@ -7,6 +7,7 @@ import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
+import type { OrderRewardLine } from "@/types";
 
 export const maxDuration = 30;
 
@@ -234,6 +235,7 @@ export async function POST(request: NextRequest) {
   // Create 3-layer pending reward for validated orders — awaited pour
   // garantir la création dans la même requête. Un échec est loggé mais
   // ne fait pas échouer la soumission (la commande est déjà validée).
+  let rewardLines: OrderRewardLine[] | undefined;
   if (status === "validated" && insertedOrder?.id) {
     // CA programme incrémenté AVANT la récompense : le budget du mois
     // (ADR 0012) inclut ainsi cette commande au moment du calcul
@@ -249,6 +251,26 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error("[orders] createPendingReward failed:", err);
     }
+
+    // Récap des 3 couches pour l'écran de succès (audit UX 2026-08, C3) —
+    // même source que le dashboard (pending_rewards, snapshot ADR 0006),
+    // relue via le client user (RLS owner). ADR 0007 : SEULS les noms
+    // d'articles sortent — jamais *_cost, jamais d'euros, jamais de raison
+    // de verrou (une couche verrouillée est simplement absente, comme sur
+    // la hero card). Best effort : pas de ligne (conflit ADR 0011 « un seul
+    // cadeau actif », échec création…) = pas de récap, l'écran reste valide.
+    const { data: rewardRow } = await supabase
+      .from("pending_rewards")
+      .select("solo_item, community_item, advancement_item")
+      .eq("order_id", insertedOrder.id)
+      .maybeSingle();
+    if (rewardRow) {
+      const lines: OrderRewardLine[] = [];
+      if (rewardRow.solo_item)        lines.push({ layer: "base",      label: rewardRow.solo_item });
+      if (rewardRow.community_item)   lines.push({ layer: "community", label: rewardRow.community_item });
+      if (rewardRow.advancement_item) lines.push({ layer: "team",      label: rewardRow.advancement_item });
+      if (lines.length > 0) rewardLines = lines;
+    }
   }
 
   // Lignes d'articles lues par l'OCR (ADR 0020) — best effort, après le
@@ -257,7 +279,10 @@ export async function POST(request: NextRequest) {
     await insertOrderItems(insertedOrder.id, restaurantId, serverOcr.items);
   }
 
-  return NextResponse.json({ success: true, status }, { status: 201 });
+  return NextResponse.json(
+    { success: true, status, ...(rewardLines ? { reward_lines: rewardLines } : {}) },
+    { status: 201 }
+  );
 }
 
 // GET supprimé (audit 2026-07-23) : aucun appelant — les pages membres sont

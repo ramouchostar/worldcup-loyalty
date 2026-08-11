@@ -4,9 +4,32 @@ import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
+import type { OrderRewardLine, OrderRewardLineLayer } from "@/types";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
 type ParseStatus = "idle" | "parsing" | "done" | "error";
+
+// Présentation des 3 couches — même vocabulaire et mêmes emojis que la hero
+// card du dashboard (ADR 0006/0010). Uniquement des noms d'articles, jamais
+// d'euros ni de coûts (ADR 0007).
+const LAYER_META: Record<OrderRewardLineLayer, { emoji: string; label: string; prefix: string }> = {
+  base:      { emoji: "🍗", label: "cadeau de base",      prefix: "" },
+  community: { emoji: "👥", label: "bonus communautaire", prefix: "+ " },
+  team:      { emoji: "🏆", label: "bonus d'équipe",      prefix: "+ " },
+};
+
+// Repli : anciens déploiements ou réponse partielle → on ne garde que des
+// lignes bien formées ; sans lignes, l'écran de succès actuel s'affiche tel quel.
+function parseRewardLines(raw: unknown): OrderRewardLine[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (l): l is OrderRewardLine =>
+      !!l &&
+      typeof l === "object" &&
+      typeof (l as OrderRewardLine).label === "string" &&
+      (l as OrderRewardLine).layer in LAYER_META
+  );
+}
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -42,6 +65,9 @@ export default function SubmitOrderPage() {
   const [noDelivery, setNoDelivery] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  // Récap « ce que ce ticket t'a rapporté » (audit UX 2026-08, C3) — vide si
+  // l'API ne renvoie pas le détail : le récap est purement additif.
+  const [rewardLines, setRewardLines] = useState<OrderRewardLine[]>([]);
 
   function acceptFile(file: File) {
     if (file.size > MAX_FILE_SIZE) {
@@ -178,9 +204,12 @@ export default function SubmitOrderPage() {
         sleep(randomDelay()),
       ]);
 
-      const data = await res.json().catch(() => ({}) as { status?: string; error?: string });
+      const data = await res
+        .json()
+        .catch(() => ({}) as { status?: string; error?: string; reward_lines?: unknown });
 
       if (res.status === 201) {
+        setRewardLines(data.status === "validated" ? parseRewardLines(data.reward_lines) : []);
         setSubmitStatus(data.status === "validated" ? "success_validated" : "success_pending");
         return;
       }
@@ -211,6 +240,7 @@ export default function SubmitOrderPage() {
     setNoDelivery(false);
     setSubmitStatus("idle");
     setErrorMsg("");
+    setRewardLines([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -228,6 +258,27 @@ export default function SubmitOrderPage() {
         <p className="text-gray-500 text-xs mb-6">
           Passe au comptoir lors de ta prochaine visite pour récupérer tes cadeaux.
         </p>
+        {/* Récap des 3 couches (ADR 0006/0010) — même présentation que la
+            hero card du dashboard. Absent si l'API n'a pas renvoyé le détail. */}
+        {rewardLines.length > 0 && (
+          <div className="max-w-xs mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6 text-left">
+            <p className="text-sm font-bold text-gray-900 mb-3">
+              Voici ce que ce ticket t&apos;a rapporté :
+            </p>
+            <div className="space-y-2">
+              {rewardLines.map((line) => (
+                <div key={line.layer} className="flex items-center gap-2">
+                  <span aria-hidden="true">{LAYER_META[line.layer].emoji}</span>
+                  <span className="font-bold text-gray-900">
+                    {LAYER_META[line.layer].prefix}
+                    {line.label}
+                  </span>
+                  <span className="text-xs text-gray-500 ml-auto">{LAYER_META[line.layer].label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="max-w-xs mx-auto space-y-3">
           <Link
             href={`/r/${restaurantId}/my-rewards`}
