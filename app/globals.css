@@ -28,6 +28,20 @@
   }
 }
 
+/* WCAG 2.3.3 — audit UX 2026-08-11 : neutralise animations et transitions
+   pour les utilisateurs ayant activé « réduire les animations » (spinners,
+   pulses, barre animée du coupon). Ne pas supprimer. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── Driver.js — thème de marque ──────────────────────────────────────── */
 /* rgb(var(--brand-dark)) / rgb(var(--brand-red)) au lieu de hex figés (m48) :
    le tour d'onboarding respecte désormais la charte de l'établissement au
