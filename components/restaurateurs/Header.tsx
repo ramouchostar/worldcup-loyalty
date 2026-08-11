@@ -8,7 +8,7 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-20 bg-ink/[0.92] backdrop-blur-xl border-b transition-shadow duration-300 ${
+      className={`sticky top-0 z-20 pt-safe bg-ink/[0.92] backdrop-blur-xl border-b transition-shadow duration-300 ${
         scrolled ? "border-night-line shadow-[0_8px_24px_rgba(0,0,0,0.25)]" : "border-transparent"
       }`}
     >

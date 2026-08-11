@@ -70,7 +70,7 @@ export default async function RestaurantLayout({
       }}
     >
     <div className="min-h-screen bg-gray-50 font-brand" style={brandStyle(branding)}>
-      <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
+      <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10 pt-safe">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <RestaurantSwitcher
             current={{ id: restaurant.id, name: restaurant.name }}
