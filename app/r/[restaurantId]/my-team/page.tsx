@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { TeamManager, type NearbyTeam } from "@/components/member/TeamManager";
+import { listDiscoverySuggestions } from "@/lib/teams";
 import { zonesMatch } from "@/lib/zones";
 import type { TeamType } from "@/types";
 
@@ -52,6 +53,14 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
   const team = membership?.teams ?? null;
   const memberZones: string[] = (profileRaw as { zones?: string[] } | null)?.zones ?? [];
 
+  // ADR 0031 — communautés déclarées par l'établissement. Présentées comme des
+  // appartenances (« l'EPHEC »), sans score ni nombre de membres : on reconnaît
+  // les siens, on ne compare pas des équipes.
+  const suggestions = await listDiscoverySuggestions(restaurantId, team?.id ?? null);
+  const suggestedTeamIds = new Set(
+    suggestions.map((s) => s.team_id).filter((id): id is string => !!id)
+  );
+
   // Équipes dans les zones du membre (ADR 0018) — correspondance insensible
   // à la casse/accents faite côté serveur, jamais plus de 12 propositions.
   let nearbyTeams: NearbyTeam[] = [];
@@ -68,7 +77,14 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
       community_scores: { member_count: number; score: number }[] | { member_count: number; score: number } | null;
     };
     nearbyTeams = ((zoneTeamsRaw ?? []) as unknown as ZoneTeamRow[])
-      .filter((t) => t.id !== team?.id && memberZones.some((z) => zonesMatch(z, t.zone)))
+      // Les équipes issues d'une communauté déclarée sont déjà listées au-dessus
+      // — sans ce filtre elles apparaîtraient deux fois, une fois avec score.
+      .filter(
+        (t) =>
+          t.id !== team?.id &&
+          !suggestedTeamIds.has(t.id) &&
+          memberZones.some((z) => zonesMatch(z, t.zone))
+      )
       .map((t) => {
         const cs = Array.isArray(t.community_scores) ? t.community_scores[0] : t.community_scores;
         return {
@@ -95,12 +111,23 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
             Rejoins une équipe de ta zone ou crée la tienne. Plus vous commandez ensemble, plus vous débloquez de cadeaux.
           </p>
         </div>
+        {/* ADR 0031 — jamais d'exclusion : la couche solo (ADR 0006) est
+            acquise sans équipe, et on le dit avant de proposer quoi que ce soit. */}
+        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            <span className="font-semibold text-gray-800">Pas obligé d&apos;avoir une équipe.</span>{" "}
+            Tes cadeaux personnels tombent à chaque commande, équipe ou pas. Une
+            équipe ajoute simplement des cadeaux en plus quand vous commandez à
+            plusieurs.
+          </p>
+        </div>
         <TeamManager
           team={null}
           initialJoinCode={pendingJoin}
           restaurantId={restaurantId}
           zones={memberZones}
           nearbyTeams={nearbyTeams}
+          suggestions={suggestions}
         />
         {/* ADR 0030 §4 — le classement reste explorable sans équipe */}
         <Link
@@ -169,6 +196,7 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
         restaurantId={restaurantId}
         zones={memberZones}
         nearbyTeams={nearbyTeams}
+        suggestions={suggestions}
       />
 
       {leaderboard.length > 0 && (

@@ -4,6 +4,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantBranding, logoPublicUrl, getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus } from "@/lib/rewards";
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
+import { getTeamPrompt } from "@/lib/teams";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { getPointsBalance } from "@/lib/points";
@@ -95,7 +96,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // Score (points, côté membre) + dépense cumulée d'équipe (euros, service role —
   // jamais rendue, sert seulement à résoudre la couche 3). ADR 0007.
   const admin = createAdminClient();
-  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }, rankResult] = await Promise.all([
+  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }, rankResult, teamPrompt] = await Promise.all([
     hasTeam
       ? supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
       : Promise.resolve({ data: null }),
@@ -120,6 +121,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           .eq("restaurant_id", restaurantId)
           .order("score", { ascending: false })
       : Promise.resolve({ data: null }),
+    // ADR 0031 — « te reconnais-tu ? » : ne se pose qu'au membre sans équipe,
+    // et seulement quand la relance est échue (état serveur, pas localStorage).
+    hasTeam ? Promise.resolve(null) : getTeamPrompt(user.id, restaurantId),
   ]);
   const scoreRaw = scoreResult.data;
   const spentRaw = spentResult.data;
@@ -191,7 +195,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         </Link>
       )}
 
-      <OnboardingFlow />
+      <OnboardingFlow teamPrompt={teamPrompt} />
 
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
       <div

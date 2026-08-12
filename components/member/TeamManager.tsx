@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MAX_ZONES, sanitizeZones } from "@/lib/zones";
+import { teamTypeEmoji } from "@/lib/team-suggestions";
 import type { TeamType } from "@/types";
 
 const TYPE_OPTIONS: { value: TeamType; label: string }[] = [
@@ -27,18 +28,30 @@ export type NearbyTeam = {
   score: number;
 };
 
+// Communauté déclarée par l'établissement (ADR 0031). `team_id` NULL =
+// personne ne s'y est encore reconnu : le premier arrivé en devient capitaine.
+export type SuggestedCommunity = {
+  id: string;
+  name: string;
+  type: TeamType;
+  zone: string | null;
+  team_id: string | null;
+};
+
 export function TeamManager({
   team,
   initialJoinCode,
   restaurantId,
   zones,
   nearbyTeams,
+  suggestions = [],
 }: {
   team: Team | null;
   initialJoinCode: string | null;
   restaurantId: string;
   zones: string[];
   nearbyTeams: NearbyTeam[];
+  suggestions?: SuggestedCommunity[];
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -62,6 +75,27 @@ export function TeamManager({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, type, restaurantId, zone: zone || null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) { setJustJoined(true); setShowChange(false); router.refresh(); return; }
+      setError(body.error ?? "Erreur.");
+    } catch {
+      setError("Erreur réseau. Réessaie.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ADR 0031 — adhésion par communauté déclarée : matérialise l'équipe si
+  // besoin (le membre en devient alors capitaine) puis l'y affecte.
+  async function joinSuggestion(suggestionId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/teams/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId, action: "join", suggestionId }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) { setJustJoined(true); setShowChange(false); router.refresh(); return; }
@@ -155,6 +189,40 @@ export function TeamManager({
         </button>
       )}
       {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>}
+
+      {/* Communautés d'ici (ADR 0031) — présentées comme des appartenances :
+          ni score ni nombre de membres, et jamais triées par popularité. */}
+      {suggestions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+          <div>
+            <p className="font-semibold text-gray-900">Te reconnais-tu ici ?</p>
+            <p className="text-xs text-gray-500">
+              Les écoles, entreprises et quartiers d&apos;où viennent les clients
+              d&apos;ici. Rejoins la tienne en un tap.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {suggestions.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                <span className="text-xl shrink-0" aria-hidden="true">{teamTypeEmoji(s.type)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{s.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {s.team_id ? "Équipe active" : "Sois le premier — tu en deviens capitaine"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => joinSuggestion(s.id)}
+                  disabled={busy}
+                  className="px-3 py-1.5 bg-brand-red text-white rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-brand-red/85 shrink-0"
+                >
+                  C&apos;est moi
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Zones du membre (ADR 0018) */}
       <ZonesCard zones={zones} onSaved={() => router.refresh()} />

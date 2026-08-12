@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import { createPartnerRestaurant } from "./actions";
+import {
+  MAX_SUGGESTIONS,
+  SUGGESTION_TYPES,
+  normalizeSuggestionName,
+  suggestionKey,
+  teamTypeEmoji,
+} from "@/lib/team-suggestions";
+import type { TeamType } from "@/types";
 
 const MAX_CUISINE_TYPES = 5;
+
+type Community = { name: string; type: TeamType };
 
 export default function BecomeAPartnerPage() {
   const [name, setName] = useState("");
@@ -11,8 +21,32 @@ export default function BecomeAPartnerPage() {
   const [address, setAddress] = useState("");
   const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
   const [cuisineInput, setCuisineInput] = useState("");
+  // ADR 0031 — communautés d'où viennent réellement les clients
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [communityName, setCommunityName] = useState("");
+  const [communityType, setCommunityType] = useState<TeamType>("ecole");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function addCommunity() {
+    const clean = normalizeSuggestionName(communityName);
+    if (!clean) return;
+    if (communities.length >= MAX_SUGGESTIONS) return;
+    if (communities.some((c) => suggestionKey(c.name) === suggestionKey(clean))) return;
+    setCommunities([...communities, { name: clean, type: communityType }]);
+    setCommunityName("");
+  }
+
+  function removeCommunity(value: string) {
+    setCommunities(communities.filter((c) => c.name !== value));
+  }
+
+  function handleCommunityKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addCommunity();
+    }
+  }
 
   function addCuisineType() {
     const value = cuisineInput.trim();
@@ -53,6 +87,7 @@ export default function BecomeAPartnerPage() {
     formData.set("sector", sector.trim());
     formData.set("address", address.trim());
     cuisineTypes.forEach((t) => formData.append("cuisine_types", t));
+    communities.forEach((c) => formData.append("communities", JSON.stringify(c)));
 
     const result = await createPartnerRestaurant(null, formData);
 
@@ -158,6 +193,80 @@ export default function BecomeAPartnerPage() {
                 >
                   Ajouter
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* ADR 0031 — c'est le restaurateur qui connaît le mieux sa clientèle.
+              Ces noms restent privés tant qu'aucun membre ne s'y reconnaît :
+              on ne publie jamais le nom d'un tiers de sa propre initiative. */}
+          <div className="border-t border-gray-100 pt-5">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              D&apos;où viennent tes clients ?{" "}
+              <span className="text-gray-400 font-normal">({communities.length}/{MAX_SUGGESTIONS})</span>
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Cite les écoles, entreprises et quartiers que tu vois passer le plus.
+              À l&apos;inscription, on demande à chaque client{" "}
+              <span className="font-medium text-gray-700">&laquo;&nbsp;te reconnais-tu ici&nbsp;?&nbsp;&raquo;</span> —
+              il rejoint son équipe en un tap au lieu d&apos;avoir à en créer une.
+              Rien n&apos;est publié tant que personne ne s&apos;y reconnaît, et tu
+              pourras modifier cette liste à tout moment.
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-2">
+              {communities.map((c) => (
+                <span
+                  key={c.name}
+                  className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-full"
+                >
+                  <span aria-hidden="true">{teamTypeEmoji(c.type)}</span>
+                  {c.name}
+                  <button
+                    type="button"
+                    onClick={() => removeCommunity(c.name)}
+                    className="text-gray-400 hover:text-gray-700"
+                    aria-label={`Retirer ${c.name}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+
+            {communities.length < MAX_SUGGESTIONS && (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={communityName}
+                    onChange={(e) => setCommunityName(e.target.value)}
+                    onKeyDown={handleCommunityKeyDown}
+                    placeholder={
+                      SUGGESTION_TYPES.find((t) => t.value === communityType)?.hint ?? "Nom"
+                    }
+                    maxLength={60}
+                    className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCommunity}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 shrink-0"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+                <select
+                  value={communityType}
+                  onChange={(e) => setCommunityType(e.target.value as TeamType)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900"
+                >
+                  {SUGGESTION_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {teamTypeEmoji(t.value)} {t.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
