@@ -1,8 +1,10 @@
 import { redirect, notFound } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
+import { listTeamSuggestions } from "@/lib/teams";
 import { SettingsForm } from "./SettingsForm";
 import { BrandingForm } from "./BrandingForm";
+import { CommunitiesForm } from "./CommunitiesForm";
 
 // « Mon établissement » — édition des infos publiques et des liens sociaux
 // après l'onboarding (elles n'étaient modifiables nulle part jusqu'ici).
@@ -20,7 +22,10 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
     .maybeSingle();
   if (!restaurant) notFound();
 
-  const branding = await getRestaurantBranding(restaurantId);
+  const [branding, suggestions] = await Promise.all([
+    getRestaurantBranding(restaurantId),
+    listTeamSuggestions(restaurantId),
+  ]);
 
   return (
     <div className="space-y-6 max-w-lg">
@@ -46,6 +51,18 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
           tiktok_url: restaurant.tiktok_url ?? "",
           facebook_url: restaurant.facebook_url ?? "",
         }}
+      />
+
+      {/* ADR 0031 — source de vérité des propositions d'équipe côté membre */}
+      <CommunitiesForm
+        restaurantId={restaurantId}
+        initial={suggestions.map((s) => ({
+          id: s.id,
+          name: s.name,
+          type: s.type,
+          zone: s.zone,
+          materialized: !!s.team_id,
+        }))}
       />
 
       <BrandingForm

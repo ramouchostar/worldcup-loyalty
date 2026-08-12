@@ -8,6 +8,8 @@ import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
 import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
 import { isAllowedReceiptType } from "@/lib/receipt-ocr";
 import { parseHttpUrl } from "@/lib/url";
+import { replaceTeamSuggestions } from "@/lib/teams";
+import { sanitizeSuggestions } from "@/lib/team-suggestions";
 import {
   discoverReceiptKey,
   validateProposedPattern,
@@ -55,6 +57,24 @@ export async function createPartnerRestaurant(
 
   if (error) {
     return { error: "Erreur lors de la création. Réessaie." };
+  }
+
+  // ADR 0031 — communautés d'où viennent les clients. Facultatif : un
+  // restaurateur qui ne sait pas encore les complètera depuis ses réglages.
+  // Zone par défaut = le secteur de l'établissement, pour que la proposition
+  // remonte en priorité aux membres de cette zone (ADR 0018).
+  const communities = sanitizeSuggestions(
+    formData.getAll("communities").map((raw) => {
+      try {
+        const parsed = JSON.parse(String(raw)) as { name?: unknown; type?: unknown };
+        return { name: parsed.name, type: parsed.type, zone: sector };
+      } catch {
+        return null;
+      }
+    })
+  );
+  if (communities.length > 0) {
+    await replaceTeamSuggestions(slug, communities);
   }
 
   if (user.email) {

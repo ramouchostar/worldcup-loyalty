@@ -14,6 +14,21 @@ export type Team = {
   created_at: string;
 };
 
+// ADR 0031 — communauté déclarée par l'établissement (école, entreprise,
+// quartier). Ce n'est PAS une équipe : ni score, ni membres, ni classement
+// tant que `team_id` est NULL. Le premier membre qui s'y reconnaît matérialise
+// l'équipe et en devient le capitaine.
+export type TeamSuggestion = {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  type: TeamType;
+  zone: string | null;
+  team_id: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
 // Couche 3 — palier de dépense cumulée d'équipe (ADR 0014)
 export type TeamRewardKind = "percent" | "free_item";
 

@@ -213,15 +213,23 @@ Synonyme métier d'« équipe » côté affichage. Ensemble des membres d'une m�
 _Avoid_ : groupe, clan.
 
 **Capitaine** :
-Membre qui a créé l'équipe. Peut la renommer et partager le lien d'adhésion. L'admin établissement garde un droit de modération (renommer, fusionner, désactiver une équipe, corriger son type).
+Membre qui a créé l'équipe (`teams.created_by`) — soit en la créant lui-même, soit en étant **le premier à se reconnaître dans une communauté** proposée par l'établissement (ADR 0031). Peut la renommer et partager le lien d'adhésion. L'admin établissement garde un droit de modération (renommer, fusionner, désactiver une équipe, corriger son type).
 _Avoid_ : chef, propriétaire, admin (réservé à l'admin établissement).
+
+**Communauté déclarée** *(ADR 0031)* :
+Nom d'école, d'entreprise ou de quartier que le **restaurateur** déclare (onboarding étape 1, modifiable dans ses réglages) comme provenance réelle de ses clients — `team_suggestions`, 8 maximum. Ce n'est **pas** une équipe : ni score, ni membres, ni place au classement, et le nom n'est jamais publié tant que personne ne s'y reconnaît. Le premier membre qui répond « oui » **matérialise** l'équipe (`team_suggestions.team_id`) et en devient le capitaine.
+_Avoid_ : équipe pré-créée, équipe automatique, équipe officielle, partenaire.
+
+**Question de reconnaissance** *(ADR 0031)* :
+« Te reconnais-tu dans une de ces équipes ? » — posée en fin de tutoriel, 3 communautés maximum, une à la fois, oui/non. **Jamais de points ni de nombre de membres affichés** (c'est une question d'identité, pas une comparaison d'équipes), **jamais d'ordre par score** (sinon le membre rejoint le leader, pas les siens). Aucune reconnaissance → la page équipe, avec un message explicite : sans équipe, les cadeaux personnels tombent quand même. Toute sortie sans équipe arme une relance **une semaine** plus tard (`memberships.team_prompt_next_at`, `team_prompt_declined`).
+_Avoid_ : quiz, sondage, obligatoire, « choisis ton équipe » (c'est une reconnaissance, pas un choix stratégique).
 
 **Type d'équipe** :
 Catégorie d'une équipe (`teams.type`) : `ecole`, `entreprise`, `rue_quartier`, `taxis`, `autre`. Sert au ciblage des broadcasts admin (ex. « menu étudiant » → toutes les équipes de type `ecole`). À ne pas confondre avec la catégorie d'un article du catalogue menu.
 _Avoid_ : catégorie (réservé au catalogue menu), segment.
 
 **Adhésion** :
-Action de rejoindre une équipe via un lien/QR partageable (`/join-team?code=`, sur le modèle du parrainage) ou en un clic depuis la liste « Équipes dans ta zone » (ADR 0018). Ouverte par défaut : le lien ou la zone suffit. *Rejoindre* pour faire grandir son équipe est libre et encouragé — c'est le moteur de recrutement.
+Action de rejoindre une équipe via un lien/QR partageable (`/join-team?code=`, sur le modèle du parrainage), en un clic depuis la liste « Équipes dans ta zone » (ADR 0018), ou en se reconnaissant dans une **communauté déclarée** par l'établissement (ADR 0031). Ouverte par défaut : le lien, la zone ou la reconnaissance suffit. *Rejoindre* pour faire grandir son équipe est libre et encouragé — c'est le moteur de recrutement.
 _Avoid_ : inscription (réservé à la création de compte), invitation.
 
 **Zone** :
