@@ -5,7 +5,7 @@
 Avant d'écrire ou modifier la moindre ligne, tu dois lire dans cet ordre :
 
 1. `CONTEXT.md` — glossaire complet du domaine, terminologie exacte, règles UI
-2. `docs/adr/0001` à `docs/adr/0021` — toutes les décisions architecturales
+2. `docs/adr/0001` à `docs/adr/0031` — toutes les décisions architecturales
 
 Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Prompt_ClaudeCode.md` qui est le document source initial mais qui a été affiné par les ADRs.
 

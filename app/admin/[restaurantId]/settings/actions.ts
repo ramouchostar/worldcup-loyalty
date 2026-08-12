@@ -6,6 +6,8 @@ import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { isValidHex, FONT_OPTIONS } from "@/lib/branding";
 import { LOGO_BUCKET } from "@/lib/restaurant";
 import { parseHttpUrl } from "@/lib/url";
+import { replaceTeamSuggestions } from "@/lib/teams";
+import { sanitizeSuggestions } from "@/lib/team-suggestions";
 import { captureWebsiteScreenshot, fetchOgImage, fetchImageAsBlock, analyzeDesign, type ImageBlock, type DesignSuggestion } from "@/lib/design-detect";
 
 // Mise à jour des infos de l'établissement par son admin (owner, legacy ou
@@ -64,6 +66,47 @@ export async function updateRestaurantInfo(
   revalidatePath(`/admin/${restaurantId}/settings`);
   revalidatePath(`/r/${restaurantId}`);
   return { success: "Informations enregistrées." };
+}
+
+// ADR 0031 — communautés d'où viennent les clients. Le restaurateur est la
+// meilleure source (il voit qui entre), et il doit pouvoir corriger sa liste
+// après l'onboarding : un nom mal orthographié devient un nom d'équipe public
+// dès qu'un membre s'y reconnaît.
+export async function updateTeamSuggestions(
+  restaurantId: string,
+  _prevState: { error?: string; success?: string } | null,
+  formData: FormData
+): Promise<{ error?: string; success?: string }> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Non authentifié." };
+  if (!(await isEstablishmentAdmin(user.id, restaurantId))) {
+    return { error: "Accès refusé." };
+  }
+
+  const { data: restaurant } = await createAdminClient()
+    .from("restaurants")
+    .select("sector")
+    .eq("id", restaurantId)
+    .maybeSingle();
+  const sector = (restaurant as { sector: string | null } | null)?.sector ?? null;
+
+  const entries = sanitizeSuggestions(
+    formData.getAll("communities").map((raw) => {
+      try {
+        const parsed = JSON.parse(String(raw)) as { name?: unknown; type?: unknown; zone?: unknown };
+        return { name: parsed.name, type: parsed.type, zone: parsed.zone ?? sector };
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  const result = await replaceTeamSuggestions(restaurantId, entries);
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath(`/admin/${restaurantId}/settings`);
+  return { success: "Communautés enregistrées." };
 }
 
 // Charte graphique (m37) : logo + 3 couleurs. L'app s'adapte à ces couleurs

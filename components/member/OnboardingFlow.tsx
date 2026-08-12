@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
+import { TeamRecognitionPrompt, type PromptSuggestion } from "./TeamRecognitionPrompt";
 
 // ── beforeinstallprompt captured early (fires before React mounts) ─────────
 interface BeforeInstallPromptEvent extends Event {
@@ -58,7 +59,10 @@ function urlBase64ToUint8Array(b64: string): ArrayBuffer {
 }
 
 // ── Stage machine ──────────────────────────────────────────────────────────
-type Stage = "pwa" | "push" | "tour" | "done";
+// ADR 0031 — l'étape « teams » vient APRÈS le tour : la dernière bulle du tour
+// explique justement à quoi sert une équipe. Poser la question avant, c'est la
+// poser à quelqu'un qui ne sait pas encore ce qu'il choisit.
+type Stage = "pwa" | "push" | "tour" | "teams" | "done";
 
 function pushEligible(): boolean {
   return (
@@ -70,7 +74,14 @@ function pushEligible(): boolean {
   );
 }
 
-function computeStage(): Stage {
+// Fin de parcours : la question d'équipe si elle est due (état serveur), sinon
+// terminé. Jamais de localStorage ici — la relance à une semaine vit sur
+// memberships pour survivre au changement d'appareil.
+function afterTour(hasTeamPrompt: boolean): Stage {
+  return hasTeamPrompt ? "teams" : "done";
+}
+
+function computeStage(hasTeamPrompt: boolean): Stage {
   if (
     !standalone() &&
     localStorage.getItem(K_PWA_DONE) !== "true" &&
@@ -81,12 +92,12 @@ function computeStage(): Stage {
 
   if (localStorage.getItem(K_TOUR) !== "true") return "tour";
 
-  return "done";
+  return afterTour(hasTeamPrompt);
 }
 
-function nextAfter(current: "pwa" | "push"): Stage {
+function nextAfter(current: "pwa" | "push", hasTeamPrompt: boolean): Stage {
   if (current === "pwa" && pushEligible()) return "push";
-  return localStorage.getItem(K_TOUR) !== "true" ? "tour" : "done";
+  return localStorage.getItem(K_TOUR) !== "true" ? "tour" : afterTour(hasTeamPrompt);
 }
 
 const TOUR_STEPS = [
@@ -97,8 +108,20 @@ const TOUR_STEPS = [
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
-export function OnboardingFlow() {
+export function OnboardingFlow({
+  teamPrompt = null,
+}: {
+  // Propositions de communautés dues pour ce membre (ADR 0031) — calculées
+  // côté serveur, null si le membre a déjà une équipe, si la relance n'est pas
+  // échue, ou si l'établissement n'a rien déclaré.
+  teamPrompt?: { suggestions: PromptSuggestion[] } | null;
+}) {
   const { restaurantId } = useParams<{ restaurantId: string }>();
+  const hasTeamPrompt = !!teamPrompt && teamPrompt.suggestions.length > 0;
+  const promptRef = useRef(hasTeamPrompt);
+  // Les propositions du montage : elles doivent survivre au router.refresh()
+  // déclenché par l'adhésion (le serveur ne les renvoie plus ensuite).
+  const suggestionsRef = useRef(teamPrompt?.suggestions ?? []);
   const [stage, setStage]     = useState<Stage | null>(null);
   const [isIOS, setIsIOS]     = useState(false);
   const [install, setInstall] = useState<BeforeInstallPromptEvent | null>(null);
@@ -114,8 +137,12 @@ export function OnboardingFlow() {
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     setIsIOS(iosSafari());
-    setStage(computeStage());
+    setStage(computeStage(promptRef.current));
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    // Volontairement figé au montage : après une adhésion, router.refresh()
+    // vide teamPrompt côté serveur — rejouer cet effet démonterait l'écran de
+    // succès avant que le membre ne l'ait vu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Launch driver.js when we reach the tour stage
@@ -132,7 +159,7 @@ export function OnboardingFlow() {
       onDestroyStarted: () => {
         localStorage.setItem(K_TOUR, "true");
         driverObj.destroy();
-        setStage("done");
+        setStage(afterTour(promptRef.current));
       },
       steps: TOUR_STEPS.map((s) => ({
         element: s.element,
@@ -142,6 +169,17 @@ export function OnboardingFlow() {
     const t = setTimeout(() => driverObj.drive(), 400);
     return () => clearTimeout(t);
   }, [stage]);
+
+  // ── Question d'équipe (ADR 0031) ───────────────────────────────────────
+  if (stage === "teams") {
+    return (
+      <TeamRecognitionPrompt
+        restaurantId={restaurantId}
+        suggestions={suggestionsRef.current}
+        onDone={() => setStage("done")}
+      />
+    );
+  }
 
   if (stage === null || stage === "done" || stage === "tour") return null;
 
@@ -153,17 +191,17 @@ export function OnboardingFlow() {
       if (outcome !== "accepted") return; // native dialog dismissed — let user choose Plus tard
     }
     localStorage.setItem(K_PWA_DONE, "true");
-    setStage(nextAfter("pwa"));
+    setStage(nextAfter("pwa", promptRef.current));
   }
 
   function donePWA() {
     localStorage.setItem(K_PWA_DONE, "true");
-    setStage(nextAfter("pwa"));
+    setStage(nextAfter("pwa", promptRef.current));
   }
 
   function snoozePWA() {
     snooze(K_PWA_SNZ);
-    setStage(nextAfter("pwa"));
+    setStage(nextAfter("pwa", promptRef.current));
   }
 
   // ── Push handlers ──────────────────────────────────────────────────────
@@ -196,19 +234,19 @@ export function OnboardingFlow() {
     } catch { /* requestPermission not supported */ }
     localStorage.setItem(K_PUSH_DONE, "true");
     setPushBusy(false);
-    setStage(nextAfter("push"));
+    setStage(nextAfter("push", promptRef.current));
   }
 
   function refusePush() {
     localStorage.setItem(K_PUSH_DONE, "true");
     localStorage.setItem("push_refused", "true");
     localStorage.setItem("push_dismissed", "1");
-    setStage(nextAfter("push"));
+    setStage(nextAfter("push", promptRef.current));
   }
 
   function snoozePush() {
     snooze(K_PUSH_SNZ);
-    setStage(nextAfter("push"));
+    setStage(nextAfter("push", promptRef.current));
   }
 
   // ── PWA modal ──────────────────────────────────────────────────────────
