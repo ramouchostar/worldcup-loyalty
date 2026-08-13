@@ -369,12 +369,14 @@ export async function snoozeTeamPrompt(
   return { ok: true };
 }
 
-// « Non » sur une proposition : mémorisée pour qu'on lui en propose d'autres à
-// la relance. Si le stock est épuisé, la relance est armée dans la foulée.
-export async function declineTeamSuggestion(
-  suggestionId: string,
+// « Aucune de ces équipes » : les propositions affichées sont mémorisées comme
+// refusées, pour que la relance en présente d'AUTRES et non les mêmes. La
+// relance est armée dans tous les cas — le membre a répondu, on ne le
+// resollicite pas avant une semaine même s'il reste des communautés en stock.
+export async function declineTeamSuggestions(
+  suggestionIds: string[],
   restaurantId: string
-): Promise<{ ok: true; exhausted: boolean } | { ok: false; status: number; error: string }> {
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, status: 401, error: "Non authentifié." };
 
@@ -390,22 +392,19 @@ export async function declineTeamSuggestion(
   const declined = new Set(
     ((membershipRaw as { team_prompt_declined: string[] | null }).team_prompt_declined ?? []) as string[]
   );
-  declined.add(suggestionId);
-
-  const remaining = (await listTeamSuggestions(restaurantId)).filter((row) => !declined.has(row.id));
-  const exhausted = remaining.length === 0;
+  for (const id of suggestionIds) declined.add(id);
 
   const { error } = await admin
     .from("memberships")
     .update({
       team_prompt_declined: Array.from(declined),
-      ...(exhausted ? { team_prompt_next_at: snoozeDate() } : {}),
+      team_prompt_next_at: snoozeDate(),
     })
     .eq("user_id", userId)
     .eq("restaurant_id", restaurantId);
   if (error) return { ok: false, status: 500, error: "Erreur. Réessaie." };
 
-  return { ok: true, exhausted };
+  return { ok: true };
 }
 
 export type SuggestionJoinResult =

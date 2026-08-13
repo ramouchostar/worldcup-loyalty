@@ -7,6 +7,12 @@ import type { TeamType } from "@/types";
 
 // ADR 0031 — « Te reconnais-tu dans une de ces équipes ? »
 //
+// UN SEUL écran : les 4 propositions sont affichées ensemble et le membre tape
+// la sienne. La version en enchaînement oui/non demandait jusqu'à 3 décisions
+// pour arriver au même endroit — c'est trois fois plus d'occasions
+// d'abandonner en plein onboarding, et la reconnaissance est immédiate : on
+// voit son école dans une liste, on ne délibère pas dessus.
+//
 // Question d'identité, pas de stratégie : on ne montre NI points NI nombre de
 // membres. Le membre reconnaît une appartenance qu'il a déjà (son école, son
 // boulot), il ne compare pas des scores. Afficher un classement ici
@@ -34,58 +40,67 @@ export function TeamRecognitionPrompt({
   onDone: () => void;
 }) {
   const router = useRouter();
-  const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("asking");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null); // id en cours, ou "none"
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState<{ name: string; captain: boolean } | null>(null);
 
-  const current = suggestions[index];
-
-  async function respond(action: "join" | "decline" | "later", suggestionId?: string) {
+  async function respond(
+    action: "join" | "decline" | "later",
+    payload: { suggestionId?: string; suggestionIds?: string[] } = {}
+  ) {
     const res = await fetch("/api/teams/suggestions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurantId, action, suggestionId }),
+      body: JSON.stringify({ restaurantId, action, ...payload }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error ?? "Erreur. Réessaie.");
     return body as { team?: { name: string }; becameCaptain?: boolean };
   }
 
-  async function say(action: "join" | "decline") {
-    if (!current || busy) return;
-    setBusy(true);
+  async function pick(suggestion: PromptSuggestion) {
+    if (busy) return;
+    setBusy(suggestion.id);
     setError(null);
     try {
-      const body = await respond(action, current.id);
-      if (action === "join") {
-        setJoined({ name: body.team?.name ?? current.name, captain: !!body.becameCaptain });
-        setPhase("joined");
-        router.refresh();
-      } else if (index + 1 < suggestions.length) {
-        setIndex(index + 1);
-      } else {
-        setPhase("none");
-      }
+      const body = await respond("join", { suggestionId: suggestion.id });
+      setJoined({ name: body.team?.name ?? suggestion.name, captain: !!body.becameCaptain });
+      setPhase("joined");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur réseau. Réessaie.");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
+  }
+
+  // « Aucune de ces équipes » : on mémorise les propositions vues comme
+  // refusées pour que la relance en montre d'autres, jamais les mêmes.
+  async function declineAll() {
+    if (busy) return;
+    setBusy("none");
+    setError(null);
+    try {
+      await respond("decline", { suggestionIds: suggestions.map((s) => s.id) });
+    } catch {
+      /* la relance retombera au prochain passage — sans blocage du parcours */
+    }
+    setBusy(null);
+    setPhase("none");
   }
 
   // Toute sortie sans équipe arme la relance à une semaine (côté serveur, pas
   // localStorage : la question doit revenir même sur un autre appareil).
   async function leave(destination?: string) {
     if (busy) return;
-    setBusy(true);
+    setBusy("leave");
     try {
       await respond("later");
     } catch {
       /* la relance retombera au prochain passage — sans blocage du parcours */
     }
-    setBusy(false);
+    setBusy(null);
     if (destination) router.push(destination);
     onDone();
   }
@@ -136,7 +151,7 @@ export function TeamRecognitionPrompt({
   }
 
   // ── Aucune reconnaissance : surtout pas d'exclusion ─────────────────────
-  if (phase === "none" || !current) {
+  if (phase === "none" || suggestions.length === 0) {
     return (
       <div className={shell}>
         <div className={card}>
@@ -153,14 +168,14 @@ export function TeamRecognitionPrompt({
           <div className="space-y-2">
             <button
               onClick={() => leave(`/r/${restaurantId}/my-team`)}
-              disabled={busy}
+              disabled={!!busy}
               className="w-full bg-brand-dark text-white font-bold py-3.5 rounded-2xl hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Voir toutes les équipes →
             </button>
             <button
               onClick={() => leave()}
-              disabled={busy}
+              disabled={!!busy}
               className="w-full text-gray-400 text-sm py-2 hover:text-gray-600 transition-colors"
             >
               Plus tard — on m&apos;en reparle dans une semaine
@@ -171,7 +186,7 @@ export function TeamRecognitionPrompt({
     );
   }
 
-  // ── Question ────────────────────────────────────────────────────────────
+  // ── Question — une seule liste, un seul tap ─────────────────────────────
   return (
     <div className={shell}>
       <div className={card}>
@@ -185,43 +200,45 @@ export function TeamRecognitionPrompt({
           </p>
         </div>
 
-        <div className="bg-gray-50 rounded-2xl p-6 mb-5 text-center">
-          <p className="text-5xl mb-3" aria-hidden="true">{teamTypeEmoji(current.type)}</p>
-          <p className="text-lg font-bold text-gray-900 leading-snug">{current.name}</p>
-          {current.zone && <p className="text-xs text-gray-400 mt-1">📍 {current.zone}</p>}
-        </div>
-
         {error && (
           <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg mb-3">{error}</p>
         )}
 
+        <div className="space-y-2 mb-4">
+          {suggestions.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => pick(s)}
+              disabled={!!busy}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gray-50 text-left hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-50 border border-transparent hover:border-gray-200"
+            >
+              <span className="text-2xl shrink-0" aria-hidden="true">{teamTypeEmoji(s.type)}</span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-gray-900 leading-snug">{s.name}</span>
+                {s.zone && <span className="block text-xs text-gray-400 mt-0.5">📍 {s.zone}</span>}
+              </span>
+              <span className="text-brand-red font-bold text-sm shrink-0">
+                {busy === s.id ? "…" : "C'est moi"}
+              </span>
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-2">
           <button
-            onClick={() => say("join")}
-            disabled={busy}
-            className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-brand-red/85 transition-colors disabled:opacity-50"
-          >
-            Oui, c&apos;est moi 👋
-          </button>
-          <button
-            onClick={() => say("decline")}
-            disabled={busy}
+            onClick={declineAll}
+            disabled={!!busy}
             className="w-full bg-gray-100 text-gray-700 font-semibold py-3 rounded-2xl hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
-            Non
+            Aucune de ces équipes
           </button>
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs text-gray-300 tabular-nums">
-              {index + 1} / {suggestions.length}
-            </span>
-            <button
-              onClick={() => leave()}
-              disabled={busy}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Passer
-            </button>
-          </div>
+          <button
+            onClick={() => leave()}
+            disabled={!!busy}
+            className="w-full text-gray-400 text-xs py-1.5 hover:text-gray-600 transition-colors"
+          >
+            Passer
+          </button>
         </div>
       </div>
     </div>

@@ -41,7 +41,10 @@ Concurrence : deux « oui » simultanés créent deux équipes. Résolu par verr
 Nouvelle étape de `OnboardingFlow`, **après** le tour guidé (dont la dernière bulle explique justement ce qu'apporte une équipe — la poser avant, c'est la poser à quelqu'un qui ne sait pas ce qu'il choisit) :
 
 > « Te reconnais-tu dans une de ces équipes ? »
-> 🎓 **EPHEC** → *Oui, c'est moi* / *Non* — puis la suivante, **3 maximum**, une à la fois.
+> 🎓 **EPHEC** · 🎓 **Athénée d'Ixelles** · 🏢 **Alma** · 🏘️ **Quartier Flagey**
+> → *Aucune de ces équipes*
+
+**Un seul écran, 4 propositions maximum affichées ensemble, un tap.** La reconnaissance est immédiate — on repère son école dans une liste, on ne délibère pas dessus. Une version en enchaînement oui/non (une proposition à la fois) a été essayée puis abandonnée : elle demandait jusqu'à 3 décisions pour arriver au même endroit, soit trois fois plus d'occasions d'abandonner en plein onboarding, pour une question qui ne mérite aucune délibération.
 
 Règles d'affichage, non négociables :
 
@@ -51,7 +54,7 @@ Règles d'affichage, non négociables :
 
 ### 4. Aucune reconnaissance → aucune exclusion
 
-Après trois « non » (ou « Passer ») :
+Après « Aucune de ces équipes » (ou « Passer ») :
 
 > 👍 **Pas de souci** — Tu peux continuer **sans équipe** : tes cadeaux personnels tombent à chaque commande, équipe ou pas. Une équipe ajoute simplement des cadeaux en plus quand vous commandez à plusieurs.
 
@@ -61,7 +64,7 @@ C'est la stricte vérité du modèle : la couche 1 solo (ADR 0006) n'a jamais d�
 
 ### 5. Relance à une semaine, côté serveur
 
-Toute sortie sans équipe arme `memberships.team_prompt_next_at = NOW() + 7 jours`. Les refus sont mémorisés (`team_prompt_declined`) pour proposer **d'autres** communautés à la relance, et non les mêmes.
+Toute sortie sans équipe arme `memberships.team_prompt_next_at = NOW() + 7 jours`. « Aucune de ces équipes » mémorise en plus **les propositions affichées** (`team_prompt_declined`) pour que la relance en présente **d'autres**, et non les mêmes. « Passer » ne juge rien : il repousse sans rien refuser.
 
 L'état vit sur `memberships`, pas dans `localStorage` : la question doit revenir même sur un autre appareil, et ne doit pas revenir deux fois sur deux navigateurs. Scopé par établissement, comme le cooldown de changement d'équipe (ADR 0015 §5).
 
@@ -95,7 +98,7 @@ Retirer une communauté **déjà matérialisée** ne supprime pas l'équipe : la
 ### Code
 - `lib/team-suggestions.ts` (pur, client-safe) — constantes, normalisation, dédoublonnage, `pickPromptCandidates` (zone d'abord, aléatoire ensuite), `teamTypeEmoji` (source unique, `lib/teams.ts` la réexporte).
 - `lib/teams.ts` — `replaceTeamSuggestions`, `listTeamSuggestions`, `listDiscoverySuggestions`, `getTeamPrompt`, `joinTeamBySuggestion` (verrou optimiste), `declineTeamSuggestion`, `snoozeTeamPrompt`. Extraction de `uniqueJoinCode` / `ensureScoreRow`, partagés avec `createTeam`.
-- `POST /api/teams/suggestions` — `{ restaurantId, action: 'join' | 'decline' | 'later', suggestionId? }`.
+- `POST /api/teams/suggestions` — `{ restaurantId, action: 'join' | 'decline' | 'later', suggestionId?, suggestionIds? }` (`decline` porte les propositions affichées, pas une seule).
 - `components/member/TeamRecognitionPrompt.tsx` + étape `teams` dans `OnboardingFlow` (après `tour`).
 - `become-a-partner` étape 1 + `admin/[id]/settings` → `CommunitiesForm`.
 - `my-team` : bloc « Te reconnais-tu ici ? » et message de non-exclusion ; les équipes issues d'une communauté sont exclues de « Équipes dans ta zone » (sinon doublon, dont une version avec score).
@@ -110,6 +113,7 @@ Retirer une communauté **déjà matérialisée** ne supprime pas l'équipe : la
 - **Affecter le membre par défaut** à la communauté la plus probable : un employeur ou une école sur un classement public est une information que le membre doit choisir de divulguer. L'opt-in est ici un choix produit autant que juridique.
 - **Poser la question au signup** : l'ADR 0018 §1 a précisément supprimé le barrage de l'équipe à l'entrée. La question arrive en fin de tutoriel, quand le membre sait ce qu'est une équipe.
 - **Trier les propositions par score** : voir §3 — le moment identitaire deviendrait un moment stratégique.
+- **Enchaînement oui/non, une proposition à la fois** (première implémentation, remplacée) : jusqu'à 3 décisions successives pour un choix qui se fait à la reconnaissance, donc autant d'occasions supplémentaires d'abandonner en plein onboarding. La liste unique livre le même résultat en un tap.
 
 ## Suite possible (hors périmètre)
 

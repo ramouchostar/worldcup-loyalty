@@ -12,10 +12,11 @@ import { zoneKey } from "./zones";
 import type { TeamType } from "@/types";
 
 // Le restaurateur peut en déclarer jusqu'à 8 ; on n'en présente jamais plus
-// de 3 à la fois au membre (Hick : une liste devient un annuaire, et éparpiller
-// les membres sur trop d'équipes rend les couches 2 et 3 inertes — ADR 0006).
+// de 4 à la fois au membre, toutes sur le même écran (Hick : au-delà, la liste
+// devient un annuaire — et éparpiller les membres sur trop d'équipes rend les
+// couches 2 et 3 inertes, ADR 0006).
 export const MAX_SUGGESTIONS = 8;
-export const SUGGESTIONS_PER_PROMPT = 3;
+export const SUGGESTIONS_PER_PROMPT = 4;
 
 // « On lui en reparle une semaine après » — la relance ne dépend pas du
 // navigateur (localStorage), elle vit sur memberships (multi-appareil).

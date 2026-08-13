@@ -221,8 +221,8 @@ Nom d'école, d'entreprise ou de quartier que le **restaurateur** déclare (onbo
 _Avoid_ : équipe pré-créée, équipe automatique, équipe officielle, partenaire.
 
 **Question de reconnaissance** *(ADR 0031)* :
-« Te reconnais-tu dans une de ces équipes ? » — posée en fin de tutoriel, 3 communautés maximum, une à la fois, oui/non. **Jamais de points ni de nombre de membres affichés** (c'est une question d'identité, pas une comparaison d'équipes), **jamais d'ordre par score** (sinon le membre rejoint le leader, pas les siens). Aucune reconnaissance → la page équipe, avec un message explicite : sans équipe, les cadeaux personnels tombent quand même. Toute sortie sans équipe arme une relance **une semaine** plus tard (`memberships.team_prompt_next_at`, `team_prompt_declined`).
-_Avoid_ : quiz, sondage, obligatoire, « choisis ton équipe » (c'est une reconnaissance, pas un choix stratégique).
+« Te reconnais-tu dans une de ces équipes ? » — posée en fin de tutoriel, **un seul écran**, 4 communautés maximum affichées ensemble, le membre tape la sienne (ou « Aucune de ces équipes »). **Jamais de points ni de nombre de membres affichés** (c'est une question d'identité, pas une comparaison d'équipes), **jamais d'ordre par score** (sinon le membre rejoint le leader, pas les siens). Aucune reconnaissance → la page équipe, avec un message explicite : sans équipe, les cadeaux personnels tombent quand même. Toute sortie sans équipe arme une relance **une semaine** plus tard (`memberships.team_prompt_next_at`) ; « Aucune de ces équipes » mémorise en plus les propositions vues (`team_prompt_declined`) pour en montrer d'autres à la relance.
+_Avoid_ : quiz, sondage, obligatoire, « choisis ton équipe » (c'est une reconnaissance, pas un choix stratégique), enchaînement oui/non (remplacé — trop de décisions pour rien).
 
 **Type d'équipe** :
 Catégorie d'une équipe (`teams.type`) : `ecole`, `entreprise`, `rue_quartier`, `taxis`, `autre`. Sert au ciblage des broadcasts admin (ex. « menu étudiant » → toutes les équipes de type `ecole`). À ne pas confondre avec la catégorie d'un article du catalogue menu.
