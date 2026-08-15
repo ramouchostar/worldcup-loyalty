@@ -6,11 +6,14 @@ import Link from "next/link";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import {
   BACKLOG_AREAS,
+  BACKLOG_PEOPLE,
   BACKLOG_STATUSES,
   OPEN_STATUSES,
   CLOSED_STATUSES,
   STATUS_LABEL,
   AREA_LABEL,
+  personColor,
+  personInitials,
   priorityLabel,
   priorityScore,
   sortByPriority,
@@ -21,6 +24,7 @@ import {
   addBacklogItem,
   editBacklogItem,
   removeBacklogItem,
+  setBacklogOwnerFromForm,
   setBacklogStatus,
   setBacklogStatusFromForm,
 } from "./actions";
@@ -42,6 +46,11 @@ const OPEN_ORDER: BacklogStatus[] = ["en_cours", "a_faire", "bloque", "idee"];
 
 const SCALE = [1, 2, 3, 4, 5];
 
+// Gabarit commun de tous les contrôles d'une carte : même hauteur, même rayon,
+// même graisse. Avant, chaque bouton portait ses propres paddings et la rangée
+// donnait trois tailles différentes côte à côte.
+const CTRL = "h-8 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold transition-colors";
+
 function fmtDate(iso: string | null): string | null {
   if (!iso) return null;
   return new Date(iso).toLocaleDateString("fr-BE", { day: "numeric", month: "short" });
@@ -53,6 +62,96 @@ function SubmitButton({ children, className }: { children: React.ReactNode; clas
     <button type="submit" disabled={pending} className={`${className} disabled:opacity-50`}>
       {pending ? "…" : children}
     </button>
+  );
+}
+
+// Pastille d'identité. Les initiales sur fond coloré se reconnaissent d'un coup
+// d'œil dans une liste, ce qu'un prénom en texte ne fait pas.
+function Avatar({ name, size = 28 }: { name: string | null; size?: number }) {
+  if (!name) {
+    return (
+      <span
+        aria-hidden="true"
+        className="inline-grid place-items-center rounded-full border border-dashed border-gray-300 text-gray-400"
+        style={{ width: size, height: size, fontSize: size * 0.5, lineHeight: 1 }}
+      >
+        +
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-grid place-items-center rounded-full text-white font-bold tracking-tight"
+      style={{ width: size, height: size, background: personColor(name), fontSize: size * 0.36 }}
+    >
+      {personInitials(name)}
+    </span>
+  );
+}
+
+// Attribution en un clic depuis la carte. Le panneau se ferme sur un clic
+// n'importe où ailleurs (calque transparent) — sans ça, ouvrir deux cartes
+// laisse deux menus ouverts en même temps.
+function AssigneePicker({ item }: { item: BacklogItem }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={item.owner ? `Attribué à ${item.owner} — changer` : "Attribuer cette action"}
+        title={item.owner ?? "Attribuer"}
+        className="rounded-full ring-offset-2 hover:ring-2 hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 transition"
+      >
+        <Avatar name={item.owner} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div
+            role="menu"
+            className="absolute right-0 top-10 z-30 w-48 bg-white rounded-xl shadow-lg border border-gray-200 p-1"
+          >
+            {BACKLOG_PEOPLE.map((p) => (
+              <form key={p} action={setBacklogOwnerFromForm}>
+                <input type="hidden" name="id" value={item.id} />
+                <input type="hidden" name="owner" value={p} />
+                <button
+                  type="submit"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-800 hover:bg-gray-100"
+                >
+                  <Avatar name={p} size={22} />
+                  {p}
+                  {item.owner === p && <span className="ml-auto text-gray-400">✓</span>}
+                </button>
+              </form>
+            ))}
+            {item.owner && (
+              <form action={setBacklogOwnerFromForm}>
+                <input type="hidden" name="id" value={item.id} />
+                <input type="hidden" name="owner" value="" />
+                <button
+                  type="submit"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 border-t border-gray-100 mt-1 pt-2"
+                >
+                  <Avatar name={null} size={22} />
+                  Personne
+                </button>
+              </form>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -76,7 +175,7 @@ function StatusFlip({ item }: { item: BacklogItem }) {
         value={value}
         onChange={(e) => setValue(e.target.value as BacklogStatus)}
         aria-label={`État de « ${item.title} »`}
-        className="text-xs border border-gray-200 rounded-lg px-1.5 py-1 bg-white"
+        className="h-8 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg pl-2.5 pr-7 bg-white hover:bg-gray-50 transition-colors"
       >
         {BACKLOG_STATUSES.map((s) => (
           <option key={s} value={s}>
@@ -85,8 +184,8 @@ function StatusFlip({ item }: { item: BacklogItem }) {
         ))}
       </select>
       {value !== item.status && (
-        <SubmitButton className="text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded-lg hover:bg-gray-200">
-          OK
+        <SubmitButton className={`${CTRL} text-white bg-gray-900 hover:bg-gray-700`}>
+          Enregistrer
         </SubmitButton>
       )}
     </form>
@@ -175,12 +274,23 @@ function ItemFields({
         </label>
         <label className="text-xs text-gray-500">
           Qui s&apos;en charge
-          <input
+          <select
             name="owner"
             defaultValue={item?.owner ?? ""}
-            placeholder="Prénom"
-            className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"
-          />
+            className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white"
+          >
+            <option value="">— personne —</option>
+            {BACKLOG_PEOPLE.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+            {/* Un nom saisi avant la liste close reste sélectionné et
+                enregistrable — on ne le fait pas disparaître en silence. */}
+            {item?.owner && !BACKLOG_PEOPLE.includes(item.owner as (typeof BACKLOG_PEOPLE)[number]) && (
+              <option value={item.owner}>{item.owner}</option>
+            )}
+          </select>
         </label>
         <label className="text-xs text-gray-500">
           Échéance
@@ -323,7 +433,9 @@ function ItemCard({
             <span>{AREA_LABEL[item.area]}</span>
             <span>· {priorityLabel(item)} ({priorityScore(item).toFixed(1)})</span>
             <span>· impact {item.impact} / effort {item.effort}</span>
-            {item.owner && <span>· {item.owner}</span>}
+            {/* Le porteur n'est plus répété ici : la pastille en haut à droite
+                le dit, et le répéter en texte gris allongeait la ligne de méta
+                sans rien ajouter. */}
             {due && (
               <span className={overdue ? "text-danger font-semibold" : undefined}>
                 · {overdue ? "en retard depuis" : "pour"} le {due}
@@ -336,39 +448,82 @@ function ItemCard({
             )}
           </p>
         </div>
-        <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${STATUS_CLS[item.status]}`}>
-          {STATUS_LABEL[item.status]}
-        </span>
+        <div className="shrink-0 flex items-center gap-2">
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${STATUS_CLS[item.status]}`}>
+            {STATUS_LABEL[item.status]}
+          </span>
+          <AssigneePicker item={item} />
+        </div>
       </div>
 
       {item.details && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{item.details}</p>}
 
-      <div className="flex flex-wrap items-center gap-2 mt-3">
+      {/* Barre d'actions : tous les contrôles au même gabarit (CTRL), séparée
+          du contenu par un filet — avant, les boutons flottaient sous le texte
+          à trois hauteurs différentes. « Supprimer » est repoussé à droite et
+          reste discret jusqu'au survol : c'est la seule action irréversible. */}
+      <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
         <StatusFlip item={item} />
         {item.status !== "fait" && (
           <form action={setBacklogStatus.bind(null, item.id, "fait")}>
-            <SubmitButton className="text-xs font-semibold text-green-700 bg-green-50 px-3 py-1 rounded-lg hover:bg-green-100">
-              Fait ✓
+            <SubmitButton className={`${CTRL} text-green-700 bg-green-50 hover:bg-green-100`}>
+              ✓ Fait
             </SubmitButton>
           </form>
         )}
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1 rounded-lg hover:bg-gray-200"
+          className={`${CTRL} text-gray-700 bg-gray-100 hover:bg-gray-200`}
         >
           Modifier
         </button>
         <form action={removeBacklogItem.bind(null, item.id)} className="ml-auto">
           <ConfirmSubmitButton
             confirmMessage={`Supprimer « ${item.title} » ? L'action disparaît définitivement — préfère « Abandonné » pour garder la trace.`}
-            className="text-xs font-semibold text-red-700 hover:underline"
+            className={`${CTRL} text-gray-400 hover:text-red-700 hover:bg-red-50`}
           >
             Supprimer
           </ConfirmSubmitButton>
         </form>
       </div>
     </div>
+  );
+}
+
+// Valeur de filtre pour « non attribuée ». Une chaîne réservée plutôt que ""
+// ou null : `owner` est un état de sélection, pas la valeur du champ.
+const NO_OWNER = "__aucun__";
+
+function countFor(items: BacklogItem[], person: string): number {
+  return items.filter((i) => i.owner === person && OPEN_STATUSES.includes(i.status)).length;
+}
+
+// Pastille de filtre. Le compteur affiché est celui des actions ENCORE
+// OUVERTES : « Mehdi 3 » doit dire ce qui reste à faire, pas l'historique.
+function FilterChip({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={`h-8 inline-flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-semibold transition-colors ${
+        active ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -386,10 +541,20 @@ export function BacklogBoard({
   const [owner, setOwner] = useState<string>("tous");
 
   const restaurantNames = new Map(restaurants.map((r) => [r.id, r.name]));
-  const owners = Array.from(new Set(items.map((i) => i.owner).filter((o): o is string => !!o))).sort();
+  // Noms hérités d'avant la liste close : encore filtrables, jamais proposés
+  // à l'attribution.
+  const legacyOwners = Array.from(
+    new Set(
+      items
+        .map((i) => i.owner)
+        .filter((o): o is string => !!o && !BACKLOG_PEOPLE.includes(o as (typeof BACKLOG_PEOPLE)[number]))
+    )
+  ).sort();
 
   const visible = items.filter(
-    (i) => (area === "tous" || i.area === area) && (owner === "tous" || i.owner === owner)
+    (i) =>
+      (area === "tous" || i.area === area) &&
+      (owner === "tous" || (owner === NO_OWNER ? !i.owner : i.owner === owner))
   );
   const open = visible.filter((i) => OPEN_STATUSES.includes(i.status));
   const closed = visible.filter((i) => CLOSED_STATUSES.includes(i.status));
@@ -399,12 +564,41 @@ export function BacklogBoard({
       <AddForm restaurants={restaurants} />
 
       {items.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* « Mes tâches » en premier et en pastilles : c'est le filtre qu'on
+              utilise le plus (chacun veut sa liste), il ne doit pas être noyé
+              dans un menu déroulant à côté des chantiers. */}
+          <div
+            className="flex items-center gap-0.5 bg-gray-100 rounded-xl p-1"
+            role="group"
+            aria-label="Filtrer par personne"
+          >
+            <FilterChip active={owner === "tous"} onClick={() => setOwner("tous")}>
+              Tous
+            </FilterChip>
+            {BACKLOG_PEOPLE.map((p) => (
+              <FilterChip key={p} active={owner === p} onClick={() => setOwner(p)} title={`Tâches de ${p}`}>
+                <Avatar name={p} size={20} />
+                <span className="hidden sm:inline">{p}</span>
+                <span className="text-gray-400 tabular-nums">{countFor(items, p)}</span>
+              </FilterChip>
+            ))}
+            <FilterChip active={owner === NO_OWNER} onClick={() => setOwner(NO_OWNER)} title="Non attribuées">
+              Non attribuées
+              <span className="text-gray-400 tabular-nums">{items.filter((i) => !i.owner).length}</span>
+            </FilterChip>
+            {legacyOwners.map((o) => (
+              <FilterChip key={o} active={owner === o} onClick={() => setOwner(o)}>
+                {o}
+              </FilterChip>
+            ))}
+          </div>
+
           <select
             value={area}
             onChange={(e) => setArea(e.target.value)}
             aria-label="Filtrer par chantier"
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+            className="h-8 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg pl-2.5 pr-7 bg-white"
           >
             <option value="tous">Tous les chantiers</option>
             {BACKLOG_AREAS.map((a) => (
@@ -413,22 +607,8 @@ export function BacklogBoard({
               </option>
             ))}
           </select>
-          {owners.length > 0 && (
-            <select
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-              aria-label="Filtrer par personne"
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
-            >
-              <option value="tous">Tout le monde</option>
-              {owners.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-          )}
-          <span className="text-xs text-gray-400 self-center">
+
+          <span className="text-xs text-gray-400">
             {open.length} en cours · {closed.length} clôturée{closed.length > 1 ? "s" : ""}
           </span>
         </div>
