@@ -1,0 +1,9 @@
+{
+  "name": "run-worldcup-loyalty-driver",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "playwright": "^1.62.1",
+    "playwright-core": "1.62.1"
+  }
+}
