@@ -20,6 +20,25 @@ export type DesignSuggestion = {
 
 const FONT_KEYS = ["inter", "poppins", "playfair", "dm_sans", "bebas_neue"] as const;
 
+// Toute image plus petite est un pixel de suivi ou un placeholder d'erreur,
+// jamais un visuel exploitable.
+const MIN_IMAGE_BYTES = 500;
+
+// Un screenshot 1200×900 d'un vrai site pèse plusieurs dizaines de Ko ;
+// l'image d'attente de mShots (fond gris uni tant que le rendu n'est pas
+// terminé) quelques Ko seulement. Sans ce seuil elle passe tous les contrôles
+// et le modèle « analyse » une image vide en inventant une charte plausible.
+const SCREENSHOT_MIN_BYTES = 15_000;
+
+// Une photo réellement publiée sur un réseau dépasse largement ce seuil ;
+// les visuels de marque des plateformes sont des logos légers.
+const SOCIAL_MIN_BYTES = 8_000;
+
+// Budget total de l'attente mShots : au-delà, l'appelant retombe sur og:image
+// plutôt que de faire patienter le restaurateur. En pratique le rendu est prêt
+// au premier ou deuxième passage.
+const SCREENSHOT_DEADLINE_MS = 20_000;
+
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -43,27 +62,34 @@ function guessMediaType(contentType: string | null): ImageBlock["mediaType"] | n
   return null;
 }
 
-async function responseToImageBlock(res: Response): Promise<ImageBlock | null> {
+async function responseToImageBlock(res: Response, minBytes = MIN_IMAGE_BYTES): Promise<ImageBlock | null> {
   const mediaType = guessMediaType(res.headers.get("content-type"));
   if (!mediaType) return null;
   const bytes = await res.arrayBuffer();
-  if (bytes.byteLength < 500) return null; // trop petit pour être une vraie image (placeholder d'erreur)
+  if (bytes.byteLength < minBytes) return null; // placeholder d'erreur / d'attente, pas un visuel
   return { base64: Buffer.from(bytes).toString("base64"), mediaType };
 }
 
 // Capture best-effort du rendu d'un site via mShots (WordPress, gratuit, sans
-// clé). Le premier rendu est souvent un espace réservé pendant que la page se
-// génère côté mShots — un deuxième appel après un court délai donne
-// généralement un meilleur résultat. Ne throw jamais : renvoie null si tout
-// échoue, l'appelant retombe sur og:image.
+// clé). Le premier appel ne fait que déclencher le rendu : mShots répond son
+// image d'attente tant que la page n'est pas capturée, et rien dans la réponse
+// (statut, content-type) ne la distingue d'un vrai screenshot — seul son poids
+// la trahit, d'où le seuil SCREENSHOT_MIN_BYTES. On repasse donc jusqu'à ce
+// que l'image soit assez lourde pour être un vrai rendu, dans la limite de
+// SCREENSHOT_DEADLINE_MS. Ne throw jamais : renvoie null si tout échoue,
+// l'appelant retombe sur og:image.
 export async function captureWebsiteScreenshot(url: string): Promise<ImageBlock | null> {
   const mshotsUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=1200&h=900`;
+  const deadline = Date.now() + SCREENSHOT_DEADLINE_MS;
   try {
     await fetchWithTimeout(mshotsUrl, 8000); // déclenche le rendu, résultat ignoré
-    await new Promise((r) => setTimeout(r, 4000));
-    const res = await fetchWithTimeout(mshotsUrl, 8000);
-    if (!res) return null;
-    return await responseToImageBlock(res);
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3500));
+      const res = await fetchWithTimeout(mshotsUrl, 8000);
+      const block = res ? await responseToImageBlock(res, SCREENSHOT_MIN_BYTES) : null;
+      if (block) return block;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -88,14 +114,45 @@ export async function fetchOgImage(pageUrl: string): Promise<string | null> {
   }
 }
 
-export async function fetchImageAsBlock(imageUrl: string): Promise<ImageBlock | null> {
+export async function fetchImageAsBlock(imageUrl: string, minBytes = MIN_IMAGE_BYTES): Promise<ImageBlock | null> {
   try {
     const res = await fetchWithTimeout(imageUrl, 6000);
     if (!res) return null;
-    return await responseToImageBlock(res);
+    return await responseToImageBlock(res, minBytes);
   } catch {
     return null;
   }
+}
+
+// Derrière un mur de connexion — cas normal pour Instagram/TikTok non
+// authentifiés — la page renvoie le visuel de MARQUE DE LA PLATEFORME en
+// og:image, hébergé sur ses domaines et chemins « static ». L'analyser revient
+// à proposer les couleurs d'Instagram à l'établissement (le rose #E1306C
+// observé en production venait exactement de là). Seules les images servies
+// par un CDN de contenu (photo réellement publiée) sont exploitables.
+function isPlatformAsset(imageUrl: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(imageUrl);
+  } catch {
+    return true;
+  }
+  const host = u.hostname.toLowerCase();
+  const path = u.pathname.toLowerCase();
+  if (/(^|\.)static[.-]/.test(host)) return true; // static.cdninstagram.com
+  if (host.includes("ttwstatic") || host.includes("-static.")) return true; // assets webapp TikTok
+  if (path.startsWith("/rsrc.php")) return true; // bundles Meta
+  if (path.includes("/static/")) return true; // instagram.com/static/images/…
+  return /(favicon|logo|sprite|share[-_.]|default[-_.])/.test(path);
+}
+
+// og:image d'un profil social, en bonus de l'analyse du site : plus exigeant
+// que le site lui-même, parce qu'une image générique ici contamine la charte
+// proposée avec les couleurs de la plateforme.
+export async function fetchSocialImageAsBlock(pageUrl: string): Promise<ImageBlock | null> {
+  const ogUrl = await fetchOgImage(pageUrl);
+  if (!ogUrl || isPlatformAsset(ogUrl)) return null;
+  return await fetchImageAsBlock(ogUrl, SOCIAL_MIN_BYTES);
 }
 
 // Analyse vision : un directeur artistique fictif propose une charte à partir
