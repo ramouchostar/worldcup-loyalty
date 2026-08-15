@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { resolvePostLoginDestination } from "@/lib/post-login";
+import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 
 export async function signIn(
   _prevState: { error: string } | null,
@@ -37,6 +38,14 @@ export async function signIn(
 
   if (error || !data.user) {
     return { error: "Email ou mot de passe incorrect." };
+  }
+
+  // ADR 0032 — invitation restaurateur en attente : priorité absolue (le
+  // restaurateur se connecte justement pour activer son accès). Le cookie est
+  // consommé à l'acceptation, pas ici.
+  const pendingInvite = cookieStore.get(OWNER_INVITE_COOKIE)?.value;
+  if (pendingInvite && isValidInviteToken(pendingInvite)) {
+    redirect(`/invite/${pendingInvite}`);
   }
 
   // Arrivée via le QR code / lien d'un établissement précis (page /r/[id])

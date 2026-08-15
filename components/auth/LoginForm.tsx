@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 import { signIn } from "@/app/(auth)/login/actions";
+import { queueEvent } from "@/lib/analytics-pending";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
@@ -29,6 +30,10 @@ export default function LoginForm() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    // `signIn` redirige côté serveur en cas de succès : rien ne s'exécute
+    // après. L'événement est donc mis en file ici et n'est émis qu'une fois la
+    // session prouvée (cf. lib/analytics-pending.ts).
+    queueEvent("login", { method: "email" });
     const result = await signIn(null, formData);
 
     if (result?.error) {
@@ -41,6 +46,7 @@ export default function LoginForm() {
   async function handleOAuth(provider: "google") {
     setOauthLoading(provider);
     setError(null);
+    queueEvent("login", { method: provider });
     const supabase = createClient();
     const { error: oauthErr } = await supabase.auth.signInWithOAuth({
       provider,

@@ -115,6 +115,9 @@ export default async function QrPrintPage({
   if (!restaurant) notFound();
   const branding = await getRestaurantBranding(restaurantId);
   const targetUrl = `${APP_URL}/r/${restaurantId}`;
+  // UTM sur le QR encodé uniquement — jamais sur l'URL affichée en clair
+  // (urlLabel), pour ne pas imprimer une chaîne illisible sur le papier.
+  const qrTargetUrl = `${targetUrl}?utm_source=qr_code&utm_medium=print&utm_campaign=loyalty_signup`;
 
   if (isKraainem) {
     const fmt = (format && format in KRAAINEM_FORMATS ? format : "sticker") as KraainemFormat;
@@ -125,7 +128,7 @@ export default async function QrPrintPage({
 
     // Règle dure de la maquette : QR toujours noir pur sur blanc pur, jamais
     // teinté à la couleur de marque, correction d'erreur niveau H.
-    const qrSvg = await QRCode.toString(targetUrl, {
+    const qrSvg = await QRCode.toString(qrTargetUrl, {
       type: "svg",
       errorCorrectionLevel: "H",
       margin: 0,
@@ -164,7 +167,7 @@ export default async function QrPrintPage({
   const accentChannels = hexToRgbChannels(accent) ?? "169 187 110";
 
   // QR vectoriel aux couleurs de la charte (module = couleur foncée du resto).
-  const qrSvg = await QRCode.toString(targetUrl, {
+  const qrSvg = await QRCode.toString(qrTargetUrl, {
     type: "svg",
     errorCorrectionLevel: "M",
     margin: 1,

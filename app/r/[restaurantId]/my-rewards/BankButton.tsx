@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { track } from "@/lib/analytics";
 
 // ADR 0021 — « Mettre de côté » : convertit le cadeau disponible en points
 // de réserve. Confirmation inline (pas de window.confirm) avec le nombre de
@@ -23,6 +24,9 @@ export function BankButton({ points }: { points: number | null }) {
         body: JSON.stringify({ restaurantId }),
       });
       if (res.ok) {
+        // Le nombre de points n'est pas envoyé : c'est `floor(montant)`, donc
+        // le montant de la commande en clair (ADR 0028).
+        track("reward_banked", { restaurant_id: restaurantId });
         router.push(`/r/${restaurantId}/reserve`);
         router.refresh();
         return;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { teamTypeEmoji } from "@/lib/team-suggestions";
+import { track } from "@/lib/analytics";
 import type { TeamType } from "@/types";
 
 // ADR 0031 — « Te reconnais-tu dans une de ces équipes ? »
@@ -65,6 +66,9 @@ export function TeamRecognitionPrompt({
     setError(null);
     try {
       const body = await respond("join", { suggestionId: suggestion.id });
+      // Le *type* d'équipe suffit à l'analyse (école, entreprise, quartier) ;
+      // le nom est une donnée d'établissement, il ne sort pas vers Google.
+      track("team_joined", { join_source: "reconnaissance", team_type: suggestion.type });
       setJoined({ name: body.team?.name ?? suggestion.name, captain: !!body.becameCaptain });
       setPhase("joined");
       router.refresh();
@@ -86,6 +90,7 @@ export function TeamRecognitionPrompt({
     } catch {
       /* la relance retombera au prochain passage — sans blocage du parcours */
     }
+    track("team_declined", { suggestions_shown: suggestions.length });
     setBusy(null);
     setPhase("none");
   }

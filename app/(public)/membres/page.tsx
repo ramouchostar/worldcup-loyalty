@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import {
   HelpCircle,
   TrendingDown,
@@ -143,18 +144,24 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            <Link
+            <TrackedLink
+              ctaId="rejoindre"
+              ctaLocation="hero"
+              audience="membre"
               href="/login"
               className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
             >
               Rejoindre gratuitement →
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
+              ctaId="comment_ca_marche"
+              ctaLocation="hero"
+              audience="membre"
               href="#comment-ca-marche"
               className="flex-1 bg-brand-gold text-brand-dark text-center py-4 rounded-2xl font-bold hover:brightness-95 transition-all"
             >
               Comment ça marche
-            </Link>
+            </TrackedLink>
           </div>
         </div>
       </div>
@@ -324,12 +331,15 @@ export default function LandingPage() {
           <p className="text-red-100 mb-8 leading-relaxed">
             Inscription gratuite en 30 secondes. Aucune application à télécharger.
           </p>
-          <Link
+          <TrackedLink
+            ctaId="rejoindre"
+            ctaLocation="cta_final"
+            audience="membre"
             href="/login"
             className="inline-block bg-white text-brand-red font-black text-lg px-8 py-4 rounded-2xl hover:bg-red-50 transition-colors shadow-lg"
           >
             Je rejoins mon équipe →
-          </Link>
+          </TrackedLink>
         </div>
       </div>
 

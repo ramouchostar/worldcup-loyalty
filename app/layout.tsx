@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { Analytics } from "@/components/analytics/Analytics";
+import { CookieBanner } from "@/components/analytics/CookieBanner";
 
 // Polices curées de la charte graphique (m48, lib/branding.ts FONT_OPTIONS).
 // Toutes montées ici, quel que soit l'établissement — c'est --brand-font
@@ -105,10 +107,15 @@ export default function RootLayout({
         <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/api/icons/192" type="image/png" sizes="192x192" />
         <link rel="apple-touch-icon" href="/api/icons/192" />
+        {/* Consent Mode v2 + gtag.js. Monté dans le <head> et avant tout le
+            reste : les valeurs de consentement par défaut doivent être posées
+            avant que gtag.js n'ait la moindre chance d'écrire un cookie. */}
+        <Analytics />
       </head>
       <body className={`${brandFontVariables} bg-gray-50 text-gray-900 antialiased`}>
         {children}
         <ServiceWorkerRegister />
+        <CookieBanner />
       </body>
     </html>
   );

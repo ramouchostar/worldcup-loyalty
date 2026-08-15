@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -36,6 +37,9 @@ export function PushNotificationBanner() {
         setState("visible");
         return;
       }
+      // Le canal push conditionne toutes les notifications d'incitation
+      // (ADR 0009) : son taux d'acceptation est un indicateur de rétention.
+      track("push_permission_granted", {});
 
       const reg = await navigator.serviceWorker.ready;
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;

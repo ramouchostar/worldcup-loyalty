@@ -5,7 +5,7 @@
 Avant d'écrire ou modifier la moindre ligne, tu dois lire dans cet ordre :
 
 1. `CONTEXT.md` — glossaire complet du domaine, terminologie exacte, règles UI
-2. `docs/adr/0001` à `docs/adr/0031` — toutes les décisions architecturales
+2. `docs/adr/0001` à `docs/adr/0033` — toutes les décisions architecturales
 
 Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Prompt_ClaudeCode.md` qui est le document source initial mais qui a été affiné par les ADRs.
 
@@ -88,7 +88,24 @@ RESEND_API_KEY=                     # emailing (lib/email.ts) — non configuré
 EMAIL_FROM=                         # ex. "Boosteats <onboarding@resend.dev>"
 NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://worldcup-loyalty.vercel.app
 ANTHROPIC_API_KEY=                  # vision : OCR ticket, découverte clé ticket, suggestions menu, détection de design (m48)
+NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun script Google, aucune bannière cookies, CSP fermée
 ```
+
+### Mesure d'audience — voir `docs/tracking-plan.md`
+- Tout passe par `track()` (`lib/analytics.ts`) — jamais d'appel `gtag()` direct
+- **Aucun euro dans un événement client** (ADR 0007/0028) : les montants partent en tranches (`amount_band`), jamais en `value`
+- **Aucun identifiant de membre envoyé à Google** (ADR 0025) : pas de `user_id`, seulement `member_status`
+- Consent Mode v2, tout refusé par défaut ; les signaux publicitaires restent refusés en dur
+
+### ADR 0033 — Console plateforme : comptes démo, chiffres, backlog
+- `restaurants.is_demo` — établissement **fictif de démonstration**, pas un « mode démo » : même table, même code, aucune branche conditionnelle. Seule sa visibilité change.
+- Exclu de l'accueil, `/secteurs`, `/join` et des chiffres réseau ; son URL directe `/r/[id]` reste accessible
+- **Toute surface publique qui liste ou compte des établissements passe par `listLiveRestaurants()` (`lib/demo.ts`)** — `status = 'active' AND is_demo = false`. L'oublier est une régression au même titre qu'exposer `target_revenue` côté client
+- Depuis m56 : tous les établissements sauf `kraainem` sont des comptes démo
+- `restaurants.activated_at` ≠ `created_at` — maille de la courbe d'activation, première activation uniquement
+- `/platform` est un espace à quatre onglets (Réseau · Chiffres · Backlog · Membres), navigation portée par `app/platform/layout.tsx` ; chaque page garde son propre contrôle `is_super_admin`
+- Le CA réseau ne figure QUE sur `/platform/stats` — jamais côté membre (ADR 0007), jamais chez un restaurateur pour un autre établissement (ADR 0015 §7)
+- Backlog (`platform_backlog`) : priorité **calculée** (`impact ÷ effort`), jamais saisie
 
 ### ADR 0011 — Coupon de récupération anti-fraude
 - **Un seul cadeau actif** par membre à la fois — Option B : si une récompense est `available`, aucune nouvelle n'est créée jusqu'à ce qu'elle soit `redeemed` ou `expired`

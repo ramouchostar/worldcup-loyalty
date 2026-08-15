@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { setPlan, type Plan } from "@/lib/entitlements";
 import { settlePlanRequests, markPlanRequestHandled } from "@/lib/plan-requests";
-import { sendRestaurantActivatedEmail } from "@/lib/email";
+import { sendRestaurantActivatedEmail, sendOwnerInviteEmail } from "@/lib/email";
+import { createOwnerInvite, revokeOwnerInvite } from "@/lib/owner-invites";
 
 async function requireSuperAdmin() {
   const supabase = await createServerSupabaseClient();
@@ -14,12 +15,29 @@ async function requireSuperAdmin() {
   return profile?.is_super_admin ? user : null;
 }
 
+// ADR 0033 §2 — date de mise en ligne, distincte de created_at (un resto
+// démarché est créé au rendez-vous et activé plus tard). Écrite à part et en
+// best-effort : tant que m56 n'est pas appliquée, la colonne n'existe pas et
+// l'approbation d'un établissement ne doit pas échouer pour autant.
+// `.is("activated_at", null)` garde la PREMIÈRE activation : réactiver un
+// établissement désactivé ne le fait pas réapparaître comme nouveau dans la
+// courbe d'activations.
+async function stampActivatedAt(admin: ReturnType<typeof createAdminClient>, restaurantId: string) {
+  const { error } = await admin
+    .from("restaurants")
+    .update({ activated_at: new Date().toISOString() })
+    .eq("id", restaurantId)
+    .is("activated_at", null);
+  if (error) console.error("[platform] stampActivatedAt failed:", error.message);
+}
+
 export async function approveRestaurant(restaurantId: string) {
   const user = await requireSuperAdmin();
   if (!user) return;
 
   const admin = createAdminClient();
   await admin.from("restaurants").update({ status: "active" }).eq("id", restaurantId);
+  await stampActivatedAt(admin, restaurantId);
 
   const { data: restaurant } = await admin
     .from("restaurants")
@@ -54,7 +72,23 @@ export async function setRestaurantStatus(restaurantId: string, status: "active"
 
   const admin = createAdminClient();
   await admin.from("restaurants").update({ status }).eq("id", restaurantId);
+  if (status === "active") await stampActivatedAt(admin, restaurantId);
   revalidatePath("/platform");
+}
+
+// ADR 0033 §1 — bascule démo ↔ réel. Rien d'autre ne change pour
+// l'établissement : mêmes données, même console, même parcours membre. Seule
+// sa VISIBILITÉ bouge — un compte démo sort des surfaces publiques (accueil,
+// /secteurs, /join) et des chiffres réseau, et y rentre en repassant réel.
+export async function setRestaurantDemo(restaurantId: string, isDemo: boolean) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("restaurants").update({ is_demo: isDemo }).eq("id", restaurantId);
+  if (error) console.error("[platform] setRestaurantDemo failed:", error.message);
+  revalidatePath("/platform");
+  revalidatePath("/platform/stats");
 }
 
 // ADR 0029 — flip de plan manuel (Phase 2, en attendant Stripe). Activer un
@@ -104,6 +138,9 @@ export async function createRestaurantAsSuperAdmin(
   const sector = (formData.get("sector") as string)?.trim();
   const address = (formData.get("address") as string)?.trim() || null;
   const ownerEmail = (formData.get("owner_email") as string)?.trim().toLowerCase() || null;
+  // ADR 0033 §1 — établissement fictif de démonstration : même création, même
+  // code, seule la visibilité diffère (hors surfaces publiques et chiffres).
+  const isDemo = formData.get("is_demo") === "on";
 
   if (!name || name.length < 2) return { error: "Nom de l'établissement requis." };
   if (!sector || sector.length < 2) return { error: "Secteur (ville/quartier) requis." };
@@ -128,21 +165,99 @@ export async function createRestaurantAsSuperAdmin(
   const { generateRestaurantSlug } = await import("@/lib/restaurant");
   const slug = await generateRestaurantSlug(name);
 
-  const { error } = await admin.from("restaurants").insert({
+  const base = {
     id: slug,
     name,
     sector,
     address,
     owner_id: ownerId,
     status: "active",
-  });
+  };
+
+  // Créé actif → sa date d'activation est maintenant (ADR 0033 §2).
+  let { error } = await admin
+    .from("restaurants")
+    .insert({ ...base, is_demo: isDemo, activated_at: new Date().toISOString() });
+  if (error && isUnknownColumn(error)) {
+    // m56 pas encore appliquée : on crée quand même l'établissement, sans le
+    // marquage démo — mieux vaut un resto à reclasser qu'un démarchage bloqué.
+    ({ error } = await admin.from("restaurants").insert(base));
+  }
   if (error) return { error: "Erreur lors de la création. Réessaie." };
 
   revalidatePath("/platform");
-  return { success: `${name} créé (${slug})${ownerNote}.` };
+  revalidatePath("/platform/stats");
+  const demoNote = isDemo ? " — compte démo (invisible du public)" : "";
+  return { success: `${name} créé (${slug})${demoNote}${ownerNote}.` };
 }
 
-// Rattache / réassigne l'owner d'un établissement par email.
+// PostgREST signale une colonne inconnue de deux façons selon qu'elle manque
+// dans la requête (42703) ou dans son cache de schéma (PGRST204).
+function isUnknownColumn(error: { code?: string; message?: string }): boolean {
+  return error.code === "42703" || error.code === "PGRST204" || /is_demo|activated_at/.test(error.message ?? "");
+}
+
+// ADR 0032 — lien d'invitation restaurateur. Voie PRINCIPALE pour donner la console
+// d'un établissement à son restaurateur : contrairement à assignOwner (plus
+// bas), elle ne suppose pas qu'il ait déjà un compte — c'est son clic qui
+// pose `restaurants.owner_id`, avant ou après son inscription.
+export async function createOwnerInviteFromForm(
+  _prevState: { error?: string; url?: string; emailed?: boolean } | null,
+  formData: FormData
+): Promise<{ error?: string; url?: string; emailed?: boolean }> {
+  const user = await requireSuperAdmin();
+  if (!user) return { error: "Accès refusé." };
+
+  const restaurantId = (formData.get("restaurant_id") as string)?.trim();
+  const email = ((formData.get("owner_email") as string) ?? "").trim().toLowerCase() || null;
+  if (!restaurantId) return { error: "Choisis un établissement." };
+
+  const result = await createOwnerInvite({ restaurantId, email, createdBy: user.id });
+  if (!result.ok) return { error: result.error };
+
+  // Envoi best-effort : sans RESEND_API_KEY, `emailed` reste faux et le lien
+  // affiché reste la voie de partage (WhatsApp, SMS).
+  let emailed = false;
+  if (email) {
+    const admin = createAdminClient();
+    const { data: restaurant } = await admin
+      .from("restaurants")
+      .select("name")
+      .eq("id", restaurantId)
+      .maybeSingle();
+    emailed = await sendOwnerInviteEmail(
+      email,
+      restaurant?.name ?? restaurantId,
+      restaurantId,
+      result.invite.url,
+      result.invite.expiresAt
+    );
+  }
+
+  revalidatePath("/platform");
+  return { url: result.invite.url, emailed };
+}
+
+// Génération depuis la ligne d'un établissement (liste) — même action, sans
+// email : le super-admin copie le lien et l'envoie par le canal qu'il veut.
+export async function createOwnerInviteForRestaurant(restaurantId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+  await createOwnerInvite({ restaurantId, createdBy: user.id });
+  revalidatePath("/platform");
+}
+
+// Coupe un lien encore en circulation (mauvais destinataire, deal annulé).
+export async function revokeOwnerInviteAction(inviteId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+  await revokeOwnerInvite(inviteId);
+  revalidatePath("/platform");
+}
+
+// Rattache / réassigne l'owner d'un établissement par email — voie directe,
+// réservée au cas où le restaurateur a DÉJÀ un compte membre (sinon utiliser
+// le lien d'invitation ci-dessus).
 export async function assignOwner(
   _prevState: { error?: string; success?: string } | null,
   formData: FormData

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
+import { listLiveRestaurants } from "@/lib/demo";
 import { joinRestaurant } from "./actions";
 
 // ADR 0030 §8 — /join est la destination de plusieurs refus d'autorisation :
@@ -30,14 +31,19 @@ export default async function JoinPage({
   const { reason } = await searchParams;
   const banner = reason ? REASON_BANNERS[reason] : undefined;
 
-  const [{ data: restaurants }, { data: memberships }, { data: ownedRaw }] = await Promise.all([
-    supabase.from("restaurants").select("id, name").eq("status", "active").order("name"),
+  const [liveRestaurants, { data: memberships }, { data: ownedRaw }] = await Promise.all([
+    // ADR 0033 §1 — un établissement de démonstration n'apparaît jamais dans la
+    // liste « Choisis ton restaurant » : personne ne doit rejoindre un resto
+    // fictif par erreur. Il reste joignable par son URL directe (/r/[id]),
+    // c'est exactement ce qu'on ouvre pendant une démo.
+    listLiveRestaurants<{ id: string; name: string }>(supabase, "id, name"),
     supabase.from("memberships").select("restaurant_id").eq("user_id", user.id),
     // ADR 0030 §8 — demandes de partenariat du compte : un restaurateur en
     // attente d'approbation voit un état clair au lieu du silence.
     supabase.from("restaurants").select("id, name, status").eq("owner_id", user.id),
   ]);
 
+  const restaurants = [...liveRestaurants].sort((a, b) => a.name.localeCompare(b.name));
   const joinedIds = new Set((memberships ?? []).map((m) => m.restaurant_id));
   const pendingOwned = ((ownedRaw as { id: string; name: string; status: string }[] | null) ?? [])
     .filter((o) => o.status === "pending");
@@ -78,11 +84,11 @@ export default async function JoinPage({
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-4 space-y-2">
-          {(restaurants ?? []).length === 0 && (
+          {restaurants.length === 0 && (
             <p className="text-center text-sm text-gray-400 py-4">Aucun établissement disponible pour le moment.</p>
           )}
 
-          {(restaurants ?? []).map((r) => (
+          {restaurants.map((r) => (
             <div key={r.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200">
               <span className="font-semibold text-gray-900">{r.name}</span>
               {joinedIds.has(r.id) ? (

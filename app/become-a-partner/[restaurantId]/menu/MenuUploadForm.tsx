@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { submitOnboardingMenu } from "../../actions";
+import { queueEvent } from "@/lib/analytics-pending";
 
 const TEMPLATE_ROWS: [string, string, string, string][] = [
   ["Salade César", "Entrée", "7,50", "1,20"],
@@ -61,6 +62,8 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
 
     const formData = new FormData();
     formData.set("csv", csv);
+
+    queueEvent("partner_step_completed", { step_name: "menu", step_number: 2 });
 
     const result = await submitOnboardingMenu(restaurantId, null, formData);
 

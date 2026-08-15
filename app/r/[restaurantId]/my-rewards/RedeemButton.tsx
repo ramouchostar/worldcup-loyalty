@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { track } from "@/lib/analytics";
 
 export function RedeemButton() {
   const [busy, setBusy] = useState(false);
@@ -19,7 +20,11 @@ export function RedeemButton() {
         body: JSON.stringify({ restaurantId }),
       });
       const body = await res.json().catch(() => ({}));
-      if (res.ok && body.token) { router.push(`/coupon/${body.token}`); return; }
+      if (res.ok && body.token) {
+        track("reward_redeem_started", { restaurant_id: restaurantId });
+        router.push(`/coupon/${body.token}`);
+        return;
+      }
       setError(body.error ?? "Erreur lors de la génération du coupon.");
     } catch {
       setError("Erreur réseau. Réessaie.");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { updateRestaurantBranding, detectRestaurantDesign } from "./actions";
 import { BRAND_DEFAULTS, FONT_OPTIONS } from "@/lib/branding";
 
@@ -44,6 +44,15 @@ export function BrandingForm({
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [detectMessage, setDetectMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
+  // La détection modifie des champs situés bien plus bas que le bouton : sans
+  // scroll ni surlignage, le restaurateur croit qu'il ne s'est rien passé.
+  const [highlight, setHighlight] = useState(false);
+  const detectedRef = useRef<HTMLDivElement>(null);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+  }, []);
 
   const eff = (field: keyof typeof colors, def: string) => colors[field] || def;
 
@@ -92,8 +101,14 @@ export function BrandingForm({
       setFont(s.brand_font);
       setDetectMessage({
         kind: "success",
-        text: s.style_notes ? `Suggestion appliquée — ${s.style_notes}` : "Suggestion appliquée.",
+        text: s.style_notes
+          ? `Suggestion appliquée — ${s.style_notes}. Vérifie ci-dessous, puis enregistre.`
+          : "Suggestion appliquée — vérifie ci-dessous, puis enregistre.",
       });
+      detectedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setHighlight(true);
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
+      highlightTimer.current = setTimeout(() => setHighlight(false), 3000);
     }
   }
 
@@ -135,7 +150,7 @@ export function BrandingForm({
             disabled={!websiteUrl || detecting}
             className="w-full bg-brand-dark text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-brand-dark/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {detecting ? "Analyse en cours... (jusqu'à 15 secondes)" : "✨ Détecter mon design depuis mon site"}
+            {detecting ? "Analyse en cours... (jusqu'à 45 secondes)" : "✨ Détecter mon design depuis mon site"}
           </button>
           <p className="text-xs text-gray-400 mt-1.5">
             {websiteUrl
@@ -205,82 +220,92 @@ export function BrandingForm({
           </div>
         </div>
 
-        {/* Police */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Police</label>
-          <div className="grid grid-cols-2 gap-2">
-            {FONT_OPTIONS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFont(font === f.key ? "" : f.key)}
-                className={`text-left border rounded-lg px-3 py-2 transition-colors ${
-                  font === f.key ? "border-brand-red bg-brand-red/5" : "border-gray-200 hover:border-gray-300"
-                }`}
-                style={{ fontFamily: f.cssVar }}
-              >
-                <span className="text-sm font-medium text-gray-800">{f.label}</span>
-                <p className="text-xs text-gray-400" style={{ fontFamily: f.cssVar }}>
-                  Ton établissement
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Couleurs */}
-        <div className="space-y-3">
-          {COLORS.map(({ field, label, help, def }) => (
-            <div key={field} className="flex items-center gap-3">
-              <input
-                type="color"
-                value={eff(field, def)}
-                onChange={(e) => setColor(field, e.target.value.toUpperCase())}
-                className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer shrink-0 bg-white"
-                aria-label={label}
-              />
-              <div className="flex-1 min-w-0">
-                <label className="block text-sm font-medium text-gray-800">{label}</label>
-                <p className="text-xs text-gray-400">{help}</p>
+        {/* Aperçu + réglages détectés — cible du scroll après « Détecter mon
+            design » : l'aperçu en tête montre le résultat, les champs juste en
+            dessous restent ajustables. */}
+        <div
+          ref={detectedRef}
+          className={`scroll-mt-4 space-y-5 rounded-xl -m-2 p-2 transition-shadow duration-500 ${
+            highlight ? "ring-2 ring-brand-red/40" : "ring-0"
+          }`}
+        >
+          {/* Aperçu live */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Aperçu</p>
+            <div
+              className="rounded-xl overflow-hidden border border-gray-200"
+              style={{ fontFamily: FONT_OPTIONS.find((f) => f.key === font)?.cssVar }}
+            >
+              <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: eff("brand_dark", BRAND_DEFAULTS.dark) }}>
+                {logoPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoPreview} alt="" className="w-6 h-6 object-contain" />
+                ) : null}
+                <span className="text-white font-bold text-sm">{/* nom resto */}Ton établissement</span>
               </div>
-              <input
-                type="text"
-                value={colors[field]}
-                onChange={(e) => setColor(field, e.target.value)}
-                placeholder={def}
-                className="w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm font-mono uppercase"
-              />
-              {colors[field] && (
-                <button type="button" onClick={() => setColor(field, "")} className="text-gray-300 hover:text-red-500 text-lg leading-none" aria-label="Réinitialiser">
-                  ×
+              <div className="p-4 bg-white flex items-center gap-3">
+                <button type="button" className="text-white text-sm font-semibold px-4 py-2 rounded-lg" style={{ backgroundColor: eff("brand_primary", BRAND_DEFAULTS.primary) }}>
+                  Rejoindre
                 </button>
-              )}
+                <span className="text-xs font-bold px-2 py-1 rounded-full text-white" style={{ backgroundColor: eff("brand_accent", BRAND_DEFAULTS.accent) }}>
+                  Nouveau
+                </span>
+              </div>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Aperçu live */}
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Aperçu</p>
-          <div
-            className="rounded-xl overflow-hidden border border-gray-200"
-            style={{ fontFamily: FONT_OPTIONS.find((f) => f.key === font)?.cssVar }}
-          >
-            <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: eff("brand_dark", BRAND_DEFAULTS.dark) }}>
-              {logoPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoPreview} alt="" className="w-6 h-6 object-contain" />
-              ) : null}
-              <span className="text-white font-bold text-sm">{/* nom resto */}Ton établissement</span>
+          {/* Police */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Police</label>
+            <div className="grid grid-cols-2 gap-2">
+              {FONT_OPTIONS.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFont(font === f.key ? "" : f.key)}
+                  className={`text-left border rounded-lg px-3 py-2 transition-colors ${
+                    font === f.key ? "border-brand-red bg-brand-red/5" : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  style={{ fontFamily: f.cssVar }}
+                >
+                  <span className="text-sm font-medium text-gray-800">{f.label}</span>
+                  <p className="text-xs text-gray-400" style={{ fontFamily: f.cssVar }}>
+                    Ton établissement
+                  </p>
+                </button>
+              ))}
             </div>
-            <div className="p-4 bg-white flex items-center gap-3">
-              <button type="button" className="text-white text-sm font-semibold px-4 py-2 rounded-lg" style={{ backgroundColor: eff("brand_primary", BRAND_DEFAULTS.primary) }}>
-                Rejoindre
-              </button>
-              <span className="text-xs font-bold px-2 py-1 rounded-full text-white" style={{ backgroundColor: eff("brand_accent", BRAND_DEFAULTS.accent) }}>
-                Nouveau
-              </span>
-            </div>
+          </div>
+
+          {/* Couleurs */}
+          <div className="space-y-3">
+            {COLORS.map(({ field, label, help, def }) => (
+              <div key={field} className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={eff(field, def)}
+                  onChange={(e) => setColor(field, e.target.value.toUpperCase())}
+                  className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer shrink-0 bg-white"
+                  aria-label={label}
+                />
+                <div className="flex-1 min-w-0">
+                  <label className="block text-sm font-medium text-gray-800">{label}</label>
+                  <p className="text-xs text-gray-400">{help}</p>
+                </div>
+                <input
+                  type="text"
+                  value={colors[field]}
+                  onChange={(e) => setColor(field, e.target.value)}
+                  placeholder={def}
+                  className="w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm font-mono uppercase"
+                />
+                {colors[field] && (
+                  <button type="button" onClick={() => setColor(field, "")} className="text-gray-300 hover:text-red-500 text-lg leading-none" aria-label="Réinitialiser">
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

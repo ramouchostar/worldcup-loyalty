@@ -54,6 +54,21 @@ export function CreateRestaurantForm() {
         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
       />
 
+      {/* ADR 0033 §1 — un établissement fictif suit exactement le même parcours
+          qu'un vrai (c'est ce qui en fait une démonstration honnête) ; il est
+          seulement retiré des surfaces publiques et des chiffres réseau. */}
+      <label className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer">
+        <input type="checkbox" name="is_demo" className="mt-0.5 accent-brand-red" />
+        <span className="text-sm text-gray-700">
+          Compte démo
+          <span className="block text-xs text-gray-400">
+            Établissement fictif pour une démonstration : invisible sur l&apos;accueil, /secteurs
+            et la liste « Choisis ton restaurant », exclu des chiffres réseau. Son URL{" "}
+            <span className="font-mono">/r/…</span> reste accessible. Réversible à tout moment.
+          </span>
+        </span>
+      </label>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
       {success && <p className="text-sm text-green-700">{success}</p>}
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { MenuUploadForm } from "./MenuUploadForm";
+import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
 export default async function OnboardingMenuPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -18,6 +19,9 @@ export default async function OnboardingMenuPage({ params }: { params: Promise<{
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
+      {/* Page réservée au propriétaire : le montage prouve la session,
+          ce qui libère l'événement d'étape mis en file (voir analytics-pending). */}
+      <AnalyticsIdentity status="restaurateur" />
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
           <p className="text-4xl mb-2">🧾</p>

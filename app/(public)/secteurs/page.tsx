@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { createAdminClient } from "@/lib/supabase";
+import { listLiveRestaurants } from "@/lib/demo";
 
 // ADR 0016 — page publique "activité par secteur" : preuve sociale pour le
 // restaurateur prospect (il y a déjà des clients fidélisés dans sa zone).
@@ -58,13 +60,15 @@ export default async function SectorsPage() {
   try {
     const admin = createAdminClient();
     // ADR 0016 §3 — seuls les établissements actifs comptent (pending/disabled
-    // restent invisibles, cohérent ADR 0015 §6).
+    // restent invisibles, cohérent ADR 0015 §6). ADR 0033 §1 : les comptes de
+    // démonstration non plus — cette page est une preuve sociale, elle ne
+    // prouve rien avec des restos fictifs.
     const [restaurants, memberships, teams] = await Promise.all([
-      admin.from("restaurants").select("id, name, sector").eq("status", "active"),
+      listLiveRestaurants<{ id: string; name: string; sector: string | null }>(admin, "id, name, sector"),
       admin.from("memberships").select("restaurant_id"),
       admin.from("teams").select("restaurant_id").eq("is_active", true),
     ]);
-    restaurantsRaw = restaurants.data ?? [];
+    restaurantsRaw = restaurants;
     membershipsRaw = memberships.data ?? [];
     teamsRaw = teams.data ?? [];
   } catch {
@@ -170,12 +174,15 @@ export default async function SectorsPage() {
           <p className="text-red-100 mb-6 text-sm leading-relaxed">
             Inscris ton restaurant et transforme tes clients en équipes fidèles.
           </p>
-          <Link
+          <TrackedLink
+            ctaId="devenir_partenaire"
+            ctaLocation="secteurs_cta"
+            audience="restaurateur"
             href="/become-a-partner"
             className="inline-block bg-white text-brand-red font-black px-8 py-4 rounded-2xl hover:bg-red-50 transition-colors shadow-lg"
           >
             Devenir partenaire →
-          </Link>
+          </TrackedLink>
           <p className="mt-4">
             <Link href="/" className="text-red-100 text-xs font-semibold hover:underline">
               Voir comment fonctionne le programme →

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { registerProfile } from "./actions";
 import { sanitizeZones } from "@/lib/zones";
+import { queueEvent } from "@/lib/analytics-pending";
 
 function ageFrom(dateStr: string): number | null {
   if (!dateStr) return null;
@@ -54,6 +55,10 @@ export default function RegisterPage() {
     formData.set("opt_marketing", optMarketing ? "1" : "0");
     formData.set("opt_insights", optInsights ? "1" : "0");
     if (isMinor) formData.set("parental_email", parentalEmail.trim());
+
+    // Comme pour la connexion, `registerProfile` redirige côté serveur en cas
+    // de succès — l'événement passe par la file (lib/analytics-pending.ts).
+    queueEvent("member_profile_completed", { zones_count: zones.length, is_minor: isMinor });
 
     const result = await registerProfile(null, formData);
     if (result?.error) { setError(result.error); setLoading(false); }

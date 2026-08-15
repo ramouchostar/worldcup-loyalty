@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 
 export function Footer() {
   return (
@@ -11,9 +12,15 @@ export function Footer() {
           <Link href="/" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
             Accueil
           </Link>
-          <Link href="/become-a-partner" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
+          <TrackedLink
+            ctaId="devenir_partenaire"
+            ctaLocation="footer"
+            audience="restaurateur"
+            href="/become-a-partner"
+            className="text-night-faint text-[13px] hover:text-night-text transition-colors"
+          >
             Devenir partenaire
-          </Link>
+          </TrackedLink>
           <Link href="/login?as=resto" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
             Connexion
           </Link>

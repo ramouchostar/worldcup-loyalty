@@ -16,3 +16,17 @@ tsconfig.tsbuildinfo
 .playwright-mcp/
 
 .vercel
+
+# outillage agent (Claude Code)
+.claude/settings.local.json
+
+# Les skills marketing sont installés dans .agents/ depuis skills-lock.json
+# (= le node_modules des skills) et .claude/skills/ n'en contient que des liens
+# symboliques. Le lockfile suffit à tout réinstaller — on ne versionne ni l'un
+# ni les autres. Seuls les skills PROPRES au projet sont versionnés.
+.agents/
+.claude/skills/*
+!.claude/skills/avis-investisseur/
+!.claude/skills/run-worldcup-loyalty/
+.claude/skills/run-worldcup-loyalty/node_modules/
+.claude/skills/run-worldcup-loyalty/sessions/

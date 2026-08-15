@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { sanitizeZones } from "@/lib/zones";
 import { recordConsents } from "@/lib/consent";
 import { sendWelcomeEmail } from "@/lib/email";
+import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 
 function ageFromISO(d: string): number | null {
   const dt = new Date(d);
@@ -121,6 +122,13 @@ export async function registerProfile(
   // côté résultat : un échec d'envoi ne bloque jamais l'inscription (cf.
   // lib/email.ts, ne lève jamais).
   if (user.email) await sendWelcomeEmail(user.email, displayName);
+
+  // ADR 0032 — inscription déclenchée par un lien d'invitation restaurateur : on
+  // ramène le restaurateur sur son invitation, où il active son accès.
+  const pendingInvite = cookieStore.get(OWNER_INVITE_COOKIE)?.value;
+  if (pendingInvite && isValidInviteToken(pendingInvite)) {
+    redirect(`/invite/${pendingInvite}`);
+  }
 
   // Arrivée via le QR / lien d'un établissement précis → on y retourne.
   const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;

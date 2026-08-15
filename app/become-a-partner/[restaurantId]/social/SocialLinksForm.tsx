@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { submitOnboardingSocial } from "../../actions";
+import { queueEvent } from "@/lib/analytics-pending";
+
+// Dernière étape : `partner_onboarding_completed` marque la fin du tunnel, y
+// compris quand le restaurateur passe les réseaux sociaux — l'étape est
+// facultative, le tunnel est bien terminé dans les deux cas.
+function queueFinalStep() {
+  queueEvent("partner_step_completed", { step_name: "social", step_number: 4 });
+  queueEvent("partner_onboarding_completed", { steps_total: 4 });
+}
 
 type Initial = {
   google_maps_url: string | null;
@@ -30,6 +39,7 @@ export function SocialLinksForm({ restaurantId, initial }: { restaurantId: strin
     formData.set("tiktok_url", tiktokUrl.trim());
     formData.set("facebook_url", facebookUrl.trim());
 
+    queueFinalStep();
     const result = await submitOnboardingSocial(restaurantId, null, formData);
     // Si pas d'erreur, l'action redirige vers /admin/[restaurantId]/menu.
     if (result?.error) {
@@ -43,6 +53,7 @@ export function SocialLinksForm({ restaurantId, initial }: { restaurantId: strin
     setError(null);
     const formData = new FormData();
     formData.set("skip", "true");
+    queueFinalStep();
     const result = await submitOnboardingSocial(restaurantId, null, formData);
     if (result?.error) {
       setError(result.error);

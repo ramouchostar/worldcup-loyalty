@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, useParallaxOffset } from "./motion";
 import { BrowserWindow } from "./BrowserWindow";
 import { DashboardMockup } from "./DashboardMockup";
@@ -34,28 +34,36 @@ export function Hero({
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-white text-pretty">
-              Le seul programme de fidélité qui ne te coûte rien tant qu&apos;il ne te rapporte rien.
+              Fidélise tes clients sans jamais toucher ta marge.
             </h1>
           </Reveal>
           <Reveal delay={160}>
             <p className="font-landing text-base sm:text-lg leading-[1.7] text-night-text mt-6 max-w-[640px]">
               Reprends la main sur les clients que les plateformes de livraison te prennent. Chaque cadeau est
-              calculé sur ton propre prix de revient et plafonné par le CA qu&apos;il a généré — le programme ne
-              peut pas te coûter plus qu&apos;il ne rapporte. Côté client, l&apos;app porte ton nom, tes couleurs et
-              ton logo — pas les nôtres.
+              calculé sur ton propre prix de revient et plafonné par le CA qu&apos;il a généré. Côté client,
+              l&apos;app porte ton nom, tes couleurs et ton logo.
             </p>
           </Reveal>
           <Reveal delay={240}>
             <div className="flex items-center gap-4 mt-8 flex-wrap">
-              <Link
+              <TrackedLink
+                ctaId="devenir_partenaire"
+                ctaLocation="hero"
+                audience="restaurateur"
                 href="/become-a-partner"
                 className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
               >
                 Devenir partenaire gratuitement →
-              </Link>
-              <Link href="#produit" className="text-white text-[15px] font-semibold py-[15px] hover:text-moss-light transition-colors">
+              </TrackedLink>
+              <TrackedLink
+                ctaId="voir_le_produit"
+                ctaLocation="hero"
+                audience="restaurateur"
+                href="#produit"
+                className="text-white text-[15px] font-semibold py-[15px] hover:text-moss-light transition-colors"
+              >
                 Voir le produit
-              </Link>
+              </TrackedLink>
             </div>
           </Reveal>
           <Reveal delay={300}>

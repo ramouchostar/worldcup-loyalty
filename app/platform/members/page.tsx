@@ -98,35 +98,24 @@ export default async function PlatformMembersPage({
   const filterName = restaurantFilter ? restaurantNames.get(restaurantFilter) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <span className="text-brand-gold font-black text-lg">🛠️ Plateforme</span>
-          <Link href="/platform" className="text-xs text-gray-400 hover:text-white transition-colors">
-            ← Retour à la plateforme
-          </Link>
-        </div>
-      </header>
-
-      <div className="max-w-3xl mx-auto space-y-5 py-8 px-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">👥 Membres</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {filterName ? (
-              <>
-                Membres de « {filterName} » —{" "}
-                <Link href="/platform/members" className="text-brand-red font-semibold hover:underline">
-                  voir tout le réseau
-                </Link>
-              </>
-            ) : (
-              <>Les {memberships.length >= LIST_LIMIT ? `${LIST_LIMIT} dernières adhésions` : "adhésions"} du réseau, tous établissements confondus.</>
-            )}
-          </p>
-        </div>
-
-        <MembersTable rows={rows} />
+    <div className="max-w-3xl mx-auto space-y-5 py-8 px-4">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Membres</h1>
+        <p className="text-gray-500 text-sm mt-1">
+          {filterName ? (
+            <>
+              Membres de « {filterName} » —{" "}
+              <Link href="/platform/members" className="text-brand-red font-semibold hover:underline">
+                voir tout le réseau
+              </Link>
+            </>
+          ) : (
+            <>Les {memberships.length >= LIST_LIMIT ? `${LIST_LIMIT} dernières adhésions` : "adhésions"} du réseau, tous établissements confondus — comptes démo compris.</>
+          )}
+        </p>
       </div>
+
+      <MembersTable rows={rows} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { SocialLinksForm } from "./SocialLinksForm";
+import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
 // Étape 4/4 de l'onboarding — optionnelle : alimente les actions sociales
 // (Carte Actions) du dashboard membre. Skippable, toujours reconfigurable
@@ -20,6 +21,9 @@ export default async function OnboardingSocialPage({ params }: { params: Promise
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
+      {/* Page réservée au propriétaire : le montage prouve la session,
+          ce qui libère l'événement d'étape mis en file (voir analytics-pending). */}
+      <AnalyticsIdentity status="restaurateur" />
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <p className="text-4xl mb-2">📱</p>

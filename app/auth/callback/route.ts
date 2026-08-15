@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase";
 import { resolvePostLoginDestination } from "@/lib/post-login";
+import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -85,6 +86,15 @@ export async function GET(request: NextRequest) {
 
       if (!profile?.display_name) {
         return NextResponse.redirect(`${origin}/register`);
+      }
+
+      // ADR 0032 — invitation restaurateur en attente : elle prime sur tout le reste
+      // (le compte vient d'être créé POUR ça). Le cookie n'est pas effacé ici :
+      // c'est l'acceptation qui le consomme, pour que le lien survive à un
+      // aller-retour (mail de confirmation ouvert, page fermée trop tôt).
+      const pendingInvite = cookieStore.get(OWNER_INVITE_COOKIE)?.value;
+      if (pendingInvite && isValidInviteToken(pendingInvite)) {
+        return NextResponse.redirect(`${origin}/invite/${pendingInvite}`);
       }
 
       // Arrivée via le QR code / lien d'un établissement précis (page /r/[id])

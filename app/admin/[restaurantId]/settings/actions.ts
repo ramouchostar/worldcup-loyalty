@@ -8,7 +8,7 @@ import { LOGO_BUCKET } from "@/lib/restaurant";
 import { parseHttpUrl } from "@/lib/url";
 import { replaceTeamSuggestions } from "@/lib/teams";
 import { sanitizeSuggestions } from "@/lib/team-suggestions";
-import { captureWebsiteScreenshot, fetchOgImage, fetchImageAsBlock, analyzeDesign, type ImageBlock, type DesignSuggestion } from "@/lib/design-detect";
+import { captureWebsiteScreenshot, fetchOgImage, fetchImageAsBlock, fetchSocialImageAsBlock, analyzeDesign, type ImageBlock, type DesignSuggestion } from "@/lib/design-detect";
 
 // Mise à jour des infos de l'établissement par son admin (owner, legacy ou
 // super-admin). Le slug (id) ne change JAMAIS : il est imprimé sur les QR
@@ -253,11 +253,12 @@ export async function detectRestaurantDesign(
   }
 
   // Bonus best-effort : ignoré silencieusement en cas d'échec (Insta/TikTok
-  // bloquent la plupart des requêtes non authentifiées — normal, attendu).
+  // bloquent la plupart des requêtes non authentifiées — normal, attendu) et
+  // en cas de visuel générique de la plateforme, qui ferait entrer les
+  // couleurs d'Instagram/TikTok dans la charte proposée.
   for (const social of [restaurant?.instagram_url, restaurant?.tiktok_url]) {
     if (!social || images.length >= 3) continue;
-    const ogUrl = await fetchOgImage(social);
-    const block = ogUrl ? await fetchImageAsBlock(ogUrl) : null;
+    const block = await fetchSocialImageAsBlock(social);
     if (block) images.push(block);
   }
 

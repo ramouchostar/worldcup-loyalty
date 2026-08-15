@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 import { sanitizeZones } from "@/lib/zones";
+import { queueEvent } from "@/lib/analytics-pending";
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -68,6 +69,10 @@ export default function SignupPage() {
       return;
     }
 
+    // Compte créé : l'événement part en file et ne sera émis qu'une fois la
+    // session prouvée côté app (cf. lib/analytics-pending.ts).
+    queueEvent("sign_up", { method: "email", funnel: "membre" });
+
     if (data.session) {
       // Email confirmation disabled → déjà connecté
       window.location.href = "/register";
@@ -79,6 +84,7 @@ export default function SignupPage() {
   }
 
   async function handleOAuth(provider: "google") {
+    queueEvent("sign_up", { method: provider, funnel: "membre" });
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider,

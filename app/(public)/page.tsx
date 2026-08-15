@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase";
+import { listLiveRestaurantIds } from "@/lib/demo";
 import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLanding";
 
 // Landing publique dédiée aux restaurateurs prospects — distincte du
@@ -28,9 +29,9 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 export const revalidate = 300;
 
 export const metadata = {
-  title: "Fidélité, parrainage, supports, pilotage — un seul outil gratuit",
+  title: "Fidélité qui protège ta marge, gratuite à vie",
   description:
-    "Fidélité, parrainage, supports imprimés, tableau de bord et visibilité locale : tous les outils que les restaurateurs achètent d'habitude séparément, réunis ici en un seul, gratuit pour démarrer.",
+    "Un programme de fidélité qui ne peut jamais coûter plus qu'il ne rapporte — cadeaux calculés sur ta marge, parrainage, tableau de bord. Gratuit à vie, 0% de commission.",
 };
 
 export default async function RestaurateursLandingPage() {
@@ -39,16 +40,22 @@ export default async function RestaurateursLandingPage() {
   // indisponible. Env Supabase absente ou requête en échec → on retombe sur
   // l'état "le réseau démarre" au lieu de casser le déploiement (incident
   // constaté sur PR #32 : Preview Vercel sans variables Supabase).
+  // ADR 0033 §1 — la preuve sociale ne compte QUE le réseau réel : annoncer
+  // des établissements de démonstration à un prospect serait un mensonge
+  // commercial, et les adhésions fictives qui vont avec aussi.
   let restaurantCount = 0;
   let memberCount = 0;
   try {
     const admin = createAdminClient();
-    const [restaurants, memberships] = await Promise.all([
-      admin.from("restaurants").select("id", { count: "exact", head: true }).eq("status", "active"),
-      admin.from("memberships").select("user_id", { count: "exact", head: true }),
-    ]);
-    restaurantCount = restaurants.count ?? 0;
-    memberCount = memberships.count ?? 0;
+    const liveIds = await listLiveRestaurantIds(admin);
+    restaurantCount = liveIds.length;
+    if (liveIds.length > 0) {
+      const { count } = await admin
+        .from("memberships")
+        .select("user_id", { count: "exact", head: true })
+        .in("restaurant_id", liveIds);
+      memberCount = count ?? 0;
+    }
   } catch {
     // best-effort : compteurs à 0, la page rend quand même
   }
