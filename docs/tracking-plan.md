@@ -60,9 +60,12 @@ lisible.
 | `cta_clicked` | `cta_id`, `cta_location`, `audience` | Clic sur un CTA (`TrackedLink`) |
 | `cookie_consent_granted` | `surface` | Acceptation dans la bannière |
 
-`cta_id` en production : `devenir_partenaire` (header desktop/mobile, hero,
-étapes, footer, secteurs_cta), `voir_le_produit`, `rejoindre`,
-`comment_ca_marche`.
+`cta_id` en production : `devenir_partenaire` (header desktop, hero, étapes,
+footer, secteurs_cta), `voir_le_produit`, `rejoindre`, `comment_ca_marche`.
+
+Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
+(`/login?as=resto`), pas au tunnel partenaire — au même titre que l'entrée
+« Connexion » de la navigation desktop.
 
 > `cta_id` est la clé d'analyse : le garder **stable** même si le libellé du
 > bouton change, sinon la série temporelle se coupe en deux.

@@ -1,8 +1,10 @@
-// v2 : consoles (/admin, /platform), coupons anti-fraude et pages membres
-// authentifiées passent en network-first — le cache est réservé aux surfaces
-// de consultation (landing, classement, offline). Le bump purge les caches v1
-// existants à l'activation.
-const CACHE_NAME = "worldcup-loyalty-v2";
+// v3 : la landing (/) et /membres restent en stale-while-revalidate, donc un
+// déploiement seul ne suffit pas à pousser une correction visuelle vers l'app
+// installée (premier lancement post-déploiement = toujours l'ancien cache).
+// Le bump force la purge des caches v2 à l'activation et un re-précache
+// immédiat de "/" et "/membres" à l'install, pour converger en un lancement
+// au lieu de deux.
+const CACHE_NAME = "worldcup-loyalty-v3";
 
 // Ressources à mettre en cache lors de l'installation
 const PRECACHE_URLS = [

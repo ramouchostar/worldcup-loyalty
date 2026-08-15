@@ -9,7 +9,7 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-20 bg-ink/[0.92] backdrop-blur-xl border-b transition-shadow duration-300 ${
+      className={`sticky top-0 z-20 pt-safe bg-ink/[0.92] backdrop-blur-xl border-b transition-shadow duration-300 ${
         scrolled ? "border-night-line shadow-[0_8px_24px_rgba(0,0,0,0.25)]" : "border-transparent"
       }`}
     >
@@ -32,15 +32,12 @@ export function Header() {
             Devenir partenaire
           </TrackedLink>
         </nav>
-        <TrackedLink
-          ctaId="devenir_partenaire"
-          ctaLocation="header_mobile"
-          audience="restaurateur"
-          href="/become-a-partner"
+        <Link
+          href="/login?as=resto"
           className="md:hidden bg-moss text-white text-[13px] font-bold px-3.5 py-2 rounded-lg hover:bg-moss-dark transition-colors"
         >
-          Partenaire
-        </TrackedLink>
+          Connexion
+        </Link>
       </div>
     </header>
   );
