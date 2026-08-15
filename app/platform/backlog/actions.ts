@@ -5,8 +5,10 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { createBacklogItem, updateBacklogItem, deleteBacklogItem } from "@/lib/backlog";
 import {
   BACKLOG_AREAS,
+  BACKLOG_PEOPLE,
   BACKLOG_STATUSES,
   type BacklogArea,
+  type BacklogPerson,
   type BacklogStatus,
 } from "@/lib/backlog-model";
 
@@ -81,6 +83,23 @@ export async function setBacklogStatus(id: string, status: BacklogStatus) {
   if (!user) return;
   if (!BACKLOG_STATUSES.includes(status)) return;
   await updateBacklogItem(id, { status });
+  refresh();
+}
+
+// Répartition d'une action entre les deux associés, depuis la carte elle-même
+// — le geste doit coûter un clic, sinon personne ne tient l'attribution à jour.
+// Chaîne vide = retirer l'attribution.
+export async function setBacklogOwnerFromForm(formData: FormData) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+  const id = ((formData.get("id") as string) ?? "").trim();
+  if (!id) return;
+
+  const raw = ((formData.get("owner") as string) ?? "").trim();
+  // On n'écrit que des noms de la liste close : un POST forgé ne doit pas
+  // pouvoir semer des noms arbitraires dans une colonne libre.
+  const owner = BACKLOG_PEOPLE.includes(raw as BacklogPerson) ? raw : null;
+  await updateBacklogItem(id, { owner });
   refresh();
 }
 

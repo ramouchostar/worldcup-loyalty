@@ -37,6 +37,31 @@ export const AREA_LABEL: Record<BacklogArea, string> = {
   legal: "Légal",
 };
 
+// Les deux associés de la plateforme. Liste CLOSE et nominative, pas un
+// annuaire de comptes : le backlog se répartit entre nous deux, et `owner`
+// reste une colonne TEXT libre en base — un ancien nom saisi à la main
+// continue de s'afficher et de se filtrer, il n'est simplement plus proposé.
+export const BACKLOG_PEOPLE = ["Mehdi", "Omar"] as const;
+export type BacklogPerson = (typeof BACKLOG_PEOPLE)[number];
+
+// Couleur d'identité par personne. Fixes (jamais `brand-*`, qui change selon
+// la charte de l'établissement affiché) et choisies pour que le blanc passe
+// le contraste 4,5:1 dessus — les initiales sont du texte, pas une décoration.
+const PERSON_COLORS: Record<string, string> = {
+  Mehdi: "#3F6C8F", // bleu ardoise — contraste 5,6:1
+  Omar: "#677A33", // moss foncé — contraste 4,8:1
+};
+const UNKNOWN_PERSON_COLOR = "#5C5C56";
+
+export function personColor(name: string): string {
+  return PERSON_COLORS[name] ?? UNKNOWN_PERSON_COLOR;
+}
+
+/** Deux lettres : « Mehdi » → « ME », « Omar » → « OM ». */
+export function personInitials(name: string): string {
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
 export type BacklogItem = {
   id: string;
   title: string;
