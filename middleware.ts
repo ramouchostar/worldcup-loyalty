@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getRestaurantId } from "@/lib/restaurant";
+import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -45,6 +46,37 @@ export async function middleware(request: NextRequest) {
       });
       return response;
     }
+  }
+
+  // Lien d'invitation restaurateur (/invite/[token], ADR 0032) — le restaurateur
+  // n'a pas encore de compte : on mémorise le token dans un cookie httpOnly
+  // (même mécanique que le parrainage ci-dessus) puis on LAISSE PASSER vers
+  // la page d'invitation, qui explique de quoi il s'agit avant l'inscription.
+  // Le cookie sert au retour : inscription/connexion → /invite/[token].
+  const inviteMatch = path.match(/^\/invite\/([^/]+)$/);
+  if (inviteMatch && !user && isValidInviteToken(inviteMatch[1])) {
+    supabaseResponse.cookies.set(OWNER_INVITE_COOKIE, inviteMatch[1], {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 14, // aligné sur la durée de vie de l'invitation
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+    return supabaseResponse;
+  }
+
+  // Invitation en attente : elle prime sur le routage par rôle ci-dessous —
+  // le restaurateur qui vient de s'inscrire doit atterrir sur son invitation,
+  // pas sur l'app membre. Consommée (cookie effacé) par l'acceptation ou le
+  // « Pas maintenant » (app/invite/[token]/actions.ts).
+  const pendingInvite = request.cookies.get(OWNER_INVITE_COOKIE)?.value;
+  if (
+    user &&
+    (path === "/login" || path === "/signup" || path === "/join") &&
+    pendingInvite &&
+    isValidInviteToken(pendingInvite)
+  ) {
+    return NextResponse.redirect(new URL(`/invite/${pendingInvite}`, request.url));
   }
 
   // Redirige les utilisateurs déjà connectés hors des pages auth, par rôle

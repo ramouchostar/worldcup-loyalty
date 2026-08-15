@@ -8,6 +8,7 @@ import { pendingRequestsReminderEmail } from "./email-templates/pending-requests
 import { rewardReadyEmail } from "./email-templates/reward-ready";
 import { tierUnlockedEmail } from "./email-templates/tier-unlocked";
 import { referralSuccessEmail } from "./email-templates/referral-success";
+import { ownerInviteEmail } from "./email-templates/owner-invite";
 
 // Emailing — chantier "landing pages / emailing / ads" (2026-07-28), volet
 // 2/3. Fournisseur : Resend. Même philosophie que sendPush()/sendWhatsApp()
@@ -28,7 +29,8 @@ export type EmailType =
   | "pending_requests_reminder"
   | "reward_ready"
   | "tier_unlocked"
-  | "referral_success";
+  | "referral_success"
+  | "owner_invite";
 
 let client: Resend | null = null;
 function getClient(): Resend | null {
@@ -145,6 +147,22 @@ export async function sendRestaurantActivatedEmail(
   const logoUrl = await getRestaurantLogoUrl(restaurantId);
   const sent = await dispatch(to, restaurantActivatedEmail(restaurantName, restaurantId, logoUrl));
   if (sent) await logEmailSent("restaurant", restaurantId, "restaurant_activated", restaurantId);
+  return sent;
+}
+
+// ADR 0032 — lien d'invitation restaurateur généré depuis /platform. Best-effort
+// comme tout le reste du module : sans RESEND_API_KEY, l'envoi est un no-op
+// et le super-admin partage le lien à la main (WhatsApp, SMS, de vive voix).
+export async function sendOwnerInviteEmail(
+  to: string,
+  restaurantName: string,
+  restaurantId: string,
+  inviteUrl: string,
+  expiresAt: string
+): Promise<boolean> {
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  const sent = await dispatch(to, ownerInviteEmail(restaurantName, inviteUrl, expiresAt, logoUrl));
+  if (sent) await logEmailSent("restaurant", restaurantId, "owner_invite", restaurantId);
   return sent;
 }
 
