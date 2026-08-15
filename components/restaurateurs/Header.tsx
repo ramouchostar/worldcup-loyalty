@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { useScrolled } from "./motion";
 
 export function Header() {
@@ -21,19 +22,25 @@ export function Header() {
           <NavLink href="#plans">Plans</NavLink>
           <NavLink href="#demarrer">Démarrer</NavLink>
           <NavLink href="/login?as=resto">Connexion</NavLink>
-          <Link
+          <TrackedLink
+            ctaId="devenir_partenaire"
+            ctaLocation="header_desktop"
+            audience="restaurateur"
             href="/become-a-partner"
             className="bg-moss text-white text-[13.5px] font-bold px-4 py-2.5 rounded-lg hover:bg-moss-dark transition-colors"
           >
             Devenir partenaire
-          </Link>
+          </TrackedLink>
         </nav>
-        <Link
+        <TrackedLink
+          ctaId="devenir_partenaire"
+          ctaLocation="header_mobile"
+          audience="restaurateur"
           href="/become-a-partner"
           className="md:hidden bg-moss text-white text-[13px] font-bold px-3.5 py-2 rounded-lg hover:bg-moss-dark transition-colors"
         >
           Partenaire
-        </Link>
+        </TrackedLink>
       </div>
     </header>
   );

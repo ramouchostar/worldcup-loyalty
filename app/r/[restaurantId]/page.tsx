@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
+import { TrackOnMount } from "@/components/analytics/TrackOnMount";
 import type { CommunityScore, Team } from "@/types";
 
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
@@ -34,8 +35,17 @@ const STEPS = [
   },
 ];
 
-export default async function RestaurantLandingPage({ params }: { params: Promise<{ restaurantId: string }> }) {
+export default async function RestaurantLandingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ restaurantId: string }>;
+  searchParams: Promise<{ utm_source?: string }>;
+}) {
   const { restaurantId } = await params;
+  // Cible des QR imprimés : le `utm_source=qr_code` posé sur les liens encodés
+  // permet de séparer un scan en salle d'une arrivée par lien partagé.
+  const { utm_source: utmSource } = await searchParams;
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();
 
@@ -91,6 +101,10 @@ export default async function RestaurantLandingPage({ params }: { params: Promis
 
   return (
     <div className="min-h-screen bg-white">
+      <TrackOnMount
+        event="restaurant_landing_viewed"
+        params={{ restaurant_id: restaurantId, entry_source: utmSource ?? "direct" }}
+      />
       {/* ── HERO ── */}
       <div className="bg-brand-dark text-white">
         <div className="max-w-lg mx-auto px-5 pt-12 pb-10">

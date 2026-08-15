@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { track } from "@/lib/analytics";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -17,7 +18,10 @@ export function InstallBanner() {
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    const onInstalled = () => setDeferredPrompt(null);
+    const onInstalled = () => {
+      track("pwa_installed", {});
+      setDeferredPrompt(null);
+    };
     window.addEventListener("appinstalled", onInstalled);
 
     return () => {

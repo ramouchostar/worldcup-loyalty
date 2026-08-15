@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
+import { amountBand, track } from "@/lib/analytics";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
 type ParseStatus = "idle" | "parsing" | "done" | "error";
@@ -37,6 +38,12 @@ export default function SubmitOrderPage() {
   const [noDelivery, setNoDelivery] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Entrée du tunnel de scan : c'est le dénominateur qui donne son sens au
+  // taux d'abandon entre l'ouverture du formulaire et le ticket soumis.
+  useEffect(() => {
+    track("order_submit_started", { restaurant_id: restaurantId });
+  }, [restaurantId]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -141,6 +148,14 @@ export default function SubmitOrderPage() {
     if (ocrConfidence !== null)  formData.append("ocr_confidence", String(ocrConfidence));
     if (noRestaurantHeader)      formData.append("no_restaurant_header", "true");
 
+    // Le montant part en tranche, jamais en euros (ADR 0028) : la charge utile
+    // d'un événement analytics est lisible côté client.
+    track("order_submitted", {
+      restaurant_id: restaurantId,
+      amount_band: amountBand(Number(amount)),
+      has_receipt_photo: true,
+    });
+
     // Délai artificiel 3–5s + fetch en parallèle (ADR 0008)
     try {
       const [res] = await Promise.all([
@@ -151,13 +166,22 @@ export default function SubmitOrderPage() {
       const data = await res.json().catch(() => ({}) as { status?: string; error?: string });
 
       if (res.status === 201) {
-        setSubmitStatus(data.status === "validated" ? "success_validated" : "success_pending");
+        const validated = data.status === "validated";
+        track("order_result", {
+          restaurant_id: restaurantId,
+          result: validated ? "validated" : "pending_review",
+        });
+        setSubmitStatus(validated ? "success_validated" : "success_pending");
         return;
       }
       if (res.status === 409) {
+        // Doublon : rejeté silencieusement côté membre, mais c'est un signal
+        // utile côté produit (ticket rescanné, QR partagé entre membres).
+        track("order_result", { restaurant_id: restaurantId, result: "rejected" });
         setSubmitStatus("duplicate");
         return;
       }
+      track("order_result", { restaurant_id: restaurantId, result: "rejected" });
       setSubmitStatus("error");
       setErrorMsg(data.error ?? "Erreur inconnue.");
     } catch {

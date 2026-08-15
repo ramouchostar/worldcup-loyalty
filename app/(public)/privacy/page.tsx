@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import { renderMarkdown } from "@/lib/render-markdown";
+import { CookiePreferencesButton } from "@/components/analytics/CookiePreferencesButton";
 
 export const metadata = { title: "Politique de confidentialité" };
 
@@ -20,10 +21,11 @@ export default function PrivacyPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mt-4">
           {renderMarkdown(md)}
         </div>
-        <p className="text-center mt-5">
+        <p className="text-center mt-5 flex items-center justify-center gap-4">
           <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 underline">
             {"Conditions générales d'utilisation"}
           </Link>
+          <CookiePreferencesButton />
         </p>
       </div>
     </div>

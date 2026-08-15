@@ -8,6 +8,7 @@ import { InAppNotificationBanner } from "@/components/member/InAppNotificationBa
 import { BottomNav } from "@/components/member/BottomNav";
 import { RestaurantSwitcher } from "@/components/member/RestaurantSwitcher";
 import { RestaurantProvider } from "@/components/member/RestaurantContext";
+import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
 export default async function RestaurantLayout({
   children,
@@ -88,6 +89,10 @@ export default async function RestaurantLayout({
           )}
         </div>
       </header>
+
+      {/* Atteindre cette branche prouve la session — c'est ce qui autorise
+          l'émission de `sign_up` / `login` mis en attente par le formulaire. */}
+      {user && <AnalyticsIdentity status="membre" />}
 
       {user && <InAppNotificationBanner />}
 

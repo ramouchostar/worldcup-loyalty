@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MAX_ZONES, sanitizeZones } from "@/lib/zones";
 import { teamTypeEmoji } from "@/lib/team-suggestions";
+import { track } from "@/lib/analytics";
 import type { TeamType } from "@/types";
 
 const TYPE_OPTIONS: { value: TeamType; label: string }[] = [
@@ -158,7 +159,10 @@ export function TeamManager({
         <div className="flex items-center gap-2">
           <input readOnly value={link} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-gray-50" />
           <button
-            onClick={() => navigator.clipboard?.writeText(link)}
+            onClick={() => {
+              navigator.clipboard?.writeText(link);
+              track("team_invite_shared", { channel: "copy" });
+            }}
             className="px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 shrink-0"
           >
             Copier
@@ -168,6 +172,7 @@ export function TeamManager({
           href={wa}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => track("team_invite_shared", { channel: "whatsapp" })}
           className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-green-600"
         >
           📲 Partager sur WhatsApp

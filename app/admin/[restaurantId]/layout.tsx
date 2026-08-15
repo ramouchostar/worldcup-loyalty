@@ -7,6 +7,7 @@ import { getAdminAccess } from "@/lib/admin-guard";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 import { AdminDesktopNav } from "@/components/admin/AdminDesktopNav";
 import { getPlan } from "@/lib/entitlements";
+import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
 export default async function AdminLayout({
   children,
@@ -103,6 +104,10 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-paper font-brand" style={brandStyle(branding)}>
+      {/* La console n'est pas instrumentée (hors périmètre GA4), mais c'est la
+          destination de la dernière étape d'onboarding : sans ce flush,
+          `partner_onboarding_completed` ne serait jamais émis. */}
+      <AnalyticsIdentity status="restaurateur" />
       <header className="bg-brand-dark text-white sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">

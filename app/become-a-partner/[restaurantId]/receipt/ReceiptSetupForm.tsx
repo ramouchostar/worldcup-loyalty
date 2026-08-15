@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { analyzeReceiptSamples, confirmReceiptConfig } from "../../actions";
+import { queueEvent } from "@/lib/analytics-pending";
 import type { ReceiptKeyProposal } from "@/lib/receipt-key-discovery";
 
 // Étape 3/4 onboarding (ADR 0019). Deux phases :
@@ -46,6 +47,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
   async function handleConfirm(formData: FormData) {
     setConfirming(true);
     setError(null);
+    queueEvent("partner_step_completed", { step_name: "ticket", step_number: 3 });
     const result = await confirmReceiptConfig(restaurantId, null, formData);
     // Si pas d'erreur, l'action redirige vers l'étape 4 (réseaux sociaux).
     if (result?.error) {

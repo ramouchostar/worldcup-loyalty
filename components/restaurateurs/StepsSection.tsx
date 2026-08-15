@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, useParallaxOffset } from "./motion";
 
 const STEPS = [
@@ -36,7 +36,7 @@ export function StepsSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-light mb-3.5">▶ Démarrer</p>
           <h2 className="font-display text-[28px] sm:text-[33px] lg:text-[39px] leading-[1.2] tracking-[-0.02em] font-bold text-white max-w-[620px] text-pretty">
-            En ligne en trois étapes.
+            Ton QR code prêt en trois étapes.
           </h2>
         </Reveal>
 
@@ -54,12 +54,15 @@ export function StepsSection() {
 
         <Reveal delay={320}>
           <div className="flex items-center gap-5 mt-11 flex-wrap">
-            <Link
+            <TrackedLink
+              ctaId="devenir_partenaire"
+              ctaLocation="etapes"
+              audience="restaurateur"
               href="/become-a-partner"
               className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
             >
               Devenir partenaire gratuitement →
-            </Link>
+            </TrackedLink>
             <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-night-faint">
               Aucune carte bancaire · aucun engagement
             </span>

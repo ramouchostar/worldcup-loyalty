@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { ReceiptSetupForm } from "./ReceiptSetupForm";
+import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
 // L'analyse des tickets d'exemple (claude-sonnet-5, 2-3 images) dépasse le
 // timeout serverless par défaut — la server action hérite de ce segment.
@@ -24,6 +25,9 @@ export default async function OnboardingReceiptPage({ params }: { params: Promis
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
+      {/* Page réservée au propriétaire : le montage prouve la session,
+          ce qui libère l'événement d'étape mis en file (voir analytics-pending). */}
+      <AnalyticsIdentity status="restaurateur" />
       <div className="w-full max-w-lg">
         {/* ADR 0030 §5 — hors layout admin : retour explicite vers la console */}
         <Link

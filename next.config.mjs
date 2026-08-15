@@ -1,22 +1,37 @@
 /** @type {import('next').NextConfig} */
 
 // ── En-têtes de sécurité (audit sécurité 2026) ────────────────────────────────
-// Aucune origine externe n'est chargée par le navigateur (vérifié : pas de
-// Google Fonts / CDN / analytics) → CSP verrouillée sur 'self' + Supabase.
-// Les scripts/styles inline de Next.js imposent 'unsafe-inline' faute de nonce
-// (durcissable ultérieurement via un nonce injecté par le middleware).
-// 'unsafe-eval' volontairement absent (inutile en production).
+// La CSP est verrouillée sur 'self' + Supabase. Les scripts/styles inline de
+// Next.js imposent 'unsafe-inline' faute de nonce (durcissable ultérieurement
+// via un nonce injecté par le middleware). 'unsafe-eval' volontairement absent
+// (inutile en production).
+//
+// Seule exception : GA4, et **uniquement si un ID de mesure est configuré**.
+// Un déploiement sans NEXT_PUBLIC_GA_MEASUREMENT_ID (dev, previews) garde donc
+// la CSP d'origine, sans aucune origine Google autorisée. Les trois domaines
+// ouverts sont le strict nécessaire de gtag.js : googletagmanager.com sert le
+// script, google-analytics.com et analytics.google.com reçoivent les mesures.
+const gaEnabled = Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID);
+
+const gaScriptSrc = gaEnabled ? " https://www.googletagmanager.com" : "";
+const gaConnectSrc = gaEnabled
+  ? " https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com"
+  : "";
+const gaImgSrc = gaEnabled
+  ? " https://*.google-analytics.com https://*.googletagmanager.com"
+  : "";
+
 const ContentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${gaScriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co",
+  `img-src 'self' data: blob: https://*.supabase.co${gaImgSrc}`,
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${gaConnectSrc}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");
@@ -40,6 +55,16 @@ const nextConfig = {
   // partagés vers l'ancienne URL.
   async redirects() {
     return [{ source: "/restaurateurs", destination: "/", permanent: true }];
+  },
+  // Dev via Codespaces : le proxy de forwarding sert l'app sur un domaine
+  // *.app.github.dev différent de celui vu par le serveur (localhost), ce que
+  // Next.js refuse par défaut pour les Server Actions (protection CSRF).
+  // Sans impact en production (le domaine Vercel réel n'a pas besoin d'être
+  // listé ici, Next.js l'autorise via son propre déploiement).
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["localhost:3000", "*.app.github.dev"],
+    },
   },
 };
 

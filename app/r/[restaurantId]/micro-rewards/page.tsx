@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { ACTION_ICONS, TOKENS_PER_PORTION, getActionLinks } from "@/lib/social-actions";
+import { track } from "@/lib/analytics";
 import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
 
 type SocialData = {
@@ -169,6 +170,7 @@ function ActionCard({
       body: JSON.stringify({ reward_type: reward.type, restaurantId }),
     });
     if (res.status === 201) {
+      track("micro_reward_claimed", { channel: reward.type });
       onSuccess();
       return;
     }
@@ -279,6 +281,7 @@ function ReferralSection({
   async function copyLink() {
     if (!joinUrl) return;
     await navigator.clipboard.writeText(joinUrl);
+    track("referral_shared", { channel: "copy" });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -338,6 +341,7 @@ function ReferralSection({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => track("referral_shared", { channel: "whatsapp" })}
               className="flex items-center justify-center gap-2 w-full bg-[#25D366] text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#1ebe5b] transition-colors"
             >
               <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { createPartnerRestaurant } from "./actions";
+import { TrackOnMount } from "@/components/analytics/TrackOnMount";
+import { queueEvent } from "@/lib/analytics-pending";
 import {
   MAX_SUGGESTIONS,
   SUGGESTION_TYPES,
@@ -89,6 +91,10 @@ export default function BecomeAPartnerPage() {
     cuisineTypes.forEach((t) => formData.append("cuisine_types", t));
     communities.forEach((c) => formData.append("communities", JSON.stringify(c)));
 
+    // L'action redirige vers l'étape 2 en cas de succès — l'événement passe
+    // donc par la file (lib/analytics-pending.ts).
+    queueEvent("partner_step_completed", { step_name: "compte", step_number: 1 });
+
     const result = await createPartnerRestaurant(null, formData);
 
     if (result?.error) {
@@ -100,6 +106,8 @@ export default function BecomeAPartnerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
+      {/* Entrée du tunnel restaurateur — dénominateur des 4 étapes. */}
+      <TrackOnMount event="partner_signup_started" params={{ source: "formulaire" }} />
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <p className="text-4xl mb-2">🍗</p>
