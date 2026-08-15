@@ -192,9 +192,21 @@ _Avoid_ : multi-tenant (jargon technique), site, instance.
 Compte qui a créé l'établissement (self-service), sur le modèle du capitaine d'équipe (ADR 0014). Gère uniquement son propre établissement (menu, seuils, équipes, commandes suspectes). Un restaurateur peut posséder plusieurs établissements. Distinct du **super-admin plateforme**, qui approuve les nouveaux établissements avant leur mise en ligne et voit les statistiques cross-établissements.
 _Avoid_ : gérant (réservé à une évolution future de co-admin), propriétaire.
 
+**Lien d'invitation restaurateur** *(ADR 0032)* :
+Lien à usage unique généré par le super-admin depuis `/platform` (table `owner_invites`, 14 jours), envoyé au restaurateur par WhatsApp ou email. Son clic pose `restaurants.owner_id` — il peut créer son compte à ce moment-là, rien n'est requis avant. Un seul lien actif par établissement (en générer un nouveau révoque le précédent) ; révocable à tout moment. Remplace comme voie principale le rattachement par email d'un compte déjà existant (`assignOwner`), qui reste disponible en voie secondaire.
+_Avoid_ : magic link (réservé à la connexion Supabase), invitation membre (le parrainage, ADR 0006, est un autre objet).
+
 **Statut établissement** *(ADR 0015)* :
 `pending` (créé en self-service, invisible aux membres, en attente de validation par le super-admin) ou `active` (visible et rejoignable). Contrôle qualité en phase de lancement — jamais de mise en ligne automatique.
 _Avoid_ : approuvé/rejeté (le rejet n'est pas encore modélisé), publié.
+
+**Compte démo** *(ADR 0033)* :
+Établissement fictif (`restaurants.is_demo`) créé pour démontrer le produit à un prospect. Ce n'est **pas un mode** : même table, même code, même parcours, aucune branche conditionnelle — seule sa **visibilité** change. Il est exclu de l'accueil, de `/secteurs`, de la liste « Choisis ton restaurant » et des chiffres réseau ; son URL directe `/r/[id]` reste accessible, c'est ce qu'on ouvre pendant la démonstration. Bascule réversible d'un clic depuis `/platform`. Depuis m56, tous les établissements sauf Belchicken Kraainem sont des comptes démo. Toute nouvelle surface publique listant des établissements passe par `listLiveRestaurants()` (`lib/demo.ts`) — `status = 'active' AND is_demo = false`.
+_Avoid_ : mode démo, environnement de test, sandbox (réservé à `/admin/[id]/sandbox`), faux restaurant.
+
+**Date d'activation** *(ADR 0033)* :
+`restaurants.activated_at` — moment du passage en statut `active`, **distinct de `created_at`** : un établissement démarché est créé le jour du rendez-vous et mis en ligne plus tard. Maille de la courbe « établissements activés par mois ». Seule la **première** activation est retenue : réactiver un établissement désactivé ne le recompte pas comme nouveau.
+_Avoid_ : date de création (c'est autre chose), date d'inscription.
 
 **Secteur** *(ADR 0016)* :
 Ville ou quartier d'un établissement (`restaurants.sector`, texte libre) — la maille d'agrégation de la page publique `/secteurs`, qui montre l'activité du réseau (établissements actifs, membres, équipes actives) comme preuve sociale pour les restaurateurs prospects. Distinct de l'adresse (qui localise un établissement précis). Obligatoire à l'inscription partenaire. Jamais d'euros/CA sur cette page (ADR 0007 s'applique au public).
@@ -255,6 +267,14 @@ _Avoid_ : approbation, confirmation.
 **Période** :
 Intervalle de temps associé à un seuil CA restaurant (ex : "Phase de groupes — Semaine 1"). Défini par l'admin. Plusieurs périodes peuvent coexister dans l'historique.
 _Avoid_ : phase, semaine (trop lié au calendrier de la Coupe du Monde).
+
+**Membre actif** *(ADR 0033)* :
+Compte ayant fait **valider au moins un ticket** sur la période considérée (30 jours, 90 jours, ou le mois d'une série). Seule mesure qui distingue un compte créé d'un client réellement fidélisé — « nombre de membres » se confond avec le nombre d'inscriptions. Chiffre de la console plateforme (`/platform/stats`) exclusivement.
+_Avoid_ : utilisateur actif, MAU/DAU (jargon), membre engagé.
+
+**Backlog plateforme** *(ADR 0033)* :
+Plan d'action partagé entre les associés de la plateforme (`platform_backlog`, `/platform/backlog`). Une action = un titre, un chantier (`produit`, `tech`, `vente`, `marketing`, `ops`, `legal`), un état (`idee`, `a_faire`, `en_cours`, `bloque`, `fait`, `abandonne`), un impact et un effort notés 1–5. **La priorité n'est jamais saisie : elle se calcule** (`impact ÷ effort`) — noter deux échelles force la comparaison entre actions, poser « P1 » ne force rien. Vit dans la console, à un onglet des chiffres, parce que les décisions se prennent devant eux.
+_Avoid_ : roadmap (c'est un plan d'action court terme, pas une feuille de route produit), sprint, ticket (réservé au ticket de caisse), tâche.
 
 **Opportunité** :
 Suggestion commerciale chiffrée de la page admin `/admin/[id]/insights`, calculée par le moteur de stratégies terrain (`lib/insights.ts`, ADR 0022) à partir des ventes scannées (ADR 0020) et du catalogue (ADR 0013) : jour/heure creux, promo sûre, combo, formule dégressive. Fonctions pures et déterministes — chaque suggestion est explicable par ses chiffres, préserve la marge unité par unité, et n'est jamais appliquée automatiquement (l'app propose, l'admin décide). Surface admin uniquement : les coûts et marges n'apparaissent jamais dans le message broadcast proposé (ADR 0007).

@@ -4,16 +4,19 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import {
   approveRestaurant,
   rejectRestaurant,
-  setRestaurantStatus,
-  setRestaurantPlanFromForm,
   grantPlanRequest,
   dismissPlanRequest,
 } from "./actions";
 import { getPendingPlanRequests } from "@/lib/plan-requests";
 import type { Plan } from "@/lib/entitlements";
+import { getActiveInvitesByRestaurant } from "@/lib/owner-invites";
+import { selectRestaurantsWithDemo } from "@/lib/demo";
+import { fetchAllRows } from "@/lib/paged-select";
 import { CreateRestaurantForm } from "./CreateRestaurantForm";
 import { AssignOwnerForm } from "./AssignOwnerForm";
+import { InviteOwnerForm } from "./InviteOwnerForm";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { RestaurantList, type RestaurantViewRow } from "./RestaurantList";
 
 type RestaurantRow = {
   id: string;
@@ -22,13 +25,11 @@ type RestaurantRow = {
   status: "pending" | "active" | "disabled";
   owner_id: string | null;
   created_at: string;
+  is_demo?: boolean | null;
 };
 
-const STATUS_BADGE: Record<RestaurantRow["status"], { label: string; cls: string }> = {
-  active:   { label: "Actif",      cls: "bg-green-100 text-green-800" },
-  pending:  { label: "En attente", cls: "bg-amber-100 text-amber-800" },
-  disabled: { label: "Désactivé",  cls: "bg-gray-100 text-gray-500" },
-};
+const COLUMNS = "id, name, sector, status, owner_id, created_at, is_demo";
+const LEGACY_COLUMNS = "id, name, sector, status, owner_id, created_at";
 
 export default async function PlatformPage() {
   const supabase = await createServerSupabaseClient();
@@ -40,318 +41,258 @@ export default async function PlatformPage() {
 
   const admin = createAdminClient();
 
-  const [{ data: allRaw }, { count: memberCount }, { data: myMembership }, { data: subsRaw }, planRequests] =
-    await Promise.all([
-      admin
-        .from("restaurants")
-        .select("id, name, sector, status, owner_id, created_at")
-        .order("created_at", { ascending: false }),
-      admin.from("memberships").select("user_id", { count: "exact", head: true }),
-      // ADR 0030 §2 — sortie de la console : retour vers l'app membre (dernier
-      // établissement rejoint), /join si le super-admin n'est membre nulle part.
-      supabase
-        .from("memberships")
-        .select("restaurant_id")
-        .eq("user_id", user.id)
-        .order("joined_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      // ADR 0029 — plans courants (m48) + demandes de plan (m51)
-      admin.from("restaurant_subscriptions").select("restaurant_id, plan, status"),
-      getPendingPlanRequests(),
-    ]);
-  const backHref = myMembership ? `/r/${myMembership.restaurant_id}/dashboard` : "/join";
+  const [{ rows: allRaw, demoColumnMissing }, { data: subsRaw }, planRequests] = await Promise.all([
+    selectRestaurantsWithDemo<RestaurantRow>(admin, COLUMNS, LEGACY_COLUMNS),
+    // ADR 0029 — plans courants (m48) + demandes de plan (m51)
+    admin.from("restaurant_subscriptions").select("restaurant_id, plan, status"),
+    getPendingPlanRequests(),
+  ]);
   const planById = new Map(
     (((subsRaw as { restaurant_id: string; plan: Plan; status: string }[] | null) ?? []))
       .filter((s) => s.status === "active")
       .map((s) => [s.restaurant_id, s.plan])
   );
 
-  const all = (allRaw ?? []) as RestaurantRow[];
+  const all = allRaw;
   const pendingList = all.filter((r) => r.status === "pending");
-  const activeCount = all.filter((r) => r.status === "active").length;
+  // ADR 0033 §1 — les compteurs de tête comptent le RÉSEAU RÉEL. Un
+  // établissement fictif gonflerait le seul chiffre qu'on regarde pour savoir
+  // où on en est ; il est compté à part, jamais avec.
+  const liveList = all.filter((r) => !r.is_demo);
+  const activeCount = liveList.filter((r) => r.status === "active").length;
+  const demoCount = all.length - liveList.length;
 
   // Emails des owners + compteurs par établissement (réseau petit — les
   // requêtes parallèles suffisent largement)
   const ownerIds = Array.from(new Set(all.map((r) => r.owner_id).filter((id): id is string => !!id)));
-  const [{ data: owners }, memberCounts, menuCounts] = await Promise.all([
+  const [{ data: owners }, membershipsRes, menuCounts, activeInvites] = await Promise.all([
     ownerIds.length > 0
       ? admin.from("profiles").select("id, email").in("id", ownerIds)
       : Promise.resolve({ data: [] }),
-    Promise.all(
-      all.map((r) =>
-        admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", r.id)
-      )
+    // Paginé : PostgREST tronque en silence au-delà de `max_rows`, et un
+    // compteur d'adhésions tronqué ne se voit pas (lib/paged-select.ts).
+    fetchAllRows<{ restaurant_id: string }>((from, to) =>
+      admin.from("memberships").select("restaurant_id").range(from, to)
     ),
     Promise.all(
       pendingList.map((r) =>
         admin.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", r.id)
       )
     ),
+    // ADR 0032 — liens d'invitation restaurateur encore en circulation
+    getActiveInvitesByRestaurant(),
   ]);
   const ownerEmailById = new Map(
     ((owners ?? []) as { id: string; email: string | null }[]).map((o) => [o.id, o.email])
   );
-  const membersById = new Map(all.map((r, i) => [r.id, memberCounts[i].count ?? 0]));
+  const membersById = new Map<string, number>();
+  for (const m of membershipsRes.rows) {
+    membersById.set(m.restaurant_id, (membersById.get(m.restaurant_id) ?? 0) + 1);
+  }
+  const liveMemberCount = liveList.reduce((sum, r) => sum + (membersById.get(r.id) ?? 0), 0);
+
+  const restaurantViews: RestaurantViewRow[] = all.map((r) => {
+    const invite = activeInvites.get(r.id);
+    return {
+      id: r.id,
+      name: r.name,
+      sector: r.sector,
+      status: r.status,
+      isDemo: !!r.is_demo,
+      memberCount: membersById.get(r.id) ?? 0,
+      ownerEmail: r.owner_id ? ownerEmailById.get(r.owner_id) ?? null : null,
+      hasOwner: !!r.owner_id,
+      plan: planById.get(r.id) ?? "gratuit",
+      invite: invite ? { id: invite.id, url: invite.url, expiresAt: invite.expiresAt } : null,
+    };
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header de sortie (ADR 0030 §2 — /platform était une impasse totale) */}
-      <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <span className="text-brand-gold font-black text-lg">🛠️ Plateforme</span>
-          <div className="flex items-center gap-3">
-            {/* ADR 0030 §7 — annuaire nominatif du réseau (super-admin only) */}
-            <Link href="/platform/members" className="text-xs text-brand-gold hover:text-white transition-colors">
-              👥 Membres
-            </Link>
-            <Link href={backHref} className="text-xs text-gray-400 hover:text-white transition-colors">
-              ← Retour à l&apos;app
-            </Link>
-            <form action="/api/auth/logout" method="POST">
-              <button
-                type="submit"
-                className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-white/10 transition-colors"
-              >
-                Déco
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <div className="max-w-3xl mx-auto space-y-6 py-8 px-4">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Réseau</h1>
+        <p className="text-gray-500 text-sm mt-1">
+          Validation des établissements, accès restaurateur et plans.{" "}
+          <Link href="/platform/stats" className="text-brand-red font-semibold hover:underline">
+            Voir les chiffres →
+          </Link>
+        </p>
+      </div>
 
-      <div className="max-w-2xl mx-auto space-y-6 py-8 px-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Console plateforme</h1>
-          <p className="text-gray-500 text-sm mt-1">Validation des établissements et stats réseau.</p>
+      {demoColumnMissing && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
+          <p className="font-semibold">Migration m56 non appliquée</p>
+          <p className="text-amber-700 text-xs mt-0.5">
+            Les comptes démo ne sont pas encore distingués des vrais établissements.
+            Exécute <span className="font-mono">docs/m56-demo-restaurants-and-backlog.sql</span> dans
+            Supabase pour activer le marquage démo, la date d&apos;activation et le backlog.
+          </p>
         </div>
+      )}
 
-        {/* Stats cross-établissements — argument commercial ADR 0015 §9 */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900">{activeCount}</p>
-            <p className="text-xs text-gray-500 mt-1">établissements actifs</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-            <p className="text-3xl font-bold text-brand-red">{memberCount ?? 0}</p>
-            <p className="text-xs text-gray-500 mt-1">adhésions réseau</p>
-          </div>
+      {/* Stats cross-établissements — argument commercial ADR 0015 §9 */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <p className="text-3xl font-bold text-gray-900 tabular-nums">{activeCount}</p>
+          <p className="text-xs text-gray-500 mt-1">établissements actifs</p>
         </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <p className="text-3xl font-bold text-brand-red tabular-nums">{liveMemberCount}</p>
+          <p className="text-xs text-gray-500 mt-1">adhésions réseau</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <p className="text-3xl font-bold text-gray-400 tabular-nums">{demoCount}</p>
+          <p className="text-xs text-gray-500 mt-1">comptes démo</p>
+        </div>
+      </div>
 
-        {/* File d'approbation */}
+      {/* File d'approbation */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 className="font-bold text-gray-900 mb-4">
+          En attente de validation
+          {pendingList.length > 0 && (
+            <span className="ml-2 bg-brand-red text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {pendingList.length}
+            </span>
+          )}
+        </h2>
+
+        {pendingList.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">Aucun établissement en attente.</p>
+        ) : (
+          <div className="space-y-3">
+            {pendingList.map((r, idx) => (
+              <div key={r.id} className="border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {r.name}
+                      {r.sector && <span className="ml-2 text-xs font-normal text-gray-400">📍 {r.sector}</span>}
+                      {r.is_demo && (
+                        <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                          Démo
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(r.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
+                      {" · "}
+                      {menuCounts[idx].count ?? 0} article{(menuCounts[idx].count ?? 0) > 1 ? "s" : ""} au catalogue
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <form action={approveRestaurant.bind(null, r.id)}>
+                    <button
+                      type="submit"
+                      className="bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Approuver
+                    </button>
+                  </form>
+                  <form action={rejectRestaurant.bind(null, r.id)}>
+                    <ConfirmSubmitButton
+                      confirmMessage={`Rejeter « ${r.name} » ? L'établissement sera désactivé.`}
+                      className="bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Rejeter
+                    </ConfirmSubmitButton>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Demandes de plan (ADR 0029 — CTA du paywall doux, m51) */}
+      {planRequests.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h2 className="font-bold text-gray-900 mb-4">
-            En attente de validation
-            {pendingList.length > 0 && (
-              <span className="ml-2 bg-brand-red text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {pendingList.length}
-              </span>
-            )}
+            Demandes de plan
+            <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {planRequests.length}
+            </span>
           </h2>
-
-          {pendingList.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Aucun établissement en attente.</p>
-          ) : (
-            <div className="space-y-3">
-              {pendingList.map((r, idx) => (
-                <div key={r.id} className="border border-gray-200 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {r.name}
-                        {r.sector && <span className="ml-2 text-xs font-normal text-gray-400">📍 {r.sector}</span>}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(r.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
-                        {" · "}
-                        {menuCounts[idx].count ?? 0} article{(menuCounts[idx].count ?? 0) > 1 ? "s" : ""} au catalogue
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <form action={approveRestaurant.bind(null, r.id)}>
+          <div className="space-y-3">
+            {planRequests.map((req) => {
+              const resto = all.find((r) => r.id === req.restaurant_id);
+              return (
+                <div key={req.id} className="border border-gray-200 rounded-xl p-4">
+                  <p className="font-semibold text-gray-900">
+                    {resto?.name ?? req.restaurant_id}
+                    <span className="ml-2 text-xs font-bold text-brand-red uppercase">
+                      → {req.requested_plan}
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {new Date(req.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
+                    {req.feature && <> · depuis « {req.feature} »</>}
+                    {" · plan actuel : "}
+                    {planById.get(req.restaurant_id) ?? "gratuit"}
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <form action={grantPlanRequest.bind(null, req.restaurant_id, req.requested_plan)}>
                       <button
                         type="submit"
                         className="bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
                       >
-                        Approuver
+                        Activer {req.requested_plan}
                       </button>
                     </form>
-                    <form action={rejectRestaurant.bind(null, r.id)}>
-                      <ConfirmSubmitButton
-                        confirmMessage={`Rejeter « ${r.name} » ? L'établissement sera désactivé.`}
+                    <form action={dismissPlanRequest.bind(null, req.id)}>
+                      <button
+                        type="submit"
                         className="bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
                       >
-                        Rejeter
-                      </ConfirmSubmitButton>
+                        Ignorer
+                      </button>
                     </form>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Demandes de plan (ADR 0029 — CTA du paywall doux, m51) */}
-        {planRequests.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h2 className="font-bold text-gray-900 mb-4">
-              Demandes de plan
-              <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {planRequests.length}
-              </span>
-            </h2>
-            <div className="space-y-3">
-              {planRequests.map((req) => {
-                const resto = all.find((r) => r.id === req.restaurant_id);
-                return (
-                  <div key={req.id} className="border border-gray-200 rounded-xl p-4">
-                    <p className="font-semibold text-gray-900">
-                      {resto?.name ?? req.restaurant_id}
-                      <span className="ml-2 text-xs font-bold text-brand-red uppercase">
-                        → {req.requested_plan}
-                      </span>
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(req.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
-                      {req.feature && <> · depuis « {req.feature} »</>}
-                      {" · plan actuel : "}
-                      {planById.get(req.restaurant_id) ?? "gratuit"}
-                    </p>
-                    <div className="flex gap-2 mt-3">
-                      <form action={grantPlanRequest.bind(null, req.restaurant_id, req.requested_plan)}>
-                        <button
-                          type="submit"
-                          className="bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          Activer {req.requested_plan}
-                        </button>
-                      </form>
-                      <form action={dismissPlanRequest.bind(null, req.id)}>
-                        <button
-                          type="submit"
-                          className="bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          Ignorer
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
-        )}
-
-        {/* Tous les établissements */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 mb-4">Tous les établissements ({all.length})</h2>
-          {all.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Aucun établissement.</p>
-          ) : (
-            <div className="space-y-3">
-              {all.map((r) => {
-                const badge = STATUS_BADGE[r.status];
-                const ownerEmail = r.owner_id ? ownerEmailById.get(r.owner_id) : null;
-                return (
-                  <div key={r.id} className="border border-gray-200 rounded-xl p-4">
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">
-                          {r.name}
-                          {r.sector && <span className="ml-2 text-xs font-normal text-gray-400">📍 {r.sector}</span>}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate">
-                          <span className="font-mono">{r.id}</span>
-                          {" · "}
-                          {membersById.get(r.id) ?? 0} membre{(membersById.get(r.id) ?? 0) > 1 ? "s" : ""}
-                          {" · "}
-                          {ownerEmail ?? (r.owner_id ? "owner sans email" : "aucun owner")}
-                        </p>
-                      </div>
-                      <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${badge.cls}`}>
-                        {badge.label}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <Link
-                        href={`/admin/${r.id}`}
-                        className="text-xs font-semibold text-white bg-brand-dark px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors"
-                      >
-                        Console admin →
-                      </Link>
-                      <Link
-                        href={`/r/${r.id}`}
-                        target="_blank"
-                        className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        Page publique ↗
-                      </Link>
-                      {/* ADR 0029 — flip de plan manuel (Stripe en Phase 5) */}
-                      <form action={setRestaurantPlanFromForm} className="flex items-center gap-1">
-                        <input type="hidden" name="restaurantId" value={r.id} />
-                        <select
-                          name="plan"
-                          defaultValue={planById.get(r.id) ?? "gratuit"}
-                          className="text-xs border border-gray-200 rounded-lg px-1.5 py-1.5 bg-white"
-                        >
-                          <option value="gratuit">Gratuit</option>
-                          <option value="croissance">Croissance</option>
-                          <option value="pro">Pro</option>
-                        </select>
-                        <button
-                          type="submit"
-                          className="text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          OK
-                        </button>
-                      </form>
-                      {r.status === "active" ? (
-                        <form action={setRestaurantStatus.bind(null, r.id, "disabled")} className="ml-auto">
-                          <ConfirmSubmitButton
-                            confirmMessage={`Désactiver « ${r.name} » ? Il deviendra invisible pour tous ses membres.`}
-                            className="text-xs font-semibold text-red-700 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
-                          >
-                            Désactiver
-                          </ConfirmSubmitButton>
-                        </form>
-                      ) : r.status === "disabled" ? (
-                        <form action={setRestaurantStatus.bind(null, r.id, "active")} className="ml-auto">
-                          <button
-                            type="submit"
-                            className="text-xs font-semibold text-green-700 bg-green-50 px-3 py-1.5 rounded-lg hover:bg-green-100 transition-colors"
-                          >
-                            Réactiver
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
+      )}
 
-        {/* Ajouter un établissement (démarchage terrain) */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 mb-1">Ajouter un établissement</h2>
-          <p className="text-xs text-gray-400 mb-4">
-            Créé directement actif. Le restaurateur complétera son menu et ses
-            tickets depuis sa console admin.
-          </p>
-          <CreateRestaurantForm />
-        </div>
+      {/* Tous les établissements */}
+      <RestaurantList restaurants={restaurantViews} />
 
-        {/* Rattacher un owner */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 mb-1">Rattacher un restaurateur</h2>
-          <p className="text-xs text-gray-400 mb-4">
-            Donne (ou réassigne) l&apos;accès admin d&apos;un établissement au compte
-            membre correspondant à cet email.
-          </p>
-          <AssignOwnerForm restaurants={all.map((r) => ({ id: r.id, name: r.name }))} />
-        </div>
+      {/* Ajouter un établissement (démarchage terrain) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 className="font-bold text-gray-900 mb-1">Ajouter un établissement</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Créé directement actif. Le restaurateur complétera son menu et ses
+          tickets depuis sa console admin.
+        </p>
+        <CreateRestaurantForm />
+      </div>
+
+      {/* Inviter le restaurateur par lien (ADR 0032) — voie principale */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 className="font-bold text-gray-900 mb-1">Inviter le restaurateur</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Génère un lien à envoyer au restaurateur. Il devient admin de
+          l&apos;établissement en cliquant — il peut créer son compte à ce
+          moment-là, rien n&apos;est requis avant.
+        </p>
+        <InviteOwnerForm
+          restaurants={all.map((r) => ({ id: r.id, name: r.name, hasOwner: !!r.owner_id }))}
+        />
+      </div>
+
+      {/* Rattacher un owner — voie directe, compte déjà existant */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 className="font-bold text-gray-900 mb-1">
+          Rattacher un compte existant
+          <span className="ml-2 text-xs font-normal text-gray-400">avancé</span>
+        </h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Donne (ou réassigne) l&apos;accès admin immédiatement, sans passer par
+          un lien — l&apos;email doit déjà correspondre à un compte membre.
+        </p>
+        <AssignOwnerForm restaurants={all.map((r) => ({ id: r.id, name: r.name }))} />
       </div>
     </div>
   );
