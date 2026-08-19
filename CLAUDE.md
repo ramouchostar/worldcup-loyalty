@@ -40,6 +40,12 @@ Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Pro
 - Budget ADR 0012 : coût re-crédité au bank, débité à l'échange
 - UI : « Ma réserve » — jamais « points » seuls (réservés au score communautaire), jamais de coûts sur `/api/saver-tiers`
 
+### ADR 0034 — Un ticket ne dépend jamais d'une équipe
+- `orders.team_id` est **nullable** (m57) : un membre sans équipe envoie ses tickets comme les autres, seule l'adhésion à l'établissement est exigée
+- Sans équipe → **couche 1 (palier solo) seule** ; couches 2 et 3 = cadeaux d'équipe, servies dès qu'il en rejoint une
+- L'équipe d'une commande est résolue **à la validation**, jamais à la soumission ; à la première adhésion, les commandes déjà validées du membre sont reprises dans le score de l'équipe
+- Ne jamais réintroduire de préalable social à la soumission : une config absente côté restaurateur ne doit pas couper le parcours client
+
 ### ADR 0010 — Dashboard : conséquences, pas chiffres
 - Section 1 (hero) : aperçu prochaine commande avec 3 lignes étiquetées par couche
 - Section 2 : progress bar communauté + conséquence concrète du prochain palier
