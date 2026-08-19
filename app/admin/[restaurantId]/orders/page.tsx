@@ -156,7 +156,10 @@ function SwipeCard({
           <div className="min-w-0">
             {/* Member */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-base shrink-0">{order.teams?.flag_emoji}</span>
+              {/* ADR 0034 — un membre sans équipe envoie ses tickets comme les autres */}
+              <span className="text-base shrink-0" title={order.teams?.name ?? "Sans équipe"}>
+                {order.teams?.flag_emoji ?? "👤"}
+              </span>
               <span className="font-semibold text-gray-900 text-sm">
                 {order.profiles?.display_name ?? "—"}
               </span>

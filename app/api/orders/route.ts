@@ -123,9 +123,16 @@ export async function POST(request: NextRequest) {
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
 
-  if (!membership?.team_id) {
-    return NextResponse.json({ error: "Tu dois choisir une équipe avant de soumettre une commande." }, { status: 400 });
+  // ADR 0034 — l'équipe n'est plus un préalable à l'envoi d'un ticket. Le
+  // membre doit avoir rejoint l'établissement (l'adhésion porte le lien
+  // membre ↔ resto), mais il peut scanner sans équipe : seule la couche 1
+  // (palier solo) lui est due, les couches 2 et 3 reprennent dès qu'il en
+  // rejoint une (lib/rewards.ts).
+  if (!membership) {
+    return NextResponse.json({ error: "Rejoins d'abord cet établissement pour envoyer un ticket." }, { status: 400 });
   }
+
+  const teamId = membership.team_id ?? null;
 
   const parsedAmount = parseFloat(amount.toFixed(2));
 
@@ -201,7 +208,7 @@ export async function POST(request: NextRequest) {
     .from("orders")
     .insert({
       user_id: user.id,
-      team_id: membership.team_id,
+      team_id: teamId,
       amount: parsedAmount,
       order_number: hasOrderKey ? orderNumber : null,
       order_date: orderDate,
@@ -242,7 +249,7 @@ export async function POST(request: NextRequest) {
       await createPendingReward(
         insertedOrder.id,
         user.id,
-        membership.team_id,
+        teamId,
         restaurantId,
         parsedAmount
       );
@@ -257,7 +264,9 @@ export async function POST(request: NextRequest) {
     await insertOrderItems(insertedOrder.id, restaurantId, serverOcr.items);
   }
 
-  return NextResponse.json({ success: true, status }, { status: 201 });
+  // has_team : l'écran de succès adapte son message (pas de score d'équipe
+  // à annoncer sans équipe) et propose d'en rejoindre une — ADR 0034.
+  return NextResponse.json({ success: true, status, has_team: teamId !== null }, { status: 201 });
 }
 
 // GET supprimé (audit 2026-07-23) : aucun appelant — les pages membres sont

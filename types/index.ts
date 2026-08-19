@@ -65,7 +65,9 @@ export type OrderStatus = "pending" | "validated" | "rejected";
 export type Order = {
   id: string;
   user_id: string;
-  team_id: string;
+  // ADR 0034 — NULL tant que le membre n'a pas d'équipe : la commande compte
+  // pour lui (couche 1, points personnels), pas pour un score communautaire.
+  team_id: string | null;
   amount: number;
   order_number: string | null;
   order_date: string;

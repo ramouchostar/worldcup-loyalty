@@ -37,6 +37,9 @@ export default function SubmitOrderPage() {
   const [noRestaurantHeader, setNoRestaurantHeader] = useState(false);
   const [noDelivery, setNoDelivery] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
+  // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
+  // à annoncer, et on propose d'en rejoindre une depuis l'écran de succès.
+  const [hasTeam, setHasTeam] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   // Entrée du tunnel de scan : c'est le dénominateur qui donne son sens au
@@ -163,10 +166,11 @@ export default function SubmitOrderPage() {
         sleep(randomDelay()),
       ]);
 
-      const data = await res.json().catch(() => ({}) as { status?: string; error?: string });
+      const data = await res.json().catch(() => ({}) as { status?: string; error?: string; has_team?: boolean });
 
       if (res.status === 201) {
         const validated = data.status === "validated";
+        setHasTeam(data.has_team !== false);
         track("order_result", {
           restaurant_id: restaurantId,
           result: validated ? "validated" : "pending_review",
@@ -215,7 +219,9 @@ export default function SubmitOrderPage() {
         <p className="text-5xl mb-4">✅</p>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Ticket vérifié !</h2>
         <p className="text-gray-600 text-sm mb-2">
-          Ta commande est validée. Ton score communautaire sera mis à jour sous peu.
+          {hasTeam
+            ? "Ta commande est validée. Ton score communautaire sera mis à jour sous peu."
+            : "Ta commande est validée. Rejoins une équipe pour que tes prochains tickets fassent aussi grandir ses cadeaux."}
         </p>
         <p className="text-gray-500 text-xs mb-6">
           Passe au comptoir lors de ta prochaine visite pour récupérer tes cadeaux.
@@ -227,6 +233,14 @@ export default function SubmitOrderPage() {
           >
             Voir mes cadeaux →
           </Link>
+          {!hasTeam && (
+            <Link
+              href={`/r/${restaurantId}/my-team`}
+              className="block bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Rejoindre une équipe
+            </Link>
+          )}
           <Link
             href={`/r/${restaurantId}/dashboard`}
             className="block bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
@@ -256,6 +270,14 @@ export default function SubmitOrderPage() {
           >
             Retour à l&apos;accueil
           </Link>
+          {!hasTeam && (
+            <Link
+              href={`/r/${restaurantId}/my-team`}
+              className="block bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Rejoindre une équipe
+            </Link>
+          )}
           <button onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline">
             Soumettre une autre commande
           </button>

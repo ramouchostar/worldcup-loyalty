@@ -185,22 +185,43 @@ export function resolveCommunityBonus(
 // Idempotent: upsert ON CONFLICT (order_id) DO NOTHING; a 23505 on the
 // partial index (one 'available' reward per member — ADR 0011) is also
 // an expected no-op.
+// ADR 0034 — `teamId` peut être null : un membre sans équipe envoie ses
+// tickets comme les autres. Il n'a alors que la couche 1 (palier solo) — les
+// couches 2 et 3 sont des cadeaux d'équipe, il n'y a pas d'équipe à financer
+// ni de score à comparer. Elles reprennent au premier « oui » sur une
+// communauté, sans rien de spécial à faire ici.
 export async function createPendingReward(
   orderId: string,
   userId: string,
-  teamId: string,
+  teamId: string | null,
   restaurantId: string,
   amount: number
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const [{ data: scoreData }, restaurantUnlocked, budget, grid, teamTiers] = await Promise.all([
-    adminClient
-      .from("community_scores")
-      .select("score, total_spent, member_count")
-      .eq("team_id", teamId)
+  // Commande envoyée sans équipe puis validée après que le membre en a
+  // rejoint une (file admin) : elle relève de cette équipe — même règle que
+  // le trigger de score (m57). Une seule requête, et seulement dans ce cas.
+  let effectiveTeamId = teamId;
+  if (!effectiveTeamId) {
+    const { data: membership } = await adminClient
+      .from("memberships")
+      .select("team_id")
+      .eq("user_id", userId)
       .eq("restaurant_id", restaurantId)
-      .single(),
+      .maybeSingle();
+    effectiveTeamId = (membership as { team_id: string | null } | null)?.team_id ?? null;
+  }
+
+  const [{ data: scoreData }, restaurantUnlocked, budget, grid, teamTiers] = await Promise.all([
+    effectiveTeamId
+      ? adminClient
+          .from("community_scores")
+          .select("score, total_spent, member_count")
+          .eq("team_id", effectiveTeamId)
+          .eq("restaurant_id", restaurantId)
+          .single()
+      : Promise.resolve({ data: null }),
     isRestaurantThresholdUnlocked(restaurantId),
     getBudgetStatus(restaurantId),
     loadRewardGrid(restaurantId),
@@ -226,12 +247,12 @@ export async function createPendingReward(
   const community = resolveCommunityBonus(
     grid,
     teamScore,
-    restaurantUnlocked && budget.communityBonusActive,
+    effectiveTeamId !== null && restaurantUnlocked && budget.communityBonusActive,
     coverage
   );
   // Couche 3 — palier d'équipe sur la dépense cumulée (ADR 0014), remplace
   // l'ancienne récompense d'avancement Coupe du Monde.
-  const advancement = budget.communityBonusActive
+  const advancement = effectiveTeamId !== null && budget.communityBonusActive
     ? resolveTeamTier(teamTiers, teamTotalSpent, coverage)
     : { item: null, cost: 0 };
 
