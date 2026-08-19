@@ -76,6 +76,7 @@ export default async function AdminLayout({
       title: "Fidélisation",
       links: [
         { href: `${base}/clients`,       label: "Mes clients",      icon: "clients" },
+        { href: `${base}/teams`,         label: "Équipes",          icon: "teams" },
         { href: `${base}/broadcast`,     label: "Broadcasts",       icon: "broadcasts" },
         { href: `${base}/micro-rewards`, label: "Actions",          icon: "actions" },
         { href: `${base}/referrals`,     label: "Parrainages",      icon: "referrals" },
