@@ -12,6 +12,7 @@ const TABS = [
   { href: "/platform/stats", label: "Chiffres", icon: "📈" },
   { href: "/platform/backlog", label: "Backlog", icon: "🗂️" },
   { href: "/platform/members", label: "Membres", icon: "👥" },
+  { href: "/platform/scans", label: "Tickets", icon: "🧾" },
 ];
 
 export function PlatformHeader({ backHref }: { backHref: string }) {

@@ -5,6 +5,7 @@ import { getReceiptConfig } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
+import { storeScan } from "@/lib/receipt-scans";
 
 export const maxDuration = 30;
 
@@ -64,6 +65,17 @@ export async function POST(request: NextRequest) {
   // le scan du membre (le plafond Gratuit ne déclenche qu'un nudge admin).
   await recordScan(String(rawRestaurantId));
 
+  // ADR 0036 — l'image et ce que le modèle en a lu sont conservés 30 jours,
+  // y compris quand le scan n'aboutit pas : un ticket refusé à l'entête est
+  // justement ce qu'on veut pouvoir regarder. Best-effort, jamais bloquant.
+  const scanId = await storeScan({
+    restaurantId: String(rawRestaurantId),
+    userId: user.id,
+    file,
+    analysis,
+    outcome: analysis.has_restaurant_header ? "parsed" : "header_rejected",
+  });
+
   if (!analysis.has_restaurant_header) {
     return NextResponse.json(
       {
@@ -75,11 +87,13 @@ export async function POST(request: NextRequest) {
 
   // key_label / key_example / has_reliable_key : métadonnées non sensibles
   // pour libeller le champ côté client (le pattern reste service-role —
-  // ADR 0019).
+  // ADR 0019). scan_id : jeton opaque renvoyé tel quel à la soumission, qui
+  // réutilise l'image déjà stockée au lieu de la déposer une seconde fois.
   return NextResponse.json({
     ...analysis,
     key_label: receiptConfig.key_label,
     key_example: receiptConfig.key_examples[0] ?? null,
     has_reliable_key: receiptConfig.has_reliable_key,
+    scan_id: scanId,
   });
 }

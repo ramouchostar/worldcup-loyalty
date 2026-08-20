@@ -6,6 +6,7 @@ import { createPendingReward, LEGACY_RESTAURANT_ID } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
+import { claimScanImage, linkScanToOrder } from "@/lib/receipt-scans";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 
 export const maxDuration = 30;
@@ -39,13 +40,16 @@ export async function POST(request: NextRequest) {
   let amount: number;
   let receiptFile: File | null = null;
   let restaurantId: string;
+  let scanId: string | null = null;
 
   if (isMultipart) {
     const formData = await request.formData();
     const rawOrderNumber = formData.get("order_number");
     const rawAmount = formData.get("amount");
     const rawRestaurantId = formData.get("restaurantId");
+    const rawScanId = formData.get("scan_id");
     receiptFile = formData.get("receipt") as File | null;
+    scanId = rawScanId ? String(rawScanId) : null;
 
     // order_number vide autorisé : c'est le chemin « pas de numéro lisible »
     // (clé synthétique + file admin, ADR 0019) — seule son absence totale
@@ -156,6 +160,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Format de ticket non supporté." }, { status: 400 });
     }
 
+    // ADR 0036 — l'aperçu OCR a déjà rangé cette photo : on pointe dessus
+    // plutôt que d'en garder deux exemplaires. `scan_id` est vérifié côté
+    // serveur (même membre, même établissement, moins de deux heures) —
+    // un jeton forgé retombe simplement sur l'upload normal.
+    receiptPath = scanId ? await claimScanImage(scanId, user.id, restaurantId) : null;
+  }
+
+  if (receiptFile && !receiptPath) {
     const adminClient = createAdminClient();
     const fileExt = receiptFile.type.split("/")[1] ?? "jpg";
     const safeName = hasOrderKey
@@ -236,6 +248,12 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json({ error: "Erreur serveur. Réessaie." }, { status: 500 });
+  }
+
+  // ADR 0036 — le scan sait désormais ce qu'il est devenu : c'est ce lien qui
+  // permet de comparer, côté plateforme, la lecture OCR et l'encodage final.
+  if (scanId && insertedOrder?.id) {
+    await linkScanToOrder(scanId, user.id, insertedOrder.id);
   }
 
   // Create 3-layer pending reward for validated orders — awaited pour

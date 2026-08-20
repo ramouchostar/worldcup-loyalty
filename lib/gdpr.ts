@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase";
+import { purgeUserReceiptImages } from "./receipt-scans";
 
 // ADR 0022 — Droits des personnes : portabilité (export) et effacement.
 // Effacement = ANONYMISATION : on strippe les données personnelles du profil
@@ -46,6 +47,15 @@ export async function exportUserData(userId: string) {
     orderItems = (data ?? []) as Row[];
   }
 
+  // ADR 0036 — scans de tickets : ce que le modèle a lu de SES photos.
+  // L'image elle-même n'est pas embarquée dans l'export (bucket privé), le
+  // chemin non plus : seule la lecture, qui est la donnée le concernant.
+  const receiptScans = (await grab(admin, "receipt_scans", "user_id", userId)).map((s) => {
+    const safe = { ...s };
+    delete safe.storage_path;
+    return safe;
+  });
+
   // ADR 0023 — retours qualité + fils médiés (via les identifiants de retour)
   const qualityFeedback = await grab(admin, "quality_feedback", "user_id", userId);
   const feedbackIds = qualityFeedback.map((f) => f.id as string).filter(Boolean);
@@ -62,6 +72,7 @@ export async function exportUserData(userId: string) {
     memberships,
     orders,
     order_items: orderItems,
+    receipt_scans: receiptScans,
     pending_rewards: pendingRewards.map((r) => {
       // ADR 0007 — ne jamais exposer au membre les coûts de revient des cadeaux
       // (données business du restaurant). On les retire de l'export RGPD.
@@ -113,6 +124,13 @@ export async function deleteUserData(userId: string): Promise<void> {
     admin.from("notification_log").delete().eq("user_id", userId),
     admin.from("referral_links").delete().eq("user_id", userId),
   ]);
+
+  // 2 bis. ADR 0036 — les photos de tickets partent tout de suite, sans
+  //    attendre les 30 jours de rétention : une image de ticket est une
+  //    donnée personnelle, pas une écriture comptable. Les lignes `orders`
+  //    (montant, date, numéro) restent, désormais sans photo.
+  await purgeUserReceiptImages(userId);
+  await admin.from("receipt_scans").delete().eq("user_id", userId);
 
   // 3. ADR 0023 — retours qualité : on ANONYMISE (on garde la statistique non
   //    nominative pour le baromètre), on efface le commentaire et les messages

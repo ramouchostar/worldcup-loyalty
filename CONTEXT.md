@@ -34,8 +34,12 @@ Agrégats **anonymisés** de la donnée de **tous** les restos (Gratuit inclus c
 _Avoid_ : benchmark (anglicisme — « repères secteur ») ; données concurrents (ce ne sont jamais des chiffres identifiables d'un resto).
 
 **Ticket de caisse** :
-Photo du reçu papier soumise par le membre comme preuve de sa commande directe. Stockée dans Supabase Storage bucket `receipts`. Obligatoire pour toute soumission de commande.
+Photo du reçu papier soumise par le membre comme preuve de sa commande directe. Stockée dans Supabase Storage bucket `receipts`, **conservée 30 jours puis effacée** (ADR 0036) — la commande, elle, reste. Obligatoire pour toute soumission de commande.
 _Avoid_ : reçu, preuve, justificatif.
+
+**Scan** *(ADR 0036)* :
+Un passage d'image dans Claude Vision, qu'il aboutisse ou non à une commande. Table `receipt_scans` : l'image, la lecture du modèle, et ce qu'elle est devenue (`parsed` = jamais soumis, `header_rejected` = entête non reconnue, `submitted` = devenue commande). C'est l'unité de mesure du coût OCR (ADR 0029 §6) et la matière de `/platform/scans`, où l'on compare image ↔ lecture ↔ encodage.
+_Avoid_ : upload (le scan existe même sans soumission), photo (c'est l'image, pas l'acte).
 
 **Doublon** :
 Tentative de soumettre deux fois la même commande. Détecté via le **Bestelnummer** (`order_number` en base, ex. `2026-06-01/258/03993`) — identifiant séquentiel unique généré par la caisse Belchicken, présent sur chaque ticket client. Rejeté silencieusement côté serveur. Remplace l'ancien `DATE_HH:MM_MONTANT` qui permettait des collisions.
