@@ -59,7 +59,11 @@ type FormatKey = keyof typeof FORMATS;
 function ActionBar({ restaurantId, label }: { restaurantId: string; label: string }) {
   return (
     <>
-      <div className="no-print sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+      {/* pt-[max(...)] plutôt que pt-safe : cet élément porte déjà py-3 sur le
+          même axe (pas de <header> englobant comme sur les autres pages) —
+          pt-safe entrerait en conflit avec le padding-top de py-3 au lieu de
+          s'y ajouter. max() garde le padding normal hors PWA/encoche. */}
+      <div className="no-print sticky top-0 z-10 bg-white border-b border-gray-200 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] flex items-center justify-between gap-3">
         <a href={`/admin/${restaurantId}/qr`} className="text-sm text-gray-500 hover:text-gray-800">← Retour</a>
         <span className="text-sm font-medium text-gray-700">{label}</span>
         <PrintButton />
