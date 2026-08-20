@@ -35,6 +35,9 @@ export default function SubmitOrderPage() {
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
   const [noRestaurantHeader, setNoRestaurantHeader] = useState(false);
+  // ADR 0036 — jeton du scan rendu par l'aperçu OCR : renvoyé tel quel à la
+  // soumission pour que le serveur réutilise la photo déjà stockée.
+  const [scanId, setScanId] = useState<string | null>(null);
   const [noDelivery, setNoDelivery] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
@@ -58,6 +61,7 @@ export default function SubmitOrderPage() {
     setOrderNumber("");
     setOrderNumberEditable(false);
     setAmount("");
+    setScanId(null);
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -70,6 +74,7 @@ export default function SubmitOrderPage() {
     setParseError("");
     setOrderNumber("");
     setAmount("");
+    setScanId(null);
   }
 
   async function analyseReceipt() {
@@ -98,6 +103,7 @@ export default function SubmitOrderPage() {
         has_restaurant_header?: boolean;
         key_label?: string | null;
         key_example?: string | null;
+        scan_id?: string | null;
         error?: string;
       } = await res.json();
 
@@ -108,6 +114,7 @@ export default function SubmitOrderPage() {
       }
 
       setParseStatus("done");
+      setScanId(data.scan_id ?? null);
       if (data.key_label) setKeyLabel(data.key_label);
       if (data.key_example) setKeyExample(data.key_example);
       if (data.order_number) {
@@ -150,6 +157,7 @@ export default function SubmitOrderPage() {
     if (ocrAmount !== null)      formData.append("ocr_amount", String(ocrAmount));
     if (ocrConfidence !== null)  formData.append("ocr_confidence", String(ocrConfidence));
     if (noRestaurantHeader)      formData.append("no_restaurant_header", "true");
+    if (scanId !== null)         formData.append("scan_id", scanId);
 
     // Le montant part en tranche, jamais en euros (ADR 0028) : la charge utile
     // d'un événement analytics est lisible côté client.
@@ -204,6 +212,7 @@ export default function SubmitOrderPage() {
     setOrderNumber("");
     setOrderNumberEditable(false);
     setAmount("");
+    setScanId(null);
     setNoDelivery(false);
     setSubmitStatus("idle");
     setErrorMsg("");
