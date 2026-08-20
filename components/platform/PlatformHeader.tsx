@@ -19,7 +19,7 @@ export function PlatformHeader({ backHref }: { backHref: string }) {
   const pathname = usePathname();
 
   return (
-    <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10">
+    <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10 pt-safe">
       <div className="max-w-3xl mx-auto px-4 pt-3 flex items-center justify-between gap-3">
         <span className="text-brand-gold font-black text-lg">Plateforme</span>
         <div className="flex items-center gap-3">
