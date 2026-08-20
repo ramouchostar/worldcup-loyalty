@@ -110,33 +110,37 @@ export default async function AdminLayout({
           `partner_onboarding_completed` ne serait jamais émis. */}
       <AnalyticsIdentity status="restaurateur" />
       <header className="bg-brand-dark text-white sticky top-0 z-10 pt-safe">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex items-center gap-3 min-w-0">
             <span className="w-8 h-8 rounded-lg bg-brand-red flex items-center justify-center font-display font-bold text-brand-dark text-[15px] shrink-0">
               {restaurant.name.charAt(0).toUpperCase()}
             </span>
             <div className="flex flex-col leading-tight min-w-0">
               <span className="text-white font-semibold text-sm truncate">{restaurant.name}</span>
-              <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-brand-gold">
+              <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-brand-gold whitespace-nowrap">
                 Console restaurateur
               </span>
             </div>
-            <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${planBadge.cls}`}>
+            <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full whitespace-nowrap ${planBadge.cls}`}>
               {planBadge.label}
             </span>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          {/* flex-wrap sur la ligne parente : un super admin ajoute un 3e lien
+              (Plateforme) qui ne rentre plus à côté du bloc de marque sur
+              mobile — ce groupe bascule alors sur sa propre ligne plutôt que
+              de se superposer au reste (m57). */}
+          <div className="flex items-center gap-3 flex-wrap">
             {access.isSuperAdmin && (
-              <Link href="/platform" className="text-xs text-brand-gold hover:text-white transition-colors">
+              <Link href="/platform" className="text-xs text-brand-gold hover:text-white transition-colors whitespace-nowrap">
                 Plateforme
               </Link>
             )}
             {showEstablishmentSwitcher && (
-              <Link href="/admin" className="text-xs text-gray-400 hover:text-white transition-colors">
+              <Link href="/admin" className="text-xs text-gray-400 hover:text-white transition-colors whitespace-nowrap">
                 Mes établissements
               </Link>
             )}
-            <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors">
+            <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors whitespace-nowrap">
               ← Retour espace membre
             </Link>
           </div>
