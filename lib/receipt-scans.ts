@@ -22,6 +22,13 @@ const SCAN_REUSE_WINDOW_MINUTES = 120;
 const BUCKET = "receipts";
 const REMOVE_BATCH = 100;
 
+// Échantillons de contrôle OCR (ADR 0036 §3) : le seul emplacement du bucket
+// que la rétention ne touche jamais. On y range à la main les quelques tickets
+// qui servent de référence pour juger la lecture du modèle dans le temps —
+// un ticket qu'aucune ligne ne référence, dissocié de son membre, gardé
+// sciemment. Rien ne s'y dépose automatiquement.
+export const SAMPLE_PREFIX = "echantillons";
+
 export type ScanOutcome = "parsed" | "header_rejected" | "submitted";
 
 function extensionFor(type: string): string {
@@ -168,6 +175,7 @@ async function sweepOrphanFiles(
   const orphans: string[] = [];
   const { data: restaurants } = await admin.storage.from(BUCKET).list("", { limit: 1000 });
   for (const resto of restaurants ?? []) {
+    if (resto.name === SAMPLE_PREFIX) continue; // échantillons de contrôle : jamais purgés
     const { data: users } = await admin.storage.from(BUCKET).list(resto.name, { limit: 1000 });
     for (const user of users ?? []) {
       const prefix = `${resto.name}/${user.name}`;
