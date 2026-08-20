@@ -23,6 +23,18 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
+  /* Filet Android — sur les mobiles sans découpe (notch/caméra perforée),
+     Chrome renvoie souvent env(safe-area-inset-top) = 0 même en PWA
+     standalone edge-to-edge : la barre de statut est bien ignorée par le
+     rendu mais n'est pas signalée comme zone à éviter par ce standard, à la
+     différence d'iOS Safari qui la traite systématiquement comme unsafe.
+     On garantit un minimum d'espace dans ce mode plutôt que de dépendre
+     uniquement d'un signal que ces appareils ne fournissent pas. */
+  @media (display-mode: standalone) {
+    .pt-safe {
+      padding-top: max(env(safe-area-inset-top, 0px), 24px);
+    }
+  }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
