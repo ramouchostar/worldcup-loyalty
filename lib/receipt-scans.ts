@@ -22,6 +22,13 @@ const SCAN_REUSE_WINDOW_MINUTES = 120;
 const BUCKET = "receipts";
 const REMOVE_BATCH = 100;
 
+// Échantillons de contrôle OCR (ADR 0036 §3) : le seul emplacement du bucket
+// que la rétention ne touche jamais. On y range à la main les quelques tickets
+// qui servent de référence pour juger la lecture du modèle dans le temps —
+// un ticket qu'aucune ligne ne référence, dissocié de son membre, gardé
+// sciemment. Rien ne s'y dépose automatiquement.
+export const SAMPLE_PREFIX = "echantillons";
+
 export type ScanOutcome = "parsed" | "header_rejected" | "submitted";
 
 function extensionFor(type: string): string {
@@ -137,7 +144,54 @@ async function removeFiles(admin: ReturnType<typeof createAdminClient>, paths: s
   }
 }
 
-export type PurgeResult = { scans: number; orderImages: number };
+export type PurgeResult = { scans: number; orderImages: number; orphans: number };
+
+/**
+ * Balayage des images que plus aucune ligne ne référence.
+ *
+ * La purge par lignes (`purgeExpiredReceipts`) ne voit que ce qui est encore
+ * pointé par un `orders.receipt_url` ou un `receipt_scans.storage_path`. Une
+ * commande supprimée — test, doublon nettoyé, effacement RGPD antérieur —
+ * laissait donc son image dans le bucket **pour toujours** : au premier
+ * inventaire (2026-08-20), 7 fichiers sur 8 étaient dans ce cas.
+ *
+ * Le balayage ne touche qu'aux fichiers de plus de 30 jours : une image tout
+ * juste déposée est référencée dans la seconde qui suit, mais la fenêtre
+ * d'âge suffit à ce qu'aucune course ne puisse l'emporter.
+ */
+async function sweepOrphanFiles(
+  admin: ReturnType<typeof createAdminClient>,
+  cutoff: string
+): Promise<number> {
+  const [{ data: orderRows }, { data: scanRows }] = await Promise.all([
+    admin.from("orders").select("receipt_url").not("receipt_url", "is", null),
+    admin.from("receipt_scans").select("storage_path").not("storage_path", "is", null),
+  ]);
+  const referenced = new Set<string>([
+    ...((orderRows ?? []) as { receipt_url: string }[]).map((o) => o.receipt_url),
+    ...((scanRows ?? []) as { storage_path: string }[]).map((s) => s.storage_path),
+  ]);
+
+  const orphans: string[] = [];
+  const { data: restaurants } = await admin.storage.from(BUCKET).list("", { limit: 1000 });
+  for (const resto of restaurants ?? []) {
+    if (resto.name === SAMPLE_PREFIX) continue; // échantillons de contrôle : jamais purgés
+    const { data: users } = await admin.storage.from(BUCKET).list(resto.name, { limit: 1000 });
+    for (const user of users ?? []) {
+      const prefix = `${resto.name}/${user.name}`;
+      const { data: files } = await admin.storage.from(BUCKET).list(prefix, { limit: 1000 });
+      for (const file of files ?? []) {
+        const path = `${prefix}/${file.name}`;
+        // `created_at` absent (dossier, métadonnée manquante) → on ne touche à rien.
+        if (!file.created_at || file.created_at >= cutoff) continue;
+        if (!referenced.has(path)) orphans.push(path);
+      }
+    }
+  }
+
+  if (orphans.length > 0) await removeFiles(admin, orphans);
+  return orphans.length;
+}
 
 /**
  * Purge de rétention (ADR 0036) : plus AUCUNE image de ticket de plus de
@@ -151,7 +205,7 @@ export type PurgeResult = { scans: number; orderImages: number };
 export async function purgeExpiredReceipts(now: Date = new Date()): Promise<PurgeResult> {
   const admin = createAdminClient();
   const cutoff = new Date(now.getTime() - RECEIPT_RETENTION_DAYS * 86400_000).toISOString();
-  const result: PurgeResult = { scans: 0, orderImages: 0 };
+  const result: PurgeResult = { scans: 0, orderImages: 0, orphans: 0 };
 
   // Par lots : PostgREST plafonne les retours, et un premier passage sur un
   // historique déjà ancien peut avoir beaucoup de retard à rattraper. La
@@ -202,6 +256,11 @@ export async function purgeExpiredReceipts(now: Date = new Date()): Promise<Purg
     result.orderImages += rows.length;
     if (rows.length < BATCH) break;
   }
+
+  // 3. Ce que plus aucune ligne ne référence. En dernier : les deux passes
+  //    ci-dessus viennent de détacher des images, et si l'une d'elles a raté
+  //    une suppression, ce balayage la rattrape au même passage.
+  result.orphans = await sweepOrphanFiles(admin, cutoff);
 
   return result;
 }
