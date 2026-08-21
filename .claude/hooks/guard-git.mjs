@@ -18,7 +18,7 @@ process.stdin.on("end", () => {
   try {
     // BOM UTF-8 possible si le JSON transite par un pipe PowerShell (tests
     // manuels sous Windows) — Claude Code n'en envoie pas, mais on blinde.
-    cmd = String(JSON.parse(input.replace(/^FEFF/, ""))?.tool_input?.command ?? "");
+    cmd = String(JSON.parse(input.replace(/^\uFEFF/, ""))?.tool_input?.command ?? "");
   } catch {
     process.exit(0);
   }
