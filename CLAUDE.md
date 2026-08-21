@@ -23,6 +23,8 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 6. **Un chantier = une PR**, pas de mélange de sujets. Réclame le chantier dans le backlog plateforme (ADR 0033) avant de commencer — on évite de toucher le même fichier le même jour.
 7. Après un pull ou une fusion : `npm run check:naming && npm run type-check` avant de pousser.
 
+**Outillage partagé (dans le repo, identique chez tout le monde)** : skills `/ship` (branche → PR → CI → merge), `/new-migration <slug>`, `/new-adr <slug>` ; hooks `.claude/hooks/guard-git.mjs` (bloque push master / force / destructif) et `session-start.mjs` (fetch + rappels) ; règles scopées `.claude/rules/{migrations,adr}.md`.
+
 ---
 
 ## Règles critiques à ne jamais violer

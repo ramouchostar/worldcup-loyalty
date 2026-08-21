@@ -97,5 +97,28 @@
     "additionalDirectories": [
       "/workspaces/worldcup-loyalty/.claude/skills/run-worldcup-loyalty/sessions/qr-preview"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/guard-git.mjs"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/session-start.mjs"
+          }
+        ]
+      }
+    ]
   }
 }

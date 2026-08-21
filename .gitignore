@@ -28,5 +28,9 @@ tsconfig.tsbuildinfo
 .claude/skills/*
 !.claude/skills/avis-investisseur/
 !.claude/skills/run-worldcup-loyalty/
+# Kit de collaboration (CLAUDE.md § Collaboration) — partagé par les deux associés
+!.claude/skills/ship/
+!.claude/skills/new-migration/
+!.claude/skills/new-adr/
 .claude/skills/run-worldcup-loyalty/node_modules/
 .claude/skills/run-worldcup-loyalty/sessions/
