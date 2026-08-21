@@ -91,7 +91,9 @@ const SECRET_PATTERNS = [
   [/SUPABASE_SERVICE_ROLE_KEY[ \t]*=[ \t]*(?!\$\{)(?!<)[^\s"']{20,}/, "clé service-role en dur"],
 ];
 try {
-  const tracked = execSync("git ls-files", { encoding: "utf8" }).split(/\r?\n/).filter((f) => f && /\.(mjs|js|ts|tsx|md|json|sql|yml|yaml|env\.example)$/.test(f) && !f.startsWith("node_modules/"));
+  // Fichiers suivis + nouveaux fichiers non ignorés (pas encore `git add`) :
+  // on attrape le secret AVANT la PR, pas seulement en CI.
+  const tracked = execSync("git ls-files && git ls-files --others --exclude-standard", { encoding: "utf8" }).split(/\r?\n/).filter((f) => f && /\.(mjs|js|ts|tsx|md|json|sql|yml|yaml|env\.example)$/.test(f) && !f.startsWith("node_modules/"));
   for (const f of tracked) {
     if (f === "scripts/check-naming.mjs") continue; // contient les motifs eux-mêmes
     let content = "";

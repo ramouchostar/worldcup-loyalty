@@ -7,8 +7,9 @@
 // SEED_PASSWORD (variable d'environnement, JAMAIS commitée).
 //
 // Usage :
-//   SEED_PASSWORD='un-nouveau-secret-long' node scripts/rotate-seed-passwords.mjs
-//   (sans SEED_PASSWORD : en génère un, le change partout et l'affiche UNE fois)
+//   node scripts/rotate-seed-passwords.mjs
+//   → lit SEED_PASSWORD dans l'environnement ; sans lui : en génère un,
+//     le change partout et l'affiche UNE fois (à mettre dans .env.local)
 //
 // Idempotent : rejouable (remet simplement le même mot de passe).
 // ============================================================================
