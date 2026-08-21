@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "check:naming": "node scripts/check-naming.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",

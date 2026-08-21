@@ -1,0 +1,43 @@
+# CI — garde-fou de collaboration (CLAUDE.md § Collaboration).
+# Tourne sur chaque PR et sur master : nommage ADR/migrations, types, build.
+# Le check `build` est exigé par la protection de branche de master → une PR
+# ne peut pas être fusionnée si elle casse le build ou collisionne un numéro.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Valeurs factices : le build ne doit jamais dépendre d'un secret ni
+      # d'un réseau (les pages publiques sont best-effort, cf. PR #32).
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_RESTAURANT_ID: kraainem
+      NEXT_PUBLIC_RESTAURANT_NAME: CI
+      NEXT_PUBLIC_PROGRAM_START_DATE: "2026-06-11"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Nommage ADR / migrations
+        run: node scripts/check-naming.mjs
+      - name: Type-check
+        run: npm run type-check
+      - name: Build
+        run: npm run build
