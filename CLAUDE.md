@@ -5,9 +5,23 @@
 Avant d'écrire ou modifier la moindre ligne, tu dois lire dans cet ordre :
 
 1. `CONTEXT.md` — glossaire complet du domaine, terminologie exacte, règles UI
-2. `docs/adr/0001` à `docs/adr/0033` — toutes les décisions architecturales
+2. **Tous** les fichiers de `docs/adr/` (le dernier numéro change chaque semaine — ne te fie pas à une borne écrite ici) — toutes les décisions architecturales
 
 Ces fichiers **ont priorité sur tout le reste**, y compris `WorldCupLoyalty_Prompt_ClaudeCode.md` qui est le document source initial mais qui a été affiné par les ADRs.
+
+---
+
+## Collaboration — deux associés, plusieurs agents, un seul `master`
+
+Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Remote Control, cloud). Elles existent parce qu'on a constaté 8 collisions de numéros de migration, des ADR renumérotés deux fois, des rebases cassés par deux sessions dans le même checkout et des builds rouges faute de `npm install`.
+
+1. **Jamais de push direct sur `master`.** Une branche par chantier (`claude/<sujet>` pour un agent, `<prénom>/<sujet>` pour un humain), une PR, fusion via GitHub (`gh pr create` → `gh pr merge --merge --delete-branch`). `master` est protégé : PR + check CI `build` vert obligatoires. Petites PR, fusionnées vite.
+2. **Une session Claude = un worktree** (`claude -w` ou case « worktree » de l'app Desktop). Jamais deux sessions dans le même dossier : l'autre bouge `master` sous tes pieds en plein rebase.
+3. **Avant d'agir : `git fetch origin` puis `git pull --ff-only`, puis `npm install`** (une dépendance ajoutée par l'autre casse le build sinon).
+4. **Numéros d'ADR** : prends le suivant de **`origin/master`** (pas du local), et ouvre la PR tout de suite avec le fichier pour réserver le numéro. `scripts/check-naming.mjs` (CI) refuse les doublons.
+5. **Migrations SQL** : la numérotation `docs/mNN-*.sql` est **figée à m60**. Toute nouvelle migration va dans **`docs/migrations/YYYYMMDD-HHMM-slug.sql`** (horodatée, idempotente — voir `docs/migrations/README.md`). L'auteur de la PR l'applique en prod dès la fusion et le note dans la PR ; le code reste tolérant à son absence (fail-open).
+6. **Un chantier = une PR**, pas de mélange de sujets. Réclame le chantier dans le backlog plateforme (ADR 0033) avant de commencer — on évite de toucher le même fichier le même jour.
+7. Après un pull ou une fusion : `npm run check:naming && npm run type-check` avant de pousser.
 
 ---
 
