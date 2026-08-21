@@ -90,6 +90,7 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `team_invite_shared` | `channel` | Partage du lien d'adhésion d'équipe |
 | `push_permission_granted` | — | Notifications autorisées |
 | `pwa_installed` | — | PWA installée |
+| `pwa_install_prompted` | `audience`, `surface` | Espace d'installation permanent montré à quelqu'un sans l'app (ADR 0038) — le rattrapage, pas le premier passage |
 
 `entry_source` reprend `utm_source` s'il est présent (les QR imprimés portent
 `utm_source=qr_code`), sinon `direct`.

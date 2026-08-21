@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { TeamRecognitionPrompt, type PromptSuggestion } from "./TeamRecognitionPrompt";
+import { CLE_PWA_VUE, CLE_PWA_REPORTEE } from "@/lib/pwa-install";
 
 // ── beforeinstallprompt captured early (fires before React mounts) ─────────
 interface BeforeInstallPromptEvent extends Event {
@@ -21,8 +22,11 @@ if (typeof window !== "undefined") {
 }
 
 // ── localStorage keys ──────────────────────────────────────────────────────
-const K_PWA_DONE  = "pwa_prompted";
-const K_PWA_SNZ   = "pwa_snoozed_until";
+// Partagées avec la carte d'installation permanente (ADR 0038) : elle s'efface
+// tant que cette étape-ci est encore due, pour ne pas proposer deux fois la
+// même chose sur le même écran.
+const K_PWA_DONE  = CLE_PWA_VUE;
+const K_PWA_SNZ   = CLE_PWA_REPORTEE;
 const K_PUSH_DONE = "push_prompted";
 const K_PUSH_SNZ  = "push_snoozed_until";
 const K_TOUR      = "tour_done";

@@ -12,6 +12,7 @@ import { pointsForOrder } from "@/lib/points-model";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { ActionCardsSection } from "@/components/member/ActionCardsSection";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
@@ -549,6 +550,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           </div>
         )}
       </div>
+
+      {/* ── ADR 0038 — rattrapage de l'installation ────────────────────────
+          L'onboarding ne propose l'app qu'une fois ; qui l'a manquée ou
+          reportée n'avait plus aucun chemin. Disparaît une fois installée. */}
+      <InstallAppCard audience="membre" surface="dashboard_membre" />
 
       <p className="text-center text-xs text-gray-500 pb-2">Score mis à jour toutes les 30 secondes</p>
     </div>
