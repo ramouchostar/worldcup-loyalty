@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { RECEIPT_RETENTION_DAYS } from "@/lib/receipt-scans";
+import { getFunnel, type FunnelDay } from "@/lib/qr-funnel";
 
 export const metadata = { title: "Tickets scannés — Plateforme" };
 
@@ -99,9 +100,12 @@ export default async function PlatformScansPage({
     .limit(LIST_LIMIT);
   if (restaurantFilter) scanQuery = scanQuery.eq("restaurant_id", restaurantFilter);
 
-  const [{ data: scansRaw, error: scansError }, { data: restaurantsRaw }] = await Promise.all([
+  const [{ data: scansRaw, error: scansError }, { data: restaurantsRaw }, funnel] = await Promise.all([
     scanQuery,
     admin.from("restaurants").select("id, name").order("name"),
+    // ADR 0037 — l'entonnoir n'a de sens que pour UN établissement à la fois :
+    // additionner les atterrissages de plusieurs restos ne veut rien dire.
+    restaurantFilter ? getFunnel(restaurantFilter) : Promise.resolve([] as FunnelDay[]),
   ]);
 
   // Page robuste si m58 n'est pas encore appliquée : écran d'attente, pas un crash.
@@ -186,6 +190,52 @@ export default async function PlatformScansPage({
           </Link>
         ))}
       </nav>
+
+      {restaurantFilter && (
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Entonnoir — 14 derniers jours</h2>
+          <p className="text-xs text-gray-500 mb-3">
+            Arrivées sur la page → inscriptions → tickets scannés → commandes. Les arrivées sont
+            comptées côté serveur (aucun cookie, aucune donnée personnelle) : elles comptent des
+            <strong> chargements de page</strong>, pas des personnes — un rechargement compte deux fois.
+          </p>
+          {funnel.length === 0 ? (
+            <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              Rien à afficher. Si m60 n&apos;est pas appliquée, les arrivées ne sont pas encore comptées —
+              les trois autres étages, eux, remontent dès qu&apos;il se passe quelque chose.
+            </p>
+          ) : (
+            <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                  <tr>
+                    <th className="px-3 py-2">Jour</th>
+                    <th className="px-3 py-2">Arrivées QR</th>
+                    <th className="px-3 py-2">Arrivées lien</th>
+                    <th className="px-3 py-2">Retours membres</th>
+                    <th className="px-3 py-2">Inscriptions</th>
+                    <th className="px-3 py-2">Scans</th>
+                    <th className="px-3 py-2">Commandes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {funnel.map((d) => (
+                    <tr key={d.day}>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-700">{d.day}</td>
+                      <td className="px-3 py-2 text-gray-900 font-medium">{d.landingsQr || "—"}</td>
+                      <td className="px-3 py-2 text-gray-700">{d.landingsDirect || "—"}</td>
+                      <td className="px-3 py-2 text-gray-400">{d.landingsMembre || "—"}</td>
+                      <td className="px-3 py-2 text-gray-700">{d.signups || "—"}</td>
+                      <td className="px-3 py-2 text-gray-700">{d.scans || "—"}</td>
+                      <td className="px-3 py-2 text-gray-700">{d.orders || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="mb-8 grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
