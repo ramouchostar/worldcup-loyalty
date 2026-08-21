@@ -14,9 +14,17 @@ export type BroadcastTarget =
   | { kind: "teams"; teamIds: string[] }
   | { kind: "types"; types: TeamType[] };
 
+// ADR 0039 — nature du message, qui décide de sa base légale et de son public.
+//   service : information liée au programme auquel le membre a adhéré
+//             (cadeau prêt, incident, changement de règle) → exécution du
+//             contrat, tous les membres la reçoivent.
+//   promo   : offre commerciale → consentement marketing exigé.
+export type BroadcastNature = "service" | "promo";
+
 export type BroadcastResult = { targeted: number; sent: number; skipped: number };
 
 type Admin = ReturnType<typeof createAdminClient>;
+type Membre = { id: string; phone: string | null };
 
 // Équipes communautaires visées (toujours bornées à l'établissement courant)
 async function resolveTeamIds(admin: Admin, restaurantId: string, target: BroadcastTarget): Promise<string[]> {
@@ -25,6 +33,41 @@ async function resolveTeamIds(admin: Admin, restaurantId: string, target: Broadc
   if (target.kind === "types") query = query.in("type", target.types);
   const { data } = await query;
   return ((data ?? []) as { id: string }[]).map((r) => r.id);
+}
+
+/**
+ * Membres visés (ADR 0039 §1).
+ *
+ * « Tous » veut dire **tous les membres de l'établissement**, avec ou sans
+ * équipe — c'est le canal général. Avant, cette option résolvait « toutes les
+ * équipes » puis filtrait `memberships.team_id IN (…)` : à Kraainem le
+ * 21/08/2026, 13 membres sur 16 n'ayant pas d'équipe, un envoi « à tous »
+ * touchait 1 personne. Même défaut que l'ADR 0034, côté sortant.
+ *
+ * Les ciblages par équipe(s) ou par type restent, eux, bornés aux équipes :
+ * c'est leur raison d'être (ADR 0014).
+ */
+async function resolveAudience(
+  admin: Admin,
+  restaurantId: string,
+  target: BroadcastTarget
+): Promise<Membre[]> {
+  let query = admin
+    .from("memberships")
+    .select("user_id, profiles!inner(phone)")
+    .eq("restaurant_id", restaurantId);
+
+  if (target.kind !== "all") {
+    const teamIds = await resolveTeamIds(admin, restaurantId, target);
+    if (teamIds.length === 0) return [];
+    query = query.in("team_id", teamIds);
+  }
+
+  const { data } = await query;
+  // ADR 0015 — l'appartenance vit dans memberships, pas profiles.team_id
+  // (obsolète, plus mis à jour depuis le pivot).
+  return ((data ?? []) as unknown as { user_id: string; profiles: { phone: string | null } }[])
+    .map((m) => ({ id: m.user_id, phone: m.profiles.phone }));
 }
 
 // ─── Broadcasts programmés (ADR 0023) ────────────────────────────────────────
@@ -41,6 +84,8 @@ export type ScheduledBroadcast = {
   target: BroadcastTarget;
   send_on: string;
   promo_on: string | null;
+  // Absente tant que la migration du 21/08 n'est pas appliquée → 'promo'.
+  nature?: BroadcastNature;
   created_at: string;
   sent_at: string | null;
   result: BroadcastResult | null;
@@ -58,23 +103,35 @@ export async function scheduleBroadcast(
   restaurantId: string,
   sendOn: string,
   promoOn: string | null,
-  createdBy: string | null
+  createdBy: string | null,
+  nature: BroadcastNature = "promo"
 ): Promise<ScheduledBroadcast> {
   const admin = createAdminClient();
+  const ligne = {
+    restaurant_id: restaurantId,
+    message,
+    target,
+    send_on: sendOn,
+    promo_on: promoOn,
+    created_by: createdBy,
+  };
+
   const { data, error } = await admin
     .from("scheduled_broadcasts")
-    .insert({
-      restaurant_id: restaurantId,
-      message,
-      target,
-      send_on: sendOn,
-      promo_on: promoOn,
-      created_by: createdBy,
-    })
+    .insert({ ...ligne, nature })
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return data as ScheduledBroadcast;
+  if (!error) return data as ScheduledBroadcast;
+
+  // Fail-open : sans la migration du 21/08, la colonne `nature` n'existe pas.
+  // L'annonce part quand même — en promo, le comportement d'avant.
+  const { data: repli, error: repliError } = await admin
+    .from("scheduled_broadcasts")
+    .insert(ligne)
+    .select()
+    .single();
+  if (repliError) throw new Error(repliError.message);
+  return repli as ScheduledBroadcast;
 }
 
 export async function listScheduledBroadcasts(restaurantId: string): Promise<ScheduledBroadcast[]> {
@@ -110,10 +167,10 @@ export async function processDueScheduledBroadcasts(
   const admin = createAdminClient();
   const { data: dueRaw } = await admin
     .from("scheduled_broadcasts")
-    .select("id, restaurant_id, message, target")
+    .select("*")
     .lte("send_on", today)
     .is("sent_at", null);
-  const due = (dueRaw ?? []) as Pick<ScheduledBroadcast, "id" | "restaurant_id" | "message" | "target">[];
+  const due = (dueRaw ?? []) as ScheduledBroadcast[];
 
   let sent = 0;
   for (const row of due) {
@@ -125,7 +182,7 @@ export async function processDueScheduledBroadcasts(
       .select("id");
     if ((claimed ?? []).length === 0) continue; // pris par un run concurrent
 
-    const result = await sendBroadcast(row.message, row.target, row.restaurant_id);
+    const result = await sendBroadcast(row.message, row.target, row.restaurant_id, row.nature ?? "promo");
     await admin.from("scheduled_broadcasts").update({ result }).eq("id", row.id);
     sent++;
   }
@@ -135,40 +192,41 @@ export async function processDueScheduledBroadcasts(
 export async function sendBroadcast(
   message: string,
   target: BroadcastTarget,
-  restaurantId: string
+  restaurantId: string,
+  nature: BroadcastNature = "promo"
 ): Promise<BroadcastResult> {
   const admin = createAdminClient();
 
-  const teamIds = await resolveTeamIds(admin, restaurantId, target);
-  if (teamIds.length === 0) return { targeted: 0, sent: 0, skipped: 0 };
+  const allMembers = await resolveAudience(admin, restaurantId, target);
+  if (allMembers.length === 0) return { targeted: 0, sent: 0, skipped: 0 };
 
-  // ADR 0015 — l'appartenance à une équipe vit dans memberships, pas
-  // profiles.team_id (obsolète, plus mis à jour depuis le pivot).
-  const { data: membersRaw } = await admin
-    .from("memberships")
-    .select("user_id, profiles!inner(phone)")
-    .eq("restaurant_id", restaurantId)
-    .in("team_id", teamIds);
-  const allMembers = ((membersRaw ?? []) as unknown as { user_id: string; profiles: { phone: string | null } }[])
-    .map((m) => ({ id: m.user_id, phone: m.profiles.phone }));
-
-  // ADR 0022 — garde-fou : n'envoyer qu'aux membres ayant consenti au marketing.
-  // (À l'inscription comme dans /compte, push et WhatsApp sont couplés en un
-  // seul opt-in « marketing ».)
-  const optedIn = await getConsentingUserIds(allMembers.map((x) => x.id), "marketing_push", admin);
-  const members = allMembers.filter((m) => optedIn.has(m.id));
+  // ADR 0022 + 0039 — le consentement marketing conditionne les PROMOS, pas
+  // les informations de service : celles-ci exécutent le programme auquel le
+  // membre a adhéré (art. 6.1.b), on ne peut pas les lui refuser faute d'un
+  // opt-in publicitaire. À l'inscription comme dans /compte, push et WhatsApp
+  // restent couplés en un seul opt-in « marketing ».
+  const members =
+    nature === "service"
+      ? allMembers
+      : await getConsentingUserIds(allMembers.map((x) => x.id), "marketing_push", admin).then((ok) =>
+          allMembers.filter((m) => ok.has(m.id))
+        );
 
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   let sent = 0;
   let skipped = 0;
 
+  // Deux enveloppes distinctes (ADR 0039 §3) : une promo ne doit pas consommer
+  // le droit d'informer, et une information de service ne doit pas ouvrir un
+  // second quota de promos. Chacune reste à 2/semaine/membre.
+  const journalType = nature === "service" ? "admin_service" : "admin_broadcast";
+
   for (const m of members) {
-    // Enveloppe dédiée : 2 broadcasts/semaine/membre max
     const { count } = await admin
       .from("notification_log")
       .select("id", { count: "exact", head: true })
       .eq("user_id", m.id)
-      .eq("trigger_type", "admin_broadcast")
+      .eq("trigger_type", journalType)
       .gte("sent_at", weekAgo);
     if ((count ?? 0) >= BROADCAST_MAX_PER_WEEK) {
       skipped++;
@@ -186,14 +244,23 @@ export async function sendBroadcast(
 
     // Journalise SANS toucher profiles.last_notified_at (sinon les notifs
     // automatiques seraient suspendues) → enveloppes bien séparées.
-    await admin.from("notification_log").insert({
+    const ligne = {
       user_id: m.id,
       restaurant_id: restaurantId,
-      trigger_type: "admin_broadcast",
       channel,
       community_score_at_send: null,
       message_body: message,
-    });
+    };
+    const { error: journalError } = await admin
+      .from("notification_log")
+      .insert({ ...ligne, trigger_type: journalType });
+    // Fail-open : tant que la migration du 21/08 n'est pas appliquée, la
+    // contrainte CHECK refuse 'admin_service'. Le message est déjà parti — on
+    // le journalise sous l'ancien type plutôt que de perdre la trace (et donc
+    // le compteur anti-spam).
+    if (journalError && journalType === "admin_service") {
+      await admin.from("notification_log").insert({ ...ligne, trigger_type: "admin_broadcast" });
+    }
     sent++;
   }
 

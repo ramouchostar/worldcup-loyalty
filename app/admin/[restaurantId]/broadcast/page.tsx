@@ -36,6 +36,9 @@ export default function AdminBroadcastPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const [message, setMessage] = useState("");
   const [kind, setKind] = useState<TargetKind>("all");
+  // ADR 0039 — nature du message : une information de service part à tous les
+  // membres (exécution du programme), une promo aux seuls consentants.
+  const [nature, setNature] = useState<"service" | "promo">("promo");
   const [types, setTypes] = useState<TeamType[]>([]);
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -107,6 +110,7 @@ export default function AdminBroadcastPage() {
         restaurantId,
         message,
         target,
+        nature,
         ...(sendOn ? { sendOn, promoOn: promoOn || undefined } : {}),
       }),
     });
@@ -156,10 +160,33 @@ export default function AdminBroadcastPage() {
 
       {/* Cible */}
       <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
-        <p className="text-sm font-semibold text-gray-900">Destinataires</p>
+        <p className="text-sm font-semibold text-gray-900">Nature du message</p>
 
         <div className="flex flex-wrap gap-2">
-          {([["all", "Toutes les équipes"], ["types", "Par type"], ["teams", "Par équipe"]] as [TargetKind, string][]).map(
+          {([["service", "Information"], ["promo", "Promotion"]] as ["service" | "promo", string][]).map(
+            ([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setNature(value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                  nature === value ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {label}
+              </button>
+            )
+          )}
+        </div>
+        <p className="text-xs text-gray-500">
+          {nature === "service"
+            ? "Information liée au programme (cadeau prêt, incident, changement de règle) : elle part à tous les membres visés."
+            : "Offre commerciale : elle ne part qu'aux membres qui ont accepté de recevoir des offres."}
+        </p>
+
+        <p className="text-sm font-semibold text-gray-900 pt-2">Destinataires</p>
+
+        <div className="flex flex-wrap gap-2">
+          {([["all", "Tous les membres"], ["types", "Par type"], ["teams", "Par équipe"]] as [TargetKind, string][]).map(
             ([value, label]) => (
               <button
                 key={value}

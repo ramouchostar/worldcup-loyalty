@@ -43,12 +43,15 @@ Contact vie privée : **[email de contact]**.
 |---|---|
 | Créer et gérer votre compte et le programme de fidélité | Exécution du contrat |
 | Faire fonctionner les équipes et calculer vos récompenses | Exécution du contrat |
-| Vous envoyer des **notifications** (offres des restaurateurs) | **Votre consentement** |
+| Vous envoyer les **informations liées au programme** : votre cadeau est prêt, votre ticket n'est pas passé, une règle change | Exécution du contrat |
+| Vous envoyer des **offres commerciales** des restaurateurs (promotions) | **Votre consentement** |
 | Produire des **statistiques agrégées et anonymisées** pour les restaurateurs | **Votre consentement** |
 | Vous proposer des équipes proches (**zones**) | **Votre consentement** |
 | Sécurité, prévention de la fraude, obligations comptables | Intérêt légitime / obligation légale |
 
-Vous pouvez **retirer votre consentement à tout moment** (voir § 7), sans que cela affecte l'utilisation faite avant le retrait.
+**Deux sortes de messages, deux régimes.** Adhérer au programme, c'est demander qu'on vous dise quand vous avez gagné quelque chose : ces messages-là font partie du service, et vous les recevez sans avoir à cocher quoi que ce soit. Les **offres commerciales**, elles, exigent votre accord explicite — accepter cette politique ne vaut pas accord : c'est une case à part, que vous pouvez décocher à tout moment dans vos réglages sans rien perdre du programme.
+
+Vous pouvez **retirer votre consentement à tout moment** (voir § 7), sans que cela affecte l'utilisation faite avant le retrait. Si vous ne souhaitez plus aucun message, vous pouvez couper les notifications de votre appareil ou fermer votre compte (§ 7).
 
 ## 4. Ce que nous ne faisons **pas**
 
@@ -56,7 +59,8 @@ Vous pouvez **retirer votre consentement à tout moment** (voir § 7), sans que 
 - Les restaurateurs **ne reçoivent pas** votre nom, votre email, votre numéro, ni votre historique individuel.
 
 Ce que les restaurateurs peuvent faire, uniquement via la plateforme :
-- **vous adresser une offre** ciblée (c'est **nous** qui envoyons le message, et seulement si vous avez accepté les notifications) ;
+- **vous adresser une offre** ciblée (c'est **nous** qui envoyons le message, et seulement si vous avez accepté de recevoir des offres) ;
+- **vous informer** de ce qui concerne votre participation au programme (cadeau prêt, incident, changement de règle) — ces messages ne sont pas des publicités et vous parviennent quel que soit votre choix sur les offres ;
 - consulter des **statistiques agrégées et anonymisées** (par exemple « les équipes d'écoles commandent davantage le vendredi »), **jamais à l'échelle d'une personne** — une statistique n'est affichée que si le groupe concerné est suffisamment grand pour empêcher toute ré-identification.
 
 ## 5. Avec qui vos données sont partagées

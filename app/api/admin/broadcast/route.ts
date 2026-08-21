@@ -7,6 +7,7 @@ import {
   cancelScheduledBroadcast,
   todayInBrussels,
   type BroadcastTarget,
+  type BroadcastNature,
 } from "@/lib/broadcast";
 import { isTeamType } from "@/lib/teams";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
@@ -56,6 +57,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Cible invalide." }, { status: 400 });
   }
 
+  // ADR 0039 — nature du message. Défaut `promo` : c'est le comportement
+  // historique, et c'est le plus restrictif des deux (consentement exigé).
+  const nature: BroadcastNature = body?.nature === "service" ? "service" : "promo";
+
   const sendOn = typeof body?.sendOn === "string" && DATE_RE.test(body.sendOn) ? body.sendOn : null;
   const promoOn = typeof body?.promoOn === "string" && DATE_RE.test(body.promoOn) ? body.promoOn : null;
 
@@ -88,11 +93,11 @@ export async function POST(req: Request) {
         );
       }
     }
-    const row = await scheduleBroadcast(message, target, restaurantId, sendOn, promoOn, guard.userId);
+    const row = await scheduleBroadcast(message, target, restaurantId, sendOn, promoOn, guard.userId, nature);
     return NextResponse.json({ ok: true, scheduled: true, id: row.id, sendOn: row.send_on, promoOn: row.promo_on });
   }
 
-  const result = await sendBroadcast(message, target, restaurantId);
+  const result = await sendBroadcast(message, target, restaurantId, nature);
   return NextResponse.json({ ok: true, ...result });
 }
 

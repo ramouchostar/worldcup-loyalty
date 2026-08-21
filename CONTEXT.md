@@ -310,7 +310,10 @@ Message proactif envoyé à un membre montrant l'état de sa communauté et le c
 _Avoid_ : rappel, relance, marketing push (toujours ancré dans le score réel).
 
 **Broadcast admin** :
-Notification composée et envoyée par le restaurateur à une équipe, plusieurs équipes, ou tout un type d'équipe (ex. « menu étudiant » → type `ecole` ; « service de nuit » → type `taxis`). Distincte des notifications d'incitation automatiques (ADR 0009) : enveloppe anti-spam dédiée (≈ 2/semaine/membre). Canal PWA push → WhatsApp en fallback.
+Notification composée et envoyée par le restaurateur à **tous les membres de l'établissement** (canal général, avec ou sans équipe — ADR 0039), à une équipe, plusieurs équipes, ou tout un type d'équipe (ex. « menu étudiant » → type `ecole` ; « service de nuit » → type `taxis`). Distincte des notifications d'incitation automatiques (ADR 0009) : enveloppe anti-spam dédiée (≈ 2/semaine/membre). Canal PWA push → WhatsApp en fallback → in-app.
+
+Deux **natures** (ADR 0039), qui décident du public et de la base légale : une **information** (cadeau prêt, incident, changement de règle) exécute le programme et part à tous les membres visés ; une **promotion** est une offre commerciale et ne part qu'aux membres ayant accepté les offres. Chaque nature a son enveloppe anti-spam — une promo ne consomme pas le droit d'informer.
+_Avoid_ : « tous » pour dire « toutes les équipes » (c'était le bug de l'ADR 0039) ; appeler « information » un message qui vante un plat.
 _Avoid_ : campagne, marketing de masse, newsletter.
 
 ---
