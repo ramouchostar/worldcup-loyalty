@@ -37,6 +37,10 @@ _Avoid_ : benchmark (anglicisme — « repères secteur ») ; données concurren
 Photo du reçu papier soumise par le membre comme preuve de sa commande directe. Stockée dans Supabase Storage bucket `receipts`, **conservée 30 jours puis effacée** (ADR 0036) — la commande, elle, reste. Obligatoire pour toute soumission de commande.
 _Avoid_ : reçu, preuve, justificatif.
 
+**Atterrissage** *(ADR 0037)* :
+Arrivée sur la page publique d'un établissement (`/r/[id]`), comptée côté serveur dans `qr_landings` par jour, provenance (`qr_code` = QR imprimé, `direct` = lien partagé ou saisie) et visiteur (`anonyme` / `membre`). Premier étage de l'**entonnoir** — atterrissage → inscription → scan → commande — visible sur `/platform/scans`. Compte des **chargements de page**, pas des personnes : dédupliquer exigerait un cookie, donc du consentement, donc l'angle mort qu'on cherchait à sortir.
+_Avoid_ : visite, visiteur unique, session (rien n'est identifié) ; « scan du QR » (le QR n'est pas mesurable, seule l'arrivée l'est).
+
 **Scan** *(ADR 0036)* :
 Un passage d'image dans Claude Vision, qu'il aboutisse ou non à une commande. Table `receipt_scans` : l'image, la lecture du modèle, et ce qu'elle est devenue (`parsed` = jamais soumis, `header_rejected` = entête non reconnue, `submitted` = devenue commande). C'est l'unité de mesure du coût OCR (ADR 0029 §6) et la matière de `/platform/scans`, où l'on compare image ↔ lecture ↔ encodage.
 _Avoid_ : upload (le scan existe même sans soumission), photo (c'est l'image, pas l'acte).

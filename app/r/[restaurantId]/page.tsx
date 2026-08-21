@@ -5,6 +5,7 @@ import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl 
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
+import { recordLanding } from "@/lib/qr-funnel";
 import type { CommunityScore, Team } from "@/types";
 
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
@@ -90,6 +91,16 @@ export default async function RestaurantLandingPage({
       .limit(5),
     getRestaurantBranding(restaurantId),
   ]);
+
+  // ADR 0037 — premier étage de l'entonnoir, compté côté serveur : c'est le
+  // seul point de mesure qui ne dépende pas du consentement (GA4 refusé par
+  // défaut ne voit presque rien). Aucune donnée personnelle, un compteur par
+  // jour, et un échec n'empêche jamais la page de s'afficher.
+  await recordLanding(
+    restaurantId,
+    utmSource === "qr_code" ? "qr_code" : "direct",
+    user ? "membre" : "anonyme"
+  );
 
   const top5 = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter((s) => s.teams?.is_active);
   // Sous ce seuil, le nombre reste peu flatteur à afficher publiquement —
