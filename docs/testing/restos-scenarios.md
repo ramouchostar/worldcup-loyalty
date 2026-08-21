@@ -8,8 +8,9 @@ ce qu'ils permettent de tester. Script **idempotent** (top-up jusqu'aux volumes 
 rejouable) ; même espace de noms que l'audit (`zz-test-*`, `@seed.boosteats.test`) →
 `scripts/seed-audit-clean.mjs` démonte tout.
 
-Les comptes de test et leur mot de passe sont décrits dans `mission-audit-seed.md`
-(ne pas dupliquer le mot de passe ici).
+Les comptes de test sont listés dans `mission-audit-seed.md`. Leur **mot de passe n'est
+jamais dans le repo** (public) : il vit dans `.env.local` sous `SEED_PASSWORD` (roté le
+2026-08-21 via `scripts/rotate-seed-passwords.mjs` — à partager entre associés hors git).
 
 ## Seuils d'activation (code)
 

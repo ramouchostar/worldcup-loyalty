@@ -19,6 +19,8 @@ tsconfig.tsbuildinfo
 
 # outillage agent (Claude Code)
 .claude/settings.local.json
+# brouillons de scripts (sessions agent) — jamais versionnés, jamais scannés
+scripts/tmp-*
 
 # Les skills marketing sont installés dans .agents/ depuis skills-lock.json
 # (= le node_modules des skills) et .claude/skills/ n'en contient que des liens

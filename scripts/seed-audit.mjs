@@ -21,7 +21,10 @@ const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_RO
 
 const PREFIX = "zz-test-";
 const DOMAIN = "@seed.boosteats.test";
-const PW = "SeedTest!2026x";
+// Mot de passe des comptes de test : JAMAIS en dur (le repo est public, l'ancienne
+// valeur a dû être rotée le 2026-08-21). Lu dans .env.local / l'environnement.
+const PW = process.env.SEED_PASSWORD || env.SEED_PASSWORD;
+if (!PW || PW.length < 12) { console.error("SEED_PASSWORD manquant ou trop court (≥ 12) — défini-le dans .env.local (voir scripts/rotate-seed-passwords.mjs)."); process.exit(1); }
 const POLICY = "2026-01";
 const SCALE = process.env.SEED_SCALE === "full" ? "full" : "smoke";
 const CFG = SCALE === "full"
