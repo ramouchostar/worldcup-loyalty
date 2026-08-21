@@ -123,6 +123,12 @@ export type AnalyticsEventMap = {
   team_invite_shared: { channel: "whatsapp" | "copy" | "native" };
   /** Installation de la PWA acceptée. */
   pwa_installed: Record<string, never>;
+  /**
+   * L'espace d'installation permanent est montré à quelqu'un qui n'a pas
+   * l'app (ADR 0038) — distinct du moment unique de l'onboarding : c'est la
+   * mesure du rattrapage, pas celle du premier passage.
+   */
+  pwa_install_prompted: { audience: "membre" | "restaurateur"; surface: string };
   /** Autorisation des notifications push accordée. */
   push_permission_granted: Record<string, never>;
 

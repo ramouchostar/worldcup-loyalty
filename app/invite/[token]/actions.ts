@@ -23,7 +23,10 @@ export async function acceptInvite(token: string) {
   }
 
   cookieStore.set(OWNER_INVITE_COOKIE, "", { maxAge: 0, path: "/" });
-  redirect(`/admin/${result.restaurantId}`);
+  // `bienvenue` : c'est la toute première fois que ce restaurateur voit sa
+  // console. La proposition d'installer l'app y prend un ton d'accueil plutôt
+  // que celui d'un rappel discret (ADR 0038).
+  redirect(`/admin/${result.restaurantId}?bienvenue=1`);
 }
 
 // « Pas maintenant » : oublie l'invitation en attente pour ne pas rerouter le

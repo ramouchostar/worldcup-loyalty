@@ -20,14 +20,25 @@ import { getRestaurant } from "@/lib/restaurant";
 import { getPlan } from "@/lib/entitlements";
 import { getScanUsage, SCAN_CAP_GRATUIT } from "@/lib/scan-meter";
 import { RequestPlanButton } from "@/components/admin/Paywall";
+import { InstallAppCard } from "@/components/InstallAppCard";
 
 // Dashboard admin (redesign m54) — priorise ce qui demande une action
 // aujourd'hui avant les chiffres. Un restaurateur débordé doit comprendre en
 // un coup d'œil où il en est ; les stats détaillées restent à une page de
 // clic (ventes, opportunités…) plutôt que noyées ici (ADR 0010, transposé
 // côté restaurateur — ici les € restent autorisés, cf. ADR 0007 §admin).
-export default async function AdminDashboardPage({ params }: { params: Promise<{ restaurantId: string }> }) {
+export default async function AdminDashboardPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ restaurantId: string }>;
+  // `?bienvenue=1` : première arrivée par lien d'invitation (ADR 0032). La
+  // proposition d'installer l'app y prend un ton d'accueil, au lieu de se
+  // fondre dans la console d'un habitué.
+  searchParams: Promise<{ bienvenue?: string }>;
+}) {
   const { restaurantId } = await params;
+  const { bienvenue } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -171,6 +182,17 @@ export default async function AdminDashboardPage({ params }: { params: Promise<{
           <p className="text-ink-muted text-[13.5px] mt-1">{dateLabel} · {membersLabel}</p>
         </div>
       </div>
+
+      {/* ── ADR 0038 — installer la console ─────────────────────────────────
+          Le restaurateur arrive ici par le lien d'invitation (ADR 0032) et
+          n'a jamais vu de proposition d'installation : le navigateur ne la
+          fait pas toujours, et rien d'autre ne la faisait. Disparaît une fois
+          l'app installée. */}
+      <InstallAppCard
+        audience="restaurateur"
+        surface={bienvenue ? "console_premiere_visite" : "console_admin"}
+        ton={bienvenue ? "accueil" : "discret"}
+      />
 
       {/* Établissement pas encore en ligne : guider la fin de l'inscription
           (audit 2026-07-23 — un abandon d'onboarding atterrissait dans une
