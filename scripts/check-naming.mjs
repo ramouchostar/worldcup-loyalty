@@ -10,7 +10,7 @@
 //     les nouvelles).
 //  3. docs/migrations/YYYYMMDD-HHMM-slug.sql : format horodaté obligatoire,
 //     préfixe unique — impossible de collisionner à deux.
-import { readdirSync, existsSync } from "node:fs";
+import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -76,6 +76,31 @@ if (existsSync(migDir)) {
     else seen.set(m[1], f);
   }
   notes.push(`Migrations horodatées : ${files.length} fichier(s)`);
+}
+
+// ── 4. Anti-secret : le repo est PUBLIC — aucun mot de passe / clé en dur ──
+// (incident 2026-08-21 : le mot de passe des comptes de test, dont un
+// super-admin de prod, a vécu en clair dans scripts/seed-audit.mjs.)
+import { execSync } from "node:child_process";
+const SECRET_PATTERNS = [
+  [/SeedTest!2026x/, "ancien mot de passe de seed (roté — ne doit plus apparaître)"],
+  [/SEED_PASSWORD\s*=\s*["'][^"'\s]{6,}["']/, "SEED_PASSWORD en dur (doit venir de l'environnement)"],
+  [/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{20,}/, "JWT Supabase (clé anon/service) en dur"],
+  [/sk_(live|test)_[A-Za-z0-9]{16,}/, "clé Stripe en dur"],
+  // même ligne, valeur réelle (pas vide, pas une substitution ${VAR} ni un <placeholder>)
+  [/SUPABASE_SERVICE_ROLE_KEY[ \t]*=[ \t]*(?!\$\{)(?!<)[^\s"']{20,}/, "clé service-role en dur"],
+];
+try {
+  const tracked = execSync("git ls-files", { encoding: "utf8" }).split(/\r?\n/).filter((f) => f && /\.(mjs|js|ts|tsx|md|json|sql|yml|yaml|env\.example)$/.test(f) && !f.startsWith("node_modules/"));
+  for (const f of tracked) {
+    if (f === "scripts/check-naming.mjs") continue; // contient les motifs eux-mêmes
+    let content = "";
+    try { content = readFileSync(join(ROOT, f), "utf8"); } catch { continue; } // fichier de travail (attrape AVANT le commit)
+    for (const [re, why] of SECRET_PATTERNS) if (re.test(content)) errors.push(`Secret en dur dans ${f} : ${why}`);
+  }
+  notes.push(`Anti-secret : ${tracked.length} fichiers suivis scannés`);
+} catch (e) {
+  notes.push(`Anti-secret : scan ignoré (${e.message.split("\n")[0]})`);
 }
 
 // ── Verdict ──────────────────────────────────────────────────────────────────
