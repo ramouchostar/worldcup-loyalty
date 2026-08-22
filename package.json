@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "check:naming": "node scripts/check-naming.mjs"
+    "check:naming": "node scripts/check-naming.mjs",
+    "test": "node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",
@@ -40,6 +41,7 @@
     "eslint-config-next": "^15.5.0",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
+    "tsx": "^4.23.12",
     "typescript": "^5.5.3"
   }
 }

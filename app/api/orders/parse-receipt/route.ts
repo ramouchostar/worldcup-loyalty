@@ -6,6 +6,7 @@ import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
 import { storeScan } from "@/lib/receipt-scans";
+import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 
 export const maxDuration = 30;
 
@@ -36,8 +37,12 @@ export async function POST(request: NextRequest) {
 
   if (!file) return NextResponse.json({ error: "Aucune image fournie." }, { status: 400 });
   if (!rawRestaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
-  if (file.size > 5 * 1024 * 1024)
-    return NextResponse.json({ error: "Image trop lourde (max 5 Mo)." }, { status: 400 });
+  // Au-delà de ~4,5 Mo, Vercel répond 413 AVANT ce code (corps texte, pas
+  // JSON) ; ici on couvre la bande 4–4,5 Mo avec un message vrai. Le client
+  // allège les photos avant envoi (lib/receipt-image-client.ts) — ce garde ne
+  // devrait plus se déclencher que sur un vieux navigateur.
+  if (file.size > MAX_UPLOAD_BYTES)
+    return NextResponse.json({ error: describeUploadFailure(413, null) }, { status: 413 });
   if (!isAllowedReceiptType(file.type))
     return NextResponse.json(
       { error: "Format non supporté. Utilise JPG, PNG ou WebP." },
@@ -90,7 +95,7 @@ export async function POST(request: NextRequest) {
   // ADR 0019). scan_id : jeton opaque renvoyé tel quel à la soumission, qui
   // réutilise l'image déjà stockée au lieu de la déposer une seconde fois.
   return NextResponse.json({
-    ...analysis,
+    ...analysis, // inclut key_corrected (année de la clé réparée → à vérifier)
     key_label: receiptConfig.key_label,
     key_example: receiptConfig.key_examples[0] ?? null,
     has_reliable_key: receiptConfig.has_reliable_key,
