@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseCsvTable, guessMapping, parseSalesRows, parseRowsFromGrid } from "@/lib/sales-import";
 import { parseXlsxToGrid } from "@/lib/xlsx";
+import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 
 // Import des ventes de caisse (ADR 0027 §2). Le mapping des colonnes se fait
 // côté client (aperçu instantané) ; l'enregistrement passe par le RPC
@@ -115,12 +116,15 @@ export default function SalesImport({
           ...(kind === "xlsx" ? { rows: grid } : { csvText }),
         }),
       });
-      const data = await res.json();
+      // Un gros import (grille xlsx, CSV 25 Mo) peut dépasser la limite de la
+      // plateforme → 413 en texte : lecture tolérante + message vrai.
+      const { data: raw } = await readJsonSafe<Record<string, unknown>>(res);
+      const data = (raw ?? {}) as { error?: string; imported?: number; dropped?: number; dateMin?: string; dateMax?: string };
       if (!res.ok) {
-        setError(data?.error ?? "Échec de l'import.");
+        setError(describeHttpFailure(res.status, data.error));
         return;
       }
-      setResult({ imported: data.imported, dropped: data.dropped, dateMin: data.dateMin, dateMax: data.dateMax });
+      setResult({ imported: data.imported ?? 0, dropped: data.dropped ?? 0, dateMin: data.dateMin ?? null, dateMax: data.dateMax ?? null });
       reset();
       setFilename("");
       router.refresh(); // recalcule le forecast avec les nouvelles ventes

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
+import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 
 type RewardKind = "percent" | "free_item";
 type TierForm = { threshold_spent: string; reward_kind: RewardKind; percent_value: string; menu_item_id: string };
@@ -64,12 +65,12 @@ export default function AdminTeamTiersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ restaurantId, tiers: payload }),
     });
-    const body = await res.json();
+    const { data: body } = await readJsonSafe<{ saved?: number; error?: string }>(res);
     if (res.ok) {
-      setMsg({ kind: "ok", text: `Paliers enregistrés (${body.saved}).` });
+      setMsg({ kind: "ok", text: `Paliers enregistrés (${body?.saved ?? 0}).` });
       await load();
     } else {
-      setMsg({ kind: "err", text: body.error ?? "Erreur lors de l'enregistrement." });
+      setMsg({ kind: "err", text: describeHttpFailure(res.status, body?.error) });
     }
     setSaving(false);
   }

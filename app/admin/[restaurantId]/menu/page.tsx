@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
+import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 
 const TEMPLATE = `nom;categorie;prix_vente;prix_revient
 Finest burger;Burger;9,00;0,94
@@ -76,7 +77,9 @@ export default function AdminMenuPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ csv, restaurantId }),
     });
-    const body = await res.json();
+    // CSV catalogue : peut être volumineux → 413 plateforme en texte.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body: any = (await readJsonSafe(res)).data ?? {};
 
     if (res.ok) {
       // Grille par défaut appliquée par l'API si rien n'était configuré (ADR 0017 §4)
@@ -113,7 +116,8 @@ export default function AdminMenuPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ restaurantId }),
     });
-    const body = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body: any = (await readJsonSafe(res)).data ?? {};
     if (res.ok) {
       // Paliers solo recalculés pour l'établissement (ADR 0017) : on remplace
       // les bandes solo, en conservant les assignations communautaires.
@@ -154,13 +158,14 @@ export default function AdminMenuPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ restaurantId, tiers: payload }),
     });
-    const body = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body: any = (await readJsonSafe(res)).data ?? {};
     if (res.ok) {
       setTierMsg({ kind: "ok", text: `Paliers enregistrés (${body.saved}).` });
       await loadAll();
     } else {
       // details = violations du plafond de coût par palier (ADR 0017)
-      setTierMsg({ kind: "err", text: body.error ?? "Échec de l'enregistrement.", details: body.details });
+      setTierMsg({ kind: "err", text: describeHttpFailure(res.status, body.error), details: body.details });
     }
     setSavingTiers(false);
   }
@@ -417,12 +422,12 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ restaurantId, menu_item_id: itemId }),
     });
-    const body = await res.json();
+    const { data: body } = await readJsonSafe<{ error?: string }>(res);
     if (res.ok) {
       setMsg({ kind: "ok", text: "Cadeau des jetons enregistré." });
       await load();
     } else {
-      setMsg({ kind: "err", text: body.error ?? "Échec de l'enregistrement." });
+      setMsg({ kind: "err", text: describeHttpFailure(res.status, body?.error) });
     }
     setSaving(false);
   }
