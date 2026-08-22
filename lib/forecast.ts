@@ -48,7 +48,15 @@ export type ForecastInput = {
   referenceCalendar: RefCalRow[];
   localEvents: LocalEventRow[];
   promoDates: string[]; // scheduled_broadcasts.promo_on à venir
-  schoolCommunity: "FR" | "NL" | "DE" | null;
+  // ADR 0027 §5 amendé (2026-08-22) : 1 à 3 communautés (à Bruxelles, écoles
+  // FR + NL autour du même resto). Vide = facteur vacances inactif.
+  schoolCommunities: ("FR" | "NL" | "DE")[];
+};
+
+const COMMUNITY_SHORT: Record<string, string> = {
+  FR: "écoles francophones",
+  NL: "écoles néerlandophones",
+  DE: "écoles germanophones",
 };
 
 export type ForecastResult =
@@ -211,9 +219,19 @@ export function computeForecast(input: ForecastInput): ForecastResult {
   for (let y = yStart; y <= yEnd; y++) {
     for (const [d, n] of belgianPublicHolidays(y)) holidayMap.set(d, n);
   }
-  const schoolRanges = input.referenceCalendar.filter(
-    (r) => r.kind === "school_holiday" && (r.community == null || r.community === input.schoolCommunity)
-  );
+  // Vacances scolaires par communauté choisie. Avec plusieurs calendriers, on
+  // distingue DEUX états calibrés séparément (pas de double comptage quand les
+  // congés se chevauchent, p. ex. l'été) : « toutes les écoles en vacances »
+  // et « une partie seulement » (p. ex. Carnaval FWB sans Krokus flamand).
+  const communities = Array.from(new Set(input.schoolCommunities ?? []));
+  const schoolRangesBy = communities.map((c) => ({
+    c,
+    ranges: input.referenceCalendar.filter(
+      (r) => r.kind === "school_holiday" && (r.community == null || r.community === c)
+    ),
+  }));
+  const communitiesOnHoliday = (d: string): string[] =>
+    schoolRangesBy.filter((s) => s.ranges.some((r) => inRange(d, r))).map((s) => s.c);
   const nationalRanges = input.referenceCalendar.filter((r) => r.kind === "national_event");
   const promoSet = new Set(input.promoDates);
 
@@ -231,7 +249,17 @@ export function computeForecast(input: ForecastInput): ForecastResult {
   };
   const calibPayday = calibrate(isPaydayWindow);
   const calibHoliday = calibrate((d) => holidayMap.has(d));
-  const calibSchool = calibrate((d) => schoolRanges.some((r) => inRange(d, r)));
+  const calibSchoolAll = calibrate((d) => {
+    const k = communitiesOnHoliday(d).length;
+    return k > 0 && k === communities.length;
+  });
+  const calibSchoolPart =
+    communities.length >= 2
+      ? calibrate((d) => {
+          const k = communitiesOnHoliday(d).length;
+          return k > 0 && k < communities.length;
+        })
+      : undefined;
 
   // 4. Projection sur 7 jours (aujourd'hui inclus).
   const days: DayForecast[] = [];
@@ -253,9 +281,14 @@ export function computeForecast(input: ForecastInput): ForecastResult {
         factors.push({ label: holidayName, effect: calibHoliday - 1, estimated: false });
         mult *= calibHoliday;
       }
-      if (schoolRanges.some((r) => inRange(d, r)) && calibSchool != null) {
-        factors.push({ label: "Vacances scolaires", effect: calibSchool - 1, estimated: false });
-        mult *= calibSchool;
+      const onHoliday = communitiesOnHoliday(d);
+      if (onHoliday.length > 0 && onHoliday.length === communities.length && calibSchoolAll != null) {
+        factors.push({ label: "Vacances scolaires", effect: calibSchoolAll - 1, estimated: false });
+        mult *= calibSchoolAll;
+      } else if (onHoliday.length > 0 && onHoliday.length < communities.length && calibSchoolPart != null) {
+        const who = onHoliday.map((c) => COMMUNITY_SHORT[c] ?? c).join(" + ");
+        factors.push({ label: `Vacances scolaires (${who} seulement)`, effect: calibSchoolPart - 1, estimated: false });
+        mult *= calibSchoolPart;
       }
       // Événements / promos : peu ou pas d'historique → estimation par direction
       // (assumée, marquée « estimated » pour l'honnêteté de l'explication).

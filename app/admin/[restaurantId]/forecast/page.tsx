@@ -14,6 +14,7 @@ import LocalEventManager, { type EventItem } from "@/components/admin/LocalEvent
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
 import { detectGranularity, summarizeTrend } from "@/lib/sales-granularity";
+import { getSchoolCalendars } from "@/lib/school-calendar";
 
 // Prévisions de CA (ADR 0027). Surface ADMIN uniquement — le restaurateur a
 // le droit de voir ses euros (l'ADR 0007 ne vise que le membre). Rien ici
@@ -47,8 +48,8 @@ export default async function ForecastPage({
   const since = new Date(now.getTime() - 182 * 86_400_000).toISOString().slice(0, 10); // ~26 semaines
   const in7 = new Date(now.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
 
-  const [restoRes, dailyRes, refCalRes, eventsRes, promoRes, importRes] = await Promise.all([
-    admin.from("restaurants").select("school_calendar").eq("id", restaurantId).maybeSingle(),
+  const [communities, dailyRes, refCalRes, eventsRes, promoRes, importRes] = await Promise.all([
+    getSchoolCalendars(admin, restaurantId),
     admin.rpc("daily_sales_totals", { p_restaurant_id: restaurantId, p_since: since }),
     admin
       .from("reference_calendar")
@@ -86,7 +87,6 @@ export default async function ForecastPage({
   const trend = nonDaily
     ? summarizeTrend(daily.map((r) => ({ sold_on: r.sold_on, amount: Number(r.total) })), gran.kind as "weekly" | "monthly")
     : null;
-  const community = (restoRes.data?.school_calendar ?? null) as "FR" | "NL" | "DE" | null;
   const events = (eventsRes.data ?? []) as EventItem[];
 
   const forecast = computeForecast({
@@ -100,7 +100,7 @@ export default async function ForecastPage({
       expected_effect: e.expected_effect,
     })),
     promoDates: ((promoRes.data ?? []) as { promo_on: string }[]).map((p) => p.promo_on),
-    schoolCommunity: community,
+    schoolCommunities: communities,
   });
 
   // ADR 0029 §5 — l'essai démarre quand la fonction devient data-ready (le

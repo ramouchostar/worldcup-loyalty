@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { listTeamSuggestions } from "@/lib/teams";
+import { getSchoolCalendars } from "@/lib/school-calendar";
 import { SettingsForm } from "./SettingsForm";
 import { BrandingForm } from "./BrandingForm";
 import { CommunitiesForm } from "./CommunitiesForm";
@@ -17,14 +18,15 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
   const admin = createAdminClient();
   const { data: restaurant } = await admin
     .from("restaurants")
-    .select("id, name, sector, address, cuisine_types, school_calendar, google_maps_url, website_url, instagram_url, tiktok_url, facebook_url")
+    .select("id, name, sector, address, cuisine_types, google_maps_url, website_url, instagram_url, tiktok_url, facebook_url")
     .eq("id", restaurantId)
     .maybeSingle();
   if (!restaurant) notFound();
 
-  const [branding, suggestions] = await Promise.all([
+  const [branding, suggestions, schoolCalendars] = await Promise.all([
     getRestaurantBranding(restaurantId),
     listTeamSuggestions(restaurantId),
+    getSchoolCalendars(admin, restaurantId),
   ]);
 
   return (
@@ -44,7 +46,7 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
           sector: restaurant.sector ?? "",
           address: restaurant.address ?? "",
           cuisine_types: (restaurant.cuisine_types ?? []).join(", "),
-          school_calendar: restaurant.school_calendar ?? "",
+          school_calendars: schoolCalendars,
           google_maps_url: restaurant.google_maps_url ?? "",
           website_url: restaurant.website_url ?? "",
           instagram_url: restaurant.instagram_url ?? "",
