@@ -17,9 +17,11 @@ export default function AdminReferralsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Tolérant : un 5xx en texte ne doit pas laisser la page en « chargement » éternel.
     fetch(`/api/admin/referrals?restaurantId=${restaurantId}`)
-      .then((r) => r.json())
-      .then((data) => { setReferrals(data); setLoading(false); });
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => { setReferrals(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [restaurantId]);
 
   // Group by referrer to compute token counts

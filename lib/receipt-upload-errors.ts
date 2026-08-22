@@ -36,15 +36,6 @@ export function describeUploadFailure(
   return "Envoi impossible. Réessaie.";
 }
 
-// Lit une réponse fetch sans jamais lever sur un corps non-JSON (413/502 de
-// la plateforme renvoient du texte).
-export async function readJsonSafe<T = Record<string, unknown>>(
-  res: Response
-): Promise<{ ok: boolean; status: number; data: T | null }> {
-  const text = await res.text().catch(() => "");
-  let data: T | null = null;
-  if (text) {
-    try { data = JSON.parse(text) as T; } catch { data = null; }
-  }
-  return { ok: res.ok, status: res.status, data };
-}
+// Lecteur de réponse tolérant : désormais générique (lib/fetch-json.ts),
+// ré-exporté ici pour les appelants existants.
+export { readJsonSafe } from "./fetch-json";

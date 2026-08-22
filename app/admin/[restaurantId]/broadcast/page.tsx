@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { TeamType } from "@/types";
+import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 
 type TargetKind = "all" | "types" | "teams";
 type Team = { id: string; name: string; type: TeamType; flag_emoji: string };
@@ -114,7 +115,8 @@ export default function AdminBroadcastPage() {
         ...(sendOn ? { sendOn, promoOn: promoOn || undefined } : {}),
       }),
     });
-    const body = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body: any = (await readJsonSafe(res)).data ?? {};
     if (res.ok && body.scheduled) {
       setScheduledOk(body.sendOn);
       setMessage("");
@@ -124,7 +126,7 @@ export default function AdminBroadcastPage() {
     } else if (res.ok) {
       setResult(body);
       setMessage("");
-    } else setError(body.error ?? "Échec de l'envoi.");
+    } else setError(describeHttpFailure(res.status, body.error));
     setSending(false);
   }
 

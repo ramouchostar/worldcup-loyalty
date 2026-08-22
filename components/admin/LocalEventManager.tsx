@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 
 // Événements locaux du restaurateur (ADR 0027 §6) : il connaît son terrain
 // mieux que la plateforme. Chaque événement pousse/baisse le forecast sur sa
@@ -45,9 +46,9 @@ export default function LocalEventManager({
           expected_effect: effect,
         }),
       });
-      const data = await res.json();
+      const { data } = await readJsonSafe<{ error?: string }>(res);
       if (!res.ok) {
-        setError(data?.error ?? "Enregistrement impossible.");
+        setError(describeHttpFailure(res.status, data?.error));
         return;
       }
       setLabel("");

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { ACTION_ICONS, TOKENS_PER_PORTION, getActionLinks } from "@/lib/social-actions";
 import { track } from "@/lib/analytics";
+import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
 
 type SocialData = {
@@ -174,8 +175,10 @@ function ActionCard({
       onSuccess();
       return;
     }
-    const data = await res.json();
-    setError(data.error ?? "Erreur inconnue.");
+    // Jamais `res.json()` à l'aveugle : un 5xx en texte laissait le bouton
+    // bloqué (promesse rejetée non gérée).
+    const { data } = await readJsonSafe<{ error?: string }>(res);
+    setError(describeHttpFailure(res.status, data?.error));
     setSubmitting(false);
   }
 
