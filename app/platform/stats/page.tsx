@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getPlatformStats, WINDOW_MONTHS } from "@/lib/platform-stats";
+import { getAppInstallStats } from "@/lib/app-install";
 import { StatTile } from "@/components/platform/StatTile";
 import { MonthlyBars } from "@/components/platform/MonthlyBars";
 import { FunnelBars } from "@/components/platform/FunnelBars";
@@ -33,6 +34,8 @@ export default async function PlatformStatsPage({
   const { demo } = await searchParams;
   const includeDemo = demo === "1";
   const stats = await getPlatformStats(includeDemo);
+  // App installée (complément ADR 0038) — null tant que la migration manque.
+  const installs = await getAppInstallStats();
 
   const activationDelta = stats.restaurants.activatedThisMonth - stats.restaurants.activatedPrevMonth;
   const engagement =
@@ -109,6 +112,15 @@ export default async function PlatformStatsPage({
             label="Adhésions"
             value={stats.members.memberships}
             hint={`${stats.members.people} personnes · ${stats.members.new30d} nouvelles sur 30 j`}
+          />
+          <StatTile
+            label="App installée"
+            value={installs ? installs.total : "—"}
+            hint={
+              installs
+                ? `${installs.byPlatform.ios} iPhone · ${installs.byPlatform.android} Android · ${installs.active30d} ouvertes sur 30 j`
+                : "migration 20260822-2023-member-app-installs à appliquer"
+            }
           />
           <StatTile
             label="Tickets validés (30 j)"

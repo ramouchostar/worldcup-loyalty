@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase";
 import { ClientsTable, type ClientRow } from "@/components/admin/ClientsTable";
+import { getAppInstallsByUser } from "@/lib/app-install";
 
 export const metadata = { title: "Mes clients" };
 
@@ -36,6 +37,8 @@ export default async function ClientsPage({ params }: { params: Promise<{ restau
 
   const memberships = (membershipsRaw as unknown as MembershipRow[]) ?? [];
   const orders = ((ordersRaw as OrderRow[] | null) ?? []);
+  // App installée (complément ADR 0038) — indicateur pseudonymisé, fail-open.
+  const installs = await getAppInstallsByUser(memberships.map((m) => m.user_id));
 
   const byUser = new Map<string, { count: number; spent: number; last: string | null }>();
   for (const o of orders) {
@@ -60,6 +63,7 @@ export default async function ClientsPage({ params }: { params: Promise<{ restau
         orderCount: agg?.count ?? 0,
         totalSpent: agg?.spent ?? 0,
         lastVisit: fmt(agg?.last ?? null),
+        appInstalled: installs.has(m.user_id),
         _sort: agg?.last ?? m.joined_at,
       };
     })
@@ -72,8 +76,9 @@ export default async function ClientsPage({ params }: { params: Promise<{ restau
         <h1 className="text-2xl font-bold text-gray-900">👤 Mes clients</h1>
         <p className="text-gray-500 text-sm mt-1">
           L&apos;activité de tes membres — {memberships.length} inscrit
-          {memberships.length > 1 ? "s" : ""}. Les coordonnées restent gérées par la
-          plateforme (RGPD) : pour les joindre, passe par les Broadcasts.
+          {memberships.length > 1 ? "s" : ""}, dont {installs.size} avec l&apos;app installée 📱.
+          Les coordonnées restent gérées par la plateforme (RGPD) : pour les joindre, passe par
+          les Broadcasts.
         </p>
       </div>
 
