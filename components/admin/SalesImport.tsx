@@ -2,9 +2,10 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { parseCsvTable, guessMapping, parseSalesRows, parseRowsFromGrid } from "@/lib/sales-import";
+import { parseCsvTable, guessMappingSmart, parseSalesRows, parseRowsFromGrid } from "@/lib/sales-import";
 import { parseXlsxToGrid } from "@/lib/xlsx";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
+import { detectGranularity } from "@/lib/sales-granularity";
 
 // Import des ventes de caisse (ADR 0027 §2). Le mapping des colonnes se fait
 // côté client (aperçu instantané) ; l'enregistrement passe par le RPC
@@ -40,8 +41,12 @@ export default function SalesImport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
   const [result, setResult] = useState<Result | null>(null);
+  // Sélecteurs de colonnes : cachés tant que la détection automatique suffit
+  // (« sans contrainte », 2026-08-22) — visibles en secours ou à la demande.
+  const [advanced, setAdvanced] = useState(false);
 
   function reset() {
+    setAdvanced(false);
     setCsvText("");
     setGrid(null);
     setKind(null);
@@ -61,15 +66,19 @@ export default function SalesImport({
     setFilename(file.name);
     try {
       let h: string[];
+      let sampleRows: string[][] = [];
       if (/\.xlsx$/i.test(file.name)) {
         const bytes = new Uint8Array(await file.arrayBuffer());
         const { headers: xh, rows } = parseXlsxToGrid(bytes);
         h = xh;
+        sampleRows = rows;
         setGrid(rows);
         setKind("xlsx");
       } else if (/\.(csv|txt)$/i.test(file.name)) {
         const text = await file.text();
-        h = parseCsvTable(text).headers;
+        const parsed = parseCsvTable(text);
+        h = parsed.headers;
+        sampleRows = parsed.rows;
         setCsvText(text);
         setKind("csv");
       } else {
@@ -82,7 +91,8 @@ export default function SalesImport({
         setError("Fichier illisible ou vide.");
         return;
       }
-      const g = guessMapping(h);
+      // En-têtes + CONTENU : le resto n'a rien à désigner dans la plupart des cas.
+      const g = guessMappingSmart(h, sampleRows);
       setHeaders(h);
       setDateCol(g.date);
       setAmountCol(g.amount);
@@ -136,14 +146,19 @@ export default function SalesImport({
   }
 
   const options = headers.map((h, i) => ({ label: h || `Colonne ${i + 1}`, value: i }));
+  // La détection automatique a-t-elle suffi ? (colonnes trouvées + ventes reconnues)
+  const autoOk = dateCol !== null && amountCol !== null && !!preview && preview.rows.length > 0;
+  const gran = preview && preview.rows.length > 0 ? detectGranularity(preview.rows.map((r) => r.d)) : null;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5">
-      <h2 className="font-bold text-gray-900">Importer mes ventes de caisse</h2>
-      <p className="text-xs text-gray-500 mt-1">
-        Exporte tout ton chiffre depuis ton logiciel de caisse (CSV ou Excel) et dépose-le ici. On n&apos;en garde que
-        la <span className="font-medium">date, l&apos;heure et le montant</span> — jamais tes clients. Ces ventes
-        ne s&apos;affichent nulle part : elles servent uniquement à calculer tes prévisions.
+      <h2 className="font-bold text-gray-900">Dépose le rapport de ventes de ta caisse</h2>
+      {/* 4 lignes, pour tout le monde : où trouver le rapport, ce qu'on en fait, ce que ça apporte */}
+      <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+        Dépose ici le rapport de ventes de ton logiciel de caisse, <span className="font-medium">tel quel</span> — par jour,
+        par semaine ou par mois, en CSV ou Excel. Tu le trouves dans ta caisse sous « Rapports », « Exports » ou
+        « Ventes ». On n&apos;en garde que les dates et les montants, jamais tes clients. En échange, Boosteats te
+        dit ce que ta semaine va probablement faire et t&apos;aide à prévoir le stock, l&apos;équipe et les promos.
       </p>
 
       {lastImport && (
@@ -179,27 +194,50 @@ export default function SalesImport({
 
       {headers.length > 0 && (
         <div className="mt-4 space-y-4">
-          <div className="grid sm:grid-cols-3 gap-3">
-            <Field label="Colonne date *">
-              <Select value={dateCol} onChange={setDateCol} options={options} />
-            </Field>
-            <Field label="Colonne montant *">
-              <Select value={amountCol} onChange={setAmountCol} options={options} />
-            </Field>
-            <Field label="Colonne heure (optionnel)">
-              <Select value={timeCol} onChange={setTimeCol} options={options} allowNone />
-            </Field>
-          </div>
+          {/* Secours : la détection n'a pas suffi, ou le resto veut vérifier */}
+          {!autoOk && !advanced && (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              On n&apos;a pas reconnu tout seul les colonnes de ce fichier — indique-nous juste laquelle contient la
+              date et laquelle contient le montant.
+            </p>
+          )}
+          {(!autoOk || advanced) && (
+            <div className="grid sm:grid-cols-3 gap-3">
+              <Field label="Colonne date *">
+                <Select value={dateCol} onChange={setDateCol} options={options} />
+              </Field>
+              <Field label="Colonne montant *">
+                <Select value={amountCol} onChange={setAmountCol} options={options} />
+              </Field>
+              <Field label="Colonne heure (optionnel)">
+                <Select value={timeCol} onChange={setTimeCol} options={options} allowNone />
+              </Field>
+            </div>
+          )}
 
           {preview && (
             <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
               {preview.rows.length > 0 ? (
                 <>
-                  <span className="font-semibold text-gray-700">{preview.rows.length.toLocaleString("fr-BE")}</span>{" "}
-                  ventes détectées
-                  {preview.dateMin && preview.dateMax ? ` du ${fr(preview.dateMin)} au ${fr(preview.dateMax)}` : ""}.
+                  <span className="font-semibold text-gray-700">✓ {gran?.label ?? `${preview.rows.length} ventes`}</span>
+                  {preview.dateMin && preview.dateMax ? ` du ${fr(preview.dateMin)} au ${fr(preview.dateMax)}` : ""}
+                  {" · "}
+                  {preview.rows.length.toLocaleString("fr-BE")} ligne{preview.rows.length > 1 ? "s" : ""} reconnue
+                  {preview.rows.length > 1 ? "s" : ""}.
                   {preview.dropped > 0 && (
-                    <span className="text-amber-700"> {preview.dropped} ligne(s) non reconnue(s).</span>
+                    <span className="text-amber-700"> {preview.dropped} ligne(s) ignorée(s).</span>
+                  )}
+                  {gran && gran.kind !== "daily" && gran.kind !== "unknown" && (
+                    <span className="block mt-1 text-gray-600">
+                      Rapport {gran.kind === "weekly" ? "hebdomadaire" : "mensuel"} : on te donnera la tendance par{" "}
+                      {gran.kind === "weekly" ? "semaine" : "mois"}. Pour une prévision jour par jour, exporte plutôt le
+                      détail par jour quand ta caisse le permet.
+                    </span>
+                  )}
+                  {autoOk && !advanced && (
+                    <button type="button" onClick={() => setAdvanced(true)} className="block mt-1 text-gray-400 underline">
+                      Ce n&apos;est pas ça ? Ajuster les colonnes
+                    </button>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     {preview.rows.slice(0, 3).map((r, i) => (
@@ -212,7 +250,7 @@ export default function SalesImport({
                 </>
               ) : (
                 <span className="text-amber-700">
-                  Aucune vente reconnue avec ces colonnes — vérifie ton choix ci-dessus.
+                  Aucune vente reconnue avec ces colonnes — choisis la colonne date et la colonne montant ci-dessus.
                 </span>
               )}
             </div>
@@ -224,7 +262,7 @@ export default function SalesImport({
               disabled={busy || dateCol === null || amountCol === null || !preview || preview.rows.length === 0}
               className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-red/90 transition-colors"
             >
-              {busy ? "Import en cours…" : "Importer ces ventes"}
+              {busy ? "Import en cours…" : "C'est bon, importer"}
             </button>
             <button onClick={reset} disabled={busy} className="text-sm text-gray-500 hover:text-gray-700">
               Annuler

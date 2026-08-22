@@ -13,6 +13,7 @@ import SalesImport from "@/components/admin/SalesImport";
 import LocalEventManager, { type EventItem } from "@/components/admin/LocalEventManager";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
+import { detectGranularity, summarizeTrend } from "@/lib/sales-granularity";
 
 // Prévisions de CA (ADR 0027). Surface ADMIN uniquement — le restaurateur a
 // le droit de voir ses euros (l'ADR 0007 ne vise que le membre). Rien ici
@@ -77,6 +78,14 @@ export default async function ForecastPage({
 
   const daily = (dailyRes.data ?? []) as { sold_on: string; total: number }[];
   const sales: SaleRow[] = daily.map((r) => ({ sold_on: r.sold_on, sold_at: null, amount: Number(r.total) }));
+  // Rapport déposé tel quel (2026-08-22) : s'il est hebdomadaire ou mensuel,
+  // chaque ligne est un TOTAL de période — le moteur jour-par-jour n'a pas de
+  // sens ; on donne une lecture de tendance honnête à la place.
+  const gran = detectGranularity(daily.map((r) => r.sold_on));
+  const nonDaily = gran.kind === "weekly" || gran.kind === "monthly";
+  const trend = nonDaily
+    ? summarizeTrend(daily.map((r) => ({ sold_on: r.sold_on, amount: Number(r.total) })), gran.kind as "weekly" | "monthly")
+    : null;
   const community = (restoRes.data?.school_calendar ?? null) as "FR" | "NL" | "DE" | null;
   const events = (eventsRes.data ?? []) as EventItem[];
 
@@ -97,7 +106,7 @@ export default async function ForecastPage({
   // ADR 0029 §5 — l'essai démarre quand la fonction devient data-ready (le
   // forecast peut impressionner), puis paywall doux à l'expiration. L'import
   // de ventes, lui, reste TOUJOURS ouvert (la donnée est l'actif, §3).
-  if (forecast.status !== "insufficient_data") {
+  if (forecast.status !== "insufficient_data" || (nonDaily && trend && trend.periods >= 2)) {
     await ensureTrialStarted(restaurantId, "forecast");
   }
   const ent = await getEntitlement(restaurantId, "forecast");
@@ -117,7 +126,45 @@ export default async function ForecastPage({
 
       <TrialBanner ent={ent} restaurantId={restaurantId} feature="forecast" />
 
-      {forecast.status === "insufficient_data" ? (
+      {nonDaily && trend ? (
+        <PaywallSection
+          ent={ent}
+          restaurantId={restaurantId}
+          feature="forecast"
+          enabled={trend.periods >= 2}
+          title="Débloque ta tendance de ventes"
+          pitch="Ton rapport est prêt à être lu — niveau moyen, dernière période, direction. Passe au plan Croissance pour le consulter."
+        >
+          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <p className="text-xs uppercase tracking-wide text-gray-400">
+              Tendance par {trend.periodLabel} · {gran.label}
+            </p>
+            <div className="mt-3 grid sm:grid-cols-3 gap-3">
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500">
+                  Moyenne des {trend.periodLabel === "semaine" ? "dernières semaines" : "derniers mois"}
+                </p>
+                <p className="text-xl font-black text-gray-900 tabular-nums">{euro0(trend.avgRecent)}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500">Dernière {trend.periodLabel}</p>
+                <p className="text-xl font-black text-gray-900 tabular-nums">{trend.last !== null ? euro0(trend.last) : "—"}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500">vs la précédente</p>
+                <p className={`text-xl font-black tabular-nums ${trend.direction === "up" ? "text-green-700" : trend.direction === "down" ? "text-red-700" : "text-gray-900"}`}>
+                  {trend.changePct === null ? "—" : `${trend.changePct >= 0 ? "+" : ""}${Math.round(trend.changePct * 100)} %`}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-4">
+              💡 Ton rapport est {trend.periodLabel === "semaine" ? "hebdomadaire" : "mensuel"} : on lit la tendance, pas le jour par jour.
+              Pour une prévision des 7 prochains jours (paye, vacances, événements), dépose le détail <span className="font-medium">par jour</span> —
+              la plupart des caisses l&apos;exportent sous « Rapports » › « Ventes par jour ».
+            </p>
+          </div>
+        </PaywallSection>
+      ) : forecast.status === "insufficient_data" ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center">
           <p className="text-lg font-bold text-gray-900">Pas encore assez de données</p>
           <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">{forecast.message}</p>

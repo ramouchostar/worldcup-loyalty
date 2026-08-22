@@ -132,23 +132,89 @@ export function normalizeTime(raw: string | undefined): string | null {
 
 // ── Aide au mapping : pré-sélection des colonnes d'après leurs noms ──────────
 
+const DATE_KEYS = ["date", "jour", "datum", "day", "semaine", "week", "mois", "month", "période", "periode", "period"];
+const AMOUNT_KEYS = ["montant", "total", "ttc", "amount", "bedrag", "prix", "ca ", "chiffre", "recette", "revenu", "revenue", "vente", "sales", "omzet", "turnover", "net", "brut", "encaiss"];
+const TIME_KEYS = ["heure", "time", "tijd", "hour", "uur"];
+
 export function guessMapping(headers: string[]): {
   date: number | null;
   amount: number | null;
   time: number | null;
 } {
   const norm = headers.map((h) => h.toLowerCase());
-  const find = (keys: string[]): number | null => {
+  const find = (keys: string[], exclude: number[] = []): number | null => {
     for (let i = 0; i < norm.length; i++) {
+      if (exclude.includes(i)) continue;
       if (keys.some((k) => norm[i].includes(k))) return i;
     }
     return null;
   };
-  return {
-    date: find(["date", "jour", "datum"]),
-    amount: find(["montant", "total", "ttc", "amount", "bedrag", "prix", "ca ", "chiffre"]),
-    time: find(["heure", "time", "tijd", "hour", "uur"]),
-  };
+  const date = find(DATE_KEYS);
+  const time = find(TIME_KEYS, date === null ? [] : [date]);
+  const amount = find(AMOUNT_KEYS, [date, time].filter((x): x is number => x !== null));
+  return { date, amount, time };
+}
+
+// « Sans contrainte » (2026-08-22) : chaque logiciel de caisse nomme ses
+// colonnes à sa façon (« Semaine du », « Omzet », « Encaissé TTC »…). On devine
+// d'abord par les EN-TÊTES, puis on COMPLÈTE par le CONTENU : la colonne dont
+// les valeurs sont des dates devient la date ; parmi les autres colonnes
+// numériques, la plus « totale » (la mieux remplie, puis la plus grosse en
+// moyenne) devient le montant ; une colonne d'heures, l'heure. Le restaurateur
+// n'a plus à désigner quoi que ce soit dans l'immense majorité des cas.
+export function guessMappingSmart(headers: string[], rows: string[][]): {
+  date: number | null;
+  amount: number | null;
+  time: number | null;
+} {
+  const byHeader = guessMapping(headers);
+  const sample = rows.slice(0, 200);
+  const nCols = Math.max(headers.length, ...sample.map((r) => r.length));
+  if (sample.length === 0 || nCols === 0) return byHeader;
+
+  const col = (i: number) => sample.map((r) => String(r[i] ?? "")).filter((v) => v.trim() !== "");
+  const ratio = (vals: string[], ok: (v: string) => boolean) => (vals.length ? vals.filter(ok).length / vals.length : 0);
+
+  const stats = Array.from({ length: nCols }, (_, i) => {
+    const vals = col(i);
+    const dateR = ratio(vals, (v) => normalizeDate(v) !== null);
+    // une cellule « 12/06/2026 14:30 » est une date, pas un montant
+    const amountR = ratio(vals, (v) => normalizeDate(v) === null && normalizeTime(v) === null && normalizeAmount(v) !== null);
+    const timeR = ratio(vals, (v) => normalizeDate(v) === null && normalizeTime(v) !== null);
+    const nums = vals.map((v) => normalizeAmount(v)).filter((n): n is number => n !== null);
+    const mean = nums.length ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
+    // Indices « c'est un montant » / « ce n'en est pas un » :
+    const decR = ratio(vals, (v) => /[.,]\d{1,2}\s*€?$/.test(v.trim()));      // des centimes
+    const allInt = nums.length > 0 && nums.every((n) => Number.isInteger(n));
+    const idLike = allInt && nums.length >= 3 && nums.every((n, k) => k === 0 || n === nums[k - 1] + 1); // 101, 102, 103…
+    const qtyLike = allInt && nums.length > 0 && Math.max(...nums) <= 30;       // 1, 2, 3 (quantités)
+    const headerHint = AMOUNT_KEYS.some((k) => (headers[i] ?? "").toLowerCase().includes(k));
+    const amountScore = amountR + 0.6 * decR + (headerHint ? 0.3 : 0) - (idLike ? 0.8 : 0) - (qtyLike ? 0.4 : 0);
+    return { i, filled: vals.length, dateR, amountR, timeR, mean, amountScore };
+  });
+
+  let date = byHeader.date;
+  if (date === null || stats[date]?.dateR < 0.5) {
+    const best = [...stats].filter((s) => s.dateR >= 0.6).sort((a, b) => b.dateR - a.dateR || b.filled - a.filled)[0];
+    date = best ? best.i : date;
+  }
+
+  let time = byHeader.time;
+  if (time === null || time === date) {
+    const best = [...stats].filter((s) => s.i !== date && s.timeR >= 0.6).sort((a, b) => b.timeR - a.timeR)[0];
+    time = best ? best.i : null;
+  }
+
+  let amount = byHeader.amount;
+  const amountOk = amount !== null && amount !== date && amount !== time && (stats[amount]?.amountR ?? 0) >= 0.5;
+  if (!amountOk) {
+    const candidates = stats.filter((s) => s.i !== date && s.i !== time && s.amountR >= 0.6);
+    // meilleur score « montant » (centimes, en-tête, pas un n° ni une quantité),
+    // puis la plus grosse en moyenne (un total > un prix unitaire)
+    candidates.sort((a, b) => b.amountScore - a.amountScore || b.mean - a.mean);
+    amount = candidates[0] ? candidates[0].i : amount;
+  }
+  return { date, amount, time };
 }
 
 // ── Parse complet (serveur) ─────────────────────────────────────────────────
