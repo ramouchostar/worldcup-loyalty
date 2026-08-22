@@ -97,3 +97,14 @@ Le calcul reste **déterministe et reproductible**. Un LLM (`@anthropic-ai/sdk`)
 - **IA (LLM) pour calculer le chiffre** : rejeté — non reproductible, non fiable sur des maths de série temporelle, coûteux, non explicable. Le LLM ne peut que **rédiger** l'explication.
 - **Chiffre unique “punchy”** : rejeté au profit d'une **fourchette + confiance** — un chiffre faux une fois détruit la crédibilité de tout l'outil.
 - **Forecast de la seule part programme** : rejeté — le porteur veut le **CA total** (ancrage gestion) ; la part programme reste dérivable en interne mais n'est pas la cible affichée.
+
+---
+
+## Amendement 2026-08-22 — plusieurs calendriers scolaires par établissement
+
+**Constat** : à Bruxelles (et dans les communes à facilités), la clientèle d'un même resto suit des écoles **francophones et néerlandophones** ; un seul `school_calendar` fausse le facteur « vacances » une semaine sur deux (Carnaval FWB ≠ Krokusvakantie, Pâques décalées…).
+
+**Décision** :
+- `restaurants.school_calendars TEXT[]` (migration `docs/migrations/20260822-2245-school-calendars.sql`) : **1 à 3** valeurs parmi `FR | NL | DE` (CHECK en base). `school_calendar` (une valeur) est conservée comme **miroir legacy** (= premier élément) ; le code lit la nouvelle colonne et retombe sur l'ancienne si la migration manque (fail-open). Helpers dans `lib/school-calendar.ts`.
+- Réglages « Mon établissement » : cases à cocher (au moins une, max trois) à la place du `<select>`.
+- Moteur (`lib/forecast.ts`, `schoolCommunities[]`) : deux états calibrés **séparément** pour éviter le double comptage quand les congés se chevauchent (été, Noël) — « Vacances scolaires » (toutes les communautés choisies en congé) et « Vacances scolaires (écoles francophones seulement) » (une partie). Chaque état n'est montré que s'il est calibré (≥ 3 jours d'historique), comme les autres facteurs.

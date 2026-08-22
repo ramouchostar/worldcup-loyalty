@@ -6,6 +6,7 @@ import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { isValidHex, FONT_OPTIONS } from "@/lib/branding";
 import { LOGO_BUCKET } from "@/lib/restaurant";
 import { parseHttpUrl } from "@/lib/url";
+import { parseSchoolCalendars, schoolCalendarsColumns, isMissingSchoolCalendarsColumn } from "@/lib/school-calendar";
 import { replaceTeamSuggestions } from "@/lib/teams";
 import { sanitizeSuggestions } from "@/lib/team-suggestions";
 import { captureWebsiteScreenshot, fetchOgImage, fetchImageAsBlock, fetchSocialImageAsBlock, analyzeDesign, type ImageBlock, type DesignSuggestion } from "@/lib/design-detect";
@@ -38,28 +39,43 @@ export async function updateRestaurantInfo(
   // ADR 0016 §2 — le secteur alimente la page publique /secteurs
   if (!sector || sector.length < 2) return { error: "Le secteur (ville/quartier) est requis." };
 
-  // ADR 0027 §5 — communauté scolaire (facteur vacances des prévisions).
-  const rawCalendar = ((formData.get("school_calendar") as string) ?? "").trim();
-  if (rawCalendar && !["FR", "NL", "DE"].includes(rawCalendar)) {
+  // ADR 0027 §5 amendé (2026-08-22) — 1 à 3 calendriers scolaires (facteur
+  // vacances des prévisions). Au moins un : sans calendrier, les Prévisions
+  // ignorent les vacances, ce qui fausse la semaine du restaurateur.
+  const rawCalendars = formData.getAll("school_calendars").map((v) => String(v));
+  if (rawCalendars.some((v) => !["FR", "NL", "DE"].includes(v.trim().toUpperCase()))) {
     return { error: "Calendrier scolaire invalide." };
   }
+  const calendars = parseSchoolCalendars(rawCalendars);
+  if (calendars.length === 0) {
+    return { error: "Coche au moins un calendrier scolaire (jusqu'à trois)." };
+  }
 
+  const fields = {
+    name,
+    sector,
+    address,
+    cuisine_types: cuisineTypes,
+    google_maps_url: parseHttpUrl(formData.get("google_maps_url") as string),
+    website_url: parseHttpUrl(formData.get("website_url") as string),
+    instagram_url: parseHttpUrl(formData.get("instagram_url") as string),
+    tiktok_url: parseHttpUrl(formData.get("tiktok_url") as string),
+    facebook_url: parseHttpUrl(formData.get("facebook_url") as string),
+  };
   const admin = createAdminClient();
-  const { error } = await admin
+  let { error } = await admin
     .from("restaurants")
-    .update({
-      name,
-      sector,
-      address,
-      cuisine_types: cuisineTypes,
-      school_calendar: rawCalendar || null,
-      google_maps_url: parseHttpUrl(formData.get("google_maps_url") as string),
-      website_url: parseHttpUrl(formData.get("website_url") as string),
-      instagram_url: parseHttpUrl(formData.get("instagram_url") as string),
-      tiktok_url: parseHttpUrl(formData.get("tiktok_url") as string),
-      facebook_url: parseHttpUrl(formData.get("facebook_url") as string),
-    })
+    .update({ ...fields, ...schoolCalendarsColumns(calendars) })
     .eq("id", restaurantId);
+
+  // Migration 20260822-2245 pas encore appliquée → on garde au moins le
+  // premier calendrier dans la colonne legacy (fail-open).
+  if (error && isMissingSchoolCalendarsColumn(error)) {
+    ({ error } = await admin
+      .from("restaurants")
+      .update({ ...fields, school_calendar: calendars[0] })
+      .eq("id", restaurantId));
+  }
 
   if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
 

@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { updateRestaurantInfo } from "./actions";
+import { SCHOOL_COMMUNITIES, type SchoolCommunity } from "@/lib/school-calendar";
 
 type Initial = {
   name: string;
   sector: string;
   address: string;
   cuisine_types: string;
-  school_calendar: string;
+  school_calendars: SchoolCommunity[];
   google_maps_url: string;
   website_url: string;
   instagram_url: string;
@@ -27,9 +28,19 @@ const SOCIAL_FIELDS: { name: keyof Initial; label: string; placeholder: string }
 export function SettingsForm({ restaurantId, initial }: { restaurantId: string; initial: Initial }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
+  // ADR 0027 §5 amendé : 1 à 3 calendriers (Bruxelles = souvent FR + NL).
+  const [calendars, setCalendars] = useState<SchoolCommunity[]>(initial.school_calendars);
+
+  function toggleCalendar(code: SchoolCommunity) {
+    setCalendars((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (calendars.length === 0) {
+      setMessage({ kind: "error", text: "Coche au moins un calendrier scolaire (tu peux en choisir jusqu'à trois)." });
+      return;
+    }
     setLoading(true);
     setMessage(null);
 
@@ -92,27 +103,45 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
           />
         </div>
-        {/* ADR 0027 §5 — communauté scolaire : pilote le facteur « vacances »
-            des prévisions. Aucune UI n'existait pour l'ajuster (audit 2026-08). */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-            🗓️ Calendrier scolaire de ta clientèle
-          </label>
-          <select
-            name="school_calendar"
-            defaultValue={initial.school_calendar}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            <option value="">Non défini (facteur vacances inactif)</option>
-            <option value="FR">🇧🇪 Communauté française (Wallonie–Bruxelles)</option>
-            <option value="NL">🇧🇪 Communauté flamande</option>
-            <option value="DE">🇧🇪 Communauté germanophone</option>
-          </select>
-          <p className="text-xs text-gray-400 mt-1">
-            Les congés scolaires diffèrent selon la communauté depuis 2022 — tes
-            Prévisions s&apos;en servent pour anticiper l&apos;affluence.
+        {/* ADR 0027 §5 (amendé 2026-08-22) — calendriers scolaires : pilotent le
+            facteur « vacances » des prévisions. De 1 à 3 : à Bruxelles, la
+            clientèle suit souvent les écoles francophones ET néerlandophones. */}
+        <fieldset>
+          <legend className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            🗓️ Calendriers scolaires de ta clientèle
+          </legend>
+          <div className="space-y-2">
+            {SCHOOL_COMMUNITIES.map((c) => {
+              const checked = calendars.includes(c.code);
+              return (
+                <label
+                  key={c.code}
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
+                    checked ? "border-orange-300 bg-orange-50" : "border-gray-300 bg-white hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    name="school_calendars"
+                    value={c.code}
+                    checked={checked}
+                    onChange={() => toggleCalendar(c.code)}
+                    className="h-4 w-4 accent-orange-500"
+                  />
+                  <span>
+                    🇧🇪 {c.label}
+                    <span className="text-gray-400"> — {c.short}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <p className={`text-xs mt-1 ${calendars.length === 0 ? "text-red-500" : "text-gray-400"}`}>
+            {calendars.length === 0
+              ? "Coche au moins un calendrier — tes Prévisions en ont besoin pour anticiper les vacances."
+              : "Coche tous ceux que suivent tes clients (à Bruxelles, souvent les deux premiers). Les congés diffèrent selon la communauté depuis 2022 — tes Prévisions s'en servent pour anticiper l'affluence."}
           </p>
-        </div>
+        </fieldset>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
