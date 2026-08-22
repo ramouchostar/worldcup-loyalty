@@ -5,6 +5,7 @@ import { getRestaurant, getRestaurantBranding, getRestaurantId } from "@/lib/res
 import { brandStyle } from "@/lib/branding";
 import { UserNav } from "@/components/member/UserNav";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
+import { AppInstallBeacon } from "@/components/member/AppInstallBeacon";
 import { BottomNav } from "@/components/member/BottomNav";
 import { RestaurantSwitcher } from "@/components/member/RestaurantSwitcher";
 import { RestaurantProvider } from "@/components/member/RestaurantContext";
@@ -95,6 +96,8 @@ export default async function RestaurantLayout({
       {user && <AnalyticsIdentity status="membre" />}
 
       {user && <InAppNotificationBanner />}
+      {/* Mesure d'installation de l'app (complément ADR 0038) — rend null */}
+      {user && <AppInstallBeacon />}
 
       <main className="max-w-2xl mx-auto px-4 py-6" id="main-content">
         {children}

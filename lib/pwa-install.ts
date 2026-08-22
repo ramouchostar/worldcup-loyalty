@@ -7,6 +7,7 @@
 // à n'importe quelle surface, quand le visiteur y revient.
 //
 // Client uniquement : tout ici touche `window`.
+import { track } from "./analytics";
 
 export type InstallPromptEvent = Event & {
   prompt(): Promise<void>;
@@ -29,6 +30,10 @@ if (typeof window !== "undefined") {
   window.addEventListener("appinstalled", () => {
     differe = null;
     abonnes.forEach((cb) => cb(null));
+    // Plan de tracking : l'événement était déclaré mais jamais émis. Vue
+    // agrégée GA4 (Android/Chrome seulement, sous consentement) — la mesure
+    // fiable par membre est la balise AppInstallBeacon (mode installé).
+    track("pwa_installed", {});
   });
 }
 

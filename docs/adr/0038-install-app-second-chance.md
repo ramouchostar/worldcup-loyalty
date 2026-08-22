@@ -1,6 +1,6 @@
 # ADR 0038 — Un second chemin vers l'installation de l'app
 
-**Statut** : Accepté (2026-08-21). Complète l'**ADR 0030** (cohérence de navigation, parcours par rôle) et l'**ADR 0032** (lien d'invitation restaurateur). Ne change rien à l'**ADR 0009** (notifications push, qui dépendent de l'installation).
+**Statut** : Accepté (2026-08-21). Complète l'**ADR 0030** (cohérence de navigation, parcours par rôle) et l'**ADR 0032** (lien d'invitation restaurateur). Ne change rien à l'**ADR 0009** (notifications push, qui dépendent de l'installation). **Complété le 2026-08-22 — mesure** : l'incitation existait, pas la mesure (`pwa_installed` déclaré mais jamais émis ; rien en base ; GA4 aveugle sur iOS et sous consentement). Signal retenu : *l'app s'ouvre en mode installé* (`display-mode: standalone` / `navigator.standalone`), remonté une fois par session par `AppInstallBeacon` → `/api/me/app-install` → table `member_app_installs` (migration `docs/migrations/20260822-2023-member-app-installs.sql`, service-role, exportée/effacée avec le compte). Visible : colonne « App » sur `/platform/members`, tuile « App installée » sur `/platform/stats`, 📱 pseudonymisé sur « Mes clients ». `pwa_installed` GA4 est désormais émis sur `appinstalled` (agrégat Android, sous consentement). Non rétroactif.
 
 ## Contexte
 

@@ -56,6 +56,10 @@ export async function exportUserData(userId: string) {
     return safe;
   });
 
+  // Complément ADR 0038 — mesure d'installation de l'app (plateforme, dates,
+  // nb d'ouvertures, user-agent tronqué) : données le concernant, exportées.
+  const appInstalls = await grab(admin, "member_app_installs", "user_id", userId);
+
   // ADR 0023 — retours qualité + fils médiés (via les identifiants de retour)
   const qualityFeedback = await grab(admin, "quality_feedback", "user_id", userId);
   const feedbackIds = qualityFeedback.map((f) => f.id as string).filter(Boolean);
@@ -84,6 +88,7 @@ export async function exportUserData(userId: string) {
     }),
     point_transactions: pointTx,
     push_subscriptions: push,
+    member_app_installs: appInstalls,
     notification_log: notif,
     consents,
     micro_reward_claims: claims,
@@ -119,6 +124,7 @@ export async function deleteUserData(userId: string): Promise<void> {
   //    Les deletes ne jettent pas : une table absente renvoie une erreur ignorée.
   await Promise.all([
     admin.from("push_subscriptions").delete().eq("user_id", userId),
+    admin.from("member_app_installs").delete().eq("user_id", userId), // mesure d'installation (ADR 0038)
     admin.from("memberships").delete().eq("user_id", userId),
     admin.from("pending_rewards").delete().eq("user_id", userId),
     admin.from("notification_log").delete().eq("user_id", userId),

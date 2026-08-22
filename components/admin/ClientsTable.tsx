@@ -8,6 +8,7 @@ export type ClientRow = {
   orderCount: number;
   totalSpent: number;
   lastVisit: string | null; // déjà formatée côté serveur
+  appInstalled: boolean;     // a ouvert l'app en mode installé (complément ADR 0038)
 };
 
 // ADR 0030 §7 — « Mes clients » : liste d'activité PSEUDONYMISÉE pour le
@@ -51,7 +52,12 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
             <tbody>
               {filtered.map((r, i) => (
                 <tr key={`${r.name}-${i}`} className="border-t border-gray-50">
-                  <td className="py-2.5 pr-3 font-medium text-gray-900">{r.name}</td>
+                  <td className="py-2.5 pr-3 font-medium text-gray-900">
+                    {r.name}
+                    {r.appInstalled && (
+                      <span className="ml-1.5 text-xs" title="A installé l'app sur son téléphone">📱</span>
+                    )}
+                  </td>
                   <td className="py-2.5 pr-3 text-gray-500">{r.team ?? "—"}</td>
                   <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{r.orderCount}</td>
                   <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">

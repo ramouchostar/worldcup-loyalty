@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { MembersTable, type MemberRow } from "@/components/admin/MembersTable";
+import { getAppInstallsByUser, PLATFORM_LABEL } from "@/lib/app-install";
 
 export const metadata = { title: "Membres — Plateforme" };
 
@@ -55,6 +56,8 @@ export default async function PlatformMembersPage({
 
   // Agrégats commandes (nb + dernière) par couple membre × établissement.
   const userIds = Array.from(new Set(memberships.map((m) => m.user_id)));
+  // App installée (complément ADR 0038) — fail-open si la migration manque.
+  const installs = await getAppInstallsByUser(userIds);
   let orders: OrderRow[] = [];
   if (userIds.length > 0) {
     let ordersQuery = admin
@@ -92,6 +95,10 @@ export default async function PlatformMembersPage({
       joined: fmt(m.joined_at) ?? "—",
       orderCount: agg?.count ?? 0,
       lastActivity: fmt(agg?.last ?? null),
+      app: (() => {
+        const inst = installs.get(m.user_id);
+        return inst ? `${PLATFORM_LABEL[inst.platform] ?? inst.platform} · depuis le ${fmt(inst.installed_at)}` : null;
+      })(),
     };
   });
 
