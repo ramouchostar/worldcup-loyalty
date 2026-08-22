@@ -98,7 +98,14 @@ export async function POST(request: NextRequest) {
 
   if (keyDate) {
     const dateError = validateOrderDate(orderDate);
-    if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
+    // La date vient du NUMÉRO lu sur le ticket : si elle est refusée, c'est
+    // presque toujours une année mal lue (incident Kasia) — on le dit, au
+    // lieu d'un « comptabilisées à partir du … » incompréhensible.
+    if (dateError)
+      return NextResponse.json(
+        { error: `${dateError} La date ${keyDate} vient du numéro de ticket : vérifie-le (surtout l'année) et corrige-le.` },
+        { status: 400 }
+      );
 
     // Plancher par établissement : un ticket ne peut pas être antérieur à
     // l'arrivée du resto dans le programme (restaurants.created_at). Le resto

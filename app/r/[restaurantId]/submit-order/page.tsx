@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { amountBand, track } from "@/lib/analytics";
+import { prepareReceiptImage } from "@/lib/receipt-image-client";
+import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
 type ParseStatus = "idle" | "parsing" | "done" | "error";
@@ -20,11 +22,18 @@ function randomDelay() {
 export default function SubmitOrderPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { name: restaurantName } = useRestaurantInfo();
+  // Deux entrées : l'appareil photo (capture) et la galerie — sur mobile, une
+  // seule <input> sans `capture` n'ouvre pas l'appareil directement.
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
   const [parseError, setParseError] = useState("");
+  // L'année de la clé a été réparée côté serveur (lecture OCR fausse) :
+  // on l'affiche et on invite à vérifier.
+  const [keyCorrected, setKeyCorrected] = useState(false);
 
   const [orderNumber, setOrderNumber] = useState("");
   const [orderNumberEditable, setOrderNumberEditable] = useState(false);
@@ -51,34 +60,52 @@ export default function SubmitOrderPage() {
     track("order_submit_started", { restaurant_id: restaurantId });
   }, [restaurantId]);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  // Une photo arrive (appareil, galerie ou glisser-déposer) : on l'allège
+  // côté navigateur (HEIC → JPEG, ≤ 1 600 px, ≈ 300 Ko) PUIS on lance
+  // l'analyse tout de suite — plus de second tap « Analyser ».
+  // Incident 2026-08 : les photos > 4,5 Mo partaient telles quelles → 413
+  // Vercel → « erreur réseau » → 6 essais.
+  async function acceptFile(file: File | undefined | null) {
     if (!file) return;
-    setReceiptFile(file);
-    setPreview(URL.createObjectURL(file));
     setParseStatus("idle");
     setParseError("");
     setOrderNumber("");
     setOrderNumberEditable(false);
+    setKeyCorrected(false);
     setAmount("");
     setScanId(null);
+    setPreparing(true);
+    try {
+      const prepared = await prepareReceiptImage(file);
+      if (!prepared.ok) {
+        setReceiptFile(null);
+        setPreview(null);
+        setParseStatus("error");
+        setParseError(prepared.error);
+        return;
+      }
+      setReceiptFile(prepared.file);
+      setPreview(URL.createObjectURL(prepared.file));
+      await analyseReceipt(prepared.file);
+    } finally {
+      setPreparing(false);
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    void acceptFile(e.target.files?.[0]);
+    // Permet de reprendre exactement la même photo après une erreur.
+    e.target.value = "";
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    setReceiptFile(file);
-    setPreview(URL.createObjectURL(file));
-    setParseStatus("idle");
-    setParseError("");
-    setOrderNumber("");
-    setAmount("");
-    setScanId(null);
+    void acceptFile(e.dataTransfer.files[0]);
   }
 
-  async function analyseReceipt() {
-    if (!receiptFile) return;
+  async function analyseReceipt(fileArg?: File) {
+    const file = fileArg ?? receiptFile;
+    if (!file) return;
     setParseStatus("parsing");
     setParseError("");
 
@@ -87,7 +114,7 @@ export default function SubmitOrderPage() {
 
     try {
       const formData = new FormData();
-      formData.append("receipt", receiptFile);
+      formData.append("receipt", file);
       formData.append("restaurantId", restaurantId);
 
       const res = await fetch("/api/orders/parse-receipt", {
@@ -96,25 +123,30 @@ export default function SubmitOrderPage() {
         signal: controller.signal,
       });
 
-      const data: {
+      // Jamais `res.json()` à l'aveugle : un 413/502 de la plateforme est du
+      // texte, et tombait dans le catch « erreur réseau » (faux, re-essais).
+      const { ok, status, data: parsedData } = await readJsonSafe<{
         order_number?: string | null;
         amount?: number | null;
         confidence?: number | null;
         has_restaurant_header?: boolean;
         key_label?: string | null;
         key_example?: string | null;
+        key_corrected?: boolean;
         scan_id?: string | null;
         error?: string;
-      } = await res.json();
+      }>(res);
+      const data = parsedData ?? {};
 
-      if (!res.ok) {
+      if (!ok) {
         setParseStatus("error");
-        setParseError(data.error ?? "Erreur lors de l'analyse.");
+        setParseError(describeUploadFailure(status, data.error));
         return;
       }
 
       setParseStatus("done");
       setScanId(data.scan_id ?? null);
+      setKeyCorrected(data.key_corrected === true);
       if (data.key_label) setKeyLabel(data.key_label);
       if (data.key_example) setKeyExample(data.key_example);
       if (data.order_number) {
@@ -174,7 +206,8 @@ export default function SubmitOrderPage() {
         sleep(randomDelay()),
       ]);
 
-      const data = await res.json().catch(() => ({}) as { status?: string; error?: string; has_team?: boolean });
+      const { data: submitData } = await readJsonSafe<{ status?: string; error?: string; has_team?: boolean }>(res);
+      const data = submitData ?? {};
 
       if (res.status === 201) {
         const validated = data.status === "validated";
@@ -195,7 +228,7 @@ export default function SubmitOrderPage() {
       }
       track("order_result", { restaurant_id: restaurantId, result: "rejected" });
       setSubmitStatus("error");
-      setErrorMsg(data.error ?? "Erreur inconnue.");
+      setErrorMsg(describeUploadFailure(res.status, data.error));
     } catch {
       // Coupure réseau pendant la soumission — ne jamais rester bloqué sur
       // « Vérification en cours… » (audit UX 2026-07).
@@ -213,10 +246,12 @@ export default function SubmitOrderPage() {
     setOrderNumberEditable(false);
     setAmount("");
     setScanId(null);
+    setKeyCorrected(false);
     setNoDelivery(false);
     setSubmitStatus("idle");
     setErrorMsg("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   }
 
   // ADR 0030 §6 — après un scan réussi, la suite naturelle est « qu'est-ce
@@ -315,10 +350,11 @@ export default function SubmitOrderPage() {
         </div>
       </div>
 
-      {/* Zone upload */}
+      {/* Zone photo — deux portes : appareil photo direct (capture) et
+          galerie. La photo est allégée ici avant envoi, quel que soit son
+          format/poids d'origine (HEIC iPhone, 8 Mo Android…). */}
       <div
-        className="border-2 border-dashed border-gray-300 rounded-xl p-6 mb-4 text-center cursor-pointer hover:border-brand-red transition-colors"
-        onClick={() => fileInputRef.current?.click()}
+        className="border-2 border-dashed border-gray-300 rounded-xl p-5 mb-4 text-center hover:border-brand-red transition-colors"
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
       >
@@ -330,34 +366,81 @@ export default function SubmitOrderPage() {
               alt="Ticket de caisse"
               className="max-h-56 mx-auto rounded-lg object-contain"
             />
-            <p className="text-xs text-gray-400 mt-2">Clique pour changer la photo</p>
+            <div className="flex justify-center gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
+              >
+                📷 Reprendre
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
+              >
+                🖼️ Autre photo
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="py-4">
-            <p className="text-4xl mb-3">🧾</p>
-            <p className="font-semibold text-gray-700">Photo du ticket de caisse</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Clique ici ou glisse ta photo (JPG, PNG, WebP — max 5 Mo)
+          <div className="py-2">
+            <p className="text-4xl mb-2">🧾</p>
+            <p className="font-semibold text-gray-700 mb-3">Photo du ticket de caisse</p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={preparing}
+                className="bg-brand-red text-white py-3 px-5 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors"
+              >
+                📷 Prendre le ticket en photo
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={preparing}
+                className="bg-gray-100 text-gray-700 py-3 px-5 rounded-xl font-semibold hover:bg-gray-200 disabled:opacity-60 transition-colors"
+              >
+                🖼️ Choisir dans la galerie
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              Cadre tout le ticket, bien à plat et bien éclairé — on s&apos;occupe du reste.
             </p>
           </div>
         )}
+        {preparing && (
+          <p className="text-xs text-gray-500 mt-3">Préparation de la photo…</p>
+        )}
+        {/* Appareil photo (mobile) — capture="environment" = caméra arrière */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        {/* Galerie / fichiers — tous formats d'image : on convertit côté client */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           className="hidden"
           onChange={handleFileChange}
         />
       </div>
 
-      {/* Bouton analyser */}
+      {/* L'analyse part automatiquement après la photo ; ce bouton ne sert
+          qu'à relancer après une erreur (ou si l'auto-lancement a échoué). */}
       {preview && parseStatus !== "done" && (
         <button
-          onClick={analyseReceipt}
-          disabled={parseStatus === "parsing"}
+          onClick={() => analyseReceipt()}
+          disabled={parseStatus === "parsing" || preparing}
           className="w-full bg-brand-red text-white py-3 px-4 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors mb-4"
         >
-          {parseStatus === "parsing" ? "Analyse en cours..." : "Analyser le ticket"}
+          {parseStatus === "parsing" ? "Analyse en cours..." : parseStatus === "error" ? "Réessayer l'analyse" : "Analyser le ticket"}
         </button>
       )}
 
@@ -380,13 +463,24 @@ export default function SubmitOrderPage() {
             </p>
           </div>
 
-          {/* Clé de commande — read-only if found, editable if not */}
-          {orderNumberEditable && (
+          {/* Clé de commande — lue par l'OCR mais TOUJOURS corrigeable : une
+              lecture fausse (année…) ne doit jamais enfermer le membre dans
+              une boucle d'erreurs (incident Kasia, 2026-08-22). */}
+          {orderNumberEditable && !keyCorrected && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
               <p className="text-orange-800 text-sm font-semibold">{keyLabel} non détecté</p>
               <p className="text-orange-700 text-xs mt-1">
                 Entre le numéro manuellement si tu le vois sur ton ticket,
                 ou laisse vide — ta commande sera vérifiée manuellement sous 2h.
+              </p>
+            </div>
+          )}
+          {keyCorrected && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-amber-900 text-sm font-semibold">Vérifie le {keyLabel.toLowerCase()}</p>
+              <p className="text-amber-800 text-xs mt-1">
+                L&apos;année lue sur le ticket semblait erronée et a été corrigée automatiquement.
+                Compare avec ton ticket et corrige si besoin.
               </p>
             </div>
           )}
@@ -403,9 +497,18 @@ export default function SubmitOrderPage() {
                 className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono text-sm"
               />
             ) : (
-              <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 flex items-center justify-between font-mono text-sm">
-                <span>{orderNumber}</span>
-                <span className="text-xs text-gray-400 font-sans">Lu sur le ticket</span>
+              <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 flex items-center justify-between gap-2 font-mono text-sm">
+                <span className="truncate">{orderNumber}</span>
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-gray-400 font-sans">Lu sur le ticket</span>
+                  <button
+                    type="button"
+                    onClick={() => setOrderNumberEditable(true)}
+                    className="text-xs font-sans font-semibold text-brand-red hover:underline"
+                  >
+                    Modifier
+                  </button>
+                </span>
               </div>
             )}
           </div>

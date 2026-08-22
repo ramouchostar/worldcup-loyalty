@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
+import { sanitizeKeyDate } from "./receipt-key-sanity";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 export type AllowedReceiptType = (typeof ALLOWED_TYPES)[number];
@@ -32,7 +33,16 @@ export type ReceiptAnalysis = {
   has_restaurant_header: boolean;
   order_time: string | null;
   items: ReceiptLineItem[];
+  // true si l'année de la date contenue dans la clé a été corrigée (lecture
+  // OCR manifestement fausse, cf. lib/receipt-key-sanity.ts) — le client
+  // invite alors le membre à vérifier le numéro.
+  key_corrected: boolean;
 };
+
+// Date du jour côté établissements (les tickets sont datés en heure belge).
+function todayInBrussels(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
+}
 
 const ORDER_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_LINE_ITEMS = 30;
@@ -107,7 +117,7 @@ export async function analyzeReceipt(
           },
           {
             type: "text",
-            text: `This is a receipt. Extract ONLY what you can clearly read:
+            text: `This is a receipt. Today is ${todayInBrussels()} (Europe/Brussels); receipts are normally from today or the last few days — read the YEAR and DATE digits exactly as printed, never assume the year from memory. Extract ONLY what you can clearly read:
 ${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL, "te betalen", "à payer") — return as a number, null if not visible
 3. Whether the word "${restaurantName}" appears anywhere on the receipt
 4. Order time in 24h HH:MM format if printed on the receipt — null if not visible
@@ -129,10 +139,21 @@ Return ONLY valid JSON, no markdown, no explanation:
   // Validate la clé extraite contre le pattern de l'établissement
   // (ADR 0019), sinon contre le Bestelnummer legacy.
   const keyPattern = config ? compileKeyPattern(config) : BESTELNUMMER_RE;
-  const orderNumber =
+  const rawOrderNumber =
     keyPattern && typeof parsed.order_number === "string" && keyPattern.test(parsed.order_number.trim())
       ? parsed.order_number.trim()
       : null;
+  // Incident Kasia (2026-08-22) : l'OCR lisait l'année 2025 sur un ticket du
+  // jour → numéro en lecture seule → date refusée à la soumission → 6 essais.
+  // On répare une année manifestement fausse, on invalide une date future ou
+  // trop vieille (le membre pourra alors saisir le numéro à la main).
+  const sanity = sanitizeKeyDate(
+    rawOrderNumber,
+    keyPattern,
+    config ? config.date_group : 1, // legacy Bestelnummer : la date est le groupe 1
+    todayInBrussels()
+  );
+  const orderNumber = sanity.order_number;
 
   const amount =
     typeof parsed.amount === "number" && parsed.amount >= 1 && parsed.amount <= 500
@@ -155,5 +176,6 @@ Return ONLY valid JSON, no markdown, no explanation:
     has_restaurant_header: parsed.has_restaurant_header === true,
     order_time: orderTime,
     items: sanitizeLineItems(parsed.items),
+    key_corrected: sanity.corrected,
   };
 }
