@@ -75,6 +75,25 @@ export default async function PlatformStatsPage({
         </div>
       )}
 
+      {/* Le réseau réel (hors démo) est vide : plutôt qu'un mur de zéros et de
+          graphiques vides sans explication, on dit pourquoi et comment
+          vérifier — c'est très probablement une bascule démo à corriger sur
+          l'établissement réel plutôt qu'un réseau réellement sans activité. */}
+      {!includeDemo && stats.restaurants.total === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
+          <p className="font-semibold">Aucun établissement réel dans ce périmètre</p>
+          <p className="text-amber-700 text-xs mt-0.5">
+            {stats.demoCount > 0
+              ? `Tous les établissements du réseau (${stats.demoCount}) sont actuellement marqués « démo » — c'est pour ça que rien ne s'affiche ci-dessous. Si un établissement réel a été marqué démo par erreur, repasse-le en réel depuis `
+              : "Aucun établissement n'est encore enregistré. Ajoute-en un depuis "}
+            <Link href="/platform" className="underline font-semibold">
+              Réseau
+            </Link>
+            {stats.demoCount > 0 ? " (bouton « Passer en réel » sur sa ligne)." : "."}
+          </p>
+        </div>
+      )}
+
       {stats.truncated && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
           <p className="font-semibold">Chiffres partiels</p>
