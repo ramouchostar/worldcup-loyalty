@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { VisitorTour } from "@/components/member/VisitorTour";
+import { getTourGifts } from "@/lib/visitor-tour";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
@@ -107,8 +109,13 @@ export default async function RestaurantLandingPage({
   // retour restaurateur, on préfère se taire tant que ça ne fait pas nombre.
   const totalMembers = top5.reduce((sum, s) => sum + s.member_count, 0);
   const isMember = !!membership;
+  // ADR 0040 — un membre qui rescanne le QR n'a rien à faire sur la vitrine :
+  // il arrive directement dans l'app (recordLanding a déjà compté ci-dessus).
+  if (user && isMember) redirect(`/r/${restaurantId}/dashboard`);
   const isKraainem = restaurantId === "kraainem";
   const logo = logoPublicUrl(branding.logo_url);
+  // ADR 0040 — tour de bienvenue visiteur : cadeaux réels du resto, noms seuls.
+  const gifts = user ? null : await getTourGifts(restaurantId);
 
   return (
     <div className="min-h-screen bg-white">
@@ -116,6 +123,14 @@ export default async function RestaurantLandingPage({
         event="restaurant_landing_viewed"
         params={{ restaurant_id: restaurantId, entry_source: utmSource ?? "direct" }}
       />
+      {!user && (
+        <VisitorTour
+          restaurantId={restaurantId}
+          restaurantName={restaurant.name}
+          firstGift={gifts?.firstGift ?? null}
+          bigGift={gifts?.bigGift ?? null}
+        />
+      )}
       {/* ── HERO ── */}
       <div className="bg-brand-dark text-white">
         <div className="max-w-lg mx-auto px-5 pt-12 pb-10">
@@ -157,14 +172,14 @@ export default async function RestaurantLandingPage({
 
           <div className="flex flex-col sm:flex-row gap-3">
             {!user ? (
-              <form action={redirectToLogin.bind(null, restaurantId)} className="flex-1">
-                <button
-                  type="submit"
-                  className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
-                >
-                  Rejoindre gratuitement →
-                </button>
-              </form>
+              // ADR 0040 — le client au comptoir a un ticket en main : le scan
+              // est l'action n°1, le compte viendra au moment de l'envoi.
+              <Link
+                href={`/r/${restaurantId}/submit-order`}
+                className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
+              >
+                🧾 J&apos;ai un ticket — je le scanne
+              </Link>
             ) : isMember ? (
               <Link
                 href={`/r/${restaurantId}/dashboard`}
@@ -189,6 +204,14 @@ export default async function RestaurantLandingPage({
               🏆 Classement live
             </Link>
           </div>
+
+          {!user && (
+            <form action={redirectToLogin.bind(null, restaurantId)} className="mt-3 text-center">
+              <button type="submit" className="text-sm text-gray-300 underline hover:text-white">
+                Pas de ticket sous la main ? Crée ton compte quand même →
+              </button>
+            </form>
+          )}
 
           {totalMembers > 100 && (
             <p className="text-center text-gray-400 text-sm mt-6">

@@ -101,8 +101,15 @@ export async function GET(request: NextRequest) {
       // → on y retourne en priorité.
       const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
       if (pendingRestaurantId) {
+        // ADR 0040 — ticket photographié en visiteur → retour direct au scan.
+        const pendingTicket = cookieStore.get("pending_ticket")?.value === "1";
         cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
-        return NextResponse.redirect(`${origin}/r/${pendingRestaurantId}`);
+        cookieStore.set("pending_ticket", "", { maxAge: 0, path: "/" });
+        return NextResponse.redirect(
+          pendingTicket
+            ? `${origin}/r/${pendingRestaurantId}/submit-order?resume=1`
+            : `${origin}/r/${pendingRestaurantId}`
+        );
       }
 
       // ADR 0030 §1 — destination par rôle (plateforme > console > membre).
