@@ -1,10 +1,8 @@
-// v3 : la landing (/) et /membres restent en stale-while-revalidate, donc un
-// déploiement seul ne suffit pas à pousser une correction visuelle vers l'app
-// installée (premier lancement post-déploiement = toujours l'ancien cache).
-// Le bump force la purge des caches v2 à l'activation et un re-précache
-// immédiat de "/" et "/membres" à l'install, pour converger en un lancement
-// au lieu de deux.
-const CACHE_NAME = "worldcup-loyalty-v3";
+// v4 : /auth/callback n'est plus intercepté (bug — voir le handler fetch
+// ci-dessous). Le bump force la mise à jour du service worker installé sur
+// les appareils déjà connectés dès la prochaine visite, au lieu d'attendre
+// une purge de cache fortuite.
+const CACHE_NAME = "worldcup-loyalty-v4";
 
 // Ressources à mettre en cache lors de l'installation
 const PRECACHE_URLS = [
@@ -64,6 +62,18 @@ self.addEventListener("fetch", (event) => {
   // Ne pas intercepter les requêtes non-GET ou vers Supabase / APIs externes
   if (request.method !== "GET") return;
   if (url.origin !== self.location.origin) return;
+
+  // /auth/callback : jamais intercepté, même en network-first. Cette route
+  // répond toujours par une redirection HTTP porteuse des cookies de session
+  // (Google OAuth, magic link) ; event.respondWith(fetch(...)) suivrait cette
+  // redirection lui-même et rendrait la page finale sans que le navigateur ne
+  // l'enregistre comme une navigation propre — l'utilisateur retombe sur la
+  // page d'où il venait (ex. la landing "/", précachée ci-dessus) alors que
+  // la session, elle, est bien ouverte. D'où le symptôme « connecté avec
+  // Google mais renvoyé sur la landing, il faut recliquer sur Connexion ».
+  // Laisser passer entièrement au navigateur (pas de respondWith) évite le
+  // problème à la racine.
+  if (url.pathname === "/auth/callback") return;
 
   // Pages membres authentifiées (/r/[id]/...) : network-first, SAUF la
   // landing (/r/[id]) et le classement — surfaces de consultation où la
