@@ -283,9 +283,10 @@ export function RestaurantList({ restaurants }: { restaurants: RestaurantViewRow
                   </Link>
                   {/* ADR 0029 — flip de plan manuel (Stripe en Phase 5) */}
                   <PlanFlipForm restaurantId={r.id} plan={r.plan} />
-                  {/* ADR 0033 §1 — bascule démo ↔ réel. Passer un compte en
-                      réel le rend public : on demande confirmation dans ce
-                      sens-là uniquement (l'inverse ne fait que masquer). */}
+                  {/* ADR 0033 §1 — bascule démo ↔ réel, confirmée dans les DEUX
+                      sens : rendre public (risque d'exposer un resto de test)
+                      ET masquer (risque de faire disparaître un établissement
+                      réel — et avec lui les chiffres réseau — d'un simple clic). */}
                   <form action={setRestaurantDemo.bind(null, r.id, !r.isDemo)}>
                     {r.isDemo ? (
                       <ConfirmSubmitButton
@@ -295,12 +296,12 @@ export function RestaurantList({ restaurants }: { restaurants: RestaurantViewRow
                         Passer en réel
                       </ConfirmSubmitButton>
                     ) : (
-                      <button
-                        type="submit"
+                      <ConfirmSubmitButton
+                        confirmMessage={`Marquer « ${r.name} » comme compte démo ? Il disparaîtra de l'accueil, de /secteurs, de /join et des chiffres réseau (/platform/stats) jusqu'à ce qu'il repasse en réel.`}
                         className="text-xs font-semibold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                       >
                         Marquer démo
-                      </button>
+                      </ConfirmSubmitButton>
                     )}
                   </form>
                   {/* ADR 0032 — bouton de génération quand aucun lien ne
