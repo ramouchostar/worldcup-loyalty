@@ -33,7 +33,38 @@ export default async function PlatformStatsPage({
 
   const { demo } = await searchParams;
   const includeDemo = demo === "1";
-  const stats = await getPlatformStats(includeDemo);
+
+  // getPlatformStats() agrège plusieurs tables paginées (fetchAllRows lève
+  // sur la moindre erreur PostgREST — cf. lib/paged-select.ts) : une seule
+  // requête qui échoue en base (permission, colonne, timeout) faisait
+  // planter TOUTE la page sans le moindre message, un mur blanc bien pire
+  // que le mur de zéros qu'on corrige juste en dessous. Un super-admin a
+  // déjà passé le contrôle ci-dessus : le message d'erreur brut l'aide à
+  // diagnostiquer, il ne fuit vers personne d'autre.
+  let stats: Awaited<ReturnType<typeof getPlatformStats>> | null = null;
+  let statsError: string | null = null;
+  try {
+    stats = await getPlatformStats(includeDemo);
+  } catch (e) {
+    statsError = (e as Error).message;
+    console.error("[platform/stats] getPlatformStats failed:", statsError);
+  }
+
+  if (!stats) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6 py-8 px-4">
+        <h1 className="text-2xl font-bold text-gray-900">Chiffres</h1>
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-900">
+          <p className="font-semibold">Chiffres indisponibles</p>
+          <p className="text-red-700 text-xs mt-0.5">
+            Le calcul a échoué côté serveur au lieu de s&apos;afficher. Message :{" "}
+            <span className="font-mono">{statsError}</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // App installée (complément ADR 0038) — null tant que la migration manque.
   const installs = await getAppInstallStats();
 
