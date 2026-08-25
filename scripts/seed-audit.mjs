@@ -115,9 +115,13 @@ for (let i = 0; i < CFG.bulkRestos; i++) {
     forecast: i % 6 === 0, focusResto: false,
   });
 }
+// is_demo: true (ADR 0033) — sans ça, ces restos "zz-test-*" comptent comme
+// réseau réel sur /platform/stats : périmètre par défaut gonflé de 50 restos
+// et 1000+ commandes de test, agrégation bien plus lourde que prévu.
 await insertBatch("restaurants", restos.map((r) => ({
   id: r.id, name: r.name, sector: r.sector, address: `Rue du Test, ${r.sector}`,
   cuisine_types: [r.cuisine], status: r.status, owner_id: r.owner, school_calendar: r.school,
+  is_demo: true,
 })));
 log(`${restos.length} restos insérés (dont ${restos.filter((r) => r.status === "active").length} actifs, ${restos.filter((r) => r.forecast).length} forecast-ready).`);
 
