@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { setPlan, type Plan } from "@/lib/entitlements";
 import { settlePlanRequests, markPlanRequestHandled } from "@/lib/plan-requests";
-import { sendRestaurantActivatedEmail, sendOwnerInviteEmail } from "@/lib/email";
-import { createOwnerInvite, revokeOwnerInvite } from "@/lib/owner-invites";
+import { sendRestaurantActivatedEmail } from "@/lib/email";
+import { createOwnerInviteAndNotify, revokeOwnerInvite } from "@/lib/owner-invites";
+import { type AdminRole, parseAdminRole, upsertRestaurantAdmin } from "@/lib/restaurant-admins";
 
 async function requireSuperAdmin() {
   const supabase = await createServerSupabaseClient();
@@ -165,12 +166,14 @@ export async function createRestaurantAsSuperAdmin(
   const { generateRestaurantSlug } = await import("@/lib/restaurant");
   const slug = await generateRestaurantSlug(name);
 
+  // owner_id n'est plus écrit ici directement (ADR 0040) : c'est le trigger
+  // de synchro qui le déduit du siège gérant ci-dessous — un
+  // seul écrivain pour cette colonne dérivée, partout dans l'app.
   const base = {
     id: slug,
     name,
     sector,
     address,
-    owner_id: ownerId,
     status: "active",
   };
 
@@ -185,6 +188,10 @@ export async function createRestaurantAsSuperAdmin(
   }
   if (error) return { error: "Erreur lors de la création. Réessaie." };
 
+  if (ownerId) {
+    await upsertRestaurantAdmin({ restaurantId: slug, userId: ownerId, role: "gerant", invitedBy: user.id });
+  }
+
   revalidatePath("/platform");
   revalidatePath("/platform/stats");
   const demoNote = isDemo ? " — compte démo (invisible du public)" : "";
@@ -197,10 +204,11 @@ function isUnknownColumn(error: { code?: string; message?: string }): boolean {
   return error.code === "42703" || error.code === "PGRST204" || /is_demo|activated_at/.test(error.message ?? "");
 }
 
-// ADR 0032 — lien d'invitation restaurateur. Voie PRINCIPALE pour donner la console
-// d'un établissement à son restaurateur : contrairement à assignOwner (plus
-// bas), elle ne suppose pas qu'il ait déjà un compte — c'est son clic qui
-// pose `restaurants.owner_id`, avant ou après son inscription.
+// ADR 0032 + ADR 0040 — lien d'invitation restaurateur. Voie PRINCIPALE pour
+// donner la console d'un établissement à quelqu'un : contrairement à
+// assignOwner (plus bas), elle ne suppose pas qu'il ait déjà un compte —
+// c'est son clic qui pose son siège (restaurant_admins), avant ou après son
+// inscription. Le rôle est PROPOSÉ ici, confirmé à l'acceptation.
 export async function createOwnerInviteFromForm(
   _prevState: { error?: string; url?: string; emailed?: boolean } | null,
   formData: FormData
@@ -210,40 +218,39 @@ export async function createOwnerInviteFromForm(
 
   const restaurantId = (formData.get("restaurant_id") as string)?.trim();
   const email = ((formData.get("owner_email") as string) ?? "").trim().toLowerCase() || null;
+  const role = parseAdminRole(formData.get("role"));
   if (!restaurantId) return { error: "Choisis un établissement." };
 
-  const result = await createOwnerInvite({ restaurantId, email, createdBy: user.id });
+  const admin = createAdminClient();
+  const { data: restaurant } = await admin.from("restaurants").select("name").eq("id", restaurantId).maybeSingle();
+
+  const result = await createOwnerInviteAndNotify({
+    restaurantId,
+    restaurantName: restaurant?.name ?? restaurantId,
+    email,
+    role,
+    createdBy: user.id,
+  });
   if (!result.ok) return { error: result.error };
 
-  // Envoi best-effort : sans RESEND_API_KEY, `emailed` reste faux et le lien
-  // affiché reste la voie de partage (WhatsApp, SMS).
-  let emailed = false;
-  if (email) {
-    const admin = createAdminClient();
-    const { data: restaurant } = await admin
-      .from("restaurants")
-      .select("name")
-      .eq("id", restaurantId)
-      .maybeSingle();
-    emailed = await sendOwnerInviteEmail(
-      email,
-      restaurant?.name ?? restaurantId,
-      restaurantId,
-      result.invite.url,
-      result.invite.expiresAt
-    );
-  }
-
   revalidatePath("/platform");
-  return { url: result.invite.url, emailed };
+  return { url: result.url, emailed: result.emailed };
 }
 
 // Génération depuis la ligne d'un établissement (liste) — même action, sans
 // email : le super-admin copie le lien et l'envoie par le canal qu'il veut.
-export async function createOwnerInviteForRestaurant(restaurantId: string) {
+// Pas de sélecteur de rôle ici (reste un geste one-click) — défaut gérant.
+export async function createOwnerInviteForRestaurant(restaurantId: string, role: AdminRole = "gerant") {
   const user = await requireSuperAdmin();
   if (!user) return;
-  await createOwnerInvite({ restaurantId, createdBy: user.id });
+  const admin = createAdminClient();
+  const { data: restaurant } = await admin.from("restaurants").select("name").eq("id", restaurantId).maybeSingle();
+  await createOwnerInviteAndNotify({
+    restaurantId,
+    restaurantName: restaurant?.name ?? restaurantId,
+    role,
+    createdBy: user.id,
+  });
   revalidatePath("/platform");
 }
 
@@ -255,9 +262,12 @@ export async function revokeOwnerInviteAction(inviteId: string) {
   revalidatePath("/platform");
 }
 
-// Rattache / réassigne l'owner d'un établissement par email — voie directe,
-// réservée au cas où le restaurateur a DÉJÀ un compte membre (sinon utiliser
-// le lien d'invitation ci-dessus).
+// Ajoute un siège gérant par email — voie directe, réservée au cas où la
+// personne a DÉJÀ un compte membre (sinon utiliser le lien d'invitation
+// ci-dessus). ADR 0040 — n'écrase plus le gérant existant, ajoute un siège
+// (soumis au même plafond de 2 gérants, tenu en base) : le nom de l'action
+// reste "assignOwner" pour ne pas faire bouger tous ses appelants, mais elle
+// n'écrit plus jamais owner_id directement (le trigger de synchro s'en charge).
 export async function assignOwner(
   _prevState: { error?: string; success?: string } | null,
   formData: FormData
@@ -277,12 +287,15 @@ export async function assignOwner(
     .maybeSingle();
   if (!ownerProfile) return { error: `Aucun compte membre avec l'email ${email}.` };
 
-  const { error } = await admin
-    .from("restaurants")
-    .update({ owner_id: ownerProfile.id })
-    .eq("id", restaurantId);
-  if (error) return { error: "Erreur lors du rattachement." };
+  const seat = await upsertRestaurantAdmin({
+    restaurantId,
+    userId: ownerProfile.id,
+    role: "gerant",
+    invitedBy: user.id,
+  });
+  if (!seat.ok) return { error: "Erreur lors du rattachement." };
 
   revalidatePath("/platform");
-  return { success: `Owner de ${restaurantId} → ${email}.` };
+  const quotaNote = seat.role !== "gerant" ? " — quota de 2 gérants déjà atteint, ajouté en équipe" : "";
+  return { success: `${restaurantId} → ${email} (${seat.role})${quotaNote}.` };
 }

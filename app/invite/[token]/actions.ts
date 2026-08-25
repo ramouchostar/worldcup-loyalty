@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { claimOwnerInvite, OWNER_INVITE_COOKIE } from "@/lib/owner-invites";
+import { claimOwnerInvite, loadOwnerInvite, OWNER_INVITE_COOKIE } from "@/lib/owner-invites";
 
 // ADR 0032 — l'attribution de `restaurants.owner_id` se fait ICI, sur une
 // Server Action (POST), jamais au rendu de la page : un GET mutant serait
@@ -15,6 +15,7 @@ export async function acceptInvite(token: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?reason=login-required`);
 
+  const { invite: proposed } = await loadOwnerInvite(token);
   const result = await claimOwnerInvite(token, user.id);
 
   const cookieStore = await cookies();
@@ -26,7 +27,13 @@ export async function acceptInvite(token: string) {
   // `bienvenue` : c'est la toute première fois que ce restaurateur voit sa
   // console. La proposition d'installer l'app y prend un ton d'accueil plutôt
   // que celui d'un rappel discret (ADR 0038).
-  redirect(`/admin/${result.restaurantId}?bienvenue=1`);
+  // ADR 0040 — le rôle persisté peut différer du rôle proposé si le quota
+  // gérant/manager était déjà atteint (rétrogradé en équipe par le trigger
+  // de seat) : la console affiche alors un bandeau ponctuel plutôt que de
+  // rétrograder quelqu'un en silence total.
+  const params = new URLSearchParams({ bienvenue: "1" });
+  if (proposed && proposed.role !== result.role) params.set("seat", "equipe-quota");
+  redirect(`/admin/${result.restaurantId}?${params.toString()}`);
 }
 
 // « Pas maintenant » : oublie l'invitation en attente pour ne pas rerouter le

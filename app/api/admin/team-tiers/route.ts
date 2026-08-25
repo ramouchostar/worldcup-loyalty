@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireEstablishmentManager } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
 
 type TierInput = {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const restaurantId = request.nextUrl.searchParams.get("restaurantId");
   if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
 
-  const guard = await requireAdmin(restaurantId);
+  const guard = await requireEstablishmentManager(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
@@ -37,7 +37,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
   }
 
-  const guard = await requireAdmin(restaurantId);
+  const guard = await requireEstablishmentManager(restaurantId);
   if (!guard.ok) return guard.response;
 
   const raw: TierInput[] = Array.isArray(body?.tiers) ? body.tiers : [];

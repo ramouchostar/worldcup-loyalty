@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
+import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { listTeamSuggestions } from "@/lib/teams";
 import { getSchoolCalendars } from "@/lib/school-calendar";
 import { SettingsForm } from "./SettingsForm";
@@ -14,6 +15,19 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // ADR 0040 §6 — réservé à gérant/manager (+ pont legacy) ; un siège équipe
+  // ne doit même pas voir cette page (défense en profondeur, pas seulement
+  // le lien caché dans la nav — cf. layout admin, CVE-2025-29927).
+  const access = await getAdminAccess(user.id, restaurantId);
+  if (!canManageEstablishment(access)) {
+    return (
+      <div className="max-w-lg bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Accès réservé</h1>
+        <p className="text-sm text-gray-500">Réservé aux gérants et managers de cet établissement.</p>
+      </div>
+    );
+  }
 
   const admin = createAdminClient();
   const { data: restaurant } = await admin

@@ -278,7 +278,12 @@ export default async function PlatformPage() {
           moment-là, rien n&apos;est requis avant.
         </p>
         <InviteOwnerForm
-          restaurants={all.map((r) => ({ id: r.id, name: r.name, hasOwner: !!r.owner_id }))}
+          restaurants={restaurantViews.map((r) => ({
+            id: r.id,
+            name: r.name,
+            hasOwner: r.hasOwner,
+            ownerEmail: r.ownerEmail,
+          }))}
         />
       </div>
 

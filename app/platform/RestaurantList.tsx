@@ -88,30 +88,28 @@ function PlanFlipForm({ restaurantId, plan }: { restaurantId: string; plan: stri
   );
 }
 
-// ADR 0032 — le lien d'invitation en circulation, affiché là où on décide : sur la
-// ligne de l'établissement. Réaffiché tel quel (jamais régénéré à l'affichage)
-// pour que le lien déjà parti en WhatsApp reste celui qui marche.
+// ADR 0032 + ADR 0040 — le lien d'invitation en circulation, affiché là où on
+// décide : sur la ligne de l'établissement. Réaffiché tel quel (jamais
+// régénéré à l'affichage) pour que le lien déjà parti en WhatsApp reste celui
+// qui marche. Geste one-click sans sélecteur de rôle : défaut gérant, soumis
+// au même plafond de 2 (tenu en base) — inviter n'évince plus jamais
+// personne, donc plus de confirmation à demander ici.
 function OwnerInviteRow({ row }: { row: RestaurantViewRow }) {
   const [copied, setCopied] = useState(false);
 
   if (!row.invite) {
     return (
-      <form action={createOwnerInviteForRestaurant.bind(null, row.id)}>
-        {row.hasOwner ? (
-          <ConfirmSubmitButton
-            confirmMessage={`« ${row.name} » a déjà un restaurateur rattaché. Le nouveau lien le remplacera à son acceptation. Continuer ?`}
-            className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            🔗 Nouveau lien d&apos;invitation
-          </ConfirmSubmitButton>
-        ) : (
-          <button
-            type="submit"
-            className="text-xs font-semibold text-brand-red bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
-          >
-            🔗 Inviter le restaurateur
-          </button>
-        )}
+      <form action={createOwnerInviteForRestaurant.bind(null, row.id, "gerant")}>
+        <button
+          type="submit"
+          className={
+            row.hasOwner
+              ? "text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+              : "text-xs font-semibold text-brand-red bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
+          }
+        >
+          {row.hasOwner ? "🔗 Nouveau lien d'invitation" : "🔗 Inviter le restaurateur"}
+        </button>
       </form>
     );
   }
