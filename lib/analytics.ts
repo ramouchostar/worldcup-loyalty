@@ -99,7 +99,14 @@ export type AnalyticsEventMap = {
   /** La question de reconnaissance (ADR 0031) est ressortie sans équipe. */
   team_declined: { suggestions_shown: number };
   /** Le formulaire de soumission de ticket est ouvert. */
-  order_submit_started: { restaurant_id: string };
+  order_submit_started: { restaurant_id: string; visitor?: boolean };
+  /** ADR 0040 — entonnoir onboarding visiteur (tour, photo sans compte, reprise). */
+  visitor_tour_viewed: { restaurant_id: string };
+  visitor_tour_completed: { restaurant_id: string };
+  visitor_tour_skipped: { restaurant_id: string };
+  visitor_ticket_captured: { restaurant_id: string };
+  visitor_signup_started: { restaurant_id: string; method: "google" | "signup" | "login" };
+  visitor_ticket_resumed: { restaurant_id: string };
   /** Ticket soumis — `amount_band`, jamais le montant (ADR 0028). */
   order_submitted: {
     restaurant_id: string;

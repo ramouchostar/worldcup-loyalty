@@ -113,8 +113,13 @@ export async function middleware(request: NextRequest) {
 
   const restaurantMatch = path.match(/^\/r\/([^/]+)\//);
   const currentRestaurantId = restaurantMatch?.[1];
-  // /r/[id]/leaderboard reste public (classement consultable sans compte)
-  const isPublicRestaurantRoute = !!currentRestaurantId && path === `/r/${currentRestaurantId}/leaderboard`;
+  // /r/[id]/leaderboard reste public (classement consultable sans compte) ;
+  // /r/[id]/submit-order aussi (ADR 0040 — la photo d'abord, le compte à
+  // l'envoi ; la page gère elle-même visiteur, reprise et adhésion auto).
+  const isPublicRestaurantRoute =
+    !!currentRestaurantId &&
+    (path === `/r/${currentRestaurantId}/leaderboard` ||
+      path === `/r/${currentRestaurantId}/submit-order`);
   const isRestaurantRoute = !!restaurantMatch && !isPublicRestaurantRoute;
 
   const isAdminRoute = path.startsWith("/admin");

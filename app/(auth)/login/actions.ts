@@ -52,8 +52,16 @@ export async function signIn(
   // → on y retourne en priorité, peu importe les adhésions existantes.
   const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
   if (pendingRestaurantId) {
+    // ADR 0040 — un ticket photographié en visiteur attend dans l'appareil :
+    // on rouvre directement l'écran de scan, qui le reprend et l'envoie.
+    const pendingTicket = cookieStore.get("pending_ticket")?.value === "1";
     cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
-    redirect(`/r/${pendingRestaurantId}`);
+    cookieStore.set("pending_ticket", "", { maxAge: 0, path: "/" });
+    redirect(
+      pendingTicket
+        ? `/r/${pendingRestaurantId}/submit-order?resume=1`
+        : `/r/${pendingRestaurantId}`
+    );
   }
 
   // ADR 0030 §1 — destination par rôle (plateforme > console > membre),

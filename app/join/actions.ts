@@ -6,7 +6,10 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { sendReferralSuccessEmail } from "@/lib/email";
 
 // ADR 0015 §3 — adhésion à un établissement = libre, pas d'invitation requise.
-export async function joinRestaurant(restaurantId: string) {
+// Adhésion + attribution du parrainage, SANS redirection finale — réutilisée
+// par l'écran de scan visiteur (ADR 0040) où la suite est la reprise du
+// ticket, pas le dashboard.
+export async function ensureMembership(restaurantId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -63,6 +66,10 @@ export async function joinRestaurant(restaurantId: string) {
     cookieStore.set("belchicken_ref", "", { maxAge: 0, path: "/" });
   }
 
+}
+
+export async function joinRestaurant(restaurantId: string) {
+  await ensureMembership(restaurantId);
   // ADR 0018 — l'équipe est optionnelle : on ouvre sur le dashboard (aperçu
   // de la valeur), qui propose lui-même de rejoindre une équipe.
   redirect(`/r/${restaurantId}/dashboard`);
