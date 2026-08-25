@@ -10,6 +10,7 @@ import { isAllowedReceiptType } from "@/lib/receipt-ocr";
 import { parseHttpUrl } from "@/lib/url";
 import { replaceTeamSuggestions } from "@/lib/teams";
 import { sanitizeSuggestions } from "@/lib/team-suggestions";
+import { upsertRestaurantAdmin } from "@/lib/restaurant-admins";
 import {
   discoverReceiptKey,
   validateProposedPattern,
@@ -45,19 +46,23 @@ export async function createPartnerRestaurant(
 
   const slug = await generateRestaurantSlug(name);
   const admin = createAdminClient();
+  // owner_id n'est plus écrit ici directement (ADR 0040) : le trigger de
+  // synchro le déduit du siège gérant posé juste après — un seul
+  // écrivain pour cette colonne dérivée, partout dans l'app.
   const { error } = await admin.from("restaurants").insert({
     id: slug,
     name,
     sector,
     address,
     cuisine_types: cuisineTypes,
-    owner_id: user.id,
     status: "pending",
   });
 
   if (error) {
     return { error: "Erreur lors de la création. Réessaie." };
   }
+
+  await upsertRestaurantAdmin({ restaurantId: slug, userId: user.id, role: "gerant", invitedBy: null });
 
   // ADR 0031 — communautés d'où viennent les clients. Facultatif : un
   // restaurateur qui ne sait pas encore les complètera depuis ses réglages.

@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase";
+import { getAdminRestaurantIds } from "./restaurant-admins";
 
 // ADR 0030 §1 — routage post-login par rôle : la destination la plus
 // puissante gagne (plateforme > console resto > membre). Le paramètre
@@ -14,13 +15,14 @@ export async function resolvePostLoginDestination(
 ): Promise<string> {
   const admin = createAdminClient();
 
-  const [{ data: profileRaw }, { data: owned }, { data: membership }] = await Promise.all([
+  const [{ data: profileRaw }, adminRestaurantIds, { data: membership }] = await Promise.all([
     admin
       .from("profiles")
       .select("is_admin, is_super_admin, display_name")
       .eq("id", userId)
       .single(),
-    admin.from("restaurants").select("id").eq("owner_id", userId).limit(1),
+    // ADR 0040 — owner_id ∪ sièges restaurant_admins (gérant/manager/équipe).
+    getAdminRestaurantIds(userId),
     admin
       .from("memberships")
       .select("restaurant_id")
@@ -37,7 +39,7 @@ export async function resolvePostLoginDestination(
   } | null;
   // is_admin legacy (ADMIN_EMAILS) donne accès à la console du restaurant par
   // défaut — même logique que /admin (app/admin/page.tsx, pont legacy).
-  const hasConsole = (owned ?? []).length > 0 || !!profile?.is_admin;
+  const hasConsole = adminRestaurantIds.length > 0 || !!profile?.is_admin;
 
   // Porte « Espace restaurateur » : on honore l'intention affichée.
   if (opts?.as === "resto") {

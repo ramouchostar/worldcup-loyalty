@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { isEstablishmentAdmin } from "@/lib/admin-guard";
+import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { isValidHex, FONT_OPTIONS } from "@/lib/branding";
 import { LOGO_BUCKET } from "@/lib/restaurant";
 import { parseHttpUrl } from "@/lib/url";
@@ -22,8 +22,8 @@ export async function updateRestaurantInfo(
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Non authentifié." };
-  if (!(await isEstablishmentAdmin(user.id, restaurantId))) {
-    return { error: "Accès refusé." };
+  if (!canManageEstablishment(await getAdminAccess(user.id, restaurantId))) {
+    return { error: "Réservé aux gérants et managers." };
   }
 
   const name = (formData.get("name") as string)?.trim();
@@ -96,8 +96,8 @@ export async function updateTeamSuggestions(
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Non authentifié." };
-  if (!(await isEstablishmentAdmin(user.id, restaurantId))) {
-    return { error: "Accès refusé." };
+  if (!canManageEstablishment(await getAdminAccess(user.id, restaurantId))) {
+    return { error: "Réservé aux gérants et managers." };
   }
 
   const { data: restaurant } = await createAdminClient()
@@ -142,8 +142,8 @@ export async function updateRestaurantBranding(
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Non authentifié." };
-  if (!(await isEstablishmentAdmin(user.id, restaurantId))) {
-    return { error: "Accès refusé." };
+  if (!canManageEstablishment(await getAdminAccess(user.id, restaurantId))) {
+    return { error: "Réservé aux gérants et managers." };
   }
 
   // Couleurs : champ absent → on ne touche pas ; vide → null (retour au défaut
@@ -243,8 +243,8 @@ export async function detectRestaurantDesign(
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Non authentifié." };
-  if (!(await isEstablishmentAdmin(user.id, restaurantId))) {
-    return { error: "Accès refusé." };
+  if (!canManageEstablishment(await getAdminAccess(user.id, restaurantId))) {
+    return { error: "Réservé aux gérants et managers." };
   }
 
   const admin = createAdminClient();

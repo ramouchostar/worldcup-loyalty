@@ -85,9 +85,13 @@ export async function middleware(request: NextRequest) {
   // middleware n'embarque pas la clé service-role — garder les deux en phase.
   const isAuthRoute = path === "/login" || path === "/signup";
   if (isAuthRoute && user) {
-    const [{ data: profile }, { data: owned }, { data: membership }] = await Promise.all([
+    const [{ data: profile }, { data: owned }, { data: seats }, { data: membership }] = await Promise.all([
       supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
       supabase.from("restaurants").select("id").eq("owner_id", user.id).limit(1),
+      // ADR 0040 — siège restaurant_admins (gérant/manager/équipe), pas
+      // seulement owner_id. Lisible ici via RLS self-read, sans clé
+      // service-role.
+      supabase.from("restaurant_admins").select("restaurant_id").eq("user_id", user.id).limit(1),
       supabase
         .from("memberships")
         .select("restaurant_id")
@@ -96,7 +100,7 @@ export async function middleware(request: NextRequest) {
         .limit(1)
         .maybeSingle(),
     ]);
-    const hasConsole = (owned ?? []).length > 0 || !!profile?.is_admin;
+    const hasConsole = (owned ?? []).length > 0 || (seats ?? []).length > 0 || !!profile?.is_admin;
     const asResto = request.nextUrl.searchParams.get("as") === "resto";
     let dest: string;
     if (asResto) {
@@ -144,8 +148,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Admin établissement (ADR 0015 §7) : pont legacy is_admin (restaurant par
-  // défaut uniquement) OU owner_id (self-service, n'importe quel établissement).
+  // Admin établissement (ADR 0015 §7 + ADR 0040) : pont legacy is_admin
+  // (restaurant par défaut uniquement) OU owner_id (self-service) OU siège
+  // restaurant_admins (gérant/manager/équipe — plusieurs admins possibles).
   // /admin (nu) et /admin/coupon/[token] restent à authentification seule —
   // la résolution fine (liste des établissements, token) reste dans la page.
   const adminMatch = path.match(/^\/admin\/([^/]+)/);
@@ -153,16 +158,25 @@ export async function middleware(request: NextRequest) {
   const isAdminEstablishmentRoute = !!adminRestaurantId && adminRestaurantId !== "coupon";
 
   if (isAdminEstablishmentRoute && user && adminRestaurantId) {
-    const [{ data: profile }, { data: restaurant }] = await Promise.all([
+    const [{ data: profile }, { data: restaurant }, { data: seat }] = await Promise.all([
       supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
       supabase.from("restaurants").select("owner_id").eq("id", adminRestaurantId).maybeSingle(),
+      // Lisible via RLS self-read (restaurant_admins_own_read), sans clé
+      // service-role — même contrainte que le reste de ce fichier.
+      supabase
+        .from("restaurant_admins")
+        .select("role")
+        .eq("restaurant_id", adminRestaurantId)
+        .eq("user_id", user.id)
+        .maybeSingle(),
     ]);
     const isLegacyAdmin = !!profile?.is_admin && adminRestaurantId === getRestaurantId();
     const isOwner = restaurant?.owner_id === user.id;
+    const hasSeat = !!seat;
     // Le super-admin plateforme accède à la console de n'importe quel
     // établissement (support, gestion des données — ADR 0015 §7).
     const isSuperAdmin = !!profile?.is_super_admin;
-    if (!isLegacyAdmin && !isOwner && !isSuperAdmin) {
+    if (!isLegacyAdmin && !isOwner && !isSuperAdmin && !hasSeat) {
       // ADR 0030 §8 — refus parlant : /join affiche pourquoi on atterrit là.
       return NextResponse.redirect(new URL("/join?reason=admin-required", request.url));
     }
