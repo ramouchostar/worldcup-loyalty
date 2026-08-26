@@ -73,7 +73,7 @@ function FlyerSheet({
       <div style={{ height: "3.5mm", background: accent, flex: "0 0 auto" }} />
 
       <div style={{ padding: "10mm 11mm 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Logo logo={logo} restaurantName={restaurantName} height="16mm" />
+        <Logo logo={logo} restaurantName={restaurantName} height="24mm" />
         <p style={{ ...mono, fontSize: "2.5mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82", margin: 0 }}>KRAAINEM</p>
       </div>
 
@@ -137,7 +137,7 @@ function StickerSheet({
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ background: "#fff", padding: "1.25mm 1.75mm", display: "flex", alignItems: "center" }}>
-          <Logo logo={logo} restaurantName={restaurantName} height="7.5mm" />
+          <Logo logo={logo} restaurantName={restaurantName} height="11mm" />
         </span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "3.5mm", flex: 1 }}>
@@ -182,7 +182,7 @@ function AfficheSheet({
       <div style={{ padding: "22mm 22mm 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "7mm" }}>
           <div style={{ background: "#fff", padding: "5mm 6mm", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Logo logo={logo} restaurantName={restaurantName} height="27.5mm" />
+            <Logo logo={logo} restaurantName={restaurantName} height="38mm" />
           </div>
           <p style={{ ...mono, fontSize: "4.75mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82", margin: 0 }}>KRAAINEM</p>
         </div>
