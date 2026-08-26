@@ -74,28 +74,3 @@ export async function getAppInstallsByUser(userIds: string[]): Promise<Map<strin
   }
   return map;
 }
-
-// Agrégats réseau pour /platform/stats. null = table absente (afficher « — »).
-export async function getAppInstallStats(): Promise<{
-  total: number;
-  byPlatform: Record<AppPlatform, number>;
-  active30d: number;
-} | null> {
-  try {
-    const admin = createAdminClient();
-    const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
-    const { data, error } = await admin.from("member_app_installs").select("platform, last_opened_at");
-    if (error) throw error;
-    const rows = (data as { platform: AppPlatform; last_opened_at: string }[] | null) ?? [];
-    const byPlatform: Record<AppPlatform, number> = { ios: 0, android: 0, desktop: 0, other: 0 };
-    let active30d = 0;
-    for (const r of rows) {
-      byPlatform[r.platform] = (byPlatform[r.platform] ?? 0) + 1;
-      if (r.last_opened_at >= since) active30d++;
-    }
-    return { total: rows.length, byPlatform, active30d };
-  } catch (e) {
-    console.error("[app-install] getAppInstallStats failed:", (e as Error).message);
-    return null;
-  }
-}
