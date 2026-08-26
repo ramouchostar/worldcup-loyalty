@@ -1,7 +1,7 @@
 import { createAdminClient } from "./supabase";
 import type { AdminRole } from "./restaurant-admin-roles";
 
-// ADR 0040 — sièges d'admin multi-rôles par établissement (table
+// ADR 0041 — sièges d'admin multi-rôles par établissement (table
 // restaurant_admins). Remplace le modèle « un seul owner_id » (ADR 0015
 // §7) sans le supprimer : owner_id reste, dérivé du premier gérant par un
 // trigger DB.
@@ -48,7 +48,7 @@ export async function upsertRestaurantAdmin(params: {
   return { ok: true, role: (data as { role: AdminRole }).role };
 }
 
-// Retrait pur (pas de rétrogradation in place) — voir ADR 0040 §10. Le
+// Retrait pur (pas de rétrogradation in place) — voir ADR 0041 §10. Le
 // plancher d'un gérant minimum et la resynchro d'owner_id sont tenus par des
 // triggers DB (BEFORE/AFTER DELETE), jamais vérifiés ici : cette fonction
 // relit juste l'erreur Postgres pour donner un message utile côté UI.

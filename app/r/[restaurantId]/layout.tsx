@@ -37,7 +37,7 @@ export default async function RestaurantLayout({
           .eq("user_id", user.id),
         supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
         supabase.from("restaurants").select("id").eq("owner_id", user.id),
-        // ADR 0040 — sièges restaurant_admins (gérant/manager/équipe), lisibles
+        // ADR 0041 — sièges restaurant_admins (gérant/manager/équipe), lisibles
         // via RLS self-read sans clé service-role.
         supabase.from("restaurant_admins").select("restaurant_id").eq("user_id", user.id),
       ])
@@ -45,7 +45,7 @@ export default async function RestaurantLayout({
   const profile = profileRaw as { is_admin: boolean; is_super_admin: boolean } | null;
   const isSuperAdmin = !!profile?.is_super_admin;
 
-  // ADR 0030 §2 + ADR 0040 — pont membre → admin : « Ma console » dans le
+  // ADR 0030 §2 + ADR 0041 — pont membre → admin : « Ma console » dans le
   // UserNav. Admin (owner, siège, ou admin legacy sur le resto par défaut) du
   // resto courant → sa console directe ; admin d'autres établissements → le
   // sélecteur /admin.

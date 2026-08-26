@@ -8,7 +8,7 @@ type GuardResult =
   | { ok: true; userId: string }
   | { ok: false; response: ReturnType<typeof NextResponse.json> };
 
-// ADR 0015 §7 + ADR 0040 — accès admin établissement pour un restaurant
+// ADR 0015 §7 + ADR 0041 — accès admin établissement pour un restaurant
 // donné. Accepte QUATRE mécaniques :
 // - isLegacyAdmin : profiles.is_admin (bootstrap ADMIN_EMAILS), mais
 //   UNIQUEMENT pour le restaurant par défaut (getRestaurantId()) — préserve
@@ -17,7 +17,7 @@ type GuardResult =
 //   établissement (nouveau modèle self-service, /become-a-partner).
 // - isSuperAdmin : profiles.is_super_admin — la plateforme accède à la
 //   console de n'importe quel établissement (support, gestion des données).
-// - seatRole : siège restaurant_admins (gérant/manager/équipe, ADR 0040) —
+// - seatRole : siège restaurant_admins (gérant/manager/équipe, ADR 0041) —
 //   PLUSIEURS admins par établissement. En V1 le rôle ne différencie que le
 //   droit d'inviter (canInviteFromAccess) : les quatre mécaniques donnent le
 //   même accès console, aucune autre surface n'est encore gatée par rôle.
@@ -53,7 +53,7 @@ export async function isEstablishmentAdmin(userId: string, restaurantId: string)
   return access.isLegacyAdmin || access.isOwner || access.isSuperAdmin || access.seatRole !== null;
 }
 
-// ADR 0040 §6 — accès aux trois pages sensibles (seuils CA, paliers
+// ADR 0041 §6 — accès aux trois pages sensibles (seuils CA, paliers
 // d'équipe, réglages établissement) : réservé à gérant/manager (+ pont
 // legacy). Même ensemble de rôles que canInviteFromAccess en V1 — deux noms
 // parce que ce sont deux permissions distinctes qui pourraient diverger.
@@ -67,13 +67,13 @@ export function canManageEstablishment(access: AdminAccess): boolean {
   );
 }
 
-// ADR 0040 §5/§10 — qui peut inviter ET qui peut retirer un siège : super-admin,
+// ADR 0041 §5/§10 — qui peut inviter ET qui peut retirer un siège : super-admin,
 // gérant, manager. Équipe non (sinon n'importe qui se clone ou se retire
 // l'accès). isLegacyAdmin/isOwner sont inclus par défense en profondeur : ils
 // donnent déjà un accès console complet ailleurs (isEstablishmentAdmin), les
 // exclure ici casserait le droit d'inviter du pont legacy ADMIN_EMAILS
 // (kraainem) s'il n'a pas de ligne restaurant_admins explicite — coût nul
-// une fois le backfill (ADR 0040) appliqué, puisque isOwner devient alors
+// une fois le backfill (ADR 0041) appliqué, puisque isOwner devient alors
 // redondant avec seatRole === "gerant".
 export function canInviteFromAccess(access: AdminAccess): boolean {
   return canManageEstablishment(access);
@@ -100,7 +100,7 @@ export async function requireAdmin(restaurantId: string): Promise<GuardResult> {
   return { ok: true, userId: user.id };
 }
 
-// ADR 0040 §6 — variante de requireAdmin pour les trois routes API des pages
+// ADR 0041 §6 — variante de requireAdmin pour les trois routes API des pages
 // restreintes (thresholds, team-tiers, settings) : un siège équipe est bien
 // admin de l'établissement (isEstablishmentAdmin), mais pas autorisé sur ces
 // surfaces précises. Défense en profondeur derrière la garde déjà posée

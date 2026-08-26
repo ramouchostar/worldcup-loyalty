@@ -7,7 +7,7 @@ import { getActiveInvitesByRestaurant } from "@/lib/owner-invites";
 import { SeatInviteForm } from "./SeatInviteForm";
 import { SeatRow } from "./SeatRow";
 
-// ADR 0040 §7/§10 — « Accès console » : qui a un siège sur cet établissement,
+// ADR 0041 §7/§10 — « Accès console » : qui a un siège sur cet établissement,
 // invitation d'un nouveau siège et retrait d'un siège existant, pour qui le
 // peut (gérant, manager, super-admin — canManageEstablishment). Visible par
 // tout siège (la liste elle-même n'est pas restreinte) ; le formulaire

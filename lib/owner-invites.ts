@@ -58,7 +58,7 @@ export function ownerInviteUrl(token: string): string {
 // Génère un lien et révoque le précédent lien actif du même établissement
 // (index unique partiel uq_owner_invites_active, m55) : un seul lien vivant à
 // la fois, celui qu'on vient d'envoyer.
-// ADR 0040 — `role` est requis (pas de défaut ici) : chaque appelant doit
+// ADR 0041 — `role` est requis (pas de défaut ici) : chaque appelant doit
 // choisir explicitement le rôle proposé, confirmé ensuite par l'invité.
 export async function createOwnerInvite(params: {
   restaurantId: string;
@@ -243,7 +243,7 @@ export type ClaimResult =
 // accepted_at IS NULL est atomique au niveau ligne) AVANT d'attribuer le
 // siège. Deux clics concurrents → un seul gagne, jamais deux sièges attribués
 // pour la même invitation.
-// ADR 0040 — n'écrit plus `restaurants.owner_id` directement : insère une
+// ADR 0041 — n'écrit plus `restaurants.owner_id` directement : insère une
 // ligne restaurant_admins (rôle proposé par l'invite), et c'est le trigger
 // DB qui pose owner_id s'il s'agit du premier gérant. Le rôle
 // réellement persisté (`role` du résultat) peut différer de celui proposé

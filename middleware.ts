@@ -88,7 +88,7 @@ export async function middleware(request: NextRequest) {
     const [{ data: profile }, { data: owned }, { data: seats }, { data: membership }] = await Promise.all([
       supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
       supabase.from("restaurants").select("id").eq("owner_id", user.id).limit(1),
-      // ADR 0040 — siège restaurant_admins (gérant/manager/équipe), pas
+      // ADR 0041 — siège restaurant_admins (gérant/manager/équipe), pas
       // seulement owner_id. Lisible ici via RLS self-read, sans clé
       // service-role.
       supabase.from("restaurant_admins").select("restaurant_id").eq("user_id", user.id).limit(1),
@@ -153,7 +153,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Admin établissement (ADR 0015 §7 + ADR 0040) : pont legacy is_admin
+  // Admin établissement (ADR 0015 §7 + ADR 0041) : pont legacy is_admin
   // (restaurant par défaut uniquement) OU owner_id (self-service) OU siège
   // restaurant_admins (gérant/manager/équipe — plusieurs admins possibles).
   // /admin (nu) et /admin/coupon/[token] restent à authentification seule —

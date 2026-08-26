@@ -6,7 +6,7 @@ import { ADMIN_ROLES, ADMIN_ROLE_LABELS, type AdminRole } from "@/lib/restaurant
 
 type Invite = { url: string; role: AdminRole; emailed?: boolean };
 
-// ADR 0040 — même geste que InviteOwnerForm.tsx (/platform), mais l'établissement
+// ADR 0041 — même geste que InviteOwnerForm.tsx (/platform), mais l'établissement
 // est fixé par l'URL (pas de sélecteur) : c'est un gérant/manager qui invite
 // pour SON établissement, pas le super-admin pour n'importe lequel.
 export function SeatInviteForm({

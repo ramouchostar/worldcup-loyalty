@@ -16,7 +16,7 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // ADR 0040 §6 — réservé à gérant/manager (+ pont legacy) ; un siège équipe
+  // ADR 0041 §6 — réservé à gérant/manager (+ pont legacy) ; un siège équipe
   // ne doit même pas voir cette page (défense en profondeur, pas seulement
   // le lien caché dans la nav — cf. layout admin, CVE-2025-29927).
   const access = await getAdminAccess(user.id, restaurantId);

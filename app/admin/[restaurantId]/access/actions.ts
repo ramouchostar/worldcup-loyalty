@@ -6,7 +6,7 @@ import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { parseAdminRole, removeRestaurantAdmin } from "@/lib/restaurant-admins";
 import { createOwnerInviteAndNotify, revokeOwnerInvite, getActiveInvitesByRestaurant } from "@/lib/owner-invites";
 
-// ADR 0040 §5/§10 — même garde que la console elle-même (getAdminAccess),
+// ADR 0041 §5/§10 — même garde que la console elle-même (getAdminAccess),
 // plus la restriction "peut inviter/retirer un siège" (gérant/manager/
 // super-admin, jamais un siège équipe seul — sinon n'importe qui se clone
 // ou se retire l'accès). canManageEstablishment couvre ici les deux gestes :
@@ -57,7 +57,7 @@ export async function revokeSeatInviteFromConsole(restaurantId: string): Promise
   revalidatePath(`/admin/${restaurantId}/access`);
 }
 
-// ADR 0040 §10 — retrait pur, même ensemble de rôles que l'invitation (par
+// ADR 0041 §10 — retrait pur, même ensemble de rôles que l'invitation (par
 // symétrie, pas de hiérarchie manager < gérant introduite ici). Le plancher
 // d'un gérant minimum par établissement est tenu par un trigger DB
 // (enforce_restaurant_admin_min_gerant), pas vérifié ici : cette action

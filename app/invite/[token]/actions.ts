@@ -27,7 +27,7 @@ export async function acceptInvite(token: string) {
   // `bienvenue` : c'est la toute première fois que ce restaurateur voit sa
   // console. La proposition d'installer l'app y prend un ton d'accueil plutôt
   // que celui d'un rappel discret (ADR 0038).
-  // ADR 0040 — le rôle persisté peut différer du rôle proposé si le quota
+  // ADR 0041 — le rôle persisté peut différer du rôle proposé si le quota
   // gérant/manager était déjà atteint (rétrogradé en équipe par le trigger
   // de seat) : la console affiche alors un bandeau ponctuel plutôt que de
   // rétrograder quelqu'un en silence total.

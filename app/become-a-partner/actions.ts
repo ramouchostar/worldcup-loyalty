@@ -46,7 +46,7 @@ export async function createPartnerRestaurant(
 
   const slug = await generateRestaurantSlug(name);
   const admin = createAdminClient();
-  // owner_id n'est plus écrit ici directement (ADR 0040) : le trigger de
+  // owner_id n'est plus écrit ici directement (ADR 0041) : le trigger de
   // synchro le déduit du siège gérant posé juste après — un seul
   // écrivain pour cette colonne dérivée, partout dans l'app.
   const { error } = await admin.from("restaurants").insert({

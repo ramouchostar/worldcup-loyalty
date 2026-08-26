@@ -1,4 +1,4 @@
-// ADR 0040 — rôles établissement : type, libellés, parsing. Extrait de
+// ADR 0041 — rôles établissement : type, libellés, parsing. Extrait de
 // lib/restaurant-admins.ts pour rester importable depuis un composant
 // CLIENT (SeatInviteForm.tsx, SeatRow.tsx) sans entraîner createAdminClient
 // (donc next/headers, invalide côté client) dans le bundle — un import

@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { ThresholdsClient } from "./ThresholdsClient";
 
-// ADR 0040 §6 — wrapper serveur : réservé à gérant/manager (+ pont legacy),
+// ADR 0041 §6 — wrapper serveur : réservé à gérant/manager (+ pont legacy),
 // un siège équipe ne doit même pas voir ces montants. Défense en profondeur
 // derrière la garde de route API (requireEstablishmentManager) — même
 // raisonnement que le layout admin (CVE-2025-29927) : la garde ne peut pas

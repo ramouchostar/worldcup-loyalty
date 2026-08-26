@@ -1,4 +1,4 @@
-# ADR 0040 — Sièges d'admin établissement multi-rôles (gérant / manager / équipe)
+# ADR 0041 — Sièges d'admin établissement multi-rôles (gérant / manager / équipe)
 
 **Statut** : Accepté (2026-08-19). Complète l'**ADR 0015 §7** (rôles admin à deux niveaux) et l'**ADR 0032** (lien d'invitation restaurateur). Amende **CONTEXT.md** § Établissements et § Administration.
 

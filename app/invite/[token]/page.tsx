@@ -78,7 +78,7 @@ export default async function OwnerInvitePage({
 
   // Lien déjà consommé : si c'est CE compte qui l'a consommé, on ne dit pas
   // « déjà utilisé » (le restaurateur a juste rouvert son lien) — on l'envoie
-  // sur sa console. ADR 0040 — comparer au siège (pas seulement owner_id) :
+  // sur sa console. ADR 0041 — comparer au siège (pas seulement owner_id) :
   // un manager ou un siège équipe qui rouvre son lien accepté n'est jamais
   // devenu owner_id, mais a bien un accès actif.
   if (state === "accepted") {

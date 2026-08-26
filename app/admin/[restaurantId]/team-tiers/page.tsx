@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { TeamTiersClient } from "./TeamTiersClient";
 
-// ADR 0040 §6 — wrapper serveur : réservé à gérant/manager (+ pont legacy),
+// ADR 0041 §6 — wrapper serveur : réservé à gérant/manager (+ pont legacy),
 // mêmes raisons que thresholds/page.tsx (seuils en euros ADR 0012, jamais
 // visibles côté client, mais aussi restreints à ces rôles côté admin
 // désormais). Défense en profondeur derrière requireEstablishmentManager.

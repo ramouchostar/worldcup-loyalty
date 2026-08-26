@@ -194,7 +194,7 @@ export default async function AdminDashboardPage({
         ton={bienvenue ? "accueil" : "discret"}
       />
 
-      {/* ADR 0040 — le rôle proposé sur l'invitation a été rétrogradé en
+      {/* ADR 0041 — le rôle proposé sur l'invitation a été rétrogradé en
           équipe (quota gérant/manager déjà atteint) : le dire une fois,
           plutôt que de laisser la personne découvrir en silence qu'elle a un
           rôle différent de celui annoncé. */}

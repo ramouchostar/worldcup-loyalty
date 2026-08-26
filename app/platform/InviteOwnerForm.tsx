@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createOwnerInviteFromForm } from "./actions";
 import { ADMIN_ROLE_LABELS, ADMIN_ROLES } from "@/lib/restaurant-admin-roles";
 
-// ADR 0032 + ADR 0040 — génère le lien d'invitation et le donne à partager
+// ADR 0032 + ADR 0041 — génère le lien d'invitation et le donne à partager
 // tout de suite (copie / WhatsApp), sans quitter la console. L'email est
 // facultatif : renseigné, le lien part aussi par email ; vide, on partage à
 // la main. Le rôle est proposé ici, confirmé par l'invité à l'acceptation —

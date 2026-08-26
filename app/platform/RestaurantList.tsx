@@ -88,7 +88,7 @@ function PlanFlipForm({ restaurantId, plan }: { restaurantId: string; plan: stri
   );
 }
 
-// ADR 0032 + ADR 0040 — le lien d'invitation en circulation, affiché là où on
+// ADR 0032 + ADR 0041 — le lien d'invitation en circulation, affiché là où on
 // décide : sur la ligne de l'établissement. Réaffiché tel quel (jamais
 // régénéré à l'affichage) pour que le lien déjà parti en WhatsApp reste celui
 // qui marche. Geste one-click sans sélecteur de rôle : défaut gérant, soumis

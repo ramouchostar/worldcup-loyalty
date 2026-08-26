@@ -1,5 +1,5 @@
 -- ============================================================
--- Sièges d'admin multi-rôles par établissement (ADR 0040)
+-- Sièges d'admin multi-rôles par établissement (ADR 0041)
 --
 -- Problème résolu : `restaurants.owner_id` n'autorise qu'UN SEUL admin par
 -- établissement (ADR 0015 §7) — inviter quelqu'un d'autre (ADR 0032) évince
@@ -152,7 +152,7 @@ ALTER TABLE owner_invites
     CHECK (role IN ('gerant', 'manager', 'equipe'));
 
 COMMENT ON COLUMN owner_invites.role IS
-  'Rôle PROPOSÉ par l''inviteur (ADR 0040), CONFIRMÉ — pas librement choisi — par l''invité à l''acceptation. Default gérant pour compatibilité avec les lignes déjà existantes.';
+  'Rôle PROPOSÉ par l''inviteur (ADR 0041), CONFIRMÉ — pas librement choisi — par l''invité à l''acceptation. Default gérant pour compatibilité avec les lignes déjà existantes.';
 
 
 -- ============================================================

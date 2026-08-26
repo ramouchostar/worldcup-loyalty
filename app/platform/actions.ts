@@ -166,7 +166,7 @@ export async function createRestaurantAsSuperAdmin(
   const { generateRestaurantSlug } = await import("@/lib/restaurant");
   const slug = await generateRestaurantSlug(name);
 
-  // owner_id n'est plus écrit ici directement (ADR 0040) : c'est le trigger
+  // owner_id n'est plus écrit ici directement (ADR 0041) : c'est le trigger
   // de synchro qui le déduit du siège gérant ci-dessous — un
   // seul écrivain pour cette colonne dérivée, partout dans l'app.
   const base = {
@@ -204,7 +204,7 @@ function isUnknownColumn(error: { code?: string; message?: string }): boolean {
   return error.code === "42703" || error.code === "PGRST204" || /is_demo|activated_at/.test(error.message ?? "");
 }
 
-// ADR 0032 + ADR 0040 — lien d'invitation restaurateur. Voie PRINCIPALE pour
+// ADR 0032 + ADR 0041 — lien d'invitation restaurateur. Voie PRINCIPALE pour
 // donner la console d'un établissement à quelqu'un : contrairement à
 // assignOwner (plus bas), elle ne suppose pas qu'il ait déjà un compte —
 // c'est son clic qui pose son siège (restaurant_admins), avant ou après son
@@ -264,7 +264,7 @@ export async function revokeOwnerInviteAction(inviteId: string) {
 
 // Ajoute un siège gérant par email — voie directe, réservée au cas où la
 // personne a DÉJÀ un compte membre (sinon utiliser le lien d'invitation
-// ci-dessus). ADR 0040 — n'écrase plus le gérant existant, ajoute un siège
+// ci-dessus). ADR 0041 — n'écrase plus le gérant existant, ajoute un siège
 // (soumis au même plafond de 2 gérants, tenu en base) : le nom de l'action
 // reste "assignOwner" pour ne pas faire bouger tous ses appelants, mais elle
 // n'écrit plus jamais owner_id directement (le trigger de synchro s'en charge).

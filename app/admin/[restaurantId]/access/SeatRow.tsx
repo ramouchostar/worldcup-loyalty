@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { removeSeatFromConsole } from "./actions";
 import { ADMIN_ROLE_LABELS, type AdminRole } from "@/lib/restaurant-admin-roles";
 
-// ADR 0040 §10 — un clic suffit pour l'invitation (SeatInviteForm), mais le
+// ADR 0041 §10 — un clic suffit pour l'invitation (SeatInviteForm), mais le
 // retrait est plus lourd de conséquences (surtout pour soi-même ou le
 // dernier gérant) : confirmation navigateur avant l'appel serveur.
 export function SeatRow({

@@ -21,7 +21,7 @@ export async function resolvePostLoginDestination(
       .select("is_admin, is_super_admin, display_name")
       .eq("id", userId)
       .single(),
-    // ADR 0040 — owner_id ∪ sièges restaurant_admins (gérant/manager/équipe).
+    // ADR 0041 — owner_id ∪ sièges restaurant_admins (gérant/manager/équipe).
     getAdminRestaurantIds(userId),
     admin
       .from("memberships")

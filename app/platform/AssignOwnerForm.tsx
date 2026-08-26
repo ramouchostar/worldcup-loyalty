@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { assignOwner } from "./actions";
 
-// ADR 0040 — ajoute un siège gérant par l'email d'un compte membre déjà
+// ADR 0041 — ajoute un siège gérant par l'email d'un compte membre déjà
 // existant (soumis au même plafond de 2 gérants que le lien d'invitation).
 export function AssignOwnerForm({ restaurants }: { restaurants: { id: string; name: string }[] }) {
   const [loading, setLoading] = useState(false);

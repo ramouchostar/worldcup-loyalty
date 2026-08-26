@@ -35,14 +35,14 @@ export default async function AdminLayout({
 
   // ADR 0030 §3 — super-admin en visite sur un resto qui n'est pas le sien :
   // même console, mais un bandeau signale le contexte (anti-erreur de resto).
-  // ADR 0040 — un titulaire de siège (gérant/manager/équipe) n'est pas non
+  // ADR 0041 — un titulaire de siège (gérant/manager/équipe) n'est pas non
   // plus en « mode plateforme », même s'il n'est pas isOwner (il peut être
   // le 2ᵉ gérant, un manager, ou un siège équipe).
   const isPlatformMode = access.isSuperAdmin && !access.isOwner && !access.isLegacyAdmin && access.seatRole === null;
 
   // ADR 0030 §2 — « Mes établissements » si l'utilisateur en administre
   // plusieurs (le sélecteur /admin cessait d'être orphelin).
-  // ADR 0040 — inclut les établissements où l'utilisateur n'est owner_id
+  // ADR 0041 — inclut les établissements où l'utilisateur n'est owner_id
   // d'aucun (un simple siège manager/équipe), pas seulement ceux qu'il a créés.
   const [adminRestaurantIds, plan] = await Promise.all([
     getAdminRestaurantIds(user.id),
@@ -59,7 +59,7 @@ export default async function AdminLayout({
 
   const branding = await getRestaurantBranding(restaurantId);
   const base = `/admin/${restaurantId}`;
-  // ADR 0040 §6 — un siège équipe n'a pas accès aux trois pages financières
+  // ADR 0041 §6 — un siège équipe n'a pas accès aux trois pages financières
   // /réglages (seuils CA, paliers d'équipe, réglages établissement) : leur
   // lien disparaît de la nav (chaque page se re-garde aussi côté serveur —
   // ce filtrage n'est qu'un confort d'UI, pas la garde elle-même).
