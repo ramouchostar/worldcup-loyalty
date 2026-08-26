@@ -48,23 +48,46 @@ export async function getHealthMetrics(): Promise<HealthMetrics> {
   const restaurantIds = await listLiveRestaurantIds(admin);
   if (restaurantIds.length === 0) return EMPTY;
 
+  // Les super-admins plateforme testent en prod sur le réseau réel (pas de
+  // resto démo dédié) — leurs propres tickets/cadeaux gonflent artificiellement
+  // ces chiffres. On les exclut des quatre requêtes par leur id, pas par email
+  // en dur : ça suit `profiles.is_super_admin` (bootstrappé par SUPER_ADMIN_EMAILS)
+  // sans re-coder une liste ailleurs.
+  const { data: superAdmins, error: superAdminsError } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("is_super_admin", true);
+  if (superAdminsError) throw new Error(`profiles(super_admin): ${superAdminsError.message}`);
+  const excludedIds = ((superAdmins as { id: string }[] | null) ?? []).map((p) => p.id);
+  const excludeSuperAdmins = <T extends { not: (column: string, operator: string, value: unknown) => T }>(
+    query: T
+  ): T => (excludedIds.length > 0 ? query.not("user_id", "in", `(${excludedIds.join(",")})`) : query);
+
   const [membersRes, ordersRes, redeemedRes, expiredRes] = await Promise.all([
-    admin.from("memberships").select("user_id", { count: "exact", head: true }).in("restaurant_id", restaurantIds),
-    admin
-      .from("orders")
-      .select("user_id, order_date")
-      .eq("status", "validated")
-      .in("restaurant_id", restaurantIds),
-    admin
-      .from("pending_rewards")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "redeemed")
-      .in("restaurant_id", restaurantIds),
-    admin
-      .from("pending_rewards")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "expired")
-      .in("restaurant_id", restaurantIds),
+    excludeSuperAdmins(
+      admin.from("memberships").select("user_id", { count: "exact", head: true }).in("restaurant_id", restaurantIds)
+    ),
+    excludeSuperAdmins(
+      admin
+        .from("orders")
+        .select("user_id, order_date")
+        .eq("status", "validated")
+        .in("restaurant_id", restaurantIds)
+    ),
+    excludeSuperAdmins(
+      admin
+        .from("pending_rewards")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "redeemed")
+        .in("restaurant_id", restaurantIds)
+    ),
+    excludeSuperAdmins(
+      admin
+        .from("pending_rewards")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "expired")
+        .in("restaurant_id", restaurantIds)
+    ),
   ]);
 
   if (membersRes.error) throw new Error(`memberships: ${membersRes.error.message}`);
