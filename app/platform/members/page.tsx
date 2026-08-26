@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { MembersTable, type MemberRow } from "@/components/admin/MembersTable";
 import { getAppInstallsByUser, PLATFORM_LABEL } from "@/lib/app-install";
+import { fetchAllRows } from "@/lib/paged-select";
 
 export const metadata = { title: "Membres — Plateforme" };
 
@@ -58,17 +59,32 @@ export default async function PlatformMembersPage({
   const userIds = Array.from(new Set(memberships.map((m) => m.user_id)));
   // App installée (complément ADR 0038) — fail-open si la migration manque.
   const installs = await getAppInstallsByUser(userIds);
+
+  // `.in("user_id", userIds)` avec jusqu'à 500 ids d'un coup + `.limit(20000)`
+  // qui ne protège de rien (PostgREST tronque en silence à `max_rows`, 1000
+  // par défaut — lib/paged-select.ts) : par lots ET paginé, comme le reste de
+  // la console plateforme. Erreur explicite au lieu de zéros silencieux.
+  const USER_BATCH = 200;
   let orders: OrderRow[] = [];
-  if (userIds.length > 0) {
-    let ordersQuery = admin
-      .from("orders")
-      .select("user_id, restaurant_id, order_date")
-      .eq("status", "validated")
-      .in("user_id", userIds)
-      .limit(20000);
-    if (restaurantFilter) ordersQuery = ordersQuery.eq("restaurant_id", restaurantFilter);
-    const { data: ordersRaw } = await ordersQuery;
-    orders = (ordersRaw as OrderRow[] | null) ?? [];
+  let ordersError: string | null = null;
+  try {
+    for (let i = 0; i < userIds.length; i += USER_BATCH) {
+      const batchIds = userIds.slice(i, i + USER_BATCH);
+      const { rows } = await fetchAllRows<OrderRow>((from, to) => {
+        let q = admin
+          .from("orders")
+          .select("user_id, restaurant_id, order_date")
+          .eq("status", "validated")
+          .in("user_id", batchIds)
+          .range(from, to);
+        if (restaurantFilter) q = q.eq("restaurant_id", restaurantFilter);
+        return q;
+      });
+      orders.push(...rows);
+    }
+  } catch (e) {
+    ordersError = (e as Error).message;
+    console.error("[platform/members] orders fetch failed:", ordersError);
   }
 
   const byKey = new Map<string, { count: number; last: string | null }>();
@@ -121,6 +137,16 @@ export default async function PlatformMembersPage({
           )}
         </p>
       </div>
+
+      {ordersError && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-900">
+          <p className="font-semibold">Volume de commandes indisponible</p>
+          <p className="text-red-700 text-xs mt-0.5">
+            La liste des membres s&apos;affiche mais le nombre de tickets et la dernière activité n&apos;ont
+            pas pu être calculés. Message : <span className="font-mono">{ordersError}</span>
+          </p>
+        </div>
+      )}
 
       <MembersTable rows={rows} />
     </div>
