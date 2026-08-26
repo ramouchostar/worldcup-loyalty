@@ -1,5 +1,6 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
 import type { Branding } from "./branding";
+import { isRestaurantAdminSeat } from "./restaurant-admins";
 
 const LOGO_BUCKET = "restaurant-logos";
 const EMPTY_BRANDING: Branding = {
@@ -94,6 +95,10 @@ export async function getRestaurantDisplayName(restaurantId: string): Promise<st
 
 // ADR 0015 §7 — admin établissement = celui qui l'a créé (owner_id), sur le
 // modèle "capitaine" déjà utilisé pour les équipes (lib/teams.ts).
+// ADR 0041 — élargi à tout siège restaurant_admins (gérant/manager/équipe) :
+// owner_id ne reflète que LE premier gérant, un 2ᵉ gérant ou un manager/équipe
+// doit avoir le même accès (carte gérant sur /r/[id], onboarding self-service,
+// validation coupon en caisse) sans jamais devenir owner_id.
 export async function isRestaurantOwner(userId: string, restaurantId: string): Promise<boolean> {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
@@ -101,7 +106,8 @@ export async function isRestaurantOwner(userId: string, restaurantId: string): P
     .select("owner_id")
     .eq("id", restaurantId)
     .maybeSingle();
-  return data?.owner_id === userId;
+  if (data?.owner_id === userId) return true;
+  return isRestaurantAdminSeat(userId, restaurantId);
 }
 
 // Slug URL-safe pour le self-service (id texte de `restaurants`) — dérivé du

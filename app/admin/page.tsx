@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId } from "@/lib/restaurant";
+import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
 
 export default async function AdminLandingPage() {
   const supabase = await createServerSupabaseClient();
@@ -10,12 +11,20 @@ export default async function AdminLandingPage() {
 
   const admin = createAdminClient();
 
-  const [{ data: owned }, { data: profile }] = await Promise.all([
-    admin.from("restaurants").select("id, name").eq("owner_id", user.id).order("name"),
+  // ADR 0041 — owner_id ∪ sièges restaurant_admins (gérant/manager/équipe) :
+  // un manager ou un siège équipe administre aussi son établissement sans en
+  // être owner_id.
+  const [adminRestaurantIds, { data: profile }] = await Promise.all([
+    getAdminRestaurantIds(user.id),
     admin.from("profiles").select("is_admin").eq("id", user.id).single(),
   ]);
 
-  const restaurants = [...(owned ?? [])];
+  const { data: adminRestaurants } =
+    adminRestaurantIds.length > 0
+      ? await admin.from("restaurants").select("id, name").in("id", adminRestaurantIds).order("name")
+      : { data: [] };
+
+  const restaurants = [...(adminRestaurants ?? [])];
 
   // Pont legacy — les comptes is_admin (ADMIN_EMAILS) gardent l'accès au
   // restaurant par défaut tant qu'ils n'en sont pas explicitement owner.

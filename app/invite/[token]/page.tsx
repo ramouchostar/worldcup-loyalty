@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/supabase";
 import { loadOwnerInvite } from "@/lib/owner-invites";
+import { isRestaurantAdminSeat, ADMIN_ROLE_LABELS } from "@/lib/restaurant-admins";
 import { acceptInvite, dismissInvite } from "./actions";
 
 // ADR 0032 — page d'atterrissage du lien d'invitation restaurateur. Publique à
@@ -77,16 +78,12 @@ export default async function OwnerInvitePage({
 
   // Lien déjà consommé : si c'est CE compte qui l'a consommé, on ne dit pas
   // « déjà utilisé » (le restaurateur a juste rouvert son lien) — on l'envoie
-  // sur sa console.
+  // sur sa console. ADR 0041 — comparer au siège (pas seulement owner_id) :
+  // un manager ou un siège équipe qui rouvre son lien accepté n'est jamais
+  // devenu owner_id, mais a bien un accès actif.
   if (state === "accepted") {
     if (user) {
-      const admin = createAdminClient();
-      const { data: restaurant } = await admin
-        .from("restaurants")
-        .select("owner_id")
-        .eq("id", invite.restaurantId)
-        .maybeSingle();
-      if ((restaurant as { owner_id: string | null } | null)?.owner_id === user.id) {
+      if (await isRestaurantAdminSeat(user.id, invite.restaurantId)) {
         return (
           <Shell>
             <p className="text-4xl text-center">✅</p>
@@ -125,6 +122,9 @@ export default async function OwnerInvitePage({
       <p className="text-sm text-gray-500 text-center">
         Ce lien te donne la main sur la console de ton établissement : catalogue,
         cadeaux, QR code des tables et suivi de tes commandes directes.
+      </p>
+      <p className="text-xs text-gray-400 text-center">
+        Rôle proposé : <span className="font-semibold text-gray-600">{ADMIN_ROLE_LABELS[invite.role]}</span>
       </p>
       {error && ERROR_LABELS[error] && (
         <p className="text-sm text-red-600 text-center">{ERROR_LABELS[error]}</p>

@@ -35,10 +35,10 @@ export default async function AdminDashboardPage({
   // `?bienvenue=1` : première arrivée par lien d'invitation (ADR 0032). La
   // proposition d'installer l'app y prend un ton d'accueil, au lieu de se
   // fondre dans la console d'un habitué.
-  searchParams: Promise<{ bienvenue?: string }>;
+  searchParams: Promise<{ bienvenue?: string; seat?: string }>;
 }) {
   const { restaurantId } = await params;
-  const { bienvenue } = await searchParams;
+  const { bienvenue, seat } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -193,6 +193,19 @@ export default async function AdminDashboardPage({
         surface={bienvenue ? "console_premiere_visite" : "console_admin"}
         ton={bienvenue ? "accueil" : "discret"}
       />
+
+      {/* ADR 0041 — le rôle proposé sur l'invitation a été rétrogradé en
+          équipe (quota gérant/manager déjà atteint) : le dire une fois,
+          plutôt que de laisser la personne découvrir en silence qu'elle a un
+          rôle différent de celui annoncé. */}
+      {seat === "equipe-quota" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-sm text-blue-900">
+            Ton accès a été ajouté en <strong>équipe (accès établissement)</strong> — le quota de
+            gérants/managers était déjà atteint. Ton accès à la console reste complet.
+          </p>
+        </div>
+      )}
 
       {/* Établissement pas encore en ligne : guider la fin de l'inscription
           (audit 2026-07-23 — un abandon d'onboarding atterrissait dans une

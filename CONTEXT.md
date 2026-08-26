@@ -198,11 +198,15 @@ _Avoid_ : multi-tenant (jargon technique), site, instance.
 
 **Restaurateur / Admin établissement** *(ADR 0015)* :
 Compte qui a créé l'établissement (self-service), sur le modèle du capitaine d'équipe (ADR 0014). Gère uniquement son propre établissement (menu, seuils, équipes, commandes suspectes). Un restaurateur peut posséder plusieurs établissements. Distinct du **super-admin plateforme**, qui approuve les nouveaux établissements avant leur mise en ligne et voit les statistiques cross-établissements.
-_Avoid_ : gérant (réservé à une évolution future de co-admin), propriétaire.
+_Avoid_ : propriétaire. (« gérant » n'est plus à éviter — c'est un rôle établissement défini, voir **Rôle établissement**, ADR 0041.)
 
-**Lien d'invitation restaurateur** *(ADR 0032)* :
-Lien à usage unique généré par le super-admin depuis `/platform` (table `owner_invites`, 14 jours), envoyé au restaurateur par WhatsApp ou email. Son clic pose `restaurants.owner_id` — il peut créer son compte à ce moment-là, rien n'est requis avant. Un seul lien actif par établissement (en générer un nouveau révoque le précédent) ; révocable à tout moment. Remplace comme voie principale le rattachement par email d'un compte déjà existant (`assignOwner`), qui reste disponible en voie secondaire.
-_Avoid_ : magic link (réservé à la connexion Supabase), invitation membre (le parrainage, ADR 0006, est un autre objet).
+**Rôle établissement** *(ADR 0041)* :
+Statut d'un compte dans `restaurant_admins` pour UN établissement donné : **gérant**, **manager** ou **équipe (accès établissement)**. Maximum 2 gérants et 2 managers par établissement — plafond tenu **en base** (trigger sur `restaurant_admins`, jamais une vérification applicative) ; équipe est illimité, et tout siège proposé au-delà du plafond gérant/manager y est automatiquement affecté. En V1, le rôle conditionne le droit d'inviter (gérant et manager peuvent inviter, super-admin aussi ; équipe ne peut pas) et le droit de retirer un siège existant (même ensemble de rôles, plancher d'un gérant minimum tenu par trigger), ainsi que l'accès à **trois pages** : Seuils CA, Paliers d'équipe, Réglages établissement — réservées à gérant/manager, invisibles pour un siège équipe (page bloquée côté serveur, pas seulement le lien caché). Le reste de la console (dashboard, commandes, cadeaux, clients, équipes, broadcasts, actions, parrainages, ventes, prévisions, opportunités, baromètre, repères secteur, menu & coûts, QR, lecture de la liste des sièges) reste identique quel que soit le rôle, même principe que le mode plateforme (ADR 0030 §3, « même console, un bandeau signale seulement le contexte »). Une matrice de droits par rôle × surface généralisée (au-delà de ces trois pages) est un chantier séparé, pas encore construit. Le rôle est **proposé** sur le lien d'invitation et **confirmé** — jamais librement choisi — par l'invité à l'acceptation. `restaurants.owner_id` reste la colonne historique (voir **Restaurateur / Admin établissement**), désormais **dérivée** du premier gérant inséré — inchangée pour tout le code qui la lisait déjà ; si ce gérant est retiré, un gérant restant reprend automatiquement `owner_id` (trigger).
+_Avoid_ : « équipe » nu dans un contexte admin — toujours qualifié « équipe (accès établissement) » ou « siège équipe », jamais confondu avec l'équipe communautaire membre (voir **Communauté**, **Capitaine**) ; « tous les mêmes droits » (vrai pour l'essentiel de la console, faux pour les trois pages financières/réglages listées ci-dessus).
+
+**Lien d'invitation restaurateur** *(ADR 0032, rôle ajouté par ADR 0041)* :
+Lien à usage unique généré depuis `/platform` (super-admin, n'importe quel établissement) ou depuis la console d'un établissement par un gérant/manager (`/admin/[id]/access`) — table `owner_invites`, 14 jours, envoyé par WhatsApp ou email. Porte un **rôle établissement proposé** ; son acceptation ajoute un **siège** (`restaurant_admins`) à ce rôle, sans jamais évincer les sièges existants — seul le tout premier gérant pose `restaurants.owner_id`. Un seul lien actif par établissement (en générer un nouveau révoque le précédent) ; révocable à tout moment. Remplace comme voie principale le rattachement par email d'un compte déjà existant (`assignOwner`), qui reste disponible en voie secondaire et ajoute désormais un siège plutôt que de réassigner.
+_Avoid_ : magic link (réservé à la connexion Supabase), invitation membre (le parrainage, ADR 0006, est un autre objet), « évince »/« remplace » (une invitation ordinaire n'évince plus personne depuis ADR 0041 — seul un futur transfert de gérance, non construit, le ferait).
 
 **Statut établissement** *(ADR 0015)* :
 `pending` (créé en self-service, invisible aux membres, en attente de validation par le super-admin) ou `active` (visible et rejoignable). Contrôle qualité en phase de lancement — jamais de mise en ligne automatique.
@@ -266,7 +270,7 @@ _Avoid_ : transfert (obsolète — lié à l'élimination), switch.
 
 **Admin** :
 Utilisateur avec `is_admin = true`. Peut valider/rejeter les commandes suspectes, gérer les paliers, les équipes, les seuils CA et marquer les récompenses en attente comme récupérées. Bootstrappé via la variable d'environnement `ADMIN_EMAILS`.
-_Avoid_ : manager, gérant, superuser.
+_Avoid_ : superuser ; « manager »/« gérant » seuls sans préciser le rôle établissement (ADR 0041 — voir **Rôle établissement**, un objet différent de ce pont legacy).
 
 **Validation** :
 Action de l'admin qui passe une commande de `pending` à `validated` (cas suspects uniquement — les commandes normales sont auto-validées). Déclenche la mise à jour du score communautaire via trigger Supabase et la création de la récompense en attente. Irréversible sans action admin explicite.

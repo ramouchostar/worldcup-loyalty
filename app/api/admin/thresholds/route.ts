@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireEstablishmentManager } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
 import { getBudgetStatus } from "@/lib/budget";
 
@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const restaurantId = request.nextUrl.searchParams.get("restaurantId");
   if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
 
-  const guard = await requireAdmin(restaurantId);
+  const guard = await requireEstablishmentManager(restaurantId);
   if (!guard.ok) return guard.response;
 
   const admin = createAdminClient();
@@ -34,7 +34,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
   }
 
-  const guard = await requireAdmin(restaurantId);
+  const guard = await requireEstablishmentManager(restaurantId);
   if (!guard.ok) return guard.response;
 
   if (!id) return NextResponse.json({ error: "ID seuil manquant." }, { status: 400 });
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
   }
 
-  const guard = await requireAdmin(restaurantId);
+  const guard = await requireEstablishmentManager(restaurantId);
   if (!guard.ok) return guard.response;
 
   if (!period_label?.trim() || !target_revenue || Number(target_revenue) <= 0) {

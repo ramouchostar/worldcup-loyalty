@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { assignOwner } from "./actions";
 
-// Rattache / réassigne le restaurateur (owner) d'un établissement par
-// l'email de son compte membre.
+// ADR 0041 — ajoute un siège gérant par l'email d'un compte membre déjà
+// existant (soumis au même plafond de 2 gérants que le lien d'invitation).
 export function AssignOwnerForm({ restaurants }: { restaurants: { id: string; name: string }[] }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
@@ -62,7 +62,7 @@ export function AssignOwnerForm({ restaurants }: { restaurants: { id: string; na
         disabled={loading}
         className="w-full bg-brand-dark text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors"
       >
-        {loading ? "Rattachement..." : "Rattacher l'owner"}
+        {loading ? "Ajout..." : "Ajouter un gérant"}
       </button>
     </form>
   );

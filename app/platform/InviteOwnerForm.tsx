@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { createOwnerInviteFromForm } from "./actions";
+import { ADMIN_ROLE_LABELS, ADMIN_ROLES } from "@/lib/restaurant-admin-roles";
 
-// ADR 0032 — génère le lien d'invitation restaurateur et le donne à partager tout
-// de suite (copie / WhatsApp), sans quitter la console. L'email est facultatif :
-// renseigné, le lien part aussi par email ; vide, on partage à la main.
+// ADR 0032 + ADR 0041 — génère le lien d'invitation et le donne à partager
+// tout de suite (copie / WhatsApp), sans quitter la console. L'email est
+// facultatif : renseigné, le lien part aussi par email ; vide, on partage à
+// la main. Le rôle est proposé ici, confirmé par l'invité à l'acceptation —
+// une invitation ordinaire n'évince jamais personne (elle ajoute un siège ou
+// est forcée en équipe si le quota gérant/manager est déjà atteint), donc
+// plus de confirmation à demander avant de générer le lien.
 export function InviteOwnerForm({
   restaurants,
 }: {
-  restaurants: { id: string; name: string; hasOwner: boolean }[];
+  restaurants: { id: string; name: string; hasOwner: boolean; ownerEmail: string | null }[];
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,19 +22,9 @@ export function InviteOwnerForm({
   const [copied, setCopied] = useState(false);
   const [restaurantId, setRestaurantId] = useState("");
 
-  const selected = restaurants.find((r) => r.id === restaurantId);
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    // Réassigner un établissement qui a déjà un restaurateur rattaché coupe l'accès du
-    // précédent (owner_id est unique par resto) — on le dit avant.
-    if (
-      selected?.hasOwner &&
-      !confirm(`« ${selected.name} » a déjà un restaurateur rattaché. Le nouveau lien le remplacera. Continuer ?`)
-    ) {
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -66,17 +61,28 @@ export function InviteOwnerForm({
             {restaurants.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
-                {r.hasOwner ? " (a déjà un restaurateur rattaché)" : ""}
+                {r.hasOwner ? " (a déjà un gérant)" : ""}
               </option>
             ))}
           </select>
-          <input
-            name="owner_email"
-            type="email"
-            placeholder="Email (facultatif)"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
+          <select
+            name="role"
+            defaultValue="gerant"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            {ADMIN_ROLES.map((role) => (
+              <option key={role} value={role}>
+                {ADMIN_ROLE_LABELS[role]}
+              </option>
+            ))}
+          </select>
         </div>
+        <input
+          name="owner_email"
+          type="email"
+          placeholder="Email (facultatif)"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

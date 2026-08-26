@@ -2,8 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
-import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { getAdminAccess } from "@/lib/admin-guard";
+import { createServerSupabaseClient } from "@/lib/supabase";
+import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
+import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 import { AdminDesktopNav } from "@/components/admin/AdminDesktopNav";
 import { getPlan } from "@/lib/entitlements";
@@ -26,7 +27,7 @@ export default async function AdminLayout({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const access = await getAdminAccess(user.id, restaurantId);
-  if (!access.isLegacyAdmin && !access.isOwner && !access.isSuperAdmin)
+  if (!access.isLegacyAdmin && !access.isOwner && !access.isSuperAdmin && access.seatRole === null)
     redirect("/join?reason=admin-required");
 
   const restaurant = await getRestaurant(restaurantId);
@@ -34,19 +35,21 @@ export default async function AdminLayout({
 
   // ADR 0030 §3 — super-admin en visite sur un resto qui n'est pas le sien :
   // même console, mais un bandeau signale le contexte (anti-erreur de resto).
-  const isPlatformMode = access.isSuperAdmin && !access.isOwner && !access.isLegacyAdmin;
+  // ADR 0041 — un titulaire de siège (gérant/manager/équipe) n'est pas non
+  // plus en « mode plateforme », même s'il n'est pas isOwner (il peut être
+  // le 2ᵉ gérant, un manager, ou un siège équipe).
+  const isPlatformMode = access.isSuperAdmin && !access.isOwner && !access.isLegacyAdmin && access.seatRole === null;
 
   // ADR 0030 §2 — « Mes établissements » si l'utilisateur en administre
   // plusieurs (le sélecteur /admin cessait d'être orphelin).
-  const [{ count: ownedCount }, plan] = await Promise.all([
-    createAdminClient()
-      .from("restaurants")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_id", user.id),
+  // ADR 0041 — inclut les établissements où l'utilisateur n'est owner_id
+  // d'aucun (un simple siège manager/équipe), pas seulement ceux qu'il a créés.
+  const [adminRestaurantIds, plan] = await Promise.all([
+    getAdminRestaurantIds(user.id),
     // ADR 0029 — badge de plan : le restaurateur sait toujours où il en est.
     getPlan(restaurantId),
   ]);
-  const showEstablishmentSwitcher = (ownedCount ?? 0) > 1;
+  const showEstablishmentSwitcher = adminRestaurantIds.length > 1;
   const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
     gratuit: { label: "Gratuit", cls: "bg-white/10 text-gray-300" },
     croissance: { label: "Croissance", cls: "bg-brand-gold/20 text-brand-gold" },
@@ -56,6 +59,11 @@ export default async function AdminLayout({
 
   const branding = await getRestaurantBranding(restaurantId);
   const base = `/admin/${restaurantId}`;
+  // ADR 0041 §6 — un siège équipe n'a pas accès aux trois pages financières
+  // /réglages (seuils CA, paliers d'équipe, réglages établissement) : leur
+  // lien disparaît de la nav (chaque page se re-garde aussi côté serveur —
+  // ce filtrage n'est qu'un confort d'UI, pas la garde elle-même).
+  const canManage = canManageEstablishment(access);
   // ADR 0030 §9 — nav en 4 sections thématiques (15+ entrées à plat ne
   // passaient plus à l'échelle) : Au quotidien = le comptoir, Fidélisation =
   // faire revenir, Pilotage = comprendre, Configuration = réglé une fois.
@@ -80,7 +88,7 @@ export default async function AdminLayout({
         { href: `${base}/broadcast`,     label: "Broadcasts",       icon: "broadcasts" },
         { href: `${base}/micro-rewards`, label: "Actions",          icon: "actions" },
         { href: `${base}/referrals`,     label: "Parrainages",      icon: "referrals" },
-        { href: `${base}/team-tiers`,    label: "Paliers d'équipe", icon: "team-tiers" },
+        ...(canManage ? [{ href: `${base}/team-tiers`, label: "Paliers d'équipe", icon: "team-tiers" }] : []),
       ],
     },
     {
@@ -96,10 +104,11 @@ export default async function AdminLayout({
     {
       title: "Configuration",
       links: [
-        { href: `${base}/menu`,       label: "Menu & coûts", icon: "menu" },
-        { href: `${base}/thresholds`, label: "Seuils CA",    icon: "thresholds" },
-        { href: `${base}/qr`,         label: "QR code",      icon: "qr" },
-        { href: `${base}/settings`,   label: "Réglages",     icon: "settings" },
+        { href: `${base}/menu`, label: "Menu & coûts", icon: "menu" },
+        ...(canManage ? [{ href: `${base}/thresholds`, label: "Seuils CA", icon: "thresholds" }] : []),
+        { href: `${base}/qr`, label: "QR code", icon: "qr" },
+        ...(canManage ? [{ href: `${base}/settings`, label: "Réglages", icon: "settings" }] : []),
+        { href: `${base}/access`, label: "Accès console", icon: "access" },
       ],
     },
   ];
@@ -129,7 +138,7 @@ export default async function AdminLayout({
           {/* flex-wrap sur la ligne parente : un super admin ajoute un 3e lien
               (Plateforme) qui ne rentre plus à côté du bloc de marque sur
               mobile — ce groupe bascule alors sur sa propre ligne plutôt que
-              de se superposer au reste (m57). */}
+              de se superposer au reste. */}
           <div className="flex items-center gap-3 flex-wrap">
             {access.isSuperAdmin && (
               <Link href="/platform" className="text-xs text-brand-gold hover:text-white transition-colors whitespace-nowrap">
