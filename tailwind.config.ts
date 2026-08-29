@@ -5,6 +5,13 @@ const config: Config = {
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
   ],
+  // Stratégie "class" (.dark sur <html>) plutôt que "media" (préférence OS
+  // seule) — la console /platform pose son propre bouton clair/sombre
+  // (components/platform/PlatformShell.tsx). Aucune autre surface de l'app
+  // n'utilise de variante `dark:` aujourd'hui : sans configuration explicite,
+  // Tailwind appliquerait la stratégie "media" par défaut et le mode sombre
+  // suivrait l'OS sans qu'on puisse le forcer depuis le bouton.
+  darkMode: "class",
   theme: {
     extend: {
       colors: {

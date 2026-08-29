@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { PlatformHeader } from "@/components/platform/PlatformHeader";
+import { PlatformShell } from "@/components/platform/PlatformShell";
+
+// Anti-flash du bouton clair/sombre (PlatformShell) : pose la classe `dark`
+// sur <html> avant l'hydratation React, sinon la page clignote en clair une
+// fraction de seconde à chaque chargement pour qui a choisi le mode sombre.
+// Un try/catch : localStorage peut être indisponible (navigation privée) et
+// ça ne doit jamais faire planter la page.
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('platform-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`;
 
 export const metadata = { title: "Console plateforme" };
 
@@ -32,9 +39,14 @@ export default async function PlatformLayout({ children }: { children: React.Rea
     .maybeSingle();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <PlatformHeader backHref={myMembership ? `/r/${myMembership.restaurant_id}/dashboard` : "/join"} />
-      {children}
-    </div>
+    <>
+      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      <PlatformShell
+        backHref={myMembership ? `/r/${myMembership.restaurant_id}/dashboard` : "/join"}
+        userEmail={user.email ?? null}
+      >
+        {children}
+      </PlatformShell>
+    </>
   );
 }
