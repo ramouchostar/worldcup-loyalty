@@ -97,6 +97,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/invite/${pendingInvite}`);
       }
 
+      // Prospect redirigé vers /login depuis /become-a-partner (middleware) —
+      // on l'y ramène au lieu de le laisser sur le parcours membre par défaut.
+      const pendingBecomePartner = cookieStore.get("pending_become_partner")?.value === "1";
+      if (pendingBecomePartner) {
+        cookieStore.set("pending_become_partner", "", { maxAge: 0, path: "/" });
+        return NextResponse.redirect(`${origin}/become-a-partner`);
+      }
+
       // Arrivée via le QR code / lien d'un établissement précis (page /r/[id])
       // → on y retourne en priorité.
       const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;

@@ -130,6 +130,14 @@ export async function registerProfile(
     redirect(`/invite/${pendingInvite}`);
   }
 
+  // Prospect redirigé vers /login (puis /register) depuis /become-a-partner
+  // (middleware) — on l'y ramène au lieu de le laisser tomber sur /join.
+  const pendingBecomePartner = cookieStore.get("pending_become_partner")?.value === "1";
+  if (pendingBecomePartner) {
+    cookieStore.set("pending_become_partner", "", { maxAge: 0, path: "/" });
+    redirect("/become-a-partner");
+  }
+
   // Arrivée via le QR / lien d'un établissement précis → on y retourne.
   const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
   if (pendingRestaurantId) {
