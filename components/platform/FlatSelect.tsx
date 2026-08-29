@@ -1,13 +1,17 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, type LucideIcon } from "lucide-react";
 import { useAnchoredMenu } from "./useAnchoredMenu";
 
 export type FlatSelectOption = {
   value: string;
   label: string;
   disabled?: boolean;
+  /** Icône optionnelle (ex. un statut) — affichée dans le panneau, et dans le
+   * déclencheur si `triggerDisplay="icon"`. Couleur pilotée par `iconClassName`. */
+  icon?: LucideIcon;
+  iconClassName?: string;
 };
 
 const DEFAULT_TRIGGER_CLS =
@@ -39,6 +43,8 @@ export function FlatSelect({
   menuClassName,
   align = "start",
   menuWidth = 224,
+  triggerDisplay = "label",
+  checkPosition = "start",
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -51,6 +57,10 @@ export function FlatSelect({
   align?: "start" | "end";
   /** Largeur du menu en px pour "end" (calage sur le bord droit du déclencheur) — w-56 par défaut. */
   menuWidth?: number;
+  /** "icon" : le déclencheur montre l'icône de l'option sélectionnée (option.icon requis) au lieu de son libellé — le nom reste lisible via `title`/`ariaLabel`. */
+  triggerDisplay?: "label" | "icon";
+  /** Position de la coche dans le panneau — "end" pour un alignement à droite façon liste d'organisations. */
+  checkPosition?: "start" | "end";
 }) {
   const { open, setOpen, triggerRef } = useAnchoredMenu<HTMLButtonElement>();
   const selected = options.find((o) => o.value === value) ?? null;
@@ -84,12 +94,17 @@ export function FlatSelect({
         onClick={toggle}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? selected?.label}
+        title={triggerDisplay === "icon" ? selected?.label : undefined}
         className={triggerClassName ?? DEFAULT_TRIGGER_CLS}
       >
-        <span className={`truncate ${selected ? "" : "text-gray-400"}`}>
-          {selected ? selected.label : placeholder}
-        </span>
+        {triggerDisplay === "icon" && selected?.icon ? (
+          <selected.icon size={16} className={selected.iconClassName ?? "shrink-0"} aria-hidden="true" />
+        ) : (
+          <span className={`truncate ${selected ? "" : "text-gray-400"}`}>
+            {selected ? selected.label : placeholder}
+          </span>
+        )}
         <ChevronDown size={15} className="shrink-0 text-gray-400" aria-hidden="true" />
       </button>
 
@@ -107,31 +122,40 @@ export function FlatSelect({
                 "fixed z-50 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-neutral-900 p-1 shadow-xl"
               }
             >
-              {options.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  role="option"
-                  aria-selected={opt.value === value}
-                  disabled={opt.disabled}
-                  onClick={() => !opt.disabled && pick(opt.value)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors ${
-                    opt.disabled
-                      ? "cursor-not-allowed text-neutral-600"
-                      : opt.value === value
-                        ? "font-semibold text-white"
-                        : "text-neutral-300 hover:bg-white/5"
-                  }`}
-                >
+              {options.map((opt) => {
+                const isSelected = opt.value === value;
+                const Icon = opt.icon;
+                const check = (
                   <Check
                     size={15}
                     strokeWidth={2.5}
-                    className={`shrink-0 ${opt.value === value ? "text-platform-accent opacity-100" : "opacity-0"}`}
+                    className={`shrink-0 ${isSelected ? "text-platform-accent opacity-100" : "opacity-0"}`}
                     aria-hidden="true"
                   />
-                  <span className="truncate">{opt.label}</span>
-                </button>
-              ))}
+                );
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    disabled={opt.disabled}
+                    onClick={() => !opt.disabled && pick(opt.value)}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors ${
+                      opt.disabled
+                        ? "cursor-not-allowed text-neutral-600"
+                        : isSelected
+                          ? "font-semibold text-white"
+                          : "text-neutral-300 hover:bg-white/5"
+                    }`}
+                  >
+                    {checkPosition === "start" && check}
+                    {Icon && <Icon size={15} className={`shrink-0 ${opt.iconClassName ?? "text-neutral-400"}`} aria-hidden="true" />}
+                    <span className="truncate">{opt.label}</span>
+                    {checkPosition === "end" && <span className="ml-auto flex items-center">{check}</span>}
+                  </button>
+                );
+              })}
             </div>
           </>,
           document.body

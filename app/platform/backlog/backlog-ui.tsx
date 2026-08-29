@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Check, GripVertical } from "lucide-react";
+import { Ban, Check, CheckCircle2, Clock, GripVertical, Lightbulb, ListTodo, XCircle, type LucideIcon } from "lucide-react";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { FlatSelect } from "@/components/platform/FlatSelect";
 import { useAnchoredMenu } from "@/components/platform/useAnchoredMenu";
@@ -44,6 +44,28 @@ export const STATUS_CLS: Record<BacklogStatus, string> = {
   bloque: "bg-red-100 text-red-800",
   fait: "bg-green-100 text-green-800",
   abandonne: "bg-gray-100 text-gray-400",
+};
+
+// Icône par statut (StatusFlip ci-dessous) — même famille de ligne que les
+// icônes de la sidebar (components/platform/PlatformShell.tsx) : lucide,
+// trait fin, pas de remplissage plein. Couleur alignée sur STATUS_CLS pour
+// que le repérage "au clin d'œil" (avant : pastille colorée) reste possible
+// même réduit à une icône.
+export const STATUS_ICONS: Record<BacklogStatus, LucideIcon> = {
+  idee: Lightbulb,
+  a_faire: ListTodo,
+  en_cours: Clock,
+  bloque: Ban,
+  fait: CheckCircle2,
+  abandonne: XCircle,
+};
+export const STATUS_ICON_CLS: Record<BacklogStatus, string> = {
+  idee: "text-gray-500",
+  a_faire: "text-blue-600",
+  en_cours: "text-amber-600",
+  bloque: "text-red-600",
+  fait: "text-green-600",
+  abandonne: "text-gray-400",
 };
 
 // Couleur de l'étiquette de décision (lib/backlog-model.priorityLabel) — pas
@@ -196,9 +218,11 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
 
 // Changer d'état est le geste le plus fréquent d'une revue à deux : un clic
 // sur une option applique tout de suite (FlatSelect appelle directement
-// l'action serveur, pas de bouton "Enregistrer" à part) — le déclencheur
-// reprend la couleur du statut choisi (STATUS_CLS) pour rester lisible
-// fermé, comme avant.
+// l'action serveur, pas de bouton "Enregistrer" à part). Déclencheur réduit
+// à l'icône du statut (le nom reste accessible via `title`/aria-label) —
+// même famille d'icônes lucide que la sidebar. Coche à droite dans le
+// panneau plutôt qu'à gauche, façon sélecteur d'organisation (référence
+// Mehdi) : `checkPosition="end"`.
 export function StatusFlip({ item }: { item: BacklogItem }) {
   return (
     <FlatSelect
@@ -206,10 +230,17 @@ export function StatusFlip({ item }: { item: BacklogItem }) {
       onChange={(v) => {
         void setBacklogStatus(item.id, v as BacklogStatus);
       }}
-      options={BACKLOG_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+      options={BACKLOG_STATUSES.map((s) => ({
+        value: s,
+        label: STATUS_LABEL[s],
+        icon: STATUS_ICONS[s],
+        iconClassName: STATUS_ICON_CLS[s],
+      }))}
       ariaLabel={`État de « ${item.title} »`}
       align="end"
-      triggerClassName={`h-8 inline-flex items-center gap-1 rounded-lg px-2.5 text-xs font-bold transition-opacity hover:opacity-80 ${STATUS_CLS[item.status]}`}
+      checkPosition="end"
+      triggerDisplay="icon"
+      triggerClassName="h-8 inline-flex items-center gap-1 px-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
     />
   );
 }
