@@ -131,7 +131,7 @@ export default async function RestaurantLandingPage({
         <div className="max-w-lg mx-auto px-5 pt-12 pb-16">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt={restaurant.name} className="h-12 w-auto object-contain mb-5" />
+            <img src={logo} alt={restaurant.name} className="h-16 w-auto object-contain mb-5" />
           ) : null}
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-5">
             <span className="text-gray-300">{restaurant.name}</span>

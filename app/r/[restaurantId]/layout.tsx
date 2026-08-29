@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, getRestaurantBranding, getRestaurantId } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
@@ -78,24 +77,20 @@ export default async function RestaurantLayout({
       }}
     >
     <div className="min-h-screen bg-gray-50 font-brand" style={brandStyle(branding)}>
-      <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10 pt-safe">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <RestaurantSwitcher
-            current={{ id: restaurant.id, name: restaurant.name }}
-            restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
-          />
-          {user ? (
+      {/* Anonyme : la vitrine post-scan (ADR 0042) est pensée sans chrome de
+          navigation (switcher inter-établissements, "Rejoindre" redondant
+          avec le CTA de la page) — ce header ne sert qu'un membre connecté. */}
+      {user && (
+        <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10 pt-safe">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+            <RestaurantSwitcher
+              current={{ id: restaurant.id, name: restaurant.name }}
+              restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
+            />
             <UserNav email={user.email ?? ""} isSuperAdmin={isSuperAdmin} adminHref={adminHref} />
-          ) : (
-            <Link
-              href="/login"
-              className="text-sm bg-brand-red px-3 py-1.5 rounded-lg font-semibold hover:bg-brand-red/85 transition-colors"
-            >
-              Rejoindre →
-            </Link>
-          )}
-        </div>
-      </header>
+          </div>
+        </header>
+      )}
 
       {/* Atteindre cette branche prouve la session — c'est ce qui autorise
           l'émission de `sign_up` / `login` mis en attente par le formulaire. */}
