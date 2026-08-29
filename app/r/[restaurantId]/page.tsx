@@ -26,9 +26,11 @@ const STEPS = [
 // ADR 0042 — jamais de nom d'article ni d'euro sur cette carte, seulement la
 // catégorie de prix (icône + relance) propre à chaque couche de récompense.
 const TIER_COPY: Record<TierPreviewRow["layer"], { icon: string; hint: string }> = {
-  solo: { icon: "🍗", hint: "Dès cette commande" },
+  solo: { icon: "🍗", hint: "Lors de prochaines commandes" },
   community: { icon: "🤝", hint: "En cumulant avec ta communauté" },
-  saver: { icon: "🎁", hint: "En mettant de côté tes visites" },
+  // "réserve", pas "points" seul — le mot est réservé au score communautaire
+  // (glossaire CONTEXT.md, ADR 0021).
+  saver: { icon: "🎁", hint: "En cumulant dans ta réserve" },
 };
 
 export default async function RestaurantLandingPage({
@@ -131,38 +133,23 @@ export default async function RestaurantLandingPage({
         <div className="max-w-lg mx-auto px-5 pt-12 pb-16">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt={restaurant.name} className="h-16 w-auto object-contain mb-5" />
+            <img src={logo} alt={restaurant.name} className="block mx-auto h-16 w-auto object-contain mb-5" />
           ) : null}
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-5">
-            <span className="text-gray-300">{restaurant.name}</span>
-            <span className="text-gray-500">·</span>
-            <span className="text-brand-gold">Fidélité</span>
+          <p className="text-xs font-bold uppercase tracking-widest mb-5 text-gray-300">
+            {restaurant.name}
           </p>
 
           <h1 className="text-4xl font-black leading-tight mb-3">
             Ton ticket de caisse<br />
-            <span className="text-brand-gold">vaut un cadeau.</span>
+            <span className="text-brand-gold">te rapproche d&apos;un cadeau.</span>
           </h1>
 
           <p className="text-gray-300 text-base leading-relaxed mb-3">
-            Photographie le ticket de ta commande. Le cadeau t&apos;attend au comptoir à ta prochaine visite.
+            Photographie le ticket de ta commande. Un cadeau t&apos;attendra au comptoir lors d&apos;une prochaine visite.
           </p>
 
-          {(restaurant.cuisine_types.length > 0 || restaurant.address) && (
-            <div className="mb-5 space-y-2">
-              {restaurant.cuisine_types.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {restaurant.cuisine_types.map((t) => (
-                    <span key={t} className="bg-white/10 text-gray-200 text-xs font-medium px-2.5 py-1 rounded-full">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {restaurant.address && (
-                <p className="text-gray-400 text-xs">📍 {restaurant.address}</p>
-              )}
-            </div>
+          {restaurant.address && (
+            <p className="text-gray-400 text-xs mb-5">📍 {restaurant.address}</p>
           )}
 
           {totalMembers > 100 && (
