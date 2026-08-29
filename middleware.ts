@@ -134,7 +134,22 @@ export async function middleware(request: NextRequest) {
   // Routes protégées : authentification requise. `reason` → bandeau clair
   // sur la page de login (ADR 0030 §8 — refus parlants, jamais silencieux).
   if ((isRestaurantRoute || isAdminRoute || isJoinRoute || isBecomePartnerRoute || isPlatformRoute) && !user) {
-    return NextResponse.redirect(new URL("/login?reason=login-required", request.url));
+    const response = NextResponse.redirect(new URL("/login?reason=login-required", request.url));
+    // Un prospect anonyme sur /become-a-partner n'a pas encore de compte : le
+    // détour par /login (ou /register pour un tout nouveau compte) faisait
+    // perdre son intention, et il retombait sur le parcours membre (/join)
+    // au lieu du formulaire partenaire. Même mécanique que pending_restaurant_id
+    // ci-dessous — cookie consommé par auth/callback et register/actions.
+    if (isBecomePartnerRoute) {
+      response.cookies.set("pending_become_partner", "1", {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    }
+    return response;
   }
 
   // Route établissement : le membre doit avoir une adhésion pour CET
