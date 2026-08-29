@@ -352,6 +352,10 @@ _Avoid_ : page d'erreur (pas de nouvelle page — un bandeau contextuel).
 La valeur d'abord, le compte au premier ticket. Un visiteur (QR scanné, pas de compte) voit le tour de bienvenue (3 écrans, cadeaux réels du resto, une fois par établissement), navigue librement, photographie son ticket — et c'est à l'ENVOI que le compte est demandé (« garde tes points », Google en un tap d'abord). La photo attend sur l'appareil (IndexedDB, 30 min) et la soumission reprend seule après connexion (`?resume=1`). Un membre qui rescanne le QR arrive directement sur son dashboard.
 _Avoid_ : mode invité (pas de points en suspens sur session anonyme), mur de connexion.
 
+**Aperçu produit (landing)** *(ADR 0042, amendé par ADR 0043)* :
+La carte « Ce que ce ticket peut débloquer » de la landing publique pré-scan (`/r/[id]`) affiche, par couche de récompense configurée (solo → communautaire → réserve), le nom d'un article du catalogue tiré au hasard dans la même tranche de prix (tertile de `menu_price` sur le catalogue actif et éligible aux récompenses) que le palier d'entrée de la couche — jamais l'article réellement assigné, jamais un seuil chiffré ni un euro (ADR 0007/0028 inchangé). La tranche de prix (le plus cher / milieu de panier / petit produit) ne sert qu'à choisir dans quel sous-ensemble piocher : elle ne s'affiche plus au client depuis l'ADR 0043. Le nom change à chaque chargement de page (tirage aléatoire, pas de cache ni de session). À ne pas confondre avec la **Catégorie** du catalogue menu (famille d'article, ex. "Burger") : ici la tranche de prix reste relative au restaurant, pas une famille de produit.
+_Avoid_ : "catégorie 1/2/3" affichée au client (abandonné par l'ADR 0043), seuil en euros ou en points sur cette landing.
+
 **Membres (écran plateforme)** :
 Liste nominative complète des membres (nom, email, inscription, équipe, points, dernière activité, nb commandes) — **réservée au super-admin** (la plateforme est l'unique responsable de traitement, ADR 0025). Accessible depuis `/platform` et depuis la console d'un resto en mode plateforme.
 _Avoid_ : CRM, fichier client, annuaire.
