@@ -4,8 +4,8 @@ import { Reveal } from "./motion";
 
 const FREE_FEATURES = [
   "Récompenses à marge protégée, calculées sur ta carte",
-  "Parrainage client illimité, zéro budget pub",
-  "Validation des tickets sans saisie",
+  "Parrainage client illimité",
+  "Validation des tickets sans saisie, en quantité limitée",
   "Supports imprimables à ta charte",
   "Tableau de bord complet",
   "Visibilité sur la page réseau de ton secteur",
@@ -24,7 +24,7 @@ export function PlansSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Plans</p>
           <h2 className="font-display text-[28px] sm:text-[33px] lg:text-[39px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[640px] text-pretty">
-            Gratuit pour démarrer, et ça ne se dégrade jamais.
+            Gratuit pour démarrer, et ensuite un prix simple par établissement.
           </h2>
         </Reveal>
 

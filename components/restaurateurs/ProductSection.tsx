@@ -63,7 +63,7 @@ export function ProductSection() {
         <Reveal delay={120} className="order-1 lg:order-2">
           <TextBlock
             eyebrow="Prévisions CA"
-            title="Tu sais ce que va faire ta semaine avant de commander tes stocks."
+            title="Prévois ta semaine en avance et fixes-toi des objectifs."
             desc="Une fourchette, un niveau de confiance, les facteurs visibles. Pas de boule de cristal : si la donnée manque, l'app te le dit au lieu d'inventer un chiffre."
             points={FORECAST_POINTS}
           />
