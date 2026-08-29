@@ -14,6 +14,14 @@ type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
 
+// Illustrations Fluent Emoji 3D (Microsoft) servies directement par jsDelivr
+// depuis le paquet publié — juste des .webp statiques, version figée pour un
+// rendu stable. Volontairement pas de dépendance npm : @lobehub/fluent-emoji
+// embarque tout Ant Design (antd-style) pour ce qui n'est ici qu'une image.
+const FLUENT_EMOJI_3D = "https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets";
+const COIN_EMOJI = `${FLUENT_EMOJI_3D}/1fa99.webp`;
+const RECEIPT_EMOJI = `${FLUENT_EMOJI_3D}/1f9fe.webp`;
+
 // Cette page est déjà l'atterrissage post-scan : l'étape 1 est la photo, pas
 // le scan du QR (redondant, il vient d'être fait pour arriver ici) — ADR 0042.
 const STEPS = [
@@ -121,8 +129,31 @@ export default async function RestaurantLandingPage({
           carte d'action — logo, sous-titre, description, tags et adresse
           retirés pour ne pas retarder le geste de scanner. Le nom du resto
           reste visible en pied de page. */}
-      <div className="bg-white text-gray-900">
-        <div className="max-w-lg mx-auto px-5 pt-14 pb-14 text-center">
+      <div className="bg-white text-gray-900 relative overflow-hidden">
+        {/* Illustrations décoratives (retour terrain, 2026-08-30) — jamais
+            devant le texte (z-0, pointer-events-none, décoratif pour les
+            lecteurs d'écran). */}
+        {/* eslint-disable @next/next/no-img-element */}
+        <img
+          src={COIN_EMOJI}
+          alt=""
+          aria-hidden="true"
+          className="absolute -top-3 -right-3 w-16 h-16 rotate-[18deg] pointer-events-none select-none z-0"
+        />
+        <img
+          src={RECEIPT_EMOJI}
+          alt=""
+          aria-hidden="true"
+          className="absolute top-6 -left-2 w-12 h-12 -rotate-[15deg] pointer-events-none select-none z-0"
+        />
+        <img
+          src={COIN_EMOJI}
+          alt=""
+          aria-hidden="true"
+          className="absolute bottom-2 right-6 w-11 h-11 -rotate-12 pointer-events-none select-none z-0"
+        />
+        {/* eslint-enable @next/next/no-img-element */}
+        <div className="max-w-lg mx-auto px-5 pt-14 pb-14 text-center relative z-10">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt={restaurant.name} className="block mx-auto h-14 w-auto object-contain mb-6" />

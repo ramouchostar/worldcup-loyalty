@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 
 // ── En-têtes de sécurité (audit sécurité 2026) ────────────────────────────────
-// La CSP est verrouillée sur 'self' + Supabase. Les scripts/styles inline de
+// La CSP est verrouillée sur 'self' + Supabase (+ jsDelivr en img-src, pour
+// les illustrations Fluent Emoji 3D servies statiquement, sans dépendance
+// npm — cf. app/r/[restaurantId]/page.tsx). Les scripts/styles inline de
 // Next.js imposent 'unsafe-inline' faute de nonce (durcissable ultérieurement
 // via un nonce injecté par le middleware). 'unsafe-eval' volontairement absent
 // (inutile en production).
@@ -29,7 +31,7 @@ const ContentSecurityPolicy = [
   "object-src 'none'",
   `script-src 'self' 'unsafe-inline'${gaScriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://*.supabase.co${gaImgSrc}`,
+  `img-src 'self' data: blob: https://*.supabase.co https://cdn.jsdelivr.net${gaImgSrc}`,
   "font-src 'self' data:",
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co${gaConnectSrc}`,
   "worker-src 'self' blob:",
