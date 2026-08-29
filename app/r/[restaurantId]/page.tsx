@@ -23,8 +23,9 @@ const STEPS = [
   { num: "3", desc: "Cadeau au comptoir à ta prochaine visite" },
 ];
 
-// ADR 0042 — jamais de nom d'article ni d'euro sur cette carte, seulement la
-// catégorie de prix (icône + relance) propre à chaque couche de récompense.
+// ADR 0042, amendé par ADR 0043 — jamais d'euro sur cette carte ; le nom
+// d'article, lui, est désormais affiché (tiré au hasard dans la bonne
+// tranche de prix, cf. lib/reward-tier-preview.ts).
 const TIER_COPY: Record<TierPreviewRow["layer"], { icon: string; hint: string }> = {
   solo: { icon: "🍗", hint: "Lors de prochaines commandes" },
   community: { icon: "🤝", hint: "En cumulant avec ta communauté" },
@@ -111,7 +112,8 @@ export default async function RestaurantLandingPage({
   const logo = logoPublicUrl(branding.logo_url);
   // ADR 0040 — tour de bienvenue visiteur : cadeaux réels du resto, noms seuls.
   const gifts = user ? null : await getTourGifts(restaurantId);
-  // ADR 0042 — aperçu par catégorie de prix, sans nom ni seuil (carte hero).
+  // ADR 0042, amendé par ADR 0043 — aperçu par nom d'article (jamais de
+  // seuil ni d'euro) sur la carte hero.
   const tierPreview = await getLandingTierPreview(restaurantId);
 
   return (
@@ -173,7 +175,7 @@ export default async function RestaurantLandingPage({
                   <div key={row.layer} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
                     <span className="text-xl">{TIER_COPY[row.layer].icon}</span>
                     <div>
-                      <p className="font-bold text-gray-900 text-sm">Produit catégorie {row.category}</p>
+                      <p className="font-bold text-gray-900 text-sm">{row.productName}</p>
                       <p className="text-gray-400 text-xs">{TIER_COPY[row.layer].hint}</p>
                     </div>
                   </div>

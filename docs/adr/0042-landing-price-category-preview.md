@@ -1,6 +1,6 @@
 # ADR 0042 — Landing publique : catégories de prix génériques, jamais de nom ni de seuil
 
-**Statut** : Accepté
+**Statut** : Accepté — amendé par [ADR 0043](0043-landing-nom-produit-aleatoire.md) (la landing nomme désormais un article réel, tiré au hasard dans la tranche de prix ; la tranche elle-même ne s'affiche plus)
 
 ## Contexte
 
