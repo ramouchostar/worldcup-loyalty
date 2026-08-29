@@ -54,13 +54,16 @@ const config: Config = {
         // Accent éditorial du site vitrine restaurateurs (redesign m55, design
         // Claude "Landing Restaurateurs") — fixe, indépendant des couleurs
         // brand-* par établissement (au même titre que ink/paper pour la
-        // console admin).
+        // console admin). Aligné sur le vert électrique du design (2026-08-29)
+        // — coïncide en valeur avec platform.accent mais reste un token
+        // Tailwind distinct, propre au site vitrine, jamais utilisé dans
+        // app/platform/** ni components/platform/**.
         moss: {
-          DEFAULT: "#7A8F3F",
-          light: "#93A857",
-          dark: "#677A33",
-          tint: "#E8EDDC",
-          tint2: "#CFDBB0",
+          DEFAULT: "#A2C523",
+          light: "#B8D953",
+          dark: "#83A115",
+          tint: "#EFF6D8",
+          tint2: "#D8EA9E",
         },
         // Surfaces sombres du site vitrine restaurateurs (redesign m55) —
         // hero, mockups produit, sections CTA. ink.DEFAULT reste le noir de

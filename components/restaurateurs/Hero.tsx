@@ -22,7 +22,7 @@ export function Hero({
       <div
         ref={blobRef}
         className="absolute -top-[220px] -right-40 w-[760px] h-[760px] pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(122,143,63,0.18), transparent 60%)" }}
+        style={{ background: "radial-gradient(circle, rgba(162,197,35,0.18), transparent 60%)" }}
       />
 
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 sm:pt-20 pb-0">
