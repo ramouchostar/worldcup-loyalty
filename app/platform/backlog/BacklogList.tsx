@@ -13,7 +13,7 @@ import {
 import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { STATUS_LABEL, sortByPriority, type BacklogItem, type BacklogStatus } from "@/lib/backlog-model";
-import { SortableItemCard, ItemCard, type RestaurantOption } from "./backlog-ui";
+import { SortableItemCard, type RestaurantOption } from "./backlog-ui";
 
 // L'ordre d'affichage n'est pas l'ordre du cycle de vie : ce qui est engagé
 // passe devant ce qui n'est qu'une idée.
@@ -100,14 +100,16 @@ function StatusSection({
   );
 }
 
+// Les tâches clôturées ne sont plus listées ici : BacklogSummary.tsx en
+// affiche un carrousel horizontal en haut de page (ADR 0033 §3 — gagner de
+// la hauteur d'écran pour cette vue, qui ne montre plus que le travail
+// ouvert).
 export function BacklogList({
   open,
-  closed,
   restaurants,
   restaurantNames,
 }: {
   open: BacklogItem[];
-  closed: BacklogItem[];
   restaurants: RestaurantOption[];
   restaurantNames: Map<string, string>;
 }) {
@@ -131,25 +133,6 @@ export function BacklogList({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
           <p className="text-sm text-gray-500">Rien en cours avec ces filtres.</p>
         </div>
-      )}
-
-      {closed.length > 0 && (
-        <details className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <summary className="font-bold text-gray-900 cursor-pointer">
-            Clôturées
-            <span className="ml-2 text-xs font-normal text-gray-400">{closed.length}</span>
-          </summary>
-          <div className="space-y-3 mt-3">
-            {sortByPriority(closed).map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                restaurants={restaurants}
-                restaurantName={item.restaurant_id ? restaurantNames.get(item.restaurant_id) ?? null : null}
-              />
-            ))}
-          </div>
-        </details>
       )}
     </>
   );

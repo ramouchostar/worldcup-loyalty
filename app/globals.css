@@ -41,6 +41,25 @@
   .safe-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   }
+
+  /* Effondrement d'un bloc de hauteur "auto" au scroll (résumé backlog,
+     app/platform/backlog/BacklogSummary.tsx) — grid-template-rows 1fr→0fr
+     anime une hauteur inconnue à l'avance sans mesurer le DOM en JS (ce que
+     ni `height` ni `max-height` ne savent faire proprement). `.collapse-inner`
+     porte sa propre transition opacité/position pour un fondu qui ne se
+     contente pas d'être coupé net. */
+  .collapse-grid {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .collapse-grid.is-collapsed {
+    grid-template-rows: 0fr;
+  }
+  .collapse-grid > .collapse-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
 }
 
 /* ── Driver.js — thème de marque ──────────────────────────────────────── */
