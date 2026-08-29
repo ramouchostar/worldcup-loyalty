@@ -38,7 +38,7 @@ function StatCard({
       aria-pressed={onClick ? active : undefined}
       className={`rounded-2xl border px-3.5 py-3 text-left transition-colors ${
         active
-          ? "border-brand-red bg-brand-red/5"
+          ? "border-platform-accent bg-platform-accent/10"
           : "border-gray-200 bg-white hover:border-gray-300"
       } ${onClick ? "" : "cursor-default"}`}
     >
@@ -60,7 +60,7 @@ function AddTrigger({ onOpen }: { onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="rounded-2xl bg-brand-red text-white px-3.5 py-3 flex items-center justify-center gap-1.5 font-semibold text-sm hover:bg-brand-red/85 transition-colors"
+      className="rounded-2xl bg-platform-accent text-brand-dark px-3.5 py-3 flex items-center justify-center gap-1.5 font-semibold text-sm hover:bg-platform-accent/85 transition-colors"
     >
       <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
       Nouvelle action
@@ -105,7 +105,7 @@ function AddFormPanel({ restaurants, onClose }: { restaurants: RestaurantOption[
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className="w-full bg-platform-accent text-brand-dark py-2.5 rounded-lg font-semibold text-sm hover:bg-platform-accent/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Enregistrement…" : "Ajouter au backlog"}
       </button>
@@ -228,7 +228,7 @@ export function BacklogSummary({
               onClick={() => toggleOwner(o)}
               aria-pressed={owner === o}
               className={`text-[11px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
-                owner === o ? "bg-brand-red text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                owner === o ? "bg-platform-accent text-brand-dark" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
               }`}
             >
               {o}
@@ -239,7 +239,7 @@ export function BacklogSummary({
 
       {next && (
         <div className="bg-brand-dark text-white rounded-2xl p-5">
-          <p className="text-xs text-brand-gold font-semibold uppercase tracking-wide">Prochaine action</p>
+          <p className="text-xs text-platform-accent font-semibold uppercase tracking-wide">Prochaine action</p>
           <p className="font-bold text-lg mt-1">{next.title}</p>
           <p className="text-xs text-gray-400 mt-1">
             {priorityLabel(next)} — impact {next.impact} / effort {next.effort} — score{" "}

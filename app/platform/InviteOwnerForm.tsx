@@ -84,7 +84,7 @@ export function InviteOwnerForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+          className="w-full bg-platform-accent text-brand-dark py-2.5 rounded-lg font-semibold text-sm hover:bg-platform-accent/85 disabled:opacity-50 transition-colors"
         >
           {loading ? "Génération..." : "Générer le lien d'invitation"}
         </button>

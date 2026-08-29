@@ -113,7 +113,7 @@ export default async function PlatformPage() {
         <h1 className="text-2xl font-bold text-gray-900">Réseau</h1>
         <p className="text-gray-500 text-sm mt-1">
           Validation des établissements, accès restaurateur et plans.{" "}
-          <Link href="/platform/stats" className="text-brand-red font-semibold hover:underline">
+          <Link href="/platform/stats" className="text-platform-accent font-semibold hover:underline">
             Voir les chiffres →
           </Link>
         </p>
@@ -137,7 +137,7 @@ export default async function PlatformPage() {
           <p className="text-xs text-gray-500 mt-1">établissements actifs</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-          <p className="text-3xl font-bold text-brand-red tabular-nums">{liveMemberCount}</p>
+          <p className="text-3xl font-bold text-platform-accent tabular-nums">{liveMemberCount}</p>
           <p className="text-xs text-gray-500 mt-1">adhésions réseau</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
@@ -151,7 +151,7 @@ export default async function PlatformPage() {
         <h2 className="font-bold text-gray-900 mb-4">
           En attente de validation
           {pendingList.length > 0 && (
-            <span className="ml-2 bg-brand-red text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="ml-2 bg-platform-accent text-brand-dark text-xs font-bold px-2 py-0.5 rounded-full">
               {pendingList.length}
             </span>
           )}
@@ -210,7 +210,7 @@ export default async function PlatformPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h2 className="font-bold text-gray-900 mb-4">
             Demandes de plan
-            <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="ml-2 bg-platform-accent text-brand-dark text-xs font-bold px-2 py-0.5 rounded-full">
               {planRequests.length}
             </span>
           </h2>
@@ -221,7 +221,7 @@ export default async function PlatformPage() {
                 <div key={req.id} className="border border-gray-200 rounded-xl p-4">
                   <p className="font-semibold text-gray-900">
                     {resto?.name ?? req.restaurant_id}
-                    <span className="ml-2 text-xs font-bold text-brand-red uppercase">
+                    <span className="ml-2 text-xs font-bold text-platform-accent uppercase">
                       → {req.requested_plan}
                     </span>
                   </p>

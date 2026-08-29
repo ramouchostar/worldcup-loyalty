@@ -66,7 +66,7 @@ function Column({
       <div
         ref={setNodeRef}
         className={`flex-1 rounded-2xl border p-2 transition-colors ${
-          isOver ? "border-brand-red/40 bg-red-50/40" : "border-transparent bg-gray-100/70"
+          isOver ? "border-platform-accent/50 bg-platform-accent/10" : "border-transparent bg-gray-100/70"
         }`}
       >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>

@@ -92,7 +92,7 @@ function OwnerInviteRow({ row }: { row: RestaurantViewRow }) {
           className={
             row.hasOwner
               ? "text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
-              : "text-xs font-semibold text-brand-red bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
+              : "text-xs font-semibold text-brand-dark bg-platform-accent px-3 py-1.5 rounded-lg hover:bg-platform-accent/85 transition-colors"
           }
         >
           {row.hasOwner ? "🔗 Nouveau lien d'invitation" : "🔗 Inviter le restaurateur"}
@@ -206,7 +206,7 @@ export function RestaurantList({ restaurants }: { restaurants: RestaurantViewRow
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Rechercher un établissement (nom, secteur, email owner, id)…"
-        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-brand-red/30"
+        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-platform-accent/40"
       />
 
       {filtered.length === 0 ? (

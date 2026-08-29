@@ -102,8 +102,10 @@ export function Avatar({ name, size = 28 }: { name: string | null; size?: number
   );
 }
 
-// Attribution en un clic depuis la carte. Panneau plat (coche à gauche de
-// l'option active, pas de fond coloré) porté vers <body> et positionné en
+// Attribution en un clic depuis la carte. Même traitement que FlatSelect
+// (backlog-ui.tsx) : déclencheur inchangé (avatar sur la carte claire),
+// panneau TOUJOURS sombre comme un menu contextuel d'app — coche à gauche de
+// l'option active, pas de fond coloré. Porté vers <body> et positionné en
 // `fixed` depuis les coordonnées réelles du bouton — jamais un `absolute`
 // imbriqué dans la carte : une carte peut vivre dans un conteneur qui défile
 // (colonne Kanban), un menu `absolute` classique s'y retrouve coupé par le
@@ -152,7 +154,7 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
             <div
               role="menu"
               style={{ top: coords.top, left: coords.left, width: MENU_WIDTH }}
-              className="fixed z-50 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
+              className="fixed z-50 rounded-xl border border-white/10 bg-neutral-900 p-1 shadow-xl"
             >
               {BACKLOG_PEOPLE.map((p) => (
                 <button
@@ -160,12 +162,12 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
                   type="button"
                   role="menuitem"
                   onClick={() => assign(p)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-50"
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-neutral-200 hover:bg-white/5"
                 >
                   <Check
                     size={14}
                     strokeWidth={2.5}
-                    className={`shrink-0 ${item.owner === p ? "text-brand-red opacity-100" : "opacity-0"}`}
+                    className={`shrink-0 ${item.owner === p ? "text-platform-accent opacity-100" : "opacity-0"}`}
                     aria-hidden="true"
                   />
                   <Avatar name={p} size={22} />
@@ -177,7 +179,7 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
                   type="button"
                   role="menuitem"
                   onClick={() => assign("")}
-                  className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-gray-100 px-2 py-1.5 pt-2.5 text-left text-sm text-gray-500 hover:bg-gray-50"
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-white/10 px-2 py-1.5 pt-2.5 text-left text-sm text-neutral-400 hover:bg-white/5"
                 >
                   <Check size={14} strokeWidth={2.5} className="shrink-0 opacity-0" aria-hidden="true" />
                   <Avatar name={null} size={22} />
@@ -379,12 +381,12 @@ export function ItemCard({
           await editBacklogItem(null, formData);
           setEditing(false);
         }}
-        className="border border-brand-red/30 rounded-2xl p-4 space-y-3 bg-red-50/30"
+        className="border border-platform-accent/40 rounded-2xl p-4 space-y-3 bg-platform-accent/5"
       >
         <input type="hidden" name="id" value={item.id} />
         <ItemFields item={item} restaurants={restaurants} />
         <div className="flex gap-2">
-          <SubmitButton className="bg-brand-red text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-brand-red/85">
+          <SubmitButton className="bg-platform-accent text-brand-dark text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-platform-accent/85">
             Enregistrer
           </SubmitButton>
           <button

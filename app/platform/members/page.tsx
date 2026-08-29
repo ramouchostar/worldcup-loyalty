@@ -128,7 +128,7 @@ export default async function PlatformMembersPage({
           {filterName ? (
             <>
               Membres de « {filterName} » —{" "}
-              <Link href="/platform/members" className="text-brand-red font-semibold hover:underline">
+              <Link href="/platform/members" className="text-platform-accent font-semibold hover:underline">
                 voir tout le réseau
               </Link>
             </>
