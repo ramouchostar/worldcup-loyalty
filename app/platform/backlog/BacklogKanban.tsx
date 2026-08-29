@@ -5,10 +5,12 @@ import {
   DndContext,
   KeyboardSensor,
   PointerSensor,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
@@ -34,6 +36,18 @@ const DOT_CLS: Record<BacklogStatus, string> = {
 function containerIdFor(id: string): string {
   return `col:${id}`;
 }
+
+// `closestCorners` seul rate le dépôt dans une colonne VIDE — sans carte à
+// comparer, il n'a pas de rectangle voisin pour évaluer la distance. C'est
+// le bug remonté par Mehdi : impossible de glisser vers "En cours" tant
+// qu'elle est vide (les autres colonnes, elles, ont des cartes). Motif
+// recommandé par dnd-kit pour un Kanban multi-colonnes : `pointerWithin`
+// d'abord (le pointeur est-il littéralement dans le rectangle de la
+// colonne ? fiable même vide), `rectIntersection` en repli sinon.
+const collisionDetectionStrategy: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args);
+};
 
 function statusFromContainerId(id: string): BacklogStatus | null {
   if (!id.startsWith("col:")) return null;
@@ -204,7 +218,7 @@ export function BacklogKanban({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetectionStrategy}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
