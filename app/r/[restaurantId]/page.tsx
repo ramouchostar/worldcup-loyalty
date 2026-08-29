@@ -22,14 +22,6 @@ const FLUENT_EMOJI_3D = "https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1
 const COIN_EMOJI = `${FLUENT_EMOJI_3D}/1fa99.webp`;
 const RECEIPT_EMOJI = `${FLUENT_EMOJI_3D}/1f9fe.webp`;
 
-// Cette page est déjà l'atterrissage post-scan : l'étape 1 est la photo, pas
-// le scan du QR (redondant, il vient d'être fait pour arriver ici) — ADR 0042.
-const STEPS = [
-  { num: "1", desc: "Photo du ticket, ici même" },
-  { num: "2", desc: "Compte en 10 secondes, une fois la photo prise" },
-  { num: "3", desc: "Cadeau au comptoir à ta prochaine visite" },
-];
-
 // ADR 0042, amendé par ADR 0043 — jamais d'euro sur cette carte ; le nom
 // d'article, lui, est désormais affiché (tiré au hasard dans la bonne
 // tranche de prix, cf. lib/reward-tier-preview.ts).
@@ -214,14 +206,6 @@ export default async function RestaurantLandingPage({
               </div>
             </>
           )}
-
-          <div className="mt-6 space-y-2">
-            {STEPS.map((step) => (
-              <p key={step.num} className="text-sm text-gray-500">
-                <span className="font-bold text-gray-900">{step.num}</span> · {step.desc}
-              </p>
-            ))}
-          </div>
         </div>
 
         {!user && (
