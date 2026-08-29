@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { listBacklog } from "@/lib/backlog";
-import { OPEN_STATUSES, priorityScore, sortByPriority } from "@/lib/backlog-model";
 import { BacklogBoard } from "./BacklogBoard";
 
 export const metadata = { title: "Backlog — Plateforme" };
@@ -27,30 +26,16 @@ export default async function PlatformBacklogPage() {
   ]);
   const restaurants = ((restaurantsRaw as { id: string; name: string }[] | null) ?? []);
 
-  const open = items.filter((i) => OPEN_STATUSES.includes(i.status));
-  const next = sortByPriority(open.filter((i) => i.status !== "bloque"))[0] ?? null;
-
   return (
-    <div className="max-w-3xl mx-auto space-y-5 py-8 px-4">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Backlog</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Ce qu&apos;on doit décider et faire, à deux. La priorité n&apos;est pas saisie : elle se
-          calcule (impact ÷ effort), pour que la comparaison entre deux actions soit forcée.
-        </p>
-      </div>
-
-      {next && (
-        <div className="bg-brand-dark text-white rounded-2xl p-5">
-          <p className="text-xs text-brand-gold font-semibold uppercase tracking-wide">Prochaine action</p>
-          <p className="font-bold text-lg mt-1">{next.title}</p>
-          <p className="text-xs text-gray-400 mt-1">
-            impact {next.impact} / effort {next.effort} — score {priorityScore(next).toFixed(1)}
-            {next.owner && <> · {next.owner}</>}
-          </p>
-        </div>
-      )}
-
+    // max-w-7xl et non le max-w-3xl d'origine : le backlog se travaille
+    // surtout au clavier/souris (Mehdi/Omar), le mobile sert à consulter et
+    // attribuer — la page doit utiliser la largeur d'un écran desktop plutôt
+    // que rester en colonne étroite avec du vide à droite.
+    <div className="max-w-7xl mx-auto px-4 py-5 space-y-3">
+      {/* Sous-titre retiré et titre resserré (redesign résumé) — gagner de la
+          hauteur d'écran pour BacklogSummary (comptes, prochaine action,
+          clôturées), qui porte maintenant seul le contexte de la page. */}
+      <h1 className="text-xl font-bold text-gray-900">Backlog</h1>
       <BacklogBoard items={items} restaurants={restaurants} />
     </div>
   );

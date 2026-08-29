@@ -24,6 +24,12 @@ const config: Config = {
           gold: "rgb(var(--brand-gold) / <alpha-value>)",
           dark: "rgb(var(--brand-dark) / <alpha-value>)",
         },
+        // Accent vert électrique réservé à /platform (app/globals.css) — ne
+        // JAMAIS l'utiliser hors de app/platform/** et components/platform/**,
+        // au même titre qu'ink/paper ne sortent jamais de la console admin.
+        platform: {
+          accent: "rgb(var(--platform-accent) / <alpha-value>)",
+        },
         // Neutres fixes de la console restaurateur (redesign m54) — jamais
         // pilotés par établissement (contrairement à brand-*), au même titre
         // que l'ancien bg-gray-100 : un canevas neutre professionnel commun

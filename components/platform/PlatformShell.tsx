@@ -210,7 +210,7 @@ export function PlatformShell({
         }`}
       >
         <div className="flex items-center gap-2 h-16 px-3 border-b border-white/10">
-          {!collapsed && <span className="text-brand-gold font-black text-lg truncate px-1">Plateforme</span>}
+          {!collapsed && <span className="text-platform-accent font-black text-lg truncate px-1">Plateforme</span>}
           <button
             type="button"
             onClick={toggleCollapsed}
@@ -237,7 +237,7 @@ export function PlatformShell({
           >
             <Menu size={20} aria-hidden="true" />
           </button>
-          <span className="text-brand-gold font-black text-base">Plateforme</span>
+          <span className="text-platform-accent font-black text-base">Plateforme</span>
         </header>
 
         {mobileOpen && (
@@ -250,7 +250,7 @@ export function PlatformShell({
               className="fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[280px] flex-col bg-brand-dark text-white shadow-xl"
             >
               <div className="flex items-center justify-between h-14 px-4 pt-safe border-b border-white/10">
-                <span className="text-brand-gold font-black text-base">Plateforme</span>
+                <span className="text-platform-accent font-black text-base">Plateforme</span>
                 <button
                   type="button"
                   onClick={() => setMobileOpen(false)}

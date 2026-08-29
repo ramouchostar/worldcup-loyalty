@@ -17,6 +17,12 @@
      Tailwind implicite d'avant m48 (zéro régression pour un resto sans
      police choisie). Surchargée par établissement via brandStyle(). */
   --brand-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Accent /platform uniquement (Mehdi, 2026-08-29) — cette console interne
+     n'a pas de charte établissement à respecter (contrairement à brand-red,
+     piloté par lib/branding.ts pour /r/[id] et /admin/[id]) : elle peut se
+     permettre un vert plus vif que l'identité Boosteats. Ne JAMAIS l'utiliser
+     hors de app/platform/** et components/platform/**. */
+  --platform-accent: 162 197 35; /* #A2C523 */
 }
 
 @layer utilities {

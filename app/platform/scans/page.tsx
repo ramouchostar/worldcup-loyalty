@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { RECEIPT_RETENTION_DAYS } from "@/lib/receipt-scans";
 import { getFunnel, type FunnelDay } from "@/lib/qr-funnel";
 import { detectScanFrictions, FRICTION_MIN_SCANS, FRICTION_WINDOW_MIN } from "@/lib/scan-frictions";
+import { RestaurantFilter } from "./RestaurantFilter";
 
 export const metadata = { title: "Tickets scannés — Plateforme" };
 
@@ -175,23 +175,9 @@ export default async function PlatformScansPage({
         </p>
       </header>
 
-      <nav className="mb-6 flex flex-wrap gap-2 text-sm">
-        <Link
-          href="/platform/scans"
-          className={`px-3 py-1 rounded-full border ${!restaurantFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300"}`}
-        >
-          Tous
-        </Link>
-        {restaurants.map((r) => (
-          <Link
-            key={r.id}
-            href={`/platform/scans?restaurant=${r.id}`}
-            className={`px-3 py-1 rounded-full border ${restaurantFilter === r.id ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300"}`}
-          >
-            {r.name}
-          </Link>
-        ))}
-      </nav>
+      <div className="mb-6">
+        <RestaurantFilter restaurants={restaurants} value={restaurantFilter ?? ""} />
+      </div>
 
       {restaurantFilter && (
         <section className="mb-8">

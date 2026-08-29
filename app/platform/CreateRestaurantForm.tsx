@@ -58,7 +58,7 @@ export function CreateRestaurantForm() {
           qu'un vrai (c'est ce qui en fait une démonstration honnête) ; il est
           seulement retiré des surfaces publiques et des chiffres réseau. */}
       <label className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer">
-        <input type="checkbox" name="is_demo" className="mt-0.5 accent-brand-red" />
+        <input type="checkbox" name="is_demo" className="mt-0.5 accent-platform-accent" />
         <span className="text-sm text-gray-700">
           Compte démo
           <span className="block text-xs text-gray-400">
@@ -75,7 +75,7 @@ export function CreateRestaurantForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className="w-full bg-platform-accent text-brand-dark py-2.5 rounded-lg font-semibold text-sm hover:bg-platform-accent/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Création..." : "Créer l'établissement"}
       </button>
