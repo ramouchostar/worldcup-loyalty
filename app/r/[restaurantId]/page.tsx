@@ -118,7 +118,7 @@ export default async function RestaurantLandingPage({
           carte d'action — logo, sous-titre, description, tags et adresse
           retirés pour ne pas retarder le geste de scanner. Le nom du resto
           reste visible en pied de page. */}
-      <div className="bg-brand-dark text-white">
+      <div className="bg-white text-gray-900">
         <div className="max-w-lg mx-auto px-5 pt-14 pb-14 text-center">
           <h1 className="text-5xl font-black leading-[1.05] tracking-tight">
             Ton ticket de caisse<br />
