@@ -281,10 +281,9 @@ export default async function RestaurantLandingPage({
       {/* ── CTA FINAL ── */}
       <div className="bg-brand-red text-white py-12">
         <div className="max-w-lg mx-auto px-5 text-center">
-          <p className="text-4xl mb-4">🎁</p>
-          <h2 className="text-3xl font-black mb-3">Prêt à rejoindre {restaurant.name} ?</h2>
+          <h2 className="text-3xl font-black mb-3">Pas encore de ticket ?</h2>
           <p className="text-red-100 mb-8 leading-relaxed">
-            Inscription gratuite en 30 secondes. Des cadeaux à gagner lors des prochaines commandes et des promotions exclusives.
+            Installe déjà l&apos;application, il y a déjà des points à gagner.
           </p>
           {!user ? (
             <form action={redirectToLogin.bind(null, restaurantId)}>
@@ -292,7 +291,7 @@ export default async function RestaurantLandingPage({
                 type="submit"
                 className="inline-block bg-white text-brand-red font-black text-lg px-8 py-4 rounded-2xl hover:bg-red-50 transition-colors shadow-lg"
               >
-                Je rejoins ma communauté →
+                S&apos;inscrire directement →
               </button>
             </form>
           ) : isMember ? (
