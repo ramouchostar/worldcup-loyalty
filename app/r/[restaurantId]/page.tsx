@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { Scan } from "lucide-react";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
@@ -12,6 +13,14 @@ import type { CommunityScore, Team } from "@/types";
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
+
+// Illustrations Fluent Emoji 3D (Microsoft) servies directement par jsDelivr
+// depuis le paquet publié — juste des .webp statiques, version figée pour un
+// rendu stable. Volontairement pas de dépendance npm : @lobehub/fluent-emoji
+// embarque tout Ant Design (antd-style) pour ce qui n'est ici qu'une image.
+const FLUENT_EMOJI_3D = "https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets";
+const COIN_EMOJI = `${FLUENT_EMOJI_3D}/1fa99.webp`;
+const RECEIPT_EMOJI = `${FLUENT_EMOJI_3D}/1f9fe.webp`;
 
 // Cette page est déjà l'atterrissage post-scan : l'étape 1 est la photo, pas
 // le scan du QR (redondant, il vient d'être fait pour arriver ici) — ADR 0042.
@@ -99,9 +108,6 @@ export default async function RestaurantLandingPage({
   );
 
   const top5 = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter((s) => s.teams?.is_active);
-  // Sous ce seuil, le nombre reste peu flatteur à afficher publiquement —
-  // retour restaurateur, on préfère se taire tant que ça ne fait pas nombre.
-  const totalMembers = top5.reduce((sum, s) => sum + s.member_count, 0);
   const isMember = !!membership;
   // ADR 0040 — un membre qui rescanne le QR n'a rien à faire sur la vitrine :
   // il arrive directement dans l'app (recordLanding a déjà compté ci-dessus).
@@ -119,46 +125,83 @@ export default async function RestaurantLandingPage({
         params={{ restaurant_id: restaurantId, entry_source: utmSource ?? "direct" }}
       />
       {/* ── HERO ── */}
-      <div className="bg-brand-dark text-white">
-        <div className="max-w-lg mx-auto px-5 pt-12 pb-16">
+      {/* Minimum vital (retour terrain, 2026-08-30) : un seul titre avant la
+          carte d'action — logo, sous-titre, description, tags et adresse
+          retirés pour ne pas retarder le geste de scanner. Le nom du resto
+          reste visible en pied de page. */}
+      <div className="bg-white text-gray-900 relative overflow-hidden">
+        {/* Illustrations décoratives (retour terrain, 2026-08-30) — jamais
+            devant le texte (z-0, pointer-events-none, décoratif pour les
+            lecteurs d'écran). */}
+        {/* eslint-disable @next/next/no-img-element */}
+        <img
+          src={COIN_EMOJI}
+          alt=""
+          aria-hidden="true"
+          className="absolute -top-4 -right-4 w-24 h-24 rotate-[18deg] pointer-events-none select-none z-0"
+        />
+        <img
+          src={RECEIPT_EMOJI}
+          alt=""
+          aria-hidden="true"
+          className="absolute top-6 -left-4 w-20 h-20 -rotate-[15deg] pointer-events-none select-none z-0"
+        />
+        <img
+          src={COIN_EMOJI}
+          alt=""
+          aria-hidden="true"
+          className="absolute bottom-0 right-8 w-16 h-16 -rotate-12 pointer-events-none select-none z-0"
+        />
+        {/* eslint-enable @next/next/no-img-element */}
+        <div className="max-w-lg mx-auto px-5 pt-14 pb-14 text-center relative z-10">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt={restaurant.name} className="block mx-auto h-16 w-auto object-contain mb-5" />
+            <img src={logo} alt={restaurant.name} className="block mx-auto h-14 w-auto object-contain mb-6" />
           ) : null}
-          <p className="text-xs font-bold uppercase tracking-widest mb-5 text-gray-300">
-            {restaurant.name}
-          </p>
-
-          <h1 className="text-4xl font-black leading-tight mb-3">
-            Ton ticket de caisse<br />
-            <span className="text-brand-gold">te rapproche d&apos;un cadeau.</span>
+          <h1 className="text-5xl font-black leading-[1.05] tracking-tight">
+            Transformer<br />
+            son ticket en<br />
+            récompenses
           </h1>
-
-          <p className="text-gray-300 text-base leading-relaxed mb-3">
-            Photographie le ticket de ta commande. Un cadeau t&apos;attendra au comptoir lors d&apos;une prochaine visite.
-          </p>
-
-          {restaurant.address && (
-            <p className="text-gray-400 text-xs mb-5">📍 {restaurant.address}</p>
-          )}
-
-          {totalMembers > 100 && (
-            <p className="text-gray-400 text-sm">
-              <span className="text-white font-bold">{totalMembers}</span> membres inscrits chez {restaurant.name}
-            </p>
-          )}
         </div>
       </div>
 
       {/* ── CARTE : CE QUE CE TICKET PEUT DÉBLOQUER + CTA + ÉTAPES ── */}
       <div className="max-w-lg mx-auto px-5 -mt-10 relative z-10">
         <div className="bg-white rounded-3xl shadow-xl p-6">
+          {!user ? (
+            // ADR 0040 — le client au comptoir a un ticket en main : le scan
+            // est l'action n°1, le compte viendra au moment de l'envoi.
+            <Link
+              href={`/r/${restaurantId}/submit-order`}
+              className="flex items-center justify-center gap-2 w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
+            >
+              Scanner mon ticket <Scan className="w-6 h-6" strokeWidth={2.5} />
+            </Link>
+          ) : isMember ? (
+            <Link
+              href={`/r/${restaurantId}/dashboard`}
+              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
+            >
+              Continuer →
+            </Link>
+          ) : (
+            <form action={joinRestaurant.bind(null, restaurantId)} className="mb-6">
+              <button
+                type="submit"
+                className="w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
+              >
+                Rejoindre {restaurant.name} →
+              </button>
+            </form>
+          )}
+
           {tierPreview.length > 0 && (
             <>
               <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">
                 Ce que ce ticket peut débloquer
               </p>
-              <div className="space-y-3 mb-6">
+              <div className="space-y-3">
                 {tierPreview.map((row) => (
                   <div key={row.layer} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
                     <span className="text-xl">{TIER_COPY[row.layer].icon}</span>
@@ -170,33 +213,6 @@ export default async function RestaurantLandingPage({
                 ))}
               </div>
             </>
-          )}
-
-          {!user ? (
-            // ADR 0040 — le client au comptoir a un ticket en main : le scan
-            // est l'action n°1, le compte viendra au moment de l'envoi.
-            <Link
-              href={`/r/${restaurantId}/submit-order`}
-              className="block w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
-            >
-              📷 Scanner mon ticket
-            </Link>
-          ) : isMember ? (
-            <Link
-              href={`/r/${restaurantId}/dashboard`}
-              className="block w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
-            >
-              Continuer →
-            </Link>
-          ) : (
-            <form action={joinRestaurant.bind(null, restaurantId)}>
-              <button
-                type="submit"
-                className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
-              >
-                Rejoindre {restaurant.name} →
-              </button>
-            </form>
           )}
 
           <div className="mt-6 space-y-2">
