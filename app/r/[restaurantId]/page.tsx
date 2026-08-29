@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
+import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
@@ -72,7 +72,7 @@ export default async function RestaurantLandingPage({
     );
   }
 
-  const [{ data: membership }, { data: scoresRaw }] = await Promise.all([
+  const [{ data: membership }, { data: scoresRaw }, branding] = await Promise.all([
     user
       ? supabase.from("memberships").select("user_id").eq("user_id", user.id).eq("restaurant_id", restaurantId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -85,6 +85,7 @@ export default async function RestaurantLandingPage({
       .eq("teams.restaurant_id", restaurantId)
       .order("score", { ascending: false })
       .limit(5),
+    getRestaurantBranding(restaurantId),
   ]);
 
   // ADR 0037 — premier étage de l'entonnoir, compté côté serveur : c'est le
@@ -103,6 +104,7 @@ export default async function RestaurantLandingPage({
   // il arrive directement dans l'app (recordLanding a déjà compté ci-dessus).
   if (user && isMember) redirect(`/r/${restaurantId}/dashboard`);
   const isKraainem = restaurantId === "kraainem";
+  const logo = logoPublicUrl(branding.logo_url);
   // ADR 0042, amendé par ADR 0043 — aperçu par nom d'article (jamais de
   // seuil ni d'euro) sur la carte hero.
   const tierPreview = await getLandingTierPreview(restaurantId);
@@ -120,6 +122,10 @@ export default async function RestaurantLandingPage({
           reste visible en pied de page. */}
       <div className="bg-white text-gray-900">
         <div className="max-w-lg mx-auto px-5 pt-14 pb-14 text-center">
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt={restaurant.name} className="block mx-auto h-14 w-auto object-contain mb-6" />
+          ) : null}
           <h1 className="text-5xl font-black leading-[1.05] tracking-tight">
             Ton ticket de caisse<br />
             te rapproche d&apos;un cadeau.
