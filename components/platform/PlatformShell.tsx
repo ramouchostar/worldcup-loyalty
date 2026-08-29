@@ -197,9 +197,15 @@ export function PlatformShell({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 md:flex">
-      {/* Sidebar desktop — rétractable, icônes seules une fois repliée. */}
+      {/* Sidebar desktop — rétractable, icônes seules une fois repliée.
+          sticky + h-screen : sans ça, l'aside suit la hauteur naturelle de la
+          ligne flex (celle du contenu de page, potentiellement bien plus
+          grand qu'un écran), et son bas — bouton clair/sombre, retour,
+          déconnexion — ne devient visible qu'en scrollant TOUTE la page. Ici
+          elle reste plaquée à la fenêtre ; seule sa nav interne défile si
+          jamais elle devient trop longue pour la hauteur d'écran. */}
       <aside
-        className={`hidden md:flex md:flex-col md:shrink-0 bg-brand-dark transition-[width] duration-200 ${
+        className={`hidden md:flex md:sticky md:top-0 md:h-screen md:flex-col md:shrink-0 bg-brand-dark transition-[width] duration-200 ${
           collapsed ? "w-[72px]" : "w-[232px]"
         }`}
       >
