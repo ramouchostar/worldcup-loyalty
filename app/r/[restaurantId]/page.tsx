@@ -128,9 +128,9 @@ export default async function RestaurantLandingPage({
             <img src={logo} alt={restaurant.name} className="block mx-auto h-14 w-auto object-contain mb-6" />
           ) : null}
           <h1 className="text-5xl font-black leading-[1.05] tracking-tight">
-            Transform<br />
-            ton ticket en<br />
-            récompense
+            Transformer<br />
+            son ticket en<br />
+            récompenses
           </h1>
         </div>
       </div>
