@@ -2,6 +2,9 @@
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
+import { BrowserWindow } from "./BrowserWindow";
+import { DashboardMockup } from "./DashboardMockup";
+import { MemberAppMockup } from "./MemberAppMockup";
 
 const BOOSTED_BENEFITS = [
   "ton volume de commandes",
@@ -9,9 +12,6 @@ const BOOSTED_BENEFITS = [
   "ton revenu net",
   "le bouche-à-oreille",
 ];
-import { BrowserWindow } from "./BrowserWindow";
-import { DashboardMockup } from "./DashboardMockup";
-import { MemberAppMockup } from "./MemberAppMockup";
 
 export function Hero({
   hasNetwork,
@@ -33,7 +33,7 @@ export function Hero({
       />
 
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 sm:pt-20 pb-0">
-        <div className="max-w-[800px]">
+        <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-light mb-5">
               ▶ Pour les restaurateurs
@@ -41,19 +41,20 @@ export function Hero({
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-white text-pretty">
-              Ton assistant qui booste{" "}
-              <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-light" />.
+              Ton assistant qui booste
+              <br />
+              <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-light" />
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="font-landing text-base sm:text-lg leading-[1.7] text-night-text mt-6 max-w-[640px]">
+            <p className="font-landing text-base sm:text-lg leading-[1.7] text-night-text mt-6 max-w-[640px] mx-auto">
               Reprends la main sur les clients que les plateformes de livraison te prennent. Chaque cadeau est
               calculé sur ton propre prix de revient et plafonné par le CA qu&apos;il a généré. Côté client,
               l&apos;app porte ton nom, tes couleurs et ton logo.
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="flex items-center gap-4 mt-8 flex-wrap">
+            <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
               <TrackedLink
                 ctaId="devenir_partenaire"
                 ctaLocation="hero"
