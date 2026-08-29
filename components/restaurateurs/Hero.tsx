@@ -25,7 +25,7 @@ export function Hero({
   const blobRef = useParallaxOffset(0.12);
 
   return (
-    <section className="relative bg-ink overflow-hidden">
+    <section className="relative bg-paper overflow-hidden">
       <div
         ref={blobRef}
         className="absolute -top-[220px] -right-40 w-[760px] h-[760px] pointer-events-none"
@@ -35,19 +35,19 @@ export function Hero({
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 sm:pt-20 pb-0">
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
-            <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-light mb-5">
+            <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
               ▶ Pour les restaurateurs
             </p>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-white text-pretty">
+            <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
               Ton assistant qui booste
               <br />
-              <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-light" />
+              <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-dark" />
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="font-landing text-base sm:text-lg leading-[1.7] text-night-text mt-6 max-w-[640px] mx-auto">
+            <p className="font-landing text-base sm:text-lg leading-[1.7] text-ink-muted mt-6 max-w-[640px] mx-auto">
               Reprends la main sur les clients que les plateformes de livraison te prennent. Chaque cadeau est
               calculé sur ton propre prix de revient et plafonné par le CA qu&apos;il a généré. Côté client,
               l&apos;app porte ton nom, tes couleurs et ton logo.
@@ -69,19 +69,19 @@ export function Hero({
                 ctaLocation="hero"
                 audience="restaurateur"
                 href="#produit"
-                className="text-white text-[15px] font-semibold py-[15px] hover:text-moss-light transition-colors"
+                className="text-ink text-[15px] font-semibold py-[15px] hover:text-moss-dark transition-colors"
               >
                 Voir le produit
               </TrackedLink>
             </div>
           </Reveal>
           <Reveal delay={300}>
-            <p className="text-night-faint text-sm mt-6">
+            <p className="text-ink-faint text-sm mt-6">
               {hasNetwork ? (
                 <>
-                  Déjà <span className="text-white font-bold">{restaurantCount}</span> établissement
+                  Déjà <span className="text-ink font-bold">{restaurantCount}</span> établissement
                   {restaurantCount > 1 ? "s" : ""} et{" "}
-                  <span className="text-white font-bold">{memberCount}</span> membre
+                  <span className="text-ink font-bold">{memberCount}</span> membre
                   {memberCount > 1 ? "s" : ""} actifs sur le réseau.
                 </>
               ) : (
