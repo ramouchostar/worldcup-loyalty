@@ -67,10 +67,7 @@ export function Hero({
             </div>
           </Reveal>
           <Reveal delay={300}>
-            <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-night-faint mt-6">
-              Gratuit à vie · 0% de commission · aucune carte bancaire
-            </p>
-            <p className="text-night-faint text-sm mt-2">
+            <p className="text-night-faint text-sm mt-6">
               {hasNetwork ? (
                 <>
                   Déjà <span className="text-white font-bold">{restaurantCount}</span> établissement
