@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, Search, type LucideIcon } from "lucide-react";
 import { useAnchoredMenu } from "./useAnchoredMenu";
 
 export type FlatSelectOption = {
@@ -13,6 +14,15 @@ export type FlatSelectOption = {
   icon?: LucideIcon;
   iconClassName?: string;
 };
+
+// Insensible aux accents (« reseau » retrouve « réseau ») — les noms
+// d'établissement viennent d'une saisie libre, pas d'une liste normalisée.
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
 const DEFAULT_TRIGGER_CLS =
   "h-9 inline-flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors";
@@ -45,6 +55,9 @@ export function FlatSelect({
   menuWidth = 224,
   triggerDisplay = "label",
   checkPosition = "start",
+  searchable = false,
+  minSearchChars = 3,
+  searchPlaceholder = "Rechercher…",
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -61,9 +74,34 @@ export function FlatSelect({
   triggerDisplay?: "label" | "icon";
   /** Position de la coche dans le panneau — "end" pour un alignement à droite façon liste d'organisations. */
   checkPosition?: "start" | "end";
+  /** Ajoute un champ de recherche en tête de panneau — pour une longue liste (ex. tous les établissements). */
+  searchable?: boolean;
+  /** En dessous de ce nombre de caractères tapés, un indice s'affiche au lieu de filtrer — évite qu'une recherche à 1-2 lettres renvoie encore la moitié de la liste. */
+  minSearchChars?: number;
+  searchPlaceholder?: string;
 }) {
   const { open, setOpen, triggerRef } = useAnchoredMenu<HTMLButtonElement>();
   const selected = options.find((o) => o.value === value) ?? null;
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Repart d'une recherche vide à chaque ouverture, et rend le focus au champ
+  // sans que l'utilisateur ait à cliquer dedans — c'est la seule chose à
+  // faire après avoir cliqué le déclencheur.
+  useEffect(() => {
+    if (open && searchable) {
+      setQuery("");
+      const id = requestAnimationFrame(() => searchRef.current?.focus());
+      return () => cancelAnimationFrame(id);
+    }
+  }, [open, searchable]);
+
+  const trimmed = query.trim();
+  const belowThreshold = searchable && trimmed.length > 0 && trimmed.length < minSearchChars;
+  const visibleOptions =
+    searchable && trimmed.length >= minSearchChars
+      ? options.filter((o) => normalize(o.label).includes(normalize(trimmed)))
+      : options;
 
   function toggle() {
     if (open) {
@@ -115,47 +153,74 @@ export function FlatSelect({
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
             <div
-              role="listbox"
+              role={searchable ? undefined : "listbox"}
               style={{ top: coords.top, left: coords.left, width: coords.width }}
               className={
                 menuClassName ??
-                "fixed z-50 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-neutral-900 p-1 shadow-xl"
+                `fixed z-50 rounded-xl border border-white/10 bg-neutral-900 shadow-xl ${
+                  searchable ? "flex max-h-80 flex-col" : "max-h-72 overflow-y-auto p-1"
+                }`
               }
             >
-              {options.map((opt) => {
-                const isSelected = opt.value === value;
-                const Icon = opt.icon;
-                const check = (
-                  <Check
-                    size={15}
-                    strokeWidth={2.5}
-                    className={`shrink-0 ${isSelected ? "text-platform-accent opacity-100" : "opacity-0"}`}
-                    aria-hidden="true"
+              {searchable && (
+                <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-2.5 py-2">
+                  <Search size={15} className="shrink-0 text-neutral-500" aria-hidden="true" />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    className="w-full bg-transparent text-sm text-white placeholder:text-neutral-500 focus:outline-none"
                   />
-                );
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    disabled={opt.disabled}
-                    onClick={() => !opt.disabled && pick(opt.value)}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors ${
-                      opt.disabled
-                        ? "cursor-not-allowed text-neutral-600"
-                        : isSelected
-                          ? "font-semibold text-white"
-                          : "text-neutral-300 hover:bg-white/5"
-                    }`}
-                  >
-                    {checkPosition === "start" && check}
-                    {Icon && <Icon size={15} className={`shrink-0 ${opt.iconClassName ?? "text-neutral-400"}`} aria-hidden="true" />}
-                    <span className="truncate">{opt.label}</span>
-                    {checkPosition === "end" && <span className="ml-auto flex items-center">{check}</span>}
-                  </button>
-                );
-              })}
+                </div>
+              )}
+              <div role={searchable ? "listbox" : undefined} className={searchable ? "overflow-y-auto p-1" : undefined}>
+                {belowThreshold ? (
+                  <p className="px-2.5 py-3 text-xs text-neutral-500">
+                    Encore {minSearchChars - trimmed.length} caractère{minSearchChars - trimmed.length > 1 ? "s" : ""}…
+                  </p>
+                ) : visibleOptions.length === 0 ? (
+                  <p className="px-2.5 py-3 text-xs text-neutral-500">Aucun résultat.</p>
+                ) : (
+                  visibleOptions.map((opt) => {
+                    const isSelected = opt.value === value;
+                    const Icon = opt.icon;
+                    const check = (
+                      <Check
+                        size={15}
+                        strokeWidth={2.5}
+                        className={`shrink-0 ${isSelected ? "text-platform-accent opacity-100" : "opacity-0"}`}
+                        aria-hidden="true"
+                      />
+                    );
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        disabled={opt.disabled}
+                        onClick={() => !opt.disabled && pick(opt.value)}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors ${
+                          opt.disabled
+                            ? "cursor-not-allowed text-neutral-600"
+                            : isSelected
+                              ? "font-semibold text-white"
+                              : "text-neutral-300 hover:bg-white/5"
+                        }`}
+                      >
+                        {checkPosition === "start" && check}
+                        {Icon && (
+                          <Icon size={15} className={`shrink-0 ${opt.iconClassName ?? "text-neutral-400"}`} aria-hidden="true" />
+                        )}
+                        <span className="truncate">{opt.label}</span>
+                        {checkPosition === "end" && <span className="ml-auto flex items-center">{check}</span>}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </>,
           document.body
