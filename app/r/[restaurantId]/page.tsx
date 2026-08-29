@@ -138,19 +138,19 @@ export default async function RestaurantLandingPage({
           src={COIN_EMOJI}
           alt=""
           aria-hidden="true"
-          className="absolute -top-3 -right-3 w-16 h-16 rotate-[18deg] pointer-events-none select-none z-0"
+          className="absolute -top-4 -right-4 w-24 h-24 rotate-[18deg] pointer-events-none select-none z-0"
         />
         <img
           src={RECEIPT_EMOJI}
           alt=""
           aria-hidden="true"
-          className="absolute top-6 -left-2 w-12 h-12 -rotate-[15deg] pointer-events-none select-none z-0"
+          className="absolute top-6 -left-4 w-20 h-20 -rotate-[15deg] pointer-events-none select-none z-0"
         />
         <img
           src={COIN_EMOJI}
           alt=""
           aria-hidden="true"
-          className="absolute bottom-2 right-6 w-11 h-11 -rotate-12 pointer-events-none select-none z-0"
+          className="absolute bottom-0 right-8 w-16 h-16 -rotate-12 pointer-events-none select-none z-0"
         />
         {/* eslint-enable @next/next/no-img-element */}
         <div className="max-w-lg mx-auto px-5 pt-14 pb-14 text-center relative z-10">
