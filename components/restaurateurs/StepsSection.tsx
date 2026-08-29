@@ -7,17 +7,23 @@ const STEPS = [
   {
     n: "01",
     title: "Présente ton établissement",
-    desc: "Nom, ville, quartier, réseaux sociaux — 2 minutes.",
+    desc: "Nom, ville, quartier, réseaux sociaux. Deux minutes.",
   },
   {
     n: "02",
-    title: "Envoie ta carte",
-    desc: "Un fichier avec tes prix de vente et d'achat — les récompenses se calibrent seules sur tes marges.",
+    title: "Envoie ta carte, comme tu l'as",
+    desc: "Une photo, un PDF, un fichier Excel : on prend ce que tu as et on s'occupe de la mise en forme. Tu n'as rien à préparer.",
   },
   {
     n: "03",
+    title: "Complète tes coûts, si tu veux",
+    desc: "Une page simple, produit par produit, que tu remplis à ton rythme. Tu peux la laisser vide : le programme tourne avec des marges estimées et se précisera quand tu la compléteras.",
+    optional: true,
+  },
+  {
+    n: "04",
     title: "Lance-toi",
-    desc: "On valide ton établissement, puis le QR code est prêt à être présenté aux clients.",
+    desc: "On valide ton établissement, ton QR code et tes supports imprimables sont prêts à présenter à tes clients.",
   },
 ];
 
@@ -36,15 +42,22 @@ export function StepsSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-light mb-3.5">▶ Démarrer</p>
           <h2 className="font-display text-[28px] sm:text-[33px] lg:text-[39px] leading-[1.2] tracking-[-0.02em] font-bold text-white max-w-[620px] text-pretty">
-            Ton Programme prêt en trois étapes.
+            Ton programme est prêt en quatre étapes.
           </h2>
         </Reveal>
 
-        <div className="grid sm:grid-cols-3 gap-6 mt-11">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-11">
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={i * 100}>
               <div className="bg-night-raised border border-night-line rounded-xl p-7 h-full">
-                <p className="font-mono text-[11px] tracking-[0.12em] text-moss">{s.n}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-[11px] tracking-[0.12em] text-moss">{s.n}</p>
+                  {s.optional && (
+                    <span className="font-mono text-[9.5px] tracking-[0.1em] uppercase text-moss-light bg-white/10 rounded-full px-2 py-0.5">
+                      Optionnel
+                    </span>
+                  )}
+                </div>
                 <p className="text-lg font-semibold text-white mt-3.5 mb-1.5">{s.title}</p>
                 <p className="text-sm leading-relaxed text-night-text m-0">{s.desc}</p>
               </div>
@@ -52,7 +65,7 @@ export function StepsSection() {
           ))}
         </div>
 
-        <Reveal delay={320}>
+        <Reveal delay={420}>
           <div className="flex items-center gap-5 mt-11 flex-wrap">
             <TrackedLink
               ctaId="devenir_partenaire"
@@ -61,7 +74,7 @@ export function StepsSection() {
               href="/become-a-partner"
               className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
             >
-              Devenir partenaire gratuitement →
+              Commencer le plan gratuit →
             </TrackedLink>
             <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-night-faint">
               Aucune carte bancaire · aucun engagement

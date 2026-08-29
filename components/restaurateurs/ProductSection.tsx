@@ -3,31 +3,24 @@
 import { Reveal } from "./motion";
 import { BrowserWindow } from "./BrowserWindow";
 import { InsightsMockup } from "./InsightsMockup";
-import { ForecastMockup } from "./ForecastMockup";
 import { MobileScreenCard } from "./MobileScreenCard";
 import { InsightsMockupMobile } from "./InsightsMockupMobile";
-import { ForecastMockupMobile } from "./ForecastMockupMobile";
 
 const OPPORTUNITY_POINTS = [
-  "Calcul déterministe — chaque promo est explicable par ses chiffres",
-  "L'app propose, tu décides — rien n'est appliqué sans toi",
-  "Annonce envoyée au bon moment, jamais trop tôt",
-];
-
-const FORECAST_POINTS = [
-  "Basée sur tes ventes caisse, pas sur des moyennes du secteur",
-  "Chaque facteur est affiché — tu peux contredire le modèle",
+  "Chaque promo est chiffrée avant d'être lancée — tu vois le CA attendu et le coût matière",
+  "L'app propose, tu décides — rien n'est jamais appliqué sans toi",
+  "L'annonce part au bon moment, jamais trop tôt",
 ];
 
 export function ProductSection() {
   return (
-    <section id="produit" className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-20 sm:pt-24 scroll-mt-16">
+    <section id="produit" className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-20 sm:pt-24 pb-24 scroll-mt-16">
       <div className="grid lg:grid-cols-[1fr_1.15fr] gap-10 lg:gap-14 items-center">
         <Reveal>
           <TextBlock
             eyebrow="Opportunités"
             title="L'app te dit quoi faire mardi soir, pas juste ce qui s'est passé."
-            desc="Chaque suggestion part de tes propres ventes et de ta carte : jour creux, combo qui manque, promo qui tient la marge. Tu vois le chiffre qui la justifie, tu lances en un clic, et tu suis ce qui tourne déjà."
+            desc="Chaque suggestion part de tes ventes réelles et de ta carte : un jour creux à remplir, un combo que tes clients composent déjà eux-mêmes, un groupe de clients qui n'est pas revenu depuis trois semaines. Tu vois le chiffre qui justifie la proposition, tu lances en un clic, ou tu ignores."
             points={OPPORTUNITY_POINTS}
           />
         </Reveal>
@@ -43,30 +36,6 @@ export function ProductSection() {
               <InsightsMockup />
             </BrowserWindow>
           </div>
-        </Reveal>
-      </div>
-
-      <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center pt-24 pb-24">
-        <Reveal y={28} className="order-2 lg:order-1">
-          <div className="md:hidden">
-            <MobileScreenCard url="/admin/belchicken/forecast">
-              <ForecastMockupMobile />
-            </MobileScreenCard>
-          </div>
-          <div className="hidden md:block">
-            <BrowserWindow url="/admin/belchicken/forecast" scaleWidth={900}>
-              <ForecastMockup />
-            </BrowserWindow>
-          </div>
-        </Reveal>
-
-        <Reveal delay={120} className="order-1 lg:order-2">
-          <TextBlock
-            eyebrow="Prévisions CA"
-            title="Prévois ta semaine en avance et fixes-toi des objectifs."
-            desc="Une fourchette, un niveau de confiance, les facteurs visibles. Pas de boule de cristal : si la donnée manque, l'app te le dit au lieu d'inventer un chiffre."
-            points={FORECAST_POINTS}
-          />
         </Reveal>
       </div>
     </section>

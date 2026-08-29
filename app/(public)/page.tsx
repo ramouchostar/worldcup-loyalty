@@ -1,5 +1,3 @@
-import { createAdminClient } from "@/lib/supabase";
-import { listLiveRestaurantIds } from "@/lib/demo";
 import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLanding";
 
 // Landing publique dédiée aux restaurateurs prospects — distincte du
@@ -14,17 +12,19 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 // Redesign m55 (2026-08-08) : remplace l'ancienne page par le design Claude
 // "Landing Restaurateurs" (import via claude_design MCP), reconstruit en
 // composants React sous components/restaurateurs/ avec mise en scène
-// dynamique au scroll (cf. motion.tsx). Le contenu suit fidèlement la
-// maquette — mêmes règles de conformité que l'ancienne version :
-// - Aucun prix inventé : ADR 0029 acte le modèle (Gratuit/Croissance/Pro)
-//   mais les montants et la mise en œuvre ne sont "pas encore implémentés" —
-//   cette page ne vend donc que ce qui existe réellement aujourd'hui (le
-//   plan Gratuit) et présente les plans payants comme une feuille de route,
-//   jamais avec un chiffre.
+// dynamique au scroll (cf. motion.tsx).
+// - Refonte de copie 2026-08-29 : les plans Croissance (199€/mois) et Pro
+//   (500€/mois) affichent désormais un vrai tarif par établissement, ancré
+//   sur un seuil de rentabilité (voir PlansSection.tsx) — ÉCART ASSUMÉ avec
+//   le statut "montants pas encore implémentés" d'ADR 0029 initial, à faire
+//   acter par un ADR dédié (/new-adr) tant que ce n'est pas encore fait.
 // - ADR 0007 ne s'applique pas ici (page B2B, pas client) — euros et
 //   mécanique de marge peuvent être mentionnés explicitement. Les chiffres
 //   affichés dans les mockups produit sont des données d'illustration
 //   figées (établissement fictif "Belchicken"), pas des métriques réelles.
+// - Page entièrement statique (pas de fetch serveur) : la preuve sociale du
+//   Hero est un cas nommé (Belchicken, Uccle), pas un compteur réseau —
+//   à vérifier/mettre à jour au fil de la croissance réelle du réseau.
 
 export const revalidate = 300;
 
@@ -34,37 +34,6 @@ export const metadata = {
     "Un programme de fidélité qui ne peut jamais coûter plus qu'il ne rapporte — cadeaux calculés sur ta marge, parrainage, tableau de bord. Gratuit à vie, 0% de commission.",
 };
 
-export default async function RestaurateursLandingPage() {
-  // Preuve sociale best-effort : une landing publique ne doit jamais faire
-  // échouer le build (prérendu + revalidate 300) à cause d'une env/DB
-  // indisponible. Env Supabase absente ou requête en échec → on retombe sur
-  // l'état "le réseau démarre" au lieu de casser le déploiement (incident
-  // constaté sur PR #32 : Preview Vercel sans variables Supabase).
-  // ADR 0033 §1 — la preuve sociale ne compte QUE le réseau réel : annoncer
-  // des établissements de démonstration à un prospect serait un mensonge
-  // commercial, et les adhésions fictives qui vont avec aussi.
-  let restaurantCount = 0;
-  let memberCount = 0;
-  try {
-    const admin = createAdminClient();
-    const liveIds = await listLiveRestaurantIds(admin);
-    restaurantCount = liveIds.length;
-    if (liveIds.length > 0) {
-      const { count } = await admin
-        .from("memberships")
-        .select("user_id", { count: "exact", head: true })
-        .in("restaurant_id", liveIds);
-      memberCount = count ?? 0;
-    }
-  } catch {
-    // best-effort : compteurs à 0, la page rend quand même
-  }
-
-  return (
-    <RestaurateursLanding
-      hasNetwork={restaurantCount > 0}
-      restaurantCount={restaurantCount}
-      memberCount={memberCount}
-    />
-  );
+export default function RestaurateursLandingPage() {
+  return <RestaurateursLanding />;
 }
