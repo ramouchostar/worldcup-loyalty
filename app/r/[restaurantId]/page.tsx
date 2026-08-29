@@ -128,7 +128,7 @@ export default async function RestaurantLandingPage({
           ) : null}
           <h1 className="text-5xl font-black leading-[1.05] tracking-tight">
             Ton ticket de caisse<br />
-            te rapproche d&apos;un cadeau.
+            te rapproche d&apos;un cadeau
           </h1>
         </div>
       </div>
