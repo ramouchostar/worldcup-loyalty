@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
@@ -103,14 +104,53 @@ export function Avatar({ name, size = 28 }: { name: string | null; size?: number
 // Attribution en un clic depuis la carte. Le panneau se ferme sur un clic
 // n'importe où ailleurs (calque transparent) — sans ça, ouvrir deux cartes
 // laisse deux menus ouverts en même temps.
+// Portail vers <body>, positionné en `fixed` depuis les coordonnées réelles
+// du bouton (getBoundingClientRect) — jamais un `absolute` imbriqué dans la
+// carte. Une carte peut vivre dans un conteneur qui défile (colonne Kanban,
+// futur wrapper quelconque) : un menu `absolute` classique s'y retrouve
+// coupé par le premier ancêtre en overflow, ou repositionné par le premier
+// ancêtre transformé (dnd-kit applique un `transform` aux cartes en cours de
+// glisser-déposer), invisible ou mal placé sans qu'on comprenne pourquoi.
 export function AssigneePicker({ item }: { item: BacklogItem }) {
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const MENU_WIDTH = 192; // w-48
+
+  function openMenu() {
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (rect) {
+      setCoords({
+        top: rect.bottom + 6,
+        left: Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)),
+      });
+    }
+    setOpen(true);
+  }
+
+  // Un menu ancré par coordonnées figées ne doit pas survivre à un scroll —
+  // sans mise à jour continue de la position, il se détacherait visuellement
+  // du bouton qu'il représente.
+  useEffect(() => {
+    if (!open) return;
+    function close() {
+      setOpen(false);
+    }
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
 
   return (
-    <div className="relative shrink-0">
+    <div className="shrink-0">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openMenu())}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={item.owner ? `Attribué à ${item.owner} — changer` : "Attribuer cette action"}
@@ -120,47 +160,52 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
         <Avatar name={item.owner} />
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div
-            role="menu"
-            className="absolute right-0 top-10 z-30 w-48 bg-white rounded-xl shadow-lg border border-gray-200 p-1"
-          >
-            {BACKLOG_PEOPLE.map((p) => (
-              <form key={p} action={setBacklogOwnerFromForm}>
-                <input type="hidden" name="id" value={item.id} />
-                <input type="hidden" name="owner" value={p} />
-                <button
-                  type="submit"
-                  role="menuitem"
-                  onClick={() => setOpen(false)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-800 hover:bg-gray-100"
-                >
-                  <Avatar name={p} size={22} />
-                  {p}
-                  {item.owner === p && <span className="ml-auto text-gray-400">✓</span>}
-                </button>
-              </form>
-            ))}
-            {item.owner && (
-              <form action={setBacklogOwnerFromForm}>
-                <input type="hidden" name="id" value={item.id} />
-                <input type="hidden" name="owner" value="" />
-                <button
-                  type="submit"
-                  role="menuitem"
-                  onClick={() => setOpen(false)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 border-t border-gray-100 mt-1 pt-2"
-                >
-                  <Avatar name={null} size={22} />
-                  Personne
-                </button>
-              </form>
-            )}
-          </div>
-        </>
-      )}
+      {open &&
+        coords &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
+            <div
+              role="menu"
+              style={{ top: coords.top, left: coords.left, width: MENU_WIDTH }}
+              className="fixed z-50 bg-white rounded-xl shadow-lg border border-gray-200 p-1"
+            >
+              {BACKLOG_PEOPLE.map((p) => (
+                <form key={p} action={setBacklogOwnerFromForm}>
+                  <input type="hidden" name="id" value={item.id} />
+                  <input type="hidden" name="owner" value={p} />
+                  <button
+                    type="submit"
+                    role="menuitem"
+                    onClick={() => setOpen(false)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-800 hover:bg-gray-100"
+                  >
+                    <Avatar name={p} size={22} />
+                    {p}
+                    {item.owner === p && <span className="ml-auto text-gray-400">✓</span>}
+                  </button>
+                </form>
+              ))}
+              {item.owner && (
+                <form action={setBacklogOwnerFromForm}>
+                  <input type="hidden" name="id" value={item.id} />
+                  <input type="hidden" name="owner" value="" />
+                  <button
+                    type="submit"
+                    role="menuitem"
+                    onClick={() => setOpen(false)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 border-t border-gray-100 mt-1 pt-2"
+                  >
+                    <Avatar name={null} size={22} />
+                    Personne
+                  </button>
+                </form>
+              )}
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 }

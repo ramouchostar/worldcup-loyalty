@@ -27,7 +27,11 @@ export default async function PlatformBacklogPage() {
   const restaurants = ((restaurantsRaw as { id: string; name: string }[] | null) ?? []);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-5 space-y-3">
+    // max-w-7xl et non le max-w-3xl d'origine : le backlog se travaille
+    // surtout au clavier/souris (Mehdi/Omar), le mobile sert à consulter et
+    // attribuer — la page doit utiliser la largeur d'un écran desktop plutôt
+    // que rester en colonne étroite avec du vide à droite.
+    <div className="max-w-7xl mx-auto px-4 py-5 space-y-3">
       {/* Sous-titre retiré et titre resserré (redesign résumé) — gagner de la
           hauteur d'écran pour BacklogSummary (comptes, prochaine action,
           clôturées), qui porte maintenant seul le contexte de la page. */}
