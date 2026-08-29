@@ -8,19 +8,12 @@ import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
 import { recordLanding } from "@/lib/qr-funnel";
+import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
 
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
-
-// Illustrations Fluent Emoji 3D (Microsoft) servies directement par jsDelivr
-// depuis le paquet publié — juste des .webp statiques, version figée pour un
-// rendu stable. Volontairement pas de dépendance npm : @lobehub/fluent-emoji
-// embarque tout Ant Design (antd-style) pour ce qui n'est ici qu'une image.
-const FLUENT_EMOJI_3D = "https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets";
-const COIN_EMOJI = `${FLUENT_EMOJI_3D}/1fa99.webp`;
-const RECEIPT_EMOJI = `${FLUENT_EMOJI_3D}/1f9fe.webp`;
 
 // ADR 0042, amendé par ADR 0043 — jamais d'euro sur cette carte ; le nom
 // d'article, lui, est désormais affiché (tiré au hasard dans la bonne
