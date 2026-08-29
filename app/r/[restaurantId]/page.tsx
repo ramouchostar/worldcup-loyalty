@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { VisitorTour } from "@/components/member/VisitorTour";
 import { getTourGifts } from "@/lib/visitor-tour";
+import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
@@ -14,29 +15,21 @@ type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
 };
 
-// Étape 1 volontairement centrée sur le scan plutôt que sur l'équipe — les
-// équipes ne doivent pas être mises en avant à ce stade du funnel (retour
-// restaurateur, 2026-08-10).
+// Cette page est déjà l'atterrissage post-scan : l'étape 1 est la photo, pas
+// le scan du QR (redondant, il vient d'être fait pour arriver ici) — ADR 0042.
 const STEPS = [
-  {
-    num: "1",
-    icon: "📱",
-    title: "Scanne le QR code",
-    desc: "Au comptoir ou sur ta table, un scan suffit pour rejoindre le programme.",
-  },
-  {
-    num: "2",
-    icon: "🧾",
-    title: "Commande directement",
-    desc: "Chaque commande passée en salle ou par téléphone fait progresser toute ton équipe.",
-  },
-  {
-    num: "3",
-    icon: "🎁",
-    title: "Gagnez ensemble",
-    desc: "Plus votre équipe commande, plus vous débloquez de cadeaux collectifs.",
-  },
+  { num: "1", desc: "Photo du ticket, ici même" },
+  { num: "2", desc: "Compte en 10 secondes, une fois la photo prise" },
+  { num: "3", desc: "Cadeau au comptoir à ta prochaine visite" },
 ];
+
+// ADR 0042 — jamais de nom d'article ni d'euro sur cette carte, seulement la
+// catégorie de prix (icône + relance) propre à chaque couche de récompense.
+const TIER_COPY: Record<TierPreviewRow["layer"], { icon: string; hint: string }> = {
+  solo: { icon: "🍗", hint: "Dès cette commande" },
+  community: { icon: "🤝", hint: "En cumulant avec ta communauté" },
+  saver: { icon: "🎁", hint: "En mettant de côté tes visites" },
+};
 
 export default async function RestaurantLandingPage({
   params,
@@ -116,6 +109,8 @@ export default async function RestaurantLandingPage({
   const logo = logoPublicUrl(branding.logo_url);
   // ADR 0040 — tour de bienvenue visiteur : cadeaux réels du resto, noms seuls.
   const gifts = user ? null : await getTourGifts(restaurantId);
+  // ADR 0042 — aperçu par catégorie de prix, sans nom ni seuil (carte hero).
+  const tierPreview = await getLandingTierPreview(restaurantId);
 
   return (
     <div className="min-h-screen bg-white">
@@ -133,24 +128,24 @@ export default async function RestaurantLandingPage({
       )}
       {/* ── HERO ── */}
       <div className="bg-brand-dark text-white">
-        <div className="max-w-lg mx-auto px-5 pt-12 pb-10">
+        <div className="max-w-lg mx-auto px-5 pt-12 pb-16">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt={restaurant.name} className="h-12 w-auto object-contain mb-5" />
           ) : null}
-          <div className="inline-flex items-center gap-2 bg-brand-red/20 border border-brand-red/40 rounded-full px-3 py-1 mb-5">
-            <span className="text-brand-gold text-xs font-bold uppercase tracking-widest">{restaurant.name}</span>
-          </div>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-5">
+            <span className="text-gray-300">{restaurant.name}</span>
+            <span className="text-gray-500">·</span>
+            <span className="text-brand-gold">Fidélité</span>
+          </p>
 
           <h1 className="text-4xl font-black leading-tight mb-3">
-            Fidélise-toi,<br />
-            <span className="text-brand-gold">gagne des cadeaux.</span>
+            Ton ticket de caisse<br />
+            <span className="text-brand-gold">vaut un cadeau.</span>
           </h1>
 
           <p className="text-gray-300 text-base leading-relaxed mb-3">
-            Le programme de fidélité communautaire de{" "}
-            <span className="text-white font-bold">{restaurant.name}</span>.
-            Plus ton équipe commande, plus vous gagnez ensemble.
+            Photographie le ticket de ta commande. Le cadeau t&apos;attend au comptoir à ta prochaine visite.
           </p>
 
           {(restaurant.cuisine_types.length > 0 || restaurant.address) && (
@@ -170,79 +165,82 @@ export default async function RestaurantLandingPage({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            {!user ? (
-              // ADR 0040 — le client au comptoir a un ticket en main : le scan
-              // est l'action n°1, le compte viendra au moment de l'envoi.
-              <Link
-                href={`/r/${restaurantId}/submit-order`}
-                className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
-              >
-                🧾 J&apos;ai un ticket — je le scanne
-              </Link>
-            ) : isMember ? (
-              <Link
-                href={`/r/${restaurantId}/dashboard`}
-                className="flex-1 bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
-              >
-                Continuer →
-              </Link>
-            ) : (
-              <form action={joinRestaurant.bind(null, restaurantId)} className="flex-1">
-                <button
-                  type="submit"
-                  className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
-                >
-                  Rejoindre {restaurant.name} →
-                </button>
-              </form>
-            )}
-            <Link
-              href={`/r/${restaurantId}/leaderboard`}
-              className="flex-1 bg-white/10 text-white text-center py-4 rounded-2xl font-semibold hover:bg-white/20 transition-colors border border-white/20"
-            >
-              🏆 Classement live
-            </Link>
-          </div>
-
-          {!user && (
-            <form action={redirectToLogin.bind(null, restaurantId)} className="mt-3 text-center">
-              <button type="submit" className="text-sm text-gray-300 underline hover:text-white">
-                Pas de ticket sous la main ? Crée ton compte quand même →
-              </button>
-            </form>
-          )}
-
           {totalMembers > 100 && (
-            <p className="text-center text-gray-400 text-sm mt-6">
+            <p className="text-gray-400 text-sm">
               <span className="text-white font-bold">{totalMembers}</span> membres inscrits chez {restaurant.name}
             </p>
           )}
         </div>
       </div>
 
-      {/* ── COMMENT ÇA MARCHE ── */}
-      <div className="max-w-lg mx-auto px-5 py-10">
-        <h2 className="text-2xl font-black text-gray-900 mb-2">Comment ça marche ?</h2>
-        <p className="text-gray-500 text-sm mb-6">3 étapes, c&apos;est tout.</p>
+      {/* ── CARTE : CE QUE CE TICKET PEUT DÉBLOQUER + CTA + ÉTAPES ── */}
+      <div className="max-w-lg mx-auto px-5 -mt-10 relative z-10">
+        <div className="bg-white rounded-3xl shadow-xl p-6">
+          {tierPreview.length > 0 && (
+            <>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">
+                Ce que ce ticket peut débloquer
+              </p>
+              <div className="space-y-3 mb-6">
+                {tierPreview.map((row) => (
+                  <div key={row.layer} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
+                    <span className="text-xl">{TIER_COPY[row.layer].icon}</span>
+                    <div>
+                      <p className="font-bold text-gray-900 text-sm">Produit catégorie {row.category}</p>
+                      <p className="text-gray-400 text-xs">{TIER_COPY[row.layer].hint}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
-        <div className="space-y-4">
-          {STEPS.map((step) => (
-            <div key={step.num} className="flex gap-4 bg-gray-50 rounded-2xl p-5">
-              <div className="w-10 h-10 bg-brand-dark text-brand-gold rounded-xl flex items-center justify-center font-black text-lg shrink-0">
-                {step.num}
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xl">{step.icon}</span>
-                  <h3 className="font-bold text-gray-900">{step.title}</h3>
-                </div>
-                <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
-              </div>
-            </div>
-          ))}
+          {!user ? (
+            // ADR 0040 — le client au comptoir a un ticket en main : le scan
+            // est l'action n°1, le compte viendra au moment de l'envoi.
+            <Link
+              href={`/r/${restaurantId}/submit-order`}
+              className="block w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
+            >
+              📷 Scanner mon ticket
+            </Link>
+          ) : isMember ? (
+            <Link
+              href={`/r/${restaurantId}/dashboard`}
+              className="block w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
+            >
+              Continuer →
+            </Link>
+          ) : (
+            <form action={joinRestaurant.bind(null, restaurantId)}>
+              <button
+                type="submit"
+                className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
+              >
+                Rejoindre {restaurant.name} →
+              </button>
+            </form>
+          )}
+
+          <div className="mt-6 space-y-2">
+            {STEPS.map((step) => (
+              <p key={step.num} className="text-sm text-gray-500">
+                <span className="font-bold text-gray-900">{step.num}</span> · {step.desc}
+              </p>
+            ))}
+          </div>
         </div>
+
+        {!user && (
+          <form action={redirectToLogin.bind(null, restaurantId)} className="mt-4 text-center">
+            <button type="submit" className="text-sm text-gray-500 hover:text-gray-700">
+              Déjà membre ? <span className="font-semibold underline">Se connecter</span>
+            </button>
+          </form>
+        )}
       </div>
+
+      <div className="h-10" />
 
       {/* ── TOP 5 ÉQUIPES ── */}
       {/* Masqué pour Kraainem le temps de valider si le concept d'équipe
