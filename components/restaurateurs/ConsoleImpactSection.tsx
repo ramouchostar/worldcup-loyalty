@@ -18,7 +18,7 @@ export function ConsoleImpactSection() {
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8">
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Pilotage</p>
-          <h2 className="font-display text-[28px] sm:text-[33px] lg:text-[39px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[640px] text-pretty">
+          <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[640px] text-pretty">
             Tu vois exactement ce que le programme t&apos;a rapporté.
           </h2>
           <p className="font-landing text-base leading-[1.7] text-ink-muted mt-5 max-w-[640px]">

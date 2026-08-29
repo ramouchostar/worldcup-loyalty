@@ -56,7 +56,7 @@ function TextBlock({
   return (
     <div>
       <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-4">▶ {eyebrow}</p>
-      <h2 className="font-display text-[28px] sm:text-[33px] lg:text-[39px] leading-[1.2] tracking-[-0.02em] font-bold text-ink text-pretty">
+      <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink text-pretty">
         {title}
       </h2>
       <p className="font-landing text-base leading-[1.7] text-ink-muted mt-5">{desc}</p>
