@@ -12,12 +12,12 @@ const STEPS = [
   {
     n: "02",
     title: "Envoie ta carte",
-    desc: "Un fichier avec tes prix — les récompenses se calibrent seules sur tes marges.",
+    desc: "Un fichier avec tes prix de vente et d'achat — les récompenses se calibrent seules sur tes marges.",
   },
   {
     n: "03",
     title: "Lance-toi",
-    desc: "On valide ton établissement, puis ton QR est prêt à imprimer.",
+    desc: "On valide ton établissement, puis le QR code est prêt à être présenté aux clients.",
   },
 ];
 
@@ -36,7 +36,7 @@ export function StepsSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-light mb-3.5">▶ Démarrer</p>
           <h2 className="font-display text-[28px] sm:text-[33px] lg:text-[39px] leading-[1.2] tracking-[-0.02em] font-bold text-white max-w-[620px] text-pretty">
-            Ton QR code prêt en trois étapes.
+            Ton Programme prêt en trois étapes.
           </h2>
         </Reveal>
 
