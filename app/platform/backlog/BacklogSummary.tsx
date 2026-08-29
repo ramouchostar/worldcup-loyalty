@@ -118,20 +118,20 @@ function fmtDone(iso: string | null): string | null {
   return new Date(iso).toLocaleDateString("fr-BE", { day: "numeric", month: "short" });
 }
 
-// Rangée qui s'enroule (flex-wrap) plutôt qu'un <details> vertical (ancien
-// comportement) ou un scroll latéral (essai précédent, retiré à la demande
-// de Mehdi — assez de largeur en desktop pour tout afficher sans défiler) :
-// l'historique clôturé se consulte d'un coup d'œil, sur plusieurs lignes si
-// besoin, sans manger la hauteur d'écran que réclamerait une liste verticale.
+// Aperçu, pas un historique complet : les 3 plus récentes seulement, du
+// plus récent au plus ancien (`done_at` — vide pour un item abandonné, donc
+// naturellement relégué en fin de tri). Masqué sur mobile (`hidden md:block`)
+// — Mehdi/Omar travaillent le backlog au clavier/souris ; le mobile sert à
+// consulter/attribuer les tâches ouvertes, pas à regarder l'historique.
 function ClosedTasksGrid({ closed }: { closed: BacklogItem[] }) {
   if (closed.length === 0) return null;
+  const recent = [...closed].sort((a, b) => (b.done_at ?? "").localeCompare(a.done_at ?? "")).slice(0, 3);
+
   return (
-    <div>
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 px-0.5">
-        Clôturées <span className="font-normal normal-case text-gray-400">({closed.length})</span>
-      </p>
+    <div className="hidden md:block">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 px-0.5">Clôturées récemment</p>
       <div className="flex flex-wrap gap-2.5">
-        {closed.map((item) => (
+        {recent.map((item) => (
           <div key={item.id} className="w-52 rounded-xl border border-gray-200 bg-white p-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
