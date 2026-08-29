@@ -1,7 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { VisitorTour } from "@/components/member/VisitorTour";
-import { getTourGifts } from "@/lib/visitor-tour";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
@@ -110,8 +108,6 @@ export default async function RestaurantLandingPage({
   if (user && isMember) redirect(`/r/${restaurantId}/dashboard`);
   const isKraainem = restaurantId === "kraainem";
   const logo = logoPublicUrl(branding.logo_url);
-  // ADR 0040 — tour de bienvenue visiteur : cadeaux réels du resto, noms seuls.
-  const gifts = user ? null : await getTourGifts(restaurantId);
   // ADR 0042, amendé par ADR 0043 — aperçu par nom d'article (jamais de
   // seuil ni d'euro) sur la carte hero.
   const tierPreview = await getLandingTierPreview(restaurantId);
@@ -122,14 +118,6 @@ export default async function RestaurantLandingPage({
         event="restaurant_landing_viewed"
         params={{ restaurant_id: restaurantId, entry_source: utmSource ?? "direct" }}
       />
-      {!user && (
-        <VisitorTour
-          restaurantId={restaurantId}
-          restaurantName={restaurant.name}
-          firstGift={gifts?.firstGift ?? null}
-          bigGift={gifts?.bigGift ?? null}
-        />
-      )}
       {/* ── HERO ── */}
       <div className="bg-brand-dark text-white">
         <div className="max-w-lg mx-auto px-5 pt-12 pb-16">

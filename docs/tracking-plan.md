@@ -81,7 +81,6 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `team_joined` | `join_source`, `team_type` | Reconnaissance d'une communauté (ADR 0031) |
 | `team_declined` | `suggestions_shown` | « Aucune de ces équipes » |
 | `order_submit_started` | `restaurant_id`, `visitor` | Ouverture du formulaire de scan |
-| `visitor_tour_viewed` / `visitor_tour_completed` / `visitor_tour_skipped` | `restaurant_id` | Tour de bienvenue visiteur (ADR 0040) |
 | `visitor_ticket_captured` | `restaurant_id` | Photo de ticket prise sans compte (ADR 0040) |
 | `visitor_signup_started` | `restaurant_id`, `method` | Départ vers la connexion depuis « garde tes points » |
 | `visitor_ticket_resumed` | `restaurant_id` | Photo reprise après connexion (`?resume=1`) |

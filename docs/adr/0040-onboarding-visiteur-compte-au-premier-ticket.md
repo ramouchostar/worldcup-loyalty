@@ -1,6 +1,9 @@
 # ADR 0040 — Onboarding visiteur : la valeur d'abord, le compte au premier ticket
 
-**Statut** : Accepté — implémenté (2026-08-25).
+**Statut** : Accepté — implémenté (2026-08-25). Point 2 (tour de bienvenue,
+`VisitorTour`) retiré par [ADR 0044](0044-retrait-tour-de-bienvenue.md) : la
+carte "Ce que ce ticket peut débloquer" de la vitrine (ADR 0042/0043) affiche
+désormais les mêmes cadeaux réels directement sur la page, sans modal.
 
 ## Contexte
 
