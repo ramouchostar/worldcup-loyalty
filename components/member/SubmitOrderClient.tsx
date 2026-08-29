@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Scan } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
+import { RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import { amountBand, track } from "@/lib/analytics";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
@@ -13,6 +15,14 @@ import { createClient } from "@/lib/supabase-browser";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
 type ParseStatus = "idle" | "parsing" | "done" | "error";
+
+// Repris de la landing (ADR 0042) — même repère 1-2-3 tout au long du
+// parcours visiteur, retour terrain 2026-08-30.
+const STEPS = [
+  { num: "1", desc: "Photo du ticket, ici même" },
+  { num: "2", desc: "Compte en 10 secondes, une fois la photo prise" },
+  { num: "3", desc: "Cadeau au comptoir à ta prochaine visite" },
+];
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -28,7 +38,15 @@ function randomDelay() {
 //   « garder ses points ». Aucune analyse (l'OCR reste authentifié).
 // - `resume` : retour de connexion — la photo en attente est rechargée et
 //   l'analyse enchaîne toute seule, comme si de rien n'était.
-export default function SubmitOrderClient({ visitor, resume }: { visitor: boolean; resume: boolean }) {
+export default function SubmitOrderClient({
+  visitor,
+  resume,
+  logoUrl,
+}: {
+  visitor: boolean;
+  resume: boolean;
+  logoUrl: string | null;
+}) {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { name: restaurantName } = useRestaurantInfo();
   // Deux entrées : l'appareil photo (capture) et la galerie — sur mobile, une
@@ -389,24 +407,12 @@ export default function SubmitOrderClient({ visitor, resume }: { visitor: boolea
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Soumettre une commande</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {visitor
-            ? "Pas besoin de compte pour commencer — prends d'abord ton ticket en photo."
-            : "Prends en photo ton ticket de caisse — on s'occupe du reste."}
-        </p>
-      </div>
-
-      {/* Bannière règle importante */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex gap-3">
-        <span className="text-xl">⚠️</span>
-        <div>
-          <p className="font-semibold text-amber-900 text-sm">Commandes directes uniquement</p>
-          <p className="text-amber-700 text-xs mt-1">
-            Les commandes passées via Uber Eats, Takeaway ou Deliveroo ne comptent pas.
-          </p>
-        </div>
+      <div className="mb-6 text-center">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" className="block mx-auto h-14 w-auto object-contain mb-6" />
+        ) : null}
+        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Scanne ton ticket</h1>
       </div>
 
       {/* Zone photo — deux portes : appareil photo direct (capture) et
@@ -444,27 +450,26 @@ export default function SubmitOrderClient({ visitor, resume }: { visitor: boolea
           </div>
         ) : (
           <div className="py-2">
-            <p className="text-4xl mb-2">🧾</p>
-            <p className="font-semibold text-gray-700 mb-3">Photo du ticket de caisse</p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={preparing}
-                className="bg-brand-red text-white py-3 px-5 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors"
-              >
-                📷 Prendre le ticket en photo
-              </button>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={preparing}
-                className="bg-gray-100 text-gray-700 py-3 px-5 rounded-xl font-semibold hover:bg-gray-200 disabled:opacity-60 transition-colors"
-              >
-                🖼️ Choisir dans la galerie
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={RECEIPT_EMOJI} alt="" aria-hidden="true" className="w-16 h-16 mx-auto mb-3" />
+            <p className="font-semibold text-gray-700 mb-4">Photo du ticket de caisse</p>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={preparing}
+              className="flex items-center justify-center gap-2 w-full sm:w-auto sm:mx-auto bg-brand-red text-white py-5 px-8 rounded-full font-bold text-xl hover:bg-brand-red/85 disabled:opacity-60 transition-colors shadow-lg"
+            >
+              Prendre le ticket en photo <Scan className="w-6 h-6" strokeWidth={2.5} />
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={preparing}
+              className="block mx-auto mt-4 text-sm text-gray-500 underline hover:text-gray-700 disabled:opacity-60"
+            >
+              Choisir dans la galerie
+            </button>
+            <p className="text-xs text-gray-400 mt-4">
               Cadre tout le ticket, bien à plat et bien éclairé — on s&apos;occupe du reste.
             </p>
           </div>
@@ -489,6 +494,14 @@ export default function SubmitOrderClient({ visitor, resume }: { visitor: boolea
           className="hidden"
           onChange={handleFileChange}
         />
+      </div>
+
+      <div className="mb-6 space-y-2">
+        {STEPS.map((step) => (
+          <p key={step.num} className="text-sm text-gray-500">
+            <span className="font-bold text-gray-900">{step.num}</span> · {step.desc}
+          </p>
+        ))}
       </div>
 
       {/* ADR 0040 — la photo est prise : c'est LE moment où le compte devient

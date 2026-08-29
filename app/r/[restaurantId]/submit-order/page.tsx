@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { ensureMembership } from "@/app/join/actions";
+import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import SubmitOrderClient from "@/components/member/SubmitOrderClient";
 
 // ADR 0040 — le scan est ouvert aux visiteurs : la photo d'abord, le compte au
@@ -29,5 +30,10 @@ export default async function SubmitOrderPage({
     if (!membership) await ensureMembership(restaurantId);
   }
 
-  return <SubmitOrderClient visitor={!user} resume={resume === "1"} />;
+  // Même logo qu'en tête de la landing (ADR 0042/0043) — cohérence visuelle
+  // du parcours visiteur d'un écran à l'autre.
+  const branding = await getRestaurantBranding(restaurantId);
+  const logoUrl = logoPublicUrl(branding.logo_url);
+
+  return <SubmitOrderClient visitor={!user} resume={resume === "1"} logoUrl={logoUrl} />;
 }
