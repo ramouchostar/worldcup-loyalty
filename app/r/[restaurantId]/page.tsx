@@ -119,8 +119,8 @@ export default async function RestaurantLandingPage({
           retirés pour ne pas retarder le geste de scanner. Le nom du resto
           reste visible en pied de page. */}
       <div className="bg-brand-dark text-white">
-        <div className="max-w-lg mx-auto px-5 pt-12 pb-14">
-          <h1 className="text-4xl font-black leading-tight">
+        <div className="max-w-lg mx-auto px-5 pt-14 pb-14 text-center">
+          <h1 className="text-5xl font-black leading-[1.05] tracking-tight">
             Ton ticket de caisse<br />
             <span className="text-brand-gold">te rapproche d&apos;un cadeau.</span>
           </h1>
@@ -154,14 +154,14 @@ export default async function RestaurantLandingPage({
             // est l'action n°1, le compte viendra au moment de l'envoi.
             <Link
               href={`/r/${restaurantId}/submit-order`}
-              className="block w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
+              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
             >
-              📷 Scanner mon ticket
+              Scanner mon ticket 📷
             </Link>
           ) : isMember ? (
             <Link
               href={`/r/${restaurantId}/dashboard`}
-              className="block w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
+              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
             >
               Continuer →
             </Link>
@@ -169,7 +169,7 @@ export default async function RestaurantLandingPage({
             <form action={joinRestaurant.bind(null, restaurantId)}>
               <button
                 type="submit"
-                className="w-full bg-brand-red text-white text-center py-4 rounded-2xl font-bold text-lg hover:bg-brand-red/85 transition-colors shadow-lg"
+                className="w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
               >
                 Rejoindre {restaurant.name} →
               </button>
