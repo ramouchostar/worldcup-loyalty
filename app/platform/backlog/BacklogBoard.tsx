@@ -11,6 +11,7 @@ import {
   sortByPriority,
   type BacklogItem,
 } from "@/lib/backlog-model";
+import { FlatSelect } from "@/components/platform/FlatSelect";
 import { type RestaurantOption } from "./backlog-ui";
 import { BacklogSummary, NO_OWNER } from "./BacklogSummary";
 import { BacklogList } from "./BacklogList";
@@ -56,12 +57,11 @@ function ViewSwitcher({ view, onChange }: { view: View; onChange: (v: View) => v
   );
 }
 
-// ADR 0033 §3 — plan d'action partagé entre associés. BacklogSummary (résumé
-// + prochaine action + tâches clôturées) se replie au scroll pour laisser
-// toute la hauteur d'écran à la liste groupée par état (rentabilité
-// impact ÷ effort) ou au Kanban — glisser une carte entre colonnes change
-// son statut. Les deux vues partagent les mêmes filtres et la même carte
-// (backlog-ui.tsx).
+// ADR 0033 §3 — plan d'action partagé entre associés. BacklogSummary porte le
+// résumé (comptes, prochaine action, tâches clôturées), en dessous la liste
+// groupée par état (rentabilité impact ÷ effort) ou le Kanban — glisser une
+// carte entre colonnes change son statut. Les deux vues partagent les mêmes
+// filtres et la même carte (backlog-ui.tsx).
 export function BacklogBoard({
   items,
   restaurants,
@@ -112,19 +112,17 @@ export function BacklogBoard({
         <div className="flex flex-wrap items-center gap-2">
           <ViewSwitcher view={view} onChange={setView} />
 
-          <select
+          <FlatSelect
             value={area}
-            onChange={(e) => setArea(e.target.value)}
-            aria-label="Filtrer par chantier"
-            className="h-8 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg pl-2.5 pr-7 bg-white"
-          >
-            <option value="tous">Tous les chantiers</option>
-            {BACKLOG_AREAS.map((a) => (
-              <option key={a} value={a}>
-                {AREA_LABEL[a]}
-              </option>
-            ))}
-          </select>
+            onChange={setArea}
+            ariaLabel="Filtrer par chantier"
+            options={[
+              { value: "tous", label: "Tous les chantiers" },
+              ...BACKLOG_AREAS.map((a) => ({ value: a, label: AREA_LABEL[a] })),
+            ]}
+            triggerClassName="h-8 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-700 hover:border-gray-300 transition-colors"
+            menuWidth={180}
+          />
 
           <span className="text-xs text-gray-400">
             {open.length} en cours · {closed.length} clôturée{closed.length > 1 ? "s" : ""}

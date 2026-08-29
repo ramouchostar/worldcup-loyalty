@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { Check, GripVertical } from "lucide-react";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { FlatSelect } from "@/components/platform/FlatSelect";
+import { useAnchoredMenu } from "@/components/platform/useAnchoredMenu";
 import {
   BACKLOG_AREAS,
   BACKLOG_PEOPLE,
@@ -27,7 +29,6 @@ import {
   removeBacklogItem,
   setBacklogOwnerFromForm,
   setBacklogStatus,
-  setBacklogStatusFromForm,
 } from "./actions";
 
 // Composants et gabarits partagés entre la vue Liste (BacklogList.tsx) et la
@@ -101,56 +102,38 @@ export function Avatar({ name, size = 28 }: { name: string | null; size?: number
   );
 }
 
-// Attribution en un clic depuis la carte. Le panneau se ferme sur un clic
-// n'importe où ailleurs (calque transparent) — sans ça, ouvrir deux cartes
-// laisse deux menus ouverts en même temps.
-// Portail vers <body>, positionné en `fixed` depuis les coordonnées réelles
-// du bouton (getBoundingClientRect) — jamais un `absolute` imbriqué dans la
-// carte. Une carte peut vivre dans un conteneur qui défile (colonne Kanban,
-// futur wrapper quelconque) : un menu `absolute` classique s'y retrouve
-// coupé par le premier ancêtre en overflow, ou repositionné par le premier
-// ancêtre transformé (dnd-kit applique un `transform` aux cartes en cours de
+// Attribution en un clic depuis la carte. Panneau plat (coche à gauche de
+// l'option active, pas de fond coloré) porté vers <body> et positionné en
+// `fixed` depuis les coordonnées réelles du bouton — jamais un `absolute`
+// imbriqué dans la carte : une carte peut vivre dans un conteneur qui défile
+// (colonne Kanban), un menu `absolute` classique s'y retrouve coupé par le
+// premier ancêtre en overflow ou repositionné par le premier ancêtre
+// transformé (dnd-kit applique un `transform` aux cartes en plein
 // glisser-déposer), invisible ou mal placé sans qu'on comprenne pourquoi.
+// `useAnchoredMenu` (partagé avec FlatSelect) gère le cycle ouvert/fermé —
+// scroll, resize, Échap ferment toujours le menu.
 export function AssigneePicker({ item }: { item: BacklogItem }) {
-  const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-
+  const { open, setOpen, triggerRef } = useAnchoredMenu<HTMLButtonElement>();
   const MENU_WIDTH = 192; // w-48
 
-  function openMenu() {
-    const rect = btnRef.current?.getBoundingClientRect();
-    if (rect) {
-      setCoords({
-        top: rect.bottom + 6,
-        left: Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)),
-      });
-    }
-    setOpen(true);
+  async function assign(owner: string) {
+    setOpen(false);
+    const fd = new FormData();
+    fd.set("id", item.id);
+    fd.set("owner", owner);
+    await setBacklogOwnerFromForm(fd);
   }
 
-  // Un menu ancré par coordonnées figées ne doit pas survivre à un scroll —
-  // sans mise à jour continue de la position, il se détacherait visuellement
-  // du bouton qu'il représente.
-  useEffect(() => {
-    if (!open) return;
-    function close() {
-      setOpen(false);
-    }
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
-    };
-  }, [open]);
+  const rect = open ? triggerRef.current?.getBoundingClientRect() : null;
+  const coords =
+    rect && { top: rect.bottom + 6, left: Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)) };
 
   return (
     <div className="shrink-0">
       <button
-        ref={btnRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => (open ? setOpen(false) : openMenu())}
+        onClick={() => setOpen(!open)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={item.owner ? `Attribué à ${item.owner} — changer` : "Attribuer cette action"}
@@ -169,38 +152,37 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
             <div
               role="menu"
               style={{ top: coords.top, left: coords.left, width: MENU_WIDTH }}
-              className="fixed z-50 bg-white rounded-xl shadow-lg border border-gray-200 p-1"
+              className="fixed z-50 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
             >
               {BACKLOG_PEOPLE.map((p) => (
-                <form key={p} action={setBacklogOwnerFromForm}>
-                  <input type="hidden" name="id" value={item.id} />
-                  <input type="hidden" name="owner" value={p} />
-                  <button
-                    type="submit"
-                    role="menuitem"
-                    onClick={() => setOpen(false)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-800 hover:bg-gray-100"
-                  >
-                    <Avatar name={p} size={22} />
-                    {p}
-                    {item.owner === p && <span className="ml-auto text-gray-400">✓</span>}
-                  </button>
-                </form>
+                <button
+                  key={p}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => assign(p)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-50"
+                >
+                  <Check
+                    size={14}
+                    strokeWidth={2.5}
+                    className={`shrink-0 ${item.owner === p ? "text-brand-red opacity-100" : "opacity-0"}`}
+                    aria-hidden="true"
+                  />
+                  <Avatar name={p} size={22} />
+                  {p}
+                </button>
               ))}
               {item.owner && (
-                <form action={setBacklogOwnerFromForm}>
-                  <input type="hidden" name="id" value={item.id} />
-                  <input type="hidden" name="owner" value="" />
-                  <button
-                    type="submit"
-                    role="menuitem"
-                    onClick={() => setOpen(false)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 border-t border-gray-100 mt-1 pt-2"
-                  >
-                    <Avatar name={null} size={22} />
-                    Personne
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => assign("")}
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-gray-100 px-2 py-1.5 pt-2.5 text-left text-sm text-gray-500 hover:bg-gray-50"
+                >
+                  <Check size={14} strokeWidth={2.5} className="shrink-0 opacity-0" aria-hidden="true" />
+                  <Avatar name={null} size={22} />
+                  Personne
+                </button>
               )}
             </div>
           </>,
@@ -210,42 +192,31 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
   );
 }
 
-// Même motif contrôlé que PlanFlipForm (/platform) : React 19 réinitialise les
-// champs non contrôlés d'un <form action={…}> dès que l'action se termine, et
-// un <select> en defaultValue retomberait visuellement sur sa valeur d'origine
-// juste après l'enregistrement.
+// Changer d'état est le geste le plus fréquent d'une revue à deux : un clic
+// sur une option applique tout de suite (FlatSelect appelle directement
+// l'action serveur, pas de bouton "Enregistrer" à part) — le déclencheur
+// reprend la couleur du statut choisi (STATUS_CLS) pour rester lisible
+// fermé, comme avant.
 export function StatusFlip({ item }: { item: BacklogItem }) {
-  const [value, setValue] = useState<BacklogStatus>(item.status);
-  const [serverValue, setServerValue] = useState<BacklogStatus>(item.status);
-  if (serverValue !== item.status) {
-    setServerValue(item.status);
-    setValue(item.status);
-  }
-
   return (
-    <form action={setBacklogStatusFromForm} className="flex items-center gap-1">
-      <input type="hidden" name="id" value={item.id} />
-      <select
-        name="status"
-        value={value}
-        onChange={(e) => setValue(e.target.value as BacklogStatus)}
-        aria-label={`État de « ${item.title} »`}
-        className="h-8 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg pl-2.5 pr-7 bg-white hover:bg-gray-50 transition-colors"
-      >
-        {BACKLOG_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {STATUS_LABEL[s]}
-          </option>
-        ))}
-      </select>
-      {value !== item.status && (
-        <SubmitButton className={`${CTRL} text-white bg-gray-900 hover:bg-gray-700`}>
-          Enregistrer
-        </SubmitButton>
-      )}
-    </form>
+    <FlatSelect
+      value={item.status}
+      onChange={(v) => {
+        void setBacklogStatus(item.id, v as BacklogStatus);
+      }}
+      options={BACKLOG_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+      ariaLabel={`État de « ${item.title} »`}
+      align="end"
+      triggerClassName={`h-8 inline-flex items-center gap-1 rounded-lg px-2.5 text-xs font-bold transition-opacity hover:opacity-80 ${STATUS_CLS[item.status]}`}
+    />
   );
 }
+
+// Gabarit du déclencheur FlatSelect quand il remplace un <select> de
+// formulaire — même hauteur/bordure que les autres champs (input, textarea)
+// juste au-dessus, pour que le formulaire reste visuellement homogène.
+const FIELD_SELECT_CLS =
+  "mt-0.5 h-9 w-full inline-flex items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 hover:border-gray-400 transition-colors";
 
 export function ItemFields({
   item,
@@ -254,6 +225,17 @@ export function ItemFields({
   item?: BacklogItem;
   restaurants: RestaurantOption[];
 }) {
+  // FlatSelect n'est pas un <select> natif : il ne peut pas rester non
+  // contrôlé via `defaultValue` (rien ne le lie au DOM du navigateur). Un
+  // input caché synchronisé (prop `name`) le fait quand même participer au
+  // FormData du formulaire, exactement comme avant.
+  const [area, setArea] = useState<string>(item?.area ?? "produit");
+  const [status, setStatus] = useState<string>(item?.status ?? "idee");
+  const [impact, setImpact] = useState<string>(String(item?.impact ?? 3));
+  const [effort, setEffort] = useState<string>(String(item?.effort ?? 3));
+  const [owner, setOwner] = useState<string>(item?.owner ?? "");
+  const [restaurantId, setRestaurantId] = useState<string>(item?.restaurant_id ?? "");
+
   return (
     <>
       <input
@@ -273,79 +255,67 @@ export function ItemFields({
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs text-gray-500">
           Chantier
-          <select
+          <FlatSelect
             name="area"
-            defaultValue={item?.area ?? "produit"}
-            className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white"
-          >
-            {BACKLOG_AREAS.map((a) => (
-              <option key={a} value={a}>
-                {AREA_LABEL[a]}
-              </option>
-            ))}
-          </select>
+            value={area}
+            onChange={setArea}
+            ariaLabel="Chantier"
+            options={BACKLOG_AREAS.map((a) => ({ value: a, label: AREA_LABEL[a] }))}
+            triggerClassName={FIELD_SELECT_CLS}
+          />
         </label>
         <label className="text-xs text-gray-500">
           État
-          <select
+          <FlatSelect
             name="status"
-            defaultValue={item?.status ?? "idee"}
-            className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white"
-          >
-            {BACKLOG_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
+            value={status}
+            onChange={setStatus}
+            ariaLabel="État"
+            options={BACKLOG_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+            triggerClassName={FIELD_SELECT_CLS}
+          />
         </label>
         <label className="text-xs text-gray-500">
           Impact (1–5)
-          <select
+          <FlatSelect
             name="impact"
-            defaultValue={item?.impact ?? 3}
-            className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white"
-          >
-            {SCALE.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+            value={impact}
+            onChange={setImpact}
+            ariaLabel="Impact"
+            options={SCALE.map((n) => ({ value: String(n), label: String(n) }))}
+            triggerClassName={FIELD_SELECT_CLS}
+          />
         </label>
         <label className="text-xs text-gray-500">
           Effort (1–5)
-          <select
+          <FlatSelect
             name="effort"
-            defaultValue={item?.effort ?? 3}
-            className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white"
-          >
-            {SCALE.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+            value={effort}
+            onChange={setEffort}
+            ariaLabel="Effort"
+            options={SCALE.map((n) => ({ value: String(n), label: String(n) }))}
+            triggerClassName={FIELD_SELECT_CLS}
+          />
         </label>
         <label className="text-xs text-gray-500">
           Qui s&apos;en charge
-          <select
+          <FlatSelect
             name="owner"
-            defaultValue={item?.owner ?? ""}
-            className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white"
-          >
-            <option value="">— personne —</option>
-            {BACKLOG_PEOPLE.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-            {/* Un nom saisi avant la liste close reste sélectionné et
-                enregistrable — on ne le fait pas disparaître en silence. */}
-            {item?.owner && !BACKLOG_PEOPLE.includes(item.owner as (typeof BACKLOG_PEOPLE)[number]) && (
-              <option value={item.owner}>{item.owner}</option>
-            )}
-          </select>
+            value={owner}
+            onChange={setOwner}
+            ariaLabel="Qui s'en charge"
+            placeholder="— personne —"
+            options={[
+              { value: "", label: "— personne —" },
+              ...BACKLOG_PEOPLE.map((p) => ({ value: p, label: p })),
+              // Un nom saisi avant la liste close reste sélectionné et
+              // enregistrable — on ne le fait pas disparaître en silence.
+              ...(item?.owner && !BACKLOG_PEOPLE.includes(item.owner as (typeof BACKLOG_PEOPLE)[number])
+                ? [{ value: item.owner, label: item.owner }]
+                : []),
+            ]}
+            triggerClassName={FIELD_SELECT_CLS}
+          />
         </label>
         <label className="text-xs text-gray-500">
           Échéance
@@ -359,18 +329,18 @@ export function ItemFields({
       </div>
       <label className="text-xs text-gray-500 block">
         Établissement concerné (optionnel)
-        <select
+        <FlatSelect
           name="restaurant_id"
-          defaultValue={item?.restaurant_id ?? ""}
-          className="mt-0.5 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white"
-        >
-          <option value="">— aucun en particulier —</option>
-          {restaurants.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
+          value={restaurantId}
+          onChange={setRestaurantId}
+          ariaLabel="Établissement concerné"
+          placeholder="— aucun en particulier —"
+          options={[
+            { value: "", label: "— aucun en particulier —" },
+            ...restaurants.map((r) => ({ value: r.id, label: r.name })),
+          ]}
+          triggerClassName={FIELD_SELECT_CLS}
+        />
       </label>
     </>
   );

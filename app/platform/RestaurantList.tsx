@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { FlatSelect } from "@/components/platform/FlatSelect";
 import {
   setRestaurantStatus,
   setRestaurantPlanFromForm,
@@ -34,57 +34,44 @@ const STATUS_BADGE: Record<RestaurantViewRow["status"], { label: string; cls: st
 };
 
 // ADR 0029 — plan courant du resto, lu côté serveur : c'est la seule source de
-// vérité affichée. Le <select> du flip, lui, n'est qu'une saisie.
+// vérité affichée. Le FlatSelect du flip, lui, n'est qu'une saisie.
 const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
   gratuit:    { label: "Gratuit",    cls: "bg-gray-100 text-gray-500" },
   croissance: { label: "Croissance", cls: "bg-blue-100 text-blue-800" },
   pro:        { label: "Pro",        cls: "bg-amber-100 text-amber-800" },
 };
 
-function PlanSubmitButton({ dirty }: { dirty: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending || !dirty}
-      className="text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-1.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      {pending ? "…" : "OK"}
-    </button>
-  );
-}
+const PLAN_OPTIONS = [
+  { value: "gratuit", label: "Gratuit" },
+  { value: "croissance", label: "Croissance" },
+  { value: "pro", label: "Pro" },
+];
 
-// Flip de plan manuel. Le <select> est CONTRÔLÉ à dessein : React 19
-// réinitialise les champs non contrôlés d'un <form action={…}> dès que
-// l'action se termine — un select en defaultValue retombait donc visuellement
-// sur « Gratuit » juste après l'enregistrement, en faisant croire à un échec
-// alors que la bascule était bien écrite en base.
+// Flip de plan manuel — un clic sur une option l'applique tout de suite
+// (FlatSelect appelle l'action directement, FormData reconstitué à la main :
+// setRestaurantPlanFromForm attend {restaurantId, plan}). Plus de bouton
+// "OK" séparé ni de suivi "dirty" : FlatSelect est un composant contrôlé par
+// `plan` (la prop serveur), il ne retombe jamais tout seul sur une valeur
+// obsolète comme pouvait le faire un <select defaultValue> après une action.
 function PlanFlipForm({ restaurantId, plan }: { restaurantId: string; plan: string }) {
-  const [value, setValue] = useState(plan);
-  // Le plan serveur redevient maître à chaque revalidation (motif React
-  // « ajuster l'état quand une prop change », sans effet).
-  const [serverPlan, setServerPlan] = useState(plan);
-  if (serverPlan !== plan) {
-    setServerPlan(plan);
-    setValue(plan);
+  async function apply(next: string) {
+    const fd = new FormData();
+    fd.set("restaurantId", restaurantId);
+    fd.set("plan", next);
+    await setRestaurantPlanFromForm(fd);
   }
 
   return (
-    <form action={setRestaurantPlanFromForm} className="flex items-center gap-1">
-      <input type="hidden" name="restaurantId" value={restaurantId} />
-      <select
-        name="plan"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        aria-label="Plan de l'établissement"
-        className="text-xs border border-gray-200 rounded-lg px-1.5 py-1.5 bg-white"
-      >
-        <option value="gratuit">Gratuit</option>
-        <option value="croissance">Croissance</option>
-        <option value="pro">Pro</option>
-      </select>
-      <PlanSubmitButton dirty={value !== plan} />
-    </form>
+    <FlatSelect
+      value={plan}
+      onChange={(v) => {
+        void apply(v);
+      }}
+      options={PLAN_OPTIONS}
+      ariaLabel="Plan de l'établissement"
+      align="end"
+      triggerClassName="h-8 inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-700 hover:border-gray-300 transition-colors"
+    />
   );
 }
 
