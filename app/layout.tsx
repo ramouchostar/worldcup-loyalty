@@ -33,7 +33,7 @@ const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700
 const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
 const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.boosteats.tech";
 
 // Branding plateforme neutre (ADR 0015) — le nom d'un établissement
 // n'apparaît que sur ses propres surfaces, jamais dans les métadonnées
@@ -62,20 +62,11 @@ export const metadata: Metadata = {
     title: "Boosteats",
     description:
       "Rejoins ton équipe et commande directement chez tes restaurants préférés. Programme de fidélité communautaire par équipes.",
-    images: [
-      {
-        url: `${APP_URL}/icons/icon.svg`,
-        width: 512,
-        height: 512,
-        alt: "Boosteats",
-      },
-    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Boosteats",
     description: "Rejoins ton équipe et gagne des cadeaux en commandant directement.",
-    images: [`${APP_URL}/icons/icon.svg`],
   },
   robots: {
     index: true,

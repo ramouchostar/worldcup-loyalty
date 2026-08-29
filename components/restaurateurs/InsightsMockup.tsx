@@ -16,15 +16,16 @@ export function InsightsMockup() {
         </div>
         <p className="text-[17px] font-bold m-0">Promo « 2 menus achetés, 1 dessert offert » le mardi</p>
         <p className="text-[13px] text-ink-muted mt-1.5 mb-3.5">
-          Mardi fait 34% de CA en moins que ta moyenne. Le dessert coûte 0,42 € et remonte le panier moyen de 3,80 €.
+          Le mardi fait 34% de CA en moins que ta moyenne. Le dessert te coûte 0,42 € et remonte le panier moyen de
+          3,80 €.
         </p>
         <div className="flex gap-6 pt-3 border-t border-paper-border">
           <div>
-            <p className="font-display text-xl font-bold m-0">+ 240 €</p>
+            <p className="font-display text-xl font-bold m-0">+ 182 €</p>
             <p className="text-[11px] text-ink-faint mt-0.5 mb-0">CA estimé sur la soirée</p>
           </div>
           <div>
-            <p className="font-display text-xl font-bold m-0">− 18 €</p>
+            <p className="font-display text-xl font-bold m-0">− 20 €</p>
             <p className="text-[11px] text-ink-faint mt-0.5 mb-0">coût matière des desserts</p>
           </div>
           <div className="ml-auto self-center flex gap-2.5">

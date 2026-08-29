@@ -13,15 +13,7 @@ const BOOSTED_BENEFITS = [
   "le bouche-à-oreille",
 ];
 
-export function Hero({
-  hasNetwork,
-  restaurantCount,
-  memberCount,
-}: {
-  hasNetwork: boolean;
-  restaurantCount: number;
-  memberCount: number;
-}) {
+export function Hero() {
   const blobRef = useParallaxOffset(0.12);
 
   return (
@@ -62,7 +54,7 @@ export function Hero({
                 href="/become-a-partner"
                 className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
               >
-                Devenir partenaire gratuitement →
+                Commencer le plan gratuit →
               </TrackedLink>
               <TrackedLink
                 ctaId="voir_le_produit"
@@ -75,18 +67,14 @@ export function Hero({
               </TrackedLink>
             </div>
           </Reveal>
+          <Reveal delay={270}>
+            <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-faint mt-6">
+              Compte créé instantanément · sans carte bancaire · 0 % de commission
+            </p>
+          </Reveal>
           <Reveal delay={300}>
-            <p className="text-ink-faint text-sm mt-6">
-              {hasNetwork ? (
-                <>
-                  Déjà <span className="text-ink font-bold">{restaurantCount}</span> établissement
-                  {restaurantCount > 1 ? "s" : ""} et{" "}
-                  <span className="text-ink font-bold">{memberCount}</span> membre
-                  {memberCount > 1 ? "s" : ""} actifs sur le réseau.
-                </>
-              ) : (
-                "Le réseau démarre — sois l'un des premiers restaurants à en profiter."
-              )}
+            <p className="text-ink-faint text-sm mt-2">
+              Belchicken, Uccle — 128 membres inscrits en 9 semaines.
             </p>
           </Reveal>
         </div>
