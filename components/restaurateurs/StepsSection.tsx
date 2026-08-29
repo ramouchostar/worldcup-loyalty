@@ -29,7 +29,7 @@ export function StepsSection() {
       <div
         ref={blobRef}
         className="absolute -top-[200px] -right-36 w-[640px] h-[640px] pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(122,143,63,0.18), transparent 60%)" }}
+        style={{ background: "radial-gradient(circle, rgba(162,197,35,0.18), transparent 60%)" }}
       />
 
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8">
