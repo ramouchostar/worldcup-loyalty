@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
+import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
@@ -72,7 +72,7 @@ export default async function RestaurantLandingPage({
     );
   }
 
-  const [{ data: membership }, { data: scoresRaw }, branding] = await Promise.all([
+  const [{ data: membership }, { data: scoresRaw }] = await Promise.all([
     user
       ? supabase.from("memberships").select("user_id").eq("user_id", user.id).eq("restaurant_id", restaurantId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -85,7 +85,6 @@ export default async function RestaurantLandingPage({
       .eq("teams.restaurant_id", restaurantId)
       .order("score", { ascending: false })
       .limit(5),
-    getRestaurantBranding(restaurantId),
   ]);
 
   // ADR 0037 — premier étage de l'entonnoir, compté côté serveur : c'est le
@@ -99,15 +98,11 @@ export default async function RestaurantLandingPage({
   );
 
   const top5 = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter((s) => s.teams?.is_active);
-  // Sous ce seuil, le nombre reste peu flatteur à afficher publiquement —
-  // retour restaurateur, on préfère se taire tant que ça ne fait pas nombre.
-  const totalMembers = top5.reduce((sum, s) => sum + s.member_count, 0);
   const isMember = !!membership;
   // ADR 0040 — un membre qui rescanne le QR n'a rien à faire sur la vitrine :
   // il arrive directement dans l'app (recordLanding a déjà compté ci-dessus).
   if (user && isMember) redirect(`/r/${restaurantId}/dashboard`);
   const isKraainem = restaurantId === "kraainem";
-  const logo = logoPublicUrl(branding.logo_url);
   // ADR 0042, amendé par ADR 0043 — aperçu par nom d'article (jamais de
   // seuil ni d'euro) sur la carte hero.
   const tierPreview = await getLandingTierPreview(restaurantId);
@@ -119,34 +114,16 @@ export default async function RestaurantLandingPage({
         params={{ restaurant_id: restaurantId, entry_source: utmSource ?? "direct" }}
       />
       {/* ── HERO ── */}
+      {/* Minimum vital (retour terrain, 2026-08-30) : un seul titre avant la
+          carte d'action — logo, sous-titre, description, tags et adresse
+          retirés pour ne pas retarder le geste de scanner. Le nom du resto
+          reste visible en pied de page. */}
       <div className="bg-brand-dark text-white">
-        <div className="max-w-lg mx-auto px-5 pt-12 pb-16">
-          {logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt={restaurant.name} className="block mx-auto h-16 w-auto object-contain mb-5" />
-          ) : null}
-          <p className="text-xs font-bold uppercase tracking-widest mb-5 text-gray-300">
-            {restaurant.name}
-          </p>
-
-          <h1 className="text-4xl font-black leading-tight mb-3">
+        <div className="max-w-lg mx-auto px-5 pt-12 pb-14">
+          <h1 className="text-4xl font-black leading-tight">
             Ton ticket de caisse<br />
             <span className="text-brand-gold">te rapproche d&apos;un cadeau.</span>
           </h1>
-
-          <p className="text-gray-300 text-base leading-relaxed mb-3">
-            Photographie le ticket de ta commande. Un cadeau t&apos;attendra au comptoir lors d&apos;une prochaine visite.
-          </p>
-
-          {restaurant.address && (
-            <p className="text-gray-400 text-xs mb-5">📍 {restaurant.address}</p>
-          )}
-
-          {totalMembers > 100 && (
-            <p className="text-gray-400 text-sm">
-              <span className="text-white font-bold">{totalMembers}</span> membres inscrits chez {restaurant.name}
-            </p>
-          )}
         </div>
       </div>
 
