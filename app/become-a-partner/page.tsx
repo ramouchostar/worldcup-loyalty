@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createPartnerRestaurant } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
 import { queueEvent } from "@/lib/analytics-pending";
+import { PillSelect } from "@/components/PillSelect";
 import {
   MAX_SUGGESTIONS,
   SUGGESTION_TYPES,
@@ -264,17 +265,16 @@ export default function BecomeAPartnerPage() {
                     Ajouter
                   </button>
                 </div>
-                <select
+                <PillSelect
                   value={communityType}
-                  onChange={(e) => setCommunityType(e.target.value as TeamType)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900"
-                >
-                  {SUGGESTION_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {teamTypeEmoji(t.value)} {t.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setCommunityType(v as TeamType)}
+                  options={SUGGESTION_TYPES.map((t) => ({
+                    value: t.value,
+                    label: t.label,
+                    emoji: teamTypeEmoji(t.value),
+                  }))}
+                  ariaLabel="Type de communauté"
+                />
               </div>
             )}
           </div>
