@@ -139,8 +139,7 @@ export default function BecomeAPartnerPage() {
       <TrackOnMount event="partner_signup_started" params={{ source: "formulaire" }} />
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <p className="text-4xl mb-2">🍗</p>
-          <h1 className="text-2xl font-bold text-gray-900">Rejoins le réseau en tant que restaurateur</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Rejoins le réseau</h1>
           <p className="text-gray-500 text-sm mt-1">
             Étape 1/4 — présente ton établissement. Il restera invisible aux clients
             jusqu&apos;à validation par notre équipe.
