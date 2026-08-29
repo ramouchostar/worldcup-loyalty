@@ -1,7 +1,14 @@
 "use client";
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
-import { Reveal, useParallaxOffset } from "./motion";
+import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
+
+const BOOSTED_BENEFITS = [
+  "ton volume de commandes",
+  "la fidélité de tes clients",
+  "ton revenu net",
+  "le bouche-à-oreille",
+];
 import { BrowserWindow } from "./BrowserWindow";
 import { DashboardMockup } from "./DashboardMockup";
 import { MemberAppMockup } from "./MemberAppMockup";
@@ -34,7 +41,8 @@ export function Hero({
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-white text-pretty">
-              Fidélise tes clients sans jamais toucher ta marge.
+              Ton assistant qui booste{" "}
+              <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-light" />.
             </h1>
           </Reveal>
           <Reveal delay={160}>

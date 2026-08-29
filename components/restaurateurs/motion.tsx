@@ -233,6 +233,46 @@ export function GrowBar({
   );
 }
 
+// Fait alterner plusieurs formulations dans le même espace, en fondu —
+// utilisé pour balayer les bénéfices du H1 hero sans les lister tous à la
+// fois. Figé sur la première formulation si prefers-reduced-motion ou s'il
+// n'y en a qu'une seule (pas de clignotement pour rien).
+export function RotatingWords({
+  words,
+  interval = 2400,
+  className,
+}: {
+  words: string[];
+  interval?: number;
+  className?: string;
+}) {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const reduced = usePrefersReducedMotion();
+
+  useEffect(() => {
+    if (reduced || words.length <= 1) return;
+    let swapTimeout: ReturnType<typeof setTimeout>;
+    const id = setInterval(() => {
+      setVisible(false);
+      swapTimeout = setTimeout(() => {
+        setIndex((i) => (i + 1) % words.length);
+        setVisible(true);
+      }, 250);
+    }, interval);
+    return () => {
+      clearInterval(id);
+      clearTimeout(swapTimeout);
+    };
+  }, [words.length, interval, reduced]);
+
+  return (
+    <span className={className} style={{ opacity: visible ? 1 : 0, transition: "opacity 250ms ease" }}>
+      {words[index]}
+    </span>
+  );
+}
+
 // true dès que la page a défilé au-delà de `threshold` — pilote l'entête
 // sticky (fond plus opaque, ombre) sans re-render à chaque pixel scrollé.
 export function useScrolled(threshold = 8) {
