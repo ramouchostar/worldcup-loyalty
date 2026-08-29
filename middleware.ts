@@ -134,12 +134,21 @@ export async function middleware(request: NextRequest) {
   // Routes protégées : authentification requise. `reason` → bandeau clair
   // sur la page de login (ADR 0030 §8 — refus parlants, jamais silencieux).
   if ((isRestaurantRoute || isAdminRoute || isJoinRoute || isBecomePartnerRoute || isPlatformRoute) && !user) {
-    const response = NextResponse.redirect(new URL("/login?reason=login-required", request.url));
+    // `as=resto` (ADR 0030 §1) bascule /login sur l'habillage « Espace
+    // restaurateur » (LoginForm.tsx) : badge dédié, lien direct "Inscrire mon
+    // restaurant", et surtout passé au formulaire mot de passe → resolvePostLoginDestination
+    // renvoie déjà /become-a-partner dans ce cas. Sans lui, un prospect
+    // anonyme tombait sur l'habillage générique membre (constaté en usage).
+    const loginUrl = isBecomePartnerRoute
+      ? "/login?reason=login-required&as=resto"
+      : "/login?reason=login-required";
+    const response = NextResponse.redirect(new URL(loginUrl, request.url));
     // Un prospect anonyme sur /become-a-partner n'a pas encore de compte : le
     // détour par /login (ou /register pour un tout nouveau compte) faisait
     // perdre son intention, et il retombait sur le parcours membre (/join)
     // au lieu du formulaire partenaire. Même mécanique que pending_restaurant_id
-    // ci-dessous — cookie consommé par auth/callback et register/actions.
+    // ci-dessous — cookie consommé par auth/callback et register/actions (le
+    // param `as=resto` ci-dessus ne survit pas au aller-retour magic-link/OAuth).
     if (isBecomePartnerRoute) {
       response.cookies.set("pending_become_partner", "1", {
         httpOnly: true,
