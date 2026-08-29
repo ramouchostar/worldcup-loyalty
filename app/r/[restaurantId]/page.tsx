@@ -136,12 +136,39 @@ export default async function RestaurantLandingPage({
       {/* ── CARTE : CE QUE CE TICKET PEUT DÉBLOQUER + CTA + ÉTAPES ── */}
       <div className="max-w-lg mx-auto px-5 -mt-10 relative z-10">
         <div className="bg-white rounded-3xl shadow-xl p-6">
+          {!user ? (
+            // ADR 0040 — le client au comptoir a un ticket en main : le scan
+            // est l'action n°1, le compte viendra au moment de l'envoi.
+            <Link
+              href={`/r/${restaurantId}/submit-order`}
+              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
+            >
+              Scanner mon ticket 📷
+            </Link>
+          ) : isMember ? (
+            <Link
+              href={`/r/${restaurantId}/dashboard`}
+              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
+            >
+              Continuer →
+            </Link>
+          ) : (
+            <form action={joinRestaurant.bind(null, restaurantId)} className="mb-6">
+              <button
+                type="submit"
+                className="w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
+              >
+                Rejoindre {restaurant.name} →
+              </button>
+            </form>
+          )}
+
           {tierPreview.length > 0 && (
             <>
               <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">
                 Ce que ce ticket peut débloquer
               </p>
-              <div className="space-y-3 mb-6">
+              <div className="space-y-3">
                 {tierPreview.map((row) => (
                   <div key={row.layer} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
                     <span className="text-xl">{TIER_COPY[row.layer].icon}</span>
@@ -153,33 +180,6 @@ export default async function RestaurantLandingPage({
                 ))}
               </div>
             </>
-          )}
-
-          {!user ? (
-            // ADR 0040 — le client au comptoir a un ticket en main : le scan
-            // est l'action n°1, le compte viendra au moment de l'envoi.
-            <Link
-              href={`/r/${restaurantId}/submit-order`}
-              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
-            >
-              Scanner mon ticket 📷
-            </Link>
-          ) : isMember ? (
-            <Link
-              href={`/r/${restaurantId}/dashboard`}
-              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
-            >
-              Continuer →
-            </Link>
-          ) : (
-            <form action={joinRestaurant.bind(null, restaurantId)}>
-              <button
-                type="submit"
-                className="w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg"
-              >
-                Rejoindre {restaurant.name} →
-              </button>
-            </form>
           )}
 
           <div className="mt-6 space-y-2">
