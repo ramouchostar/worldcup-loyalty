@@ -4,7 +4,6 @@ import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
 import { BrowserWindow } from "./BrowserWindow";
 import { DashboardMockup } from "./DashboardMockup";
-import { MemberAppMockup } from "./MemberAppMockup";
 
 const BOOSTED_BENEFITS = [
   "ton volume de commandes",
@@ -80,16 +79,10 @@ export function Hero() {
         </div>
 
         <Reveal delay={360} y={28}>
-          <div className="flex flex-col-reverse lg:flex-row-reverse items-center lg:items-end gap-8 lg:gap-0 mt-12 lg:mt-14 pb-16 lg:pb-20">
-            <div className="w-full max-w-[900px] lg:flex-1 lg:min-w-0">
-              <BrowserWindow url="boosteats.app/admin/belchicken" scaleWidth={1400} chromeHeight={34}>
-                <DashboardMockup />
-              </BrowserWindow>
-            </div>
-
-            <div className="w-[240px] sm:w-[250px] shrink-0 lg:relative lg:z-[2] lg:-mr-2 rounded-[32px] bg-night-raised border border-night-line p-[9px] shadow-[0_24px_64px_rgba(0,0,0,0.55)]">
-              <MemberAppMockup />
-            </div>
+          <div className="mt-12 lg:mt-14 pb-16 lg:pb-20">
+            <BrowserWindow url="boosteats.app/admin/belchicken" scaleWidth={1400} chromeHeight={34}>
+              <DashboardMockup />
+            </BrowserWindow>
           </div>
         </Reveal>
       </div>
