@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { Scan } from "lucide-react";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
@@ -127,8 +128,9 @@ export default async function RestaurantLandingPage({
             <img src={logo} alt={restaurant.name} className="block mx-auto h-14 w-auto object-contain mb-6" />
           ) : null}
           <h1 className="text-5xl font-black leading-[1.05] tracking-tight">
-            Ton ticket de caisse<br />
-            te rapproche d&apos;un cadeau
+            Transform<br />
+            ton ticket en<br />
+            récompense
           </h1>
         </div>
       </div>
@@ -141,9 +143,9 @@ export default async function RestaurantLandingPage({
             // est l'action n°1, le compte viendra au moment de l'envoi.
             <Link
               href={`/r/${restaurantId}/submit-order`}
-              className="block w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
+              className="flex items-center justify-center gap-2 w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
             >
-              Scanner mon ticket 📷
+              Scanner mon ticket <Scan className="w-6 h-6" strokeWidth={2.5} />
             </Link>
           ) : isMember ? (
             <Link
