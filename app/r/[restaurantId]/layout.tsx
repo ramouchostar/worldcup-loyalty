@@ -1,12 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurant, getRestaurantBranding, getRestaurantId } from "@/lib/restaurant";
+import { getRestaurant, getRestaurantBranding, getRestaurantId, logoPublicUrl } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
-import { UserNav } from "@/components/member/UserNav";
+import { HeaderMenu } from "@/components/member/HeaderMenu";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { AppInstallBeacon } from "@/components/member/AppInstallBeacon";
 import { BottomNav } from "@/components/member/BottomNav";
-import { RestaurantSwitcher } from "@/components/member/RestaurantSwitcher";
 import { RestaurantProvider } from "@/components/member/RestaurantContext";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
@@ -45,7 +45,7 @@ export default async function RestaurantLayout({
   const isSuperAdmin = !!profile?.is_super_admin;
 
   // ADR 0030 §2 + ADR 0041 — pont membre → admin : « Ma console » dans le
-  // UserNav. Admin (owner, siège, ou admin legacy sur le resto par défaut) du
+  // HeaderMenu. Admin (owner, siège, ou admin legacy sur le resto par défaut) du
   // resto courant → sa console directe ; admin d'autres établissements → le
   // sélecteur /admin.
   const ownedIds = ((ownedRaw as { id: string }[] | null) ?? []).map((o) => o.id);
@@ -65,6 +65,8 @@ export default async function RestaurantLayout({
     .map((m) => m.restaurants)
     .filter((r): r is { id: string; name: string } => !!r);
 
+  const logo = logoPublicUrl(branding.logo_url);
+
   return (
     <RestaurantProvider
       value={{
@@ -82,12 +84,35 @@ export default async function RestaurantLayout({
           avec le CTA de la page) — ce header ne sert qu'un membre connecté. */}
       {user && (
         <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10 pt-safe">
-          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-            <RestaurantSwitcher
-              current={{ id: restaurant.id, name: restaurant.name }}
-              restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
-            />
-            <UserNav email={user.email ?? ""} isSuperAdmin={isSuperAdmin} adminHref={adminHref} />
+          <div className="max-w-2xl mx-auto px-4 py-3 grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2">
+            {/* Spacer côté gauche : même largeur que le bouton ☰ pour que le
+                logo/nom au centre reste visuellement centré. */}
+            <div aria-hidden="true" />
+            <Link
+              href={`/r/${restaurant.id}/dashboard`}
+              className="flex items-center justify-center gap-2 min-w-0 font-bold text-lg tracking-tight"
+            >
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+              ) : (
+                <span aria-hidden="true">🍗</span>
+              )}
+              {/* Blanc forcé, pas text-brand-gold : pour Kraainem ce token
+                  résout en rouge (brand_accent), lu comme un signal de
+                  danger sur fond sombre — jamais de texte rouge côté
+                  client. */}
+              <span className="text-white truncate">{restaurant.name}</span>
+            </Link>
+            <div className="flex justify-end">
+              <HeaderMenu
+                email={user.email ?? ""}
+                isSuperAdmin={isSuperAdmin}
+                adminHref={adminHref}
+                current={{ id: restaurant.id, name: restaurant.name }}
+                restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
+              />
+            </div>
           </div>
         </header>
       )}
