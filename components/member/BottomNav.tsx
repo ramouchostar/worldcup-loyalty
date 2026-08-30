@@ -2,58 +2,80 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Home, UsersRound, Gift, Star, Scan, type LucideIcon } from "lucide-react";
 
-type NavLink = { href: string; label: string; icon: string; id?: string; absolute?: boolean };
+type Tab = { href: string; label: string; icon: LucideIcon; id?: string };
 
-// 5 onglets max (audit 2026-07-23) : « Mes cadeaux » mène au parcours de
-// récupération (my-rewards) — le plus important. Les paliers collectifs
-// (/rewards) et le classement (/leaderboard) restent accessibles depuis la
-// carte d'équipe du dashboard et la landing. Le compte/RGPD vit dans UserNav.
-const navLinks: NavLink[] = [
-  { href: "dashboard",     label: "Accueil",     icon: "🏠" },
-  { href: "my-team",       label: "Équipe",      icon: "👥", id: "tour-nav-equipe" },
-  { href: "submit-order",  label: "Scanner",     icon: "🧾", id: "tour-nav-commande" },
-  { href: "my-rewards",    label: "Mes cadeaux", icon: "🎁", id: "tour-nav-recompenses" },
-  { href: "micro-rewards", label: "Actions",     icon: "⭐", id: "tour-nav-actions" },
+// 5 destinations (audit 2026-07-23), redesign scan-first : le scan du ticket
+// est l'action n°1, mise en avant par un bouton rond surélevé au centre —
+// icône Scan de lucide-react, la même que sur la landing et l'écran
+// submit-order (cohérence visuelle). Les 4 autres restent des onglets sobres
+// (lucide, pas d'emoji). Le compte/RGPD vit dans HeaderMenu.
+const TABS: Tab[] = [
+  { href: "dashboard",     label: "Accueil",     icon: Home },
+  { href: "my-team",       label: "Équipe",      icon: UsersRound, id: "tour-nav-equipe" },
+  { href: "my-rewards",    label: "Mes cadeaux", icon: Gift, id: "tour-nav-recompenses" },
+  { href: "micro-rewards", label: "Actions",     icon: Star, id: "tour-nav-actions" },
 ];
 
 export function BottomNav({ restaurantId }: { restaurantId: string }) {
   const pathname = usePathname();
   const base = `/r/${restaurantId}`;
+  const scanHref = `${base}/submit-order`;
+  const scanActive = pathname === scanHref || pathname.startsWith(scanHref + "/");
+  const left = TABS.slice(0, 2);
+  const right = TABS.slice(2);
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10"
       aria-label="Navigation principale"
     >
-      <div className="max-w-2xl mx-auto flex justify-around pb-safe">
-        {navLinks.map((link) => {
-          const href = link.absolute ? link.href : `${base}/${link.href}`;
-          const active = pathname === href || pathname.startsWith(href + "/");
-          return (
-            <Link
-              key={link.href}
-              href={href}
-              id={link.id}
-              className={`flex flex-col items-center py-2 px-1 text-xs min-w-0 transition-colors ${
-                active
-                  ? "text-brand-red font-semibold"
-                  : "text-gray-500 hover:text-brand-red"
-              }`}
-              aria-label={link.label}
-              aria-current={active ? "page" : undefined}
-            >
-              <span className="text-lg leading-none mb-0.5" aria-hidden="true">
-                {link.icon}
-              </span>
-              <span className="truncate">{link.label}</span>
-              {active && (
-                <span className="absolute bottom-0 w-1 h-1 rounded-full bg-brand-red" aria-hidden="true" />
-              )}
-            </Link>
-          );
-        })}
+      <div className="max-w-2xl mx-auto relative grid grid-cols-5 pb-safe">
+        {left.map((tab) => (
+          <NavTab key={tab.href} tab={tab} base={base} pathname={pathname} />
+        ))}
+        <div aria-hidden="true" />
+        {right.map((tab) => (
+          <NavTab key={tab.href} tab={tab} base={base} pathname={pathname} />
+        ))}
+
+        {/* Bouton scan surélevé — action n°1, sort du grid pour flotter
+            au-dessus de la barre (pattern FAB, absent ailleurs du repo). */}
+        <Link
+          href={scanHref}
+          id="tour-nav-commande"
+          aria-label="Scanner mon ticket"
+          aria-current={scanActive ? "page" : undefined}
+          className="absolute left-1/2 -top-6 -translate-x-1/2 flex items-center justify-center w-14 h-14 rounded-full bg-brand-red text-white transition-transform hover:scale-105 active:scale-95"
+          style={{ boxShadow: "0 8px 20px -2px rgb(var(--brand-red) / 0.5)" }}
+        >
+          <Scan className="w-6 h-6" strokeWidth={2.5} />
+        </Link>
       </div>
     </nav>
+  );
+}
+
+function NavTab({ tab, base, pathname }: { tab: Tab; base: string; pathname: string }) {
+  const href = `${base}/${tab.href}`;
+  const active = pathname === href || pathname.startsWith(href + "/");
+  const Icon = tab.icon;
+  return (
+    <Link
+      href={href}
+      id={tab.id}
+      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] min-w-0 transition-colors ${
+        active ? "text-brand-red font-semibold" : "text-gray-400 hover:text-brand-red"
+      }`}
+      aria-label={tab.label}
+      aria-current={active ? "page" : undefined}
+    >
+      <Icon className="w-5 h-5" strokeWidth={active ? 2.3 : 1.8} />
+      <span className="truncate">{tab.label}</span>
+      {active && (
+        <span className="absolute bottom-1 w-1 h-1 rounded-full bg-brand-red" aria-hidden="true" />
+      )}
+    </Link>
   );
 }
