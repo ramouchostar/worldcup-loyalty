@@ -11,6 +11,7 @@ import { getBudgetStatus } from "@/lib/budget";
 import { getPointsBalance } from "@/lib/points";
 import { pointsForOrder } from "@/lib/points-model";
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
+import { heroFirstScanMessage, heroProgressMessage, heroMaxTierMessage } from "@/lib/hero-copy";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
@@ -301,21 +302,31 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         <div className="p-5">
           {heroSolo.item || heroNextSolo ? (
             <div className={heroCommunity.item || heroTeamTier.item ? "mb-4" : ""}>
-              {/* Distingue explicitement cette barre du compteur "Tes points"
-                  juste au-dessus : ceci est une PROJECTION liée à ta
-                  prochaine commande (panier habituel, fallback €25 sans
-                  historique — ADR 0010), pas ton solde de points accumulé.
-                  Sans ce libellé, une barre déjà remplie à côté d'un "0 pts"
-                  se lit comme une contradiction. */}
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">
-                Sur ta prochaine commande
-              </p>
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <span className="text-2xl" aria-hidden="true">🍗</span>
-                <span className="text-xl font-black text-gray-900 text-center">
-                  {heroSolo.item ?? "Ton premier cadeau"}
-                </span>
-              </div>
+              {heroSolo.item ? (
+                // Distingue explicitement cette barre du compteur "Tes points"
+                // juste au-dessus : ceci est une PROJECTION liée à ta
+                // prochaine commande (panier habituel — ADR 0010), pas ton
+                // solde de points accumulé. Sans ce libellé, une barre déjà
+                // remplie à côté d'un "0 pts" se lit comme une contradiction.
+                <>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">
+                    Sur ta prochaine commande
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <span className="text-2xl" aria-hidden="true">🍗</span>
+                    <span className="text-xl font-black text-gray-900 text-center">{heroSolo.item}</span>
+                  </div>
+                </>
+              ) : (
+                // Jamais commandé (previewAmt reste à 0) — message d'amorçage
+                // orienté action plutôt qu'un nom de palier non atteint.
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <span className="text-2xl" aria-hidden="true">📸</span>
+                  <span className="text-lg font-black text-gray-900 text-center">
+                    {heroFirstScanMessage()}
+                  </span>
+                </div>
+              )}
 
               {heroNextSolo ? (
                 <>
@@ -333,9 +344,17 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                       {heroNextSolo.item}
                     </span>
                   </div>
+                  {/* Encouragement façon Duolingo — jamais de chiffre, jamais
+                      "loin" : uniquement pour un membre déjà actif, le message
+                      d'amorçage ci-dessus suffit pour un tout nouveau membre. */}
+                  {heroSolo.item && (
+                    <p className="text-xs font-semibold text-orange-600 text-center mt-2">
+                      {heroProgressMessage(heroNextSolo.pct, heroSolo.item)}
+                    </p>
+                  )}
                 </>
               ) : (
-                <p className="text-xs text-center text-gray-400">🏆 Palier maximum atteint</p>
+                <p className="text-xs text-center text-gray-400">{heroMaxTierMessage()}</p>
               )}
             </div>
           ) : (
