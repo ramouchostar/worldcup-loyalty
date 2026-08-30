@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, getRestaurantBranding, getRestaurantId, logoPublicUrl } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
+import { pointsForOrder } from "@/lib/points-model";
+import { TOKENS_PER_PORTION } from "@/lib/social-actions";
+import { COIN_EMOJI, TICKET_EMOJI } from "@/lib/fluent-emoji";
 import { HeaderMenu } from "@/components/member/HeaderMenu";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { AppInstallBeacon } from "@/components/member/AppInstallBeacon";
@@ -67,6 +70,38 @@ export default async function RestaurantLayout({
 
   const logo = logoPublicUrl(branding.logo_url);
 
+  // Compteurs du bandeau — points de fidélité (pointsForOrder, ADR 0028,
+  // même calcul que "Tes points" au dashboard) + jetons (actions sociales
+  // validées + parrainage/5, même formule que ActionsLadder et la page
+  // Actions). Toujours en points/jetons, jamais en euros (ADR 0007).
+  const [{ data: validatedOrdersData }, { count: socialValidatedCount }, { count: referralCount }] = user
+    ? await Promise.all([
+        supabase
+          .from("orders")
+          .select("amount")
+          .eq("user_id", user.id)
+          .eq("restaurant_id", restaurantId)
+          .eq("status", "validated"),
+        supabase
+          .from("micro_reward_claims")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("restaurant_id", restaurantId)
+          .eq("status", "validated"),
+        supabase
+          .from("referrals")
+          .select("id", { count: "exact", head: true })
+          .eq("referrer_id", user.id)
+          .eq("restaurant_id", restaurantId),
+      ])
+    : [{ data: null }, { count: null }, { count: null }];
+  const totalPoints = ((validatedOrdersData as { amount: number }[] | null) ?? []).reduce(
+    (s, o) => s + pointsForOrder(Number(o.amount)),
+    0
+  );
+  const referralTokens = Math.floor((referralCount ?? 0) / 5);
+  const totalTokens = Math.min((socialValidatedCount ?? 0) + referralTokens, TOKENS_PER_PORTION);
+
   return (
     <RestaurantProvider
       value={{
@@ -113,6 +148,22 @@ export default async function RestaurantLayout({
                 restaurants={restaurants.length > 0 ? restaurants : [{ id: restaurant.id, name: restaurant.name }]}
               />
             </div>
+          </div>
+
+          {/* Compteurs — points de fidélité + jetons, toujours visibles en
+              un coup d'œil. Pastilles translucides (pas de fond plein) pour
+              rester lisibles sur la charte de n'importe quel établissement. */}
+          <div className="max-w-2xl mx-auto px-4 pb-2.5 flex items-center justify-center gap-2">
+            <span className="flex items-center gap-1.5 bg-white/10 rounded-full pl-1.5 pr-2.5 py-1 text-xs font-bold text-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={COIN_EMOJI} alt="" className="w-4 h-4" />
+              {totalPoints.toLocaleString("fr-BE")}
+            </span>
+            <span className="flex items-center gap-1.5 bg-white/10 rounded-full pl-1.5 pr-2.5 py-1 text-xs font-bold text-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={TICKET_EMOJI} alt="" className="w-4 h-4" />
+              {totalTokens}/{TOKENS_PER_PORTION}
+            </span>
           </div>
         </header>
       )}

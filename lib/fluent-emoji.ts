@@ -6,3 +6,4 @@
 export const FLUENT_EMOJI_3D = "https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets";
 export const COIN_EMOJI = `${FLUENT_EMOJI_3D}/1fa99.webp`;
 export const RECEIPT_EMOJI = `${FLUENT_EMOJI_3D}/1f9fe.webp`;
+export const TICKET_EMOJI = `${FLUENT_EMOJI_3D}/1f3ab.webp`;
