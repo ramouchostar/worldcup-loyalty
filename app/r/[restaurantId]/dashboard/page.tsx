@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantBranding, logoPublicUrl, getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
-import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus } from "@/lib/rewards";
+import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier } from "@/lib/rewards";
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { getTeamPrompt } from "@/lib/teams";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
@@ -155,6 +155,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // finançable pour cette taille d'équipe — cohérent avec createPendingReward.
   const coverage = { memberCount, teamTotalSpent, budgetPct: budget.budgetPct };
   const heroSolo = resolveSoloReward(grid, previewAmt);
+  const heroNextSolo = nextSoloTier(grid, previewAmt);
   const heroCommunity = resolveCommunityBonus(
     grid,
     score,
@@ -213,19 +214,37 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         <p className="text-xs text-gray-300 mb-4">Pour ta prochaine commande directe :</p>
 
         <div className="space-y-3">
-          {heroSolo.item ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>🍗</span>
-                <span className="font-bold">{heroSolo.item}</span>
+          <div>
+            {heroSolo.item ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span>🍗</span>
+                  <span className="font-bold">{heroSolo.item}</span>
+                </div>
+                <span className="text-xs text-gray-400">← ton cadeau de base</span>
               </div>
-              <span className="text-xs text-gray-400">← ton cadeau de base</span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between opacity-40">
-              <span className="text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</span>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center justify-between opacity-40">
+                <span className="text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</span>
+              </div>
+            )}
+
+            {/* Palier solo suivant — barre purement visuelle, jamais de
+                seuil/écart chiffré (ADR 0028 §6, "perd le ~€25"). */}
+            {heroNextSolo && (
+              <div className="mt-2">
+                <div className="w-full bg-white/10 rounded-full h-1.5">
+                  <div
+                    className="bg-brand-gold h-1.5 rounded-full transition-all duration-700"
+                    style={{ width: `${heroNextSolo.pct}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1 text-right">
+                  Prochain palier : <span className="font-semibold text-brand-gold">{heroNextSolo.item}</span>
+                </p>
+              </div>
+            )}
+          </div>
 
           {heroCommunity.item && (
             <div className="flex items-center justify-between">

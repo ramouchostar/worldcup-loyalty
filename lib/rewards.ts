@@ -166,6 +166,22 @@ export function resolveSoloReward(grid: RewardGrid, amount: number): RewardItem 
   return pickTier(grid.solo, amount);
 }
 
+export type NextSoloTier = { item: string; pct: number };
+
+// Prochain palier solo au-dessus du panier habituel (dashboard, hero card) —
+// nom du cadeau uniquement, jamais de seuil ni d'écart en euros/points
+// affiché : l'ADR 0028 §6 retire explicitement le « ~€25 » de cet aperçu.
+// `pct` ne sert qu'à remplir une barre visuelle (proportion entre le palier
+// actuel et le suivant), jamais rendu comme un chiffre lisible.
+export function nextSoloTier(grid: RewardGrid, amount: number): NextSoloTier | null {
+  const target = grid.solo.find((t) => t.min > amount);
+  if (!target) return null;
+  const current = grid.solo.filter((t) => t.min <= amount).pop();
+  const base = current?.min ?? 0;
+  const pct = target.min > base ? Math.max(0, Math.min(100, Math.round(((amount - base) / (target.min - base)) * 100))) : 0;
+  return { item: target.item, pct };
+}
+
 // Couche 2 — même logique. Double verrou conservé ; la couverture d'équipe
 // (ADR 0017) s'ajoute comme troisième verrou.
 export function resolveCommunityBonus(
