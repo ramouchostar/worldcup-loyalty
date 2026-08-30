@@ -1,9 +1,6 @@
 "use client";
 
 import { Reveal } from "./motion";
-import { BrowserWindow } from "./BrowserWindow";
-import { InsightsMockup } from "./InsightsMockup";
-import { MobileScreenCard } from "./MobileScreenCard";
 import { InsightsMockupMobile } from "./InsightsMockupMobile";
 
 const OPPORTUNITY_POINTS = [
@@ -15,7 +12,7 @@ const OPPORTUNITY_POINTS = [
 export function ProductSection() {
   return (
     <section id="produit" className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-20 sm:pt-24 pb-24 scroll-mt-16">
-      <div className="grid lg:grid-cols-[1fr_1.15fr] gap-10 lg:gap-14 items-center">
+      <div className="grid lg:grid-cols-[1.3fr_0.7fr] gap-10 lg:gap-16 items-center">
         <Reveal>
           <TextBlock
             eyebrow="Opportunités"
@@ -26,15 +23,10 @@ export function ProductSection() {
         </Reveal>
 
         <Reveal delay={120} y={28}>
-          <div className="md:hidden">
-            <MobileScreenCard url="/admin/belchicken/insights">
+          <div className="w-[260px] sm:w-[300px] mx-auto rounded-[32px] bg-night-raised border border-night-line p-[9px] shadow-[0_24px_64px_rgba(0,0,0,0.2)]">
+            <div className="bg-paper rounded-[25px] overflow-hidden p-4">
               <InsightsMockupMobile />
-            </MobileScreenCard>
-          </div>
-          <div className="hidden md:block">
-            <BrowserWindow url="/admin/belchicken/insights" scaleWidth={900}>
-              <InsightsMockup />
-            </BrowserWindow>
+            </div>
           </div>
         </Reveal>
       </div>
