@@ -196,6 +196,13 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 
       <OnboardingFlow teamPrompt={teamPrompt} />
 
+      {/* ── ADR 0038 — rattrapage de l'installation ────────────────────────
+          Priorité haute : un membre qui n'a pas l'app ne reçoit aucune des
+          notifications (équipe, cadeau prêt) qui le font revenir — mieux
+          vaut le proposer avant le reste plutôt qu'en bas de page, où il
+          n'était quasiment jamais vu. Disparaît une fois installée. */}
+      <InstallAppCard audience="membre" surface="dashboard_membre" />
+
       {/* Récompenses à récupérer au comptoir — le plus urgent (48h avant
           expiration), reste un bloc distinct en tête de flux. */}
       {pendingRewards.length > 0 && (
@@ -596,11 +603,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           )}
         </p>
       )}
-
-      {/* ── ADR 0038 — rattrapage de l'installation ────────────────────────
-          L'onboarding ne propose l'app qu'une fois ; qui l'a manquée ou
-          reportée n'avait plus aucun chemin. Disparaît une fois installée. */}
-      <InstallAppCard audience="membre" surface="dashboard_membre" />
 
       <p className="text-center text-xs text-gray-500 pb-2">Score mis à jour toutes les 30 secondes</p>
     </div>
