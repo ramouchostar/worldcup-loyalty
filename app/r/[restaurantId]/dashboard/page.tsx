@@ -10,6 +10,7 @@ import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { getPointsBalance } from "@/lib/points";
 import { pointsForOrder } from "@/lib/points-model";
+import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
@@ -264,6 +265,22 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           chiffre). Palier solo + jetons à faire d'abord — ce qui bouge le
           plus souvent pour le membre. */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+        {/* Compteur de points — solde cumulé de pointsForOrder() (formule non
+            linéaire, ADR 0028), en points jamais en euros (ADR 0007 autorise
+            les points perso, contrairement aux euros). Distinct de « Ma
+            réserve » (ADR 0021, banking optionnel pour les gros cadeaux) :
+            ceci est le compteur de fidélité qui grandit à chaque commande
+            validée, pas un solde échangeable. Icône Fluent Emoji, déjà
+            utilisée ailleurs dans l'app (landing, écran de scan). */}
+        <div className="p-5 text-center">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Tes points</p>
+          <div className="flex items-center justify-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={COIN_EMOJI} alt="" className="w-9 h-9" />
+            <span className="text-4xl font-black text-gray-900">{totalPoints.toLocaleString("fr-BE")}</span>
+          </div>
+        </div>
+
         {/* Palier solo : nom du cadeau + barre de progression vers le
             suivant, jamais de seuil/écart chiffré (ADR 0028 §6, "perd le
             ~€25"). Orange codé en dur — pour Kraainem brand-gold/brand-red
