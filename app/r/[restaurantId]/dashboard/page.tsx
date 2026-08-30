@@ -145,8 +145,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const totalPoints = (validatedOrdersData ?? []).reduce((s, o) => s + pointsForOrder(Number((o as { amount: number }).amount)), 0);
   const validCount = validatedOrderCount ?? 0;
   const memberActive = validCount > 0;
-  const avgAmount = validCount > 0 ? totalSpent / validCount : 25;
-  const previewAmt = Math.max(15, Math.round(avgAmount));
+  // Sans historique, previewAmt reste à 0 — pas de panier fictif à €25.
+  // L'ancien fallback faisait passer un membre sans aucune commande pour un
+  // palier déjà atteint (ex. "Finest" affiché comme acquis avec 0 commande) :
+  // factuellement faux, pas juste mal étiqueté. resolveSoloReward(grid, 0) et
+  // nextSoloTier(grid, 0) donnent alors l'état honnête : aucun cadeau acquis,
+  // 0 % de progression vers le premier palier.
+  const avgAmount = validCount > 0 ? totalSpent / validCount : 0;
+  const previewAmt = validCount > 0 ? Math.max(15, Math.round(avgAmount)) : 0;
 
   // Plafond budget (ADR 0012) : couches 2 et 3 masquées si en pause.
   // Couverture d'équipe (ADR 0017) : le bonus affiché est le palier réellement
