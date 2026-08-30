@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { ACTION_ICONS, TOKENS_PER_PORTION, getActionLinks } from "@/lib/social-actions";
+import { buildJoinUrl, buildWhatsappShareUrl } from "@/lib/referral-links";
 import { track } from "@/lib/analytics";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import type { MicroReward, MicroRewardClaim, MicroRewardType, ReferralLinkData } from "@/types";
@@ -271,15 +272,9 @@ function ReferralSection({
   const nextTokenIn = 5 - progressToToken;
 
   const joinUrl =
-    code && typeof window !== "undefined"
-      ? `${window.location.origin}/join?ref=${code}`
-      : null;
+    code && typeof window !== "undefined" ? buildJoinUrl(window.location.origin, code) : null;
 
-  const whatsappUrl = joinUrl
-    ? `https://wa.me/?text=${encodeURIComponent(
-        `Rejoins ma communauté ${restaurantName} 🎉 et commande directement — on gagne ensemble !\n${joinUrl}`
-      )}`
-    : null;
+  const whatsappUrl = joinUrl ? buildWhatsappShareUrl(joinUrl, restaurantName) : null;
 
   async function copyLink() {
     if (!joinUrl) return;
