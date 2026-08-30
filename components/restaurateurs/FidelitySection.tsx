@@ -39,7 +39,7 @@ export function FidelitySection() {
       <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
         <Reveal>
           <div>
-            <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-4">▶ Fidélité</p>
+            <p className="font-mono text-sm tracking-[0.12em] uppercase text-moss-dark mb-4">▶ Fidélité</p>
             <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink text-pretty">
               Le cadeau n&apos;est pas une remise. C&apos;est un rendez-vous.
             </h2>
