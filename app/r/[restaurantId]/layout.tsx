@@ -98,7 +98,11 @@ export default async function RestaurantLayout({
               ) : (
                 <span aria-hidden="true">🍗</span>
               )}
-              <span className="text-brand-gold truncate">{restaurant.name}</span>
+              {/* Blanc forcé, pas text-brand-gold : pour Kraainem ce token
+                  résout en rouge (brand_accent), lu comme un signal de
+                  danger sur fond sombre — jamais de texte rouge côté
+                  client. */}
+              <span className="text-white truncate">{restaurant.name}</span>
             </Link>
             <div className="flex justify-end">
               <HeaderMenu
