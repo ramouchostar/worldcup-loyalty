@@ -31,9 +31,11 @@
 -- ============================================================
 
 -- ── orders : policy orders_own_read + 32 filtres .eq("user_id") ──────────
--- created_at en 2e position : les lectures membre trient par date décroissante.
+-- submitted_at en 2e position : 3 des 4 tris associés à un filtre user_id
+-- utilisent submitted_at (orders n'a PAS de colonne created_at — les colonnes
+-- de temps sont order_date, order_time, submitted_at, validated_at).
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_user
-  ON orders (user_id, created_at DESC);
+  ON orders (user_id, submitted_at DESC);
 
 -- FK orders.team_id -> teams. Partiel : team_id est nullable depuis m57
 -- (commandes sans équipe).
