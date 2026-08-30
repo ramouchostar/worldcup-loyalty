@@ -24,9 +24,7 @@ export function ProductSection() {
 
         <Reveal delay={120} y={28}>
           <div className="w-[260px] sm:w-[300px] mx-auto rounded-[32px] bg-night-raised border border-night-line p-[9px] shadow-[0_24px_64px_rgba(0,0,0,0.2)]">
-            <div className="bg-paper rounded-[25px] overflow-hidden p-4">
-              <InsightsMockupMobile />
-            </div>
+            <InsightsMockupMobile />
           </div>
         </Reveal>
       </div>
