@@ -406,6 +406,13 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           />
 
           <div className="mt-4 pt-4 border-t border-gray-100">
+            {/* Ce qu'est le score, en une phrase — avant les chiffres, pour
+                que le membre sache ce qu'il regarde. */}
+            <p className="text-xs text-gray-400 text-center mb-3">
+              Le score communautaire grandit à chaque commande directe d&apos;un coéquipier — plus il
+              est haut, meilleur le bonus sur chaque commande.
+            </p>
+
             {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
             {!budget.communityBonusActive && (
               <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -435,39 +442,27 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                   />
                 </div>
 
-                {isWeakCommunity ? (
-                  <div className="mt-3 space-y-2">
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-                      <p className="text-sm font-semibold text-blue-900">
-                        À{" "}
-                        {(nextTier.score - score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}{" "}
-                        pts du 1er bonus communautaire
-                      </p>
-                      <p className="text-xs text-blue-700 mt-1">
-                        Chaque commande de tes coéquipiers vous rapproche du bonus&nbsp;
-                        <span className="font-semibold">+ {nextTier.item}</span>.
-                      </p>
-                    </div>
-                    <Link
-                      href={r("/my-team")}
-                      className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
-                    >
-                      <span>📲</span> Inviter dans mon équipe
-                    </Link>
+                {/* Récompense du prochain palier — toujours affichée de la
+                    même façon, quel que soit l'état (proche ou loin). */}
+                <div className="mt-3 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-2">
+                  <span className="text-lg" aria-hidden="true">🎁</span>
+                  <div>
+                    <p className="text-xs text-gray-500">Prochain palier d&apos;équipe</p>
+                    <p className="font-bold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
                   </div>
+                </div>
+
+                {isWeakCommunity ? (
+                  <Link
+                    href={r("/my-team")}
+                    className="mt-3 flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
+                  >
+                    <span>📲</span> Inviter dans mon équipe
+                  </Link>
                 ) : (
-                  <>
-                    <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                      <span className="text-lg">👥</span>
-                      <div>
-                        <p className="text-xs text-gray-500">Prochain bonus communautaire</p>
-                        <p className="font-semibold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2 text-center">
-                      💡 Chaque commande directe de ton équipe vous rapproche.
-                    </p>
-                  </>
+                  <p className="text-xs text-gray-400 mt-2 text-center">
+                    💡 Chaque commande directe de ton équipe vous rapproche.
+                  </p>
                 )}
               </>
             ) : (
