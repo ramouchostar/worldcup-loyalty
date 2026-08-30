@@ -27,6 +27,12 @@ function loadPostponed(restaurantId: string): Record<string, number> {
 // (numéro grisé), plus le bonus d'équipe en dernière marche. Une action
 // validée disparaît de la liste pour toujours (pas de re-proposition) ; une
 // action reportée redevient "en cours" après son snooze, sans intervention.
+//
+// Le nom du cadeau (jetonsGift, ADR 0017) est affiché dès le départ — pas
+// juste "portion offerte" — et le compte de jetons inclut le parrainage
+// (5 inscrits = 1 jeton, même formule que app/r/[restaurantId]/micro-rewards),
+// pas seulement les actions sociales : sinon le "X/4" affiché ici pourrait ne
+// pas correspondre à celui de l'onglet Actions.
 export function ActionsLadder({
   nextCommunityItem,
   nextCommunityScore,
@@ -38,6 +44,8 @@ export function ActionsLadder({
   const restaurant = useRestaurantInfo();
   const [rewards, setRewards] = useState<MicroReward[] | null>(null);
   const [claims, setClaims] = useState<MicroRewardClaim[]>([]);
+  const [giftName, setGiftName] = useState("Cadeau surprise");
+  const [referralValidated, setReferralValidated] = useState(0);
   const [postponed, setPostponed] = useState<Record<string, number>>({});
   const [busyType, setBusyType] = useState<MicroRewardType | null>(null);
 
@@ -47,11 +55,19 @@ export function ActionsLadder({
   }, []);
 
   async function fetchData() {
-    const res = await fetch(`/api/micro-rewards?restaurantId=${restaurantId}`);
-    if (res.ok) {
-      const data = await res.json();
+    const [socialRes, refRes] = await Promise.all([
+      fetch(`/api/micro-rewards?restaurantId=${restaurantId}`),
+      fetch(`/api/referrals?restaurantId=${restaurantId}`),
+    ]);
+    if (socialRes.ok) {
+      const data = await socialRes.json();
       setRewards(data.rewards ?? []);
       setClaims(data.claims ?? []);
+      if (data.giftName) setGiftName(data.giftName);
+    }
+    if (refRes.ok) {
+      const data = await refRes.json();
+      setReferralValidated(data.validatedCount ?? 0);
     }
   }
 
@@ -67,14 +83,19 @@ export function ActionsLadder({
     .filter((r) => links[r.type])
     .sort((a, b) => ACTION_ORDER.indexOf(a.type) - ACTION_ORDER.indexOf(b.type));
 
-  const allValidated =
-    eligible.length > 0 && eligible.every((r) => claimMap[r.type]?.status === "validated");
-  const showLadder = eligible.length > 0 && !allValidated;
+  const hasEligible = eligible.length > 0;
+  const allSocialDone =
+    hasEligible && eligible.every((r) => claimMap[r.type]?.status === "validated");
+  const showRungs = hasEligible && !allSocialDone;
 
-  if (!showLadder && !nextCommunityItem) return null;
+  if (!hasEligible && !nextCommunityItem) return null;
+
+  const socialValidated = eligible.filter((r) => claimMap[r.type]?.status === "validated").length;
+  const referralTokens = Math.floor(referralValidated / 5);
+  const totalTokens = socialValidated + referralTokens;
+  const tokensToNext = Math.max(0, TOKENS_PER_PORTION - totalTokens);
 
   const now = Date.now();
-  const claimedCount = eligible.filter((r) => claimMap[r.type]).length;
   const firstOpenIndex = eligible.findIndex(
     (r) => !claimMap[r.type] && !(postponed[r.type] && now < postponed[r.type])
   );
@@ -105,32 +126,36 @@ export function ActionsLadder({
 
   return (
     <div>
-      {showLadder && (
+      {hasEligible && (
         <>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Prochaine étape</p>
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Portion offerte</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0">
+              Prochaine étape
+            </p>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide truncate">
+              🎁 {giftName}
+            </span>
           </div>
           <p className="text-xl font-black text-gray-900 mb-2">
-            {claimedCount}/{TOKENS_PER_PORTION} jetons
+            {Math.min(totalTokens, TOKENS_PER_PORTION)}/{TOKENS_PER_PORTION} jetons
           </p>
           <div className="flex gap-1.5 mb-6">
             {Array.from({ length: TOKENS_PER_PORTION }).map((_, i) => (
               <div
                 key={i}
-                className={`flex-1 h-1.5 rounded-full ${i < claimedCount ? "bg-orange-500" : "bg-gray-100"}`}
+                className={`flex-1 h-1.5 rounded-full ${i < totalTokens ? "bg-orange-500" : "bg-gray-100"}`}
               />
             ))}
           </div>
         </>
       )}
 
-      {showLadder && (
+      {showRungs && (
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Ton échelle</p>
       )}
 
       <div className="space-y-4">
-        {showLadder &&
+        {showRungs &&
           eligible.map((reward, i) => {
             const claim = claimMap[reward.type];
             const isDone = !!claim;
@@ -190,6 +215,31 @@ export function ActionsLadder({
               </div>
             );
           })}
+
+        {/* Actions sociales épuisées — on ne fait plus jamais reproposer une
+            action déjà validée, mais on indique où en est le cadeau plutôt
+            que de faire disparaître la carte sans explication. */}
+        {allSocialDone && (
+          <div className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <span
+                className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold shrink-0"
+                aria-hidden="true"
+              >
+                ✓
+              </span>
+              {nextCommunityItem && <span className="w-px flex-1 bg-gray-100 mt-1" aria-hidden="true" />}
+            </div>
+            <div className="flex-1 min-w-0 pb-1">
+              <p className="font-bold text-sm text-gray-900">Actions sociales terminées</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {totalTokens >= TOKENS_PER_PORTION
+                  ? `🎉 ${giftName} débloqué — présente-toi au comptoir pour le récupérer.`
+                  : `Encore ${tokensToNext} jeton${tokensToNext > 1 ? "s" : ""} via le parrainage pour débloquer ${giftName}.`}
+              </p>
+            </div>
+          </div>
+        )}
 
         {nextCommunityItem && (
           <div className="flex gap-3">

@@ -295,6 +295,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         <div className="p-5">
           {heroSolo.item || heroNextSolo ? (
             <div className={heroCommunity.item || heroTeamTier.item ? "mb-4" : ""}>
+              {/* Distingue explicitement cette barre du compteur "Tes points"
+                  juste au-dessus : ceci est une PROJECTION liée à ta
+                  prochaine commande (panier habituel, fallback €25 sans
+                  historique — ADR 0010), pas ton solde de points accumulé.
+                  Sans ce libellé, une barre déjà remplie à côté d'un "0 pts"
+                  se lit comme une contradiction. */}
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">
+                Sur ta prochaine commande
+              </p>
               <div className="flex items-center justify-center gap-2 mb-3">
                 <span className="text-2xl" aria-hidden="true">🍗</span>
                 <span className="text-xl font-black text-gray-900 text-center">
