@@ -8,7 +8,7 @@ type NavLink = { href: string; label: string; icon: string; id?: string; absolut
 // 5 onglets max (audit 2026-07-23) : « Mes cadeaux » mène au parcours de
 // récupération (my-rewards) — le plus important. Les paliers collectifs
 // (/rewards) et le classement (/leaderboard) restent accessibles depuis la
-// carte d'équipe du dashboard et la landing. Le compte/RGPD vit dans UserNav.
+// carte d'équipe du dashboard et la landing. Le compte/RGPD vit dans HeaderMenu.
 const navLinks: NavLink[] = [
   { href: "dashboard",     label: "Accueil",     icon: "🏠" },
   { href: "my-team",       label: "Équipe",      icon: "👥", id: "tour-nav-equipe" },
