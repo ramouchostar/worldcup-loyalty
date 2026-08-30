@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { getRestaurantBranding, logoPublicUrl, getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
-import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus } from "@/lib/rewards";
+import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
+import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier } from "@/lib/rewards";
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { getTeamPrompt } from "@/lib/teams";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
@@ -28,11 +28,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const r = (path: string) => `/r/${restaurantId}${path}`;
-
-  // Image hero (m48) — décorative uniquement, aucun impact sur le contenu
-  // imposé par l'ADR 0010 (3 lignes par couche, fallback €25).
-  const branding = await getRestaurantBranding(restaurantId);
-  const heroImageUrl = logoPublicUrl(branding.hero_image_url);
 
   const [
     { data: membershipRaw },
@@ -155,6 +150,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // finançable pour cette taille d'équipe — cohérent avec createPendingReward.
   const coverage = { memberCount, teamTotalSpent, budgetPct: budget.budgetPct };
   const heroSolo = resolveSoloReward(grid, previewAmt);
+  const heroNextSolo = nextSoloTier(grid, previewAmt);
   const heroCommunity = resolveCommunityBonus(
     grid,
     score,
@@ -164,7 +160,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const heroTeamTier = budget.communityBonusActive
     ? resolveTeamTier(teamTiers, teamTotalSpent, coverage)
     : { item: null, cost: 0 };
-  const heroCount = [heroSolo.item, heroCommunity.item, heroTeamTier.item].filter(Boolean).length;
 
   // Grille communautaire affichée : celle du catalogue (loadRewardGrid gère
   // le fallback hérité pour le resto legacy). Vide = section masquée.
@@ -199,68 +194,68 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       <OnboardingFlow teamPrompt={teamPrompt} />
 
       {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
-      <div
-        className="bg-gradient-to-br from-brand-dark to-brand-dark/70 bg-cover bg-center rounded-2xl p-5 text-white"
-        style={
-          heroImageUrl
-            ? {
-                backgroundImage: `linear-gradient(to bottom right, rgb(var(--brand-dark) / 0.88), rgb(var(--brand-dark) / 0.78)), url(${heroImageUrl})`,
-              }
-            : undefined
-        }
-      >
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">🎁 Ta prochaine commande</p>
-        <p className="text-xs text-gray-300 mb-4">Pour ta prochaine commande directe :</p>
+      {/* Palier solo : nom du cadeau + barre de progression vers le suivant,
+          jamais de seuil/écart chiffré (ADR 0028 §6, "perd le ~€25"). Couleur
+          orange codée en dur (pas brand-gold/brand-red) — pour Kraainem ces
+          tokens résolvent en rouge (brand_accent), lu comme un danger. */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        {heroSolo.item || heroNextSolo ? (
+          <div className={heroCommunity.item || heroTeamTier.item ? "mb-4" : ""}>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <span className="text-2xl" aria-hidden="true">🍗</span>
+              <span className="text-xl font-black text-gray-900 text-center">
+                {heroSolo.item ?? "Ton premier cadeau"}
+              </span>
+            </div>
 
-        <div className="space-y-3">
-          {heroSolo.item ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>🍗</span>
-                <span className="font-bold">{heroSolo.item}</span>
+            {heroNextSolo ? (
+              <>
+                <div className="w-full bg-gray-100 rounded-full h-3">
+                  <div
+                    className="h-3 rounded-full bg-orange-500 transition-all duration-700"
+                    style={{ width: `${heroNextSolo.pct}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-xs font-semibold text-gray-400 truncate">
+                    {heroSolo.item ?? "Début"}
+                  </span>
+                  <span className="text-xs font-semibold text-gray-400 truncate">
+                    {heroNextSolo.item}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-center text-gray-400">🏆 Palier maximum atteint</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</p>
+        )}
+
+        {(heroCommunity.item || heroTeamTier.item) && (
+          <div className="space-y-3 pt-4 border-t border-gray-100">
+            {heroCommunity.item && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span>👥</span>
+                  <span className="font-bold text-orange-600">+ {heroCommunity.item}</span>
+                </div>
+                <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
               </div>
-              <span className="text-xs text-gray-400">← ton cadeau de base</span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between opacity-40">
-              <span className="text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</span>
-            </div>
-          )}
+            )}
 
-          {heroCommunity.item && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>👥</span>
-                <span className="font-bold text-brand-gold">+ {heroCommunity.item}</span>
+            {heroTeamTier.item && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span>🏆</span>
+                  <span className="font-bold text-orange-600">+ {heroTeamTier.item}</span>
+                </div>
+                <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
               </div>
-              <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
-            </div>
-          )}
-
-          {heroTeamTier.item && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>🏆</span>
-                <span className="font-bold text-brand-gold">+ {heroTeamTier.item}</span>
-              </div>
-              <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-          <p className="text-sm text-gray-300">
-            {heroCount > 0
-              ? `${heroCount} cadeau${heroCount > 1 ? "x" : ""} t'attend${heroCount > 1 ? "ent" : ""} au comptoir`
-              : "Commande pour débloquer tes cadeaux"}
-          </p>
-          <Link
-            href={r("/submit-order")}
-            className="bg-brand-red text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-brand-red/85 transition-colors shrink-0"
-          >
-            Commander →
-          </Link>
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Récompenses à récupérer au comptoir */}
