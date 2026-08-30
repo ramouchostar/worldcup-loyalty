@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Scan } from "lucide-react";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier } from "@/lib/rewards";
@@ -13,7 +14,8 @@ import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { OnboardingFlow } from "@/components/member/OnboardingFlow";
 import { InstallAppCard } from "@/components/InstallAppCard";
-import { ActionCardsSection } from "@/components/member/ActionCardsSection";
+import { ActionsLadder } from "@/components/member/ActionsLadder";
+import { ReferralCTA } from "@/components/member/ReferralCTA";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
 
@@ -193,72 +195,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 
       <OnboardingFlow teamPrompt={teamPrompt} />
 
-      {/* ── SECTION 1 — Hero preview ───────────────────────────────────────── */}
-      {/* Palier solo : nom du cadeau + barre de progression vers le suivant,
-          jamais de seuil/écart chiffré (ADR 0028 §6, "perd le ~€25"). Couleur
-          orange codée en dur (pas brand-gold/brand-red) — pour Kraainem ces
-          tokens résolvent en rouge (brand_accent), lu comme un danger. */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        {heroSolo.item || heroNextSolo ? (
-          <div className={heroCommunity.item || heroTeamTier.item ? "mb-4" : ""}>
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="text-2xl" aria-hidden="true">🍗</span>
-              <span className="text-xl font-black text-gray-900 text-center">
-                {heroSolo.item ?? "Ton premier cadeau"}
-              </span>
-            </div>
-
-            {heroNextSolo ? (
-              <>
-                <div className="w-full bg-gray-100 rounded-full h-3">
-                  <div
-                    className="h-3 rounded-full bg-orange-500 transition-all duration-700"
-                    style={{ width: `${heroNextSolo.pct}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-xs font-semibold text-gray-400 truncate">
-                    {heroSolo.item ?? "Début"}
-                  </span>
-                  <span className="text-xs font-semibold text-gray-400 truncate">
-                    {heroNextSolo.item}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-center text-gray-400">🏆 Palier maximum atteint</p>
-            )}
-          </div>
-        ) : (
-          <p className="text-center text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</p>
-        )}
-
-        {(heroCommunity.item || heroTeamTier.item) && (
-          <div className="space-y-3 pt-4 border-t border-gray-100">
-            {heroCommunity.item && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span>👥</span>
-                  <span className="font-bold text-orange-600">+ {heroCommunity.item}</span>
-                </div>
-                <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
-              </div>
-            )}
-
-            {heroTeamTier.item && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span>🏆</span>
-                  <span className="font-bold text-orange-600">+ {heroTeamTier.item}</span>
-                </div>
-                <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Récompenses à récupérer au comptoir */}
+      {/* Récompenses à récupérer au comptoir — le plus urgent (48h avant
+          expiration), reste un bloc distinct en tête de flux. */}
       {pendingRewards.length > 0 && (
         <div className="bg-gradient-to-br from-brand-gold/15 to-brand-red/5 rounded-2xl border-2 border-brand-gold/40 p-5">
           <div className="flex items-center justify-between mb-3">
@@ -320,177 +258,319 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         </div>
       )}
 
-      {/* ── Carte Actions — missions sociales séquentielles (jetons) ───────
-          Une seule action affichée à la fois ; la suivante n'apparaît
-          qu'une fois la précédente accomplie (ou soumise en validation). */}
-      <ActionCardsSection />
-
-      {/* ── SECTION 2 — Progression d'équipe ──────────────────────────────── */}
-      {!team ? (
-        <div id="tour-community-progress" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 text-center">
-          <p className="text-3xl mb-2">👥</p>
-          <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
-          <p className="text-sm text-gray-500 mb-4">
-            Crée ton équipe ou rejoins-en une pour débloquer le bonus communautaire sur chaque commande.
-          </p>
-          <Link
-            href={r("/my-team")}
-            className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
-          >
-            Voir mon équipe →
-          </Link>
-        </div>
-      ) : (
-      <div id="tour-community-progress" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">{team.flag_emoji}</span>
-          <p className="font-bold text-gray-900">Équipe {team.name}</p>
-        </div>
-
-        <ScoreCard
-          teamId={membership!.team_id!}
-          initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
-        />
-
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
-          {!budget.communityBonusActive && (
-            <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-              <span className="text-sm">⏸️</span>
-              <p className="text-xs font-medium text-gray-600">
-                Bonus communautaire en pause — ton cadeau de base reste garanti à chaque commande.
-              </p>
-            </div>
-          )}
-
-          {communityTiers.length === 0 ? (
-            // Aucun palier communautaire configuré (resto sans grille) —
-            // aucune promesse d'article, message neutre (ADR 0007)
-            <p className="text-xs text-gray-400 text-center py-1">
-              Le score de ton équipe grandit à chaque commande directe.
-            </p>
-          ) : nextTier ? (
-            <>
-              <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
-                <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
-                <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div
-                  className="bg-brand-red h-2 rounded-full transition-all duration-700"
-                  style={{ width: `${tierPct}%` }}
-                />
+      {/* ── Flux continu — plus de cartes compartimentées : un seul feuillet
+          blanc, sections séparées par un simple trait, dans l'ordre de
+          priorité (ADR 0010 : hero d'abord, contenu = conséquence pas
+          chiffre). Palier solo + jetons à faire d'abord — ce qui bouge le
+          plus souvent pour le membre. */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+        {/* Palier solo : nom du cadeau + barre de progression vers le
+            suivant, jamais de seuil/écart chiffré (ADR 0028 §6, "perd le
+            ~€25"). Orange codé en dur — pour Kraainem brand-gold/brand-red
+            résolvent en rouge (brand_accent), lu comme un danger. */}
+        <div className="p-5">
+          {heroSolo.item || heroNextSolo ? (
+            <div className={heroCommunity.item || heroTeamTier.item ? "mb-4" : ""}>
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-2xl" aria-hidden="true">🍗</span>
+                <span className="text-xl font-black text-gray-900 text-center">
+                  {heroSolo.item ?? "Ton premier cadeau"}
+                </span>
               </div>
 
-              {isWeakCommunity ? (
-                <div className="mt-3 space-y-2">
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-                    <p className="text-sm font-semibold text-blue-900">
-                      À{" "}
-                      {(nextTier.score - score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}{" "}
-                      pts du 1er bonus communautaire
-                    </p>
-                    <p className="text-xs text-blue-700 mt-1">
-                      Chaque commande de tes coéquipiers vous rapproche du bonus&nbsp;
-                      <span className="font-semibold">+ {nextTier.item}</span>.
-                    </p>
-                  </div>
-                  <Link
-                    href={r("/my-team")}
-                    className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
-                  >
-                    <span>📲</span> Inviter dans mon équipe
-                  </Link>
-                </div>
-              ) : (
+              {heroNextSolo ? (
                 <>
-                  <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                    <span className="text-lg">👥</span>
-                    <div>
-                      <p className="text-xs text-gray-500">Prochain bonus communautaire</p>
-                      <p className="font-semibold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
-                    </div>
+                  <div className="w-full bg-gray-100 rounded-full h-3">
+                    <div
+                      className="h-3 rounded-full bg-orange-500 transition-all duration-700"
+                      style={{ width: `${heroNextSolo.pct}%` }}
+                    />
                   </div>
-                  <p className="text-xs text-gray-400 mt-2 text-center">
-                    💡 Chaque commande directe de ton équipe vous rapproche.
-                  </p>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-xs font-semibold text-gray-400 truncate">
+                      {heroSolo.item ?? "Début"}
+                    </span>
+                    <span className="text-xs font-semibold text-gray-400 truncate">
+                      {heroNextSolo.item}
+                    </span>
+                  </div>
                 </>
+              ) : (
+                <p className="text-xs text-center text-gray-400">🏆 Palier maximum atteint</p>
               )}
-            </>
+            </div>
           ) : (
-            <div className="text-center py-1">
-              <p className="text-2xl mb-1">🏆</p>
-              <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
-              {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
-              <p className="text-xs text-gray-500">
-                + {heroCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque commande
-              </p>
+            <p className="text-center text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</p>
+          )}
+
+          {(heroCommunity.item || heroTeamTier.item) && (
+            <div className="space-y-3 pt-4 border-t border-gray-100">
+              {heroCommunity.item && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span>👥</span>
+                    <span className="font-bold text-orange-600">+ {heroCommunity.item}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
+                </div>
+              )}
+
+              {heroTeamTier.item && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span>🏆</span>
+                    <span className="font-bold text-orange-600">+ {heroTeamTier.item}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
+                </div>
+              )}
             </div>
           )}
+        </div>
+
+        {/* Jetons — échelle complète (fait / en cours / à venir), plus le
+            bonus d'équipe en dernière marche. Disparaît pour de bon une
+            fois toutes les actions validées (ADR 0024 : pas de nouvelle
+            proposition pour une action déjà faite). */}
+        <div className="p-5">
+          <ActionsLadder
+            nextCommunityItem={nextTier?.item ?? null}
+            nextCommunityScore={nextTier?.score ?? null}
+          />
         </div>
       </div>
-      )}
 
-      {/* ── SECTION tuiles d'accès (ADR 0030 §4) — permanentes, à états
-          progressifs : on ne cache jamais une fonctionnalité, on montre ce
-          qui manque pour l'utiliser. */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link
-          href={r("/rewards")}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
-        >
-          <p className="text-xl mb-1" aria-hidden="true">🎁</p>
-          <p className="font-bold text-gray-900 text-sm">Récompenses</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {!hasTeam
-              ? "Rejoins une équipe"
-              : (() => {
-                  const unlocked = communityTiers.filter((t) => t.score <= score).length;
-                  return unlocked > 0
-                    ? `${unlocked} palier${unlocked > 1 ? "s" : ""} atteint${unlocked > 1 ? "s" : ""}`
-                    : "Découvre les paliers";
-                })()}
-          </p>
-        </Link>
+      {/* Rappel scan — l'action la plus rentable, toujours accessible en
+          plus du bouton flottant de la bottom nav. */}
+      <Link
+        href={r("/submit-order")}
+        className="flex items-center justify-between gap-4 bg-brand-dark text-white rounded-2xl p-5 hover:bg-gray-800 transition-colors"
+      >
+        <div>
+          <p className="font-bold text-sm">Scanner mon ticket</p>
+          <p className="text-xs text-gray-400 mt-0.5">pour accumuler des points</p>
+        </div>
+        <span className="shrink-0 w-11 h-11 rounded-full bg-orange-500 flex items-center justify-center">
+          <Scan className="w-5 h-5 text-white" strokeWidth={2.5} aria-hidden="true" />
+        </span>
+      </Link>
 
-        <Link
-          href={r("/leaderboard")}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
-        >
-          <p className="text-xl mb-1" aria-hidden="true">🏆</p>
-          <p className="font-bold text-gray-900 text-sm">Classement</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
-          </p>
-        </Link>
+      {/* Parrainage — récompense rappelée, lien WhatsApp direct. */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <ReferralCTA />
+      </div>
 
-        <Link
-          href={r("/feedback")}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-red/40 transition-colors"
-        >
-          <p className="text-xl mb-1" aria-hidden="true">💬</p>
-          <p className="font-bold text-gray-900 text-sm">Mon resto</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {validCount >= FEEDBACK_ELIGIBILITY_MIN
-              ? "Encourage ou signale, en privé"
-              : `Encore ${FEEDBACK_ELIGIBILITY_MIN - validCount} commande${FEEDBACK_ELIGIBILITY_MIN - validCount > 1 ? "s" : ""} pour donner ton avis`}
-          </p>
-        </Link>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+        {/* ── Progression d'équipe ────────────────────────────────────────── */}
+        {!team ? (
+          <div id="tour-community-progress" className="p-5 text-center">
+            <p className="text-3xl mb-2">👥</p>
+            <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Crée ton équipe ou rejoins-en une pour débloquer le bonus communautaire sur chaque commande.
+            </p>
+            <Link
+              href={r("/my-team")}
+              className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
+            >
+              Voir mon équipe →
+            </Link>
+          </div>
+        ) : (
+        <div id="tour-community-progress" className="p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-2xl">{team.flag_emoji}</span>
+            <p className="font-bold text-gray-900">Équipe {team.name}</p>
+          </div>
 
-        <Link
-          href={r("/reserve")}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:border-brand-gold/60 transition-colors"
-        >
-          <p className="text-xl mb-1" aria-hidden="true">💰</p>
-          <p className="font-bold text-gray-900 text-sm">Ma réserve</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {reserveBalance > 0
-              ? `${reserveBalance} de côté`
-              : (saverTierCount ?? 0) > 0
-                ? "Échange-la contre un gros cadeau"
-                : "Mets tes cadeaux de côté"}
-          </p>
-        </Link>
+          <ScoreCard
+            teamId={membership!.team_id!}
+            initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
+          />
+
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
+            {!budget.communityBonusActive && (
+              <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <span className="text-sm">⏸️</span>
+                <p className="text-xs font-medium text-gray-600">
+                  Bonus communautaire en pause — ton cadeau de base reste garanti à chaque commande.
+                </p>
+              </div>
+            )}
+
+            {communityTiers.length === 0 ? (
+              // Aucun palier communautaire configuré (resto sans grille) —
+              // aucune promesse d'article, message neutre (ADR 0007)
+              <p className="text-xs text-gray-400 text-center py-1">
+                Le score de ton équipe grandit à chaque commande directe.
+              </p>
+            ) : nextTier ? (
+              <>
+                <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
+                  <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
+                  <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-brand-red h-2 rounded-full transition-all duration-700"
+                    style={{ width: `${tierPct}%` }}
+                  />
+                </div>
+
+                {isWeakCommunity ? (
+                  <div className="mt-3 space-y-2">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                      <p className="text-sm font-semibold text-blue-900">
+                        À{" "}
+                        {(nextTier.score - score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })}{" "}
+                        pts du 1er bonus communautaire
+                      </p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        Chaque commande de tes coéquipiers vous rapproche du bonus&nbsp;
+                        <span className="font-semibold">+ {nextTier.item}</span>.
+                      </p>
+                    </div>
+                    <Link
+                      href={r("/my-team")}
+                      className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
+                    >
+                      <span>📲</span> Inviter dans mon équipe
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+                      <span className="text-lg">👥</span>
+                      <div>
+                        <p className="text-xs text-gray-500">Prochain bonus communautaire</p>
+                        <p className="font-semibold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2 text-center">
+                      💡 Chaque commande directe de ton équipe vous rapproche.
+                    </p>
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-1">
+                <p className="text-2xl mb-1">🏆</p>
+                <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
+                {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
+                <p className="text-xs text-gray-500">
+                  + {heroCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque commande
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        )}
+
+        {/* ── Tuiles d'accès (ADR 0030 §4) — permanentes, à états
+            progressifs : on ne cache jamais une fonctionnalité, on montre ce
+            qui manque pour l'utiliser. */}
+        <div className="p-5">
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href={r("/rewards")}
+              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
+            >
+              <p className="text-xl mb-1" aria-hidden="true">🎁</p>
+              <p className="font-bold text-gray-900 text-sm">Récompenses</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {!hasTeam
+                  ? "Rejoins une équipe"
+                  : (() => {
+                      const unlocked = communityTiers.filter((t) => t.score <= score).length;
+                      return unlocked > 0
+                        ? `${unlocked} palier${unlocked > 1 ? "s" : ""} atteint${unlocked > 1 ? "s" : ""}`
+                        : "Découvre les paliers";
+                    })()}
+              </p>
+            </Link>
+
+            <Link
+              href={r("/leaderboard")}
+              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
+            >
+              <p className="text-xl mb-1" aria-hidden="true">🏆</p>
+              <p className="font-bold text-gray-900 text-sm">Classement</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
+              </p>
+            </Link>
+
+            <Link
+              href={r("/feedback")}
+              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
+            >
+              <p className="text-xl mb-1" aria-hidden="true">💬</p>
+              <p className="font-bold text-gray-900 text-sm">Mon resto</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {validCount >= FEEDBACK_ELIGIBILITY_MIN
+                  ? "Encourage ou signale, en privé"
+                  : `Encore ${FEEDBACK_ELIGIBILITY_MIN - validCount} commande${FEEDBACK_ELIGIBILITY_MIN - validCount > 1 ? "s" : ""} pour donner ton avis`}
+              </p>
+            </Link>
+
+            <Link
+              href={r("/reserve")}
+              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
+            >
+              <p className="text-xl mb-1" aria-hidden="true">💰</p>
+              <p className="font-bold text-gray-900 text-sm">Ma réserve</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {reserveBalance > 0
+                  ? `${reserveBalance} de côté`
+                  : (saverTierCount ?? 0) > 0
+                    ? "Échange-la contre un gros cadeau"
+                    : "Mets tes cadeaux de côté"}
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        {/* Commandes récentes */}
+        <div className="p-5">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-bold text-gray-900">Mes commandes</h3>
+            <Link href={r("/submit-order")} className="text-brand-red text-sm font-semibold hover:underline">
+              + Ajouter
+            </Link>
+          </div>
+
+          {orderList.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-gray-400 text-sm">Aucune commande soumise.</p>
+              <Link
+                href={r("/submit-order")}
+                className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
+              >
+                Soumettre ma première commande
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {orderList.map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div>
+                    <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-400"}`}>
+                      {order.status === "validated"
+                        ? `+${pointsForOrder(Number(order.amount))} pts`
+                        : order.status === "pending" ? "En validation…" : "Non validée"}
+                    </p>
+                    <p className="text-xs text-gray-500 font-mono">
+                      {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}
+                    </p>
+                    {order.rejection_reason && <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>}
+                  </div>
+                  <StatusBadge status={order.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── SECTION 3 — Stats perso (subtil, bas de page) ─────────────────── */}
@@ -504,47 +584,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           )}
         </p>
       )}
-
-      {/* Commandes récentes */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-bold text-gray-900">Mes commandes</h3>
-          <Link href={r("/submit-order")} className="text-brand-red text-sm font-semibold hover:underline">
-            + Ajouter
-          </Link>
-        </div>
-
-        {orderList.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-gray-400 text-sm">Aucune commande soumise.</p>
-            <Link
-              href={r("/submit-order")}
-              className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
-            >
-              Soumettre ma première commande
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {orderList.map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                <div>
-                  <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-400"}`}>
-                    {order.status === "validated"
-                      ? `+${pointsForOrder(Number(order.amount))} pts`
-                      : order.status === "pending" ? "En validation…" : "Non validée"}
-                  </p>
-                  <p className="text-xs text-gray-500 font-mono">
-                    {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}
-                  </p>
-                  {order.rejection_reason && <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>}
-                </div>
-                <StatusBadge status={order.status} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* ── ADR 0038 — rattrapage de l'installation ────────────────────────
           L'onboarding ne propose l'app qu'une fois ; qui l'a manquée ou
