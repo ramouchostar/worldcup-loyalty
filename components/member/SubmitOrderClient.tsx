@@ -82,6 +82,11 @@ export default function SubmitOrderClient({
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
   // à annoncer, et on propose d'en rejoindre une depuis l'écran de succès.
   const [hasTeam, setHasTeam] = useState(true);
+  // Étape 07 (backlog onboarding) — cadeau réellement obtenu (couche 1 créée
+  // côté serveur) et prochain palier : nom + proportion de barre uniquement,
+  // jamais de seuil ni d'euro (ADR 0007/0028 §6).
+  const [reward, setReward] = useState<string | null>(null);
+  const [nextTier, setNextTier] = useState<{ item: string; pct: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -286,12 +291,20 @@ export default function SubmitOrderClient({
         sleep(randomDelay()),
       ]);
 
-      const { data: submitData } = await readJsonSafe<{ status?: string; error?: string; has_team?: boolean }>(res);
+      const { data: submitData } = await readJsonSafe<{
+        status?: string;
+        error?: string;
+        has_team?: boolean;
+        reward?: string | null;
+        next_tier?: { item: string; pct: number } | null;
+      }>(res);
       const data = submitData ?? {};
 
       if (res.status === 201) {
         const validated = data.status === "validated";
         setHasTeam(data.has_team !== false);
+        setReward(data.reward ?? null);
+        setNextTier(data.next_tier ?? null);
         track("order_result", {
           restaurant_id: restaurantId,
           result: validated ? "validated" : "pending_review",
@@ -329,6 +342,8 @@ export default function SubmitOrderClient({
     setKeyCorrected(false);
     setNoDelivery(false);
     setSubmitStatus("idle");
+    setReward(null);
+    setNextTier(null);
     setErrorMsg("");
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -351,7 +366,12 @@ export default function SubmitOrderClient({
             lisible quel que soit l'accent choisi par le resto. */}
         <div className="bg-brand-gold text-brand-dark text-center rounded-b-3xl px-4 pt-10 pb-8 -mx-4 -mt-6 sm:mx-0 sm:mt-0 sm:rounded-3xl">
           <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2">Ticket validé</p>
-          <h2 className="text-2xl font-black mb-5">Beau scan !</h2>
+          {/* Étape 07 — le titre nomme le cadeau RÉELLEMENT créé (couche 1) ;
+              sans cadeau créé (rien d'atteint, ou cadeau déjà actif ADR 0011),
+              on retombe sur le titre neutre. */}
+          <h2 className="text-2xl font-black mb-5">
+            {reward ? `🎁 ${reward} débloqué !` : "Beau scan !"}
+          </h2>
           <div className="flex items-center justify-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={COIN_EMOJI} alt="" className="w-10 h-10" />
@@ -380,46 +400,58 @@ export default function SubmitOrderClient({
                 <img src={COIN_EMOJI} alt="" className="w-4 h-4" /> +{earnedPoints}
               </span>
             </div>
+            {/* Barre vers le palier suivant — proportion visuelle + nom du
+                cadeau, aucun chiffre lisible (ADR 0028 §6, comme le hero). */}
+            {nextTier && (
+              <>
+                <div className="border-t border-gray-100 my-3" />
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="text-gray-600">Prochain cadeau</span>
+                    <span className="font-bold text-gray-900">🎁 {nextTier.item}</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brand-red rounded-full transition-all"
+                      style={{ width: `${Math.max(nextTier.pct, 4)}%` }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         <p className="text-gray-600 text-sm text-center mt-5 mb-1">
-          {hasTeam
-            ? "Ton score communautaire sera mis à jour sous peu."
-            : "Rejoins une équipe pour que tes prochains tickets fassent aussi grandir ses cadeaux."}
+          {reward
+            ? "Passe au comptoir lors de ta prochaine visite pour le récupérer."
+            : hasTeam
+              ? "Ton score communautaire sera mis à jour sous peu."
+              : "Rejoins une équipe pour que tes prochains tickets fassent aussi grandir ses cadeaux."}
         </p>
-        <p className="text-gray-500 text-xs text-center mb-6">
-          Passe au comptoir lors de ta prochaine visite pour récupérer tes cadeaux.
-        </p>
+        {reward && hasTeam && (
+          <p className="text-gray-500 text-xs text-center mb-6">
+            Ton score communautaire sera mis à jour sous peu.
+          </p>
+        )}
+        {!reward && <div className="mb-6" />}
 
+        {/* Étape 07 — DEUX sorties, pas quatre : voir le cadeau qui vient
+            d'être nommé, ou enchaîner un scan. Le reste vit dans la BottomNav. */}
         <div className="max-w-xs mx-auto space-y-3">
           <Link
             href={`/r/${restaurantId}/my-rewards`}
             className="block text-center bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
           >
-            Voir mes cadeaux →
+            {reward ? `Voir mon ${reward} →` : "Voir mes cadeaux →"}
           </Link>
-          {!hasTeam && (
-            <Link
-              href={`/r/${restaurantId}/my-team`}
-              className="block text-center bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-            >
-              Rejoindre une équipe
-            </Link>
-          )}
           <button
             type="button"
             onClick={reset}
-            className="block w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
           >
-            Scanner un autre ticket
+            <Scan className="w-4 h-4" aria-hidden="true" /> Scanner un autre ticket
           </button>
-          <Link
-            href={`/r/${restaurantId}/dashboard`}
-            className="block text-center text-xs text-gray-400 hover:text-gray-600 underline"
-          >
-            Retour à l&apos;accueil
-          </Link>
         </div>
       </div>
     );
@@ -433,6 +465,7 @@ export default function SubmitOrderClient({
         <p className="text-gray-600 text-sm mb-6">
           Ton ticket est en cours de traitement. Tu seras notifié dès que la vérification est terminée.
         </p>
+        {/* Étape 07 — deux sorties ici aussi, cohérentes avec l'écran validé. */}
         <div className="max-w-xs mx-auto space-y-3">
           <Link
             href={`/r/${restaurantId}/dashboard`}
@@ -440,16 +473,12 @@ export default function SubmitOrderClient({
           >
             Retour à l&apos;accueil
           </Link>
-          {!hasTeam && (
-            <Link
-              href={`/r/${restaurantId}/my-team`}
-              className="block bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-            >
-              Rejoindre une équipe
-            </Link>
-          )}
-          <button onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline">
-            Soumettre une autre commande
+          <button
+            type="button"
+            onClick={reset}
+            className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+          >
+            <Scan className="w-4 h-4" aria-hidden="true" /> Scanner un autre ticket
           </button>
         </div>
       </div>

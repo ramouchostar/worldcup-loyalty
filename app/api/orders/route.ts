@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderDate, validateAmount } from "@/lib/orders";
 import { getReceiptConfig, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
-import { createPendingReward, LEGACY_RESTAURANT_ID } from "@/lib/rewards";
+import { createPendingReward, loadRewardGrid, nextSoloTier, LEGACY_RESTAURANT_ID, type NextSoloTier } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
@@ -266,18 +266,26 @@ export async function POST(request: NextRequest) {
   // Create 3-layer pending reward for validated orders — awaited pour
   // garantir la création dans la même requête. Un échec est loggé mais
   // ne fait pas échouer la soumission (la commande est déjà validée).
+  // Étape 07 (backlog onboarding) : l'écran de succès titre sur le cadeau
+  // réellement obtenu et montre le palier suivant. Noms + proportion de barre
+  // uniquement — jamais de seuil ni d'euro (ADR 0007/0028 §6).
+  let rewardName: string | null = null;
+  let nextTier: NextSoloTier | null = null;
   if (status === "validated" && insertedOrder?.id) {
     // CA programme incrémenté AVANT la récompense : le budget du mois
     // (ADR 0012) inclut ainsi cette commande au moment du calcul
     await incrementProgramRevenue(restaurantId, parsedAmount);
     try {
-      await createPendingReward(
+      const rewardResult = await createPendingReward(
         insertedOrder.id,
         user.id,
         teamId,
         restaurantId,
         parsedAmount
       );
+      if (rewardResult.created) rewardName = rewardResult.soloItem;
+      const grid = await loadRewardGrid(restaurantId);
+      nextTier = nextSoloTier(grid, parsedAmount);
     } catch (err) {
       console.error("[orders] createPendingReward failed:", err);
     }
@@ -291,7 +299,10 @@ export async function POST(request: NextRequest) {
 
   // has_team : l'écran de succès adapte son message (pas de score d'équipe
   // à annoncer sans équipe) et propose d'en rejoindre une — ADR 0034.
-  return NextResponse.json({ success: true, status, has_team: teamId !== null }, { status: 201 });
+  return NextResponse.json(
+    { success: true, status, has_team: teamId !== null, reward: rewardName, next_tier: nextTier },
+    { status: 201 }
+  );
 }
 
 // GET supprimé (audit 2026-07-23) : aucun appelant — les pages membres sont

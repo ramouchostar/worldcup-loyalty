@@ -212,7 +212,10 @@ export async function createPendingReward(
   teamId: string | null,
   restaurantId: string,
   amount: number
-): Promise<void> {
+  // Retour : ce qui a RÉELLEMENT été créé — l'écran de succès (étape 07) titre
+  // sur le cadeau obtenu, et ne doit jamais l'annoncer quand l'insert est un
+  // no-op (cadeau déjà actif, ADR 0011, ou rien d'atteint).
+): Promise<{ soloItem: string | null; created: boolean }> {
   const adminClient = createAdminClient();
 
   // Commande envoyée sans équipe puis validée après que le membre en a
@@ -272,7 +275,7 @@ export async function createPendingReward(
     ? resolveTeamTier(teamTiers, teamTotalSpent, coverage)
     : { item: null, cost: 0 };
 
-  if (!solo.item && !community.item && !advancement.item) return;
+  if (!solo.item && !community.item && !advancement.item) return { soloItem: null, created: false };
 
   const { data: inserted, error } = await adminClient.from("pending_rewards").upsert(
     {
@@ -293,14 +296,16 @@ export async function createPendingReward(
   if (error) {
     // 23505 hors order_id = index partiel ADR 0011 (un seul cadeau
     // 'available' par membre) — no-op attendu, pas une erreur
-    if (error.code === "23505") return;
+    if (error.code === "23505") return { soloItem: solo.item, created: false };
     throw new Error(`pending_rewards insert failed: ${error.message}`);
   }
 
   // Compteur budget : uniquement si une récompense a réellement été créée
   // (liste vide = conflit ignoré, rien distribué)
-  if (inserted && inserted.length > 0) {
+  const created = !!(inserted && inserted.length > 0);
+  if (created) {
     const totalCost = solo.cost + community.cost + advancement.cost;
     await incrementRewardsCost(restaurantId, totalCost);
   }
+  return { soloItem: solo.item, created };
 }
