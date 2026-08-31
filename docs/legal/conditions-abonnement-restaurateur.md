@@ -1,10 +1,10 @@
-# Conditions d'abonnement restaurateur — brouillon (monétisation ADR 0029)
+# Conditions d'abonnement restaurateur
 
-> **Statut : BROUILLON — à valider par un juriste avant tout encaissement** (ADR 0029, chantier « clause CGU »).
-> Ces articles sont destinés aux conditions **restaurateur** (contrat de partenariat / CGV) —
-> PAS aux CGU membres (`cgu.md`), qui couvrent le client final. Ils forment un tout avec la
-> clause « Repères secteur » (`clause-reperes-secteur.md`), qui reste un article séparé.
-> Les [crochets] sont à compléter — notamment les **montants €, non calés** (ADR 0029 Phase 5).
+> **Version de travail — phase de test.** Ce document est en cours de validation
+> juridique ; les montants et délais entre [crochets] seront complétés avant
+> toute facturation. Il s'adresse aux **établissements partenaires** — les
+> clients finaux (membres) relèvent des conditions générales d'utilisation.
+> Il forme un tout avec la clause « Repères secteur », qui reste un article séparé.
 
 ## Proposition de texte
 

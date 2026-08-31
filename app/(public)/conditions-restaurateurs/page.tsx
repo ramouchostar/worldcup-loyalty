@@ -3,10 +3,17 @@ import path from "path";
 import Link from "next/link";
 import { renderMarkdown } from "@/lib/render-markdown";
 
-export const metadata = { title: "Conditions générales d'utilisation" };
+// Conditions d'abonnement restaurateur (ADR 0029) — publiées en version de
+// travail (phase de test) : le document lui-même porte le bandeau « en cours
+// de validation juridique ». Même mécanique que /terms et /privacy : le
+// markdown de docs/legal est la source unique.
+export const metadata = { title: "Conditions d'abonnement restaurateur" };
 
-export default function TermsPage() {
-  const md = fs.readFileSync(path.join(process.cwd(), "docs/legal/cgu.md"), "utf8");
+export default function PartnerTermsPage() {
+  const md = fs.readFileSync(
+    path.join(process.cwd(), "docs/legal/conditions-abonnement-restaurateur.md"),
+    "utf8"
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -18,11 +25,11 @@ export default function TermsPage() {
           {renderMarkdown(md)}
         </div>
         <p className="text-center mt-5 flex items-center justify-center gap-4">
+          <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 underline">
+            {"Conditions générales d'utilisation"}
+          </Link>
           <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 underline">
             Politique de confidentialité
-          </Link>
-          <Link href="/conditions-restaurateurs" className="text-xs text-gray-400 hover:text-gray-600 underline">
-            Conditions restaurateurs
           </Link>
         </p>
       </div>
