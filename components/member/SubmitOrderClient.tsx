@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Scan } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
-import { RECEIPT_EMOJI } from "@/lib/fluent-emoji";
+import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
+import { pointsForOrder } from "@/lib/points-model";
 import { amountBand, track } from "@/lib/analytics";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
@@ -337,42 +338,88 @@ export default function SubmitOrderClient({
   // que ça m'a rapporté ? » (libellés neutres : la validation est différée,
   // ADR 0008 — ne jamais promettre un cadeau déjà là).
   if (submitStatus === "success_validated") {
+    // ADR 0028 — points gagnés sur CE ticket, même formule courbée
+    // (pointsForOrder) que le score d'équipe et les compteurs header/dashboard :
+    // pas d'euro affiché, "amount" ne ressort qu'ici, transformé en points.
+    const earnedPoints = pointsForOrder(Number(amount));
+    const pointsLabel = `point${earnedPoints > 1 ? "s" : ""} gagné${earnedPoints > 1 ? "s" : ""}`;
+    const scanTime = new Date().toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
     return (
-      <div className="text-center py-12">
-        <p className="text-5xl mb-4">✅</p>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Ticket vérifié !</h2>
-        <p className="text-gray-600 text-sm mb-2">
+      <div>
+        {/* Fond en couleur d'accent de l'établissement (brand_accent →
+            --brand-gold) ; texte brand-dark (jamais blanc en dur) pour rester
+            lisible quel que soit l'accent choisi par le resto. */}
+        <div className="bg-brand-gold text-brand-dark text-center rounded-b-3xl px-4 pt-10 pb-8 -mx-4 -mt-6 sm:mx-0 sm:mt-0 sm:rounded-3xl">
+          <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2">Ticket validé</p>
+          <h2 className="text-2xl font-black mb-5">Beau scan !</h2>
+          <div className="flex items-center justify-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={COIN_EMOJI} alt="" className="w-10 h-10" />
+            <span className="text-5xl font-black tabular-nums">+{earnedPoints}</span>
+          </div>
+          <p className="text-sm font-bold uppercase tracking-wide mt-1 mb-6">{pointsLabel}</p>
+
+          <div className="bg-white text-left rounded-2xl p-4 max-w-xs mx-auto shadow-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
+              ) : (
+                <span className="text-xl" aria-hidden="true">🍗</span>
+              )}
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 text-sm truncate">{restaurantName}</p>
+                <p className="text-gray-500 text-xs">Aujourd&apos;hui à {scanTime}</p>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 my-3" />
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Points du ticket</span>
+              <span className="font-bold text-gray-900 flex items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={COIN_EMOJI} alt="" className="w-4 h-4" /> +{earnedPoints}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-gray-600 text-sm text-center mt-5 mb-1">
           {hasTeam
-            ? "Ta commande est validée. Ton score communautaire sera mis à jour sous peu."
-            : "Ta commande est validée. Rejoins une équipe pour que tes prochains tickets fassent aussi grandir ses cadeaux."}
+            ? "Ton score communautaire sera mis à jour sous peu."
+            : "Rejoins une équipe pour que tes prochains tickets fassent aussi grandir ses cadeaux."}
         </p>
-        <p className="text-gray-500 text-xs mb-6">
+        <p className="text-gray-500 text-xs text-center mb-6">
           Passe au comptoir lors de ta prochaine visite pour récupérer tes cadeaux.
         </p>
+
         <div className="max-w-xs mx-auto space-y-3">
           <Link
             href={`/r/${restaurantId}/my-rewards`}
-            className="block bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+            className="block text-center bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
           >
             Voir mes cadeaux →
           </Link>
           {!hasTeam && (
             <Link
               href={`/r/${restaurantId}/my-team`}
-              className="block bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+              className="block text-center bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
             >
               Rejoindre une équipe
             </Link>
           )}
+          <button
+            type="button"
+            onClick={reset}
+            className="block w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+          >
+            Scanner un autre ticket
+          </button>
           <Link
             href={`/r/${restaurantId}/dashboard`}
-            className="block bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            className="block text-center text-xs text-gray-400 hover:text-gray-600 underline"
           >
             Retour à l&apos;accueil
           </Link>
-          <button onClick={reset} className="text-xs text-gray-400 hover:text-gray-600 underline">
-            Soumettre une autre commande
-          </button>
         </div>
       </div>
     );
