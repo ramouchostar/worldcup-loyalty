@@ -227,6 +227,25 @@ export async function sendTierUnlockedEmail(
   return sent;
 }
 
+// Récap fondateurs (app/api/cron/founder-digest-daily + -weekly) — seul envoi
+// de ce module qui ne correspond à aucun EmailRecipientType (member/
+// restaurant) : c'est un rapport d'activité interne aux deux associés, pas
+// une donnée utilisateur, donc pas de ligne email_log. Destinataires en
+// variable d'env (FOUNDER_DIGEST_EMAILS, liste séparée par des virgules) —
+// même motif que ADMIN_EMAILS/SUPER_ADMIN_EMAILS, jamais en dur dans le code.
+export async function sendFounderDigestEmail(
+  content: { subject: string; html: string; text: string }
+): Promise<{ sent: number; total: number }> {
+  const emails = (process.env.FOUNDER_DIGEST_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (emails.length === 0) return { sent: 0, total: 0 };
+
+  const results = await Promise.all(emails.map((to) => dispatch(to, content)));
+  return { sent: results.filter(Boolean).length, total: emails.length };
+}
+
 export async function sendReferralSuccessEmail(
   to: string,
   userId: string,

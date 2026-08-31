@@ -82,6 +82,16 @@ export function emailDivider(): string {
   return `<hr style="margin:32px 0 20px; border:none; border-top:1px solid ${EMAIL_COLORS.border};" />`;
 }
 
+// Liste à puces — digests fondateurs (lib/email-templates/founder-digest.ts)
+// pour l'instant, mais générique : aucun autre template n'a eu besoin d'une
+// liste jusqu'ici, tous racontent un seul événement en un paragraphe.
+export function emailList(items: string[]): string {
+  if (items.length === 0) return "";
+  return `<ul style="margin:0 0 16px; padding-left:20px; color:${EMAIL_COLORS.body}; font-size:14px; line-height:1.7;">
+  ${items.map((item) => `<li>${item}</li>`).join("\n  ")}
+</ul>`;
+}
+
 export function emailFootNote(html: string): string {
   return `<p style="margin:0; color:${EMAIL_COLORS.muted}; font-size:12px; line-height:1.6;">${html}</p>`;
 }

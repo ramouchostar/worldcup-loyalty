@@ -111,6 +111,8 @@ EMAIL_FROM=                         # ex. "Boosteats <onboarding@resend.dev>"
 NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://worldcup-loyalty.vercel.app
 ANTHROPIC_API_KEY=                  # vision : OCR ticket, découverte clé ticket, suggestions menu, détection de design (m48)
 NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun script Google, aucune bannière cookies, CSP fermée
+GITHUB_TOKEN=                       # PAT lecture seule — commits master pour le récap fondateurs (lib/github-activity.ts), non configuré = section commits vide
+FOUNDER_DIGEST_EMAILS=              # destinataires du récap fondateurs, séparés par des virgules — même motif que ADMIN_EMAILS
 ```
 
 ### Mesure d'audience — voir `docs/tracking-plan.md`
