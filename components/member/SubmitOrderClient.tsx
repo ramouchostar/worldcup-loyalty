@@ -32,12 +32,14 @@ function randomDelay() {
   return Math.floor(Math.random() * 2000) + 3000; // 3000–5000ms
 }
 
-// ADR 0040 — l'écran vit en deux modes :
+// ADR 0040 (assoupli par ADR 0045) — l'écran vit en deux modes :
 // - `visitor` : pas de compte. La photo est prise et préparée normalement,
-//   puis gardée sur l'appareil (IndexedDB) et on propose la connexion pour
-//   « garder ses points ». Aucune analyse (l'OCR reste authentifié).
+//   gardée sur l'appareil (IndexedDB), ET analysée tout de suite (OCR ouvert
+//   aux visiteurs, bridé par IP — ADR 0045) pour prouver que le scan a
+//   marché avant de proposer la connexion (« garder ses points »).
 // - `resume` : retour de connexion — la photo en attente est rechargée et
-//   l'analyse enchaîne toute seule, comme si de rien n'était.
+//   l'analyse enchaîne toute seule (nouvel appel, authentifié cette fois),
+//   comme si de rien n'était.
 export default function SubmitOrderClient({
   visitor,
   resume,
@@ -135,10 +137,12 @@ export default function SubmitOrderClient({
       setReceiptFile(prepared.file);
       setPreview(URL.createObjectURL(prepared.file));
       if (visitor) {
-        // La photo reste sur l'appareil en attendant le compte (ADR 0040).
+        // La photo reste sur l'appareil en attendant le compte (ADR 0040) ;
+        // l'aperçu OCR tourne quand même — non authentifié, bridé par IP
+        // (ADR 0045) — pour prouver que le scan a marché avant de demander
+        // le compte.
         await savePendingTicket(restaurantId, prepared.file);
         track("visitor_ticket_captured", { restaurant_id: restaurantId });
-        return;
       }
       await analyseReceipt(prepared.file);
     } finally {
@@ -429,7 +433,14 @@ export default function SubmitOrderClient({
             <img
               src={preview}
               alt="Ticket de caisse"
-              className="max-h-56 mx-auto rounded-lg object-contain"
+              // ADR 0045 — côté visiteur, la photo cède la place à la preuve
+              // du scan (montant OCR) et aux boutons de connexion : vignette
+              // plutôt qu'aperçu pleine taille.
+              className={
+                visitor
+                  ? "h-20 w-20 mx-auto rounded-lg object-cover"
+                  : "max-h-56 mx-auto rounded-lg object-contain"
+              }
             />
             <div className="flex justify-center gap-2 mt-3">
               <button
@@ -505,11 +516,29 @@ export default function SubmitOrderClient({
       </div>
 
       {/* ADR 0040 — la photo est prise : c'est LE moment où le compte devient
-          utile, et le message dit pourquoi (garder ses points). */}
+          utile, et le message dit pourquoi (garder ses points).
+          ADR 0045 — l'aperçu OCR tourne déjà (non authentifié, ci-dessus) :
+          dès qu'un montant est lu, on l'affiche comme preuve que le scan a
+          marché, avant même de demander le compte. */}
       {visitor && preview && !preparing && (
         <div className="bg-white border-2 border-brand-red/40 rounded-2xl p-5 text-center mb-4">
-          <p className="text-3xl mb-2">📸</p>
-          <h2 className="text-lg font-bold text-gray-900 mb-1">Ton ticket est prêt !</h2>
+          {parseStatus === "done" && ocrAmount !== null ? (
+            <>
+              <p className="text-3xl mb-1">✅</p>
+              <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">
+                Scan réussi
+              </p>
+              <p className="text-3xl font-black text-gray-900 mb-1">{ocrAmount.toFixed(2)} €</p>
+              <p className="text-gray-500 text-xs mb-4">Montant détecté sur ton ticket</p>
+            </>
+          ) : (
+            <>
+              <p className="text-3xl mb-2">📸</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">
+                {parseStatus === "parsing" ? "Lecture de ton ticket…" : "Ton ticket est prêt !"}
+              </h2>
+            </>
+          )}
           <p className="text-gray-600 text-sm mb-4">
             Connecte-toi en quelques secondes pour l&apos;envoyer et{" "}
             <span className="font-semibold">garder tes points</span>. La photo reste sur ton
@@ -520,7 +549,7 @@ export default function SubmitOrderClient({
               type="button"
               onClick={() => continueWith("google")}
               disabled={authLoading}
-              className="w-full bg-white border-2 border-gray-300 text-gray-800 py-3 rounded-xl font-semibold hover:bg-gray-50 disabled:opacity-60 transition-colors"
+              className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors"
             >
               Continuer avec Google
             </button>
@@ -528,7 +557,7 @@ export default function SubmitOrderClient({
               type="button"
               onClick={() => continueWith("signup")}
               disabled={authLoading}
-              className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors"
+              className="w-full bg-white border-2 border-gray-300 text-gray-800 py-3 rounded-xl font-semibold hover:bg-gray-50 disabled:opacity-60 transition-colors"
             >
               Continuer avec un e-mail
             </button>
@@ -556,7 +585,11 @@ export default function SubmitOrderClient({
         </button>
       )}
 
-      {parseStatus === "error" && (
+      {/* Un visiteur n'a pas encore de compte : ce message parle du numéro de
+          commande d'un formulaire qu'il ne voit pas encore (ADR 0045) — la
+          preuve de scan côté visiteur reste best-effort, silencieuse en cas
+          d'échec, jamais bloquante. */}
+      {parseStatus === "error" && !visitor && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
           <p className="text-red-700 text-sm">{parseError}</p>
           <p className="text-red-500 text-xs mt-1">
@@ -565,8 +598,10 @@ export default function SubmitOrderClient({
         </div>
       )}
 
-      {/* Formulaire — visible après analyse réussie */}
-      {parseStatus === "done" && (
+      {/* Formulaire — visible après analyse réussie, réservé aux membres
+          connectés (un visiteur ne peut pas soumettre, /api/orders exige une
+          session — ADR 0045). */}
+      {parseStatus === "done" && !visitor && (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2 items-start">
             <span className="text-green-600">✓</span>

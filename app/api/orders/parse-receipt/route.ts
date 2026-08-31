@@ -3,12 +3,24 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { analyzeReceipt, isAllowedReceiptType } from "@/lib/receipt-ocr";
 import { getReceiptConfig } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, checkIpRateLimit, hashIp } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 
 export const maxDuration = 30;
+
+// ADR 0045 — anti-abus du visiteur anonyme (pas de user_id à rate-limiter) :
+// plafond plus serré qu'authentifié, c'est un aperçu "preuve du scan" avant
+// tout engagement, pas un usage répété.
+const VISITOR_MAX_SCANS = 8;
+const VISITOR_WINDOW_SECONDS = 3600;
+
+function clientIp(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
 
 // Aperçu UX temps réel uniquement ("Montant détecté : €X").
 // La source de vérité anti-fraude est la ré-analyse serveur dans
@@ -19,16 +31,27 @@ export async function POST(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
-  // F8 (sécurité) — anti-abus de l'OCR (appels Claude Vision FACTURÉS) : au plus
-  // 20 analyses par heure et par membre. Fail-open tant que m44 n'est pas
+  // F8 (sécurité) — anti-abus de l'OCR (appels Claude Vision FACTURÉS).
+  // ADR 0045 — ouvert aux visiteurs (preuve du scan avant la création de
+  // compte) : sans session, pas de user_id à rate-limiter, on bride par IP
+  // à la place. Fail-open tant que la migration correspondante n'est pas
   // appliquée (voir lib/rate-limit.ts).
-  if (!(await checkRateLimit(user.id, "ocr_parse_receipt", 20, 3600))) {
-    return NextResponse.json(
-      { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
-      { status: 429 }
-    );
+  if (user) {
+    if (!(await checkRateLimit(user.id, "ocr_parse_receipt", 20, 3600))) {
+      return NextResponse.json(
+        { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
+        { status: 429 }
+      );
+    }
+  } else {
+    const ipHash = hashIp(clientIp(request));
+    if (!(await checkIpRateLimit(ipHash, "ocr_parse_receipt_visitor", VISITOR_MAX_SCANS, VISITOR_WINDOW_SECONDS))) {
+      return NextResponse.json(
+        { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
+        { status: 429 }
+      );
+    }
   }
 
   const formData = await request.formData();
@@ -73,13 +96,18 @@ export async function POST(request: NextRequest) {
   // ADR 0036 — l'image et ce que le modèle en a lu sont conservés 30 jours,
   // y compris quand le scan n'aboutit pas : un ticket refusé à l'entête est
   // justement ce qu'on veut pouvoir regarder. Best-effort, jamais bloquant.
-  const scanId = await storeScan({
-    restaurantId: String(rawRestaurantId),
-    userId: user.id,
-    file,
-    analysis,
-    outcome: analysis.has_restaurant_header ? "parsed" : "header_rejected",
-  });
+  // ADR 0045 — suppose un membre (receipt_scans.user_id NOT NULL) : un
+  // visiteur anonyme n'a pas encore de compte, cet aperçu-là n'est donc pas
+  // archivé (il le sera à la vraie soumission, authentifiée).
+  const scanId = user
+    ? await storeScan({
+        restaurantId: String(rawRestaurantId),
+        userId: user.id,
+        file,
+        analysis,
+        outcome: analysis.has_restaurant_header ? "parsed" : "header_rejected",
+      })
+    : null;
 
   if (!analysis.has_restaurant_header) {
     return NextResponse.json(
