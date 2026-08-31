@@ -112,12 +112,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       .eq("restaurant_id", restaurantId)
       .eq("layer", "saver")
       .eq("is_active", true),
-    // Rang de l'équipe (micro-état tuile Classement, ADR 0030 §4) — colonnes
-    // publiques uniquement (score/member_count, m41), petit volume par resto.
+    // Rang de l'équipe (micro-état tuile Classement, ADR 0030 §4, + comparaison
+    // vs équipe en tête sur la carte équipe) — colonnes publiques uniquement
+    // (score/member_count, m41), petit volume par resto. Jointure teams pour
+    // nom/drapeau/is_active — même filtre que /leaderboard (ADR 0018 : le
+    // classement expose déjà toutes les équipes, mais seulement les actives).
     hasTeam
       ? supabase
           .from("community_scores")
-          .select("team_id, score")
+          .select("team_id, score, teams(name, flag_emoji, is_active)")
           .eq("restaurant_id", restaurantId)
           .order("score", { ascending: false })
       : Promise.resolve({ data: null }),
@@ -131,10 +134,18 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const score = (scoreRaw as { score: number } | null)?.score ?? 0;
   const memberCount = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
 
-  // Micro-états des tuiles d'accès (ADR 0030 §4)
-  const rankRows = (rankResult.data as { team_id: string; score: number }[] | null) ?? [];
+  // Micro-états des tuiles d'accès (ADR 0030 §4) + comparaison classement.
+  // Équipes inactives filtrées ici, comme /leaderboard — sinon le rang
+  // affiché sur le dashboard peut diverger de celui du classement public.
+  type RankRow = {
+    team_id: string;
+    score: number;
+    teams: { name: string; flag_emoji: string; is_active: boolean } | null;
+  };
+  const rankRows = ((rankResult.data as unknown as RankRow[]) ?? []).filter((row) => row.teams?.is_active);
   const teamRank = hasTeam ? rankRows.findIndex((row) => row.team_id === membership!.team_id) + 1 : 0;
   const teamCount = rankRows.length;
+  const leaderRow = teamRank > 1 ? rankRows[0] : null;
   const teamTotalSpent = Number((spentRaw as { total_spent: number } | null)?.total_spent ?? 0);
   const pendingRewards = (pendingRaw as PendingReward[] ?? []);
   const orderList = (orders as Order[] ?? []);
@@ -517,6 +528,56 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               </div>
             )}
           </div>
+
+          {/* Comparaison au classement — motive à dépasser l'équipe en tête,
+              plutôt qu'un simple rang abstrait ("#3 sur 12"). Équipe seule en
+              lice (teamCount ≤ 1) → rien à comparer, bloc masqué. Toujours
+              en points (ADR 0007), jamais score/membres (ADR 0028 §"non
+              inversible"). Reste dans la carte équipe plutôt que d'agrandir
+              la tuile "Classement" (ADR 0030 §4 — tuile = micro-état). */}
+          {teamCount > 1 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Classement</p>
+              {teamRank === 1 ? (
+                <p className="text-sm text-center text-gray-700">
+                  🥇 <span className="font-bold text-orange-600">Ton équipe est en tête</span> avec{" "}
+                  {score.toLocaleString("fr-BE")} pts !
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {leaderRow && (
+                    <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3">
+                      <span className="text-lg shrink-0" aria-hidden="true">🥇</span>
+                      <span className="text-xl shrink-0" aria-hidden="true">{leaderRow.teams?.flag_emoji}</span>
+                      <p className="flex-1 min-w-0 font-semibold text-sm text-gray-900 truncate">
+                        {leaderRow.teams?.name}
+                      </p>
+                      <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">
+                        {leaderRow.score.toLocaleString("fr-BE")} pts
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 rounded-xl bg-orange-50 border border-orange-200 p-3">
+                    <span className="text-xs font-bold text-orange-600 w-6 text-center shrink-0">#{teamRank}</span>
+                    <span className="text-xl shrink-0" aria-hidden="true">{team.flag_emoji}</span>
+                    <p className="flex-1 min-w-0 font-semibold text-sm text-orange-600 flex items-baseline gap-1">
+                      <span className="truncate">{team.name}</span>
+                      <span className="font-normal shrink-0">← toi</span>
+                    </p>
+                    <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">
+                      {score.toLocaleString("fr-BE")} pts
+                    </p>
+                  </div>
+                </div>
+              )}
+              <Link
+                href={r("/leaderboard")}
+                className="block text-center text-xs font-semibold text-orange-600 mt-3 hover:underline"
+              >
+                Classement complet →
+              </Link>
+            </div>
+          )}
         </div>
         )}
 
