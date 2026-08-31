@@ -271,6 +271,12 @@ export async function POST(request: NextRequest) {
   // uniquement — jamais de seuil ni d'euro (ADR 0007/0028 §6).
   let rewardName: string | null = null;
   let nextTier: NextSoloTier | null = null;
+  // A distinguer de `rewardName` : un cadeau peut déjà être disponible
+  // (ADR 0011, créé par une commande précédente) sans que CETTE commande en
+  // ait créé un nouveau — l'écran de succès a besoin des deux pour savoir
+  // si "Voir mes cadeaux" a un sens (un cadeau existe) et si le titre doit
+  // annoncer une nouveauté (rewardName).
+  let hasReward = false;
   if (status === "validated" && insertedOrder?.id) {
     // CA programme incrémenté AVANT la récompense : le budget du mois
     // (ADR 0012) inclut ainsi cette commande au moment du calcul
@@ -289,6 +295,14 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error("[orders] createPendingReward failed:", err);
     }
+    const { data: activeReward } = await supabase
+      .from("pending_rewards")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "available")
+      .maybeSingle();
+    hasReward = !!activeReward;
   }
 
   // Lignes d'articles lues par l'OCR (ADR 0020) — best effort, après le
@@ -300,7 +314,7 @@ export async function POST(request: NextRequest) {
   // has_team : l'écran de succès adapte son message (pas de score d'équipe
   // à annoncer sans équipe) et propose d'en rejoindre une — ADR 0034.
   return NextResponse.json(
-    { success: true, status, has_team: teamId !== null, reward: rewardName, next_tier: nextTier },
+    { success: true, status, has_team: teamId !== null, reward: rewardName, next_tier: nextTier, has_reward: hasReward },
     { status: 201 }
   );
 }
