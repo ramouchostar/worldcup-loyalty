@@ -71,6 +71,11 @@ export async function upsertMenuCatalog(
     deactivated = toDeactivate.length;
   }
 
+  // ADR 0046 — le catalogue vient de changer : redonner leur chance aux
+  // lignes de tickets jamais rattachées (best-effort, ne bloque pas l'import).
+  const { rematchOrderItems } = await import("./menu-rematch");
+  await rematchOrderItems(restaurantId);
+
   return { upserted: rows.length, deactivated };
 }
 
