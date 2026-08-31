@@ -25,6 +25,9 @@ export default function PrivacyPage() {
           <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 underline">
             {"Conditions générales d'utilisation"}
           </Link>
+          <Link href="/conditions-restaurateurs" className="text-xs text-gray-400 hover:text-gray-600 underline">
+            Conditions restaurateurs
+          </Link>
           <CookiePreferencesButton />
         </p>
       </div>
