@@ -26,7 +26,7 @@ const PERIODS = [
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 type OrderRow = { id: string; order_date: string; order_time: string | null; amount: number };
-type ItemRow = { order_id: string; raw_name: string; quantity: number; unit_price: number | null; menu_item_id: string | null };
+type ItemRow = { order_id: string; raw_name: string; quantity: number; unit_price: number | null; menu_item_id: string | null; is_ignored?: boolean | null };
 type MenuRow = { id: string; name: string; menu_price: number; cost_price: number };
 
 type DishAgg = {
@@ -78,11 +78,22 @@ export default async function AdminSalesPage({
   const items: ItemRow[] = [];
   const orderIds = orders.map((o) => o.id);
   for (let i = 0; i < orderIds.length; i += 150) {
-    const { data: chunk } = await admin
+    const slice = orderIds.slice(i, i + 150);
+    // is_ignored (ADR 0046) : lignes techniques de caisse (TVA, remise…) hors
+    // des plats — fail-open tant que la migration 20260831-2335 manque.
+    const withFlag = await admin
       .from("order_items")
-      .select("order_id, raw_name, quantity, unit_price, menu_item_id")
-      .in("order_id", orderIds.slice(i, i + 150));
-    items.push(...((chunk ?? []) as ItemRow[]));
+      .select("order_id, raw_name, quantity, unit_price, menu_item_id, is_ignored")
+      .in("order_id", slice);
+    let chunk: unknown[] = withFlag.data ?? [];
+    if (withFlag.error) {
+      const bare = await admin
+        .from("order_items")
+        .select("order_id, raw_name, quantity, unit_price, menu_item_id")
+        .in("order_id", slice);
+      chunk = bare.data ?? [];
+    }
+    items.push(...(chunk as ItemRow[]));
   }
 
   // ── Agrégats par plat ──────────────────────────────────────────────────────
@@ -90,6 +101,7 @@ export default async function AdminSalesPage({
   const dishes = new Map<string, DishAgg>();
 
   for (const it of items) {
+    if (it.is_ignored) continue; // ligne technique de caisse (ADR 0046)
     const qty = Number(it.quantity) || 1;
     const mi = it.menu_item_id ? menuById.get(it.menu_item_id) : undefined;
     const key = mi ? mi.id : `raw:${it.raw_name.trim().toLowerCase()}`;
