@@ -348,8 +348,8 @@ _Avoid_ : mode support, impersonation (le super-admin agit en son nom).
 Tout refus d'autorisation redirige avec `?reason=…` et la page d'atterrissage affiche un bandeau clair (« Cette section est réservée aux restaurateurs », « Ta demande est en cours d'examen »). Jamais de redirection silencieuse vers `/join`.
 _Avoid_ : page d'erreur (pas de nouvelle page — un bandeau contextuel).
 
-**Onboarding visiteur** *(ADR 0040)* :
-La valeur d'abord, le compte au premier ticket. Un visiteur (QR scanné, pas de compte) voit le tour de bienvenue (3 écrans, cadeaux réels du resto, une fois par établissement), navigue librement, photographie son ticket — et c'est à l'ENVOI que le compte est demandé (« garde tes points », Google en un tap d'abord). La photo attend sur l'appareil (IndexedDB, 30 min) et la soumission reprend seule après connexion (`?resume=1`). Un membre qui rescanne le QR arrive directement sur son dashboard.
+**Onboarding visiteur** *(ADR 0040, assoupli par ADR 0045)* :
+La valeur d'abord, le compte au premier ticket. Un visiteur (QR scanné, pas de compte) voit le tour de bienvenue (3 écrans, cadeaux réels du resto, une fois par établissement), navigue librement, photographie son ticket — l'aperçu OCR tourne tout de suite (non authentifié, bridé par IP, ADR 0045) et affiche le montant détecté comme preuve que le scan a marché — et c'est à l'ENVOI que le compte est demandé (« garde tes points », Google en un tap d'abord). La photo attend sur l'appareil (IndexedDB, 30 min) et la soumission reprend seule après connexion (`?resume=1`). Un membre qui rescanne le QR arrive directement sur son dashboard.
 _Avoid_ : mode invité (pas de points en suspens sur session anonyme), mur de connexion.
 
 **Aperçu produit (landing)** *(ADR 0042, amendé par ADR 0043)* :

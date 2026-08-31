@@ -3,7 +3,11 @@
 **Statut** : Accepté — implémenté (2026-08-25). Point 2 (tour de bienvenue,
 `VisitorTour`) retiré par [ADR 0044](0044-retrait-tour-de-bienvenue.md) : la
 carte "Ce que ce ticket peut débloquer" de la vitrine (ADR 0042/0043) affiche
-désormais les mêmes cadeaux réels directement sur la page, sans modal.
+désormais les mêmes cadeaux réels directement sur la page, sans modal. Point 3
+(« l'OCR reste authentifié ») assoupli par
+[ADR 0045](0045-preuve-scan-avant-compte.md) : l'aperçu OCR tourne désormais
+aussi pour un visiteur anonyme (bridé par IP), pour prouver que le scan a
+marché avant de demander le compte.
 
 ## Contexte
 
