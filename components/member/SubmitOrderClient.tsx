@@ -87,6 +87,10 @@ export default function SubmitOrderClient({
   // jamais de seuil ni d'euro (ADR 0007/0028 §6).
   const [reward, setReward] = useState<string | null>(null);
   const [nextTier, setNextTier] = useState<{ item: string; pct: number } | null>(null);
+  // Distinct de `reward` (créé par CE ticket) : un cadeau peut déjà être
+  // disponible depuis une commande précédente (ADR 0011) — c'est cette
+  // valeur qui décide si "Voir mes cadeaux" a un sens sur l'écran de succès.
+  const [hasReward, setHasReward] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -297,6 +301,7 @@ export default function SubmitOrderClient({
         has_team?: boolean;
         reward?: string | null;
         next_tier?: { item: string; pct: number } | null;
+        has_reward?: boolean;
       }>(res);
       const data = submitData ?? {};
 
@@ -305,6 +310,7 @@ export default function SubmitOrderClient({
         setHasTeam(data.has_team !== false);
         setReward(data.reward ?? null);
         setNextTier(data.next_tier ?? null);
+        setHasReward(data.has_reward === true);
         track("order_result", {
           restaurant_id: restaurantId,
           result: validated ? "validated" : "pending_review",
@@ -358,14 +364,18 @@ export default function SubmitOrderClient({
     // pas d'euro affiché, "amount" ne ressort qu'ici, transformé en points.
     const earnedPoints = pointsForOrder(Number(amount));
     const pointsLabel = `point${earnedPoints > 1 ? "s" : ""} gagné${earnedPoints > 1 ? "s" : ""}`;
-    const scanTime = new Date().toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
     return (
       <div>
-        {/* Fond en couleur d'accent de l'établissement (brand_accent →
-            --brand-gold) ; texte brand-dark (jamais blanc en dur) pour rester
-            lisible quel que soit l'accent choisi par le resto. */}
-        <div className="bg-brand-gold text-brand-dark text-center rounded-b-3xl px-4 pt-10 pb-8 -mx-4 -mt-6 sm:mx-0 sm:mt-0 sm:rounded-3xl">
-          <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2">Ticket validé</p>
+        {/* Dégradé vert centré, identité Boosteats fixe — PAS brand_accent :
+            pour Kraainem cette variable résout en rouge (cf. le badge
+            "Pro" ou la bordure de la zone photo), lu comme un signal de
+            danger sur un écran de célébration. Ce moment reste identique
+            quel que soit l'établissement. */}
+        <div
+          className="text-white text-center rounded-b-3xl px-4 pt-10 pb-8 -mx-4 -mt-6 sm:mx-0 sm:mt-0 sm:rounded-3xl"
+          style={{ background: "radial-gradient(circle at 50% 30%, #9DBA6C 0%, #5E7238 55%, #263012 100%)" }}
+        >
+          <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-2">Ticket validé</p>
           {/* Étape 07 — le titre nomme le cadeau RÉELLEMENT créé (couche 1) ;
               sans cadeau créé (rien d'atteint, ou cadeau déjà actif ADR 0011),
               on retombe sur le titre neutre. */}
@@ -377,74 +387,58 @@ export default function SubmitOrderClient({
             <img src={COIN_EMOJI} alt="" className="w-10 h-10" />
             <span className="text-5xl font-black tabular-nums">+{earnedPoints}</span>
           </div>
-          <p className="text-sm font-bold uppercase tracking-wide mt-1 mb-6">{pointsLabel}</p>
+          <p className="text-sm font-bold uppercase tracking-wide mt-1">{pointsLabel}</p>
 
-          <div className="bg-white text-left rounded-2xl p-4 max-w-xs mx-auto shadow-sm">
-            <div className="flex items-center gap-2 min-w-0">
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-              ) : (
-                <span className="text-xl" aria-hidden="true">🍗</span>
-              )}
-              <div className="min-w-0">
-                <p className="font-bold text-gray-900 text-sm truncate">{restaurantName}</p>
-                <p className="text-gray-500 text-xs">Aujourd&apos;hui à {scanTime}</p>
+          {/* Barre vers le palier suivant — proportion visuelle + nom du
+              cadeau, aucun chiffre lisible (ADR 0028 §6, comme le hero).
+              Pas de carte blanche : le montant/l'heure du ticket répétaient
+              une info déjà donnée par le gros nombre au-dessus. */}
+          {nextTier && (
+            <div className="bg-white/15 text-left rounded-2xl p-4 max-w-xs mx-auto mt-5">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-white/80">Prochain cadeau</span>
+                <span className="font-bold">🎁 {nextTier.item}</span>
+              </div>
+              <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full transition-all"
+                  style={{ width: `${Math.max(nextTier.pct, 4)}%` }}
+                />
               </div>
             </div>
-            <div className="border-t border-gray-100 my-3" />
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Points du ticket</span>
-              <span className="font-bold text-gray-900 flex items-center gap-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={COIN_EMOJI} alt="" className="w-4 h-4" /> +{earnedPoints}
-              </span>
-            </div>
-            {/* Barre vers le palier suivant — proportion visuelle + nom du
-                cadeau, aucun chiffre lisible (ADR 0028 §6, comme le hero). */}
-            {nextTier && (
-              <>
-                <div className="border-t border-gray-100 my-3" />
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-gray-600">Prochain cadeau</span>
-                    <span className="font-bold text-gray-900">🎁 {nextTier.item}</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand-red rounded-full transition-all"
-                      style={{ width: `${Math.max(nextTier.pct, 4)}%` }}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          )}
         </div>
 
-        <p className="text-gray-600 text-sm text-center mt-5 mb-1">
-          {reward
-            ? "Passe au comptoir lors de ta prochaine visite pour le récupérer."
-            : hasTeam
-              ? "Ton score communautaire sera mis à jour sous peu."
-              : "Rejoins une équipe pour que tes prochains tickets fassent aussi grandir ses cadeaux."}
-        </p>
-        {reward && hasTeam && (
-          <p className="text-gray-500 text-xs text-center mb-6">
+        {hasTeam && (
+          <p className="text-gray-600 text-sm text-center mt-5 mb-1">
             Ton score communautaire sera mis à jour sous peu.
           </p>
         )}
-        {!reward && <div className="mb-6" />}
 
-        {/* Étape 07 — DEUX sorties, pas quatre : voir le cadeau qui vient
-            d'être nommé, ou enchaîner un scan. Le reste vit dans la BottomNav. */}
-        <div className="max-w-xs mx-auto space-y-3">
-          <Link
-            href={`/r/${restaurantId}/my-rewards`}
-            className="block text-center bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
-          >
-            {reward ? `Voir mon ${reward} →` : "Voir mes cadeaux →"}
-          </Link>
+        {/* Étape 07bis — un seul CTA principal à la fois, selon ce qui a
+            vraiment un sens : le cadeau s'il existe (créé maintenant ou déjà
+            disponible, ADR 0011), sinon rejoindre une équipe si ce n'est pas
+            déjà fait, sinon juste enchaîner un scan. Le reste vit dans la
+            BottomNav. */}
+        <div className={`max-w-xs mx-auto space-y-3 ${hasTeam ? "" : "mt-5"}`}>
+          {hasReward ? (
+            <Link
+              href={`/r/${restaurantId}/my-rewards`}
+              className="block text-center bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+            >
+              {reward ? `Voir mon ${reward} →` : "Voir mes cadeaux →"}
+            </Link>
+          ) : !hasTeam ? (
+            <div>
+              <Link
+                href={`/r/${restaurantId}/my-team`}
+                className="block text-center bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+              >
+                Rejoindre une équipe
+              </Link>
+              <p className="text-center text-xs text-gray-500 mt-2">Pour gagner encore plus de cadeaux</p>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={reset}
