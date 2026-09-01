@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase";
+import { getCurrentConsents, recordConsents } from "@/lib/consent";
+import { sendWelcomeEmail } from "@/lib/email";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 
@@ -78,14 +80,29 @@ export async function GET(request: NextRequest) {
           .eq("id", user.id);
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.display_name) {
-        return NextResponse.redirect(`${origin}/register`);
+      // ADR 0047 — le garde d'entrée n'est plus le prénom (différé dans
+      // /compte) mais le CONSENTEMENT (ADR 0022). Un inscrit e-mail l'a déjà
+      // coché à l'inscription (métadonnées) : on l'acte ici, une fois. Une
+      // arrivée Google OAuth n'a pas pu cocher → /register (case seule).
+      const adminForConsent = createAdminClient();
+      const consents = await getCurrentConsents(user.id, adminForConsent);
+      if (!consents.programme) {
+        const meta = user.user_metadata as { accept_policy?: boolean } | null;
+        if (meta?.accept_policy === true) {
+          try {
+            await recordConsents(user.id, { programme: true }, "signup", adminForConsent);
+            const { data: prof } = await adminForConsent
+              .from("profiles")
+              .select("display_name")
+              .eq("id", user.id)
+              .maybeSingle();
+            if (user.email) await sendWelcomeEmail(user.email, (prof?.display_name ?? "").trim() || "toi");
+          } catch (err) {
+            console.error("[auth/callback] enregistrement du consentement échoué:", err);
+          }
+        } else {
+          return NextResponse.redirect(`${origin}/register`);
+        }
       }
 
       // ADR 0032 — invitation restaurateur en attente : elle prime sur tout le reste

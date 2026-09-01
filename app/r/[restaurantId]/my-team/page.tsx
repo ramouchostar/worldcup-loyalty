@@ -121,6 +121,17 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
             plusieurs.
           </p>
         </div>
+        {/* ADR 0047 — les zones ne sont plus demandées à l'inscription : c'est
+            ICI qu'elles servent (équipes proches), donc ici qu'on les réclame. */}
+        {memberZones.length === 0 && (
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-sm text-blue-900">
+            📍 Dis-nous où tu vis pour découvrir les équipes proches de chez toi —{" "}
+            <Link href="/compte" className="font-semibold underline">
+              complète ton profil
+            </Link>
+            .
+          </div>
+        )}
         <TeamManager
           team={null}
           initialJoinCode={pendingJoin}

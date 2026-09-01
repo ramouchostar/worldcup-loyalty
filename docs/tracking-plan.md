@@ -76,7 +76,7 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 |---|---|---|
 | `restaurant_landing_viewed` | `restaurant_id`, `entry_source` | Affichage de `/r/[id]` (cible des QR) |
 | `sign_up` | `method`, `funnel` | Compte créé (email ou Google) |
-| `member_profile_completed` | `zones_count`, `is_minor` | Profil complété (`/register`) |
+| `member_profile_completed` | `zones_count`, `is_minor` | Consentement accepté sur `/register` (parcours OAuth — ADR 0047 : le profil n'y est plus collecté, `zones_count` vaut 0) |
 | `login` | `method` | Connexion réussie |
 | `team_joined` | `join_source`, `team_type` | Reconnaissance d'une communauté (ADR 0031) |
 | `team_declined` | `suggestions_shown` | « Aucune de ces équipes » |
