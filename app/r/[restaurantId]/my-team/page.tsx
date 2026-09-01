@@ -199,18 +199,37 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
         suggestions={suggestions}
       />
 
-      {leaderboard.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-gray-900">Classement des équipes</h3>
-            {/* ADR 0030 §4 — mon équipe → son classement complet */}
+      {/* Toujours visible : un classement vide qui DISPARAÎT se lit comme un
+          bug (backlog 2026-09-01) — on montre l'état et le geste qui le remplit. */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gray-900">Classement des équipes</h3>
+          {/* ADR 0030 §4 — mon équipe → son classement complet */}
+          <Link
+            href={`/r/${restaurantId}/leaderboard`}
+            className="text-xs font-semibold text-brand-red hover:underline"
+          >
+            Classement complet →
+          </Link>
+        </div>
+        {leaderboard.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-4xl mb-3" aria-hidden="true">🏁</p>
+            <p className="font-semibold text-gray-800 text-sm mb-1">
+              Aucune commande validée pour l&apos;instant
+            </p>
+            <p className="text-gray-500 text-sm mb-4">
+              Le classement démarre au premier ticket — scanne le tien et fais de{" "}
+              <span className="font-semibold">{t.name}</span> la première équipe classée.
+            </p>
             <Link
-              href={`/r/${restaurantId}/leaderboard`}
-              className="text-xs font-semibold text-brand-red hover:underline"
+              href={`/r/${restaurantId}/submit-order`}
+              className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-brand-red/85 transition-colors"
             >
-              Classement complet →
+              🧾 Scanner mon ticket
             </Link>
           </div>
+        ) : (
           <div className="space-y-2">
             {leaderboard.map((entry, idx) => {
               const isMine = entry.team_id === t.id;
@@ -232,9 +251,22 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
                 </div>
               );
             })}
+            {rank === 0 && (
+              // L'équipe du membre n'a pas encore de commande validée : elle
+              // n'existe pas dans community_scores — on la montre quand même,
+              // sinon « où est mon équipe ? » (même bug, autre visage).
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-dashed border-brand-red/40">
+                <span className="w-7 text-center font-bold text-sm text-gray-400">—</span>
+                <span className="text-xl">{t.flag_emoji}</span>
+                <span className="flex-1 text-sm font-medium text-brand-red">{t.name} ← toi</span>
+                <span className="text-xs text-gray-500">
+                  1ʳᵉ commande validée = classée
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

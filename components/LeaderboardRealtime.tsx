@@ -47,6 +47,21 @@ export function LeaderboardRealtime({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  // Un classement vide qui ne rend RIEN se lit comme un bug (backlog
+  // 2026-09-01) — l'état vide dit ce qui le remplira.
+  if (rows.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+        <p className="text-4xl mb-3" aria-hidden="true">🏁</p>
+        <p className="font-semibold text-gray-800 text-sm mb-1">Aucune équipe classée pour l&apos;instant</p>
+        <p className="text-gray-500 text-sm">
+          Le classement démarre à la première commande validée — la première équipe qui scanne un ticket
+          prend la tête.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {rows.map((entry, idx) => {
