@@ -77,7 +77,16 @@ export default function SubmitOrderClient({
   // ADR 0036 — jeton du scan rendu par l'aperçu OCR : renvoyé tel quel à la
   // soumission pour que le serveur réutilise la photo déjà stockée.
   const [scanId, setScanId] = useState<string | null>(null);
-  const [noDelivery, setNoDelivery] = useState(false);
+  // Étape 06 — récap modifiable au tap : le montant s'affiche en ligne de
+  // récap, l'input ne s'ouvre qu'à la demande (la clé a déjà ce pattern).
+  const [amountEditable, setAmountEditable] = useState(false);
+  // Étape 06 — pré-vérification avant envoi : cadeau visé par le montant +
+  // doublon détecté à la saisie du numéro (au lieu d'un rejet après envoi).
+  const [precheck, setPrecheck] = useState<{
+    reward: string | null;
+    next_tier: { item: string; pct: number } | null;
+    duplicate: boolean;
+  } | null>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
   // à annoncer, et on propose d'en rejoindre une depuis l'écran de succès.
@@ -99,6 +108,42 @@ export default function SubmitOrderClient({
   useEffect(() => {
     track("order_submit_started", { restaurant_id: restaurantId, visitor });
   }, [restaurantId, visitor]);
+
+  // Étape 06 — pré-vérification débouncée : à chaque changement du montant ou
+  // du numéro, le serveur dit quel cadeau ce ticket vise et si le numéro est
+  // un doublon — AVANT l'envoi. Best-effort : un échec n'affiche rien de
+  // spécial, le 409 de /api/orders reste le filet.
+  useEffect(() => {
+    if (visitor || parseStatus !== "done") return;
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/orders/precheck", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            restaurantId,
+            amount: Number(amount) || null,
+            order_number: orderNumber,
+          }),
+        });
+        const { data } = await readJsonSafe<{
+          reward?: string | null;
+          next_tier?: { item: string; pct: number } | null;
+          duplicate?: boolean;
+        }>(res);
+        if (res.ok && data) {
+          setPrecheck({
+            reward: data.reward ?? null,
+            next_tier: data.next_tier ?? null,
+            duplicate: data.duplicate === true,
+          });
+        }
+      } catch {
+        // silencieux — la soumission reste possible, le serveur tranche
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [visitor, parseStatus, amount, orderNumber, restaurantId]);
 
   // Retour de connexion : la photo prise en visiteur attend dans l'appareil.
   // Absente (autre navigateur, expiration, navigation privée) → écran normal,
@@ -134,6 +179,8 @@ export default function SubmitOrderClient({
     setKeyCorrected(false);
     setAmount("");
     setScanId(null);
+    setAmountEditable(false);
+    setPrecheck(null);
     setPreparing(true);
     try {
       const prepared = await prepareReceiptImage(file);
@@ -248,6 +295,10 @@ export default function SubmitOrderClient({
       if (data.amount) {
         setAmount(String(data.amount));
         setOcrAmount(data.amount);
+        setAmountEditable(false);
+      } else {
+        // Montant non lu → l'input est directement ouvert, rien à taper de plus.
+        setAmountEditable(true);
       }
       setOcrConfidence(data.confidence ?? null);
       setNoRestaurantHeader(!(data.has_restaurant_header ?? true));
@@ -265,7 +316,7 @@ export default function SubmitOrderClient({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!noDelivery || !receiptFile) return;
+    if (!receiptFile) return;
 
     setSubmitStatus("loading");
     setErrorMsg("");
@@ -346,7 +397,8 @@ export default function SubmitOrderClient({
     setAmount("");
     setScanId(null);
     setKeyCorrected(false);
-    setNoDelivery(false);
+    setAmountEditable(false);
+    setPrecheck(null);
     setSubmitStatus("idle");
     setReward(null);
     setNextTier(null);
@@ -672,18 +724,11 @@ export default function SubmitOrderClient({
           connectés (un visiteur ne peut pas soumettre, /api/orders exige une
           session — ADR 0045). */}
       {parseStatus === "done" && !visitor && (
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2 items-start">
-            <span className="text-green-600">✓</span>
-            <p className="text-green-800 text-sm">
-              Ticket analysé. Vérifie que les informations ci-dessous correspondent à ton reçu.
-            </p>
-          </div>
-
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Clé de commande — lue par l'OCR mais TOUJOURS corrigeable : une
               lecture fausse (année…) ne doit jamais enfermer le membre dans
               une boucle d'erreurs (incident Kasia, 2026-08-22). */}
-          {orderNumberEditable && !keyCorrected && (
+          {orderNumberEditable && !keyCorrected && orderNumber === "" && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
               <p className="text-orange-800 text-sm font-semibold">{keyLabel} non détecté</p>
               <p className="text-orange-700 text-xs mt-1">
@@ -701,76 +746,109 @@ export default function SubmitOrderClient({
               </p>
             </div>
           )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {keyLabel}
-            </label>
-            {orderNumberEditable ? (
-              <input
-                type="text"
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
-                placeholder={keyExample ?? ""}
-                className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono text-sm"
-              />
-            ) : (
-              <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 flex items-center justify-between gap-2 font-mono text-sm">
-                <span className="truncate">{orderNumber}</span>
-                <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-gray-400 font-sans">Lu sur le ticket</span>
-                  <button
-                    type="button"
-                    onClick={() => setOrderNumberEditable(true)}
-                    className="text-xs font-sans font-semibold text-brand-red hover:underline"
-                  >
-                    Modifier
-                  </button>
-                </span>
-              </div>
-            )}
-          </div>
 
-          {/* Montant — editable */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Montant total (€)
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                min="1"
-                max="500"
-                step="0.01"
-                placeholder="Ex : 12.50"
-                required
-                className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
-                €
-              </span>
+          {/* Étape 06 — récap en 2 lignes, modifiables AU TAP : plus de
+              formulaire à relire, on tape la ligne qu'on veut corriger. */}
+          <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+            <div className="p-4">
+              {amountEditable ? (
+                <label className="block">
+                  <span className="text-xs font-medium text-gray-500">Montant total (€)</span>
+                  <div className="relative mt-1">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      min="1"
+                      max="500"
+                      step="0.01"
+                      placeholder="Ex : 12.50"
+                      required
+                      autoFocus
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">€</span>
+                  </div>
+                </label>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAmountEditable(true)}
+                  className="w-full flex items-center justify-between gap-2 text-left"
+                >
+                  <span className="text-sm text-gray-500">Montant</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg font-black text-gray-900 tabular-nums">
+                      {Number(amount) > 0 ? `${Number(amount).toFixed(2)} €` : "—"}
+                    </span>
+                    <span className="text-xs font-semibold text-brand-red">Modifier</span>
+                  </span>
+                </button>
+              )}
             </div>
-            <p className="text-xs text-gray-400 mt-1">Corrige si le montant lu est incorrect</p>
+            <div className="p-4">
+              {orderNumberEditable ? (
+                <label className="block">
+                  <span className="text-xs font-medium text-gray-500">{keyLabel}</span>
+                  <input
+                    type="text"
+                    value={orderNumber}
+                    onChange={(e) => setOrderNumber(e.target.value)}
+                    placeholder={keyExample ?? ""}
+                    className="mt-1 w-full px-4 py-3 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono text-sm"
+                  />
+                </label>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setOrderNumberEditable(true)}
+                  className="w-full flex items-center justify-between gap-2 text-left"
+                >
+                  <span className="text-sm text-gray-500 shrink-0">{keyLabel}</span>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-sm text-gray-900 truncate">{orderNumber || "—"}</span>
+                    <span className="text-xs font-semibold text-brand-red shrink-0">Modifier</span>
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <label className="flex items-start gap-3 cursor-pointer p-4 rounded-xl border-2 border-gray-200 hover:border-brand-red transition-colors">
-            <input
-              type="checkbox"
-              checked={noDelivery}
-              onChange={(e) => setNoDelivery(e.target.checked)}
-              className="mt-0.5 w-5 h-5 accent-brand-red shrink-0"
-            />
-            <span className="text-sm text-gray-700">
-              <span className="font-semibold">Je confirme</span> que cette commande a été passée
-              directement au restaurant {restaurantName} (sur place ou téléphone/WhatsApp),{" "}
-              <span className="font-semibold text-brand-red">
-                et non via une plateforme de livraison
-              </span>
-              .
-            </span>
-          </label>
+          {/* Étape 06 — le doublon se voit À LA SAISIE, pas en rejet après
+              l'envoi ; sinon, le cadeau visé est mis en évidence (libellé
+              prudent : la validation est différée, ADR 0008 — jamais de
+              cadeau promis comme acquis). */}
+          {precheck?.duplicate ? (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+              <p className="font-semibold text-orange-900 text-sm">Ce numéro de ticket a déjà été utilisé</p>
+              <p className="text-orange-700 text-xs mt-1">
+                Vérifie le {keyLabel.toLowerCase()} ci-dessus — ou reprends la photo si ce n&apos;est pas le bon ticket.
+              </p>
+            </div>
+          ) : precheck?.reward ? (
+            <div className="bg-brand-gold/15 border border-brand-gold/50 rounded-xl p-4 flex items-center gap-3">
+              <span className="text-3xl" aria-hidden="true">🎁</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Cadeau visé</p>
+                <p className="font-black text-gray-900">{precheck.reward}</p>
+                <p className="text-xs text-gray-500">À récupérer au comptoir après validation.</p>
+              </div>
+            </div>
+          ) : precheck?.next_tier ? (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center justify-between text-sm mb-1.5">
+                <span className="text-gray-600">🎁 Prochain cadeau</span>
+                <span className="font-bold text-gray-900">{precheck.next_tier.item}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-brand-red rounded-full transition-all"
+                  style={{ width: `${Math.max(precheck.next_tier.pct, 4)}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
 
           {submitStatus === "loading" && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
@@ -801,17 +879,19 @@ export default function SubmitOrderClient({
 
           <button
             type="submit"
-            disabled={!noDelivery || submitStatus === "loading"}
+            disabled={submitStatus === "loading" || precheck?.duplicate === true}
             className="w-full bg-brand-red text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {submitStatus === "loading" ? "Vérification en cours..." : "Soumettre la commande"}
+            {submitStatus === "loading" ? "Vérification en cours..." : "Envoyer mon ticket"}
           </button>
 
-          {!noDelivery && (
-            <p className="text-center text-xs text-gray-400">
-              Coche la case de confirmation pour soumettre
-            </p>
-          )}
+          {/* Étape 06 — la confirmation « pas via une plateforme » n'est plus
+              une case bloquante mais une mention à l'envoi (la règle est déjà
+              affichée avant, étape 03). */}
+          <p className="text-center text-xs text-gray-400">
+            En envoyant, tu confirmes une commande passée directement au restaurant{" "}
+            {restaurantName} — pas via une plateforme de livraison.
+          </p>
         </form>
       )}
     </div>
