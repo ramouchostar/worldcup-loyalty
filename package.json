@@ -23,7 +23,6 @@
     "@next/third-parties": "^16.3.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.44.4",
-    "driver.js": "^1.4.0",
     "fflate": "^0.8.3",
     "lucide-react": "^1.27.0",
     "next": "^16.2.11",
