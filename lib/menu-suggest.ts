@@ -69,7 +69,7 @@ export async function suggestRewardGrid(restaurantId: string): Promise<{
     category: i.category,
     prix_vente: i.menu_price,
     prix_revient: i.cost_price,
-    ratio: i.cost_price > 0 ? Number((i.menu_price / i.cost_price).toFixed(1)) : null,
+    ratio: i.cost_price != null && i.cost_price > 0 ? Number((i.menu_price / i.cost_price).toFixed(1)) : null,
   }));
 
   const soloConstraints = soloBands

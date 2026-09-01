@@ -97,7 +97,7 @@ export type RewardGrid = { solo: GridTier[]; community: GridTier[] };
 
 type MenuItemEmbed = {
   name: string;
-  cost_price: number;
+  cost_price: number | null; // NULL = coût inconnu (ADR 0046), jamais un cadeau
   is_active: boolean;
   reward_eligible: boolean;
 };
@@ -119,7 +119,10 @@ export async function loadRewardGrid(restaurantId: string): Promise<RewardGrid> 
   const grid: RewardGrid = { solo: [], community: [] };
   for (const r of (data ?? []) as unknown as RewardTierRow[]) {
     const mi = Array.isArray(r.menu_items) ? r.menu_items[0] : r.menu_items;
-    if (!mi || !mi.is_active || !mi.reward_eligible) continue; // article retiré/hors cadeau
+    // Article retiré / hors cadeau — et jamais de cadeau au coût inconnu
+    // (ADR 0046 : coût NULL admis au catalogue, exclu des récompenses,
+    // sinon Number(null)=0 passerait tous les plafonds ADR 0017).
+    if (!mi || !mi.is_active || !mi.reward_eligible || mi.cost_price == null) continue;
     // Filtre explicite par couche : les paliers 'saver' (ADR 0021, seuils en
     // POINTS de réserve) ne doivent jamais fuir dans la grille communautaire
     // (seuils en score d'équipe).

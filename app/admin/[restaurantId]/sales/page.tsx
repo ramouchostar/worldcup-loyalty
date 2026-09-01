@@ -27,14 +27,15 @@ const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 type OrderRow = { id: string; order_date: string; order_time: string | null; amount: number };
 type ItemRow = { order_id: string; raw_name: string; quantity: number; unit_price: number | null; menu_item_id: string | null; is_ignored?: boolean | null };
-type MenuRow = { id: string; name: string; menu_price: number; cost_price: number };
+type MenuRow = { id: string; name: string; menu_price: number; cost_price: number | null };
 
 type DishAgg = {
   name: string;
   matched: boolean;
   qty: number;
   revenue: number;
-  margin: number | null; // null = article hors catalogue, coût inconnu
+  margin: number | null; // null = article hors catalogue, ou coût inconnu
+  costMissing?: boolean; // au catalogue mais sans prix de revient (ADR 0046)
 };
 
 export default async function AdminSalesPage({
@@ -116,7 +117,14 @@ export default async function AdminSalesPage({
     if (mi) {
       // Prix et coût du CATALOGUE — plus fiables que la lecture OCR du ticket
       existing.revenue += Number(mi.menu_price) * qty;
-      existing.margin = (existing.margin ?? 0) + (Number(mi.menu_price) - Number(mi.cost_price)) * qty;
+      if (mi.cost_price == null) {
+        // ADR 0046 — article sans coût : CA compté, marge INCONNUE (jamais
+        // 100 % ni 0 — un coût inventé fausserait tout le tableau).
+        existing.costMissing = true;
+        existing.margin = null;
+      } else if (!existing.costMissing) {
+        existing.margin = (existing.margin ?? 0) + (Number(mi.menu_price) - Number(mi.cost_price)) * qty;
+      }
     } else {
       existing.revenue += Number(it.unit_price ?? 0);
     }
@@ -250,8 +258,13 @@ export default async function AdminSalesPage({
                       <div className="font-medium text-gray-900">
                         {d.name}
                         {!d.matched && (
-                          <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full" title="Lu sur le ticket mais absent du catalogue — ajoute-le à ton CSV pour suivre sa marge">
+                          <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full" title="Lu sur le ticket mais absent du catalogue — ajoute-le depuis Menu & coûts pour suivre sa marge">
                             hors catalogue
+                          </span>
+                        )}
+                        {d.matched && d.costMissing && (
+                          <span className="ml-2 text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full" title="Article au catalogue sans prix de revient — renseigne-le sur Menu & coûts pour suivre sa marge">
+                            coût manquant
                           </span>
                         )}
                       </div>

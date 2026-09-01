@@ -5,6 +5,7 @@ import { partnerApplicationReceivedEmail } from "./email-templates/partner-appli
 import { restaurantActivatedEmail } from "./email-templates/restaurant-activated";
 import { onboardingReminderEmail } from "./email-templates/onboarding-reminder";
 import { pendingRequestsReminderEmail } from "./email-templates/pending-requests-reminder";
+import { catalogGapsReminderEmail } from "./email-templates/catalog-gaps-reminder";
 import { rewardReadyEmail } from "./email-templates/reward-ready";
 import { tierUnlockedEmail } from "./email-templates/tier-unlocked";
 import { referralSuccessEmail } from "./email-templates/referral-success";
@@ -27,6 +28,7 @@ export type EmailType =
   | "restaurant_activated"
   | "onboarding_reminder"
   | "pending_requests_reminder"
+  | "catalog_gaps_reminder"
   | "reward_ready"
   | "tier_unlocked"
   | "referral_success"
@@ -191,6 +193,19 @@ export async function sendPendingRequestsReminderEmail(
     pendingRequestsReminderEmail(restaurantName, restaurantId, totalPending, oldestPendingHours, logoUrl)
   );
   if (sent) await logEmailSent("restaurant", restaurantId, "pending_requests_reminder", restaurantId);
+  return sent;
+}
+
+// ADR 0046 — rappel « articles de tickets absents du catalogue ».
+export async function sendCatalogGapsReminderEmail(
+  to: string,
+  restaurantName: string,
+  restaurantId: string,
+  gapCount: number
+): Promise<boolean> {
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  const sent = await dispatch(to, catalogGapsReminderEmail(restaurantName, restaurantId, gapCount, logoUrl));
+  if (sent) await logEmailSent("restaurant", restaurantId, "catalog_gaps_reminder", restaurantId);
   return sent;
 }
 

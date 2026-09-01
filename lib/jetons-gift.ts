@@ -47,7 +47,8 @@ export async function getJetonsGift(restaurantId: string): Promise<JetonsGift> {
 
   const row = data as unknown as RestaurantGiftRow;
   const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
-  if (!mi || !mi.is_active || !mi.reward_eligible) return fallback;
+  // Coût inconnu (ADR 0046) : jamais un cadeau — Number(null)=0 tromperait le plafond.
+  if (!mi || !mi.is_active || !mi.reward_eligible || mi.cost_price == null) return fallback;
   return { id: mi.id, name: mi.name, cost: Number(mi.cost_price) };
 }
 
@@ -70,7 +71,10 @@ export async function suggestJetonsGift(restaurantId: string): Promise<{
   ]);
 
   const costCap = jetonsGiftCostCap(avgBasket, BUDGET_PCT);
-  const candidates: GiftCandidate[] = ((items ?? []) as GiftCandidate[]).map((i) => ({
+  // Coût inconnu (ADR 0046) : exclu des candidats cadeaux.
+  const candidates: GiftCandidate[] = ((items ?? []) as GiftCandidate[])
+    .filter((i) => (i.cost_price as number | null) != null)
+    .map((i) => ({
     id: i.id,
     name: i.name,
     menu_price: Number(i.menu_price),

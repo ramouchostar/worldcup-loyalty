@@ -12,7 +12,9 @@ import {
   sendPendingRequestsReminderEmail,
   sendOnboardingReminderEmail,
   sendRewardReadyEmail,
+  sendCatalogGapsReminderEmail,
 } from "@/lib/email";
+import { getCatalogGaps } from "@/lib/catalog-gaps";
 
 // Paliers communautaires : catalogue de l'établissement (ADR 0013), fallback
 // grille héritée — même source de vérité que la résolution des récompenses.
@@ -44,6 +46,10 @@ const MAX_PER_WEEK      = 3;
 const PENDING_REQUESTS_COUNT_THRESHOLD = 15;
 const PENDING_REQUESTS_AGE_HOURS       = 48;
 const PENDING_REQUESTS_EMAIL_COOLDOWN  = 20; // ~1x/jour tant que ça persiste
+// ADR 0046 — articles de tickets absents du catalogue : rappel hebdomadaire
+// au plus, déclenché seulement au-delà de 7 jours d'inaction.
+const CATALOG_GAPS_STALE_HOURS = 7 * 24;
+const CATALOG_GAPS_EMAIL_COOLDOWN = 7 * 24;
 
 // Relance onboarding self-service inachevé (étape 2 ou 3)
 const ONBOARDING_STUCK_HOURS   = 48;
@@ -336,6 +342,29 @@ export async function GET(request: Request) {
             oldestPendingHours
           );
         }
+      }
+    }
+  }
+  // ── Rappel restaurateur : articles de tickets absents du catalogue (ADR 0046) ──
+  // Un e-mail par semaine au plus, et seulement quand des libellés récurrents
+  // traînent depuis plus de 7 jours (la carte « À faire » du dashboard fait
+  // le rappel quotidien, l'e-mail n'est que le filet).
+  if (restaurant.ownerEmail) {
+    const gaps = await getCatalogGaps(restaurantId);
+    const stale = gaps.filter(
+      (g) =>
+        g.oldestOrderDate &&
+        now.getTime() - new Date(g.oldestOrderDate).getTime() > CATALOG_GAPS_STALE_HOURS * 3_600_000
+    );
+    if (stale.length > 0) {
+      const alreadySent = await wasEmailSentRecently(
+        "restaurant",
+        restaurantId,
+        "catalog_gaps_reminder",
+        CATALOG_GAPS_EMAIL_COOLDOWN
+      );
+      if (!alreadySent) {
+        await sendCatalogGapsReminderEmail(restaurant.ownerEmail, restaurant.name, restaurantId, stale.length);
       }
     }
   }
