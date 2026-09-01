@@ -157,6 +157,10 @@ export default async function AdminSalesPage({
   const totalRevenue = orders.reduce((s, o) => s + Number(o.amount), 0);
   const totalItems = dishList.reduce((s, d) => s + d.qty, 0);
   const totalMargin = dishList.reduce((s, d) => s + (d.margin ?? 0), 0);
+  // ADR 0046 — toujours dire sur QUELLE part du volume la marge est calculée :
+  // sans ça, une marge « sur articles reconnus » se lit comme la marge totale.
+  const matchedQty = dishList.filter((d) => d.matched).reduce((s, d) => s + d.qty, 0);
+  const analyzedPct = totalItems > 0 ? Math.round((matchedQty / totalItems) * 100) : null;
   const withTime = orders.filter((o) => o.order_time).length;
 
   const r = (d: number) => `/admin/${restaurantId}/sales?days=${d}`;
@@ -217,7 +221,14 @@ export default async function AdminSalesPage({
         </div>
         <div className="bg-white rounded-2xl border border-green-200 bg-green-50 p-4 text-center">
           <p className="text-2xl font-black text-green-700">{euro(totalMargin)}</p>
-          <p className="text-xs text-green-700 mt-1">marge sur articles reconnus</p>
+          <p className="text-xs text-green-700 mt-1">
+            marge sur articles reconnus
+            {analyzedPct !== null && (
+              <span className={analyzedPct < 60 ? "block font-semibold text-amber-700" : "block"}>
+                {analyzedPct} % du volume analysé
+              </span>
+            )}
+          </p>
         </div>
       </div>
 
