@@ -3,62 +3,44 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
-import { sanitizeZones } from "@/lib/zones";
 import { queueEvent } from "@/lib/analytics-pending";
 
+// ADR 0047 (étape 05 du backlog onboarding) — l'inscription tient en trois
+// éléments : e-mail, mot de passe, consentement. Prénom, zones et date de
+// naissance sont demandés PLUS TARD, là où ils servent (/compte « Mon
+// profil », découverte d'équipes) — plus jamais neuf champs debout au
+// comptoir. Le consentement coché part dans les métadonnées du compte et
+// est acté côté serveur au premier retour authentifié (auth/callback).
 export default function SignupPage() {
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    birthDate: "",
-    zoneHome: "",
-    zoneWork: "",
-    zoneSchool: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [acceptPolicy, setAcceptPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) {
-      setError("Les mots de passe ne correspondent pas.");
-      return;
-    }
-    if (form.password.length < 6) {
+    if (password.length < 6) {
       setError("Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
-    // ADR 0018 — au moins la zone où tu vis, pour la découverte d'équipes
-    const zones = sanitizeZones([form.zoneHome, form.zoneWork, form.zoneSchool]);
-    if (zones.length === 0) {
-      setError("Indique au moins ta zone (ville ou quartier où tu vis).");
+    if (!acceptPolicy) {
+      setError("Coche la case de consentement pour créer ton compte.");
       return;
     }
 
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const displayName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
 
     const { data, error } = await supabase.auth.signUp({
-      email: form.email.trim(),
-      password: form.password,
+      email: email.trim(),
+      password,
       options: {
-        data: {
-          display_name: displayName,
-          phone: form.phone.trim() || null,
-          birth_date: form.birthDate || null,
-          zones, // copiées dans profiles.zones par handle_new_user (m29)
-        },
+        // Acté côté serveur (journal consents, ADR 0022) au premier passage
+        // authentifié — voir app/auth/callback/route.ts.
+        data: { accept_policy: true, accept_policy_at: new Date().toISOString() },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -75,7 +57,7 @@ export default function SignupPage() {
 
     if (data.session) {
       // Email confirmation disabled → déjà connecté
-      window.location.href = "/register";
+      window.location.href = "/auth/callback";
     } else {
       // Email confirmation required → attendre la confirmation
       setSent(true);
@@ -99,7 +81,7 @@ export default function SignupPage() {
         <h2 className="text-xl font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
         <p className="text-gray-600 text-sm">
           Un lien de confirmation a été envoyé à{" "}
-          <span className="font-semibold text-gray-900">{form.email}</span>.
+          <span className="font-semibold text-gray-900">{email}</span>.
         </p>
         <p className="text-gray-500 text-xs mt-4">
           Clique le lien pour activer ton compte et rejoindre ton restaurant.
@@ -108,132 +90,26 @@ export default function SignupPage() {
     );
   }
 
-  const maxBirthDate = new Date();
-  maxBirthDate.setFullYear(maxBirthDate.getFullYear() - 13);
-
   return (
     <>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Créer un compte</h2>
       <p className="text-gray-500 text-sm mb-5">
-        Rejoins le programme de fidélité de ton restaurant et gagne des cadeaux à chaque commande.
+        10 secondes suffisent — tu compléteras ton profil plus tard, si tu veux.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-            <input
-              name="firstName"
-              type="text"
-              value={form.firstName}
-              onChange={handleChange}
-              placeholder="Karim"
-              required
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-            <input
-              name="lastName"
-              type="text"
-              value={form.lastName}
-              onChange={handleChange}
-              placeholder="Benzema"
-              required
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-            />
-          </div>
-        </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
             name="email"
             type="email"
-            value={form.email}
-            onChange={handleChange}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="toi@exemple.com"
             required
+            autoComplete="email"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Téléphone <span className="text-gray-400 font-normal">(facultatif)</span>
-          </label>
-          <input
-            name="phone"
-            type="tel"
-            value={form.phone}
-            onChange={handleChange}
-            placeholder="+32 470 00 00 00"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
-          <input
-            name="birthDate"
-            type="date"
-            value={form.birthDate}
-            onChange={handleChange}
-            required
-            max={maxBirthDate.toISOString().split("T")[0]}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-          />
-        </div>
-
-        {/* ADR 0018 — zones du membre : découverte des équipes proches */}
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ta zone (ville ou quartier)</label>
-            <input
-              name="zoneHome"
-              type="text"
-              value={form.zoneHome}
-              onChange={handleChange}
-              placeholder="Ex : Molenbeek"
-              required
-              maxLength={40}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              On te proposera les équipes actives dans tes zones.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zone de travail <span className="text-gray-400 font-normal">(facultatif)</span>
-              </label>
-              <input
-                name="zoneWork"
-                type="text"
-                value={form.zoneWork}
-                onChange={handleChange}
-                placeholder="Ex : Anderlecht"
-                maxLength={40}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zone d&apos;école <span className="text-gray-400 font-normal">(facultatif)</span>
-              </label>
-              <input
-                name="zoneSchool"
-                type="text"
-                value={form.zoneSchool}
-                onChange={handleChange}
-                placeholder="Ex : Ixelles"
-                maxLength={40}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-              />
-            </div>
-          </div>
         </div>
 
         <div>
@@ -241,33 +117,40 @@ export default function SignupPage() {
           <input
             name="password"
             type="password"
-            value={form.password}
-            onChange={handleChange}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
             minLength={6}
+            autoComplete="new-password"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
           />
+          <p className="text-xs text-gray-400 mt-1">6 caractères minimum.</p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le mot de passe</label>
+        {/* ADR 0022 — acceptation obligatoire ; les opt-ins facultatifs
+            (offres, statistiques) se gèrent dans Mon compte. */}
+        <label className="flex items-start gap-2 text-sm text-gray-700">
           <input
-            name="confirmPassword"
-            type="password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            placeholder="••••••••"
-            required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
+            type="checkbox"
+            checked={acceptPolicy}
+            onChange={(e) => setAcceptPolicy(e.target.checked)}
+            className="mt-0.5"
           />
-        </div>
+          <span>
+            J&apos;accepte la{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand-red underline">politique de confidentialité</a>{" "}
+            et les{" "}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-red underline">conditions d&apos;utilisation</a>,
+            et je confirme avoir au moins 13 ans (ou l&apos;accord d&apos;un parent).
+          </span>
+        </label>
 
         {error && <p className="text-red-600 text-sm bg-red-50 px-4 py-3 rounded-lg">{error}</p>}
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !acceptPolicy}
           className="w-full bg-brand-red text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? "Création..." : "Créer mon compte"}

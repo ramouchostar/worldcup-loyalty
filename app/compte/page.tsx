@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getCurrentConsents } from "@/lib/consent";
+import { createAdminClient } from "@/lib/supabase";
 import { PrivacySettings } from "@/components/member/PrivacySettings";
+import { ProfileSettings } from "@/components/member/ProfileSettings";
 import { AccountActions } from "@/components/member/AccountActions";
 
 export const metadata = { title: "Mon compte" };
@@ -13,6 +15,19 @@ export default async function ComptePage() {
   if (!user) redirect("/login");
 
   const consents = await getCurrentConsents(user.id);
+  // ADR 0047 — le profil (prénom, zones, naissance) vit ici, plus dans le
+  // tunnel d'inscription. Lecture service-role (profil verrouillé RLS, m34).
+  const { data: profileRaw } = await createAdminClient()
+    .from("profiles")
+    .select("display_name, zones, birth_date, parental_email")
+    .eq("id", user.id)
+    .maybeSingle();
+  const profile = profileRaw as {
+    display_name: string | null;
+    zones: string[] | null;
+    birth_date: string | null;
+    parental_email: string | null;
+  } | null;
 
   // /compte est HORS de la zone membre /r/[id] : elle n'hérite donc ni de la
   // BottomNav ni du header. Sans ce lien, l'utilisateur est piégé en PWA plein
@@ -42,6 +57,15 @@ export default async function ComptePage() {
             Confidentialité, consentements et données personnelles.
           </p>
         </div>
+
+        <ProfileSettings
+          initial={{
+            display_name: profile?.display_name ?? "",
+            zones: profile?.zones ?? [],
+            birth_date: profile?.birth_date ?? "",
+            parental_email: profile?.parental_email ?? "",
+          }}
+        />
 
         <PrivacySettings initial={consents} />
 
