@@ -11,6 +11,7 @@ import { amountBand, track } from "@/lib/analytics";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
+import { PostTicketSheet } from "@/components/member/PostTicketSheet";
 import { rememberPendingTicket } from "@/app/r/[restaurantId]/submit-order/actions";
 import { createClient } from "@/lib/supabase-browser";
 
@@ -418,6 +419,11 @@ export default function SubmitOrderClient({
     const pointsLabel = `point${earnedPoints > 1 ? "s" : ""} gagné${earnedPoints > 1 ? "s" : ""}`;
     return (
       <div>
+        {/* Étape 08 — app + notifications en UNE feuille, posée ICI : après
+            le premier ticket validé de l'appareil, un cadeau vient d'être
+            gagné. La feuille décide elle-même si elle a quelque chose à
+            proposer (une seule apparition par appareil). */}
+        <PostTicketSheet restaurantId={restaurantId} />
         {/* Dégradé vert centré, identité Boosteats fixe — PAS brand_accent :
             pour Kraainem cette variable résout en rouge (cf. le badge
             "Pro" ou la bordure de la zone photo), lu comme un signal de
