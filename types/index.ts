@@ -218,7 +218,7 @@ export type MenuItem = {
   name: string;
   category: string;
   menu_price: number;   // prix de vente carte (valeur perçue)
-  cost_price: number;   // prix de revient réel
+  cost_price: number | null; // prix de revient réel — NULL = inconnu (ADR 0046), jamais un cadeau
   is_active: boolean;
   reward_eligible: boolean;
   created_at: string;

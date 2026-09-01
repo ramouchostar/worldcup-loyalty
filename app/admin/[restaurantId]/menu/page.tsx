@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
+import { CatalogGapsSection } from "@/components/admin/CatalogGapsSection";
 
 const TEMPLATE = `nom;categorie;prix_vente;prix_revient
 Finest burger;Burger;9,00;0,94
@@ -224,6 +225,10 @@ export default function AdminMenuPage() {
         </p>
       </div>
 
+      {/* ADR 0046 — boucle de complétion : libellés récurrents des tickets
+          absents du catalogue, réglés en un geste (jamais de re-téléversement). */}
+      <CatalogGapsSection restaurantId={restaurantId} menuItems={items} onResolved={loadAll} />
+
       {msg && (
         <div className={`rounded-xl p-3 text-sm border ${msg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
           <p className="font-medium">{msg.text}</p>
@@ -248,8 +253,10 @@ export default function AdminMenuPage() {
         // Marge unitaire (prix vente − prix revient) — top/flop parmi les
         // articles actifs réellement vendus (prix > 0 : les accompagnements
         // offerts, volontairement à 0 €, ne sont pas des « mauvais élèves »).
-        const margin = (it: MenuItem) => Number(it.menu_price) - Number(it.cost_price);
-        const priced = items.filter((i) => i.is_active && Number(i.menu_price) > 0);
+        const margin = (it: MenuItem) => Number(it.menu_price) - Number(it.cost_price ?? 0);
+        // Coût inconnu (ADR 0046) : exclu des classements top/flop marge —
+        // une marge calculée sur un coût 0 serait un mensonge flatteur.
+        const priced = items.filter((i) => i.is_active && Number(i.menu_price) > 0 && i.cost_price != null);
         const sorted = [...priced].sort((a, b) => margin(b) - margin(a));
         const topIds = new Set(sorted.slice(0, 3).map((i) => i.id));
         const flopIds = new Set(sorted.length > 3 ? sorted.slice(-3).map((i) => i.id) : []);
@@ -287,8 +294,9 @@ export default function AdminMenuPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {items.map((it) => {
-                    const ratio = it.cost_price > 0 ? it.menu_price / it.cost_price : 0;
-                    const m = margin(it);
+                    const costKnown = it.cost_price != null;
+                    const ratio = costKnown && it.cost_price! > 0 ? it.menu_price / it.cost_price! : 0;
+                    const m = costKnown ? margin(it) : null;
                     const isTop = topIds.has(it.id);
                     const isFlop = flopIds.has(it.id);
                     return (
@@ -302,11 +310,21 @@ export default function AdminMenuPage() {
                         </td>
                         <td className="px-4 py-2.5 text-gray-600">{it.category}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{euro(it.menu_price)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{euro(it.cost_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">
+                          {costKnown ? euro(it.cost_price!) : (
+                            <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full" title="Prix de revient inconnu — cet article est exclu des cadeaux et sa marge n'est pas calculée">
+                              coût manquant
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
-                          <span className={`font-semibold ${isTop ? "text-green-600" : isFlop ? "text-amber-600" : "text-gray-700"}`}>
-                            {euro(m)}
-                          </span>
+                          {m !== null ? (
+                            <span className={`font-semibold ${isTop ? "text-green-600" : isFlop ? "text-amber-600" : "text-gray-700"}`}>
+                              {euro(m)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
                           <span className={`font-semibold ${ratio >= 8 ? "text-green-600" : ratio >= 4 ? "text-amber-600" : "text-gray-400"}`}>

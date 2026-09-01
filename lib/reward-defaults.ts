@@ -40,7 +40,8 @@ export async function applyDefaultRewardConfig(restaurantId: string): Promise<De
   const items = (await getMenuItems(restaurantId)).filter((i) => i.is_active && i.reward_eligible);
   if (items.length === 0) return result;
 
-  const candidates: GiftCandidate[] = items.map((i) => ({
+  // Coût inconnu (ADR 0046) : exclu des candidats cadeaux.
+  const candidates: GiftCandidate[] = items.filter((i) => (i.cost_price as number | null) != null).map((i) => ({
     id: i.id,
     name: i.name,
     menu_price: Number(i.menu_price),

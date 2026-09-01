@@ -11,6 +11,7 @@ import {
   QrCode,
   Settings,
   Award,
+  ListPlus,
   type LucideIcon,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase";
@@ -19,6 +20,7 @@ import { redirect } from "next/navigation";
 import { getRestaurant } from "@/lib/restaurant";
 import { getPlan } from "@/lib/entitlements";
 import { getScanUsage, SCAN_CAP_GRATUIT } from "@/lib/scan-meter";
+import { getCatalogGaps } from "@/lib/catalog-gaps";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { InstallAppCard } from "@/components/InstallAppCard";
 
@@ -97,6 +99,8 @@ export default async function AdminDashboardPage({
   // scans du mois dépasse la couverture du plan Gratuit. Jamais bloquant.
   const plan = await getPlan(restaurantId);
   const scanUsage = await getScanUsage(restaurantId, plan);
+  // ADR 0046 — libellés récurrents des tickets absents du catalogue.
+  const catalogGaps = await getCatalogGaps(restaurantId);
 
   const thRows = (thresholdHistory ?? []) as {
     period_label: string;
@@ -163,6 +167,18 @@ export default async function AdminDashboardPage({
       title: `${pendingClaims} action${(pendingClaims ?? 0) > 1 ? "s" : ""} client à valider`,
       sub: "Avis Google, abonnements sociaux en attente de confirmation",
       count: pendingClaims ?? 0,
+    });
+  }
+  if (catalogGaps.length > 0) {
+    // ADR 0046 — sans ce rattachement, les chiffres de marge ignorent ces
+    // articles ; le geste est à un tap (formulaire pré-rempli, Menu & coûts).
+    actionItems.push({
+      href: `${r("/menu")}#rattacher`,
+      icon: ListPlus,
+      tone: "warn",
+      title: `${catalogGaps.length} article${catalogGaps.length > 1 ? "s" : ""} de tes tickets absent${catalogGaps.length > 1 ? "s" : ""} de ton catalogue`,
+      sub: "Nom et prix déjà pré-remplis — il ne manque que ton prix de revient",
+      count: catalogGaps.length,
     });
   }
 
