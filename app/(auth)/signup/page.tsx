@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 import { queueEvent } from "@/lib/analytics-pending";
@@ -11,6 +11,28 @@ import { queueEvent } from "@/lib/analytics-pending";
 // profil », découverte d'équipes) — plus jamais neuf champs debout au
 // comptoir. Le consentement coché part dans les métadonnées du compte et
 // est acté côté serveur au premier retour authentifié (auth/callback).
+// L'e-mail saisi survit à un rechargement (jamais le mot de passe) : un envoi
+// qui tourne mal ne doit pas faire tout retaper — bug critique 2026-09-02.
+const K_EMAIL_DRAFT = "signup_email_draft";
+
+// Les messages Supabase arrivent en anglais — on traduit les cas courants,
+// le reste passe tel quel (mieux qu'un « Erreur » muet).
+function traduireErreur(message: string): string {
+  if (/already registered|already been registered/i.test(message)) {
+    return "Un compte existe déjà avec cet e-mail.";
+  }
+  if (/password.*at least|weak password/i.test(message)) {
+    return "Le mot de passe doit contenir au moins 6 caractères.";
+  }
+  if (/invalid.*email|validate email/i.test(message)) {
+    return "Cette adresse e-mail ne semble pas valide.";
+  }
+  if (/rate limit|too many/i.test(message)) {
+    return "Trop de tentatives — attends une minute puis réessaie.";
+  }
+  return message;
+}
+
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +40,20 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    try {
+      const draft = sessionStorage.getItem(K_EMAIL_DRAFT);
+      if (draft) setEmail(draft);
+    } catch {}
+  }, []);
+
+  function proceedLoggedIn() {
+    try {
+      sessionStorage.removeItem(K_EMAIL_DRAFT);
+    } catch {}
+    window.location.href = "/auth/callback";
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,35 +68,78 @@ export default function SignupPage() {
 
     setLoading(true);
     setError(null);
+    try {
+      sessionStorage.setItem(K_EMAIL_DRAFT, email.trim());
+    } catch {}
     const supabase = createClient();
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        // Acté côté serveur (journal consents, ADR 0022) au premier passage
-        // authentifié — voir app/auth/callback/route.ts.
-        data: { accept_policy: true, accept_policy_at: new Date().toISOString() },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    // Bug critique 2026-09-02 — un signUp peut RÉUSSIR côté serveur alors que
+    // le client voit un échec (réseau lent, app passée en arrière-plan pour la
+    // photo du ticket). Règle : ne JAMAIS annoncer un échec sans avoir vérifié
+    // qu'une session n'existe pas déjà ; et un « already registered » avec les
+    // mêmes identifiants = le retry d'une réussite fantôme → connexion directe.
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          // Acté côté serveur (journal consents, ADR 0022) au premier passage
+          // authentifié — voir app/auth/callback/route.ts.
+          data: { accept_policy: true, accept_policy_at: new Date().toISOString() },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
+      if (error) {
+        const { data: sess } = await supabase.auth.getSession();
+        if (sess.session) {
+          // Le premier envoi avait réussi : on continue comme un succès.
+          queueEvent("sign_up", { method: "email", funnel: "membre" });
+          proceedLoggedIn();
+          return;
+        }
+        if (/already registered|already been registered/i.test(error.message)) {
+          const { data: si, error: siErr } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+          if (!siErr && si.session) {
+            proceedLoggedIn();
+            return;
+          }
+          setError(
+            "Un compte existe déjà avec cet e-mail. Connecte-toi — ou utilise « Mot de passe oublié » sur la page de connexion."
+          );
+          setLoading(false);
+          return;
+        }
+        setError(traduireErreur(error.message));
+        setLoading(false);
+        return;
+      }
 
-    // Compte créé : l'événement part en file et ne sera émis qu'une fois la
-    // session prouvée côté app (cf. lib/analytics-pending.ts).
-    queueEvent("sign_up", { method: "email", funnel: "membre" });
+      // Compte créé : l'événement part en file et ne sera émis qu'une fois la
+      // session prouvée côté app (cf. lib/analytics-pending.ts).
+      queueEvent("sign_up", { method: "email", funnel: "membre" });
 
-    if (data.session) {
-      // Email confirmation disabled → déjà connecté
-      window.location.href = "/auth/callback";
-    } else {
+      if (data.session) {
+        // Email confirmation disabled → déjà connecté
+        proceedLoggedIn();
+        return;
+      }
       // Email confirmation required → attendre la confirmation
       setSent(true);
+    } catch {
+      // Exception réseau : le compte a peut-être quand même été créé.
+      try {
+        const { data: sess } = await createClient().auth.getSession();
+        if (sess.session) {
+          queueEvent("sign_up", { method: "email", funnel: "membre" });
+          proceedLoggedIn();
+          return;
+        }
+      } catch {}
+      setError("Erreur réseau pendant la création. Vérifie ta connexion puis réessaie — tes champs sont conservés.");
     }
     setLoading(false);
   }
