@@ -21,6 +21,7 @@ import { getRestaurant } from "@/lib/restaurant";
 import { getPlan } from "@/lib/entitlements";
 import { getScanUsage, SCAN_CAP_GRATUIT } from "@/lib/scan-meter";
 import { getCatalogGaps } from "@/lib/catalog-gaps";
+import { getProgramValue } from "@/lib/program-value";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { InstallAppCard } from "@/components/InstallAppCard";
 
@@ -52,43 +53,21 @@ export default async function AdminDashboardPage({
   const [
     { count: pendingOrders },
     { count: pendingClaims },
-    { count: totalMembers },
     { data: thresholdHistory },
     { data: pendingOrdersData },
-    { data: validatedAmounts },
-    { data: marginItems },
-    { data: budgetRows },
+    value,
   ] = await Promise.all([
     admin.from("orders").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).eq("status", "pending"),
     admin.from("micro_reward_claims").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).eq("status", "pending"),
-    // Tous les membres inscrits — l'équipe est optionnelle (ADR 0018), le
-    // filtre team_id sous-comptait (audit 2026-07-23).
-    admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("restaurant_id", restaurantId),
     // Historique (pas juste la période en cours) : permet de calculer une
     // vraie série de périodes déverrouillées d'affilée, sans l'inventer.
     admin.from("restaurant_thresholds").select("period_label, current_revenue, target_revenue, is_unlocked").eq("restaurant_id", restaurantId).order("created_at", { ascending: false }).limit(12),
     admin.from("orders").select("flag_reasons").eq("restaurant_id", restaurantId).eq("status", "pending"),
-    // Gains du programme (depuis le début) : CA scanné + marge estimée sur
-    // les articles reconnus (ADR 0020) + coût réel des cadeaux distribués
-    admin.from("orders").select("amount").eq("restaurant_id", restaurantId).eq("status", "validated").limit(10000),
-    admin
-      .from("order_items")
-      .select("quantity, menu_items!inner(menu_price, cost_price), orders!inner(restaurant_id, status)")
-      .eq("orders.restaurant_id", restaurantId)
-      .eq("orders.status", "validated")
-      .limit(10000),
-    admin.from("reward_budget_tracking").select("rewards_cost").eq("restaurant_id", restaurantId),
+    // Valeur générée par le programme (issue #22) — mois par mois, chiffres
+    // prouvés uniquement, part du CA total seulement si des ventes de caisse
+    // sont importées (lib/program-value.ts).
+    getProgramValue(restaurantId),
   ]);
-
-  const programRevenue = (validatedAmounts ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
-  type MarginRow = { quantity: number; menu_items: { menu_price: number; cost_price: number } | { menu_price: number; cost_price: number }[] };
-  const programMargin = ((marginItems ?? []) as unknown as MarginRow[]).reduce((s, row) => {
-    const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
-    if (!mi) return s;
-    return s + (Number(mi.menu_price) - Number(mi.cost_price)) * (Number(row.quantity) || 1);
-  }, 0);
-  const rewardsCost = (budgetRows ?? []).reduce((s, r) => s + Number((r as { rewards_cost: number }).rewards_cost), 0);
-  const netGain = programMargin - rewardsCost;
 
   const flaggedCount = (pendingOrdersData ?? []).filter(
     (o: { flag_reasons: string[] | null }) => Array.isArray(o.flag_reasons) && o.flag_reasons.length > 0
@@ -123,10 +102,35 @@ export default async function AdminDashboardPage({
     unlockStreak++;
   }
 
+  // ── Valeur générée (issue #22) — dérivés d'affichage ──────────────────────
+  const eur = (n: number) =>
+    n.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const monthTitle = (mk: string) =>
+    capitalize(new Date(`${mk}-01T00:00:00Z`).toLocaleDateString("fr-BE", { month: "long", year: "numeric", timeZone: "UTC" }));
+  const monthShort = (mk: string) =>
+    new Date(`${mk}-01T00:00:00Z`).toLocaleDateString("fr-BE", { month: "short", timeZone: "UTC" });
+  const curMonth = value.months[value.months.length - 1];
+  const prevMonth = value.months.length >= 2 ? value.months[value.months.length - 2] : null;
+  // Variation vs mois précédent : affichée seulement si le mois précédent a
+  // du CA (un « +∞ % » ou un ratio sur zéro ne veut rien dire).
+  const prevDeltaPct =
+    prevMonth && prevMonth.revenue > 0
+      ? Math.round(((curMonth.revenue - prevMonth.revenue) / prevMonth.revenue) * 100)
+      : null;
+  const maxMonthRevenue = Math.max(...value.months.map((m) => m.revenue), 1);
+  // Coût cadeaux complet : récompenses de commandes + cadeaux 4 jetons.
+  const totalGiftCost = value.rewards.costEngaged + value.jetons.cost;
+  const latestSales =
+    value.sales.status === "ok" && value.sales.months.length > 0
+      ? value.sales.months[value.sales.months.length - 1]
+      : null;
+
   const dateLabel = capitalize(
     new Date().toLocaleDateString("fr-BE", { weekday: "long", day: "numeric", month: "long" })
   );
-  const members = totalMembers ?? 0;
+  // Tous les membres inscrits — l'équipe est optionnelle (ADR 0018), le
+  // filtre team_id sous-comptait (audit 2026-07-23).
+  const members = value.totals.members;
   const membersLabel = `${members} membre${members > 1 ? "s" : ""} inscrit${members > 1 ? "s" : ""}`;
 
   // "À faire aujourd'hui" — priorité absolue de la page : ce qui bloque une
@@ -334,41 +338,169 @@ export default async function AdminDashboardPage({
         <span className="text-brand-red text-[12.5px] font-bold shrink-0">Découvrir →</span>
       </Link>
 
-      {/* Gains du programme — depuis le début */}
-      <section className="bg-brand-dark text-white rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-gold">Ce que le programme t&apos;a rapporté</p>
-          <Link href={r("/sales")} className="text-xs font-semibold text-brand-gold hover:text-white transition-colors">Détail par plat →</Link>
-        </div>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div>
-            <p className="font-display text-2xl font-bold tabular-nums">
-              {programRevenue.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
-            </p>
-            <p className="text-[11.5px] text-white/70 mt-1">CA généré (tickets scannés)</p>
+      {/* ── Valeur générée par le programme (issue #22) ─────────────────────
+          Chiffres PROUVÉS uniquement, mois par mois. On ne prétend jamais que
+          ce CA « ne serait pas venu sans le programme » : c'est le CA des
+          clients qui y participent — la preuve d'une base fidèle. La part du
+          CA total n'apparaît que si des ventes de caisse sont importées
+          (hook data-ready, ADR 0029). Gratuit pour tous les plans : c'est
+          cette section qui donne envie des surfaces payantes. */}
+      <section className="space-y-3">
+        <div className="bg-brand-dark text-white rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-gold">Ce que le programme t&apos;a rapporté</p>
+            <Link href={r("/sales")} className="text-xs font-semibold text-brand-gold hover:text-white transition-colors">Détail par plat →</Link>
           </div>
-          <div>
-            <p className="font-display text-2xl font-bold tabular-nums text-brand-gold">
-              {programMargin.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
-            </p>
-            <p className="text-[11.5px] text-white/70 mt-1">marge sur articles reconnus</p>
-          </div>
-          <div>
-            <p className={`font-display text-2xl font-bold tabular-nums ${netGain >= 0 ? "text-good" : "text-danger"}`}>
-              {netGain.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
-            </p>
-            <p className="text-[11.5px] text-white/70 mt-1">
-              gain net estimé (marge − {rewardsCost.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })} de cadeaux)
-            </p>
-          </div>
-        </div>
-      </section>
 
-      {/* Statut CA restaurant — barre à paliers + trophée en ligne d'arrivée
-          (plutôt qu'une barre plate) : rendre la progression désirable, pas
-          juste l'afficher. */}
-      {th && (
-        <section className="bg-white border border-paper-border rounded-xl p-5">
+          {value.totals.orders === 0 ? (
+            // Même honnêteté que le forecast (ADR 0027) : pas de zéros en
+            // vitrine pour un établissement qui démarre.
+            <p className="text-sm text-white/80">
+              Pas encore de commande scannée — cette section montrera, mois par
+              mois, le CA de tes clients du programme, tes clients revenus et ce
+              que tes cadeaux t&apos;ont coûté, dès le premier ticket validé.
+            </p>
+          ) : (
+            <>
+              {/* Mois en cours */}
+              <p className="text-[12px] text-white/60 mb-2">{monthTitle(curMonth.month)}</p>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="font-display text-2xl font-bold tabular-nums">{eur(curMonth.revenue)}</p>
+                  <p className="text-[11.5px] text-white/70 mt-1">
+                    CA de tes clients du programme
+                    {prevDeltaPct !== null && (
+                      <span className={prevDeltaPct >= 0 ? " text-good" : " text-danger"}>
+                        {" "}· {prevDeltaPct >= 0 ? "+" : ""}{prevDeltaPct} % vs {monthShort(prevMonth!.month)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-display text-2xl font-bold tabular-nums text-brand-gold">{curMonth.activeMembers}</p>
+                  <p className="text-[11.5px] text-white/70 mt-1">
+                    client{curMonth.activeMembers > 1 ? "s" : ""} ce mois-ci
+                    {curMonth.returningMembers > 0 && ` · dont ${curMonth.returningMembers} revenu${curMonth.returningMembers > 1 ? "s" : ""}`}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-display text-2xl font-bold tabular-nums">{curMonth.newMembers}</p>
+                  <p className="text-[11.5px] text-white/70 mt-1">
+                    nouveau{curMonth.newMembers > 1 ? "x" : ""} inscrit{curMonth.newMembers > 1 ? "s" : ""}
+                    {curMonth.referredSignups > 0 && ` · dont ${curMonth.referredSignups} parrainé${curMonth.referredSignups > 1 ? "s" : ""}`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tendance mois par mois — barres proportionnelles au CA */}
+              {value.months.length >= 2 && (
+                <div className="mt-5 space-y-1.5">
+                  {value.months.map((m) => (
+                    <div key={m.month} className="flex items-center gap-2 text-[11.5px]">
+                      <span className="w-16 shrink-0 text-white/60">{monthShort(m.month)}</span>
+                      <div className="flex-1 bg-white/10 rounded-full h-2">
+                        <div
+                          className="bg-brand-gold h-2 rounded-full"
+                          style={{ width: `${Math.max(2, Math.round((m.revenue / maxMonthRevenue) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="w-14 shrink-0 text-right tabular-nums">{eur(m.revenue)}</span>
+                      <span className="w-20 shrink-0 text-right text-white/50 tabular-nums">
+                        {m.orders} cmd · {m.newMembers} insc.
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Depuis le début — le bilan cadeaux en regard de ce qu'ils
+                  accompagnent : coût engagé (jamais décrémenté, prudence ADR
+                  0012), dont réellement retiré au comptoir. */}
+              <div className="mt-5 pt-4 border-t border-white/15 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="font-display text-lg font-bold tabular-nums">{eur(value.totals.revenue)}</p>
+                  <p className="text-[11px] text-white/60 mt-0.5">CA cumulé · {value.totals.orders} commandes</p>
+                </div>
+                <div>
+                  <p className="font-display text-lg font-bold tabular-nums text-brand-gold">{eur(value.totals.margin)}</p>
+                  <p className="text-[11px] text-white/60 mt-0.5">marge sur articles à coût connu</p>
+                </div>
+                <div>
+                  <p className="font-display text-lg font-bold tabular-nums">{eur(totalGiftCost)}</p>
+                  <p className="text-[11px] text-white/60 mt-0.5">
+                    de cadeaux engagés
+                    {value.rewards.countRedeemed > 0 && ` · ${eur(value.rewards.costRedeemed)} retirés`}
+                    {value.jetons.gifts > 0 && ` · dont ${value.jetons.gifts} cadeau${value.jetons.gifts > 1 ? "x" : ""} jetons`}
+                  </p>
+                </div>
+              </div>
+              <p className="text-[11.5px] text-white/50 mt-3">
+                Soit {eur(value.totals.margin - totalGiftCost)} de marge nette après cadeaux —{" "}
+                {value.totals.returningMembers > 0
+                  ? `et ${value.totals.returningMembers} client${value.totals.returningMembers > 1 ? "s" : ""} déjà revenu${value.totals.returningMembers > 1 ? "s" : ""} au moins une fois.`
+                  : `${value.totals.membersWithOrder} client${value.totals.membersWithOrder > 1 ? "s" : ""} identifié${value.totals.membersWithOrder > 1 ? "s" : ""} par leurs tickets.`}
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Parrainage — la seule acquisition prouvable à 100 % : ces clients
+            n'existaient pas dans ta base avant le lien d'un parrain. */}
+        {value.referral.signups > 0 && (
+          <Link
+            href={r("/referrals")}
+            className="flex items-center justify-between gap-3 bg-white border border-paper-border rounded-xl px-5 py-3.5 hover:bg-paper transition-colors"
+          >
+            <p className="text-[13px] text-ink">
+              <span className="font-bold">Parrainage :</span> {value.referral.signups} filleul{value.referral.signups > 1 ? "s" : ""} inscrit{value.referral.signups > 1 ? "s" : ""}
+              {value.referral.withOrder > 0
+                ? ` · ${value.referral.withOrder} ${value.referral.withOrder > 1 ? "ont" : "a"} déjà commandé (${eur(value.referral.revenue)} de CA apporté)`
+                : " · aucun n'a encore commandé"}
+            </p>
+            <ChevronRight size={15} className="text-ink-faint shrink-0" />
+          </Link>
+        )}
+
+        {/* Part du programme dans le CA total — UNIQUEMENT sur des ventes de
+            caisse importées (jamais d'estimation). Sinon : le hook data-ready
+            de l'ADR 0029, qui nourrit aussi le forecast. */}
+        {value.sales.status === "ok" && latestSales ? (
+          <div className="bg-white border border-paper-border rounded-xl p-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-red">Ton CA total — {monthTitle(latestSales.month)}</p>
+              <Link href={r("/forecast")} className="text-xs font-semibold text-brand-red hover:underline">Ventes &amp; prévisions →</Link>
+            </div>
+            <p className="font-display text-[22px] font-bold text-ink tabular-nums">{eur(latestSales.totalSales)}</p>
+            {latestSales.programSharePct !== null && (
+              <>
+                <div className="w-full bg-paper-subtle rounded-full h-2 mt-3">
+                  <div className="bg-brand-red h-2 rounded-full" style={{ width: `${latestSales.programSharePct}%` }} />
+                </div>
+                <p className="text-xs text-ink-muted mt-2">
+                  {latestSales.programSharePct} % de ce CA vient de tes clients du programme (tickets scannés vs caisse importée).
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <Link
+            href={r("/forecast")}
+            className="flex items-center justify-between gap-3 bg-white border border-dashed border-paper-border rounded-xl px-5 py-3.5 hover:bg-paper transition-colors"
+          >
+            <p className="text-[13px] text-ink-muted">
+              {value.sales.status === "insufficient"
+                ? "Continue d'importer tes ventes de caisse (4 semaines minimum) pour voir la part du programme dans ton CA total."
+                : "Importe ton rapport de caisse pour voir ton CA total et la part qu'y prennent tes clients du programme."}
+            </p>
+            <span className="text-brand-red text-[12.5px] font-bold shrink-0">Importer →</span>
+          </Link>
+        )}
+
+        {/* Statut CA restaurant — barre à paliers + trophée en ligne d'arrivée
+            (plutôt qu'une barre plate) : rendre la progression désirable, pas
+            juste l'afficher. */}
+        {th && (
+        <div className="bg-white border border-paper-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-1">
             <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-red">Objectif CA — {th.period_label}</p>
             <Link href={r("/thresholds")} className="text-xs font-semibold text-brand-red hover:underline">
@@ -416,8 +548,9 @@ export default async function AdminDashboardPage({
               </span>
             )}
           </div>
-        </section>
-      )}
+        </div>
+        )}
+      </section>
 
       {/* Pour aller plus loin — liens secondaires, volontairement en retrait
           visuel (icônes fines, pas de couleur) : la priorité de la page va

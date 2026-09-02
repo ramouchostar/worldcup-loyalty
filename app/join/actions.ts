@@ -35,11 +35,27 @@ export async function ensureMembership(restaurantId: string) {
       .maybeSingle();
 
     if (refLink && refLink.user_id !== user.id) {
-      await admin.from("referrals").insert({
+      const { error: refError } = await admin.from("referrals").insert({
         referrer_id: refLink.user_id,
         referee_id: user.id,
         restaurant_id: restaurantId,
       });
+
+      // ADR 0012 — un 5e filleul accorde un jeton, qui peut compléter un
+      // cadeau 4 jetons : son coût entre alors dans le budget du mois.
+      // Uniquement sur insertion réussie (un doublon UNIQUE(referee_id) ne
+      // crédite rien). Best-effort, jamais bloquant.
+      if (!refError) {
+        const { count: refCount } = await admin
+          .from("referrals")
+          .select("id", { count: "exact", head: true })
+          .eq("restaurant_id", restaurantId)
+          .eq("referrer_id", refLink.user_id);
+        if ((refCount ?? 0) > 0 && (refCount ?? 0) % 5 === 0) {
+          const { recordJetonsGiftCostIfEarned } = await import("@/lib/jetons-gift");
+          await recordJetonsGiftCostIfEarned(restaurantId, refLink.user_id);
+        }
+      }
 
       const { data: referrer } = await admin
         .from("profiles")

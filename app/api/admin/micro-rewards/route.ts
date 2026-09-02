@@ -50,11 +50,19 @@ export async function PATCH(request: NextRequest) {
     .update({ status: action === "validate" ? "validated" : "rejected" })
     .eq("id", id)
     .eq("restaurant_id", restaurantId) // ADR sécurité F2 — la réclamation doit appartenir à CET établissement
-    .select("id");
+    .select("id, user_id");
 
   if (error) return NextResponse.json({ error: "Erreur lors de la mise à jour." }, { status: 500 });
   if (!updated || updated.length === 0) {
     return NextResponse.json({ error: "Réclamation introuvable." }, { status: 404 });
   }
+
+  // ADR 0012 — le jeton accordé peut compléter un cadeau 4 jetons : son coût
+  // entre alors dans le budget du mois. Best-effort, jamais bloquant.
+  if (action === "validate" && updated[0].user_id) {
+    const { recordJetonsGiftCostIfEarned } = await import("@/lib/jetons-gift");
+    await recordJetonsGiftCostIfEarned(restaurantId, updated[0].user_id as string);
+  }
+
   return NextResponse.json({ success: true });
 }
