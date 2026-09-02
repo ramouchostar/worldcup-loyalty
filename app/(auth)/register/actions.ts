@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase";
 import { recordConsents } from "@/lib/consent";
+import { resolvePostLoginDestination } from "@/lib/post-login";
 import { sendWelcomeEmail } from "@/lib/email";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 
@@ -72,10 +73,13 @@ export async function acceptProgramme(
 
   // Prospect redirigé vers /login (puis /register) depuis /become-a-partner
   // (middleware) — on l'y ramène au lieu de le laisser tomber sur /join.
+  // GARDE-FOU (incident 2026-09-02) : jamais pour un rôle élevé — le cookie
+  // envoyait même le super-admin dans le tunnel d'inscription resto.
   const pendingBecomePartner = cookieStore.get("pending_become_partner")?.value === "1";
   if (pendingBecomePartner) {
     cookieStore.set("pending_become_partner", "", { maxAge: 0, path: "/" });
-    redirect("/become-a-partner");
+    const roleDest = await resolvePostLoginDestination(user.id);
+    redirect(roleDest === "/platform" || roleDest === "/admin" ? roleDest : "/become-a-partner");
   }
 
   const pendingRestaurantId = cookieStore.get("pending_restaurant_id")?.value;
@@ -91,5 +95,8 @@ export async function acceptProgramme(
     );
   }
 
-  redirect("/join");
+  // ADR 0030 §1 — destination par RÔLE, pas /join en dur (incident
+  // 2026-09-02 : le super-admin qui passait par la case de consentement
+  // atterrissait sur la liste des restos au lieu de /platform).
+  redirect(await resolvePostLoginDestination(user.id));
 }
