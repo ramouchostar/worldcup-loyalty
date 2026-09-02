@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Scan } from "lucide-react";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
+import { getTeamsHidden } from "@/lib/teams";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { joinRestaurant } from "@/app/join/actions";
@@ -97,7 +98,10 @@ export default async function RestaurantLandingPage({
   // ADR 0040 — un membre qui rescanne le QR n'a rien à faire sur la vitrine :
   // il arrive directement dans l'app (recordLanding a déjà compté ci-dessus).
   if (user && isMember) redirect(`/r/${restaurantId}/dashboard`);
-  const isKraainem = restaurantId === "kraainem";
+  // Étape 10 onboarding — le masquage des équipes est un flag par resto
+  // (restaurants.teams_hidden, kraainem par défaut) au lieu du hardcode :
+  // il pilote aussi la question d'équipe (getTeamPrompt).
+  const teamsHidden = await getTeamsHidden(restaurantId);
   const logo = logoPublicUrl(branding.logo_url);
   // ADR 0042, amendé par ADR 0043 — aperçu par nom d'article (jamais de
   // seuil ni d'euro) sur la carte hero.
@@ -213,10 +217,10 @@ export default async function RestaurantLandingPage({
       <div className="h-10" />
 
       {/* ── TOP 5 ÉQUIPES ── */}
-      {/* Masqué pour Kraainem le temps de valider si le concept d'équipe
-          prend (retour restaurateur, 2026-08-10) — réactivable en retirant
-          isKraainem de cette condition. */}
-      {!isKraainem && top5.length > 0 && (
+      {/* Masqué quand l'établissement cache le concept d'équipe (flag
+          restaurants.teams_hidden — kraainem depuis le retour restaurateur du
+          2026-08-10, réactivable en base sans déploiement). */}
+      {!teamsHidden && top5.length > 0 && (
         <div className="bg-gray-50 py-10">
           <div className="max-w-lg mx-auto px-5">
             <div className="flex items-center justify-between mb-5">

@@ -309,11 +309,32 @@ export async function listDiscoverySuggestions(
 
 export type TeamPrompt = { suggestions: TeamSuggestionRow[] };
 
+// Étape 10 onboarding — « équipes masquées » par établissement (migration
+// 20260902-0500). Fail-open : colonne absente → hardcode kraainem historique
+// (le masquage vitrine datait du retour restaurateur du 2026-08-10).
+export async function getTeamsHidden(restaurantId: string): Promise<boolean> {
+  try {
+    const { data, error } = await createAdminClient()
+      .from("restaurants")
+      .select("teams_hidden")
+      .eq("id", restaurantId)
+      .maybeSingle();
+    if (error) return restaurantId === "kraainem";
+    return (data as { teams_hidden?: boolean } | null)?.teams_hidden === true;
+  } catch {
+    return restaurantId === "kraainem";
+  }
+}
+
 // « Te reconnais-tu dans une de ces équipes ? » — décide si la question est due
 // et choisit les propositions. Renvoie null si : pas d'adhésion, déjà une
 // équipe, relance pas encore échue, ou plus rien à proposer.
 export async function getTeamPrompt(userId: string, restaurantId: string): Promise<TeamPrompt | null> {
   const admin = createAdminClient();
+
+  // Étape 10 — jamais de question d'équipe dans un établissement qui masque
+  // le concept d'équipe (kraainem tant que le concept n'est pas validé).
+  if (await getTeamsHidden(restaurantId)) return null;
 
   const { data: membershipRaw } = await admin
     .from("memberships")

@@ -1,6 +1,6 @@
 # ADR 0031 — Communautés déclarées par l'établissement & question de reconnaissance
 
-**Statut** : Accepté (2026-08-11). Amende l'**ADR 0014** (§2 création & adhésion) et l'**ADR 0018** (§3 découverte d'équipes). Aucun changement aux couches de récompense (ADR 0006), au score (ADR 0028) ni au cooldown de changement d'équipe (ADR 0014 §4).
+**Statut** : Accepté (2026-08-11). Amende l'**ADR 0014** (§2 création & adhésion) et l'**ADR 0018** (§3 découverte d'équipes). Aucun changement aux couches de récompense (ADR 0006), au score (ADR 0028) ni au cooldown de changement d'équipe (ADR 0014 §4). **Amendé le 2026-09-02** (étape 10/10 du backlog onboarding) : la question de reconnaissance est posée sur l'**écran de succès du premier ticket validé** (plus à l'arrivée au dashboard), formulée par le **gain** (« ton cadeau peut doubler »), limitée à **3 propositions** avec **une seule sortie** (« Plus tard — mon cadeau reste acquis », relance serveur à une semaine inchangée), et jamais posée quand l'établissement masque les équipes (`restaurants.teams_hidden`, migration `20260902-0500` — remplace le hardcode kraainem de la vitrine).
 
 ## Contexte
 

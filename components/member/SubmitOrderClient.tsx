@@ -12,6 +12,7 @@ import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
 import { PostTicketSheet } from "@/components/member/PostTicketSheet";
+import { TeamRecognitionPrompt, type PromptSuggestion } from "@/components/member/TeamRecognitionPrompt";
 import { rememberPendingTicket } from "@/app/r/[restaurantId]/submit-order/actions";
 import { createClient } from "@/lib/supabase-browser";
 
@@ -46,10 +47,15 @@ export default function SubmitOrderClient({
   visitor,
   resume,
   logoUrl,
+  teamPrompt = null,
 }: {
   visitor: boolean;
   resume: boolean;
   logoUrl: string | null;
+  // Étape 10 — question d'équipe due (ADR 0031), posée sur l'écran de succès
+  // du ticket validé. Null si : visiteur, déjà une équipe, relance pas échue,
+  // équipes masquées.
+  teamPrompt?: { suggestions: PromptSuggestion[] } | null;
 }) {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { name: restaurantName } = useRestaurantInfo();
@@ -103,6 +109,8 @@ export default function SubmitOrderClient({
   const [hasReward, setHasReward] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  // Étape 10 — la question d'équipe ne se pose qu'une fois par écran de succès.
+  const [teamAskDone, setTeamAskDone] = useState(false);
 
   // Entrée du tunnel de scan : c'est le dénominateur qui donne son sens au
   // taux d'abandon entre l'ouverture du formulaire et le ticket soumis.
@@ -417,13 +425,25 @@ export default function SubmitOrderClient({
     // pas d'euro affiché, "amount" ne ressort qu'ici, transformé en points.
     const earnedPoints = pointsForOrder(Number(amount));
     const pointsLabel = `point${earnedPoints > 1 ? "s" : ""} gagné${earnedPoints > 1 ? "s" : ""}`;
+    const askTeam =
+      !hasTeam && !teamAskDone && !!teamPrompt && teamPrompt.suggestions.length > 0;
     return (
       <div>
+        {/* Étape 10 — la question d'équipe d'abord (le cadeau vient de tomber,
+            « ton cadeau peut doubler ») ; la relance côté serveur est armée par
+            la sortie « Plus tard ». */}
+        {askTeam && teamPrompt && (
+          <TeamRecognitionPrompt
+            restaurantId={restaurantId}
+            suggestions={teamPrompt.suggestions}
+            onDone={() => setTeamAskDone(true)}
+          />
+        )}
         {/* Étape 08 — app + notifications en UNE feuille, posée ICI : après
             le premier ticket validé de l'appareil, un cadeau vient d'être
-            gagné. La feuille décide elle-même si elle a quelque chose à
-            proposer (une seule apparition par appareil). */}
-        <PostTicketSheet restaurantId={restaurantId} />
+            gagné. La feuille attend que la question d'équipe soit réglée
+            (une seule apparition par appareil). */}
+        <PostTicketSheet restaurantId={restaurantId} hold={askTeam} />
         {/* Dégradé vert centré, identité Boosteats fixe — PAS brand_accent :
             pour Kraainem cette variable résout en rouge (cf. le badge
             "Pro" ou la bordure de la zone photo), lu comme un signal de
