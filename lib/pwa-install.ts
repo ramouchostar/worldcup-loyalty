@@ -82,12 +82,23 @@ export function onboardingProposeDeja(): boolean {
 }
 
 /** Consomme le prompt natif. Retourne true si l'installation a été acceptée. */
-export async function lancerInstallation(): Promise<boolean> {
-  if (!differe) return false;
+export type ResultatInstallation = "accepted" | "dismissed" | "unavailable";
+
+export async function lancerInstallation(): Promise<ResultatInstallation> {
+  if (!differe) return "unavailable";
   const evenement = differe;
+  // L'événement est à USAGE UNIQUE : consommé ici pour toutes les surfaces
+  // (une seule source de vérité — le bug « le bouton ne fait rien » venait
+  // de références gardées après consommation).
   differe = null;
   abonnes.forEach((cb) => cb(null));
-  await evenement.prompt();
-  const { outcome } = await evenement.userChoice;
-  return outcome === "accepted";
+  try {
+    await evenement.prompt();
+    const { outcome } = await evenement.userChoice;
+    return outcome;
+  } catch {
+    // Référence périmée (déjà consommée, ou invalidée par le navigateur) :
+    // JAMAIS d'échec silencieux — l'appelant affiche le chemin manuel.
+    return "unavailable";
+  }
 }

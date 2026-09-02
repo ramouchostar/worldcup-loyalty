@@ -13,7 +13,8 @@ import {
 } from "@/lib/pwa-install";
 
 // ADR 0038 — L'endroit où l'on peut TOUJOURS installer l'app, par opposition
-// au moment unique de l'onboarding (OnboardingFlow, membre) ou du navigateur.
+// au moment unique de la feuille post-ticket (PostTicketSheet, membre) ou du
+// navigateur.
 // Disparaît de lui-même une fois l'app installée : rien à masquer à la main,
 // aucun réglage à retenir.
 
@@ -71,9 +72,12 @@ export function InstallAppCard({
 
   async function installer() {
     setEnCours(true);
-    const accepte = await lancerInstallation();
+    const resultat = await lancerInstallation();
     setEnCours(false);
-    if (accepte) setInstallee(true);
+    if (resultat === "accepted") setInstallee(true);
+    // "dismissed" / "unavailable" : la lib a notifié les abonnés (prompt →
+    // null), la carte bascule d'elle-même sur le chemin manuel « Ajouter à
+    // l'écran d'accueil » — plus jamais un clic muet ni un bouton gelé.
   }
 
   const cadre =
