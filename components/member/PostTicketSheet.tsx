@@ -47,7 +47,15 @@ function Switch({ checked, busy, onClick, label }: { checked: boolean; busy?: bo
   );
 }
 
-export function PostTicketSheet({ restaurantId }: { restaurantId: string }) {
+export function PostTicketSheet({
+  restaurantId,
+  hold = false,
+}: {
+  restaurantId: string;
+  // Étape 10 — la question d'équipe passe d'abord sur le même écran : tant
+  // qu'elle est visible, la feuille attend son tour.
+  hold?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [installRow, setInstallRow] = useState(false);
   const [pushRow, setPushRow] = useState(false);
@@ -60,6 +68,7 @@ export function PostTicketSheet({ restaurantId }: { restaurantId: string }) {
   const [pushDenied, setPushDenied] = useState(false);
 
   useEffect(() => {
+    if (hold) return;
     try {
       if (localStorage.getItem(K_SHEET) === "true") return;
       const inst = estInstallee();
@@ -82,7 +91,7 @@ export function PostTicketSheet({ restaurantId }: { restaurantId: string }) {
     } catch {
       // localStorage indisponible → pas de feuille, jamais d'erreur
     }
-  }, []);
+  }, [hold]);
 
   function close() {
     try {

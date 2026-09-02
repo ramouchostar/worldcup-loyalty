@@ -5,7 +5,6 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier } from "@/lib/rewards";
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
-import { getTeamPrompt } from "@/lib/teams";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { getPointsBalance } from "@/lib/points";
@@ -14,7 +13,6 @@ import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { heroFirstScanMessage, heroProgressMessage, heroMaxTierMessage } from "@/lib/hero-copy";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
 import { ScoreCard } from "@/components/member/ScoreCard";
-import { OnboardingFlow } from "@/components/member/OnboardingFlow";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { ActionsLadder } from "@/components/member/ActionsLadder";
 import { ReferralCTA } from "@/components/member/ReferralCTA";
@@ -96,7 +94,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // Score (points, côté membre) + dépense cumulée d'équipe (euros, service role —
   // jamais rendue, sert seulement à résoudre la couche 3). ADR 0007.
   const admin = createAdminClient();
-  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }, rankResult, teamPrompt] = await Promise.all([
+  // Étape 10 onboarding — la question d'équipe (ADR 0031) ne se pose plus à
+  // l'arrivée ici : elle vit sur l'écran de succès du ticket validé.
+  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }, rankResult] = await Promise.all([
     hasTeam
       ? supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
       : Promise.resolve({ data: null }),
@@ -124,9 +124,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           .eq("restaurant_id", restaurantId)
           .order("score", { ascending: false })
       : Promise.resolve({ data: null }),
-    // ADR 0031 — « te reconnais-tu ? » : ne se pose qu'au membre sans équipe,
-    // et seulement quand la relance est échue (état serveur, pas localStorage).
-    hasTeam ? Promise.resolve(null) : getTeamPrompt(user.id, restaurantId),
   ]);
   const scoreRaw = scoreResult.data;
   const spentRaw = spentResult.data;
@@ -211,8 +208,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           <span className="text-brand-gold font-semibold text-sm shrink-0">Console →</span>
         </Link>
       )}
-
-      <OnboardingFlow teamPrompt={teamPrompt} />
 
       {/* ── ADR 0038 — rattrapage de l'installation ────────────────────────
           Priorité haute : un membre qui n'a pas l'app ne reçoit aucune des

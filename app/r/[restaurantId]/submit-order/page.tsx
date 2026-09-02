@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { ensureMembership } from "@/app/join/actions";
 import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
+import { getTeamPrompt } from "@/lib/teams";
 import SubmitOrderClient from "@/components/member/SubmitOrderClient";
 
 // ADR 0040 — le scan est ouvert aux visiteurs : la photo d'abord, le compte au
@@ -35,5 +36,18 @@ export default async function SubmitOrderPage({
   const branding = await getRestaurantBranding(restaurantId);
   const logoUrl = logoPublicUrl(branding.logo_url);
 
-  return <SubmitOrderClient visitor={!user} resume={resume === "1"} logoUrl={logoUrl} />;
+  // Étape 10 — la question d'équipe (ADR 0031) se pose sur l'écran de succès
+  // du ticket validé, plus à l'arrivée au dashboard : le cadeau vient de
+  // tomber, la question se formule par le gain. getTeamPrompt filtre déjà :
+  // équipe existante, relance pas échue, équipes masquées → null.
+  const teamPrompt = user ? await getTeamPrompt(user.id, restaurantId) : null;
+
+  return (
+    <SubmitOrderClient
+      visitor={!user}
+      resume={resume === "1"}
+      logoUrl={logoUrl}
+      teamPrompt={teamPrompt ? { suggestions: teamPrompt.suggestions.slice(0, 3) } : null}
+    />
+  );
 }

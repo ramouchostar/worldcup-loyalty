@@ -6,21 +6,23 @@ import { teamTypeEmoji } from "@/lib/team-suggestions";
 import { track } from "@/lib/analytics";
 import type { TeamType } from "@/types";
 
-// ADR 0031 — « Te reconnais-tu dans une de ces équipes ? »
+// ADR 0031, refondu par l'étape 10/10 du backlog onboarding :
 //
-// UN SEUL écran : les 4 propositions sont affichées ensemble et le membre tape
-// la sienne. La version en enchaînement oui/non demandait jusqu'à 3 décisions
-// pour arriver au même endroit — c'est trois fois plus d'occasions
-// d'abandonner en plein onboarding, et la reconnaissance est immédiate : on
-// voit son école dans une liste, on ne délibère pas dessus.
+// - Posée APRÈS le premier ticket VALIDÉ (écran de succès du scan), plus à
+//   l'arrivée sur le dashboard : le membre vient de gagner quelque chose, la
+//   question se justifie par le GAIN (« ton cadeau peut doubler »), plus par
+//   l'identité seule.
+// - TROIS propositions maximum, affichées ensemble, un seul tap.
+// - UNE SEULE sortie : « Plus tard — mon cadeau reste acquis » (relance à une
+//   semaine côté serveur, jamais localStorage — la question doit revenir même
+//   sur un autre appareil). Le refus définitif n'existe plus ici : la liste
+//   complète reste explorable sur « Mon équipe ».
+// - Jamais posée dans un établissement où les équipes sont masquées
+//   (restaurants.teams_hidden — filtré en amont par getTeamPrompt).
 //
-// Question d'identité, pas de stratégie : on ne montre NI points NI nombre de
-// membres. Le membre reconnaît une appartenance qu'il a déjà (son école, son
-// boulot), il ne compare pas des scores. Afficher un classement ici
-// transformerait le choix en chasse au score et casserait le recrutement.
-//
-// Aucune sortie ne fait culpabiliser : sans équipe, la couche solo (ADR 0006)
-// reste entièrement acquise — et c'est dit explicitement.
+// Question de gain, pas de stratégie : on ne montre NI points NI nombre de
+// membres — le membre reconnaît une appartenance, il ne compare pas des
+// scores (afficher un classement ici casserait le recrutement).
 
 export type PromptSuggestion = {
   id: string;
@@ -29,7 +31,9 @@ export type PromptSuggestion = {
   zone: string | null;
 };
 
-type Phase = "asking" | "joined" | "none";
+const MAX_SUGGESTIONS = 3;
+
+type Phase = "asking" | "joined";
 
 export function TeamRecognitionPrompt({
   restaurantId,
@@ -42,13 +46,16 @@ export function TeamRecognitionPrompt({
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("asking");
-  const [busy, setBusy] = useState<string | null>(null); // id en cours, ou "none"
+  const [busy, setBusy] = useState<string | null>(null); // id en cours, ou "leave"
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState<{ name: string; captain: boolean } | null>(null);
 
+  const shown = suggestions.slice(0, MAX_SUGGESTIONS);
+  if (shown.length === 0) return null;
+
   async function respond(
-    action: "join" | "decline" | "later",
-    payload: { suggestionId?: string; suggestionIds?: string[] } = {}
+    action: "join" | "later",
+    payload: { suggestionId?: string } = {}
   ) {
     const res = await fetch("/api/teams/suggestions", {
       method: "POST",
@@ -79,25 +86,8 @@ export function TeamRecognitionPrompt({
     }
   }
 
-  // « Aucune de ces équipes » : on mémorise les propositions vues comme
-  // refusées pour que la relance en montre d'autres, jamais les mêmes.
-  async function declineAll() {
-    if (busy) return;
-    setBusy("none");
-    setError(null);
-    try {
-      await respond("decline", { suggestionIds: suggestions.map((s) => s.id) });
-    } catch {
-      /* la relance retombera au prochain passage — sans blocage du parcours */
-    }
-    track("team_declined", { suggestions_shown: suggestions.length });
-    setBusy(null);
-    setPhase("none");
-  }
-
-  // Toute sortie sans équipe arme la relance à une semaine (côté serveur, pas
-  // localStorage : la question doit revenir même sur un autre appareil).
-  async function leave(destination?: string) {
+  // Sortie unique — arme la relance à une semaine (côté serveur).
+  async function later() {
     if (busy) return;
     setBusy("leave");
     try {
@@ -105,8 +95,8 @@ export function TeamRecognitionPrompt({
     } catch {
       /* la relance retombera au prochain passage — sans blocage du parcours */
     }
+    track("team_declined", { suggestions_shown: shown.length });
     setBusy(null);
-    if (destination) router.push(destination);
     onDone();
   }
 
@@ -155,53 +145,17 @@ export function TeamRecognitionPrompt({
     );
   }
 
-  // ── Aucune reconnaissance : surtout pas d'exclusion ─────────────────────
-  if (phase === "none" || suggestions.length === 0) {
-    return (
-      <div className={shell}>
-        <div className={card}>
-          <div className="text-center mb-5">
-            <p className="text-4xl mb-3">👍</p>
-            <h2 className="text-xl font-black text-gray-900">Pas de souci</h2>
-            <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-              Tu peux continuer <span className="font-bold text-gray-800">sans équipe</span> :
-              tes cadeaux personnels tombent à chaque commande, équipe ou pas.
-              Une équipe ajoute simplement des cadeaux en plus quand vous
-              commandez à plusieurs.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <button
-              onClick={() => leave(`/r/${restaurantId}/my-team`)}
-              disabled={!!busy}
-              className="w-full bg-brand-dark text-white font-bold py-3.5 rounded-2xl hover:bg-gray-800 transition-colors disabled:opacity-50"
-            >
-              Voir toutes les équipes →
-            </button>
-            <button
-              onClick={() => leave()}
-              disabled={!!busy}
-              className="w-full text-gray-400 text-sm py-2 hover:text-gray-600 transition-colors"
-            >
-              Plus tard — on m&apos;en reparle dans une semaine
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Question — une seule liste, un seul tap ─────────────────────────────
+  // ── Question — formulée par le GAIN, trois choix, une sortie ────────────
   return (
     <div className={shell}>
       <div className={card}>
         <div className="text-center mb-5">
-          <h2 className="text-xl font-black text-gray-900">
-            Te reconnais-tu dans une de ces équipes ?
-          </h2>
+          <p className="text-4xl mb-2" aria-hidden="true">🎁</p>
+          <h2 className="text-xl font-black text-gray-900">Ton cadeau peut doubler</h2>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-            Une équipe, c&apos;est simplement des gens qui se connaissent déjà —
-            même école, même boulot, même quartier.
+            En équipe, chaque commande des tiens débloque des cadeaux{" "}
+            <span className="font-bold text-gray-800">en plus</span> de tes cadeaux
+            perso. Tu te reconnais ?
           </p>
         </div>
 
@@ -210,7 +164,7 @@ export function TeamRecognitionPrompt({
         )}
 
         <div className="space-y-2 mb-4">
-          {suggestions.map((s) => (
+          {shown.map((s) => (
             <button
               key={s.id}
               onClick={() => pick(s)}
@@ -229,22 +183,13 @@ export function TeamRecognitionPrompt({
           ))}
         </div>
 
-        <div className="space-y-2">
-          <button
-            onClick={declineAll}
-            disabled={!!busy}
-            className="w-full bg-gray-100 text-gray-700 font-semibold py-3 rounded-2xl hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
-            Aucune de ces équipes
-          </button>
-          <button
-            onClick={() => leave()}
-            disabled={!!busy}
-            className="w-full text-gray-400 text-xs py-1.5 hover:text-gray-600 transition-colors"
-          >
-            Passer
-          </button>
-        </div>
+        <button
+          onClick={later}
+          disabled={!!busy}
+          className="w-full bg-gray-100 text-gray-700 font-semibold py-3 rounded-2xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+        >
+          Plus tard — mon cadeau reste acquis
+        </button>
       </div>
     </div>
   );
