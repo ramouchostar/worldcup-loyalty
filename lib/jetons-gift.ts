@@ -85,3 +85,45 @@ export async function suggestJetonsGift(restaurantId: string): Promise<{
 }
 
 export { BUDGET_PCT as JETONS_BUDGET_PCT };
+
+// ── Comptage budget (ADR 0012 — correctif 2026-09-02) ────────────────────────
+// Le cadeau 4 jetons est un coût pur (aucune commande en face) mais n'entrait
+// dans AUCUN compteur : le plafond mensuel « coût cadeaux ≤ 8 % du CA
+// programme » ignorait ces cadeaux-là. À appeler juste APRÈS l'écriture qui
+// vient d'accorder UN jeton (validation d'action sociale, 5e filleul) : si le
+// total du membre atteint un multiple de 4, ce jeton complète un cadeau → son
+// coût entre dans le mois courant. Best-effort, comme tous les incréments
+// budget : un échec est loggé, jamais bloquant. Un rejet ultérieur de l'action
+// ne décrémente pas — même prudence que les cadeaux expirés (jamais décomptés).
+export async function recordJetonsGiftCostIfEarned(
+  restaurantId: string,
+  userId: string
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const [claimsQ, referralsQ] = await Promise.all([
+      admin
+        .from("micro_reward_claims")
+        .select("id", { count: "exact", head: true })
+        .eq("restaurant_id", restaurantId)
+        .eq("user_id", userId)
+        .eq("status", "validated"),
+      admin
+        .from("referrals")
+        .select("id", { count: "exact", head: true })
+        .eq("restaurant_id", restaurantId)
+        .eq("referrer_id", userId),
+    ]);
+    // Mêmes formules que les surfaces membres (lib/social-actions.ts) :
+    // 1 jeton par action validée, 1 jeton par tranche de 5 filleuls.
+    const tokens = (claimsQ.count ?? 0) + Math.floor((referralsQ.count ?? 0) / 5);
+    if (tokens === 0 || tokens % 4 !== 0) return;
+
+    const gift = await getJetonsGift(restaurantId);
+    if (gift.cost <= 0) return; // « Cadeau surprise » non configuré : rien à compter
+    const { incrementRewardsCost } = await import("./budget");
+    await incrementRewardsCost(restaurantId, gift.cost);
+  } catch (e) {
+    console.error("[jetons-gift] recordJetonsGiftCostIfEarned failed:", (e as Error).message);
+  }
+}
