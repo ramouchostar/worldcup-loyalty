@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/supabase";
+import { resolvePostLoginDestination } from "@/lib/post-login";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 
 // Landing générale — audience membres/clients. Distincte de la racine "/"
@@ -21,7 +24,16 @@ export const metadata = {
     "Rejoins le programme de fidélité de ton restaurant et gagne des cadeaux à chaque commande directe. Gratuit à vie, aucune carte à garder.",
 };
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // Bug 2026-09-02 — /membres est le start_url de la PWA : un membre déjà
+  // connecté qui ouvre l'app installée ne doit JAMAIS retomber sur le splash
+  // de connexion. Même règle que la vitrine /r/[id] (ADR 0040) ; la
+  // destination par rôle (ADR 0030 §1) couvre aussi restaurateur et
+  // plateforme.
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect(await resolvePostLoginDestination(user.id));
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="pt-safe">
