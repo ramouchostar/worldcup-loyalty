@@ -107,11 +107,17 @@ export function PostTicketSheet({
   async function toggleInstall() {
     if (installed) return;
     if (canPrompt && !isIOS) {
-      const ok = await lancerInstallation();
-      if (ok) {
+      const resultat = await lancerInstallation();
+      if (resultat === "accepted") {
         setInstalled(true);
         setShowInstallHelp(false);
+        return;
       }
+      if (resultat === "unavailable") {
+        // Référence épuisée/périmée : repli visible immédiat, jamais un tap muet.
+        setShowInstallHelp(true);
+      }
+      // "dismissed" : l'utilisateur a refusé le dialogue natif — on n'insiste pas.
       return;
     }
     // iOS Safari (aucun déclencheur programmatique) ou prompt indisponible :
