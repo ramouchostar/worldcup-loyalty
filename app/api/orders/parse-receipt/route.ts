@@ -99,20 +99,31 @@ export async function POST(request: NextRequest) {
   // ADR 0045 — suppose un membre (receipt_scans.user_id NOT NULL) : un
   // visiteur anonyme n'a pas encore de compte, cet aperçu-là n'est donc pas
   // archivé (il le sera à la vraie soumission, authentifiée).
+  // Incident 2026-09-02 (49 refus sur 70 scans à Kraainem) : la clé de
+  // commande lue par l'OCR est une preuve d'identité PLUS FORTE que le nom du
+  // resto en haut du ticket — elle matche le format propre à l'établissement
+  // (ADR 0019), sa date est vérifiée (receipt-key-sanity) et elle ne peut
+  // servir qu'une fois (duplicate_key). Le Bestelnummer étant imprimé EN BAS
+  // des tickets de borne, exiger l'en-tête punissait exactement le bon
+  // cadrage (total + numéro). En-tête absent + clé absente → refus, sinon on
+  // laisse passer.
+  const receiptProven = analysis.has_restaurant_header || analysis.order_number !== null;
+
   const scanId = user
     ? await storeScan({
         restaurantId: String(rawRestaurantId),
         userId: user.id,
         file,
         analysis,
-        outcome: analysis.has_restaurant_header ? "parsed" : "header_rejected",
+        outcome: receiptProven ? "parsed" : "header_rejected",
       })
     : null;
 
-  if (!analysis.has_restaurant_header) {
+  if (!receiptProven) {
+    const keyLabel = receiptConfig.key_label ?? "numéro de commande";
     return NextResponse.json(
       {
-        error: `Cette image ne ressemble pas à un ticket ${restaurantName}. Prends en photo le reçu papier de ta commande directe.`,
+        error: `On n'a pas reconnu de ticket ${restaurantName} sur cette photo. Cadre la zone du total et du ${keyLabel}, de près et bien à plat — pas besoin de tout le ticket.`,
       },
       { status: 422 }
     );

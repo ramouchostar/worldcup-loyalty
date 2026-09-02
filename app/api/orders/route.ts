@@ -212,7 +212,14 @@ export async function POST(request: NextRequest) {
       const mismatch = Math.abs(serverOcr.amount - parsedAmount) / parsedAmount;
       if (mismatch > 0.05) flagReasons.push("amount_mismatch");
     }
-    if (!serverOcr.has_restaurant_header) flagReasons.push("no_restaurant_header");
+    // Même règle qu'à l'aperçu (incident 2026-09-02) : une clé lue par l'OCR
+    // SERVEUR (pattern du resto + date saine) prouve le ticket mieux que le
+    // nom en haut — pas de flag, l'auto-validation reste possible. Une clé
+    // seulement TAPÉE par le membre ne suffit pas : sans en-tête ni lecture
+    // OCR, la commande part en revue manuelle.
+    if (!serverOcr.has_restaurant_header && !serverOcr.order_number) {
+      flagReasons.push("no_restaurant_header");
+    }
   }
 
   // Auto-validate only when no flags and amount in normal range

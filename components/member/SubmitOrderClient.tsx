@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Scan } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
-import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
+import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { pointsForOrder } from "@/lib/points-model";
 import { amountBand, track } from "@/lib/analytics";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
@@ -47,11 +47,16 @@ export default function SubmitOrderClient({
   visitor,
   resume,
   logoUrl,
+  receiptKeyLabel = null,
   teamPrompt = null,
 }: {
   visitor: boolean;
   resume: boolean;
   logoUrl: string | null;
+  // Libellé de la clé du ticket de CET établissement (« Bestelnummer »…),
+  // fourni par la page serveur pour le guide de cadrage — avant même le
+  // premier scan (le state keyLabel n'était rempli qu'après l'aperçu OCR).
+  receiptKeyLabel?: string | null;
   // Étape 10 — question d'équipe due (ADR 0031), posée sur l'écran de succès
   // du ticket validé. Null si : visiteur, déjà une équipe, relance pas échue,
   // équipes masquées.
@@ -75,7 +80,7 @@ export default function SubmitOrderClient({
   const [orderNumber, setOrderNumber] = useState("");
   const [orderNumberEditable, setOrderNumberEditable] = useState(false);
   // Libellé + exemple de la clé de commande propres à l'établissement (ADR 0019)
-  const [keyLabel, setKeyLabel] = useState("Numéro de commande");
+  const [keyLabel, setKeyLabel] = useState(receiptKeyLabel ?? "Numéro de commande");
   const [keyExample, setKeyExample] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
@@ -609,8 +614,32 @@ export default function SubmitOrderClient({
           </div>
         ) : (
           <div className="py-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={RECEIPT_EMOJI} alt="" aria-hidden="true" className="w-16 h-16 mx-auto mb-3" />
+            {/* Spécimen de cadrage (incident 2026-09-02 : 70 % de refus) —
+                montre la SEULE zone qui compte : total + clé de commande.
+                L'ancien conseil « cadre tout le ticket » produisait des photos
+                à bout de bras, illisibles, sur les tickets de 50 cm. */}
+            <svg
+              viewBox="0 0 120 96"
+              className="w-24 h-auto mx-auto mb-3"
+              aria-hidden="true"
+            >
+              {/* Ticket au bord supérieur déchiré : le haut peut manquer */}
+              <path
+                d="M30 8 l6 -4 6 4 6 -4 6 4 6 -4 6 4 6 -4 6 4 6 -4 6 4 v84 h-60 z"
+                fill="#fff"
+                stroke="#d1d5db"
+                strokeWidth="2"
+              />
+              <line x1="38" y1="20" x2="82" y2="20" stroke="#e5e7eb" strokeWidth="4" strokeLinecap="round" />
+              <line x1="38" y1="30" x2="74" y2="30" stroke="#e5e7eb" strokeWidth="4" strokeLinecap="round" />
+              <line x1="38" y1="40" x2="80" y2="40" stroke="#e5e7eb" strokeWidth="4" strokeLinecap="round" />
+              {/* Zone utile : total + clé, encadrée */}
+              <rect x="33" y="50" width="54" height="34" rx="4" fill="rgb(var(--brand-red) / 0.07)" stroke="rgb(var(--brand-red))" strokeWidth="2.5" />
+              <line x1="38" y1="59" x2="60" y2="59" stroke="#374151" strokeWidth="4.5" strokeLinecap="round" />
+              <line x1="70" y1="59" x2="82" y2="59" stroke="#374151" strokeWidth="4.5" strokeLinecap="round" />
+              <line x1="38" y1="70" x2="82" y2="70" stroke="#6b7280" strokeWidth="4" strokeLinecap="round" />
+              <line x1="38" y1="78" x2="66" y2="78" stroke="#e5e7eb" strokeWidth="4" strokeLinecap="round" />
+            </svg>
             <p className="font-semibold text-gray-700 mb-4">Photo du ticket de caisse</p>
             <button
               type="button"
@@ -628,8 +657,12 @@ export default function SubmitOrderClient({
             >
               Choisir dans la galerie
             </button>
-            <p className="text-xs text-gray-400 mt-4">
-              Cadre tout le ticket, bien à plat et bien éclairé — on s&apos;occupe du reste.
+            <p className="text-xs text-gray-500 mt-4">
+              L&apos;essentiel : le <span className="font-semibold text-gray-700">total</span> et le{" "}
+              <span className="font-semibold text-gray-700">{keyLabel}</span> bien nets, de près.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Ticket très long ? Photographie seulement la partie où ils apparaissent — inutile de tout cadrer.
             </p>
           </div>
         )}
