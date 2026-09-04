@@ -77,6 +77,9 @@ export default async function AdminLayout({
       links: [
         { href: base,                      label: "Dashboard", icon: "dashboard" },
         { href: `${base}/orders`,          label: "Commandes", icon: "orders" },
+        // Phase C — file des doublons AMBIGUS (les certains sont refusés sans
+        // humain). Voisine de « Commandes » : c'est le même geste de comptoir.
+        { href: `${base}/duplicates`,      label: "Doublons",  icon: "duplicates" },
         { href: `${base}/pending-rewards`, label: "Cadeaux",   icon: "gifts" },
       ],
     },

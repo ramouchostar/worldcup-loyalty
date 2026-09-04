@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Receipt,
+  CopyCheck,
   Gift,
   Users,
   UsersRound,
@@ -29,6 +30,7 @@ import {
 export const NAV_ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   orders: Receipt,
+  duplicates: CopyCheck,
   gifts: Gift,
   clients: Users,
   teams: UsersRound,

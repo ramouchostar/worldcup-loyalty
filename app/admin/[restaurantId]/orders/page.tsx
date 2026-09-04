@@ -47,6 +47,9 @@ const FLAG_LABELS: Record<string, { label: string; color: string }> = {
   no_bestelnummer:        { label: "Sans n° de ticket", color: "bg-red-100 text-red-800" },
   no_receipt:             { label: "Sans photo",     color: "bg-red-100 text-red-800" },
   ocr_failed:             { label: "OCR en échec",   color: "bg-red-100 text-red-800" },
+  // Phase C — empreinte proche d'un ticket déjà en base sans certitude : ni
+  // crédité, ni rejeté. Les deux tickets sont à comparer côte à côte.
+  duplicate_review:       { label: "Doublon possible", color: "bg-fuchsia-100 text-fuchsia-800" },
 };
 
 function waitHours(submitted_at: string): number {

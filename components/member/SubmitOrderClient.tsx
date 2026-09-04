@@ -923,10 +923,10 @@ export default function SubmitOrderClient({
 
           {submitStatus === "duplicate" && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-              <p className="font-semibold text-orange-900 text-sm">Commande déjà soumise</p>
-              <p className="text-orange-700 text-xs mt-1">
-                Ce numéro de ticket a déjà été enregistré dans le système.
-              </p>
+              {/* Phase C — message unique, sans détail technique : le membre n'a
+                  pas à savoir QUEL signal a détecté le doublon (ADR 0008/0019),
+                  et il peut s'agir d'un doublon accidentel. */}
+              <p className="font-semibold text-orange-900 text-sm">Ce ticket a déjà été utilisé.</p>
             </div>
           )}
 
