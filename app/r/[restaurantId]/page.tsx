@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { Scan } from "lucide-react";
+import { ReceiptText } from "lucide-react";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { getTeamsHidden } from "@/lib/teams";
 import { createServerSupabaseClient } from "@/lib/supabase";
@@ -152,6 +152,11 @@ export default async function RestaurantLandingPage({
             son ticket en<br />
             récompenses
           </h1>
+          {/* La promesse, datée et concrète : ce n'est pas un programme à
+              construire, c'est le ticket qu'on a déjà dans la main. */}
+          <p className="mt-4 text-lg font-semibold text-gray-600">
+            Ton ticket d&apos;aujourd&apos;hui vaut déjà un cadeau.
+          </p>
         </div>
       </div>
 
@@ -165,7 +170,7 @@ export default async function RestaurantLandingPage({
               href={`/r/${restaurantId}/submit-order`}
               className="flex items-center justify-center gap-2 w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
             >
-              Scanner mon ticket <Scan className="w-6 h-6" strokeWidth={2.5} />
+              Photographier mon ticket <ReceiptText className="w-6 h-6" strokeWidth={2.5} />
             </Link>
           ) : isMember ? (
             <Link

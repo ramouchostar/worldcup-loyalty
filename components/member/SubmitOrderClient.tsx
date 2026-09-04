@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Scan } from "lucide-react";
+import { ReceiptText } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { pointsForOrder } from "@/lib/points-model";
@@ -86,6 +86,12 @@ export default function SubmitOrderClient({
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
   const [noRestaurantHeader, setNoRestaurantHeader] = useState(false);
+  // Le gain rendu par l'aperçu OCR, AVANT toute demande de compte (parcours
+  // cible, 2026-09-04) : le cadeau atteint par ce ticket, ou la distance au
+  // premier palier. Noms d'articles uniquement — jamais un seuil, jamais un
+  // euro (ADR 0007/0028), jamais un coût (ADR 0017).
+  const [visitorReward, setVisitorReward] = useState<string | null>(null);
+  const [visitorNextTier, setVisitorNextTier] = useState<{ item: string; pct: number } | null>(null);
   // ADR 0036 — jeton du scan rendu par l'aperçu OCR : renvoyé tel quel à la
   // soumission pour que le serveur réutilise la photo déjà stockée.
   const [scanId, setScanId] = useState<string | null>(null);
@@ -195,6 +201,8 @@ export default function SubmitOrderClient({
     setScanId(null);
     setAmountEditable(false);
     setPrecheck(null);
+    setVisitorReward(null);
+    setVisitorNextTier(null);
     setPreparing(true);
     try {
       const prepared = await prepareReceiptImage(file);
@@ -284,6 +292,8 @@ export default function SubmitOrderClient({
         key_example?: string | null;
         key_corrected?: boolean;
         scan_id?: string | null;
+        reward?: string | null;
+        next_tier?: { item: string; pct: number } | null;
         error?: string;
       }>(res);
       const data = parsedData ?? {};
@@ -316,6 +326,8 @@ export default function SubmitOrderClient({
       }
       setOcrConfidence(data.confidence ?? null);
       setNoRestaurantHeader(!(data.has_restaurant_header ?? true));
+      setVisitorReward(data.reward ?? null);
+      setVisitorNextTier(data.next_tier ?? null);
     } catch (err) {
       setParseStatus("error");
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -413,6 +425,8 @@ export default function SubmitOrderClient({
     setKeyCorrected(false);
     setAmountEditable(false);
     setPrecheck(null);
+    setVisitorReward(null);
+    setVisitorNextTier(null);
     setSubmitStatus("idle");
     setReward(null);
     setNextTier(null);
@@ -463,7 +477,7 @@ export default function SubmitOrderClient({
               sans cadeau créé (rien d'atteint, ou cadeau déjà actif ADR 0011),
               on retombe sur le titre neutre. */}
           <h2 className="text-2xl font-black mb-5">
-            {reward ? `🎁 ${reward} débloqué !` : "Beau scan !"}
+            {reward ? `🎁 ${reward} débloqué !` : "Ticket enregistré !"}
           </h2>
           <div className="flex items-center justify-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -527,7 +541,7 @@ export default function SubmitOrderClient({
             onClick={reset}
             className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
           >
-            <Scan className="w-4 h-4" aria-hidden="true" /> Scanner un autre ticket
+            <ReceiptText className="w-4 h-4" aria-hidden="true" /> Photographier un autre ticket
           </button>
         </div>
       </div>
@@ -555,7 +569,7 @@ export default function SubmitOrderClient({
             onClick={reset}
             className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
           >
-            <Scan className="w-4 h-4" aria-hidden="true" /> Scanner un autre ticket
+            <ReceiptText className="w-4 h-4" aria-hidden="true" /> Photographier un autre ticket
           </button>
         </div>
       </div>
@@ -569,7 +583,7 @@ export default function SubmitOrderClient({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="block mx-auto h-14 w-auto object-contain mb-6" />
         ) : null}
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Scanne ton ticket</h1>
+        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Photographie ton ticket</h1>
       </div>
 
       {/* Zone photo — deux portes : appareil photo direct (capture) et
@@ -647,7 +661,7 @@ export default function SubmitOrderClient({
               disabled={preparing}
               className="flex items-center justify-center gap-2 w-full sm:w-auto sm:mx-auto bg-brand-red text-white py-5 px-8 rounded-full font-bold text-xl hover:bg-brand-red/85 disabled:opacity-60 transition-colors shadow-lg"
             >
-              Prendre le ticket en photo <Scan className="w-6 h-6" strokeWidth={2.5} />
+              Photographier mon ticket <ReceiptText className="w-6 h-6" strokeWidth={2.5} />
             </button>
             <button
               type="button"
@@ -705,12 +719,52 @@ export default function SubmitOrderClient({
         <div className="bg-white border-2 border-brand-red/40 rounded-2xl p-5 text-center mb-4">
           {parseStatus === "done" && ocrAmount !== null ? (
             <>
-              <p className="text-3xl mb-1">✅</p>
-              <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">
-                Scan réussi
+              {/* Le GAIN d'abord, en gros : c'est l'écran de conversion. Les
+                  points (jamais les euros — ADR 0028) portent le chiffre. */}
+              <div className="flex items-center justify-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={COIN_EMOJI} alt="" className="w-9 h-9" />
+                <span className="text-5xl font-black tabular-nums text-gray-900">
+                  +{pointsForOrder(ocrAmount)}
+                </span>
+              </div>
+              <p className="text-sm font-bold uppercase tracking-wide text-gray-500 mt-1 mb-3">
+                {pointsForOrder(ocrAmount) > 1 ? "points gagnés" : "point gagné"}
               </p>
-              <p className="text-3xl font-black text-gray-900 mb-1">{ocrAmount.toFixed(2)} €</p>
-              <p className="text-gray-500 text-xs mb-4">Montant détecté sur ton ticket</p>
+
+              {/* Ce que ce ticket vaut, nommé. Un palier atteint → l'article ;
+                  sinon la distance jusqu'au premier, qui reste courte par
+                  construction. Jamais un seuil, jamais un euro (ADR 0007/0028),
+                  jamais « validé » ni « instantané » (ADR 0008). */}
+              {visitorReward ? (
+                <div className="bg-brand-gold/15 border border-brand-gold/50 rounded-xl p-3 mb-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                    Ton cadeau
+                  </p>
+                  <p className="font-black text-gray-900 text-lg">🎁 {visitorReward}</p>
+                  <p className="text-xs text-gray-500">À récupérer au comptoir.</p>
+                </div>
+              ) : visitorNextTier ? (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-3 text-left">
+                  <p className="text-sm text-gray-700 mb-2">
+                    Plus que quelques euros et c&apos;est un{" "}
+                    <span className="font-bold text-gray-900">{visitorNextTier.item}</span>
+                  </p>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brand-red rounded-full transition-all"
+                      style={{ width: `${Math.max(visitorNextTier.pct, 6)}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Le montant passe DERRIÈRE le gain : il n'est plus la nouvelle,
+                  c'est la preuve que la lecture est juste — et il reste
+                  corrigeable une fois le compte créé. */}
+              <p className="text-gray-400 text-xs mb-4">
+                Lu sur ton ticket : {ocrAmount.toFixed(2)} €
+              </p>
             </>
           ) : (
             <>
@@ -720,10 +774,19 @@ export default function SubmitOrderClient({
               </h2>
             </>
           )}
+          {/* L'argument devient le CADEAU, pas les points : c'est lui qui paie
+              la demande de compte (parcours cible, 2026-09-04). */}
           <p className="text-gray-600 text-sm mb-4">
-            Connecte-toi en quelques secondes pour l&apos;envoyer et{" "}
-            <span className="font-semibold">garder tes points</span>. La photo reste sur ton
-            téléphone en attendant.
+            {visitorReward ? (
+              <>
+                Crée ton compte pour <span className="font-semibold">réclamer ton cadeau</span>.
+              </>
+            ) : (
+              <>
+                Crée ton compte pour <span className="font-semibold">garder tes points</span>.
+              </>
+            )}{" "}
+            La photo reste sur ton téléphone en attendant.
           </p>
           <div className="space-y-2 max-w-xs mx-auto">
             <button

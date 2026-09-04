@@ -1,7 +1,8 @@
 # Plan — parcours cible « le ticket avant tout »
 
 **Phase B du chantier d'activation.** Fait suite à [`audit-parcours.md`](audit-parcours.md).
-**Statut : proposition, en attente de validation. Aucun code écrit à ce stade.**
+**Statut : arbitrages du §2 et de l'étape 3 tranchés par le porteur le 2026-09-04.**
+**Lots 1 et 2 implémentés ; lots 3 à 8 en attente de validation du plan.**
 
 ---
 
@@ -65,8 +66,13 @@ cadeau — et déplace seulement l'installation d'un cran, là où elle ne détr
 Concrètement, entre le compte et l'app il n'y a **aucun écran supplémentaire** : les
 deux s'enchaînent sur le même écran de résultat.
 
-> **Le reste de ce document décrit l'option A.** Dis-moi si tu veux B ou C et je le
-> réécris — mais je ne veux pas coder B sans t'avoir dit ce qu'elle coûte.
+> ### ✅ Tranché le 2026-09-04 — **option A**
+>
+> Le porteur retient l'ordre **gain → compte (« réclame ton cadeau ») → app
+> (« pour le récupérer ») → notifications**. L'intention est intégralement
+> conservée : le cadeau est gagné avant qu'on demande quoi que ce soit, et
+> c'est lui qui paie chaque demande. Seule l'installation glisse d'un cran,
+> sur le même écran, pour ne pas perdre le ticket sur iOS.
 
 ---
 
@@ -190,8 +196,13 @@ juste les trois conseils.
      code) — le compte est actif tout de suite, l'e-mail est vérifié plus tard ;
    - ou garder la confirmation et afficher un écran d'attente explicite
      (« reviens dans **cet** onglet ») + un message de récupération à l'atterrissage.
-   ➜ *Décision à prendre avec toi — la première est plus simple et plus efficace, la
-   seconde plus prudente sur la qualité des e-mails collectés.*
+   ➜ **Tranché le 2026-09-04 : on désactive la confirmation par e-mail.** Le
+   parcours ne sort plus jamais de l'application. Contrepartie assumée : des
+   adresses non vérifiées entrent en base, donc des relances qui rebondiront —
+   à surveiller sur les taux de délivrabilité Resend.
+   ➜ *Action hors code, de ton côté* : Supabase → Authentication → Providers →
+   Email → décocher « Confirm email ». Le code gère déjà les deux cas
+   (`data.session` présent → on enchaîne directement).
 
 ### Étape 4 — Installation · « Pour récupérer ton cadeau »
 
@@ -359,8 +370,8 @@ Un commit par lot, chacun livrable seul et sans régression pour les inscrits ac
 
 | Lot | Contenu | Effort |
 |---|---|---|
-| **1** | **Vocabulaire et icônes** — « scanner » → « photographier », `Scan` → `ReceiptText`. Zéro changement de logique, effet immédiat sur le malentendu | S |
-| **2** | **Le gain avant le compte** — `parse-receipt` renvoie `reward`/`next_tier`, `TicketGainCard` | M |
+| **1** ✅ | **Vocabulaire et icônes** — « scanner » → « photographier », `Scan` → `ReceiptText`. Zéro changement de logique, effet immédiat sur le malentendu | S |
+| **2** ✅ | **Le gain avant le compte** — `parse-receipt` renvoie `reward`/`next_tier`, `TicketGainCard` | M |
 | **3** | **Mesure** — `funnel_events`, scans anonymes, vue à dix étages. *À faire tôt : c'est ce qui permettra de juger les lots suivants* | M |
 | **4** | **Anti-QR** — `looks_like_qr_or_poster` + `BarcodeDetector` + message dédié | M |
 | **5** | **Reprise du ticket** — IndexedDB hors `?resume=1`, 24 h, bandeau de récupération | S |
@@ -372,8 +383,9 @@ Un commit par lot, chacun livrable seul et sans régression pour les inscrits ac
 
 ## 8. Ce dont j'ai besoin de toi
 
-1. **L'arbitrage du §2** — option A (recommandée), B ou C.
-2. **La confirmation par e-mail** — la désactive-t-on sur ce parcours (§3, étape 3) ?
+1. ~~L'arbitrage du §2~~ — ✅ **option A**, tranché le 2026-09-04.
+2. ~~La confirmation par e-mail~~ — ✅ **désactivée**, tranché le 2026-09-04.
+   *Reste à faire de ton côté, dans la console Supabase (voir §3, étape 3).*
 3. **Une photo d'un vrai ticket Belchicken Kraainem** pour le guide de cadrage.
 4. **Deux captures d'écran iOS** du geste « Partager → Sur l'écran d'accueil », ou
    l'accord pour des illustrations.

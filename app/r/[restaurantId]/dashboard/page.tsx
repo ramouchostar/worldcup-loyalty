@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Scan } from "lucide-react";
+import { ReceiptText } from "lucide-react";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier } from "@/lib/rewards";
@@ -404,18 +404,18 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         </div>
       </div>
 
-      {/* Rappel scan — l'action la plus rentable, toujours accessible en
+      {/* Rappel ticket — l'action la plus rentable, toujours accessible en
           plus du bouton flottant de la bottom nav. */}
       <Link
         href={r("/submit-order")}
         className="flex items-center justify-between gap-4 bg-brand-dark text-white rounded-2xl p-5 hover:bg-gray-800 transition-colors"
       >
         <div>
-          <p className="font-bold text-sm">Scanner mon ticket</p>
+          <p className="font-bold text-sm">Photographier mon ticket</p>
           <p className="text-xs text-gray-400 mt-0.5">pour accumuler des points</p>
         </div>
         <span className="shrink-0 w-11 h-11 rounded-full bg-orange-500 flex items-center justify-center">
-          <Scan className="w-5 h-5 text-white" strokeWidth={2.5} aria-hidden="true" />
+          <ReceiptText className="w-5 h-5 text-white" strokeWidth={2.5} aria-hidden="true" />
         </span>
       </Link>
 
