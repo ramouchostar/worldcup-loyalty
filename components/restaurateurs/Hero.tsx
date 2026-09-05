@@ -4,6 +4,7 @@ import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
 import { BrowserWindow } from "./BrowserWindow";
 import { DashboardMockup } from "./DashboardMockup";
+import { FloatingFoodIcon } from "./FloatingFoodIcon";
 
 const BOOSTED_BENEFITS = [
   "ton volume de commandes",
@@ -22,6 +23,8 @@ export function Hero() {
         className="absolute -top-[220px] -right-40 w-[760px] h-[760px] pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(162,197,35,0.18), transparent 60%)" }}
       />
+
+      <FloatingFoodIcon icon="burger" className="hidden lg:block top-24 left-8 -rotate-12" />
 
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 sm:pt-20 pb-0">
         <div className="max-w-[800px] mx-auto text-center">

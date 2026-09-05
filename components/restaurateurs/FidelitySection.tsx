@@ -2,6 +2,7 @@
 
 import { Reveal } from "./motion";
 import { MemberAppMockup } from "./MemberAppMockup";
+import { FloatingFoodIcon } from "./FloatingFoodIcon";
 
 const FIDELITY_POINTS = [
   "Le cadeau ne peut jamais coûter plus que le CA qu'il a généré",
@@ -35,7 +36,11 @@ const CLIENT_STEPS = [
 
 export function FidelitySection() {
   return (
-    <section id="fidelite" className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-20 sm:pt-24 pb-24 scroll-mt-16">
+    <section
+      id="fidelite"
+      className="relative overflow-hidden max-w-[1200px] mx-auto px-5 sm:px-8 pt-20 sm:pt-24 pb-24 scroll-mt-16"
+    >
+      <FloatingFoodIcon icon="pizza" className="hidden lg:block top-6 right-6 rotate-6" />
       <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
         <Reveal>
           <div>

@@ -2,10 +2,12 @@
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal } from "./motion";
+import { FloatingFoodIcon } from "./FloatingFoodIcon";
 
 export function FinalCtaSection() {
   return (
-    <section className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-24 text-center">
+    <section className="relative overflow-hidden max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-24 text-center">
+      <FloatingFoodIcon icon="pizza" className="hidden lg:block top-10 right-10 rotate-6" />
       <Reveal>
         <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink text-pretty">
           Ton programme tourne ce soir.
