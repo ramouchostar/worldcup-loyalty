@@ -5,6 +5,7 @@ import { getFunnel, type FunnelDay } from "@/lib/qr-funnel";
 import { detectScanFrictions, FRICTION_MIN_SCANS, FRICTION_WINDOW_MIN } from "@/lib/scan-frictions";
 import { getMatchRates, MATCH_RATE_ALERT_PCT, MATCH_RATE_MIN_LINES } from "@/lib/match-rates";
 import { RestaurantFilter } from "./RestaurantFilter";
+import { ScanFrictions, type FrictionCard } from "./ScanFrictions";
 
 export const metadata = { title: "Tickets scannés — Plateforme" };
 
@@ -164,7 +165,18 @@ export default async function PlatformScansPage({
     ? Math.round(confiances.reduce((a, b) => a + b, 0) / confiances.length)
     : null;
   const nbEcarts = scans.filter((s) => ecarts(s, s.order_id ? ordersById.get(s.order_id) ?? null : null).length > 0).length;
-  const frictions = detectScanFrictions(scans);
+  // Les cartes de friction sont rendues par un composant client (croix de
+  // masquage) : on lui passe des libellés déjà formatés plutôt que des Map
+  // serveur, il reste bête et sérialisable.
+  const frictions: FrictionCard[] = detectScanFrictions(scans).map((f) => ({
+    id: `${f.user_id}-${f.from}`,
+    memberLabel: membreById.get(f.user_id) ?? "—",
+    restaurantLabel: restaurantNames.get(f.restaurant_id) ?? f.restaurant_id,
+    rangeLabel: `${heureBelge(f.from)} → ${heureBelge(f.to).slice(-5)}`,
+    attempts: f.attempts,
+    resolved: f.resolved,
+    hints: f.hints,
+  }));
   // ADR 0046 — un resto sous le seuil de rattachement a des ventes par plat
   // mensongères : on le voit ici avant que le restaurateur ne s'en plaigne.
   const matchRates = await getMatchRates();
@@ -276,36 +288,11 @@ export default async function PlatformScansPage({
       {/* Frictions — signature de l'incident Kasia (22/08/2026) : un membre
           enchaîne ≥ 3 scans non soumis en 10 min. On le voit ici au lieu de
           l'apprendre par le resto. */}
-      {frictions.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold text-red-900 mb-1">
-            ⚠️ {frictions.length} friction{frictions.length > 1 ? "s" : ""} détectée{frictions.length > 1 ? "s" : ""}
-          </h2>
-          <p className="text-xs text-gray-500 mb-3">
-            Un membre a enchaîné ≥ {FRICTION_MIN_SCANS} scans sans soumission en moins de {FRICTION_WINDOW_MIN} min.
-            Les indices sont des heuristiques — les images (colonne « Ticket ») disent le reste.
-          </p>
-          <div className="space-y-2">
-            {frictions.map((f) => (
-              <div key={`${f.user_id}-${f.from}`} className={`rounded-lg border px-3 py-2 text-sm ${f.resolved ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200"}`}>
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-semibold text-gray-900">
-                    {membreById.get(f.user_id) ?? "—"}
-                    <span className="font-normal text-gray-500"> · {restaurantNames.get(f.restaurant_id) ?? f.restaurant_id}</span>
-                  </span>
-                  <span className="text-xs text-gray-600">
-                    {f.attempts} essai{f.attempts > 1 ? "s" : ""} · {heureBelge(f.from)} → {heureBelge(f.to).slice(-5)} ·{" "}
-                    {f.resolved ? "a fini par passer" : "JAMAIS soumis"}
-                  </span>
-                </div>
-                <ul className="mt-1 text-xs text-gray-700 list-disc list-inside">
-                  {f.hints.map((h) => <li key={h}>{h}</li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <ScanFrictions
+        frictions={frictions}
+        minScans={FRICTION_MIN_SCANS}
+        windowMin={FRICTION_WINDOW_MIN}
+      />
 
       {nbEcarts > 0 && (
         <p className="mb-4 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
