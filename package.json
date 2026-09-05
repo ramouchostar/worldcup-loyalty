@@ -12,8 +12,7 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "check:naming": "node scripts/check-naming.mjs",
-    "test": "node scripts/run-tests.mjs",
-    "audit:doublons": "tsx scripts/audit-doublons.mjs"
+    "test": "node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",
@@ -31,7 +30,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^6.18.1",
-    "sharp": "^0.34.5",
     "swr": "^2.2.5",
     "web-push": "^3.6.7"
   },

@@ -7,7 +7,6 @@ import { checkRateLimit, checkIpRateLimit, hashIp } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
-import { loadRewardGrid, resolveSoloReward, nextSoloTier, type NextSoloTier } from "@/lib/rewards";
 
 export const maxDuration = 30;
 
@@ -130,27 +129,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Le GAIN, dès l'aperçu et AVANT toute demande de compte (parcours cible,
-  // 2026-09-04) : le montant seul ne dit rien à un client debout au comptoir —
-  // ce qui le retient, c'est « tu repars avec X », ou « il te manque un rien
-  // pour X ». Les deux viennent du catalogue réel de l'établissement.
-  //
-  // Ce qui sort : des NOMS d'articles, rien d'autre. Jamais un seuil, jamais un
-  // euro, jamais un coût de revient (ADR 0007 amendé par ADR 0028, ADR 0017).
-  // Best-effort : une grille non configurée ou une panne renvoie null, et
-  // l'écran retombe sur le montant détecté — jamais d'erreur pour un aperçu.
-  let reward: string | null = null;
-  let nextTier: NextSoloTier | null = null;
-  if (analysis.amount !== null) {
-    try {
-      const grid = await loadRewardGrid(String(rawRestaurantId));
-      reward = resolveSoloReward(grid, analysis.amount).item;
-      nextTier = nextSoloTier(grid, analysis.amount);
-    } catch (err) {
-      console.error("[parse-receipt] aperçu du cadeau indisponible:", err);
-    }
-  }
-
   // key_label / key_example / has_reliable_key : métadonnées non sensibles
   // pour libeller le champ côté client (le pattern reste service-role —
   // ADR 0019). scan_id : jeton opaque renvoyé tel quel à la soumission, qui
@@ -161,7 +139,5 @@ export async function POST(request: NextRequest) {
     key_example: receiptConfig.key_examples[0] ?? null,
     has_reliable_key: receiptConfig.has_reliable_key,
     scan_id: scanId,
-    reward,
-    next_tier: nextTier,
   });
 }

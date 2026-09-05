@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, UsersRound, Gift, Star, ReceiptText, type LucideIcon } from "lucide-react";
+import { Home, UsersRound, Gift, Star, Scan, type LucideIcon } from "lucide-react";
 
 type Tab = { href: string; label: string; icon: LucideIcon; id?: string };
 
-// 5 destinations (audit 2026-07-23) : la photo du ticket est l'action n°1,
-// mise en avant par un bouton surélevé au centre — icône ReceiptText (ticket
-// papier), la même que sur la vitrine et l'écran de capture. JAMAIS l'icône
-// Scan (cadre de visée) : c'est celle des scanners de QR, et c'est
-// précisément ce que des clients ont photographié à la place de leur ticket
-// (ADR 0048 / audit du 2026-09-04). Les 4 autres restent des onglets sobres.
-// Le compte/RGPD vit dans HeaderMenu.
+// 5 destinations (audit 2026-07-23), redesign scan-first : le scan du ticket
+// est l'action n°1, mise en avant par un bouton rond surélevé au centre —
+// icône Scan de lucide-react, la même que sur la landing et l'écran
+// submit-order (cohérence visuelle). Les 4 autres restent des onglets sobres
+// (lucide, pas d'emoji). Le compte/RGPD vit dans HeaderMenu.
 const TABS: Tab[] = [
   { href: "dashboard",     label: "Accueil",     icon: Home },
   { href: "my-team",       label: "Équipe",      icon: UsersRound, id: "tour-nav-equipe" },
@@ -42,17 +40,17 @@ export function BottomNav({ restaurantId }: { restaurantId: string }) {
           <NavTab key={tab.href} tab={tab} base={base} pathname={pathname} />
         ))}
 
-        {/* Bouton ticket surélevé — action n°1, sort du grid pour flotter
+        {/* Bouton scan surélevé — action n°1, sort du grid pour flotter
             au-dessus de la barre (pattern FAB, absent ailleurs du repo). */}
         <Link
           href={scanHref}
           id="tour-nav-commande"
-          aria-label="Photographier mon ticket"
+          aria-label="Scanner mon ticket"
           aria-current={scanActive ? "page" : undefined}
           className="absolute left-1/2 -top-6 -translate-x-1/2 flex items-center justify-center w-14 h-14 rounded-full bg-brand-red text-white transition-transform hover:scale-105 active:scale-95"
           style={{ boxShadow: "0 8px 20px -2px rgb(var(--brand-red) / 0.5)" }}
         >
-          <ReceiptText className="w-6 h-6" strokeWidth={2.5} />
+          <Scan className="w-6 h-6" strokeWidth={2.5} />
         </Link>
       </div>
     </nav>

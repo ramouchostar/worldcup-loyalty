@@ -55,7 +55,7 @@ export function LeaderboardRealtime({
         <p className="text-4xl mb-3" aria-hidden="true">🏁</p>
         <p className="font-semibold text-gray-800 text-sm mb-1">Aucune équipe classée pour l&apos;instant</p>
         <p className="text-gray-500 text-sm">
-          Le classement démarre à la première commande validée — la première équipe qui photographie un ticket
+          Le classement démarre à la première commande validée — la première équipe qui scanne un ticket
           prend la tête.
         </p>
       </div>

@@ -230,14 +230,14 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
               Aucune commande validée pour l&apos;instant
             </p>
             <p className="text-gray-500 text-sm mb-4">
-              Le classement démarre au premier ticket — photographie le tien et fais de{" "}
+              Le classement démarre au premier ticket — scanne le tien et fais de{" "}
               <span className="font-semibold">{t.name}</span> la première équipe classée.
             </p>
             <Link
               href={`/r/${restaurantId}/submit-order`}
               className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-brand-red/85 transition-colors"
             >
-              🧾 Photographier mon ticket
+              🧾 Scanner mon ticket
             </Link>
           </div>
         ) : (

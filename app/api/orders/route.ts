@@ -8,8 +8,6 @@ import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
 import { claimScanImage, linkScanToOrder } from "@/lib/receipt-scans";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
-import { guardAgainstDuplicates, recordDuplicateReview } from "@/lib/duplicate-guard";
-import { DUPLICATE_MEMBER_MESSAGE } from "@/lib/duplicate-detection";
 
 export const maxDuration = 30;
 
@@ -224,41 +222,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Dédoublonnage par empreinte de contenu (phase C). Le numéro de commande ne
-  // suffit pas : un chiffre mal lu par l'OCR produit une clé différente, donc
-  // deux commandes pour un seul ticket. On confronte ici l'établissement, le
-  // montant, l'heure (±2 min), les lignes d'articles et la photo elle-même.
-  // Fail-open de bout en bout : en cas de panne, le verdict est `ok` et l'index
-  // UNIQUE sur `duplicate_key` reste le filet historique.
-  const guard = await guardAgainstDuplicates({
-    restaurantId,
-    userId: user.id,
-    orderDate,
-    orderTime: serverOcr?.order_time ?? null,
-    amount: parsedAmount,
-    orderNumber: hasOrderKey ? orderNumber : null,
-    items: serverOcr?.items ?? [],
-    receiptFile,
-  });
-
-  if (guard.verdict.decision === "duplicate") {
-    await recordDuplicateReview({
-      restaurantId,
-      userId: user.id,
-      orderId: null, // aucune commande n'est créée
-      verdict: guard.verdict,
-      status: "auto_rejected",
-    });
-    // Message unique et sans détail technique : la mécanique anti-fraude ne
-    // s'explique pas au membre (ADR 0008 / 0019).
-    return NextResponse.json({ error: DUPLICATE_MEMBER_MESSAGE }, { status: 409 });
-  }
-
-  // Cas ambigu : ni crédité automatiquement, ni rejeté — il rejoint la file de
-  // revue, où un admin voit les deux tickets côte à côte.
-  const needsDuplicateReview = guard.verdict.decision === "review";
-  if (needsDuplicateReview) flagReasons.push("duplicate_review");
-
   // Auto-validate only when no flags and amount in normal range
   const autoValidateEnabled = process.env.AUTO_VALIDATE !== "false";
   let status = "pending";
@@ -267,59 +230,38 @@ export async function POST(request: NextRequest) {
     status = "validated";
   }
 
-  const orderRow = {
-    user_id: user.id,
-    team_id: teamId,
-    amount: parsedAmount,
-    order_number: hasOrderKey ? orderNumber : null,
-    order_date: orderDate,
-    order_time: serverOcr?.order_time ?? null,
-    receipt_url: receiptPath,
-    ocr_amount: serverOcr?.amount ?? null,
-    ocr_confidence: serverOcr?.confidence ?? null,
-    flag_reasons: flagReasons,
-    // duplicate_key scopé par établissement (m32) : l'index UNIQUE est
-    // global, deux restos aux numéros séquentiels simples collisionneraient.
-    duplicate_key: hasOrderKey
-      ? `${restaurantId}:${orderNumber}`
-      : `${restaurantId}:NOBN_${user.id}_${Date.now()}`,
-    status,
-    restaurant_id: restaurantId,
-  };
-
-  // Les deux colonnes de la phase C arrivent par une migration appliquée à la
-  // main (docs/migrations/README.md). Tant qu'elle ne l'est pas, l'insertion
-  // les refuserait et bloquerait TOUTES les soumissions : on retente donc sans
-  // elles plutôt que d'imposer un ordre de déploiement.
-  let insertedOrder: { id: string } | null = null;
-  let insertError = null;
-  for (const row of [
-    { ...orderRow, content_fingerprint: guard.fingerprint, image_phash: guard.imagePhash },
-    orderRow,
-  ]) {
-    const result = await supabase.from("orders").insert(row).select("id").single();
-    insertedOrder = result.data as { id: string } | null;
-    insertError = result.error;
-    // 42703 / PGRST204 = colonne inconnue : c'est le seul cas où le second
-    // essai a un sens. Toute autre erreur est définitive.
-    if (!insertError || (insertError.code !== "42703" && insertError.code !== "PGRST204")) break;
-  }
+  const { data: insertedOrder, error: insertError } = await supabase
+    .from("orders")
+    .insert({
+      user_id: user.id,
+      team_id: teamId,
+      amount: parsedAmount,
+      order_number: hasOrderKey ? orderNumber : null,
+      order_date: orderDate,
+      order_time: serverOcr?.order_time ?? null,
+      receipt_url: receiptPath,
+      ocr_amount: serverOcr?.amount ?? null,
+      ocr_confidence: serverOcr?.confidence ?? null,
+      flag_reasons: flagReasons,
+      // duplicate_key scopé par établissement (m32) : l'index UNIQUE est
+      // global, deux restos aux numéros séquentiels simples collisionneraient.
+      duplicate_key: hasOrderKey
+        ? `${restaurantId}:${orderNumber}`
+        : `${restaurantId}:NOBN_${user.id}_${Date.now()}`,
+      status,
+      restaurant_id: restaurantId,
+    })
+    .select("id")
+    .single();
 
   if (insertError) {
     if (insertError.code === "23505") {
-      return NextResponse.json({ error: DUPLICATE_MEMBER_MESSAGE }, { status: 409 });
+      return NextResponse.json(
+        { error: "Cette commande a déjà été soumise (numéro de ticket en double)." },
+        { status: 409 }
+      );
     }
     return NextResponse.json({ error: "Erreur serveur. Réessaie." }, { status: 500 });
-  }
-
-  if (needsDuplicateReview && insertedOrder?.id) {
-    await recordDuplicateReview({
-      restaurantId,
-      userId: user.id,
-      orderId: insertedOrder.id,
-      verdict: guard.verdict,
-      status: "pending",
-    });
   }
 
   // ADR 0036 — le scan sait désormais ce qu'il est devenu : c'est ce lien qui
