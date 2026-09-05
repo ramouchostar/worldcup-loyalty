@@ -1,6 +1,16 @@
 # ADR 0048 — Dédoublonnage par empreinte de ticket, le numéro en signal secondaire
 
-**Statut** : Accepté (2026-09-04) — implémenté (phase C du chantier d'activation).
+**Statut** : **Proposé** — la décision est prise et documentée, mais **l'implémentation
+a été annulée le 2026-09-05** à la demande du porteur (revert `804f5ce`). Le code
+décrit ci-dessous (`lib/receipt-fingerprint.ts`, `lib/duplicate-detection.ts`,
+`lib/image-phash*.ts`, `lib/duplicate-guard.ts`, `lib/duplicate-reviews.ts`,
+`lib/duplicate-audit.ts`, `app/admin/[restaurantId]/duplicates/`,
+`scripts/audit-doublons.mjs`) et la migration `20260904-1830-dedoublonnage-tickets.sql`
+**n'existent plus dans le repo** — ce document décrit donc une cible, pas l'état du
+code. L'anti-doublon en vigueur reste celui de l'ADR 0008/0019 : le seul
+`orders.duplicate_key`, avec la faille de lecture OCR décrite en Contexte.
+
+Phase C du chantier d'activation.
 Amende l'**ADR 0003** et l'**ADR 0008** (le Bestelnummer n'est plus le seul verrou
 anti-doublon) et complète l'**ADR 0019** (clé de ticket découverte par établissement).
 Ne change rien au calcul des points ni des cadeaux (**ADR 0006**, **0017**, **0021**).

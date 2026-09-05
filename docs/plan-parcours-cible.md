@@ -2,7 +2,9 @@
 
 **Phase B du chantier d'activation.** Fait suite à [`audit-parcours.md`](audit-parcours.md).
 **Statut : arbitrages du §2 et de l'étape 3 tranchés par le porteur le 2026-09-04.**
-**Lots 1 et 2 implémentés ; lots 3 à 8 en attente de validation du plan.**
+**Aucun lot n'est implémenté** : les lots 1 et 2 l'avaient été, puis ont été
+**annulés le 2026-09-05** à la demande du porteur (revert `804f5ce`). Le code est
+revenu à l'identique de `master` ; ce document reste une proposition entière.
 
 ---
 
@@ -370,8 +372,8 @@ Un commit par lot, chacun livrable seul et sans régression pour les inscrits ac
 
 | Lot | Contenu | Effort |
 |---|---|---|
-| **1** ✅ | **Vocabulaire et icônes** — « scanner » → « photographier », `Scan` → `ReceiptText`. Zéro changement de logique, effet immédiat sur le malentendu | S |
-| **2** ✅ | **Le gain avant le compte** — `parse-receipt` renvoie `reward`/`next_tier`, `TicketGainCard` | M |
+| **1** | **Vocabulaire et icônes** — « scanner » → « photographier », `Scan` → `ReceiptText`. Zéro changement de logique, effet immédiat sur le malentendu | S |
+| **2** | **Le gain avant le compte** — `parse-receipt` renvoie `reward`/`next_tier`, `TicketGainCard` | M |
 | **3** | **Mesure** — `funnel_events`, scans anonymes, vue à dix étages. *À faire tôt : c'est ce qui permettra de juger les lots suivants* | M |
 | **4** | **Anti-QR** — `looks_like_qr_or_poster` + `BarcodeDetector` + message dédié | M |
 | **5** | **Reprise du ticket** — IndexedDB hors `?resume=1`, 24 h, bandeau de récupération | S |
