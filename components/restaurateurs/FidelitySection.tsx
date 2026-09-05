@@ -40,7 +40,10 @@ export function FidelitySection() {
       id="fidelite"
       className="relative overflow-hidden max-w-[1200px] mx-auto px-5 sm:px-8 pt-20 sm:pt-24 pb-24 scroll-mt-16"
     >
-      <FloatingFoodIcon icon="pizza" className="hidden lg:block top-6 right-6 rotate-6" />
+      <FloatingFoodIcon
+        icon="pizza"
+        className="text-xl top-3 right-3 sm:text-3xl sm:top-4 sm:right-4 lg:text-5xl lg:top-6 lg:right-6 rotate-6"
+      />
       <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
         <Reveal>
           <div>

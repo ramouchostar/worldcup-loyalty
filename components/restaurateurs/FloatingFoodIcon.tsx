@@ -17,7 +17,7 @@ export function FloatingFoodIcon({
   return (
     <span
       aria-hidden="true"
-      className={`pointer-events-none select-none absolute text-4xl sm:text-5xl opacity-[0.12] ${className}`}
+      className={`pointer-events-none select-none absolute opacity-[0.14] ${className}`}
     >
       {FOOD_ICONS[icon]}
     </span>

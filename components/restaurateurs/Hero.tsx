@@ -24,7 +24,10 @@ export function Hero() {
         style={{ background: "radial-gradient(circle, rgba(162,197,35,0.18), transparent 60%)" }}
       />
 
-      <FloatingFoodIcon icon="burger" className="hidden lg:block top-24 left-8 -rotate-12" />
+      <FloatingFoodIcon
+        icon="burger"
+        className="text-xl top-3 left-3 sm:text-3xl sm:top-10 sm:left-4 lg:text-5xl lg:top-24 lg:left-8 -rotate-12"
+      />
 
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 sm:pt-20 pb-0">
         <div className="max-w-[800px] mx-auto text-center">

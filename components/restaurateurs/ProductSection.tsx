@@ -16,7 +16,10 @@ export function ProductSection() {
       id="produit"
       className="relative overflow-hidden max-w-[1200px] mx-auto px-5 sm:px-8 pt-20 sm:pt-24 pb-24 scroll-mt-16"
     >
-      <FloatingFoodIcon icon="sushi" className="hidden lg:block top-6 left-6 -rotate-6" />
+      <FloatingFoodIcon
+        icon="sushi"
+        className="text-xl top-3 left-3 sm:text-3xl sm:top-4 sm:left-4 lg:text-5xl lg:top-6 lg:left-6 -rotate-6"
+      />
       <div className="grid lg:grid-cols-[1.3fr_0.7fr] gap-10 lg:gap-16 items-center">
         <Reveal>
           <TextBlock
