@@ -42,11 +42,20 @@ function Sparkline({ weeks, describe }: { weeks: TrendWeek[]; describe: (w: Tren
   const lastY = y(values[values.length - 1]);
   const slot = SPARK_W / weeks.length;
 
+  // La courbe occupe toute la largeur de la tuile (`preserveAspectRatio="none"`,
+  // l'échelle horizontale suit le conteneur) SANS étirer ses traits :
+  // `vector-effect="non-scaling-stroke"` fige l'épaisseur en pixels écran. Le
+  // point de fin est donc dessiné en trait, pas en <circle> — un cercle, lui,
+  // serait aplati en ellipse par cette mise à l'échelle non uniforme. Un
+  // sous-chemin de longueur nulle terminé en `round` rend un disque parfait.
+  const dot = `M${lastX.toFixed(1)},${lastY.toFixed(1)} l0,0`;
+
   return (
     <svg
-      width={SPARK_W}
+      width="100%"
       height={SPARK_H}
       viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+      preserveAspectRatio="none"
       className="mt-3 block overflow-visible"
       role="img"
       aria-label={`Évolution sur ${weeks.length} semaines : ${weeks.map(describe).join(" ; ")}`}
@@ -58,10 +67,12 @@ function Sparkline({ weeks, describe }: { weeks: TrendWeek[]; describe: (w: Tren
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
       />
       {/* Point de fin = la semaine en cours, la seule qu'on désigne. L'anneau
           blanc le détache de la ligne quand la courbe repart vers le haut. */}
-      <circle cx={lastX} cy={lastY} r={3.5} fill="#111827" stroke="#ffffff" strokeWidth={2} />
+      <path d={dot} stroke="#ffffff" strokeWidth={11} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <path d={dot} stroke="#111827" strokeWidth={7} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       {/* Zones de survol : plus larges que les points, une par semaine. Le
           <title> natif sert d'infobulle sans une ligne de JavaScript. */}
       {weeks.map((w, i) => (
@@ -115,7 +126,7 @@ export function StatTile({
   format?: (n: number) => string;
 }) {
   return (
-    <div className="bg-white px-5 py-4">
+    <div className="flex h-full flex-col bg-white px-5 py-4">
       <p className="text-sm font-semibold text-gray-500">{label}</p>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
         {/* Chiffres proportionnels (pas de tabular-nums) : à cette taille, une
@@ -125,7 +136,9 @@ export function StatTile({
         <DeltaChip trend={trend} format={format} />
       </div>
       <p className="mt-1.5 text-xs text-gray-400">{hint}</p>
-      <Sparkline weeks={trend.weeks} describe={describeWeek} />
+      <div className="mt-auto">
+        <Sparkline weeks={trend.weeks} describe={describeWeek} />
+      </div>
     </div>
   );
 }
