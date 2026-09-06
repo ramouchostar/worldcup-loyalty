@@ -17,18 +17,23 @@ import {
   CLOSED_STATUSES,
   STATUS_LABEL,
   AREA_LABEL,
+  normalizeOwners,
   personColor,
   personInitials,
   priorityLabel,
   priorityScore,
+  validatedOwners,
   type BacklogItem,
   type BacklogStatus,
+  type BacklogValidation,
 } from "@/lib/backlog-model";
 import {
+  clearBacklogOwners,
   editBacklogItem,
   removeBacklogItem,
-  setBacklogOwnerFromForm,
   setBacklogStatus,
+  toggleBacklogOwner,
+  toggleBacklogValidation,
 } from "./actions";
 
 // Composants et gabarits partagés entre la vue Liste (BacklogList.tsx) et la
@@ -124,8 +129,58 @@ export function Avatar({ name, size = 28 }: { name: string | null; size?: number
   );
 }
 
+// Pile d'avatars : toutes les personnes attribuées, avec une pastille verte
+// sur celles qui ont déjà validé leur part. C'est la réponse d'un coup d'œil à
+// « qui doit le faire, et qui l'a fait ? » — sans ouvrir la carte.
+export function AvatarStack({
+  owners,
+  validations,
+  size = 28,
+}: {
+  owners: string[];
+  validations?: Record<string, BacklogValidation>;
+  size?: number;
+}) {
+  if (owners.length === 0) return <Avatar name={null} size={size} />;
+  const badge = Math.max(10, Math.round(size * 0.46));
+
+  return (
+    <span className="inline-flex items-center">
+      {owners.map((name, i) => (
+        <span
+          key={name}
+          className={`relative inline-grid ${i > 0 ? "-ml-1.5" : ""}`}
+          style={{ zIndex: owners.length - i }}
+        >
+          {/* Anneau blanc : sans lui, deux avatars qui se chevauchent se
+              lisent comme une seule tache colorée. */}
+          <span className="inline-grid rounded-full ring-2 ring-white">
+            <Avatar name={name} size={size} />
+          </span>
+          {validations?.[name] && (
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-0.5 -right-0.5 grid place-items-center rounded-full bg-good text-white ring-2 ring-white"
+              style={{ width: badge, height: badge }}
+            >
+              <Check size={Math.round(badge * 0.7)} strokeWidth={3.5} />
+            </span>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** « Mehdi et Omar », « Mehdi, Omar et Sam » — pour les libellés lus par un lecteur d'écran. */
+function ownersSentence(owners: string[]): string {
+  if (owners.length === 0) return "personne";
+  if (owners.length === 1) return owners[0];
+  return `${owners.slice(0, -1).join(", ")} et ${owners[owners.length - 1]}`;
+}
+
 // Attribution en un clic depuis la carte. Même traitement que FlatSelect
-// (backlog-ui.tsx) : déclencheur inchangé (avatar sur la carte claire),
+// (backlog-ui.tsx) : déclencheur inchangé (avatars sur la carte claire),
 // panneau TOUJOURS sombre comme un menu contextuel d'app — coche à gauche de
 // l'option active, pas de fond coloré. Porté vers <body> et positionné en
 // `fixed` depuis les coordonnées réelles du bouton — jamais un `absolute`
@@ -136,17 +191,19 @@ export function Avatar({ name, size = 28 }: { name: string | null; size?: number
 // glisser-déposer), invisible ou mal placé sans qu'on comprenne pourquoi.
 // `useAnchoredMenu` (partagé avec FlatSelect) gère le cycle ouvert/fermé —
 // scroll, resize, Échap ferment toujours le menu.
+//
+// Attribution MULTIPLE (une même action faite par chacun de son côté) : le
+// menu se comporte en cases à cocher et NE SE REFERME PAS à chaque clic —
+// cocher deux personnes d'affilée est le geste courant, refermer entre les
+// deux obligerait à rouvrir.
 export function AssigneePicker({ item }: { item: BacklogItem }) {
   const { open, setOpen, triggerRef } = useAnchoredMenu<HTMLButtonElement>();
-  const MENU_WIDTH = 192; // w-48
+  const MENU_WIDTH = 208; // w-52
 
-  async function assign(owner: string) {
-    setOpen(false);
-    const fd = new FormData();
-    fd.set("id", item.id);
-    fd.set("owner", owner);
-    await setBacklogOwnerFromForm(fd);
-  }
+  // Liste close + les noms hérités DÉJÀ attribués à cette action : ils
+  // restent affichés et décochables, ils ne sont simplement plus proposés
+  // ailleurs (l'action serveur refuse d'en ajouter un nouveau).
+  const people = normalizeOwners([...BACKLOG_PEOPLE, ...item.owners]);
 
   const rect = open ? triggerRef.current?.getBoundingClientRect() : null;
   const coords =
@@ -160,11 +217,15 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
         onClick={() => setOpen(!open)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={item.owner ? `Attribué à ${item.owner} — changer` : "Attribuer cette action"}
-        title={item.owner ?? "Attribuer"}
+        aria-label={
+          item.owners.length > 0
+            ? `Attribué à ${ownersSentence(item.owners)} — modifier`
+            : "Attribuer cette action"
+        }
+        title={item.owners.length > 0 ? ownersSentence(item.owners) : "Attribuer"}
         className="rounded-full ring-offset-2 hover:ring-2 hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 transition"
       >
-        <Avatar name={item.owner} />
+        <AvatarStack owners={item.owners} validations={item.validations} />
       </button>
 
       {open &&
@@ -178,29 +239,44 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
               style={{ top: coords.top, left: coords.left, width: MENU_WIDTH }}
               className="fixed z-50 rounded-xl border border-white/10 bg-neutral-900 p-1 shadow-xl"
             >
-              {BACKLOG_PEOPLE.map((p) => (
+              <p className="px-2 pb-1 pt-1.5 text-[11px] text-neutral-500">
+                Qui s&apos;en charge — plusieurs possible
+              </p>
+              {people.map((person) => {
+                const assigned = item.owners.includes(person);
+                return (
+                  <button
+                    key={person}
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={assigned}
+                    onClick={() => void toggleBacklogOwner(item.id, person)}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-neutral-200 hover:bg-white/5"
+                  >
+                    <Check
+                      size={14}
+                      strokeWidth={2.5}
+                      className={`shrink-0 ${assigned ? "text-platform-accent opacity-100" : "opacity-0"}`}
+                      aria-hidden="true"
+                    />
+                    <Avatar name={person} size={22} />
+                    <span className="truncate">{person}</span>
+                    {assigned && item.validations[person] && (
+                      <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-good">
+                        validé
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {item.owners.length > 0 && (
                 <button
-                  key={p}
                   type="button"
                   role="menuitem"
-                  onClick={() => assign(p)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-neutral-200 hover:bg-white/5"
-                >
-                  <Check
-                    size={14}
-                    strokeWidth={2.5}
-                    className={`shrink-0 ${item.owner === p ? "text-platform-accent opacity-100" : "opacity-0"}`}
-                    aria-hidden="true"
-                  />
-                  <Avatar name={p} size={22} />
-                  {p}
-                </button>
-              ))}
-              {item.owner && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => assign("")}
+                  onClick={() => {
+                    setOpen(false);
+                    void clearBacklogOwners(item.id);
+                  }}
                   className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-white/10 px-2 py-1.5 pt-2.5 text-left text-sm text-neutral-400 hover:bg-white/5"
                 >
                   <Check size={14} strokeWidth={2.5} className="shrink-0 opacity-0" aria-hidden="true" />
@@ -213,6 +289,70 @@ export function AssigneePicker({ item }: { item: BacklogItem }) {
           document.body
         )}
     </div>
+  );
+}
+
+// Validation par personne — le cœur de la co-attribution. Chacun coche SA
+// part ; l'action ne bascule en « Fait » que quand la dernière part manquante
+// est validée (règle unique : lib/backlog-model.ts, statusAfterValidation).
+// Re-cliquer une part validée l'annule et rouvre l'action — c'est le seul
+// moyen de corriger un clic de trop, et ça garde le tableau honnête.
+//
+// Sans personne attribuée, rien à co-valider : on retombe sur le bouton
+// « ✓ Fait » d'avant, qui pose le statut directement.
+function ValidationControls({ item }: { item: BacklogItem }) {
+  if (item.owners.length === 0) {
+    if (item.status === "fait") return null;
+    return (
+      <form action={setBacklogStatus.bind(null, item.id, "fait")}>
+        <SubmitButton className={`${CTRL} text-green-700 bg-green-50 hover:bg-green-100`}>
+          ✓ Fait
+        </SubmitButton>
+      </form>
+    );
+  }
+
+  return (
+    <>
+      {item.owners.map((person) => {
+        const done = item.validations[person];
+        const when = done ? fmtDate(done.at) : null;
+        return (
+          <form key={person} action={toggleBacklogValidation.bind(null, item.id, person)}>
+            <SubmitButton
+              className={`${CTRL} ${
+                done
+                  ? "bg-good/10 text-good hover:bg-good/15"
+                  : "border border-gray-200 bg-white text-gray-600 hover:border-good/40 hover:bg-good/5 hover:text-good"
+              }`}
+            >
+              <span
+                title={
+                  done
+                    ? `${person} a validé sa part${when ? ` le ${when}` : ""} — cliquer pour annuler`
+                    : `${person} : marquer sa part comme faite`
+                }
+                className="inline-flex items-center gap-1.5"
+              >
+                <Avatar name={person} size={16} />
+                {done ? (
+                  <>
+                    <Check size={13} strokeWidth={3} aria-hidden="true" />
+                    <span className="sr-only">{person} a validé — annuler</span>
+                    <span aria-hidden="true">{when}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="sr-only">{person} : marquer comme fait</span>
+                    <span aria-hidden="true">Fait&nbsp;?</span>
+                  </>
+                )}
+              </span>
+            </SubmitButton>
+          </form>
+        );
+      })}
+    </>
   );
 }
 
@@ -266,8 +406,11 @@ export function ItemFields({
   const [status, setStatus] = useState<string>(item?.status ?? "idee");
   const [impact, setImpact] = useState<string>(String(item?.impact ?? 3));
   const [effort, setEffort] = useState<string>(String(item?.effort ?? 3));
-  const [owner, setOwner] = useState<string>(item?.owner ?? "");
+  const [owners, setOwners] = useState<string[]>(item?.owners ?? []);
   const [restaurantId, setRestaurantId] = useState<string>(item?.restaurant_id ?? "");
+  // Un nom saisi avant la liste close reste cochable/décochable ici — on ne le
+  // fait pas disparaître en silence, il n'est simplement plus proposé ailleurs.
+  const ownerChoices = normalizeOwners([...BACKLOG_PEOPLE, ...(item?.owners ?? [])]);
 
   return (
     <>
@@ -330,26 +473,45 @@ export function ItemFields({
             triggerClassName={FIELD_SELECT_CLS}
           />
         </label>
-        <label className="text-xs text-gray-500">
-          Qui s&apos;en charge
-          <FlatSelect
-            name="owner"
-            value={owner}
-            onChange={setOwner}
-            ariaLabel="Qui s'en charge"
-            placeholder="— personne —"
-            options={[
-              { value: "", label: "— personne —" },
-              ...BACKLOG_PEOPLE.map((p) => ({ value: p, label: p })),
-              // Un nom saisi avant la liste close reste sélectionné et
-              // enregistrable — on ne le fait pas disparaître en silence.
-              ...(item?.owner && !BACKLOG_PEOPLE.includes(item.owner as (typeof BACKLOG_PEOPLE)[number])
-                ? [{ value: item.owner, label: item.owner }]
-                : []),
-            ]}
-            triggerClassName={FIELD_SELECT_CLS}
-          />
-        </label>
+        {/* Attribution multiple : des cases à cocher, pas un select — le
+            choix n'est plus exclusif, et une liste de deux noms n'a pas
+            besoin d'un menu déroulant. Chaque personne cochée ajoute un
+            <input hidden name="owners"> ; le FormData les lit avec getAll. */}
+        <fieldset className="text-xs text-gray-500">
+          <legend>Qui s&apos;en charge</legend>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            {ownerChoices.map((p) => {
+              const on = owners.includes(p);
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setOwners((prev) =>
+                      prev.includes(p) ? prev.filter((o) => o !== p) : normalizeOwners([...prev, p])
+                    )
+                  }
+                  className={`h-9 inline-flex items-center gap-1.5 rounded-lg border px-2 text-sm font-medium transition-colors ${
+                    on
+                      ? "border-platform-accent bg-platform-accent/10 text-gray-900"
+                      : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
+                  }`}
+                >
+                  <Avatar name={p} size={18} />
+                  {p}
+                  {on && <Check size={13} strokeWidth={3} className="text-good" aria-hidden="true" />}
+                </button>
+              );
+            })}
+          </div>
+          {owners.map((o) => (
+            <input key={o} type="hidden" name="owners" value={o} />
+          ))}
+          {owners.length > 1 && (
+            <p className="mt-1 text-[11px] text-gray-400">Chacun valide sa part — close quand tout le monde a validé.</p>
+          )}
+        </fieldset>
         <label className="text-xs text-gray-500">
           Échéance
           <input
@@ -404,6 +566,7 @@ export function ItemCard({
     item.due_date < new Date().toISOString().slice(0, 10);
   const closed = CLOSED_STATUSES.includes(item.status);
   const label = priorityLabel(item);
+  const validated = validatedOwners(item).length;
 
   if (editing) {
     return (
@@ -485,6 +648,15 @@ export function ItemCard({
             <span className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_CLS[item.status]}`}>
               {STATUS_LABEL[item.status]}
             </span>
+            {/* Avancement de la co-validation, uniquement quand il y a
+                plusieurs personnes : « 1/2 validé » dit en trois caractères
+                pourquoi l'action est encore ouverte alors que quelqu'un a
+                déjà coché sa part. */}
+            {item.owners.length > 1 && (
+              <span className="shrink-0 text-[11px] font-semibold text-gray-400 tabular-nums">
+                {validated}/{item.owners.length} validé{validated > 1 ? "s" : ""}
+              </span>
+            )}
             <AssigneePicker item={item} />
           </div>
         </div>
@@ -496,13 +668,7 @@ export function ItemCard({
           reste discret jusqu'au survol : c'est la seule action irréversible. */}
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-3">
         <StatusFlip item={item} />
-        {item.status !== "fait" && (
-          <form action={setBacklogStatus.bind(null, item.id, "fait")}>
-            <SubmitButton className={`${CTRL} text-green-700 bg-green-50 hover:bg-green-100`}>
-              ✓ Fait
-            </SubmitButton>
-          </form>
-        )}
+        <ValidationControls item={item} />
         <button
           type="button"
           onClick={() => setEditing(true)}
