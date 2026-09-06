@@ -184,10 +184,16 @@ export default async function PlatformScansPage({
   const matchRates = await getMatchRates();
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
+    // max-w-7xl et non le max-w-3xl d'origine (même raison que /platform/backlog) :
+    // depuis la colonne « Actions », la table porte sept colonnes dont deux
+    // pleines de montants et de numéros de ticket. En colonne étroite tout se
+    // cassait sur deux ou trois lignes pendant que la moitié droite de l'écran
+    // restait vide. Le texte de tête, lui, reste borné : une phrase qui court
+    // sur 1 200 px ne se lit pas.
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Tickets scannés</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 max-w-3xl text-sm text-gray-600">
           L&apos;image, ce que Claude Vision en a lu, et ce que l&apos;app a encodé — {LIST_LIMIT} derniers
           scans. Les photos sont conservées {RECEIPT_RETENTION_DAYS} jours puis effacées ; la lecture, elle, reste.
         </p>
@@ -333,8 +339,10 @@ export default async function PlatformScansPage({
                     </td>
                     <td className="px-3 py-3 text-gray-700">{membreById.get(scan.user_id) ?? "—"}</td>
                     <td className="px-3 py-3 text-gray-700">
-                      <div>{euros(scan.ocr_amount)}</div>
-                      <div className="text-xs text-gray-500">n° {scan.ocr_order_number ?? "—"}</div>
+                      <div className="whitespace-nowrap">{euros(scan.ocr_amount)}</div>
+                      <div className="whitespace-nowrap text-xs text-gray-500">
+                        n° {scan.ocr_order_number ?? "—"}
+                      </div>
                       <div className="text-xs text-gray-500">
                         confiance {scan.ocr_confidence ?? "—"} % · {scan.ocr_order_time ?? "—"} ·{" "}
                         {scan.ocr_items?.length ?? 0} article{(scan.ocr_items?.length ?? 0) > 1 ? "s" : ""}
@@ -346,15 +354,19 @@ export default async function PlatformScansPage({
                       )}
                     </td>
                     <td className="px-3 py-3 text-gray-700">
-                      <span className={`inline-block text-xs px-1.5 py-0.5 rounded ${outcome.color}`}>
+                      <span
+                        className={`inline-block whitespace-nowrap text-xs px-1.5 py-0.5 rounded ${outcome.color}`}
+                      >
                         {outcome.label}
                       </span>
                       {order && (
                         <>
-                          <div className="mt-1">
+                          <div className="mt-1 whitespace-nowrap">
                             {euros(order.amount)} · {order.status}
                           </div>
-                          <div className="text-xs text-gray-500">n° {order.order_number ?? "—"}</div>
+                          <div className="whitespace-nowrap text-xs text-gray-500">
+                            n° {order.order_number ?? "—"}
+                          </div>
                           {order.flag_reasons && order.flag_reasons.length > 0 && (
                             <div className="text-xs text-gray-500">{order.flag_reasons.join(", ")}</div>
                           )}
