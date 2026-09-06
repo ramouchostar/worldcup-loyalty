@@ -6,6 +6,7 @@ import { detectScanFrictions, FRICTION_MIN_SCANS, FRICTION_WINDOW_MIN } from "@/
 import { getMatchRates, MATCH_RATE_ALERT_PCT, MATCH_RATE_MIN_LINES } from "@/lib/match-rates";
 import { RestaurantFilter } from "./RestaurantFilter";
 import { ScanFrictions, type FrictionCard } from "./ScanFrictions";
+import { MatchRates } from "./MatchRates";
 
 export const metadata = { title: "Tickets scannés — Plateforme" };
 
@@ -256,34 +257,14 @@ export default async function PlatformScansPage({
         ))}
       </section>
 
-      {/* Rattachement catalogue ↔ tickets (ADR 0046) */}
-      {matchRates.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-900 mb-1">Rattachement catalogue ↔ tickets — 60 derniers jours</h2>
-          <p className="text-xs text-gray-500 mb-3">
-            Part des lignes de tickets rattachées à un article du catalogue (lignes techniques exclues).
-            Sous {MATCH_RATE_ALERT_PCT} %, les ventes par plat du resto ne veulent rien dire — la boucle
-            de complétion (carte « À faire » de son dashboard) est là pour ça.
-          </p>
-          <div className="space-y-1.5">
-            {matchRates.map((r) => {
-              const alert = r.rate < MATCH_RATE_ALERT_PCT && r.total >= MATCH_RATE_MIN_LINES;
-              return (
-                <div
-                  key={r.restaurantId}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${alert ? "bg-red-50 border-red-200" : "bg-white border-gray-100"}`}
-                >
-                  <span className="flex-1 font-medium text-gray-800">{r.name}</span>
-                  <span className="text-xs text-gray-400">
-                    {r.matched}/{r.total} lignes{r.ignored > 0 ? ` · ${r.ignored} ignorée${r.ignored > 1 ? "s" : ""}` : ""}
-                  </span>
-                  <span className={`font-bold tabular-nums ${alert ? "text-red-600" : "text-gray-900"}`}>{r.rate} %</span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Rattachement catalogue ↔ tickets (ADR 0046) — une seule fenêtre
+          repliable : la liste complète poussait les frictions et la table des
+          scans hors de l'écran. */}
+      <MatchRates
+        rates={matchRates}
+        alertPct={MATCH_RATE_ALERT_PCT}
+        minLines={MATCH_RATE_MIN_LINES}
+      />
 
       {/* Frictions — signature de l'incident Kasia (22/08/2026) : un membre
           enchaîne ≥ 3 scans non soumis en 10 min. On le voit ici au lieu de
