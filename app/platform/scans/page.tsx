@@ -7,6 +7,7 @@ import { getMatchRates, MATCH_RATE_ALERT_PCT, MATCH_RATE_MIN_LINES } from "@/lib
 import { RestaurantFilter } from "./RestaurantFilter";
 import { ScanFrictions, type FrictionCard } from "./ScanFrictions";
 import { MatchRates } from "./MatchRates";
+import { ScanActions } from "./ScanActions";
 
 export const metadata = { title: "Tickets scannés — Plateforme" };
 
@@ -297,6 +298,7 @@ export default async function PlatformScansPage({
                 <th className="px-3 py-2">Lu par Vision</th>
                 <th className="px-3 py-2">Encodé par l&apos;app</th>
                 <th className="px-3 py-2">Écart</th>
+                <th className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -369,6 +371,26 @@ export default async function PlatformScansPage({
                           ))}
                         </ul>
                       )}
+                    </td>
+                    {/* Rattrapage plateforme : entête refusée, montant mal lu,
+                        commande refusée par le resto — on tranche ici, l'image
+                        sous les yeux. */}
+                    <td className="px-3 py-3 text-right">
+                      <ScanActions
+                        target={{
+                          scanId: scan.id,
+                          memberLabel: membreById.get(scan.user_id) ?? "—",
+                          restaurantLabel: restaurantNames.get(scan.restaurant_id) ?? scan.restaurant_id,
+                          scannedLabel: heureBelge(scan.scanned_at),
+                          imageUrl: url ?? null,
+                          ocrAmount: scan.ocr_amount,
+                          ocrOrderNumber: scan.ocr_order_number,
+                          ocrConfidence: scan.ocr_confidence,
+                          orderStatus: order?.status ?? null,
+                          orderAmount: order ? Number(order.amount) : null,
+                          orderNumber: order?.order_number ?? null,
+                        }}
+                      />
                     </td>
                   </tr>
                 );
