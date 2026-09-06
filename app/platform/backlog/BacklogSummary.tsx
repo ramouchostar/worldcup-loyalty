@@ -10,7 +10,7 @@ import {
   priorityScore,
   type BacklogItem,
 } from "@/lib/backlog-model";
-import { Avatar, ItemFields, type RestaurantOption } from "./backlog-ui";
+import { Avatar, AvatarStack, ItemFields, type RestaurantOption } from "./backlog-ui";
 import { addBacklogItem } from "./actions";
 
 // Valeur de filtre pour « non attribuée ». Une chaîne réservée plutôt que ""
@@ -141,8 +141,10 @@ function ClosedTasksGrid({ closed }: { closed: BacklogItem[] }) {
             </div>
             <p className="text-sm font-semibold text-gray-600 line-clamp-2 mt-1">{item.title}</p>
             <div className="flex items-center gap-1.5 mt-2">
-              <Avatar name={item.owner} size={16} />
-              <span className="text-[11px] text-gray-400 truncate">{item.owner ?? "Non attribuée"}</span>
+              <AvatarStack owners={item.owners} validations={item.validations} size={16} />
+              <span className="text-[11px] text-gray-400 truncate">
+                {item.owners.length > 0 ? item.owners.join(" · ") : "Non attribuée"}
+              </span>
             </div>
           </div>
         ))}
@@ -178,10 +180,13 @@ export function BacklogSummary({
 
   const inProgress = items.filter((i) => i.status === "en_cours").length;
   const doneCount = items.filter((i) => i.status === "fait").length;
-  const unassigned = items.filter((i) => !i.owner && OPEN_STATUSES.includes(i.status)).length;
+  const unassigned = items.filter((i) => i.owners.length === 0 && OPEN_STATUSES.includes(i.status)).length;
 
+  // Une action co-attribuée compte pour CHAQUE personne concernée : la carte
+  // « Mehdi » répond à « qu'est-ce qui attend un geste de moi ? », pas à « de
+  // combien d'actions suis-je le seul responsable ? ».
   function countFor(person: string): number {
-    return items.filter((i) => i.owner === person && OPEN_STATUSES.includes(i.status)).length;
+    return items.filter((i) => i.owners.includes(person) && OPEN_STATUSES.includes(i.status)).length;
   }
 
   function toggleOwner(value: string) {
@@ -244,7 +249,7 @@ export function BacklogSummary({
           <p className="text-xs text-gray-400 mt-1">
             {priorityLabel(next)} — impact {next.impact} / effort {next.effort} — score{" "}
             {priorityScore(next).toFixed(1)}
-            {next.owner && <> · {next.owner}</>}
+            {next.owners.length > 0 && <> · {next.owners.join(" et ")}</>}
           </p>
         </div>
       )}

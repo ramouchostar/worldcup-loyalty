@@ -79,15 +79,18 @@ export function BacklogBoard({
   const legacyOwners = Array.from(
     new Set(
       items
-        .map((i) => i.owner)
-        .filter((o): o is string => !!o && !BACKLOG_PEOPLE.includes(o as (typeof BACKLOG_PEOPLE)[number]))
+        .flatMap((i) => i.owners)
+        .filter((o) => !BACKLOG_PEOPLE.includes(o as (typeof BACKLOG_PEOPLE)[number]))
     )
   ).sort();
 
+  // Une action co-attribuée apparaît dans le filtre de CHACUNE des personnes
+  // concernées : c'est le point de la co-attribution — « mes actions » doit
+  // montrer tout ce qui attend un geste de ma part.
   const visible = items.filter(
     (i) =>
       (area === "tous" || i.area === area) &&
-      (owner === "tous" || (owner === NO_OWNER ? !i.owner : i.owner === owner))
+      (owner === "tous" || (owner === NO_OWNER ? i.owners.length === 0 : i.owners.includes(owner)))
   );
   const open = visible.filter((i) => OPEN_STATUSES.includes(i.status));
   const closed = visible.filter((i) => CLOSED_STATUSES.includes(i.status));

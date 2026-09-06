@@ -38,8 +38,8 @@ export const AREA_LABEL: Record<BacklogArea, string> = {
 };
 
 // Les deux associés de la plateforme. Liste CLOSE et nominative, pas un
-// annuaire de comptes : le backlog se répartit entre nous deux, et `owner`
-// reste une colonne TEXT libre en base — un ancien nom saisi à la main
+// annuaire de comptes : le backlog se répartit entre nous deux, et `owners`
+// reste un tableau de TEXT libre en base — un ancien nom saisi à la main
 // continue de s'afficher et de se filtrer, il n'est simplement plus proposé.
 export const BACKLOG_PEOPLE = ["Mehdi", "Omar"] as const;
 export type BacklogPerson = (typeof BACKLOG_PEOPLE)[number];
@@ -62,6 +62,14 @@ export function personInitials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
 }
 
+/**
+ * Trace d'une validation individuelle : quand, et par quel compte le clic a
+ * été fait. `by` sert d'audit (on est deux à partager la console, rien
+ * n'empêche de valider à la place de l'autre) — l'écran, lui, montre le
+ * prénom attribué, pas l'uuid.
+ */
+export type BacklogValidation = { at: string; by: string | null };
+
 export type BacklogItem = {
   id: string;
   title: string;
@@ -70,7 +78,15 @@ export type BacklogItem = {
   status: BacklogStatus;
   impact: number;
   effort: number;
-  owner: string | null;
+  // Co-attribution : une même action peut revenir à plusieurs personnes qui
+  // la font CHACUNE de son côté (tester le parcours sur iPhone ET Android,
+  // relancer chacun ses restos…). Une seule personne reste le cas courant,
+  // c'est juste un tableau à un élément.
+  owners: string[];
+  // Validations par prénom attribué. Une clé absente = part non validée ;
+  // les clés qui ne sont plus dans `owners` sont ignorées partout (on ne les
+  // efface pas : si la personne est ré-attribuée, sa validation revient).
+  validations: Record<string, BacklogValidation>;
   restaurant_id: string | null;
   due_date: string | null;
   created_by: string | null;
@@ -78,6 +94,75 @@ export type BacklogItem = {
   updated_at: string;
   done_at: string | null;
 };
+
+/**
+ * Liste d'attribution propre : trim, dédoublonnage, ordre stable (les
+ * associés d'abord, puis les noms hérités par ordre alphabétique). Sert
+ * autant à la lecture (colonne `owners` en base, ou `owner` legacy) qu'à
+ * l'écriture (formulaire, menu d'attribution).
+ */
+export function normalizeOwners(list: readonly (string | null | undefined)[]): string[] {
+  const seen = new Set<string>();
+  for (const raw of list) {
+    const name = (raw ?? "").trim();
+    if (name) seen.add(name);
+  }
+  const known = BACKLOG_PEOPLE.filter((p) => seen.has(p));
+  const others = [...seen].filter((n) => !BACKLOG_PEOPLE.includes(n as BacklogPerson)).sort();
+  return [...known, ...others];
+}
+
+/** Personnes attribuées qui ont validé leur part (les validations orphelines ne comptent pas). */
+export function validatedOwners(item: Pick<BacklogItem, "owners" | "validations">): string[] {
+  return item.owners.filter((o) => !!item.validations[o]);
+}
+
+/** Personnes attribuées dont on attend encore le « Fait ». */
+export function pendingOwners(item: Pick<BacklogItem, "owners" | "validations">): string[] {
+  return item.owners.filter((o) => !item.validations[o]);
+}
+
+/**
+ * Statut recalculé après un changement d'attribution ou de validation.
+ *
+ * Règle unique, écrite ici une seule fois : une action co-attribuée est
+ * « faite » quand TOUTES les personnes attribuées ont validé leur part — ni
+ * avant, ni autrement. Conséquences assumées :
+ *   - retirer sa validation (ou ajouter quelqu'un à une action déjà close)
+ *     rouvre l'action en « en cours » : le tableau ne peut pas afficher
+ *     « fait » alors qu'il reste une part à faire ;
+ *   - sans personne attribuée, le statut reste piloté à la main (bouton
+ *     « ✓ Fait » et sélecteur d'état) — rien à co-valider ;
+ *   - « abandonné » n'est jamais ressuscité par un clic de validation : on
+ *     ne rouvre pas une action qu'on a décidé d'enterrer.
+ */
+export function statusAfterValidation(
+  current: BacklogStatus,
+  owners: string[],
+  validations: Record<string, BacklogValidation>
+): BacklogStatus {
+  if (owners.length === 0 || current === "abandonne") return current;
+  const everyone = owners.every((o) => !!validations[o]);
+  if (everyone) return "fait";
+  return current === "fait" ? "en_cours" : current;
+}
+
+/**
+ * Vrai si l'erreur Supabase vient de l'absence des colonnes de co-attribution
+ * (migration 20260906-2225 pas encore appliquée). Même repli que
+ * `isMissingSchoolCalendarsColumn` (lib/school-calendar.ts) : PostgREST
+ * répond 42703 en LECTURE mais PGRST204 « … in the schema cache » en
+ * ÉCRITURE — il faut reconnaître les deux, sinon le repli ne se déclenche
+ * que d'un côté et les formulaires cassent le temps d'appliquer la migration.
+ */
+export function isMissingCoAssignationColumn(
+  error: { code?: string; message?: string } | null | undefined
+): boolean {
+  if (!error) return false;
+  if (error.code === "42703" || error.code === "PGRST204") return true;
+  const message = error.message ?? "";
+  return /owners|validations/.test(message) && /column|schema cache/i.test(message);
+}
 
 /** Rentabilité d'un item : impact ÷ effort, sur [0,2 ; 5]. Plus haut = à faire d'abord. */
 export function priorityScore(item: Pick<BacklogItem, "impact" | "effort">): number {
