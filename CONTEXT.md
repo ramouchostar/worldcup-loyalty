@@ -288,6 +288,10 @@ _Avoid_ : utilisateur actif, MAU/DAU (jargon), membre engagé.
 Plan d'action partagé entre les associés de la plateforme (`platform_backlog`, `/platform/backlog`). Une action = un titre, un chantier (`produit`, `tech`, `vente`, `marketing`, `ops`, `legal`), un état (`idee`, `a_faire`, `en_cours`, `bloque`, `fait`, `abandonne`), un impact et un effort notés 1–5. **La priorité n'est jamais saisie : elle se calcule** (`impact ÷ effort`) — noter deux échelles force la comparaison entre actions, poser « P1 » ne force rien. Vit dans la console, à un onglet des chiffres, parce que les décisions se prennent devant eux.
 _Avoid_ : roadmap (c'est un plan d'action court terme, pas une feuille de route produit), sprint, ticket (réservé au ticket de caisse), tâche.
 
+**Action co-attribuée** *(ADR 0033, backlog plateforme)* :
+Une même action du backlog attribuée à **plusieurs personnes** qui la font **chacune de son côté** (« tester le parcours ticket sur iPhone *et* Android »). Chacune valide **sa part** d'un clic sur son propre « Fait » ; l'action n'est close que **quand tout le monde a validé** — la carte montre qui a validé et quand (pastille verte sur l'avatar, date sur le bouton). Retirer sa validation, ou ajouter quelqu'un à une action close, la rouvre. Sans personne attribuée, le statut reste piloté à la main.
+_Avoid_ : assigné/assignation (jargon), responsable unique, « valider pour l'équipe » (personne ne valide la part d'un autre).
+
 **Opportunité** :
 Suggestion commerciale chiffrée de la page admin `/admin/[id]/insights`, calculée par le moteur de stratégies terrain (`lib/insights.ts`, ADR 0022) à partir des ventes scannées (ADR 0020) et du catalogue (ADR 0013) : jour/heure creux, promo sûre, combo, formule dégressive. Fonctions pures et déterministes — chaque suggestion est explicable par ses chiffres, préserve la marge unité par unité, et n'est jamais appliquée automatiquement (l'app propose, l'admin décide). Surface admin uniquement : les coûts et marges n'apparaissent jamais dans le message broadcast proposé (ADR 0007).
 _Avoid_ : conseil IA (le calcul est déterministe), recommandation automatique.
