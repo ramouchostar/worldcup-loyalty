@@ -48,6 +48,7 @@ export default function SubmitOrderClient({
   resume,
   logoUrl,
   receiptKeyLabel = null,
+  guidePhotoUrl = null,
   teamPrompt = null,
 }: {
   visitor: boolean;
@@ -57,6 +58,9 @@ export default function SubmitOrderClient({
   // fourni par la page serveur pour le guide de cadrage — avant même le
   // premier scan (le state keyLabel n'était rempli qu'après l'aperçu OCR).
   receiptKeyLabel?: string | null;
+  // Photo RÉELLE de la zone à cadrer (echantillons/, URL signée) — remplace
+  // le spécimen dessiné quand elle existe pour ce resto.
+  guidePhotoUrl?: string | null;
   // Étape 10 — question d'équipe due (ADR 0031), posée sur l'écran de succès
   // du ticket validé. Null si : visiteur, déjà une équipe, relance pas échue,
   // équipes masquées.
@@ -669,7 +673,18 @@ export default function SubmitOrderClient({
             {/* Spécimen de cadrage (incident 2026-09-02 : 70 % de refus) —
                 montre la SEULE zone qui compte : total + clé de commande.
                 L'ancien conseil « cadre tout le ticket » produisait des photos
-                à bout de bras, illisibles, sur les tickets de 50 cm. */}
+                à bout de bras, illisibles, sur les tickets de 50 cm.
+                Quand un échantillon RÉEL existe (echantillons/, ADR 0036 §3),
+                la vraie photo remplace le dessin — rien ne vaut son propre
+                ticket pour comprendre quoi cadrer. */}
+            {guidePhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={guidePhotoUrl}
+                alt="Exemple : la zone du ticket à photographier — le total et le numéro de commande"
+                className="w-56 max-w-full h-auto mx-auto mb-3 rounded-lg border-2 border-brand-red/60 shadow-sm"
+              />
+            ) : (
             <svg
               viewBox="0 0 120 96"
               className="w-24 h-auto mx-auto mb-3"
@@ -692,6 +707,7 @@ export default function SubmitOrderClient({
               <line x1="38" y1="70" x2="82" y2="70" stroke="#6b7280" strokeWidth="4" strokeLinecap="round" />
               <line x1="38" y1="78" x2="66" y2="78" stroke="#e5e7eb" strokeWidth="4" strokeLinecap="round" />
             </svg>
+            )}
             <p className="font-semibold text-gray-700 mb-4">Photo du ticket de caisse</p>
             <button
               type="button"

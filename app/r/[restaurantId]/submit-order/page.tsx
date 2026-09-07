@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { ensureMembership } from "@/app/join/actions";
 import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { getReceiptConfig } from "@/lib/receipt-config";
+import { getFramingGuideUrl } from "@/lib/receipt-scans";
 import { getTeamPrompt } from "@/lib/teams";
 import SubmitOrderClient from "@/components/member/SubmitOrderClient";
 
@@ -42,6 +43,9 @@ export default async function SubmitOrderPage({
   // le pattern reste service-role (ADR 0019).
   const receiptConfig = await getReceiptConfig(restaurantId);
   const keyLabel = receiptConfig.has_reliable_key ? receiptConfig.key_label : null;
+  // Photo réelle de la zone à cadrer (echantillons/, ADR 0036 §3) — null si
+  // aucun échantillon n'existe pour ce resto : le spécimen dessiné reste.
+  const guidePhotoUrl = await getFramingGuideUrl(restaurantId);
 
   // Étape 10 — la question d'équipe (ADR 0031) se pose sur l'écran de succès
   // du ticket validé, plus à l'arrivée au dashboard : le cadeau vient de
@@ -55,6 +59,7 @@ export default async function SubmitOrderPage({
       resume={resume === "1"}
       logoUrl={logoUrl}
       receiptKeyLabel={keyLabel}
+      guidePhotoUrl={guidePhotoUrl}
       teamPrompt={teamPrompt ? { suggestions: teamPrompt.suggestions.slice(0, 3) } : null}
     />
   );
