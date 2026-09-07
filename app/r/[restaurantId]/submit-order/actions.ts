@@ -10,7 +10,7 @@ export async function rememberPendingTicket(restaurantId: string) {
   const cookieStore = await cookies();
   const opts = {
     httpOnly: true,
-    maxAge: 60 * 30, // aligné sur l'expiration de la photo (lib/pending-ticket)
+    maxAge: 60 * 60 * 24, // aligné sur l'expiration de la photo (lib/pending-ticket)
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",

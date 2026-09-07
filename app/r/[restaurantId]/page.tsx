@@ -8,6 +8,7 @@ import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl 
 import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
+import { PendingTicketBanner } from "@/components/member/PendingTicketBanner";
 import { recordLanding } from "@/lib/qr-funnel";
 import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
@@ -158,6 +159,9 @@ export default async function RestaurantLandingPage({
       {/* ── CARTE : CE QUE CE TICKET PEUT DÉBLOQUER + CTA + ÉTAPES ── */}
       <div className="max-w-lg mx-auto px-5 -mt-10 relative z-10">
         <div className="bg-white rounded-3xl shadow-xl p-6">
+          {/* Reprise du ticket en attente (audit 2026-09-04) — invisible si
+              aucune photo fraîche ne dort en IndexedDB. */}
+          <PendingTicketBanner restaurantId={restaurantId} />
           {!user ? (
             // ADR 0040 — le client au comptoir a un ticket en main : le scan
             // est l'action n°1, le compte viendra au moment de l'envoi.

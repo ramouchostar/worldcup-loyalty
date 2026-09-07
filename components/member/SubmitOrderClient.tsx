@@ -159,16 +159,22 @@ export default function SubmitOrderClient({
     return () => clearTimeout(t);
   }, [visitor, parseStatus, amount, orderNumber, restaurantId]);
 
-  // Retour de connexion : la photo prise en visiteur attend dans l'appareil.
-  // Absente (autre navigateur, expiration, navigation privée) → écran normal,
-  // le membre reprend simplement sa photo.
+  // Retour de connexion OU tap sur le bandeau « ton ticket t'attend » de la
+  // vitrine (`?resume=1`) : la photo attend dans l'appareil, on la recharge et
+  // l'analyse enchaîne. Ouvert aussi aux visiteurs (audit parcours 2026-09-04)
+  // — un visiteur revenu par la vitrine reprend sa photo sans compte, l'aperçu
+  // OCR anonyme (ADR 0045) tourne comme à la capture. Absente (autre
+  // navigateur, expiration, navigation privée) → écran normal.
   useEffect(() => {
-    if (visitor || !resume) return;
+    if (!resume) return;
     let cancelled = false;
     (async () => {
       const file = await loadPendingTicket(restaurantId);
       if (!file || cancelled) return;
-      await clearPendingTicket(restaurantId);
+      // Côté visiteur, la photo doit SURVIVRE à ce rechargement (le compte
+      // n'existe pas encore) — acceptFile la re-sauve ; on ne l'efface que
+      // pour un membre connecté, dont la soumission suit.
+      if (!visitor) await clearPendingTicket(restaurantId);
       track("visitor_ticket_resumed", { restaurant_id: restaurantId });
       await acceptFile(file);
     })();
@@ -178,6 +184,32 @@ export default function SubmitOrderClient({
     // acceptFile est stable au sein du montage — dépendances volontairement réduites
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visitor, resume, restaurantId]);
+
+  // Reprise SANS ?resume=1 (audit parcours 2026-09-04, friction M1) : rouvrir
+  // l'écran de scan ne reproposait jamais la photo qui dort en IndexedDB.
+  // Bandeau passif plutôt que chargement d'office : la personne vient
+  // peut-être scanner un NOUVEAU ticket — c'est elle qui tape.
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  useEffect(() => {
+    if (resume) return;
+    let cancelled = false;
+    (async () => {
+      const file = await loadPendingTicket(restaurantId);
+      if (file && !cancelled) setPendingFile(file);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [resume, restaurantId]);
+
+  async function reprendrePendingFile() {
+    const file = pendingFile;
+    if (!file) return;
+    setPendingFile(null);
+    if (!visitor) await clearPendingTicket(restaurantId);
+    track("visitor_ticket_resumed", { restaurant_id: restaurantId });
+    await acceptFile(file);
+  }
 
   // Une photo arrive (appareil, galerie ou glisser-déposer) : on l'allège
   // côté navigateur (HEIC → JPEG, ≤ 1 600 px, ≈ 300 Ko) PUIS on lance
@@ -571,6 +603,26 @@ export default function SubmitOrderClient({
         ) : null}
         <h1 className="text-4xl font-black text-gray-900 tracking-tight">Scanne ton ticket</h1>
       </div>
+
+      {/* Bandeau de reprise — une photo dort en IndexedDB et rien n'est
+          encore affiché : un tap la recharge, prendre une autre photo
+          l'ignore simplement. */}
+      {pendingFile && !preview && !preparing && (
+        <button
+          type="button"
+          onClick={() => void reprendrePendingFile()}
+          className="w-full flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 mb-4 text-left hover:bg-amber-100 transition-colors"
+        >
+          <span className="text-2xl shrink-0" aria-hidden="true">📸</span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-bold text-amber-900 text-sm">Ton ticket t&apos;attend</span>
+            <span className="block text-xs text-amber-800">
+              La photo de ta dernière visite est encore là — envoie-la avant qu&apos;elle expire.
+            </span>
+          </span>
+          <span className="text-amber-900 text-sm font-bold shrink-0">Reprendre →</span>
+        </button>
+      )}
 
       {/* Zone photo — deux portes : appareil photo direct (capture) et
           galerie. La photo est allégée ici avant envoi, quel que soit son
