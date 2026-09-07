@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import type { PendingReward } from "@/types";
 import { RedeemButton } from "./RedeemButton";
+import { foodIconUrl } from "@/lib/food-icon";
 import { BankButton } from "./BankButton";
 
 // Montant de la commande d'origine (jointure RLS own-read) — sert à
@@ -158,23 +159,28 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
       }`}
     >
       <div className="space-y-1.5 mb-2">
+        {/* Illustration du PLAT (lib/food-icon) — la couche reste dite par le
+            sous-libellé, le plat se voit. */}
         {reward.solo_item && (
           <div className="flex items-center gap-2">
-            <span>🍗</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={foodIconUrl(reward.solo_item)} alt="" className="w-6 h-6" />
             <span className="font-bold text-gray-900 text-sm">{reward.solo_item}</span>
             <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
           </div>
         )}
         {reward.community_item && (
           <div className="flex items-center gap-2">
-            <span>👥</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={foodIconUrl(reward.community_item)} alt="" className="w-6 h-6" />
             <span className="font-bold text-gray-900 text-sm">+ {reward.community_item}</span>
             <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
           </div>
         )}
         {reward.advancement_item && (
           <div className="flex items-center gap-2">
-            <span>🏆</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={foodIconUrl(reward.advancement_item)} alt="" className="w-6 h-6" />
             <span className="font-bold text-gray-900 text-sm">+ {reward.advancement_item}</span>
             <span className="text-xs text-gray-400 ml-auto">bonus d&apos;équipe</span>
           </div>

@@ -145,7 +145,14 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
             <div className="space-y-2.5 border-t border-gray-100 pt-4">
               {items.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-lg">{item.icon}</span>
+                  {/* Illustration du plat (URL lib/food-icon) ou emoji hérité
+                      (🎂 anniversaire) — les deux formes cohabitent. */}
+                  {item.icon.startsWith("http") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.icon} alt="" className="w-7 h-7" />
+                  ) : (
+                    <span className="text-lg">{item.icon}</span>
+                  )}
                   <span className="font-semibold text-gray-900 text-sm flex-1">{item.label}</span>
                   <span className="text-xs text-gray-400">{item.sublabel}</span>
                 </div>
