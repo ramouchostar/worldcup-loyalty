@@ -48,7 +48,10 @@ type OrderRow = {
 const OUTCOME_LABELS: Record<ScanRow["outcome"], { label: string; color: string }> = {
   submitted: { label: "Devenu commande", color: "bg-green-100 text-green-800" },
   parsed: { label: "Jamais soumis", color: "bg-amber-100 text-amber-800" },
-  header_rejected: { label: "Entête refusée", color: "bg-purple-100 text-purple-800" },
+  // Depuis le scan indulgent (PR #143), ce statut ne veut plus dire « entête
+  // absente » : une clé lue suffit à prouver le ticket. Il ne reste que les
+  // photos où NI la clé NI l'enseigne ne sont lisibles — le libellé le dit.
+  header_rejected: { label: "Ticket non reconnu", color: "bg-purple-100 text-purple-800" },
 };
 
 function euros(n: number | null): string {
@@ -254,7 +257,7 @@ export default async function PlatformScansPage({
           { label: "Scans", value: String(scans.length) },
           { label: "Devenus commande", value: String(soumis) },
           { label: "Jamais soumis", value: String(abandonnes) },
-          { label: "Entête refusée", value: String(refuses) },
+          { label: "Tickets non reconnus", value: String(refuses) },
           { label: "Confiance moyenne", value: confianceMoyenne === null ? "—" : `${confianceMoyenne} %` },
         ].map((tuile) => (
           <div key={tuile.label} className="bg-white rounded-lg border border-gray-200 p-3">
@@ -348,8 +351,10 @@ export default async function PlatformScansPage({
                         {scan.ocr_items?.length ?? 0} article{(scan.ocr_items?.length ?? 0) > 1 ? "s" : ""}
                       </div>
                       {scan.ocr_has_restaurant_header === false && (
+                        // Informatif seulement : l'enseigne hors cadre ne
+                        // bloque plus rien quand la clé est lue (PR #143).
                         <span className="mt-1 inline-block text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">
-                          entête non reconnue
+                          enseigne hors cadre
                         </span>
                       )}
                     </td>
@@ -384,9 +389,9 @@ export default async function PlatformScansPage({
                         </ul>
                       )}
                     </td>
-                    {/* Rattrapage plateforme : entête refusée, montant mal lu,
-                        commande refusée par le resto — on tranche ici, l'image
-                        sous les yeux. */}
+                    {/* Rattrapage plateforme : ticket non reconnu, montant mal
+                        lu, commande refusée par le resto — on tranche ici,
+                        l'image sous les yeux. */}
                     <td className="px-3 py-3 text-right">
                       <ScanActions
                         target={{
