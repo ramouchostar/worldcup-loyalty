@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Scan } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
+import { foodIconUrl } from "@/lib/food-icon";
 import { pointsForOrder } from "@/lib/points-model";
 import { amountBand, track } from "@/lib/analytics";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
@@ -497,9 +498,19 @@ export default function SubmitOrderClient({
           <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-2">Ticket validé</p>
           {/* Étape 07 — le titre nomme le cadeau RÉELLEMENT créé (couche 1) ;
               sans cadeau créé (rien d'atteint, ou cadeau déjà actif ADR 0011),
-              on retombe sur le titre neutre. */}
+              on retombe sur le titre neutre. Le plat gagné s'affiche en GRAND
+              (lib/food-icon) — le cadeau doit se voir, pas se lire. */}
+          {reward && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={foodIconUrl(reward)}
+              alt=""
+              aria-hidden="true"
+              className="w-28 h-28 mx-auto mb-3 drop-shadow-lg"
+            />
+          )}
           <h2 className="text-2xl font-black mb-5">
-            {reward ? `🎁 ${reward} débloqué !` : "Beau scan !"}
+            {reward ? `${reward} débloqué !` : "Beau scan !"}
           </h2>
           <div className="flex items-center justify-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -516,7 +527,11 @@ export default function SubmitOrderClient({
             <div className="bg-white/15 text-left rounded-2xl p-4 max-w-xs mx-auto mt-5">
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-white/80">Prochain cadeau</span>
-                <span className="font-bold">🎁 {nextTier.item}</span>
+                <span className="font-bold inline-flex items-center gap-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={foodIconUrl(nextTier.item)} alt="" className="w-4 h-4" />
+                  {nextTier.item}
+                </span>
               </div>
               <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                 <div
@@ -955,7 +970,8 @@ export default function SubmitOrderClient({
             </div>
           ) : precheck?.reward ? (
             <div className="bg-brand-gold/15 border border-brand-gold/50 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-3xl" aria-hidden="true">🎁</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={foodIconUrl(precheck.reward)} alt="" aria-hidden="true" className="w-14 h-14 shrink-0" />
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Cadeau visé</p>
                 <p className="font-black text-gray-900">{precheck.reward}</p>
@@ -965,8 +981,12 @@ export default function SubmitOrderClient({
           ) : precheck?.next_tier ? (
             <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-gray-600">🎁 Prochain cadeau</span>
-                <span className="font-bold text-gray-900">{precheck.next_tier.item}</span>
+                <span className="text-gray-600">Prochain cadeau</span>
+                <span className="font-bold text-gray-900 inline-flex items-center gap-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={foodIconUrl(precheck.next_tier.item)} alt="" className="w-5 h-5" />
+                  {precheck.next_tier.item}
+                </span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div

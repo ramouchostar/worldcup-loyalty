@@ -9,6 +9,7 @@ import { redirectToLogin } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
 import { PendingTicketBanner } from "@/components/member/PendingTicketBanner";
 import { ScanTicketCta } from "@/components/member/ScanTicketCta";
+import { foodIconUrl } from "@/lib/food-icon";
 import { recordLanding } from "@/lib/qr-funnel";
 import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
@@ -19,13 +20,15 @@ type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
 
 // ADR 0042, amendé par ADR 0043 — jamais d'euro sur cette carte ; le nom
 // d'article, lui, est désormais affiché (tiré au hasard dans la bonne
-// tranche de prix, cf. lib/reward-tier-preview.ts).
-const TIER_COPY: Record<TierPreviewRow["layer"], { icon: string; hint: string }> = {
-  solo: { icon: "🍗", hint: "Lors de prochaines commandes" },
-  community: { icon: "🤝", hint: "En cumulant avec ta communauté" },
+// tranche de prix, cf. lib/reward-tier-preview.ts). L'icône par couche a cédé
+// la place à l'illustration du PLAT (lib/food-icon) — seul le sous-texte
+// distingue encore les couches.
+const TIER_COPY: Record<TierPreviewRow["layer"], { hint: string }> = {
+  solo: { hint: "Lors de prochaines commandes" },
+  community: { hint: "En cumulant avec ta communauté" },
   // "réserve", pas "points" seul — le mot est réservé au score communautaire
   // (glossaire CONTEXT.md, ADR 0021).
-  saver: { icon: "🎁", hint: "En cumulant dans ta réserve" },
+  saver: { hint: "En cumulant dans ta réserve" },
 };
 
 export default async function RestaurantLandingPage({
@@ -194,7 +197,11 @@ export default async function RestaurantLandingPage({
               <div className="space-y-3">
                 {tierPreview.map((row) => (
                   <div key={row.layer} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
-                    <span className="text-xl">{TIER_COPY[row.layer].icon}</span>
+                    {/* Illustration du PLAT nommé (lib/food-icon) plutôt que
+                        l'icône de couche : le produit donne envie, la couche
+                        est dite par le sous-texte. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={foodIconUrl(row.productName)} alt="" className="w-9 h-9 shrink-0" />
                     <div>
                       <p className="font-bold text-gray-900 text-sm">{row.productName}</p>
                       <p className="text-gray-400 text-xs">{TIER_COPY[row.layer].hint}</p>

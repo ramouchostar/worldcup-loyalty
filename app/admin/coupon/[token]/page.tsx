@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { CouponClient } from "@/app/coupon/[token]/CouponClient";
+import { foodIconUrl } from "@/lib/food-icon";
 
 export default async function AdminCouponPage({
   params,
@@ -64,17 +65,19 @@ export default async function AdminCouponPage({
     birthdaySublabel = `🎂 cadeau d'anniversaire — client fidèle : €${Math.round(spent)} dépensés`;
   }
 
+  // Illustration du PLAT (lib/food-icon) — sauf anniversaire, où le 🎂 reste
+  // le signal métier du cashier (client fidèle, cadeau hors commande).
   const items: { icon: string; label: string; sublabel: string }[] = [];
   if (reward?.solo_item)
     items.push({
-      icon: birthdaySublabel ? "🎂" : "🍗",
+      icon: birthdaySublabel ? "🎂" : foodIconUrl(reward.solo_item),
       label: reward.solo_item,
       sublabel: birthdaySublabel ?? "cadeau de base",
     });
   if (reward?.community_item)
-    items.push({ icon: "👥", label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
+    items.push({ icon: foodIconUrl(reward.community_item), label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
   if (reward?.advancement_item)
-    items.push({ icon: "🏆", label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
+    items.push({ icon: foodIconUrl(reward.advancement_item), label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
 
   const memberProfile = tokenRow.profiles as unknown as { display_name: string } | null;
 

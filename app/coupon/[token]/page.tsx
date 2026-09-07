@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase";
 import { getRestaurant } from "@/lib/restaurant";
 import { CouponClient } from "./CouponClient";
+import { foodIconUrl } from "@/lib/food-icon";
 
 export default async function CouponPage({
   params,
@@ -27,13 +28,15 @@ export default async function CouponPage({
     advancement_item: string | null;
   } | null;
 
+  // Illustration du PLAT (lib/food-icon) — la couche reste dite par le
+  // sous-libellé, le plat se voit.
   const items: { icon: string; label: string; sublabel: string }[] = [];
   if (reward?.solo_item)
-    items.push({ icon: "🍗", label: reward.solo_item, sublabel: "cadeau de base" });
+    items.push({ icon: foodIconUrl(reward.solo_item), label: reward.solo_item, sublabel: "cadeau de base" });
   if (reward?.community_item)
-    items.push({ icon: "👥", label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
+    items.push({ icon: foodIconUrl(reward.community_item), label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
   if (reward?.advancement_item)
-    items.push({ icon: "🏆", label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
+    items.push({ icon: foodIconUrl(reward.advancement_item), label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
 
   const profile = tokenRow.profiles as unknown as { display_name: string } | null;
   // La table redemption_tokens n'a PAS de FK vers restaurants → l'embed

@@ -16,6 +16,7 @@ import { ScoreCard } from "@/components/member/ScoreCard";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { ActionsLadder } from "@/components/member/ActionsLadder";
 import { ReferralCTA } from "@/components/member/ReferralCTA";
+import { foodIconUrl } from "@/lib/food-icon";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
 
@@ -240,23 +241,28 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                   <p className="text-xs text-gray-400 mb-1.5">Commande {pendingRewards.length - idx}</p>
                 )}
                 <div className="space-y-1.5">
+                  {/* Illustration du PLAT (lib/food-icon) — la couche reste
+                      dite par le sous-libellé, le plat se voit. */}
                   {r2.solo_item && (
                     <div className="flex items-center gap-2">
-                      <span>🍗</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={foodIconUrl(r2.solo_item)} alt="" className="w-6 h-6" />
                       <span className="font-bold text-gray-900">{r2.solo_item}</span>
                       <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
                     </div>
                   )}
                   {r2.community_item && (
                     <div className="flex items-center gap-2">
-                      <span>👥</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={foodIconUrl(r2.community_item)} alt="" className="w-6 h-6" />
                       <span className="font-bold text-gray-900">+ {r2.community_item}</span>
                       <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
                     </div>
                   )}
                   {r2.advancement_item && (
                     <div className="flex items-center gap-2">
-                      <span>🏆</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={foodIconUrl(r2.advancement_item)} alt="" className="w-6 h-6" />
                       <span className="font-bold text-gray-900">+ {r2.advancement_item}</span>
                       <span className="text-xs text-gray-400 ml-auto">bonus d&apos;équipe</span>
                     </div>
@@ -319,7 +325,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                     Sur ta prochaine commande
                   </p>
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <span className="text-2xl" aria-hidden="true">🍗</span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={foodIconUrl(heroSolo.item)} alt="" aria-hidden="true" className="w-10 h-10" />
                     <span className="text-xl font-black text-gray-900 text-center">{heroSolo.item}</span>
                   </div>
                 </>
@@ -492,7 +499,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 {/* Récompense du prochain palier — toujours affichée de la
                     même façon, quel que soit l'état (proche ou loin). */}
                 <div className="mt-3 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-2">
-                  <span className="text-lg" aria-hidden="true">🎁</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={foodIconUrl(nextTier.item)} alt="" aria-hidden="true" className="w-7 h-7" />
                   <div>
                     <p className="text-xs text-gray-500">Prochain palier d&apos;équipe</p>
                     <p className="font-bold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
