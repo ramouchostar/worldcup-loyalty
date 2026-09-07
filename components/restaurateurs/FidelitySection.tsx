@@ -6,7 +6,7 @@ import { MemberAppMockup } from "./MemberAppMockup";
 const FIDELITY_POINTS = [
   "Le cadeau ne peut jamais coûter plus que le CA qu'il a généré",
   "Les points sont valables uniquement chez toi — tes clients ne partent pas les dépenser ailleurs",
-  "Le client scanne après avoir payé : ton comptoir ne ralentit jamais",
+  "Le client photographie son ticket après avoir payé : ton comptoir ne ralentit jamais",
   "L'app porte ton nom, tes couleurs, ton logo",
 ];
 
@@ -18,7 +18,7 @@ const CLIENT_STEPS = [
   },
   {
     n: "02",
-    title: "Il scanne ton QR, puis son ticket",
+    title: "Il scanne ton QR, puis photographie son ticket",
     desc: "Après paiement, tranquillement. Aucune saisie de ta part.",
   },
   {

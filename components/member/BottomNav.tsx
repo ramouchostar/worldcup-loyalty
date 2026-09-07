@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, UsersRound, Gift, Star, Scan, type LucideIcon } from "lucide-react";
+import { Home, UsersRound, Gift, Star, Camera, type LucideIcon } from "lucide-react";
 
 type Tab = { href: string; label: string; icon: LucideIcon; id?: string };
 
 // 5 destinations (audit 2026-07-23), redesign scan-first : le scan du ticket
 // est l'action n°1, mise en avant par un bouton rond surélevé au centre —
-// icône Scan de lucide-react, la même que sur la landing et l'écran
+// icône Camera de lucide-react, la même que sur la landing et l'écran
 // submit-order (cohérence visuelle). Les 4 autres restent des onglets sobres
 // (lucide, pas d'emoji). Le compte/RGPD vit dans HeaderMenu.
 const TABS: Tab[] = [
@@ -45,12 +45,12 @@ export function BottomNav({ restaurantId }: { restaurantId: string }) {
         <Link
           href={scanHref}
           id="tour-nav-commande"
-          aria-label="Scanner mon ticket"
+          aria-label="Prendre mon ticket en photo"
           aria-current={scanActive ? "page" : undefined}
           className="absolute left-1/2 -top-6 -translate-x-1/2 flex items-center justify-center w-14 h-14 rounded-full bg-brand-red text-white transition-transform hover:scale-105 active:scale-95"
           style={{ boxShadow: "0 8px 20px -2px rgb(var(--brand-red) / 0.5)" }}
         >
-          <Scan className="w-6 h-6" strokeWidth={2.5} />
+          <Camera className="w-6 h-6" strokeWidth={2.5} />
         </Link>
       </div>
     </nav>

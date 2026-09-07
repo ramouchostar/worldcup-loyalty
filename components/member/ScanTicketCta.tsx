@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Scan } from "lucide-react";
+import { Camera } from "lucide-react";
 import { savePendingTicket } from "@/lib/pending-ticket";
 
 // Capture en un tap depuis la vitrine (audit parcours ticket, 2026-09-04) :
@@ -37,7 +37,7 @@ export function ScanTicketCta({ restaurantId }: { restaurantId: string }) {
         disabled={busy}
         className="flex items-center justify-center gap-2 w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 disabled:opacity-70 transition-colors shadow-lg mb-6"
       >
-        {busy ? "Une seconde…" : "Scanner mon ticket"} <Scan className="w-6 h-6" strokeWidth={2.5} />
+        {busy ? "Une seconde…" : "Prendre mon ticket en photo"} <Camera className="w-6 h-6" strokeWidth={2.5} />
       </button>
       {/* capture="environment" = caméra arrière directe sur mobile ; sur
           desktop, le sélecteur de fichiers s'ouvre — même repli qu'à l'écran
