@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { Scan } from "lucide-react";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { getTeamsHidden } from "@/lib/teams";
 import { createServerSupabaseClient } from "@/lib/supabase";
@@ -9,6 +8,7 @@ import { joinRestaurant } from "@/app/join/actions";
 import { redirectToLogin } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
 import { PendingTicketBanner } from "@/components/member/PendingTicketBanner";
+import { ScanTicketCta } from "@/components/member/ScanTicketCta";
 import { recordLanding } from "@/lib/qr-funnel";
 import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
@@ -165,12 +165,9 @@ export default async function RestaurantLandingPage({
           {!user ? (
             // ADR 0040 — le client au comptoir a un ticket en main : le scan
             // est l'action n°1, le compte viendra au moment de l'envoi.
-            <Link
-              href={`/r/${restaurantId}/submit-order`}
-              className="flex items-center justify-center gap-2 w-full bg-brand-red text-white text-center py-5 rounded-full font-bold text-xl hover:bg-brand-red/85 transition-colors shadow-lg mb-6"
-            >
-              Scanner mon ticket <Scan className="w-6 h-6" strokeWidth={2.5} />
-            </Link>
+            // Capture en un tap (audit 2026-09-04) : le bouton ouvre
+            // directement l'appareil photo, la photo suit via ?resume=1.
+            <ScanTicketCta restaurantId={restaurantId} />
           ) : isMember ? (
             <Link
               href={`/r/${restaurantId}/dashboard`}
