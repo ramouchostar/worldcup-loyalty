@@ -12,9 +12,11 @@
 
 const DB_NAME = "boosteats-pending-ticket";
 const STORE = "tickets";
-// Au-delà, la photo est considérée abandonnée (et le ticket est probablement
-// encore dans la poche du membre s'il veut recommencer).
-const MAX_AGE_MS = 30 * 60_000;
+// Au-delà, la photo est considérée abandonnée. 24 h et non 30 min (audit
+// parcours ticket, 2026-09-04) : 30 minutes c'est le temps d'un repas —
+// beaucoup reviennent le soir, la photo doit encore les attendre. Aligné sur
+// le maxAge des cookies de reprise (submit-order/actions.ts).
+const MAX_AGE_MS = 24 * 60 * 60_000;
 
 type StoredTicket = { blob: Blob; name: string; type: string; createdAt: number };
 
