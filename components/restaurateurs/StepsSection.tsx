@@ -2,6 +2,7 @@
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, useParallaxOffset } from "./motion";
+import { FloatingFoodIcon } from "./FloatingFoodIcon";
 
 const STEPS = [
   {
@@ -36,6 +37,11 @@ export function StepsSection() {
         ref={blobRef}
         className="absolute -top-[200px] -right-36 w-[640px] h-[640px] pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(162,197,35,0.18), transparent 60%)" }}
+      />
+
+      <FloatingFoodIcon
+        icon="burger"
+        className="text-xl bottom-3 left-3 sm:text-3xl sm:bottom-6 sm:left-4 lg:text-5xl lg:bottom-10 lg:left-8 rotate-12"
       />
 
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8">
