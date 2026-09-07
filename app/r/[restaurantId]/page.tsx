@@ -120,7 +120,7 @@ export default async function RestaurantLandingPage({
       {/* ── HERO ── */}
       {/* Minimum vital (retour terrain, 2026-08-30) : un seul titre avant la
           carte d'action — logo, sous-titre, description, tags et adresse
-          retirés pour ne pas retarder le geste de scanner. Le nom du resto
+          retirés pour ne pas retarder la photo du ticket. Le nom du resto
           reste visible en pied de page. */}
       <div className="bg-white text-gray-900 relative overflow-hidden">
         {/* Illustrations décoratives (retour terrain, 2026-08-30) — jamais

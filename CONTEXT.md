@@ -42,8 +42,12 @@ Arrivée sur la page publique d'un établissement (`/r/[id]`), comptée côté s
 _Avoid_ : visite, visiteur unique, session (rien n'est identifié) ; « scan du QR » (le QR n'est pas mesurable, seule l'arrivée l'est).
 
 **Scan** *(ADR 0036)* :
-Un passage d'image dans Claude Vision, qu'il aboutisse ou non à une commande. Table `receipt_scans` : l'image, la lecture du modèle, et ce qu'elle est devenue (`parsed` = jamais soumis, `header_rejected` = entête non reconnue, `submitted` = devenue commande). C'est l'unité de mesure du coût OCR (ADR 0029 §6) et la matière de `/platform/scans`, où l'on compare image ↔ lecture ↔ encodage.
-_Avoid_ : upload (le scan existe même sans soumission), photo (c'est l'image, pas l'acte).
+Un passage d'image dans Claude Vision, qu'il aboutisse ou non à une commande. Table `receipt_scans` : l'image, la lecture du modèle, et ce qu'elle est devenue (`parsed` = jamais soumis, `header_rejected` = ticket non reconnu, `submitted` = devenue commande). C'est l'unité de mesure du coût OCR (ADR 0029 §6) et la matière de `/platform/scans`, où l'on compare image ↔ lecture ↔ encodage. **Terme interne/plateforme uniquement** : depuis le 2026-09-07, le mot « scanner » (et l'icône viseur) est BANNI des surfaces client pour l'action ticket — voir **Photo du ticket**.
+_Avoid_ : upload (le scan existe même sans soumission) ; « scanner » côté client pour l'action ticket.
+
+**Photo du ticket** *(2026-09-07)* :
+Le geste client central : **prendre son ticket de caisse en photo** (« Prends ton ticket en photo », « Photographier un autre ticket », icône appareil photo lucide `Camera`). « Scanner » décrivait le geste QR — le téléphone qui plane, la lecture instantanée — et créait une attente fausse (clients qui « scannaient » leur ticket de loin, photos illisibles). Le mot « scanner » reste juste pour le **QR code** (« Scanne le code ») et pour les surfaces plateforme/restaurateur (« tickets scannés », `/platform/scans`).
+_Avoid_ : scanner / scan (côté client, action ticket) ; icône viseur lucide `Scan` sur une surface client.
 
 **Doublon** :
 Tentative de soumettre deux fois la même commande. Détecté via le **Bestelnummer** (`order_number` en base, ex. `2026-06-01/258/03993`) — identifiant séquentiel unique généré par la caisse Belchicken, présent sur chaque ticket client. Rejeté silencieusement côté serveur. Remplace l'ancien `DATE_HH:MM_MONTANT` qui permettait des collisions.

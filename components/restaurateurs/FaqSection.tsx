@@ -5,7 +5,7 @@ import { Reveal } from "./motion";
 const QUESTIONS = [
   {
     q: "Est-ce que ça ralentit mon comptoir ?",
-    a: "Non. Ton client scanne après avoir payé, sur place ou une fois assis. Ta caisse et ton service ne changent pas d'un pouce, et ton équipe n'a rien à manipuler.",
+    a: "Non. Ton client photographie son ticket après avoir payé, sur place ou une fois assis. Ta caisse et ton service ne changent pas d'un pouce, et ton équipe n'a rien à manipuler.",
   },
   {
     q: "Mes clients peuvent-ils dépenser leurs points ailleurs ?",

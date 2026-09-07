@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Scan } from "lucide-react";
+import { Camera } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { foodIconUrl } from "@/lib/food-icon";
@@ -510,7 +510,7 @@ export default function SubmitOrderClient({
             />
           )}
           <h2 className="text-2xl font-black mb-5">
-            {reward ? `${reward} débloqué !` : "Beau scan !"}
+            {reward ? `${reward} débloqué !` : "Belle photo !"}
           </h2>
           <div className="flex items-center justify-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -578,7 +578,7 @@ export default function SubmitOrderClient({
             onClick={reset}
             className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
           >
-            <Scan className="w-4 h-4" aria-hidden="true" /> Scanner un autre ticket
+            <Camera className="w-4 h-4" aria-hidden="true" /> Photographier un autre ticket
           </button>
         </div>
       </div>
@@ -606,7 +606,7 @@ export default function SubmitOrderClient({
             onClick={reset}
             className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
           >
-            <Scan className="w-4 h-4" aria-hidden="true" /> Scanner un autre ticket
+            <Camera className="w-4 h-4" aria-hidden="true" /> Photographier un autre ticket
           </button>
         </div>
       </div>
@@ -620,7 +620,7 @@ export default function SubmitOrderClient({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="block mx-auto h-14 w-auto object-contain mb-6" />
         ) : null}
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Scanne ton ticket</h1>
+        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Prends ton ticket en photo</h1>
       </div>
 
       {/* Bandeau de reprise — une photo dort en IndexedDB et rien n'est
@@ -730,7 +730,7 @@ export default function SubmitOrderClient({
               disabled={preparing}
               className="flex items-center justify-center gap-2 w-full sm:w-auto sm:mx-auto bg-brand-red text-white py-5 px-8 rounded-full font-bold text-xl hover:bg-brand-red/85 disabled:opacity-60 transition-colors shadow-lg"
             >
-              Prendre le ticket en photo <Scan className="w-6 h-6" strokeWidth={2.5} />
+              Prendre le ticket en photo <Camera className="w-6 h-6" strokeWidth={2.5} />
             </button>
             <button
               type="button"
@@ -790,7 +790,7 @@ export default function SubmitOrderClient({
             <>
               <p className="text-3xl mb-1">✅</p>
               <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">
-                Scan réussi
+                Ticket bien lu
               </p>
               <p className="text-3xl font-black text-gray-900 mb-1">{ocrAmount.toFixed(2)} €</p>
               <p className="text-gray-500 text-xs mb-4">Montant détecté sur ton ticket</p>

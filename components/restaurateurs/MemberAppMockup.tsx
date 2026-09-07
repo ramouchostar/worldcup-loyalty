@@ -99,9 +99,11 @@ export function MemberAppMockup() {
           <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
           <circle cx="10" cy="7" r="4" />
         </TabIcon>
-        <TabIcon label="Scanner">
-          <path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z" />
-          <path d="M9 8h6M9 12h6" />
+        {/* Le mot « scanner » est banni de l'action ticket (2026-09-07) : le
+            geste réel est une PHOTO — le mockup reste fidèle à l'app. */}
+        <TabIcon label="Photo">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+          <circle cx="12" cy="13" r="4" />
         </TabIcon>
         <TabIcon label="Cadeaux">
           <rect x="3" y="8" width="18" height="4" rx="1" />
