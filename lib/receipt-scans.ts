@@ -40,10 +40,16 @@ function extensionFor(type: string): string {
  * Range l'image scannée et la lecture OCR qui en a été faite.
  * Retourne l'identifiant du scan, ou null si la conservation a échoué —
  * l'appelant continue son chemin dans tous les cas.
+ *
+ * `userId` null = scan d'un VISITEUR sans compte (audit parcours 2026-09-04) :
+ * la lecture OCR est conservée — c'est l'étage le plus décisif de l'entonnoir —
+ * mais JAMAIS l'image (minimisation ADR 0025 : pas de compte, pas de photo
+ * archivée). Nécessite la migration 20260907-1930 (user_id nullable) ; sans
+ * elle, l'insert échoue en silence, comme avant.
  */
 export async function storeScan(params: {
   restaurantId: string;
-  userId: string;
+  userId: string | null;
   file: File;
   analysis: ReceiptAnalysis;
   outcome: ScanOutcome;
@@ -51,12 +57,16 @@ export async function storeScan(params: {
   const { restaurantId, userId, file, analysis, outcome } = params;
   try {
     const admin = createAdminClient();
-    const storagePath = `${restaurantId}/${userId}/scan-${randomUUID()}.${extensionFor(file.type)}`;
+    const storagePath = userId
+      ? `${restaurantId}/${userId}/scan-${randomUUID()}.${extensionFor(file.type)}`
+      : null;
 
-    const { error: uploadError } = await admin.storage
-      .from(BUCKET)
-      .upload(storagePath, await file.arrayBuffer(), { contentType: file.type, upsert: false });
-    if (uploadError) throw uploadError;
+    if (storagePath) {
+      const { error: uploadError } = await admin.storage
+        .from(BUCKET)
+        .upload(storagePath, await file.arrayBuffer(), { contentType: file.type, upsert: false });
+      if (uploadError) throw uploadError;
+    }
 
     const { data, error } = await admin
       .from("receipt_scans")
@@ -75,9 +85,10 @@ export async function storeScan(params: {
       .select("id")
       .single();
     if (error) {
-      // La ligne n'a pas pu être écrite (m58 pas encore appliquée ?) : on ne
-      // laisse pas un fichier orphelin que la purge ne saurait pas retrouver.
-      await admin.storage.from(BUCKET).remove([storagePath]);
+      // La ligne n'a pas pu être écrite (migration pas encore appliquée ?) :
+      // on ne laisse pas un fichier orphelin que la purge ne saurait pas
+      // retrouver.
+      if (storagePath) await admin.storage.from(BUCKET).remove([storagePath]);
       throw error;
     }
     return (data as { id: string }).id;

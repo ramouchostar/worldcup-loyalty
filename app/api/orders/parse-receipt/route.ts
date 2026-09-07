@@ -94,11 +94,12 @@ export async function POST(request: NextRequest) {
   await recordScan(String(rawRestaurantId));
 
   // ADR 0036 — l'image et ce que le modèle en a lu sont conservés 30 jours,
-  // y compris quand le scan n'aboutit pas : un ticket refusé à l'entête est
+  // y compris quand le scan n'aboutit pas : un ticket refusé à l'aperçu est
   // justement ce qu'on veut pouvoir regarder. Best-effort, jamais bloquant.
-  // ADR 0045 — suppose un membre (receipt_scans.user_id NOT NULL) : un
-  // visiteur anonyme n'a pas encore de compte, cet aperçu-là n'est donc pas
-  // archivé (il le sera à la vraie soumission, authentifiée).
+  // Visiteur sans compte (audit parcours 2026-09-04) : la LECTURE est
+  // conservée aussi — l'étage le plus décisif de l'entonnoir n'existait dans
+  // aucune table — mais jamais l'image (user_id NULL, storage_path NULL,
+  // minimisation ADR 0025/0045).
   // Incident 2026-09-02 (49 refus sur 70 scans à Kraainem) : la clé de
   // commande lue par l'OCR est une preuve d'identité PLUS FORTE que le nom du
   // resto en haut du ticket — elle matche le format propre à l'établissement
@@ -109,15 +110,13 @@ export async function POST(request: NextRequest) {
   // laisse passer.
   const receiptProven = analysis.has_restaurant_header || analysis.order_number !== null;
 
-  const scanId = user
-    ? await storeScan({
-        restaurantId: String(rawRestaurantId),
-        userId: user.id,
-        file,
-        analysis,
-        outcome: receiptProven ? "parsed" : "header_rejected",
-      })
-    : null;
+  const scanId = await storeScan({
+    restaurantId: String(rawRestaurantId),
+    userId: user?.id ?? null,
+    file,
+    analysis,
+    outcome: receiptProven ? "parsed" : "header_rejected",
+  });
 
   if (!receiptProven) {
     const keyLabel = receiptConfig.key_label ?? "numéro de commande";

@@ -22,7 +22,9 @@ const SIGNED_URL_TTL = 3600;
 type ScanRow = {
   id: string;
   restaurant_id: string;
-  user_id: string;
+  // NULL = scan d'un visiteur sans compte (lecture conservée sans image,
+  // migration 20260907-1930) — affiché « visiteur », exclu des frictions.
+  user_id: string | null;
   storage_path: string | null;
   scanned_at: string;
   purged_at: string | null;
@@ -135,7 +137,7 @@ export default async function PlatformScansPage({
   const restaurantNames = new Map(restaurants.map((r) => [r.id, r.name]));
 
   const orderIds = scans.map((s) => s.order_id).filter((id): id is string => Boolean(id));
-  const userIds = Array.from(new Set(scans.map((s) => s.user_id)));
+  const userIds = Array.from(new Set(scans.map((s) => s.user_id).filter((u): u is string => !!u)));
   const paths = scans.map((s) => s.storage_path).filter((p): p is string => Boolean(p));
 
   const [{ data: ordersRaw }, { data: profilesRaw }, signedUrls] = await Promise.all([
@@ -173,7 +175,10 @@ export default async function PlatformScansPage({
   // Les cartes de friction sont rendues par un composant client (croix de
   // masquage) : on lui passe des libellés déjà formatés plutôt que des Map
   // serveur, il reste bête et sérialisable.
-  const frictions: FrictionCard[] = detectScanFrictions(scans).map((f) => ({
+  // Les scans visiteurs (user_id NULL) ne peuvent pas être individualisés :
+  // les regrouper simulerait un faux « membre » qui cumule tous les anonymes.
+  const scansIdentifies = scans.filter((s): s is ScanRow & { user_id: string } => !!s.user_id);
+  const frictions: FrictionCard[] = detectScanFrictions(scansIdentifies).map((f) => ({
     id: `${f.user_id}-${f.from}`,
     memberLabel: membreById.get(f.user_id) ?? "—",
     restaurantLabel: restaurantNames.get(f.restaurant_id) ?? f.restaurant_id,
@@ -340,7 +345,11 @@ export default async function PlatformScansPage({
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-gray-700">{membreById.get(scan.user_id) ?? "—"}</td>
+                    <td className="px-3 py-3 text-gray-700">
+                      {scan.user_id ? membreById.get(scan.user_id) ?? "—" : (
+                        <span className="text-gray-500 italic">visiteur</span>
+                      )}
+                    </td>
                     <td className="px-3 py-3 text-gray-700">
                       <div className="whitespace-nowrap">{euros(scan.ocr_amount)}</div>
                       <div className="whitespace-nowrap text-xs text-gray-500">
@@ -396,7 +405,7 @@ export default async function PlatformScansPage({
                       <ScanActions
                         target={{
                           scanId: scan.id,
-                          memberLabel: membreById.get(scan.user_id) ?? "—",
+                          memberLabel: scan.user_id ? membreById.get(scan.user_id) ?? "—" : "visiteur",
                           restaurantLabel: restaurantNames.get(scan.restaurant_id) ?? scan.restaurant_id,
                           scannedLabel: heureBelge(scan.scanned_at),
                           imageUrl: url ?? null,
