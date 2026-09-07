@@ -31,6 +31,25 @@ export const SAMPLE_PREFIX = "echantillons";
 
 export type ScanOutcome = "parsed" | "header_rejected" | "submitted";
 
+// Guide de cadrage sur photo réelle (backlog audit parcours, 2026-09-07) :
+// un échantillon nommé `echantillons/guide-cadrage-<restaurantId>.jpg` —
+// zone Totaal + clé d'un vrai ticket, SANS le bloc de paiement (minimisation
+// ADR 0025), rangé à la main comme les échantillons de contrôle (§3).
+// URL signée courte : le bucket reste privé. Null si aucun échantillon
+// (l'écran de scan garde alors son spécimen dessiné) — best-effort.
+export async function getFramingGuideUrl(restaurantId: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.storage
+      .from(BUCKET)
+      .createSignedUrl(`${SAMPLE_PREFIX}/guide-cadrage-${restaurantId}.jpg`, 3600);
+    if (error) return null;
+    return data?.signedUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function extensionFor(type: string): string {
   const ext = type.split("/")[1] ?? "jpg";
   return ext === "jpeg" ? "jpeg" : ext.replace(/[^a-z0-9]/gi, "") || "jpg";
