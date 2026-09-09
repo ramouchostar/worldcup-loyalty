@@ -162,6 +162,21 @@ export async function recordFunnelStep(
   }
 }
 
+/**
+ * « La table n'existe pas » vs « la lecture a échoué ». Pur et testé : c'est
+ * ce prédicat qui décide si l'écran réclame une migration, et le réclamer à
+ * tort est plus coûteux qu'un tableau vide — on renvoie donc quelqu'un vers
+ * l'éditeur SQL UNIQUEMENT sur le code qui dit précisément ça.
+ *
+ * Même famille que `isMissingCoAssignationColumn` (lib/backlog-model.ts),
+ * qui fait le même travail pour une colonne absente.
+ */
+export function isMissingTable(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST205") return true;
+  return /Could not find the table/i.test(error.message ?? "");
+}
+
 export type StepTotal = {
   step: FunnelStep;
   count: number;
@@ -194,7 +209,13 @@ export type FunnelReport = {
   steps: StepTotal[];
   /** Motifs de refus sur la période, du plus fréquent au moins fréquent. */
   rejections: { reason: string; label: string; count: number }[];
-  /** Vrai si la migration manque (ou si rien n'a encore été compté). */
+  /**
+   * La table n'existe pas encore — migration à appliquer. DISTINCT de `empty` :
+   * confondre les deux ferait afficher « applique la migration » à quelqu'un
+   * qui vient de l'appliquer, et l'enverrait rejouer du SQL pour rien.
+   */
+  migrationMissing: boolean;
+  /** Table en place, mais aucun franchissement compté sur la période. */
   empty: boolean;
 };
 
@@ -255,6 +276,11 @@ export async function getFunnelReport(restaurantId: string, days = 14): Promise<
         count,
       }))
       .sort((a, b) => b.count - a.count),
+    // PGRST205 = la table n'est pas dans le schéma exposé, donc la migration
+    // n'est pas passée. Toute AUTRE erreur (panne, droits) est traitée comme
+    // « pas de données » : on ne va pas envoyer quelqu'un rejouer du SQL
+    // parce que Supabase a hoqueté.
+    migrationMissing: isMissingTable(events.error),
     // `qr_landing` seul ne suffit pas à dire que l'entonnoir vit : il était
     // déjà compté avant ce chantier.
     empty: eventRows.length === 0,

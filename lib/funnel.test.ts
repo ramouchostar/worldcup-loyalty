@@ -6,6 +6,7 @@ import {
   STEP_VIEW,
   computeStepTotals,
   isClientReportableStep,
+  isMissingTable,
 } from "./funnel";
 
 const totals = (entries: Record<string, number>) => new Map(Object.entries(entries));
@@ -88,4 +89,15 @@ test("seules les trois étapes déclarables par le navigateur sont acceptées", 
   assert.equal(isClientReportableStep("DROP TABLE funnel_events"), false);
   assert.equal(isClientReportableStep(null), false);
   assert.equal(isClientReportableStep(42), false);
+});
+
+test("« table absente » ne se confond pas avec « lecture en échec »", () => {
+  // Réclamer une migration déjà appliquée envoie quelqu'un rejouer du SQL
+  // pour rien : on ne le fait que sur le code qui dit précisément ça.
+  assert.equal(isMissingTable({ code: "PGRST205", message: "Could not find the table 'public.funnel_events'" }), true);
+  assert.equal(isMissingTable({ message: "Could not find the table 'public.funnel_events' in the schema cache" }), true);
+  assert.equal(isMissingTable(null), false);
+  assert.equal(isMissingTable({ code: "57014", message: "canceling statement due to statement timeout" }), false);
+  assert.equal(isMissingTable({ code: "42501", message: "permission denied for table funnel_events" }), false);
+  assert.equal(isMissingTable({}), false);
 });

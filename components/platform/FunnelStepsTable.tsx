@@ -24,12 +24,21 @@ export function FunnelStepsTable({ report }: { report: FunnelReport }) {
         même étage.
       </p>
 
-      {report.empty ? (
+      {report.migrationMissing ? (
+        <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          La table <code className="bg-amber-100 px-1 rounded">funnel_events</code> n&apos;existe pas
+          encore. Applique{" "}
+          <code className="bg-amber-100 px-1 rounded">
+            docs/migrations/20260909-2340-funnel-events.sql
+          </code>{" "}
+          dans l&apos;éditeur SQL Supabase. En attendant, rien n&apos;est cassé : les deux étages
+          dérivés (arrivées, comptes créés) remontent quand même.
+        </p>
+      ) : report.empty ? (
         <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          Aucun franchissement compté pour l&apos;instant. Si la migration{" "}
-          <code className="bg-gray-100 px-1 rounded">20260909-2340-funnel-events.sql</code>{" "}
-          n&apos;est pas appliquée, les étages restent à zéro — les deux étages dérivés (arrivées,
-          comptes créés) remontent quand même.
+          Rien de compté sur les {report.days} derniers jours. Les compteurs ne démarrent qu&apos;au
+          premier franchissement <strong>après</strong> la mise en place de la table : un parcours
+          antérieur n&apos;est pas rattrapable, il n&apos;a laissé aucune trace à compter.
         </p>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
