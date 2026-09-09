@@ -3,9 +3,15 @@
 **Statut** : Accepté (2026-09-09) — amende [ADR 0045](0045-preuve-scan-avant-compte.md)
 (la preuve du scan n'est plus le montant seul) et précise l'exception euro de
 l'[ADR 0028](0028-points-decoupled-from-euros.md) §5. Lot 2 du parcours cible
-« le ticket avant tout » (`docs/plan-parcours-cible.md`, arbitrages du porteur
-du 2026-09-04). Ne change rien au calcul des points ni des cadeaux
+« le ticket avant tout ». Ne change rien au calcul des points ni des cadeaux
 (**ADR 0006**, **0017**, **0021**), ni à l'anti-fraude (**ADR 0008**).
+
+> **Où sont les documents source.** L'audit (`docs/audit-parcours.md`) et le plan
+> (`docs/plan-parcours-cible.md`, arbitrages du porteur du 2026-09-04) vivent sur
+> la branche **`claude/boosteats-audit-refonte-70b5re`**, jamais fusionnée — ils
+> ne sont pas dans `master`. Les citer ici sans le dire enverrait chercher deux
+> fichiers introuvables. Le présent ADR se lit donc seul : tout ce qui est décidé
+> est écrit ci-dessous.
 
 > Le numéro 0048 est également utilisé par un ADR **non fusionné** de la branche
 > `claude/boosteats-audit-refonte-70b5re` (dédoublonnage par empreinte de
