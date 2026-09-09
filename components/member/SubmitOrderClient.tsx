@@ -12,6 +12,7 @@ import { amountBand, track } from "@/lib/analytics";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
+import { memoriserCadeauAReclamer } from "@/lib/claim-reward";
 import { PostTicketSheet } from "@/components/member/PostTicketSheet";
 import TicketGainCard from "@/components/member/TicketGainCard";
 import { TeamRecognitionPrompt, type PromptSuggestion } from "@/components/member/TeamRecognitionPrompt";
@@ -128,6 +129,11 @@ export default function SubmitOrderClient({
   const [authLoading, setAuthLoading] = useState(false);
   // Étape 10 — la question d'équipe ne se pose qu'une fois par écran de succès.
   const [teamAskDone, setTeamAskDone] = useState(false);
+  // ADR 0049 — la feuille app + notifications passe AVANT la question
+  // d'équipe (séquence gain → compte → app → notifs → équipes). Ce drapeau
+  // est levé dès qu'elle a fini son tour — refermée, ou jamais ouverte faute
+  // de quelque chose à demander.
+  const [sheetDone, setSheetDone] = useState(false);
 
   // Entrée du tunnel de scan : c'est le dénominateur qui donne son sens au
   // taux d'abandon entre l'ouverture du formulaire et le ticket soumis.
@@ -283,6 +289,10 @@ export default function SubmitOrderClient({
   async function continueWith(dest: "google" | "signup" | "login") {
     setAuthLoading(true);
     track("visitor_signup_started", { restaurant_id: restaurantId, method: dest });
+    // ADR 0049 — c'est le cadeau qui paie la demande de compte : son nom suit
+    // la personne jusqu'à l'écran d'inscription, qui titre « Réclame ton
+    // cadeau » au lieu de « Créer un compte ».
+    memoriserCadeauAReclamer(gainReward);
     try {
       await rememberPendingTicket(restaurantId);
       if (dest === "google") {
@@ -486,21 +496,29 @@ export default function SubmitOrderClient({
       !hasTeam && !teamAskDone && !!teamPrompt && teamPrompt.suggestions.length > 0;
     return (
       <div>
-        {/* Étape 10 — la question d'équipe d'abord (le cadeau vient de tomber,
-            « ton cadeau peut doubler ») ; la relance côté serveur est armée par
-            la sortie « Plus tard ». */}
-        {askTeam && teamPrompt && (
+        {/* ADR 0049 — app + notifications en UNE feuille, posée ICI : le
+            ticket est parti côté serveur (donc plus rien à perdre si la
+            personne quitte Safari pour installer l'app) et un cadeau vient
+            d'être gagné (donc la demande est payée). Le cadeau est nommé pour
+            qu'elle le soit vraiment : « pour récupérer ton Finest burger ».
+            Une fois par visite. */}
+        <PostTicketSheet
+          restaurantId={restaurantId}
+          reward={reward}
+          onDone={() => setSheetDone(true)}
+        />
+        {/* Étape 10 — la question d'équipe passe APRÈS l'app et les
+            notifications : c'est l'ordre du parcours cible (gain → compte →
+            app → notifs → équipes), et les deux sont payées par le même
+            cadeau. La relance côté serveur est armée par la sortie
+            « Plus tard ». */}
+        {askTeam && sheetDone && teamPrompt && (
           <TeamRecognitionPrompt
             restaurantId={restaurantId}
             suggestions={teamPrompt.suggestions}
             onDone={() => setTeamAskDone(true)}
           />
         )}
-        {/* Étape 08 — app + notifications en UNE feuille, posée ICI : après
-            le premier ticket validé de l'appareil, un cadeau vient d'être
-            gagné. La feuille attend que la question d'équipe soit réglée
-            (une seule apparition par appareil). */}
-        <PostTicketSheet restaurantId={restaurantId} hold={askTeam} />
         {/* Dégradé vert centré, identité Boosteats fixe — PAS brand_accent :
             pour Kraainem cette variable résout en rouge (cf. le badge
             "Pro" ou la bordure de la zone photo), lu comme un signal de
@@ -603,6 +621,12 @@ export default function SubmitOrderClient({
   if (submitStatus === "success_pending") {
     return (
       <div className="text-center py-12">
+        {/* ADR 0049 — cet écran PROMET une notification (« tu seras notifié
+            dès que la vérification est terminée ») : c'est le seul endroit du
+            parcours où la promesse tombe à plat si la permission n'a jamais
+            été demandée. Aucun cadeau à nommer ici (rien n'est validé), donc
+            c'est la notification elle-même qui paie la demande. */}
+        <PostTicketSheet restaurantId={restaurantId} pending />
         <p className="text-5xl mb-4">⏳</p>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Vérification en cours</h2>
         <p className="text-gray-600 text-sm mb-6">

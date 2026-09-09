@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 import { queueEvent } from "@/lib/analytics-pending";
+import { lireCadeauAReclamer, oublierCadeauAReclamer } from "@/lib/claim-reward";
 
 // ADR 0047 (étape 05 du backlog onboarding) — l'inscription tient en trois
 // éléments : e-mail, mot de passe, consentement. Prénom, zones et date de
@@ -34,6 +35,12 @@ function traduireErreur(message: string): string {
 }
 
 export default function SignupPage() {
+  // ADR 0049 — le cadeau paie la demande de compte. Quand la personne arrive
+  // de l'écran de gain avec un cadeau atteint, cet écran ne s'appelle plus
+  // « Créer un compte » : il s'appelle « Réclame ton cadeau », et il le nomme.
+  // Sans cadeau (arrivée directe, petit ticket, grille non configurée) le
+  // titre neutre reste — on ne fabrique pas une promesse qui n'existe pas.
+  const [cadeau, setCadeau] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [acceptPolicy, setAcceptPolicy] = useState(false);
@@ -46,12 +53,15 @@ export default function SignupPage() {
       const draft = sessionStorage.getItem(K_EMAIL_DRAFT);
       if (draft) setEmail(draft);
     } catch {}
+    setCadeau(lireCadeauAReclamer());
   }, []);
 
   function proceedLoggedIn() {
     try {
       sessionStorage.removeItem(K_EMAIL_DRAFT);
     } catch {}
+    // Le compte existe : l'argument a fait son travail.
+    oublierCadeauAReclamer();
     window.location.href = "/auth/callback";
   }
 
@@ -163,7 +173,9 @@ export default function SignupPage() {
           <span className="font-semibold text-gray-900">{email}</span>.
         </p>
         <p className="text-gray-500 text-xs mt-4">
-          Clique le lien pour activer ton compte et rejoindre ton restaurant.
+          {cadeau
+            ? `Clique le lien pour activer ton compte — ton ${cadeau} t'attend ensuite au comptoir.`
+            : "Clique le lien pour activer ton compte et rejoindre ton restaurant."}
         </p>
       </div>
     );
@@ -171,9 +183,18 @@ export default function SignupPage() {
 
   return (
     <>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Créer un compte</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">
+        {cadeau ? "Réclame ton cadeau" : "Créer un compte"}
+      </h2>
       <p className="text-gray-500 text-sm mb-5">
-        10 secondes suffisent — tu compléteras ton profil plus tard, si tu veux.
+        {cadeau ? (
+          <>
+            Ton <span className="font-semibold text-gray-900">{cadeau}</span> t&apos;attend au
+            comptoir. Un compte de 10 secondes, et il est à toi.
+          </>
+        ) : (
+          "10 secondes suffisent — tu compléteras ton profil plus tard, si tu veux."
+        )}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-4">
