@@ -174,7 +174,7 @@ export default async function RestaurantLayout({
 
       {user && <InAppNotificationBanner />}
       {/* Mesure d'installation de l'app (complément ADR 0038) — rend null */}
-      {user && <AppInstallBeacon />}
+      {user && <AppInstallBeacon restaurantId={restaurantId} />}
 
       <main className="max-w-2xl mx-auto px-4 py-6" id="main-content">
         {children}

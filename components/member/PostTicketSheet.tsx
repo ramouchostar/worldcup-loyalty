@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
+import { beaconFunnelStep } from "@/lib/funnel-beacon";
 import {
   estInstallee,
   estIosSafari,
@@ -132,6 +133,12 @@ export function PostTicketSheet({
       // permanente (ADR 0038) peut prendre le relais à partir de maintenant.
       sessionStorage.setItem(K_VISITE, "true");
       noterPropositionFaite();
+      // Entonnoir (ADR 0037) — dénominateur de l'étage « App installée ».
+      // Compté ici et pas au rendu du parent : la feuille ne s'ouvre que
+      // quand elle a réellement quelque chose à demander (app pas installée,
+      // permission pas tranchée), et c'est CE nombre qui donne un sens au
+      // taux d'installation.
+      beaconFunnelStep(restaurantId, "install_prompt_shown");
       setInstalled(inst);
       setInstallRow(iRow);
       setPushRow(pRow);

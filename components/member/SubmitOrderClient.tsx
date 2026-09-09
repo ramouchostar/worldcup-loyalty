@@ -9,6 +9,7 @@ import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { foodIconUrl } from "@/lib/food-icon";
 import { pointsForOrder } from "@/lib/points-model";
 import { amountBand, track } from "@/lib/analytics";
+import { beaconFunnelStep } from "@/lib/funnel-beacon";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
@@ -259,6 +260,11 @@ export default function SubmitOrderClient({
       }
       setReceiptFile(prepared.file);
       setPreview(URL.createObjectURL(prepared.file));
+      // Entonnoir (ADR 0037) — pour TOUT LE MONDE, pas seulement le visiteur :
+      // le décrochage « photo prise mais jamais envoyée » existe aussi chez un
+      // membre déjà inscrit, et c'est le rapport photo → envoi qui nous
+      // intéresse. GA4 est aveugle ici (Consent Mode v2 refuse par défaut).
+      beaconFunnelStep(restaurantId, "ticket_capture_opened");
       if (visitor) {
         // La photo reste sur l'appareil en attendant le compte (ADR 0040) ;
         // l'aperçu OCR tourne quand même — non authentifié, bridé par IP
@@ -289,6 +295,9 @@ export default function SubmitOrderClient({
   async function continueWith(dest: "google" | "signup" | "login") {
     setAuthLoading(true);
     track("visitor_signup_started", { restaurant_id: restaurantId, method: dest });
+    // Entonnoir (ADR 0037). `sendBeacon` et pas `fetch` : la redirection OAuth
+    // qui suit annulerait une requête ordinaire (cf. lib/funnel-beacon).
+    beaconFunnelStep(restaurantId, "signup_started");
     // ADR 0049 — c'est le cadeau qui paie la demande de compte : son nom suit
     // la personne jusqu'à l'écran d'inscription, qui titre « Réclame ton
     // cadeau » au lieu de « Créer un compte ».
