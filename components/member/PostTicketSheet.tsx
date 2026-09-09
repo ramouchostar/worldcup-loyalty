@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import {
   estInstallee,
@@ -8,18 +8,45 @@ import {
   promptDifferé,
   surPromptInstall,
   lancerInstallation,
-  CLE_PWA_VUE,
+  installTranchee,
+  noterInstallTranchee,
+  noterPropositionFaite,
 } from "@/lib/pwa-install";
 
-// Étape 08 (backlog onboarding) — UNE feuille, deux interrupteurs (installer
-// l'app / être notifié), posée sur l'écran de succès du PREMIER ticket validé
-// de l'appareil. Remplace les deux modales successives + le tour guidé qui
-// accueillaient l'arrivée au dashboard avant même qu'un cadeau soit gagné.
-// Une seule apparition par appareil ; les rattrapages vivent ailleurs
-// (carte d'installation permanente, ADR 0038).
+// UNE feuille, deux interrupteurs (installer l'app / être notifié), posée sur
+// l'écran de résultat du ticket — donc APRÈS le compte.
+//
+// ADR 0049 — deux choses se jouent ici.
+//
+// 1. LE RANG. L'installation reste après le compte, sur le même écran, et
+//    jamais avant : sur iOS, ajouter le site à l'écran d'accueil crée un
+//    conteneur de stockage séparé de Safari, et la photo du ticket vit
+//    justement dans l'IndexedDB de Safari (lib/pending-ticket). Installer
+//    l'app d'abord, c'est l'ouvrir sur un écran vierge, sans ticket et sans
+//    cadeau. Le ticket doit être parti côté serveur avant qu'on parle d'app.
+//    C'est pour ça que la feuille vit sur l'écran de résultat de la
+//    soumission, pas sur l'aperçu OCR.
+//
+// 2. LE PRIX. Chaque demande est payée par le cadeau déjà gagné, jamais par
+//    une promesse : le compte s'échange contre « réclame ton cadeau »
+//    (ADR 0048 §5), l'app contre « pour le récupérer », les notifications
+//    contre « pour savoir quand il t'attend ». Sans cadeau nommé, on ne
+//    fabrique pas la promesse — on retombe sur un argument neutre.
+//
+// Portée : UNE FOIS PAR VISITE, plus une fois par appareil. Un tap sur le fond
+// de la feuille ou « Plus tard » ne valent que pour la visite en cours ; seul
+// un refus explicite du dialogue natif est définitif. Les rattrapages vivent
+// ailleurs (carte d'installation permanente, ADR 0038).
 
-const K_SHEET = "post_ticket_sheet_done";
-const K_PUSH_DONE = "push_prompted"; // partagée avec l'ancien flux — jamais deux fois
+// Clé de VISITE : sessionStorage, pas localStorage. C'est tout le changement
+// de portée. (« Visite » au sens d'une session de navigateur sur l'appareil —
+// rien n'est identifié, rien n'est mesuré : sans rapport avec l'« Arrivée »
+// du glossaire.)
+const K_VISITE = "post_ticket_sheet_visite";
+// Notifications : le navigateur EST la mémoire (Notification.permission passe
+// à "denied" sur refus, et n'y revient jamais tout seul). Aucune clé locale à
+// tenir — celle d'avant (`push_prompted`) ne faisait que dupliquer, et mal :
+// elle était posée même sur un tap dans le vide.
 
 function urlBase64ToUint8Array(b64: string): ArrayBuffer {
   const pad = "=".repeat((4 - (b64.length % 4)) % 4);
@@ -38,7 +65,7 @@ function Switch({ checked, busy, onClick, label }: { checked: boolean; busy?: bo
       aria-label={label}
       disabled={busy}
       onClick={onClick}
-      className={`relative w-12 h-7 rounded-full shrink-0 transition-colors disabled:opacity-60 ${checked ? "bg-brand-red" : "bg-gray-300"}`}
+      className={`relative w-12 h-7 rounded-full shrink-0 transition-colors disabled:opacity-60 ${checked ? "bg-green-600" : "bg-gray-300"}`}
     >
       <span
         className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : ""}`}
@@ -49,14 +76,27 @@ function Switch({ checked, busy, onClick, label }: { checked: boolean; busy?: bo
 
 export function PostTicketSheet({
   restaurantId,
-  hold = false,
+  reward = null,
+  pending = false,
+  onDone,
 }: {
   restaurantId: string;
-  // Étape 10 — la question d'équipe passe d'abord sur le même écran : tant
-  // qu'elle est visible, la feuille attend son tour.
-  hold?: boolean;
+  // Nom du cadeau que ce ticket vient de débloquer (couche 1). C'est lui qui
+  // paie les deux demandes de cette feuille. Null = rien d'atteint, grille non
+  // configurée, ou cadeau déjà actif (ADR 0011) : on reste neutre.
+  reward?: string | null;
+  // Ticket parti en vérification (file admin, ADR 0008) : aucun cadeau à
+  // nommer, mais l'écran promet « tu seras notifié » — c'est la notification
+  // elle-même qui paie la demande.
+  pending?: boolean;
+  // Appelé dès que la feuille a fini son tour — refermée, ou jamais ouverte
+  // faute de quelque chose à demander. C'est ce qui libère la question
+  // d'équipe, qui passe APRÈS (séquence gain → compte → app → notifs →
+  // équipes).
+  onDone?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [resolu, setResolu] = useState(false);
   const [installRow, setInstallRow] = useState(false);
   const [pushRow, setPushRow] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -68,19 +108,30 @@ export function PostTicketSheet({
   const [pushDenied, setPushDenied] = useState(false);
 
   useEffect(() => {
-    if (hold) return;
     try {
-      if (localStorage.getItem(K_SHEET) === "true") return;
+      if (sessionStorage.getItem(K_VISITE) === "true") {
+        setResolu(true);
+        return;
+      }
       const inst = estInstallee();
       // Chaque interrupteur n'apparaît que s'il a encore un sens sur CET
-      // appareil (app déjà installée, permission déjà tranchée → rien).
-      const iRow = !inst && localStorage.getItem(CLE_PWA_VUE) !== "true";
+      // appareil : app déjà installée, ou question de l'installation déjà
+      // tranchée explicitement → pas de ligne ; permission de notification
+      // déjà accordée ou refusée → pas de ligne (le navigateur est la source
+      // de vérité, pas un drapeau qu'on aurait posé au passage).
+      const iRow = !inst && !installTranchee();
       const pRow =
         "Notification" in window &&
         "serviceWorker" in navigator &&
-        Notification.permission === "default" &&
-        localStorage.getItem(K_PUSH_DONE) !== "true";
-      if (!iRow && !pRow) return;
+        Notification.permission === "default";
+      if (!iRow && !pRow) {
+        setResolu(true);
+        return;
+      }
+      // La feuille s'ouvre : la première proposition a eu lieu, la carte
+      // permanente (ADR 0038) peut prendre le relais à partir de maintenant.
+      sessionStorage.setItem(K_VISITE, "true");
+      noterPropositionFaite();
       setInstalled(inst);
       setInstallRow(iRow);
       setPushRow(pRow);
@@ -89,19 +140,26 @@ export function PostTicketSheet({
       setOpen(true);
       return surPromptInstall((e) => setCanPrompt(!!e));
     } catch {
-      // localStorage indisponible → pas de feuille, jamais d'erreur
+      // sessionStorage/localStorage indisponible → pas de feuille, jamais
+      // d'erreur, et la suite du parcours n'est pas bloquée.
+      setResolu(true);
     }
-  }, [hold]);
+  }, []);
 
+  // Passe la main une seule fois, quoi qu'il arrive (refermée ou jamais
+  // ouverte) — sans quoi la question d'équipe resterait derrière une feuille
+  // qui ne viendra pas.
+  const passee = useRef(false);
+  useEffect(() => {
+    if (!resolu || passee.current) return;
+    passee.current = true;
+    onDone?.();
+  }, [resolu, onDone]);
+
+  /** Sortie « pour cette visite » : rien de définitif n'est posé ici. */
   function close() {
-    try {
-      localStorage.setItem(K_SHEET, "true");
-      // La feuille EST le premier passage : la carte permanente (ADR 0038) et
-      // les autres surfaces de rattrapage prennent le relais ensuite.
-      localStorage.setItem(CLE_PWA_VUE, "true");
-      localStorage.setItem(K_PUSH_DONE, "true");
-    } catch {}
     setOpen(false);
+    setResolu(true);
   }
 
   async function toggleInstall() {
@@ -116,8 +174,13 @@ export function PostTicketSheet({
       if (resultat === "unavailable") {
         // Référence épuisée/périmée : repli visible immédiat, jamais un tap muet.
         setShowInstallHelp(true);
+        return;
       }
-      // "dismissed" : l'utilisateur a refusé le dialogue natif — on n'insiste pas.
+      // "dismissed" — la personne a annulé le dialogue NATIF du navigateur.
+      // Réponse explicite : la feuille arrête de proposer l'installation sur
+      // cet appareil (la carte permanente, elle, reste — ADR 0038).
+      noterInstallTranchee();
+      setInstallRow(false);
       return;
     }
     // iOS Safari (aucun déclencheur programmatique) ou prompt indisponible :
@@ -153,10 +216,9 @@ export function PostTicketSheet({
             // abonnement silencieusement raté — la permission, elle, est acquise
           }
         }
-        try {
-          localStorage.setItem(K_PUSH_DONE, "true");
-        } catch {}
       } else {
+        // Refus explicite, mémorisé par le navigateur lui-même : la ligne ne
+        // reviendra pas (Notification.permission reste "denied").
         setPushDenied(true);
       }
     } catch {
@@ -167,6 +229,28 @@ export function PostTicketSheet({
 
   if (!open) return null;
 
+  // Le cadeau paie les deux demandes. Nommé quand il existe — c'est ce qui
+  // change tout entre « installe l'app » et « installe l'app pour récupérer
+  // ton Finest burger ». Jamais « validé » ni « instantané » (ADR 0008), et
+  // jamais un euro (ADR 0028).
+  const cadeau = reward ? `ton ${reward}` : "ton cadeau";
+  const titre = reward
+    ? `${reward} — à récupérer au comptoir`
+    : pending
+      ? "On te tient au courant"
+      : "Et maintenant ?";
+  // Une ligne peut manquer (app déjà installée, permission déjà tranchée) :
+  // annoncer « deux choses » quand il n'en reste qu'une se voit tout de suite.
+  const uneSeuleLigne = !installRow || !pushRow;
+  const sousTitre = pending
+    ? "Ton ticket est en vérification. Encore faut-il pouvoir te prévenir dès qu'un cadeau t'attend."
+    : reward
+      ? `Encore ${uneSeuleLigne ? "une chose" : "deux choses"}, et ${cadeau} te retrouve à ta prochaine visite.`
+      : uneSeuleLigne
+        ? "Une option pour ne rien rater de tes cadeaux — c'est toi qui choisis."
+        : "Deux options pour ne rien rater de tes cadeaux — c'est toi qui choisis.";
+  const rienDeFait = !installed && !pushOn;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={close}>
       <div
@@ -174,10 +258,8 @@ export function PostTicketSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" aria-hidden="true" />
-        <h2 className="text-xl font-black text-gray-900">Et maintenant ?</h2>
-        <p className="text-gray-500 text-sm mt-1 mb-5">
-          Deux options pour ne rien rater de tes cadeaux — c&apos;est toi qui choisis.
-        </p>
+        <h2 className="text-xl font-black text-gray-900">{titre}</h2>
+        <p className="text-gray-500 text-sm mt-1 mb-5">{sousTitre}</p>
 
         <div className="space-y-4">
           {installRow && (
@@ -186,7 +268,11 @@ export function PostTicketSheet({
                 <span className="text-2xl" aria-hidden="true">📲</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 text-sm">Installer l&apos;app</p>
-                  <p className="text-xs text-gray-500">Tes cadeaux en un tap, sans ouvrir le navigateur.</p>
+                  <p className="text-xs text-gray-500">
+                    {reward
+                      ? `Pour récupérer ${cadeau} à ta prochaine visite, sans rouvrir le navigateur.`
+                      : "Tes cadeaux en un tap, sans ouvrir le navigateur."}
+                  </p>
                 </div>
                 <Switch checked={installed} onClick={toggleInstall} label="Installer l'app" />
               </div>
@@ -210,10 +296,16 @@ export function PostTicketSheet({
                   <button
                     type="button"
                     onClick={() => {
+                      // Déclaration explicite, et le seul « j'ai répondu »
+                      // possible sur iOS Safari : sans elle, la feuille
+                      // reproposerait l'installation à chaque visite passée
+                      // dans le navigateur (l'app installée, elle, est un
+                      // conteneur séparé — estInstallee() y reste faux).
+                      noterInstallTranchee();
                       setInstalled(true);
                       setShowInstallHelp(false);
                     }}
-                    className="text-xs font-semibold text-brand-red underline"
+                    className="text-xs font-semibold text-gray-700 underline"
                   >
                     C&apos;est fait ✅
                   </button>
@@ -228,7 +320,11 @@ export function PostTicketSheet({
                 <span className="text-2xl" aria-hidden="true">🔔</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 text-sm">Être notifié</p>
-                  <p className="text-xs text-gray-500">Quand un cadeau t&apos;attend ou que ton équipe monte.</p>
+                  <p className="text-xs text-gray-500">
+                    {reward
+                      ? `Pour savoir quand ${cadeau} t'attend, et quand ton équipe monte.`
+                      : "Quand un cadeau t'attend ou que ton équipe monte."}
+                  </p>
                 </div>
                 <Switch checked={pushOn} busy={pushBusy} onClick={togglePush} label="Être notifié" />
               </div>
@@ -241,12 +337,19 @@ export function PostTicketSheet({
           )}
         </div>
 
+        {/* Une seule sortie, et son libellé dit la vérité : « Plus tard » tant
+            que rien n'est fait — et « plus tard » veut dire plus tard, la
+            feuille reviendra à la prochaine visite. */}
         <button
           type="button"
           onClick={close}
-          className="w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-brand-red/85 transition-colors mt-6"
+          className={
+            rienDeFait
+              ? "w-full text-gray-500 font-semibold py-3.5 mt-4 hover:text-gray-700 transition-colors"
+              : "w-full bg-brand-red text-white font-bold py-3.5 rounded-2xl hover:bg-brand-red/85 transition-colors mt-6"
+          }
         >
-          Continuer
+          {rienDeFait ? "Plus tard" : "Continuer"}
         </button>
       </div>
     </div>

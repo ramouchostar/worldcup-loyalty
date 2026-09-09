@@ -6,7 +6,7 @@ import {
   estInstallee,
   estIosSafari,
   lancerInstallation,
-  onboardingProposeDeja,
+  premierePropositionDue,
   promptDifferé,
   surPromptInstall,
   type InstallPromptEvent,
@@ -49,19 +49,19 @@ export function InstallAppCard({
   const [ios, setIos] = useState(false);
   const [enCours, setEnCours] = useState(false);
 
-  const [onboardingEnCours, setOnboardingEnCours] = useState(false);
+  // ADR 0038 §4 — la feuille post-ticket est la première proposition ; tant
+  // qu'elle est due, cette carte se tait (elle est le SECOND chemin).
+  const [premiereDue, setPremiereDue] = useState(false);
 
   useEffect(() => {
     setInstallee(estInstallee());
     setIos(estIosSafari());
     setPrompt(promptDifferé());
-    // Côté membre, l'onboarding pose déjà la question au premier passage :
-    // tant qu'il est dû, cette carte se tait.
-    setOnboardingEnCours(audience === "membre" && onboardingProposeDeja());
+    setPremiereDue(audience === "membre" && premierePropositionDue());
     return surPromptInstall(setPrompt);
   }, [audience]);
 
-  const visible = !installee && !onboardingEnCours;
+  const visible = !installee && !premiereDue;
   const vouvoie = audience === "restaurateur";
 
   useEffect(() => {

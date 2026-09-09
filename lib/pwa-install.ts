@@ -66,19 +66,69 @@ export function estIosSafari(): boolean {
   return /iPad|iPhone|iPod/.test(ua) && /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
 }
 
-// Clés posées par l'étape « pwa » de l'onboarding membre (OnboardingFlow).
-// Exportées ici pour que la carte permanente sache si cette étape est encore
-// en train de s'afficher : proposer l'installation deux fois sur le même écran
-// n'aide personne. La carte est le SECOND chemin, pas un doublon du premier.
+// ── Une seule règle, partagée par les deux surfaces ─────────────────────────
+//
+// ADR 0038 §4 : jamais deux fois la même question sur le même écran. La
+// PREMIÈRE proposition d'installation est la feuille post-ticket
+// (PostTicketSheet) — l'étape « pwa » de l'onboarding membre qui posait ces
+// clés à l'origine n'existe plus (retirée avec le tour de bienvenue, ADR 0044).
+// Tant que cette première proposition est due, la carte permanente se tait ;
+// ensuite elle prend le relais.
+//
+// ADR 0049 — deux clés, deux portées, parce qu'elles répondent à deux
+// questions différentes. Les avoir confondues est exactement ce qui faisait
+// qu'un tap sur le fond de la feuille consommait la proposition pour de bon :
+//
+//   • CLE_PWA_VUE — la première proposition a EU LIEU. Passe la main à la
+//     carte permanente. Définitif, par appareil.
+//   • CLE_PWA_TRANCHEE — la question de l'installation a été TRANCHÉE sur cet
+//     appareil, dans un sens ou dans l'autre : dialogue natif annulé, ou
+//     « c'est fait » déclaré sur le chemin manuel (iOS, où aucun refus
+//     programmatique n'existe). La feuille arrête de la proposer ; la carte
+//     permanente, elle, reste — ce qui doit disparaître c'est l'installation
+//     faite, pas le fait de l'avoir refusée (ADR 0038, alternatives rejetées).
+//
+// La réapparition de la feuille elle-même ne se joue PAS ici : c'est une clé
+// de visite (sessionStorage), portée par le composant.
 export const CLE_PWA_VUE = "pwa_prompted";
-export const CLE_PWA_REPORTEE = "pwa_snoozed_until";
+export const CLE_PWA_TRANCHEE = "pwa_install_settled";
 
-/** L'onboarding est-il encore en train de proposer l'installation ? */
-export function onboardingProposeDeja(): boolean {
+/** La première proposition d'installation (la feuille) est-elle encore due ? */
+export function premierePropositionDue(): boolean {
   if (typeof window === "undefined") return false;
-  const reportee = localStorage.getItem(CLE_PWA_REPORTEE);
-  const enPause = !!reportee && Date.now() < Number(reportee);
-  return localStorage.getItem(CLE_PWA_VUE) !== "true" && !enPause;
+  return localStorage.getItem(CLE_PWA_VUE) !== "true";
+}
+
+/** Marque la première proposition comme faite — la carte permanente peut suivre. */
+export function noterPropositionFaite(): void {
+  try {
+    localStorage.setItem(CLE_PWA_VUE, "true");
+  } catch {
+    // stockage indisponible (navigation privée) : la feuille se reposera, sans
+    // erreur. Mieux qu'une question qui disparaît.
+  }
+}
+
+/** La question de l'installation est-elle tranchée sur cet appareil ? */
+export function installTranchee(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(CLE_PWA_TRANCHEE) === "true";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Note une réponse EXPLICITE à la question de l'installation : dialogue natif
+ * annulé, ou « c'est fait » déclaré sur le chemin manuel. « Plus tard » et un
+ * tap sur le fond de la feuille n'appellent jamais ceci — ils ne valent que
+ * pour la visite en cours.
+ */
+export function noterInstallTranchee(): void {
+  try {
+    localStorage.setItem(CLE_PWA_TRANCHEE, "true");
+  } catch {}
 }
 
 /** Consomme le prompt natif. Retourne true si l'installation a été acceptée. */
