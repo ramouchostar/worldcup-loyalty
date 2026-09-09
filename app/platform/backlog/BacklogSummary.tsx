@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import {
   BACKLOG_PEOPLE,
+  CLOSED_STATUSES,
   OPEN_STATUSES,
   STATUS_LABEL,
   priorityLabel,
@@ -16,6 +17,12 @@ import { addBacklogItem } from "./actions";
 // Valeur de filtre pour « non attribuée ». Une chaîne réservée plutôt que ""
 // ou null : `owner` est un état de sélection, pas la valeur du champ.
 export const NO_OWNER = "__aucun__";
+
+// Ce que la page liste : le travail ouvert (défaut) ou les actions
+// clôturées. Distinct des filtres `owner`/`area`, qui restreignent un
+// ensemble sans changer sa nature — d'où un état à part plutôt qu'une
+// valeur de plus dans le filtre de personne.
+export type BacklogScope = "ouvertes" | "terminees";
 
 function StatCard({
   label,
@@ -165,6 +172,8 @@ export function BacklogSummary({
   restaurants,
   owner,
   onOwnerChange,
+  scope,
+  onScopeChange,
   legacyOwners,
   next,
 }: {
@@ -173,13 +182,19 @@ export function BacklogSummary({
   restaurants: RestaurantOption[];
   owner: string;
   onOwnerChange: (owner: string) => void;
+  scope: BacklogScope;
+  onScopeChange: (scope: BacklogScope) => void;
   legacyOwners: string[];
   next: BacklogItem | null;
 }) {
   const [addOpen, setAddOpen] = useState(false);
 
   const inProgress = items.filter((i) => i.status === "en_cours").length;
-  const doneCount = items.filter((i) => i.status === "fait").length;
+  // Le compteur « Terminées » porte sur TOUT ce qui est clôturé (fait ET
+  // abandonné), comme la vue que sa carte ouvre : un compteur qui n'annonce
+  // que les « fait » alors que le clic liste aussi les abandons ferait douter
+  // du chiffre. Les deux états restent séparés en sections dans la liste.
+  const doneCount = items.filter((i) => CLOSED_STATUSES.includes(i.status)).length;
   const unassigned = items.filter((i) => i.owners.length === 0 && OPEN_STATUSES.includes(i.status)).length;
 
   // Une action co-attribuée compte pour CHAQUE personne concernée : la carte
@@ -217,7 +232,16 @@ export function BacklogSummary({
           active={owner === NO_OWNER}
           onClick={() => toggleOwner(NO_OWNER)}
         />
-        <StatCard label="Terminées" value={doneCount} />
+        {/* Seule carte qui change ce que la page LISTE en dessous (les
+            cartes-personnes, elles, filtrent) : le tour des actions
+            clôturées demandé par Mehdi. Re-cliquer revient au travail
+            ouvert — c'est une bascule, pas une page à part. */}
+        <StatCard
+          label="Terminées"
+          value={doneCount}
+          active={scope === "terminees"}
+          onClick={() => onScopeChange(scope === "terminees" ? "ouvertes" : "terminees")}
+        />
         <AddTrigger onOpen={() => setAddOpen(true)} />
       </div>
 
@@ -254,7 +278,9 @@ export function BacklogSummary({
         </div>
       )}
 
-      <ClosedTasksGrid closed={closed} />
+      {/* Aperçu des 3 dernières : inutile quand la liste complète des
+          clôturées est déjà dépliée juste en dessous. */}
+      {scope === "ouvertes" && <ClosedTasksGrid closed={closed} />}
     </div>
   );
 }
