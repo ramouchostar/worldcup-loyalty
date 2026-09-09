@@ -164,6 +164,84 @@ export function isMissingCoAssignationColumn(
   return /owners|validations/.test(message) && /column|schema cache/i.test(message);
 }
 
+// ─── Fenêtres de clôture (tour des actions terminées) ────────────────────────
+//
+// Des bornes prêtes à l'emploi plutôt qu'un couple de dates à ressaisir à
+// chaque revue — « ce qui a été clôturé depuis le dernier checkpoint » est la
+// question posée neuf fois sur dix ; « Période précise » reste là pour la
+// quinzaine exacte d'un bilan.
+
+export const DONE_WINDOWS = ["tout", "7j", "14j", "30j", "mois", "mois_dernier", "precise"] as const;
+export type DoneWindow = (typeof DONE_WINDOWS)[number];
+
+export const DONE_WINDOW_LABEL: Record<DoneWindow, string> = {
+  tout: "Toutes les dates",
+  "7j": "7 derniers jours",
+  "14j": "14 derniers jours",
+  "30j": "30 derniers jours",
+  mois: "Ce mois-ci",
+  mois_dernier: "Mois dernier",
+  precise: "Période précise…",
+};
+
+/** Bornes de jours inclusives, en YYYY-MM-DD local. `null` = pas de borne de ce côté. */
+export type DayRange = { from: string | null; to: string | null };
+
+/**
+ * Jour LOCAL d'une date, en YYYY-MM-DD. Jamais `toISOString().slice(0,10)` :
+ * un ticket clôturé à 23 h à Bruxelles est daté de la veille en UTC, et la
+ * fenêtre « aujourd'hui » le manquerait.
+ */
+export function localDay(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Bornes effectives d'une fenêtre. `now` injectable pour les tests. */
+export function doneWindowRange(window: DoneWindow, custom: DayRange, now: Date = new Date()): DayRange {
+  if (window === "tout") return { from: null, to: null };
+  // Période précise : une seule des deux bornes suffit (« depuis le 1er août »).
+  if (window === "precise") return { from: custom.from || null, to: custom.to || null };
+
+  const today = localDay(now);
+  if (window === "mois") return { from: localDay(new Date(now.getFullYear(), now.getMonth(), 1)), to: today };
+  if (window === "mois_dernier") {
+    return {
+      from: localDay(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+      // Jour 0 du mois courant = dernier jour du mois précédent.
+      to: localDay(new Date(now.getFullYear(), now.getMonth(), 0)),
+    };
+  }
+
+  const days = window === "7j" ? 7 : window === "14j" ? 14 : 30;
+  // Fenêtre glissante qui INCLUT aujourd'hui : « 7 derniers jours » = aujourd'hui
+  // et les 6 précédents, pas 7 jours avant aujourd'hui.
+  return { from: localDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1))), to: today };
+}
+
+/** Vrai si la fenêtre borne réellement quelque chose (sinon : tout passe). */
+export function isBoundedRange(range: DayRange): boolean {
+  return !!(range.from || range.to);
+}
+
+/**
+ * Vrai si l'action a été clôturée DANS la fenêtre.
+ *
+ * Une action sans `done_at` ne peut pas être rattachée à une période : c'est
+ * le cas de tout abandon (lib/backlog.ts n'horodate que le passage à
+ * « fait »), et d'items clôturés avant que l'app ne pose la date. Elle sort
+ * donc de toute fenêtre bornée — jamais silencieusement : l'écran affiche le
+ * compte des actions ainsi mises de côté.
+ */
+export function matchesDoneWindow(item: Pick<BacklogItem, "done_at">, range: DayRange): boolean {
+  if (!isBoundedRange(range)) return true;
+  if (!item.done_at) return false;
+  const day = localDay(new Date(item.done_at));
+  if (range.from && day < range.from) return false;
+  if (range.to && day > range.to) return false;
+  return true;
+}
+
 /** Rentabilité d'un item : impact ÷ effort, sur [0,2 ; 5]. Plus haut = à faire d'abord. */
 export function priorityScore(item: Pick<BacklogItem, "impact" | "effort">): number {
   return item.impact / Math.max(1, item.effort);

@@ -565,6 +565,10 @@ export function ItemCard({
     !CLOSED_STATUSES.includes(item.status) &&
     item.due_date < new Date().toISOString().slice(0, 10);
   const closed = CLOSED_STATUSES.includes(item.status);
+  // Date d'achèvement : seul « fait » en pose une (lib/backlog.ts), donc un
+  // abandon n'en affiche aucune — c'est aussi ce qui le sort des fenêtres de
+  // dates du tour des clôturées (BacklogBoard).
+  const doneOn = closed ? fmtDate(item.done_at) : null;
   const label = priorityLabel(item);
   const validated = validatedOwners(item).length;
 
@@ -620,7 +624,10 @@ export function ItemCard({
             </span>
             {due && (
               <span className={`shrink-0 text-[11px] font-medium ${overdue ? "text-danger" : "text-gray-400"}`}>
-                {overdue ? "en retard · " : ""}
+                {/* Sur une carte clôturée, deux dates se côtoient (échéance
+                    ici, achèvement dans la rangée du bas) : celle-ci doit dire
+                    laquelle elle est. */}
+                {closed ? "échéance " : overdue ? "en retard · " : ""}
                 {due}
               </span>
             )}
@@ -645,6 +652,7 @@ export function ItemCard({
                 {restaurantName}
               </Link>
             )}
+            {doneOn && <span className="text-[11px] text-gray-400">achevée le {doneOn}</span>}
             <span className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_CLS[item.status]}`}>
               {STATUS_LABEL[item.status]}
             </span>
