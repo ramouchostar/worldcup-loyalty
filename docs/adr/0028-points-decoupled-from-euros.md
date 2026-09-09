@@ -45,6 +45,8 @@ Le secret de `SCALE_resto` n'est qu'une marge de confort, jamais la défense pri
 ### 5. Zéro euro côté client (amende l'ADR 0007)
 Tous les affichages euros côté client passent en **points** : « Mes stats » (dépense perso), historique « Mes commandes », aperçu de la prochaine commande (le « ~€25 »). **Exception assumée : la saisie du montant du ticket à la soumission reste en euros** — c'est du carburant (donnée du reçu physique), une saisie ponctuelle, pas l'affichage d'une cagnotte.
 
+> **Précision — [ADR 0048](0048-le-gain-avant-le-compte.md) §3 (2026-09-09).** L'exception couvre aussi la **relecture** de ce montant à l'aperçu OCR (« Lu sur ton ticket : 36,10 € »), à trois conditions : petit et sous les points, présenté comme la lecture du reçu et non comme un solde, et jamais accompagné d'un seuil ni d'un écart chiffré. Le client doit pouvoir vérifier que l'app a lu **son** ticket ; un nombre de points ne le permet pas.
+
 ### 6. Paliers de récompense exprimés en points
 - **Paliers communautaires** : en points de score (recalibrés à la nouvelle échelle).
 - **Palier solo (par commande, couche 1)** : le serveur choisit le cadeau par bande de montant en euros (carburant) ; le client voit le cadeau comme **conséquence** (« ta commande t'a rapporté : X »), sans euro ni seuil en euros. L'aperçu « prochaine commande » perd le « ~€25 ».

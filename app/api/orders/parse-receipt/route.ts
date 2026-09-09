@@ -7,6 +7,7 @@ import { checkRateLimit, checkIpRateLimit, hashIp } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
+import { loadRewardGrid, resolveSoloReward, nextSoloTier, type NextSoloTier } from "@/lib/rewards";
 
 export const maxDuration = 30;
 
@@ -22,10 +23,12 @@ function clientIp(request: NextRequest): string {
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
-// Aperçu UX temps réel uniquement ("Montant détecté : €X").
+// Aperçu UX temps réel uniquement : ce que le ticket dit (montant, clé) et ce
+// qu'il vaut (cadeau de couche 1, palier suivant — ADR 0048).
 // La source de vérité anti-fraude est la ré-analyse serveur dans
 // app/api/orders/route.ts — les valeurs retournées ici ne sont
-// jamais utilisées pour le flagging.
+// jamais utilisées pour le flagging, et le cadeau réellement créé est celui
+// que résout la validation, pas celui annoncé ici.
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const {
@@ -128,6 +131,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // La CONSÉQUENCE du ticket, pas seulement sa lecture (ADR 0048). Le montant
+  // seul ne dit rien à quelqu'un debout au comptoir ; ce qui le retient, c'est
+  // « tu repars avec X » ou « il te manque un rien pour X ». Les deux sortent
+  // du catalogue réel de l'établissement (couche 1, ADR 0006 — la seule due
+  // sans équipe, ADR 0034, et la seule qu'aucun verrou invisible ne coupe :
+  // ni double verrou, ni couverture d'équipe, ni plafond mensuel ADR 0012).
+  //
+  // Ce qui sort : des NOMS d'articles et une proportion de barre. Jamais un
+  // seuil, jamais un euro, jamais un prix de revient (ADR 0007 amendé par
+  // 0028, ADR 0017) — même contrat que /api/orders/precheck et le hero.
+  //
+  // Calculé pour tout le monde, consommé côté visiteur : un membre connecté a
+  // déjà la même carte via /api/orders/precheck (qui suit la saisie du montant
+  // corrigé). Une seule requête indexée derrière un appel Vision de 2-6 s, et
+  // la forme de la réponse ne dépend pas de l'authentification.
+  //
+  // Best-effort : grille non configurée ou panne → null, et l'écran retombe
+  // sur le montant lu. Jamais une erreur pour un aperçu.
+  let reward: string | null = null;
+  let nextTier: NextSoloTier | null = null;
+  if (analysis.amount !== null) {
+    try {
+      const grid = await loadRewardGrid(String(rawRestaurantId));
+      reward = resolveSoloReward(grid, analysis.amount).item;
+      nextTier = nextSoloTier(grid, analysis.amount);
+    } catch (err) {
+      console.error("[parse-receipt] aperçu du cadeau indisponible:", err);
+    }
+  }
+
   // key_label / key_example / has_reliable_key : métadonnées non sensibles
   // pour libeller le champ côté client (le pattern reste service-role —
   // ADR 0019). scan_id : jeton opaque renvoyé tel quel à la soumission, qui
@@ -138,5 +171,7 @@ export async function POST(request: NextRequest) {
     key_example: receiptConfig.key_examples[0] ?? null,
     has_reliable_key: receiptConfig.has_reliable_key,
     scan_id: scanId,
+    reward,
+    next_tier: nextTier,
   });
 }
