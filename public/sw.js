@@ -1,13 +1,19 @@
+// v5 : /membres n'est plus ni précaché ni intercepté (voir le handler fetch
+// ci-dessous). Le bump purge la copie périmée du splash sur les appareils
+// où elle traîne encore — sans lui, un membre déjà connecté continuerait de
+// la recevoir jusqu'à une purge de cache fortuite.
+//
 // v4 : /auth/callback n'est plus intercepté (bug — voir le handler fetch
 // ci-dessous). Le bump force la mise à jour du service worker installé sur
 // les appareils déjà connectés dès la prochaine visite, au lieu d'attendre
 // une purge de cache fortuite.
-const CACHE_NAME = "worldcup-loyalty-v4";
+const CACHE_NAME = "worldcup-loyalty-v5";
 
-// Ressources à mettre en cache lors de l'installation
+// Ressources à mettre en cache lors de l'installation.
+// /membres (start_url de la PWA) en est volontairement absent : rien ne le
+// sert plus depuis le cache, une entrée précachée ne ferait que vieillir.
 const PRECACHE_URLS = [
   "/",
-  "/membres",
   "/offline",
   "/api/icons/192",
 ];
@@ -74,6 +80,36 @@ self.addEventListener("fetch", (event) => {
   // Laisser passer entièrement au navigateur (pas de respondWith) évite le
   // problème à la racine.
   if (url.pathname === "/auth/callback") return;
+
+  // /membres : jamais intercepté non plus, pour la même raison. C'est le
+  // start_url de la PWA, et son contenu dépend de la session — un membre
+  // déjà connecté est redirigé vers son dashboard côté serveur (correctif du
+  // 2026-09-02, cf. app/(public)/membres/page.tsx).
+  //
+  // La page tombait jusqu'ici dans le stale-while-revalidate ci-dessous, dont
+  // la règle est `return cached ?? networkFetch` : le cache était renvoyé
+  // immédiatement et la réponse réseau ne servait qu'à le rafraîchir pour la
+  // fois suivante. Deux conséquences, la seconde bien pire que la première :
+  //   1. toute modification de la page n'apparaissait qu'au lancement
+  //      SUIVANT (symptôme constaté le 2026-09-09 sur les pièces Fluent) ;
+  //   2. un membre connecté recevait le splash anonyme depuis le cache et
+  //      retombait sur « Se connecter » — la redirection, revenue en
+  //      arrière-plan, n'était jamais appliquée à la page affichée. Le
+  //      correctif serveur du 2026-09-02 ne pouvait donc pas s'appliquer.
+  //
+  // On ne le passe pas en network-first : cette branche répond par
+  // `event.respondWith(fetch(request))`, qui suivrait lui-même la redirection
+  // de session et rendrait le dashboard sous l'URL /membres sans navigation
+  // propre — exactement le bug de /auth/callback ci-dessus. Laisser passer au
+  // navigateur évite le problème à la racine sur le point d'entrée de l'app,
+  // là où une régression serait la plus coûteuse.
+  //
+  // Contrepartie assumée : un lancement hors ligne affiche l'erreur réseau du
+  // navigateur au lieu de notre page /offline. Personne ne perd rien à
+  // l'usage — /offline n'était de toute façon jamais atteint pour cette URL
+  // (le cache répondait avant), et le splash hors ligne donnait l'illusion
+  // d'une app utilisable alors que ses deux boutons exigent le réseau.
+  if (url.pathname === "/membres") return;
 
   // Pages membres authentifiées (/r/[id]/...) : network-first, SAUF la
   // landing (/r/[id]) et le classement — surfaces de consultation où la
