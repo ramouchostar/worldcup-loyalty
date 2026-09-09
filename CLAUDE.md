@@ -32,7 +32,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 ### ADR 0007 — Le client ne voit jamais d'euros ni de seuil CA
 - Score communautaire → toujours en **points** (jamais `€`, jamais `CA`, jamais `chiffre d'affaires`)
 - "CA total", "objectif restaurant", "chiffre d'affaires" → **jamais visibles côté client**
-- Dépenses personnelles du membre → **en points aussi** (plus AUCUN euro côté client, même perso) — **amendé par ADR 0028**. Seule exception : la saisie du montant du ticket à la soumission (ingestion, pas affichage)
+- Dépenses personnelles du membre → **en points aussi** (plus AUCUN euro côté client, même perso) — **amendé par ADR 0028**. Seule exception : le montant du ticket à la soumission — sa **saisie**, et sa **relecture** à l'aperçu OCR (« Lu sur ton ticket : 36,10 € », petit, sous les points, jamais un seuil ni un écart — ADR 0048 §3)
 - Score d'équipe = **somme de points courbés** (non-linéaires), plus `membres × euros` (ADR 0028) → `score ÷ membres` ne redonne pas d'euros ; points **non-convertibles** en euros
 - Double verrou → invisible côté client, message neutre si palier verrouillé
 

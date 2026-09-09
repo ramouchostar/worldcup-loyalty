@@ -1,6 +1,10 @@
 # ADR 0045 — Preuve du scan (montant OCR) avant la demande de compte
 
-**Statut** : Accepté — amende [ADR 0040](0040-onboarding-visiteur-compte-au-premier-ticket.md) point 3
+**Statut** : Accepté — amende [ADR 0040](0040-onboarding-visiteur-compte-au-premier-ticket.md) point 3.
+Points 1 et 4 **amendés par [ADR 0048](0048-le-gain-avant-le-compte.md)** (2026-09-09) : la
+preuve du scan n'est plus le montant seul en gros, mais le **gain** — points, cadeau
+de couche 1 nommé, palier suivant — le montant étant rétrogradé en relecture
+d'ingestion (« Lu sur ton ticket : … »).
 
 ## Contexte
 

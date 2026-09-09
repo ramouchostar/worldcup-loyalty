@@ -13,6 +13,7 @@ import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
 import { PostTicketSheet } from "@/components/member/PostTicketSheet";
+import TicketGainCard from "@/components/member/TicketGainCard";
 import { TeamRecognitionPrompt, type PromptSuggestion } from "@/components/member/TeamRecognitionPrompt";
 import { rememberPendingTicket } from "@/app/r/[restaurantId]/submit-order/actions";
 import { createClient } from "@/lib/supabase-browser";
@@ -91,6 +92,12 @@ export default function SubmitOrderClient({
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
   const [noRestaurantHeader, setNoRestaurantHeader] = useState(false);
+  // ADR 0048 — ce que le ticket VAUT, rendu par l'aperçu OCR avant toute
+  // demande de compte : le cadeau de couche 1 atteint par ce montant, ou la
+  // distance jusqu'au premier palier. Noms d'articles et proportion de barre
+  // uniquement — jamais un seuil, jamais un euro (ADR 0007/0028).
+  const [gainReward, setGainReward] = useState<string | null>(null);
+  const [gainNextTier, setGainNextTier] = useState<{ item: string; pct: number } | null>(null);
   // ADR 0036 — jeton du scan rendu par l'aperçu OCR : renvoyé tel quel à la
   // soumission pour que le serveur réutilise la photo déjà stockée.
   const [scanId, setScanId] = useState<string | null>(null);
@@ -232,6 +239,8 @@ export default function SubmitOrderClient({
     setScanId(null);
     setAmountEditable(false);
     setPrecheck(null);
+    setGainReward(null);
+    setGainNextTier(null);
     setPreparing(true);
     try {
       const prepared = await prepareReceiptImage(file);
@@ -321,6 +330,8 @@ export default function SubmitOrderClient({
         key_example?: string | null;
         key_corrected?: boolean;
         scan_id?: string | null;
+        reward?: string | null;
+        next_tier?: { item: string; pct: number } | null;
         error?: string;
       }>(res);
       const data = parsedData ?? {};
@@ -353,6 +364,8 @@ export default function SubmitOrderClient({
       }
       setOcrConfidence(data.confidence ?? null);
       setNoRestaurantHeader(!(data.has_restaurant_header ?? true));
+      setGainReward(data.reward ?? null);
+      setGainNextTier(data.next_tier ?? null);
     } catch (err) {
       setParseStatus("error");
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -450,6 +463,8 @@ export default function SubmitOrderClient({
     setKeyCorrected(false);
     setAmountEditable(false);
     setPrecheck(null);
+    setGainReward(null);
+    setGainNextTier(null);
     setSubmitStatus("idle");
     setReward(null);
     setNextTier(null);
@@ -613,14 +628,31 @@ export default function SubmitOrderClient({
     );
   }
 
+  // ADR 0048 — côté visiteur, l'écran change de sujet dès que la photo est
+  // là : la consigne a fait son travail, la suite est le gain puis le compte.
+  // La garder en 4xl sur deux lignes repoussait les boutons de connexion sous
+  // la ligne de flottaison (mesuré à 390×844 : bouton Google à 901 px, 749 px
+  // sans elle). Basculé sur `preview` et non sur la fin de l'analyse, pour ne
+  // pas faire sauter la mise en page au milieu des 2 à 6 s d'OCR. Le logo
+  // reste — c'est le repère d'établissement, pas une consigne.
+  const visitorPhotoTaken = visitor && !!preview;
+
   return (
     <div>
       <div className="mb-6 text-center">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="block mx-auto h-14 w-auto object-contain mb-6" />
+          <img
+            src={logoUrl}
+            alt=""
+            className={`block mx-auto h-14 w-auto object-contain ${visitorPhotoTaken ? "" : "mb-6"}`}
+          />
         ) : null}
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Prends ton ticket en photo</h1>
+        {!visitorPhotoTaken && (
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+            Prends ton ticket en photo
+          </h1>
+        )}
       </div>
 
       {/* Bandeau de reprise — une photo dort en IndexedDB et rien n'est
@@ -771,30 +803,31 @@ export default function SubmitOrderClient({
         />
       </div>
 
-      <div className="mb-6 space-y-2">
-        {STEPS.map((step) => (
-          <p key={step.num} className="text-sm text-gray-500">
-            <span className="font-bold text-gray-900">{step.num}</span> · {step.desc}
-          </p>
-        ))}
-      </div>
+      {/* Le repère 1-2-3 annonce le parcours tant qu'il est devant nous. Dès
+          qu'une photo est là, la carte de gain (ADR 0048) dit la même chose en
+          concret — un cadeau nommé plutôt qu'une promesse — et le rappel
+          générique ne ferait que repousser les boutons sous la ligne de
+          flottaison. */}
+      {!preview && (
+        <div className="mb-6 space-y-2">
+          {STEPS.map((step) => (
+            <p key={step.num} className="text-sm text-gray-500">
+              <span className="font-bold text-gray-900">{step.num}</span> · {step.desc}
+            </p>
+          ))}
+        </div>
+      )}
 
       {/* ADR 0040 — la photo est prise : c'est LE moment où le compte devient
-          utile, et le message dit pourquoi (garder ses points).
-          ADR 0045 — l'aperçu OCR tourne déjà (non authentifié, ci-dessus) :
-          dès qu'un montant est lu, on l'affiche comme preuve que le scan a
-          marché, avant même de demander le compte. */}
+          utile, et le message dit pourquoi.
+          ADR 0045 — l'aperçu OCR tourne déjà (non authentifié, ci-dessus).
+          ADR 0048 — et il ne dit plus seulement que le scan a marché : il dit
+          ce que le ticket VAUT. Le cadeau est gagné AVANT qu'on demande quoi
+          que ce soit, puis c'est lui qui paie la demande de compte. */}
       {visitor && preview && !preparing && (
         <div className="bg-white border-2 border-brand-red/40 rounded-2xl p-5 text-center mb-4">
           {parseStatus === "done" && ocrAmount !== null ? (
-            <>
-              <p className="text-3xl mb-1">✅</p>
-              <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">
-                Ticket bien lu
-              </p>
-              <p className="text-3xl font-black text-gray-900 mb-1">{ocrAmount.toFixed(2)} €</p>
-              <p className="text-gray-500 text-xs mb-4">Montant détecté sur ton ticket</p>
-            </>
+            <TicketGainCard amount={ocrAmount} reward={gainReward} nextTier={gainNextTier} />
           ) : (
             <>
               <p className="text-3xl mb-2">📸</p>
@@ -803,10 +836,21 @@ export default function SubmitOrderClient({
               </h2>
             </>
           )}
+          {/* L'argument du compte devient le CADEAU quand il y en a un : c'est
+              le gain déjà acquis qui justifie la demande, plus une promesse.
+              Sans cadeau atteint (petit ticket, grille non configurée), les
+              points restent l'argument. */}
           <p className="text-gray-600 text-sm mb-4">
-            Connecte-toi en quelques secondes pour l&apos;envoyer et{" "}
-            <span className="font-semibold">garder tes points</span>. La photo reste sur ton
-            téléphone en attendant.
+            {gainReward ? (
+              <>
+                Crée ton compte pour <span className="font-semibold">réclamer ton cadeau</span>.
+              </>
+            ) : (
+              <>
+                Crée ton compte pour <span className="font-semibold">garder tes points</span>.
+              </>
+            )}{" "}
+            La photo reste sur ton téléphone en attendant.
           </p>
           <div className="space-y-2 max-w-xs mx-auto">
             <button
@@ -969,7 +1013,11 @@ export default function SubmitOrderClient({
               </p>
             </div>
           ) : precheck?.reward ? (
-            <div className="bg-brand-gold/15 border border-brand-gold/50 rounded-xl p-4 flex items-center gap-3">
+            // Même palette verte fixe que la carte de gain visiteur
+            // (TicketGainCard) : brand-gold résout en rouge pour Kraainem, et
+            // le cadeau visé s'affichait dans un encadré rose — lu comme une
+            // alerte à l'endroit exact où l'on annonce une bonne nouvelle.
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={foodIconUrl(precheck.reward)} alt="" aria-hidden="true" className="w-14 h-14 shrink-0" />
               <div>
