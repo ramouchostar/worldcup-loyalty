@@ -26,6 +26,10 @@ export function RedeemButton() {
         return;
       }
       setError(body.error ?? "Erreur lors de la génération du coupon.");
+      // 410 = fenêtre de 48 h passée, la ligne vient d'être close côté serveur
+      // (ADR 0011). On rafraîchit pour que la carte rejoigne « Expirées » au
+      // lieu de garder un bouton « Récupérer » qui ne peut plus rien faire.
+      if (res.status === 410) router.refresh();
     } catch {
       setError("Erreur réseau. Réessaie.");
     } finally {

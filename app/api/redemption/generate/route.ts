@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { isClaimWindowOver } from "@/lib/reward-expiry";
 import { randomBytes } from "crypto";
 
 export async function POST(request: Request) {
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
 
   const { data: reward } = await admin
     .from("pending_rewards")
-    .select("id")
+    .select("id, created_at")
     .eq("user_id", user.id)
     .eq("restaurant_id", restaurantId)
     .eq("status", "available")
@@ -23,6 +24,24 @@ export async function POST(request: Request) {
 
   if (!reward) {
     return NextResponse.json({ error: "Aucune récompense à récupérer" }, { status: 404 });
+  }
+
+  // ADR 0011 — fenêtre de 48 h, tenue ICI et pas seulement par le cron
+  // horaire (`/api/cron/expire-rewards`). Le cron nettoie l'état ; cette
+  // garde rend le refus déterministe, sans dépendre de l'instant où il a
+  // tourné pour la dernière fois. On profite du passage pour clore la ligne :
+  // c'est ce qui libère le slot un-seul-actif du membre, donc son cadeau
+  // suivant, sans lui faire attendre l'heure ronde.
+  if (isClaimWindowOver(reward.created_at)) {
+    await admin
+      .from("pending_rewards")
+      .update({ status: "expired" })
+      .eq("id", reward.id)
+      .eq("status", "available");
+    return NextResponse.json(
+      { error: "Ce cadeau n'est plus récupérable. Ta prochaine commande t'en ouvre un nouveau." },
+      { status: 410 }
+    );
   }
 
   const token = randomBytes(9).toString("base64url"); // 12 chars URL-safe

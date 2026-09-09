@@ -11,6 +11,7 @@ export function HealthMetricTile({
   tierLabels,
   thresholds,
   denominatorLabel,
+  note,
 }: {
   title: string;
   description: string;
@@ -18,6 +19,8 @@ export function HealthMetricTile({
   tierLabels: Record<Tier, string>;
   thresholds: { goodMin: number; midMin: number };
   denominatorLabel: string;
+  /** Décomposition du chiffre, quand le taux seul ne dit pas où ça casse. */
+  note?: string;
 }) {
   const { rate, numerator, denominator, tier } = metric;
   const noData = rate === null;
@@ -50,6 +53,7 @@ export function HealthMetricTile({
         <p className="text-xs text-gray-400 mt-1 tabular-nums">
           {numerator} / {denominator} {denominatorLabel}
         </p>
+        {note && <p className="text-xs text-gray-500 mt-2 tabular-nums">{note}</p>}
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center">
