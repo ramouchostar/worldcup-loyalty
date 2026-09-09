@@ -5,6 +5,7 @@ import { sendPush } from "@/lib/notifications";
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
+import { orderValidatedMessage } from "@/lib/order-notification";
 
 // receipt_url stocke un chemin storage (bucket privé — ADR 0003).
 // Les anciennes lignes contiennent encore une URL publique complète :
@@ -114,13 +115,25 @@ export async function PATCH(request: NextRequest) {
     // moitié qui ne demande aucun travail. Un seul appel pour tout le lot.
     if (updated?.length) await recordFunnelStep(restaurantId, "ticket_validated", "", updated.length);
 
-    // Récompenses 3 couches + notifications (best-effort, non-bloquant)
+    // Récompenses 3 couches + notifications (best-effort, non-bloquant).
+    // Le message est construit APRÈS la récompense pour pouvoir nommer le
+    // cadeau réellement créé — et ne rien nommer quand un cadeau était déjà
+    // en attente (ADR 0011). Zéro euro : c'est une surface client (ADR 0028).
     void Promise.allSettled(
       (updated ?? []).map(async o => {
         await incrementProgramRevenue(restaurantId, Number(o.amount));
-        await createPendingReward(o.id, o.user_id, o.team_id, restaurantId, Number(o.amount)).catch(() => {});
-        await sendPush(o.user_id, restaurantId,
-          `✅ Ta commande de ${Number(o.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} a été validée ! Tes récompenses t'attendent.`
+        const created = await createPendingReward(o.id, o.user_id, o.team_id, restaurantId, Number(o.amount))
+          .catch(() => null);
+        await sendPush(
+          o.user_id,
+          restaurantId,
+          orderValidatedMessage({
+            amountEur: Number(o.amount),
+            reward: created?.created ? created.soloItem : null,
+            // Validé depuis la file d'arbitrage : ce ticket n'est pas passé
+            // du premier coup, et le membre le sait (ADR 0039 §2).
+            rescued: true,
+          })
         );
       })
     );
@@ -145,17 +158,28 @@ export async function PATCH(request: NextRequest) {
   if (error) return NextResponse.json({ error: "Erreur lors de la mise à jour." }, { status: 500 });
 
   if (updated) {
-    const msg = action === "validate"
-      ? `✅ Ta commande de ${Number(updated.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} a été validée ! Tes récompenses t'attendent.`
-      : `❌ Ta commande a été rejetée : ${rejection_reason.trim()}`;
-    void sendPush(updated.user_id, restaurantId, msg);
-
     if (action === "validate") {
       await recordFunnelStep(restaurantId, "ticket_validated");
+      // Même ordre que le lot ci-dessus : la récompense d'abord, le message
+      // ensuite — c'est elle qui donne au message son cadeau à nommer.
       void incrementProgramRevenue(restaurantId, Number(updated.amount))
         .then(() => createPendingReward(id, updated.user_id, updated.team_id, restaurantId, Number(updated.amount)))
+        .catch(() => null)
+        .then((created) =>
+          sendPush(
+            updated.user_id,
+            restaurantId,
+            orderValidatedMessage({
+              amountEur: Number(updated.amount),
+              reward: created?.created ? created.soloItem : null,
+              rescued: true,
+            })
+          )
+        )
         .catch(() => {});
     } else {
+      // Rejet : le motif est le texte du restaurateur, aucun euro à en tirer.
+      void sendPush(updated.user_id, restaurantId, `Ton ticket n'a pas pu être retenu : ${rejection_reason.trim()}`);
       // Rejet manuel : le motif du restaurateur est du texte libre, on ne le
       // range donc dans aucune des cases fermées de l'entonnoir — mais le
       // refus, lui, doit compter. Sans motif, plutôt qu'un motif inventé.

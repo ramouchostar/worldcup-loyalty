@@ -28,9 +28,12 @@ import type { MicroRewardType } from "@/types";
 //                              reportée par le membre et toujours pas
 //                              soumise 7 jours après.
 //
-// Les euros cités dans les messages sont les dépenses PROPRES du membre
-// (panier habituel, seuils de palier solo) — autorisés côté membre, comme
-// « Mes stats » (ADR 0007).
+// AUCUN euro dans les messages, y compris les dépenses propres du membre :
+// l'ADR 0024 les autorisait (« ton panier habituel ~22 € »), l'ADR 0028 §5 a
+// annulé cette exception le 2026-07-27 — un message push est une surface
+// client. Les nudges de palier disent donc « commande un peu plus » et
+// nomment le cadeau visé, jamais l'écart en euros. Le panier habituel reste
+// lu côté serveur pour DÉCIDER, il ne sort pas dans le texte.
 
 // Bord de palier : l'effort demandé doit rester ≤ 20 % du seuil visé —
 // au-delà, ce n'est plus un arrondi mais un changement de comportement.
