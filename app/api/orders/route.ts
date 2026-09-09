@@ -4,6 +4,7 @@ import { validateOrderDate, validateAmount } from "@/lib/orders";
 import { getReceiptConfig, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
 import { createPendingReward, loadRewardGrid, nextSoloTier, LEGACY_RESTAURANT_ID, type NextSoloTier } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
+import { recordFunnelStep } from "@/lib/funnel";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
 import { claimScanImage, linkScanToOrder } from "@/lib/receipt-scans";
@@ -256,6 +257,10 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     if (insertError.code === "23505") {
+      // Entonnoir (ADR 0037) : le doublon est un motif de refus à part
+      // entière — c'est le seul qui grandit quand l'anti-doublon devient plus
+      // strict, et il ne doit pas se confondre avec un ticket illisible.
+      await recordFunnelStep(restaurantId, "ticket_rejected", "duplicate");
       return NextResponse.json(
         { error: "Cette commande a déjà été soumise (numéro de ticket en double)." },
         { status: 409 }
@@ -263,6 +268,12 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: "Erreur serveur. Réessaie." }, { status: 500 });
   }
+
+  // Entonnoir (ADR 0037) — deux faits SERVEUR, constatés là où ils se
+  // produisent : le serveur a le ticket, et il l'a validé ou mis en file
+  // d'arbitrage (ADR 0008). Best-effort, jamais bloquant.
+  await recordFunnelStep(restaurantId, "ticket_submitted");
+  if (status === "validated") await recordFunnelStep(restaurantId, "ticket_validated");
 
   // ADR 0036 — le scan sait désormais ce qu'il est devenu : c'est ce lien qui
   // permet de comparer, côté plateforme, la lecture OCR et l'encodage final.

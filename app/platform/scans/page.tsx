@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { RECEIPT_RETENTION_DAYS } from "@/lib/receipt-scans";
 import { getFunnel, type FunnelDay } from "@/lib/qr-funnel";
+import { getFunnelReport, type FunnelReport } from "@/lib/funnel";
+import { FunnelStepsTable } from "@/components/platform/FunnelStepsTable";
 import { detectScanFrictions, FRICTION_MIN_SCANS, FRICTION_WINDOW_MIN } from "@/lib/scan-frictions";
 import { getMatchRates, MATCH_RATE_ALERT_PCT, MATCH_RATE_MIN_LINES } from "@/lib/match-rates";
 import { RestaurantFilter } from "./RestaurantFilter";
@@ -110,12 +112,14 @@ export default async function PlatformScansPage({
     .limit(LIST_LIMIT);
   if (restaurantFilter) scanQuery = scanQuery.eq("restaurant_id", restaurantFilter);
 
-  const [{ data: scansRaw, error: scansError }, { data: restaurantsRaw }, funnel] = await Promise.all([
+  const [{ data: scansRaw, error: scansError }, { data: restaurantsRaw }, funnel, funnelReport] = await Promise.all([
     scanQuery,
     admin.from("restaurants").select("id, name").order("name"),
     // ADR 0037 — l'entonnoir n'a de sens que pour UN établissement à la fois :
     // additionner les atterrissages de plusieurs restos ne veut rien dire.
     restaurantFilter ? getFunnel(restaurantFilter) : Promise.resolve([] as FunnelDay[]),
+    // Les dix étages (funnel_events) — même règle : un établissement à la fois.
+    restaurantFilter ? getFunnelReport(restaurantFilter) : Promise.resolve(null as FunnelReport | null),
   ]);
 
   // Page robuste si m58 n'est pas encore appliquée : écran d'attente, pas un crash.
@@ -256,6 +260,11 @@ export default async function PlatformScansPage({
           )}
         </section>
       )}
+
+      {/* Les dix étages du parcours (ADR 0037) — le tableau par jour ci-dessus
+          garde les quatre étages historiques, qui ont de l'antériorité ; celui-ci
+          dit où ça décroche, étage par étage. */}
+      {funnelReport && <FunnelStepsTable report={funnelReport} />}
 
       <section className="mb-8 grid grid-cols-2 md:grid-cols-5 gap-3">
         {[

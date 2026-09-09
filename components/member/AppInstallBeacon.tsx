@@ -17,7 +17,11 @@ function plateforme(): "ios" | "android" | "desktop" | "other" {
   return "other";
 }
 
-export function AppInstallBeacon() {
+// `restaurantId` sert l'entonnoir (ADR 0037) : l'étage « App installée » est
+// compté par établissement, comme tous les autres. La balise reste le seul
+// signal fiable multiplateforme, et elle est authentifiée — c'est pour ça que
+// cet étage n'a pas besoin de passer par la liste close de `/api/funnel`.
+export function AppInstallBeacon({ restaurantId }: { restaurantId?: string }) {
   useEffect(() => {
     if (!estInstallee()) return;
     try {
@@ -29,9 +33,9 @@ export function AppInstallBeacon() {
     fetch("/api/me/app-install", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platform: plateforme() }),
+      body: JSON.stringify({ platform: plateforme(), restaurantId }),
       keepalive: true,
     }).catch(() => {});
-  }, []);
+  }, [restaurantId]);
   return null;
 }

@@ -7,6 +7,7 @@ import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier 
 import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
+import { recordFunnelStep } from "@/lib/funnel";
 import { getPointsBalance } from "@/lib/points";
 import { pointsForOrder } from "@/lib/points-model";
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
@@ -31,6 +32,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const r = (path: string) => `/r/${restaurantId}${path}`;
+
+  // Entonnoir (ADR 0037) — dernier étage : le membre est arrivé chez lui.
+  // Ce n'est pas une sortie d'entonnoir (aucun taux de passage), c'est le
+  // repère qui dit si les gens reviennent dans l'app une fois le ticket
+  // passé. Best-effort, jamais bloquant, comme `recordLanding` — et attendu
+  // comme lui : une promesse flottante dans un composant serveur peut être
+  // coupée à la fin du rendu, et un compteur qu'on perd une fois sur deux ne
+  // vaut rien.
+  await recordFunnelStep(restaurantId, "home_viewed");
 
   const [
     { data: membershipRaw },

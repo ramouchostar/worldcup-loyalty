@@ -5,6 +5,7 @@ import { getReceiptConfig } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { checkRateLimit, checkIpRateLimit, hashIp } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
+import { recordFunnelStep } from "@/lib/funnel";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { loadRewardGrid, resolveSoloReward, nextSoloTier, type NextSoloTier } from "@/lib/rewards";
@@ -122,6 +123,15 @@ export async function POST(request: NextRequest) {
   });
 
   if (!receiptProven) {
+    // Entonnoir (ADR 0037) : on distingue « rien de lisible sur la photo » de
+    // « montant lu, mais rien qui rattache le ticket à cet établissement ».
+    // Deux causes, deux remèdes — le cadrage d'un côté, l'affichage de la
+    // consigne de l'autre — et c'est le tableau qui doit les départager.
+    await recordFunnelStep(
+      String(rawRestaurantId),
+      "ticket_rejected",
+      analysis.amount === null ? "unreadable" : "header_rejected"
+    );
     const keyLabel = receiptConfig.key_label ?? "numéro de commande";
     return NextResponse.json(
       {

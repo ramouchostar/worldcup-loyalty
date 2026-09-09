@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { sendPush } from "@/lib/notifications";
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
+import { recordFunnelStep } from "@/lib/funnel";
 
 // receipt_url stocke un chemin storage (bucket privé — ADR 0003).
 // Les anciennes lignes contiennent encore une URL publique complète :
@@ -107,6 +108,12 @@ export async function PATCH(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: "Erreur lors de la validation." }, { status: 500 });
 
+    // Entonnoir (ADR 0037) : un ticket validé depuis la file d'arbitrage
+    // compte au même étage qu'un ticket auto-validé — sinon le taux de
+    // validation ne dirait que la moitié de l'histoire, et justement la
+    // moitié qui ne demande aucun travail. Un seul appel pour tout le lot.
+    if (updated?.length) await recordFunnelStep(restaurantId, "ticket_validated", "", updated.length);
+
     // Récompenses 3 couches + notifications (best-effort, non-bloquant)
     void Promise.allSettled(
       (updated ?? []).map(async o => {
@@ -144,9 +151,15 @@ export async function PATCH(request: NextRequest) {
     void sendPush(updated.user_id, restaurantId, msg);
 
     if (action === "validate") {
+      await recordFunnelStep(restaurantId, "ticket_validated");
       void incrementProgramRevenue(restaurantId, Number(updated.amount))
         .then(() => createPendingReward(id, updated.user_id, updated.team_id, restaurantId, Number(updated.amount)))
         .catch(() => {});
+    } else {
+      // Rejet manuel : le motif du restaurateur est du texte libre, on ne le
+      // range donc dans aucune des cases fermées de l'entonnoir — mais le
+      // refus, lui, doit compter. Sans motif, plutôt qu'un motif inventé.
+      await recordFunnelStep(restaurantId, "ticket_rejected");
     }
   }
 

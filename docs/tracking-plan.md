@@ -272,20 +272,48 @@ Une exploration « Entonnoir » sur : `restaurant_landing_viewed` → `sign_up` 
 
 ---
 
-## 7. Ce qui n'est pas fait
+## 7. Ce qui ne passe pas par GA4 — l'entonnoir serveur
+
+Le tunnel ticket **ne se lit pas dans GA4**, et ce n'est pas un manque : le Consent
+Mode v2 refuse tout par défaut (§4), donc l'écrasante majorité des parcours n'y
+remonte jamais. Décider sur cet échantillon reviendrait à décider sur un biais
+inconnu (ADR 0037).
+
+Les dix étages du parcours sont donc comptés **côté serveur**, dans
+`funnel_events` (ADR 0037, `lib/funnel.ts`, migration `20260909-2340`), et se
+lisent sur `/platform/scans` : compteurs par établissement, jour, étape et motif
+de refus. Ni IP, ni agent utilisateur, ni cookie, **ni identifiant de session** —
+rien à consentir, donc rien d'aveugle.
+
+Conséquences pour qui instrumente :
+
+- **Un événement GA4 n'est jamais la source d'un taux de passage.** Les événements
+  `visitor_*` et `order_*` de la §2 restent utiles pour la lecture qualitative
+  (méthode d'inscription, tranche de montant), pas pour le dénominateur.
+- **On ne mesure pas les parcours individuels côté visiteur**, par choix : un
+  identifiant de session, même en `sessionStorage`, ferait basculer la mesure dans
+  le champ du consentement. Les parcours individuels restent lisibles sur la
+  partie **authentifiée** (`receipt_scans`, `orders`), où la base légale existe.
+- Trois étapes seulement sont **déclarées par le navigateur** (photo prise, départ
+  vers l'inscription, app proposée) ; tout le reste est **constaté côté serveur**,
+  là où c'est un fait. La liste est close dans `lib/funnel.ts`.
+
+## 8. Ce qui n'est pas fait
 
 - **Google Tag Manager** : écarté. Il ouvrirait largement la CSP et sortirait la
   logique de mesure du dépôt. Si le besoin apparaît (pixels publicitaires
   multiples), la couche `track()` peut alimenter un `dataLayer` sans réécriture.
 - **Google Ads / Meta Pixel** : aucun signal publicitaire n'est collecté.
 - **Console admin** : non instrumentée (hors périmètre).
-- **Mesure côté serveur** (Measurement Protocol) : les validations de commande
-  différées (file admin, ADR 0008) ne remontent donc pas. `order_result` ne
-  couvre que le verdict immédiat.
+- **Measurement Protocol** (renvoyer des événements serveur vers GA4) : écarté —
+  l'entonnoir serveur (§7) répond à la même question sans dépendre du
+  consentement. `order_result` ne couvre donc que le verdict immédiat côté
+  client ; les validations différées (file admin, ADR 0008) se lisent dans
+  `funnel_events`.
 
 ---
 
-## 8. Un mot sur le MCP Google Analytics
+## 9. Un mot sur le MCP Google Analytics
 
 Le serveur MCP officiel (`googleanalytics/google-analytics-mcp`) existe, mais il
 **lit** GA4 (`run_report`, `run_realtime_report`, `run_funnel_report`,
