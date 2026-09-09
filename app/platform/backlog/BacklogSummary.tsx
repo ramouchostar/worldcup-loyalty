@@ -195,13 +195,18 @@ export function BacklogSummary({
   // que les « fait » alors que le clic liste aussi les abandons ferait douter
   // du chiffre. Les deux états restent séparés en sections dans la liste.
   const doneCount = items.filter((i) => CLOSED_STATUSES.includes(i.status)).length;
-  const unassigned = items.filter((i) => i.owners.length === 0 && OPEN_STATUSES.includes(i.status)).length;
+  // Les cartes-personnes comptent l'ensemble qu'elles filtrent : le travail
+  // ouvert d'habitude, les actions clôturées pendant le tour des terminées.
+  // Sinon « Mehdi 10 » (ouvertes) surmonterait une liste de clôturées et le
+  // chiffre mentirait sur ce qu'un clic va montrer.
+  const countedStatuses = scope === "terminees" ? CLOSED_STATUSES : OPEN_STATUSES;
+  const unassigned = items.filter((i) => i.owners.length === 0 && countedStatuses.includes(i.status)).length;
 
   // Une action co-attribuée compte pour CHAQUE personne concernée : la carte
   // « Mehdi » répond à « qu'est-ce qui attend un geste de moi ? », pas à « de
   // combien d'actions suis-je le seul responsable ? ».
   function countFor(person: string): number {
-    return items.filter((i) => i.owners.includes(person) && OPEN_STATUSES.includes(i.status)).length;
+    return items.filter((i) => i.owners.includes(person) && countedStatuses.includes(i.status)).length;
   }
 
   function toggleOwner(value: string) {
