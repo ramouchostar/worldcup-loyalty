@@ -9,6 +9,7 @@ import { incrementProgramRevenue } from "@/lib/budget";
 import { insertOrderItems } from "@/lib/order-items";
 import { linkScanToOrder } from "@/lib/receipt-scans";
 import { sendPush } from "@/lib/notifications";
+import { orderValidatedMessage } from "@/lib/order-notification";
 import type { ReceiptLineItem } from "@/lib/receipt-ocr";
 
 // Rattrapage plateforme d'un ticket que le parcours normal a laissé au bord
@@ -92,17 +93,27 @@ async function creditOrder(params: {
   const { orderId, userId, teamId, restaurantId, amount } = params;
   await incrementProgramRevenue(restaurantId, amount);
   let reward = "";
+  // Nom du cadeau que CE rattrapage vient de créer — c'est lui que le message
+  // au membre nommera. Null si un cadeau était déjà en attente (ADR 0011) :
+  // on n'annonce pas un nouveau cadeau quand il n'y en a pas de nouveau.
+  let soloItem: string | null = null;
   try {
     const result = await createPendingReward(orderId, userId, teamId, restaurantId, amount);
     reward = result.created ? " Cadeau crédité." : " Aucun nouveau cadeau (un cadeau est déjà en attente).";
+    if (result.created) soloItem = result.soloItem;
   } catch (e) {
     console.error("[platform/scans] createPendingReward failed:", (e as Error).message);
     reward = " ⚠️ La commande est validée mais la récompense n'a pas pu être créée — à reprendre à la main.";
   }
+  // Le membre reçoit la variante « rattrapé » : son ticket n'est PAS passé du
+  // premier coup, et il le sait — c'est le cas d'école de l'information de
+  // service (ADR 0039 §2). Zéro euro : une notification est une surface
+  // client (ADR 0028). Le `euros()` ci-dessus reste, il n'alimente que le
+  // retour affiché au super-admin, qui a le droit aux euros.
   void sendPush(
     userId,
     restaurantId,
-    `✅ Ta commande de ${euros(amount)} a été validée ! Tes récompenses t'attendent.`
+    orderValidatedMessage({ amountEur: amount, reward: soloItem, rescued: true })
   ).catch(() => {});
   return reward;
 }
