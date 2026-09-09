@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/purge-receipts",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/expire-rewards",
+      "schedule": "0 * * * *"
     }
   ]
 }

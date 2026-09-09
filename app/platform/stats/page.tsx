@@ -89,11 +89,12 @@ export default async function PlatformStatsPage() {
           />
           <HealthMetricTile
             title="Récupération des récompenses"
-            description="% des cadeaux validés réellement récupérés au comptoir avant expiration (48h, ADR 0011). Teste si la boucle se referme côté opérationnel."
+            description="% des cadeaux tranchés dont la remise a été confirmée au comptoir (bouton « Cadeau remis »). Teste si la boucle se referme côté opérationnel — ouvrir un coupon ne suffit pas."
             metric={metrics.redemption}
             tierLabels={{ good: "Sain", mid: "Process comptoir ?", low: "Problème ops" }}
             thresholds={{ goodMin: 70, midMin: 40 }}
             denominatorLabel="cadeaux tranchés"
+            note={`${metrics.couponsOpened} coupon${metrics.couponsOpened > 1 ? "s" : ""} ouvert${metrics.couponsOpened > 1 ? "s" : ""} par un membre · ${metrics.giftsRemitted} confirmé${metrics.giftsRemitted > 1 ? "s" : ""} au comptoir · ${metrics.rewardsExpired} cadeau${metrics.rewardsExpired > 1 ? "x" : ""} jamais réclamé${metrics.rewardsExpired > 1 ? "s" : ""} (48 h)`}
           />
         </div>
       )}
