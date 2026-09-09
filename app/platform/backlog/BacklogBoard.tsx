@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Kanban, List } from "lucide-react";
+import { ArrowLeft, Kanban, List } from "lucide-react";
 import {
   BACKLOG_AREAS,
   BACKLOG_PEOPLE,
@@ -13,8 +13,8 @@ import {
 } from "@/lib/backlog-model";
 import { FlatSelect } from "@/components/platform/FlatSelect";
 import { type RestaurantOption } from "./backlog-ui";
-import { BacklogSummary, NO_OWNER } from "./BacklogSummary";
-import { BacklogList } from "./BacklogList";
+import { BacklogSummary, NO_OWNER, type BacklogScope } from "./BacklogSummary";
+import { BacklogList, CLOSED_ORDER } from "./BacklogList";
 import { BacklogKanban } from "./BacklogKanban";
 
 export type { RestaurantOption };
@@ -72,6 +72,7 @@ export function BacklogBoard({
   const [area, setArea] = useState<string>("tous");
   const [owner, setOwner] = useState<string>("tous");
   const [view, setView] = useState<View>("liste");
+  const [scope, setScope] = useState<BacklogScope>("ouvertes");
 
   const restaurantNames = new Map(restaurants.map((r) => [r.id, r.name]));
   // Noms hérités d'avant la liste close : encore filtrables, jamais proposés
@@ -107,13 +108,30 @@ export function BacklogBoard({
         restaurants={restaurants}
         owner={owner}
         onOwnerChange={setOwner}
+        scope={scope}
+        onScopeChange={setScope}
         legacyOwners={legacyOwners}
         next={next}
       />
 
       {items.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <ViewSwitcher view={view} onChange={setView} />
+          {/* Pas de bascule Liste/Kanban sur les clôturées : les colonnes du
+              Kanban sont les quatre états ouverts, et y glisser une carte
+              sert à changer son statut — un Kanban des actions terminées
+              n'aurait aucune colonne à afficher. */}
+          {scope === "ouvertes" ? (
+            <ViewSwitcher view={view} onChange={setView} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setScope("ouvertes")}
+              className="h-9 inline-flex items-center gap-1.5 rounded-xl bg-gray-100 px-3.5 text-xs font-bold text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+              Actions ouvertes
+            </button>
+          )}
 
           <FlatSelect
             value={area}
@@ -128,7 +146,16 @@ export function BacklogBoard({
           />
 
           <span className="text-xs text-gray-400">
-            {open.length} en cours · {closed.length} clôturée{closed.length > 1 ? "s" : ""}
+            {scope === "terminees" ? (
+              <>
+                Tour des clôturées — {closed.length} action{closed.length > 1 ? "s" : ""} · {open.length}{" "}
+                encore ouverte{open.length > 1 ? "s" : ""}
+              </>
+            ) : (
+              <>
+                {open.length} en cours · {closed.length} clôturée{closed.length > 1 ? "s" : ""}
+              </>
+            )}
           </span>
         </div>
       )}
@@ -141,10 +168,18 @@ export function BacklogBoard({
             par rapport impact / effort.
           </p>
         </div>
+      ) : scope === "terminees" ? (
+        <BacklogList
+          items={closed}
+          order={CLOSED_ORDER}
+          emptyLabel="Aucune action clôturée avec ces filtres."
+          restaurants={restaurants}
+          restaurantNames={restaurantNames}
+        />
       ) : view === "kanban" ? (
         <BacklogKanban items={open} restaurants={restaurants} restaurantNames={restaurantNames} />
       ) : (
-        <BacklogList open={open} restaurants={restaurants} restaurantNames={restaurantNames} />
+        <BacklogList items={open} restaurants={restaurants} restaurantNames={restaurantNames} />
       )}
     </div>
   );

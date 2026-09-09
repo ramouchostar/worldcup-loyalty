@@ -17,7 +17,12 @@ import { SortableItemCard, type RestaurantOption } from "./backlog-ui";
 
 // L'ordre d'affichage n'est pas l'ordre du cycle de vie : ce qui est engagé
 // passe devant ce qui n'est qu'une idée.
-const OPEN_ORDER: BacklogStatus[] = ["en_cours", "a_faire", "bloque", "idee"];
+export const OPEN_ORDER: BacklogStatus[] = ["en_cours", "a_faire", "bloque", "idee"];
+
+// Tour des actions clôturées (filtre « Terminées ») : ce qui a été fait
+// d'abord, les abandons ensuite — un abandon n'est pas un résultat, il n'a
+// rien à faire en tête d'une revue de ce qui a été livré.
+export const CLOSED_ORDER: BacklogStatus[] = ["fait", "abandonne"];
 
 // Une section = un statut. Le tri par défaut reste celui de l'ADR 0033 §3
 // (impact ÷ effort, calculé) ; glisser une carte ne fait que réordonner
@@ -100,23 +105,30 @@ function StatusSection({
   );
 }
 
-// Les tâches clôturées ne sont plus listées ici : BacklogSummary.tsx en
-// affiche un carrousel horizontal en haut de page (ADR 0033 §3 — gagner de
-// la hauteur d'écran pour cette vue, qui ne montre plus que le travail
-// ouvert).
+// Vue Liste, indifférente au fait que les statuts affichés soient ouverts ou
+// clôturés : `order` décide des sections. Par défaut le travail ouvert (le
+// backlog au sens strict) ; avec CLOSED_ORDER, le même écran sert de tour des
+// actions terminées (filtre « Terminées » de BacklogSummary) — même carte,
+// mêmes contrôles, donc on peut rouvrir ou corriger une action clôturée sans
+// changer de page. BacklogSummary garde par ailleurs son aperçu « Clôturées
+// récemment » pour les 3 dernières.
 export function BacklogList({
-  open,
+  items,
+  order = OPEN_ORDER,
+  emptyLabel = "Rien en cours avec ces filtres.",
   restaurants,
   restaurantNames,
 }: {
-  open: BacklogItem[];
+  items: BacklogItem[];
+  order?: BacklogStatus[];
+  emptyLabel?: string;
   restaurants: RestaurantOption[];
   restaurantNames: Map<string, string>;
 }) {
   return (
     <>
-      {OPEN_ORDER.map((status) => {
-        const group = open.filter((i) => i.status === status);
+      {order.map((status) => {
+        const group = items.filter((i) => i.status === status);
         if (group.length === 0) return null;
         return (
           <StatusSection
@@ -129,9 +141,9 @@ export function BacklogList({
         );
       })}
 
-      {open.length === 0 && (
+      {items.length === 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <p className="text-sm text-gray-500">Rien en cours avec ces filtres.</p>
+          <p className="text-sm text-gray-500">{emptyLabel}</p>
         </div>
       )}
     </>
