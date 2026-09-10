@@ -8,6 +8,7 @@ import { recordScan } from "@/lib/scan-meter";
 import { recordFunnelStep } from "@/lib/funnel";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
+import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
 import { loadRewardGrid, resolveSoloReward, nextSoloTier, type NextSoloTier } from "@/lib/rewards";
 
 export const maxDuration = 30;
@@ -112,7 +113,13 @@ export async function POST(request: NextRequest) {
   // des tickets de borne, exiger l'en-tête punissait exactement le bon
   // cadrage (total + numéro). En-tête absent + clé absente → refus, sinon on
   // laisse passer.
-  const receiptProven = analysis.has_restaurant_header || analysis.order_number !== null;
+  // Refus des photos de QR et d'affiche (backlog 2026-09-10) : l'affiche
+  // porte le nom du resto, donc l'en-tête seule ne la départage pas d'un
+  // ticket. Une clé de commande lue, elle, prouve un ticket quelle que soit
+  // la lecture « affiche » du modèle — même prudence que le scan indulgent.
+  const posterSuspected = analysis.looks_like_qr_or_poster && analysis.order_number === null;
+  const receiptProven =
+    !posterSuspected && (analysis.has_restaurant_header || analysis.order_number !== null);
 
   const scanId = await storeScan({
     restaurantId: String(rawRestaurantId),
@@ -121,6 +128,11 @@ export async function POST(request: NextRequest) {
     analysis,
     outcome: receiptProven ? "parsed" : "header_rejected",
   });
+
+  if (posterSuspected) {
+    await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "qr_detected");
+    return NextResponse.json({ error: POSTER_MEMBER_MESSAGE }, { status: 422 });
+  }
 
   if (!receiptProven) {
     // Entonnoir (ADR 0037) : on distingue « rien de lisible sur la photo » de

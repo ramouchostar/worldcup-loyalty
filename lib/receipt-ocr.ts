@@ -16,6 +16,7 @@ type VisionResult = {
   order_number: string | null;
   amount: number | null;
   has_restaurant_header: boolean;
+  looks_like_qr_or_poster?: unknown;
   order_time?: unknown;
   items?: unknown;
 };
@@ -31,6 +32,10 @@ export type ReceiptAnalysis = {
   amount: number | null;
   confidence: number;
   has_restaurant_header: boolean;
+  // Photo d'une AFFICHE/flyer/QR du programme plutôt que d'un ticket imprimé
+  // (backlog « refuser les photos de QR et d'affiche ») : l'affiche porte le
+  // nom du resto, donc l'en-tête seule ne suffit pas à la départager.
+  looks_like_qr_or_poster: boolean;
   order_time: string | null;
   items: ReceiptLineItem[];
   // true si l'année de la date contenue dans la clé a été corrigée (lecture
@@ -122,9 +127,10 @@ ${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL
 3. Whether the word "${restaurantName}" appears anywhere on the receipt
 4. Order time in 24h HH:MM format if printed on the receipt — null if not visible
 5. Line items ordered: for each clearly readable line, the item name as printed, the quantity (default 1) and the unit price in euros (null if unreadable). Maximum ${MAX_LINE_ITEMS} items, skip totals/taxes/payment lines.
+6. Whether the photo shows a PROMOTIONAL POSTER, flyer, sticker, table sign or QR-code display (marketing material inviting to scan a code) rather than a printed till receipt — true only if it is clearly marketing material, false for any actual receipt even partial or blurry.
 
 Return ONLY valid JSON, no markdown, no explanation:
-{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}]}`,
+{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false}`,
           },
         ],
       },
@@ -174,6 +180,7 @@ Return ONLY valid JSON, no markdown, no explanation:
     amount,
     confidence,
     has_restaurant_header: parsed.has_restaurant_header === true,
+    looks_like_qr_or_poster: parsed.looks_like_qr_or_poster === true,
     order_time: orderTime,
     items: sanitizeLineItems(parsed.items),
     key_corrected: sanity.corrected,
