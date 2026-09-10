@@ -1,6 +1,6 @@
 # La photo du ticket de caisse est obligatoire pour toute soumission de commande
 
-Chaque commande soumise doit être accompagnée d'une photo du ticket de caisse client (pas le ticket caissier/cuisine), stockée dans Supabase Storage bucket `receipts` (privé). L'anti-doublon repose sur le **Bestelnummer** extrait par OCR — identifiant séquentiel unique généré par la caisse Belchicken (format `YYYY-MM-DD/NNN/NNNNN`, ex. `2026-06-01/258/03993`).
+Chaque commande soumise doit être accompagnée d'une photo du ticket de caisse client (pas le ticket caissier/cuisine), stockée dans Supabase Storage bucket `receipts` (privé). L'anti-doublon repose d'abord sur le **Bestelnummer** extrait par OCR (amendé par l'ADR 0052 : empreinte de contenu et photo en signaux complémentaires) — identifiant séquentiel unique généré par la caisse Belchicken (format `YYYY-MM-DD/NNN/NNNNN`, ex. `2026-06-01/258/03993`).
 
 ## Pourquoi pas la confiance seule
 

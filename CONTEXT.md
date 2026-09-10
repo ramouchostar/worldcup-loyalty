@@ -50,7 +50,7 @@ Le geste client central : **prendre son ticket de caisse en photo** (« Prends t
 _Avoid_ : scanner / scan (côté client, action ticket) ; icône viseur lucide `Scan` sur une surface client.
 
 **Doublon** :
-Tentative de soumettre deux fois la même commande. Détecté via le **Bestelnummer** (`order_number` en base, ex. `2026-06-01/258/03993`) — identifiant séquentiel unique généré par la caisse Belchicken, présent sur chaque ticket client. Rejeté silencieusement côté serveur. Remplace l'ancien `DATE_HH:MM_MONTANT` qui permettait des collisions.
+Tentative de soumettre deux fois la même commande. Détecté d'abord via le **Bestelnummer** (`order_number` en base, ex. `2026-06-01/258/03993`) — identifiant séquentiel unique généré par la caisse, présent sur chaque ticket client. Depuis l'**ADR 0052**, le numéro n'est plus le seul verrou : une **empreinte de contenu** (resto + montant + lignes triées), l'heure à ±2 min et un hachage de la photo rattrapent le même ticket relu avec un chiffre d'écart ; un cas ambigu part en file « Doublons » de la console, et **deux membres différents ne sont jamais rejetés automatiquement**. Message membre unique : « Ce ticket a déjà été utilisé. » Remplace l'ancien `DATE_HH:MM_MONTANT` qui permettait des collisions.
 _Avoid_ : fraude (le doublon peut être accidentel).
 
 **Validation automatique** :
