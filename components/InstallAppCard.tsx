@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import {
   estInstallee,
-  estIosSafari,
+  estIos,
   lancerInstallation,
   premierePropositionDue,
   promptDifferé,
   surPromptInstall,
+  verifieAppDejaInstallee,
   type InstallPromptEvent,
 } from "@/lib/pwa-install";
 
@@ -48,6 +49,12 @@ export function InstallAppCard({
   const [installee, setInstallee] = useState(true); // rien avant vérification
   const [ios, setIos] = useState(false);
   const [enCours, setEnCours] = useState(false);
+  // Incident 2026-09-10 (signalé par le porteur) : deux branches de la carte
+  // n'avaient AUCUNE action au tap. Chaque branche a désormais un bouton —
+  // quand le navigateur n'offre pas d'installation en un clic (iOS : Apple
+  // ne l'autorise à personne ; ailleurs : pas d'invite native), le bouton
+  // déplie CE guide au lieu de laisser un texte mort.
+  const [guideOuvert, setGuideOuvert] = useState(false);
 
   // ADR 0038 §4 — la feuille post-ticket est la première proposition ; tant
   // qu'elle est due, cette carte se tait (elle est le SECOND chemin).
@@ -55,10 +62,23 @@ export function InstallAppCard({
 
   useEffect(() => {
     setInstallee(estInstallee());
-    setIos(estIosSafari());
+    // Tous les navigateurs iOS passent par la feuille Partager (Chrome et
+    // Firefox iOS compris) — les instructions « menu ⋮ » y étaient fausses.
+    setIos(estIos());
     setPrompt(promptDifferé());
     setPremiereDue(audience === "membre" && premierePropositionDue());
-    return surPromptInstall(setPrompt);
+    // App déjà installée mais consultée DANS le navigateur : display-mode ne
+    // le voit pas, getInstalledRelatedApps oui (Chrome/Android + manifest
+    // related_applications) — la carte se tait au lieu d'un geste mort.
+    let annule = false;
+    void verifieAppDejaInstallee().then((deja) => {
+      if (deja && !annule) setInstallee(true);
+    });
+    const desabonner = surPromptInstall(setPrompt);
+    return () => {
+      annule = true;
+      desabonner();
+    };
   }, [audience]);
 
   const visible = !installee && !premiereDue;
@@ -95,18 +115,8 @@ export function InstallAppCard({
           <h2 className="font-bold text-sm text-gray-900">{TEXTES[audience].titre}</h2>
           <p className="text-xs text-gray-600 mt-1 leading-relaxed">{TEXTES[audience].pourquoi}</p>
 
-          {ios ? (
-            // iOS Safari n'expose aucun déclencheur : on décrit les deux gestes.
-            <ol className="mt-3 space-y-1.5 text-xs text-gray-700">
-              <li>
-                1. {vouvoie ? "Touchez" : "Tape"} l&apos;icône{" "}
-                <span className="font-semibold text-blue-600">Partager</span> ⬆️ en bas de Safari
-              </li>
-              <li>
-                2. Puis <span className="font-semibold">« Sur l&apos;écran d&apos;accueil »</span> ＋
-              </li>
-            </ol>
-          ) : prompt ? (
+          {!ios && prompt ? (
+            // Android/Chrome avec invite native : l'installation en un clic.
             <button
               onClick={installer}
               disabled={enCours}
@@ -115,16 +125,55 @@ export function InstallAppCard({
               {enCours ? "Installation…" : "Installer l'app"}
             </button>
           ) : (
-            // Navigateur sans invite native (Firefox, Chrome de bureau avant
-            // que l'événement ne parte…) : le chemin manuel existe toujours.
-            <p className="mt-3 text-xs text-gray-500">
-              {vouvoie ? "Ouvrez" : "Ouvre"} le menu de{" "}
-              {vouvoie ? "votre" : "ton"} navigateur, puis{" "}
-              <span className="font-semibold text-gray-700">
-                « Ajouter à l&apos;écran d&apos;accueil »
-              </span>
-              .
-            </p>
+            // iOS (Apple n'autorise aucun déclenchement en un clic) ou
+            // navigateur sans invite native : un VRAI bouton, qui tente
+            // d'abord l'installation (une invite a pu arriver entre-temps)
+            // puis déplie le guide des gestes — jamais un texte mort.
+            <>
+              <button
+                onClick={async () => {
+                  if (!ios) {
+                    const resultat = await lancerInstallation();
+                    if (resultat === "accepted") {
+                      setInstallee(true);
+                      return;
+                    }
+                    if (resultat === "dismissed") return; // refus explicite : on n'insiste pas
+                  }
+                  setGuideOuvert((g) => !g);
+                }}
+                className="mt-3 bg-brand-dark text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+              >
+                Installer l&apos;app
+              </button>
+              {guideOuvert && (
+                <div className="mt-2 bg-gray-50 rounded-xl p-3">
+                  {ios ? (
+                    <ol className="space-y-1.5 text-xs text-gray-700">
+                      <li>
+                        1. {vouvoie ? "Touchez" : "Tape"} l&apos;icône{" "}
+                        <span className="font-semibold text-blue-600">Partager</span> ⬆️ en bas de{" "}
+                        {vouvoie ? "votre" : "ton"} navigateur
+                      </li>
+                      <li>
+                        2. Puis <span className="font-semibold">« Sur l&apos;écran d&apos;accueil »</span> ＋
+                      </li>
+                      <li className="text-gray-400">
+                        (Sur iPhone, Apple n&apos;autorise pas l&apos;installation en un clic — ces deux gestes suffisent.)
+                      </li>
+                    </ol>
+                  ) : (
+                    <p className="text-xs text-gray-700">
+                      {vouvoie ? "Ouvrez" : "Ouvre"} le menu{" "}
+                      <span className="font-bold">⋮</span> de {vouvoie ? "votre" : "ton"} navigateur,
+                      puis{" "}
+                      <span className="font-semibold">« Ajouter à l&apos;écran d&apos;accueil »</span> ou{" "}
+                      <span className="font-semibold">« Installer l&apos;application »</span>.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

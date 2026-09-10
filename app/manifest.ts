@@ -15,6 +15,12 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#6B7C3F",
     orientation: "portrait",
     categories: ["food", "loyalty", "shopping"],
+    // Se déclarer soi-même comme « application liée » permet à
+    // navigator.getInstalledRelatedApps() (Chrome/Android) de dire si la PWA
+    // est DÉJÀ installée quand on navigue dans le navigateur — la carte
+    // « Installe l'app » se cache alors au lieu de proposer un geste mort.
+    prefer_related_applications: false,
+    related_applications: [{ platform: "webapp", url: "https://worldcup-loyalty.vercel.app/manifest.webmanifest" }],
     icons: [
       {
         src: "/api/icons/192",
