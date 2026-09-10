@@ -1,7 +1,7 @@
 # ADR 0019 — Découverte de la clé unique de ticket à l'onboarding
 
 **Date** : 2026-07-06
-**Statut** : Accepté
+**Statut** : Accepté — complété par l'ADR 0052 (dédoublonnage par empreinte de contenu quand la clé est mal lue ou absente)
 
 ## Contexte
 

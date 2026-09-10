@@ -1,6 +1,6 @@
 # ADR 0008 — Validation automatique + illusion de contrôle humain
 
-**Statut** : Accepté
+**Statut** : Accepté — amendé par l'ADR 0052 (le numéro de commande n'est plus le seul verrou anti-doublon : empreinte de contenu + photo en signaux complémentaires)
 
 ## Contexte
 
