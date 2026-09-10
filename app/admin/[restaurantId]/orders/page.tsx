@@ -50,6 +50,9 @@ const FLAG_LABELS: Record<string, { label: string; color: string }> = {
   // ADR 0052 — empreinte proche d'un ticket déjà en base sans certitude : ni
   // crédité, ni rejeté. Les deux tickets sont à comparer côte à côte.
   duplicate_review:       { label: "Doublon possible", color: "bg-fuchsia-100 text-fuchsia-800" },
+  // La photo ressemble à une affiche/QR du programme, pas à un ticket — mais
+  // un numéro a été tapé à la main : à vérifier sur l'image.
+  looks_like_poster:      { label: "Photo d'affiche ?", color: "bg-purple-100 text-purple-800" },
 };
 
 function waitHours(submitted_at: string): number {

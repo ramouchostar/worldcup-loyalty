@@ -7,6 +7,7 @@ import { Camera } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { foodIconUrl } from "@/lib/food-icon";
+import { isProgramQrPayload, POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
 import { pointsForOrder } from "@/lib/points-model";
 import { amountBand, track } from "@/lib/analytics";
 import { beaconFunnelStep } from "@/lib/funnel-beacon";
@@ -257,6 +258,29 @@ export default function SubmitOrderClient({
         setParseStatus("error");
         setParseError(prepared.error);
         return;
+      }
+      // Verrou GRATUIT avant tout appel Vision (backlog « refus des photos de
+      // QR/affiche ») : si la photo contient un QR qui pointe vers NOTRE
+      // programme, c'est l'affiche — pas un ticket. Le QR d'avis imprimé au
+      // bas des tickets pointe ailleurs et ne déclenche jamais ce verrou.
+      // BarcodeDetector n'existe que sur Chrome/Android : ailleurs (iOS), le
+      // serveur tranche avec le champ « affiche » de l'analyse. Best-effort.
+      try {
+        const Detector = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => { detect(i: ImageBitmap): Promise<{ rawValue: string }[]> } }).BarcodeDetector;
+        if (Detector) {
+          const bitmap = await createImageBitmap(prepared.file);
+          const codes = await new Detector({ formats: ["qr_code"] }).detect(bitmap);
+          bitmap.close();
+          if (codes.some((c) => isProgramQrPayload(c.rawValue))) {
+            setReceiptFile(null);
+            setPreview(null);
+            setParseStatus("error");
+            setParseError(POSTER_MEMBER_MESSAGE);
+            return;
+          }
+        }
+      } catch {
+        // détecteur indisponible ou image récalcitrante → le serveur tranche
       }
       setReceiptFile(prepared.file);
       setPreview(URL.createObjectURL(prepared.file));

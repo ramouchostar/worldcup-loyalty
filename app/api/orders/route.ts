@@ -223,6 +223,12 @@ export async function POST(request: NextRequest) {
     if (!serverOcr.has_restaurant_header && !serverOcr.order_number) {
       flagReasons.push("no_restaurant_header");
     }
+    // Photo d'affiche/QR du programme sans clé lisible : l'aperçu la refuse
+    // déjà, mais une soumission avec numéro tapé à la main sur une photo
+    // d'affiche doit passer par la revue humaine.
+    if (serverOcr.looks_like_qr_or_poster && !serverOcr.order_number) {
+      flagReasons.push("looks_like_poster");
+    }
   }
 
   // Dédoublonnage par empreinte de contenu (ADR 0052). Le numéro de commande
