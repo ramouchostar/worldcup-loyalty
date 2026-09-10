@@ -66,6 +66,44 @@ export function estIosSafari(): boolean {
   return /iPad|iPhone|iPod/.test(ua) && /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
 }
 
+/** Pur, testable : iOS quel que soit le navigateur. */
+export function detecteIos(ua: string): boolean {
+  return /iPad|iPhone|iPod/.test(ua);
+}
+
+/**
+ * iOS, TOUS navigateurs : Apple n'autorise aucun déclenchement programmatique
+ * de l'installation, et Chrome/Firefox iOS passent par la MÊME feuille
+ * Partager que Safari — les instructions « menu ⋮ » (Android) y sont fausses.
+ * Signalé par le porteur (2026-09-10) : la carte doit décrire les bons gestes
+ * sur tout iOS, pas seulement Safari.
+ */
+export function estIos(): boolean {
+  if (typeof window === "undefined") return false;
+  return detecteIos(navigator.userAgent);
+}
+
+/**
+ * L'app est-elle DÉJÀ installée alors qu'on navigue dans le navigateur ?
+ * `display-mode: standalone` (estInstallee) ne le voit pas — il ne dit vrai
+ * que DANS l'app. getInstalledRelatedApps (Chrome/Android, avec l'entrée
+ * `related_applications` du manifest) répond ; ailleurs l'API n'existe pas et
+ * on répond false — la carte s'affiche, comme avant. Best-effort.
+ */
+export async function verifieAppDejaInstallee(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const nav = navigator as unknown as {
+      getInstalledRelatedApps?: () => Promise<{ platform: string }[]>;
+    };
+    if (!nav.getInstalledRelatedApps) return false;
+    const apps = await nav.getInstalledRelatedApps();
+    return apps.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 // ── Une seule règle, partagée par les deux surfaces ─────────────────────────
 //
 // ADR 0038 §4 : jamais deux fois la même question sur le même écran. La

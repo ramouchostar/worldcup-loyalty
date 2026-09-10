@@ -5,7 +5,7 @@ import { track } from "@/lib/analytics";
 import { beaconFunnelStep } from "@/lib/funnel-beacon";
 import {
   estInstallee,
-  estIosSafari,
+  estIos,
   promptDifferé,
   surPromptInstall,
   lancerInstallation,
@@ -142,7 +142,9 @@ export function PostTicketSheet({
       setInstalled(inst);
       setInstallRow(iRow);
       setPushRow(pRow);
-      setIsIOS(estIosSafari());
+      // Tous les navigateurs iOS passent par la feuille Partager (Chrome/Firefox
+      // iOS compris) — pas seulement Safari (correctif 2026-09-10).
+      setIsIOS(estIos());
       setCanPrompt(!!promptDifferé());
       setOpen(true);
       return surPromptInstall((e) => setCanPrompt(!!e));
@@ -288,7 +290,7 @@ export function PostTicketSheet({
                   {isIOS ? (
                     <>
                       <p className="text-xs text-gray-700">
-                        1 · Tape l&apos;icône <span className="font-bold text-blue-600">Partager</span> ⬆️ en bas de Safari
+                        1 · Tape l&apos;icône <span className="font-bold text-blue-600">Partager</span> ⬆️ en bas de ton navigateur
                       </p>
                       <p className="text-xs text-gray-700">
                         2 · Puis <span className="font-bold">« Sur l&apos;écran d&apos;accueil »</span> ＋
