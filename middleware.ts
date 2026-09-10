@@ -48,6 +48,23 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // QR d'un membre du personnel (ADR 0053) — /r/<id>?p=CODE : on retient QUI a
+  // amené ce visiteur (cookie 24 h, même mécanique que le parrainage ci-dessus)
+  // sans le détourner de la vitrine. La validation du code se fait plus tard,
+  // côté serveur (le middleware n'a pas la clé service-role).
+  if (/^\/r\/[^/]+$/.test(path)) {
+    const staffCode = request.nextUrl.searchParams.get("p");
+    if (staffCode && /^[A-Z0-9]{6}$/.test(staffCode)) {
+      supabaseResponse.cookies.set("staff_ref", staffCode, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24, // 24 h — expire si le client ne s'inscrit pas
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    }
+  }
+
   // Lien d'invitation restaurateur (/invite/[token], ADR 0032) — le restaurateur
   // n'a pas encore de compte : on mémorise le token dans un cookie httpOnly
   // (même mécanique que le parrainage ci-dessus) puis on LAISSE PASSER vers

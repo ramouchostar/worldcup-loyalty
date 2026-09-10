@@ -10,6 +10,7 @@ import { TrackOnMount } from "@/components/analytics/TrackOnMount";
 import { PendingTicketBanner } from "@/components/member/PendingTicketBanner";
 import { ScanTicketCta } from "@/components/member/ScanTicketCta";
 import { foodIconUrl } from "@/lib/food-icon";
+import { recordStaffLanding } from "@/lib/staff-codes";
 import { recordLanding } from "@/lib/qr-funnel";
 import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
@@ -36,12 +37,14 @@ export default async function RestaurantLandingPage({
   searchParams,
 }: {
   params: Promise<{ restaurantId: string }>;
-  searchParams: Promise<{ utm_source?: string }>;
+  searchParams: Promise<{ utm_source?: string; p?: string }>;
 }) {
   const { restaurantId } = await params;
   // Cible des QR imprimés : le `utm_source=qr_code` posé sur les liens encodés
   // permet de séparer un scan en salle d'une arrivée par lien partagé.
-  const { utm_source: utmSource } = await searchParams;
+  // `p` = code d'un membre du personnel (ADR 0053) — le cookie est posé par le
+  // middleware, ici on ne fait que COMPTER l'arrivée par prénom.
+  const { utm_source: utmSource, p: staffCode } = await searchParams;
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();
 
@@ -96,6 +99,9 @@ export default async function RestaurantLandingPage({
     utmSource === "qr_code" ? "qr_code" : "direct",
     user ? "membre" : "anonyme"
   );
+  // ADR 0053 — la même arrivée comptée par PRÉNOM du personnel, en plus de
+  // l'entonnoir général. Best-effort, jamais bloquant.
+  if (staffCode) await recordStaffLanding(restaurantId, staffCode);
 
   const top5 = ((scoresRaw as unknown as LeaderboardRow[]) ?? []).filter((s) => s.teams?.is_active);
   const isMember = !!membership;
