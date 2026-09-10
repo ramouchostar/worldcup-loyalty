@@ -5,6 +5,8 @@ import QRCode from "qrcode";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { BRAND_DEFAULTS } from "@/lib/branding";
+import { getStaffStats } from "@/lib/staff-codes";
+import { StaffCodesSection } from "@/components/admin/StaffCodesSection";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 
@@ -21,6 +23,8 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
   if (!restaurant) notFound();
 
   const branding = await getRestaurantBranding(restaurantId);
+  // ADR 0053 — null = migration pas encore appliquée (la section l'explique).
+  const staffStats = await getStaffStats(restaurantId);
   const isKraainem = restaurantId === "kraainem";
   const dark = branding.brand_dark ?? BRAND_DEFAULTS.dark;
   const targetUrl = `${APP_URL}/r/${restaurantId}`;
@@ -79,6 +83,21 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
           l&apos;impression, mais attends la validation avant d&apos;afficher le QR.
         </div>
       )}
+
+      {/* ADR 0053 — Équipe en salle : un QR par prénom, la mesure de qui
+          apporte des clients. Aucune distinction de poste. */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Équipe en salle</p>
+        <p className="text-xs text-gray-500 -mt-1">
+          Un QR personnel par prénom : tu vois qui amène des clients, et chacun
+          montre son badge depuis son téléphone.
+        </p>
+        <StaffCodesSection
+          restaurantId={restaurantId}
+          initialStats={staffStats ?? []}
+          migrationMissing={staffStats === null}
+        />
+      </div>
 
       {/* Supports imprimables */}
       <div className="space-y-3">
