@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera, Images } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
-import { COIN_EMOJI } from "@/lib/fluent-emoji";
+import { CAMERA_EMOJI, COIN_EMOJI } from "@/lib/fluent-emoji";
 import { foodIconUrl } from "@/lib/food-icon";
 import { isProgramQrPayload, POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
 import { pointsForOrder } from "@/lib/points-model";
@@ -721,7 +721,7 @@ export default function SubmitOrderClient({
           onClick={() => void reprendrePendingFile()}
           className="w-full flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 mb-4 text-left hover:bg-amber-100 transition-colors"
         >
-          <span className="text-2xl shrink-0" aria-hidden="true">📸</span>
+          <Camera className="w-6 h-6 shrink-0 text-amber-700" aria-hidden="true" />
           <span className="flex-1 min-w-0">
             <span className="block font-bold text-amber-900 text-sm">Ton ticket t&apos;attend</span>
             <span className="block text-xs text-amber-800">
@@ -759,16 +759,18 @@ export default function SubmitOrderClient({
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
               >
-                📷 Reprendre
+                <Camera className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                Reprendre
               </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
               >
-                🖼️ Autre photo
+                <Images className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                Autre photo
               </button>
             </div>
           </div>
@@ -887,7 +889,8 @@ export default function SubmitOrderClient({
             <TicketGainCard amount={ocrAmount} reward={gainReward} nextTier={gainNextTier} />
           ) : (
             <>
-              <p className="text-3xl mb-2">📸</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={CAMERA_EMOJI} alt="" className="w-12 h-12 mx-auto mb-2" />
               <h2 className="text-lg font-bold text-gray-900 mb-1">
                 {parseStatus === "parsing" ? "Lecture de ton ticket…" : "Ton ticket est prêt !"}
               </h2>

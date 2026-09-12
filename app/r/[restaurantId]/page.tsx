@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { CLOCK_EMOJI } from "@/lib/fluent-emoji";
 import Link from "next/link";
 import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
 import { getTeamsHidden } from "@/lib/teams";
@@ -60,7 +61,8 @@ export default async function RestaurantLandingPage({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center bg-white rounded-2xl shadow-xl p-8">
-          <p className="text-4xl mb-3">🕐</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={CLOCK_EMOJI} alt="" className="w-14 h-14 mx-auto mb-3" />
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             {restaurant.name} — en attente de validation
           </h1>

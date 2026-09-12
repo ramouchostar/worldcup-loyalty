@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Smartphone, Bell, Check } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { beaconFunnelStep } from "@/lib/funnel-beacon";
 import {
@@ -274,7 +275,7 @@ export function PostTicketSheet({
           {installRow && (
             <div>
               <div className="flex items-center gap-3">
-                <span className="text-2xl" aria-hidden="true">📲</span>
+                <Smartphone className="w-6 h-6 shrink-0 text-gray-700" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 text-sm">Installer l&apos;app</p>
                   <p className="text-xs text-gray-500">
@@ -290,6 +291,11 @@ export function PostTicketSheet({
                   {isIOS ? (
                     <>
                       <p className="text-xs text-gray-700">
+                        {/* ⬆️ ＋ ⋮ : ces trois glyphes ne sont pas des icônes de
+                            notre interface mais une reproduction de celle du
+                            navigateur — les remplacer par des icônes Lucide
+                            montrerait au client un symbole qu'il ne verra pas
+                            dans Safari ou Chrome. */}
                         1 · Tape l&apos;icône <span className="font-bold text-blue-600">Partager</span> ⬆️ en bas de ton navigateur
                       </p>
                       <p className="text-xs text-gray-700">
@@ -314,9 +320,10 @@ export function PostTicketSheet({
                       setInstalled(true);
                       setShowInstallHelp(false);
                     }}
-                    className="text-xs font-semibold text-gray-700 underline"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 underline"
                   >
-                    C&apos;est fait ✅
+                    <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    C&apos;est fait
                   </button>
                 </div>
               )}
@@ -326,7 +333,7 @@ export function PostTicketSheet({
           {pushRow && (
             <div>
               <div className="flex items-center gap-3">
-                <span className="text-2xl" aria-hidden="true">🔔</span>
+                <Bell className="w-6 h-6 shrink-0 text-gray-700" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 text-sm">Être notifié</p>
                   <p className="text-xs text-gray-500">

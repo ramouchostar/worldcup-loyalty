@@ -1,4 +1,5 @@
 "use client";
+import { Camera } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -31,7 +32,7 @@ export function PendingTicketBanner({ restaurantId }: { restaurantId: string }) 
       href={`/r/${restaurantId}/submit-order?resume=1`}
       className="flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 mb-4 hover:bg-amber-100 transition-colors"
     >
-      <span className="text-2xl shrink-0" aria-hidden="true">📸</span>
+      <Camera className="w-6 h-6 shrink-0 text-amber-700" aria-hidden="true" />
       <span className="flex-1 min-w-0">
         <span className="block font-bold text-amber-900 text-sm">Ton ticket t&apos;attend</span>
         <span className="block text-xs text-amber-800">Ta photo est encore là — envoie-la avant qu&apos;elle expire.</span>

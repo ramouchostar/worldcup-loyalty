@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Download, Trash2 } from "lucide-react";
 
 export function AccountActions() {
   const [busy, setBusy] = useState(false);
@@ -32,17 +33,19 @@ export function AccountActions() {
 
       <button
         onClick={exportData}
-        className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-800 hover:bg-gray-50"
+        className="w-full flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-800 hover:bg-gray-50"
       >
-        ⬇️ Exporter mes données (JSON)
+        <Download className="w-4 h-4 shrink-0" aria-hidden="true" />
+        Exporter mes données (JSON)
       </button>
 
       <button
         onClick={deleteAccount}
         disabled={busy}
-        className="w-full text-left px-4 py-3 rounded-lg border border-red-200 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+        className="w-full flex items-center gap-2 px-4 py-3 rounded-lg border border-red-200 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
       >
-        {busy ? "Suppression…" : "🗑️ Supprimer mon compte"}
+        <Trash2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+        {busy ? "Suppression…" : "Supprimer mon compte"}
       </button>
 
       {msg && <p className="text-xs text-red-600">{msg}</p>}

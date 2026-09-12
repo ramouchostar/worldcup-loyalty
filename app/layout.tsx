@@ -100,7 +100,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
+    // Les variables de police vivent sur <html>, pas sur <body> : le preflight
+    // Tailwind pose `font-family: theme(fontFamily.sans)` sur <html>, et une
+    // `var()` non définie à cet endroit invalide toute la déclaration (retour
+    // au Times du navigateur). Vérifié en rendu réel le 2026-09-12.
+    <html lang="fr" className={brandFontVariables}>
       <head>
         <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/api/icons/192" type="image/png" sizes="192x192" />
@@ -110,7 +114,7 @@ export default function RootLayout({
             avant que gtag.js n'ait la moindre chance d'écrire un cookie. */}
         <Analytics />
       </head>
-      <body className={`${brandFontVariables} bg-gray-50 text-gray-900 antialiased`}>
+      <body className="bg-gray-50 text-gray-900 antialiased">
         {children}
         <ServiceWorkerRegister />
         <CookieBanner />

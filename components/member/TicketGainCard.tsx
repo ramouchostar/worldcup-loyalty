@@ -26,6 +26,7 @@
 // SubmitOrderClient.
 // ============================================================
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
+import { CircleCheck } from "lucide-react";
 import { foodIconUrl } from "@/lib/food-icon";
 import { pointsForOrder } from "@/lib/points-model";
 
@@ -45,8 +46,9 @@ export default function TicketGainCard({
 
   return (
     <div>
-      <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">
-        ✅ Ticket lu
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">
+        <CircleCheck className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+        Ticket lu
       </p>
 
       {/* Les points d'abord : c'est ce que ce ticket rapporte, dans la seule

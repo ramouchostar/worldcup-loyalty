@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Gift, Check } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { ACTION_BUTTON_LABELS, ACTION_ORDER, TOKENS_PER_PORTION, getActionLinks, getSocialHandle } from "@/lib/social-actions";
@@ -23,7 +24,7 @@ function loadPostponed(restaurantId: string): Record<string, number> {
 }
 
 // Vue « échelle » — remplace l'ancienne ActionCardsSection (une seule action
-// à la fois) par le parcours complet : fait (✓), en cours (bouton), à venir
+// à la fois) par le parcours complet : fait (coche), en cours (bouton), à venir
 // (numéro grisé), plus le bonus d'équipe en dernière marche. Une action
 // validée disparaît de la liste pour toujours (pas de re-proposition) ; une
 // action reportée redevient "en cours" après son snooze, sans intervention.
@@ -132,8 +133,9 @@ export function ActionsLadder({
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0">
               Prochaine étape
             </p>
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide truncate">
-              🎁 {giftName}
+            <span className="flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wide truncate">
+              <Gift className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{giftName}</span>
             </span>
           </div>
           <p className="text-xl font-black text-gray-900 mb-2">
@@ -175,7 +177,7 @@ export function ActionsLadder({
                           : "border-2 border-gray-200 text-gray-300"
                     }`}
                   >
-                    {isDone ? "✓" : i + 1}
+                    {isDone ? <Check className="w-3.5 h-3.5" aria-hidden="true" /> : i + 1}
                   </span>
                   {!isLastRung && <span className="w-px flex-1 bg-gray-100 mt-1" aria-hidden="true" />}
                 </div>
@@ -226,7 +228,7 @@ export function ActionsLadder({
                 className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold shrink-0"
                 aria-hidden="true"
               >
-                ✓
+                <Check className="w-3.5 h-3.5" aria-hidden="true" />
               </span>
               {nextCommunityItem && <span className="w-px flex-1 bg-gray-100 mt-1" aria-hidden="true" />}
             </div>
@@ -234,7 +236,7 @@ export function ActionsLadder({
               <p className="font-bold text-sm text-gray-900">Actions sociales terminées</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {totalTokens >= TOKENS_PER_PORTION
-                  ? `🎉 ${giftName} débloqué — présente-toi au comptoir pour le récupérer.`
+                  ? `${giftName} débloqué — présente-toi au comptoir pour le récupérer.`
                   : `Encore ${tokensToNext} jeton${tokensToNext > 1 ? "s" : ""} via le parrainage pour débloquer ${giftName}.`}
               </p>
             </div>

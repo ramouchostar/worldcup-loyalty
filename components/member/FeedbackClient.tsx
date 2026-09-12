@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Heart, MessageSquareWarning } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FEEDBACK_DIMENSIONS, DIMENSION_LABELS } from "@/lib/feedback-constants";
 import type { FeedbackDimension, FeedbackMessage, QualityFeedback } from "@/types";
@@ -95,7 +96,7 @@ export function FeedbackClient({
     <div className="space-y-5">
       {done && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm text-green-800">
-          Merci 💛 Ton retour a bien été transmis à ton resto.
+          Merci, ton retour a bien été transmis à ton resto.
         </div>
       )}
 
@@ -111,7 +112,7 @@ export function FeedbackClient({
                   onClick={() => { setMode("encouragement"); setDone(false); }}
                   className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 text-left hover:border-brand-gold transition-colors"
                 >
-                  <span className="text-2xl" aria-hidden="true">💛</span>
+                  <Heart className="w-6 h-6 shrink-0 text-brand-gold" aria-hidden="true" />
                   <span>
                     <span className="block font-semibold text-gray-900 text-sm">Encourager mon resto</span>
                     <span className="block text-gray-500 text-xs">Dire ce qui était bien (ton prénom sera visible)</span>
@@ -122,7 +123,7 @@ export function FeedbackClient({
                   onClick={() => { setMode("incident"); setDone(false); }}
                   className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 text-left hover:border-brand-red transition-colors"
                 >
-                  <span className="text-2xl" aria-hidden="true">🙋</span>
+                  <MessageSquareWarning className="w-6 h-6 shrink-0 text-brand-red" aria-hidden="true" />
                   <span>
                     <span className="block font-semibold text-gray-900 text-sm">Signaler un souci</span>
                     <span className="block text-gray-500 text-xs">En privé et anonyme — juste entre le resto et toi</span>
@@ -169,7 +170,10 @@ export function FeedbackClient({
 
           {mode === "encouragement" && (
             <div className="space-y-3">
-              <p className="font-semibold text-gray-900 text-sm">Un petit mot pour ton resto 💛</p>
+              <p className="flex items-center gap-1.5 font-semibold text-gray-900 text-sm">
+                <Heart className="w-4 h-4 shrink-0 text-brand-gold" aria-hidden="true" />
+                Un petit mot pour ton resto
+              </p>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
@@ -257,8 +261,13 @@ function FeedbackCard({ feedback, messages }: { feedback: QualityFeedback; messa
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-900">
-          {isEnc ? "💛 Encouragement" : "🙋 Signalement"}
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+          {isEnc ? (
+            <Heart className="w-4 h-4 shrink-0 text-brand-gold" aria-hidden="true" />
+          ) : (
+            <MessageSquareWarning className="w-4 h-4 shrink-0 text-brand-red" aria-hidden="true" />
+          )}
+          {isEnc ? "Encouragement" : "Signalement"}
         </span>
         <span className="text-xs text-gray-400">{new Date(feedback.created_at).toLocaleDateString("fr-BE")}</span>
       </div>

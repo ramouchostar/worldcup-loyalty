@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { CircleCheck, ConciergeBell, PiggyBank } from "lucide-react";
+import { GIFT_EMOJI } from "@/lib/fluent-emoji";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import type { PendingReward } from "@/types";
@@ -49,8 +51,9 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
 
       {/* À récupérer */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          🛎 À récupérer ({available.length})
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <ConciergeBell className="w-4 h-4 shrink-0" aria-hidden="true" />
+          À récupérer ({available.length})
         </h2>
         {available.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
@@ -74,8 +77,9 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
       {/* Mises de côté (ADR 0021) */}
       {banked.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            💰 Mises de côté ({banked.length})
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <PiggyBank className="w-4 h-4 shrink-0" aria-hidden="true" />
+            Mises de côté ({banked.length})
           </h2>
           <div className="space-y-3 opacity-70">
             {banked.map((r) => (
@@ -95,8 +99,9 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
       {/* Récupérées */}
       {redeemed.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            ✅ Récupérées ({redeemed.length})
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <CircleCheck className="w-4 h-4 shrink-0" aria-hidden="true" />
+            Récupérées ({redeemed.length})
           </h2>
           <div className="space-y-3 opacity-60">
             {redeemed.map((r) => (
@@ -122,7 +127,8 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
 
       {rewards.length === 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-          <p className="text-4xl mb-3">🎁</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={GIFT_EMOJI} alt="" className="w-14 h-14 mx-auto mb-3" />
           <p className="font-bold text-gray-900">Pas encore de récompenses</p>
           <p className="text-gray-500 text-sm mt-1 mb-4">
             Chaque commande directe validée génère un cadeau à récupérer au comptoir.
@@ -215,12 +221,14 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
             <RedeemButton />
           </span>
         ) : isRedeemed ? (
-          <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-            Récupéré ✓
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+            <CircleCheck className="w-3 h-3 shrink-0" aria-hidden="true" />
+            Récupéré
           </span>
         ) : isBanked ? (
-          <span className="text-xs font-semibold text-brand-dark bg-gray-100 px-2 py-0.5 rounded-full">
-            💰 Mis de côté{bankPoints !== null ? ` (+${bankPoints})` : ""}
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-dark bg-gray-100 px-2 py-0.5 rounded-full">
+            <PiggyBank className="w-3 h-3 shrink-0" aria-hidden="true" />
+            Mis de côté{bankPoints !== null ? ` (+${bankPoints})` : ""}
           </span>
         ) : (
           <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">

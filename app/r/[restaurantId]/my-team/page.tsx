@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { MapPin, Receipt, Trophy } from "lucide-react";
+import { FINISH_FLAG_EMOJI } from "@/lib/fluent-emoji";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase";
@@ -124,12 +126,15 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
         {/* ADR 0047 — les zones ne sont plus demandées à l'inscription : c'est
             ICI qu'elles servent (équipes proches), donc ici qu'on les réclame. */}
         {memberZones.length === 0 && (
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-sm text-blue-900">
-            📍 Dis-nous où tu vis pour découvrir les équipes proches de chez toi —{" "}
+          <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-2xl p-4 text-sm text-blue-900">
+            <MapPin className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+            Dis-nous où tu vis pour découvrir les équipes proches de chez toi —{" "}
             <Link href="/compte" className="font-semibold underline">
               complète ton profil
             </Link>
             .
+            </span>
           </div>
         )}
         <TeamManager
@@ -143,9 +148,10 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
         {/* ADR 0030 §4 — le classement reste explorable sans équipe */}
         <Link
           href={`/r/${restaurantId}/leaderboard`}
-          className="block text-center text-sm font-semibold text-brand-red hover:underline"
+          className="flex items-center justify-center gap-1.5 text-center text-sm font-semibold text-brand-red hover:underline"
         >
-          🏆 Voir le classement des équipes →
+          <Trophy className="w-4 h-4 shrink-0" aria-hidden="true" />
+          Voir le classement des équipes →
         </Link>
       </div>
     );
@@ -225,7 +231,8 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
         </div>
         {leaderboard.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-4xl mb-3" aria-hidden="true">🏁</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={FINISH_FLAG_EMOJI} alt="" className="w-14 h-14 mx-auto mb-3" />
             <p className="font-semibold text-gray-800 text-sm mb-1">
               Aucune commande validée pour l&apos;instant
             </p>
@@ -235,9 +242,10 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
             </p>
             <Link
               href={`/r/${restaurantId}/submit-order`}
-              className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-brand-red/85 transition-colors"
+              className="inline-flex items-center gap-2 bg-brand-red text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-brand-red/85 transition-colors"
             >
-              🧾 Prendre mon ticket en photo
+              <Receipt className="w-4 h-4 shrink-0" aria-hidden="true" />
+              Prendre mon ticket en photo
             </Link>
           </div>
         ) : (

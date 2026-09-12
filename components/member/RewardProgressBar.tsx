@@ -1,4 +1,6 @@
 "use client";
+import { Lock } from "lucide-react";
+import { TROPHY_EMOJI } from "@/lib/fluent-emoji";
 
 import useSWR from "swr";
 import type { Reward } from "@/types";
@@ -28,7 +30,8 @@ export function RewardProgressBar({
   if (!nextReward) {
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-        <p className="text-2xl mb-1">🏆</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={TROPHY_EMOJI} alt="" className="w-9 h-9 mx-auto mb-1" />
         <p className="font-bold text-green-900">Tous les paliers atteints !</p>
       </div>
     );
@@ -64,8 +67,9 @@ export function RewardProgressBar({
       </div>
 
       {!restaurantUnlocked && (
-        <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
-          🔒 Les récompenses communautaires seront bientôt disponibles.
+        <p className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
+          <Lock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          Les récompenses communautaires seront bientôt disponibles.
         </p>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Gift, PiggyBank, ScrollText } from "lucide-react";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getPointsBalance } from "@/lib/points";
@@ -65,7 +66,10 @@ export default async function ReservePage({ params }: { params: Promise<{ restau
 
       {/* Solde */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 text-white rounded-2xl p-6 text-center">
-        <p className="text-xs uppercase tracking-widest text-brand-gold font-bold mb-1">💰 Ma réserve</p>
+        <p className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-widest text-brand-gold font-bold mb-1">
+          <PiggyBank className="w-4 h-4 shrink-0" aria-hidden="true" />
+          Ma réserve
+        </p>
         <p className="text-5xl font-black tabular-nums">{balance}</p>
         <p className="text-gray-300 text-xs mt-2">
           Chaque cadeau mis de côté depuis{" "}
@@ -78,8 +82,9 @@ export default async function ReservePage({ params }: { params: Promise<{ restau
 
       {/* Gros cadeaux */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          🎁 À échanger
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <Gift className="w-4 h-4 shrink-0" aria-hidden="true" />
+          À échanger
         </h2>
         {tiers.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
@@ -117,8 +122,9 @@ export default async function ReservePage({ params }: { params: Promise<{ restau
       {/* Historique */}
       {transactions.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            📜 Mouvements
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <ScrollText className="w-4 h-4 shrink-0" aria-hidden="true" />
+            Mouvements
           </h2>
           <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
             {transactions.map((tx) => (

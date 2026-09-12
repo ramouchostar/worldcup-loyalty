@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { RadioTower, Trophy } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { LeaderboardRealtime } from "@/components/LeaderboardRealtime";
@@ -72,7 +73,10 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
         >
           ← Retour
         </Link>
-        <h1 className="text-2xl font-black">🏆 Classement des équipes</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-black">
+          <Trophy className="w-6 h-6 shrink-0" aria-hidden="true" />
+          Classement des équipes
+        </h1>
         <p className="text-gray-400 text-sm mt-1">
           Quelle équipe mange le plus chez {restaurant?.name ?? "nous"} ?
         </p>
@@ -98,7 +102,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ re
 
       {/* Légende score */}
       <div className="bg-white rounded-xl border border-gray-100 p-3 flex items-center gap-2 text-xs text-gray-500">
-        <span>📡</span>
+        <RadioTower className="w-4 h-4 shrink-0" aria-hidden="true" />
         <span>
           Classement mis à jour en <strong>temps réel</strong> — le score reflète la fidélité et la taille de chaque communauté
         </span>

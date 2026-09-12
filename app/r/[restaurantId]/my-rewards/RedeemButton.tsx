@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Gift } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { track } from "@/lib/analytics";
 
@@ -42,9 +43,16 @@ export function RedeemButton() {
       <button
         onClick={handleClick}
         disabled={busy}
-        className="text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
       >
-        {busy ? "…" : "🎁 Récupérer"}
+        {busy ? (
+          "…"
+        ) : (
+          <>
+            <Gift className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            Récupérer
+          </>
+        )}
       </button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </span>
