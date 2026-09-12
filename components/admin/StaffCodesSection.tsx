@@ -142,7 +142,7 @@ export function StaffCodesSection({
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Prénom (ex. Sofia)"
           maxLength={40}
-          className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-red"
+          className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-brand-red"
         />
         <button
           type="submit"

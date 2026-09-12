@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera, ConciergeBell, Gift, Lightbulb, MessageCircle, PiggyBank, Share2, Trophy, Users, UtensilsCrossed } from "lucide-react";
+import { PEOPLE_EMOJI } from "@/lib/fluent-emoji";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier } from "@/lib/rewards";
@@ -210,7 +211,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           className="flex items-center justify-between bg-brand-dark text-white rounded-2xl p-4 hover:bg-gray-800 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <span className="text-2xl" aria-hidden="true">🍽️</span>
+            <UtensilsCrossed className="w-6 h-6 shrink-0" aria-hidden="true" />
             <div>
               <p className="font-bold text-sm">Vous êtes le gérant de ce restaurant</p>
               <p className="text-xs text-gray-400">Commandes, ventes, broadcasts, réglages…</p>
@@ -232,8 +233,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       {pendingRewards.length > 0 && (
         <div className="bg-gradient-to-br from-brand-gold/15 to-brand-red/5 rounded-2xl border-2 border-brand-gold/40 p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-brand-gold uppercase tracking-widest">
-              🛎 À récupérer au comptoir
+            <p className="flex items-center gap-1.5 text-xs font-bold text-brand-gold uppercase tracking-widest">
+              <ConciergeBell className="w-4 h-4 shrink-0" aria-hidden="true" />
+              À récupérer au comptoir
               {pendingRewards.length > 1 && (
                 <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                   {pendingRewards.length}
@@ -344,7 +346,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 // Jamais commandé (previewAmt reste à 0) — message d'amorçage
                 // orienté action plutôt qu'un nom de palier non atteint.
                 <div className="flex items-center justify-center gap-2 mb-3">
-                  <span className="text-2xl" aria-hidden="true">📸</span>
+                  <Camera className="w-6 h-6 shrink-0 text-gray-700" aria-hidden="true" />
                   <span className="text-lg font-black text-gray-900 text-center">
                     {heroFirstScanMessage()}
                   </span>
@@ -389,7 +391,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               {heroCommunity.item && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span>👥</span>
+                    <Users className="w-4 h-4 shrink-0 text-orange-600" aria-hidden="true" />
                     <span className="font-bold text-orange-600">+ {heroCommunity.item}</span>
                   </div>
                   <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
@@ -399,7 +401,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               {heroTeamTier.item && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span>🏆</span>
+                    <Trophy className="w-4 h-4 shrink-0 text-orange-600" aria-hidden="true" />
                     <span className="font-bold text-orange-600">+ {heroTeamTier.item}</span>
                   </div>
                   <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
@@ -445,7 +447,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         {/* ── Progression d'équipe ────────────────────────────────────────── */}
         {!team ? (
           <div id="tour-community-progress" className="p-5 text-center">
-            <p className="text-3xl mb-2">👥</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={PEOPLE_EMOJI} alt="" className="w-12 h-12 mx-auto mb-2" />
             <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
             <p className="text-sm text-gray-500 mb-4">
               Crée ton équipe ou rejoins-en une pour débloquer le bonus communautaire sur chaque commande.
@@ -522,17 +525,18 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                     href={r("/my-team")}
                     className="mt-3 flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
                   >
-                    <span>📲</span> Inviter dans mon équipe
+                    <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" /> Inviter dans mon équipe
                   </Link>
                 ) : (
-                  <p className="text-xs text-gray-400 mt-2 text-center">
-                    💡 Chaque commande directe de ton équipe vous rapproche.
+                  <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mt-2 text-center">
+                    <Lightbulb className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    Chaque commande directe de ton équipe vous rapproche.
                   </p>
                 )}
               </>
             ) : (
               <div className="text-center py-1">
-                <p className="text-2xl mb-1">🏆</p>
+                <Trophy className="w-6 h-6 mx-auto mb-1 text-green-700" aria-hidden="true" />
                 <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
                 {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
                 <p className="text-xs text-gray-500">
@@ -603,7 +607,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               href={r("/rewards")}
               className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
             >
-              <p className="text-xl mb-1" aria-hidden="true">🎁</p>
+              <Gift className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
               <p className="font-bold text-gray-900 text-sm">Récompenses</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {!hasTeam
@@ -621,7 +625,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               href={r("/leaderboard")}
               className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
             >
-              <p className="text-xl mb-1" aria-hidden="true">🏆</p>
+              <Trophy className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
               <p className="font-bold text-gray-900 text-sm">Classement</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
@@ -632,7 +636,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               href={r("/feedback")}
               className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
             >
-              <p className="text-xl mb-1" aria-hidden="true">💬</p>
+              <MessageCircle className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
               <p className="font-bold text-gray-900 text-sm">Mon resto</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {validCount >= FEEDBACK_ELIGIBILITY_MIN
@@ -645,7 +649,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               href={r("/reserve")}
               className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
             >
-              <p className="text-xl mb-1" aria-hidden="true">💰</p>
+              <PiggyBank className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
               <p className="font-bold text-gray-900 text-sm">Ma réserve</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {reserveBalance > 0
@@ -720,7 +724,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
     pending: { cls: "bg-amber-100 text-amber-800", label: "En attente" },
-    validated: { cls: "bg-green-100 text-green-800", label: "Validée ✓" },
+    validated: { cls: "bg-green-100 text-green-800", label: "Validée" },
     rejected: { cls: "bg-red-100 text-red-800", label: "Rejetée" },
   };
   const { cls, label } = map[status] ?? map.pending;

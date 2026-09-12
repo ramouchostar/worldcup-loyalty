@@ -114,7 +114,7 @@ export function MembersTable({ rows }: { rows: MemberRow[] }) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher par nom, email, resto ou équipe…"
             aria-label="Rechercher un membre"
-            className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-gray-300 focus:outline-none"
+            className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-gray-300"
           />
         </div>
         <div className="flex flex-wrap items-center gap-1">

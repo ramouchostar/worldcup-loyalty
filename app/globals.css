@@ -13,16 +13,96 @@
   --brand-red: 107 124 63;   /* #6B7C3F — vert olive (accent principal) */
   --brand-gold: 169 187 110; /* #A9BB6E — vert olive clair (mise en avant) */
   --brand-dark: 12 21 9;     /* rgb(var(--brand-dark)) — quasi noir, dominante verte */
-  /* Police de marque (m48) — pile système par défaut, identique au rendu
-     Tailwind implicite d'avant m48 (zéro régression pour un resto sans
-     police choisie). Surchargée par établissement via brandStyle(). */
-  --brand-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Police de marque (m48, valeurs par défaut revues le 2026-09-12).
+     Uber Move / Uber Move Text — la référence demandée — sont propriétaires
+     et non licenciables : on reprend leur découpage (une géométrique typée
+     pour les titres, une grotesque neutre et très lisible en petit corps pour
+     l'interface) avec Manrope + Inter. Surchargées par établissement via
+     brandStyle() : un resto qui a choisi sa police la garde partout, titres
+     compris. La pile système reste en repli si le fichier ne charge pas. */
+  --brand-font: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --brand-display-font: var(--font-manrope), var(--brand-font);
   /* Accent /platform uniquement (Mehdi, 2026-08-29) — cette console interne
      n'a pas de charte établissement à respecter (contrairement à brand-red,
      piloté par lib/branding.ts pour /r/[id] et /admin/[id]) : elle peut se
      permettre un vert plus vif que l'identité Boosteats. Ne JAMAIS l'utiliser
      hors de app/platform/** et components/platform/**. */
   --platform-accent: 162 197 35; /* #A2C523 */
+}
+
+/* Socle d'interaction commun (2026-09-12, checklist du design system
+   design-system/boosteats/MASTER.md) — trois règles que chaque composant
+   devait sinon reposer à la main. Dans @layer base pour qu'une utilitaire
+   Tailwind (couche utilities) puisse toujours les surcharger localement. */
+@layer base {
+  /* Curseur. Un <button> garde `cursor: default` dans les navigateurs et le
+     preflight Tailwind ne le change pas : sur 231 boutons du code, 10
+     seulement posaient `cursor-pointer` à la main. */
+  button:not(:disabled),
+  summary,
+  label[for],
+  select:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="submit"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Focus clavier visible partout. `currentColor` plutôt qu'une couleur fixe :
+     l'anneau prend la couleur du texte de l'élément, donc il contraste avec
+     son fond quelle que soit la surface — charte d'établissement (--brand-*),
+     console admin (ink/paper), vitrine sombre (night/moss), /platform en mode
+     sombre. Les composants qui posent déjà leur propre anneau
+     (`focus:outline-none` + `focus:ring-*`) gardent le leur : une utilitaire
+     l'emporte sur @layer base. */
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  /* Titres de l'app membre en police de titre (2026-09-12). Scopé par
+     `data-app="membre"` (posé sur le wrapper de app/r/[id]/layout.tsx) et non
+     sur `.font-brand` : la console restaurateur porte la même classe mais a
+     ses propres titres (font-display, Space Grotesk, redesign m54), et la
+     vitrine restaurateurs les siens (Archivo, m55). Pour un gros chiffre qui
+     n'est pas un titre (le score, les points d'un ticket), poser
+     `font-brand-display` à la main. */
+  [data-app="membre"] :is(h1, h2, h3) {
+    font-family: var(--brand-display-font);
+  }
+}
+
+/* Mouvement réduit — préférence système (iOS : Réglages > Accessibilité >
+   Animation). On neutralise plutôt qu'on ne retire : les états finaux sont
+   atteints immédiatement. components/restaurateurs/motion.tsx applique déjà
+   ce principe côté JS pour la vitrine ; ceci est le filet CSS pour les ~250
+   transitions du reste de l'app. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Exception : les deux animations qui portent une information d'état
+     (chargement en cours, contenu en attente). Les figer laisserait croire à
+     un écran bloqué — on les ralentit au lieu de les couper. */
+  .animate-spin,
+  .animate-pulse {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 @layer utilities {

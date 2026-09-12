@@ -1,4 +1,5 @@
 "use client";
+import { Bell } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -35,7 +36,7 @@ export function InAppNotificationBanner() {
 
   return (
     <div className="bg-brand-dark/95 backdrop-blur-sm border-b border-white/10 px-4 py-3 flex items-start gap-3">
-      <span className="text-xl shrink-0 mt-0.5" aria-hidden="true">🔔</span>
+      <Bell className="w-5 h-5 shrink-0 mt-0.5 text-white" aria-hidden="true" />
       <p className="text-sm text-white flex-1 min-w-0 leading-relaxed">
         {notif.message_body}
       </p>

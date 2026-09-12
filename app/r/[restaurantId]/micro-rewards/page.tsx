@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, CircleCheck, CircleX, Clock, Gift } from "lucide-react";
+import { PARTY_EMOJI } from "@/lib/fluent-emoji";
 import { useParams } from "next/navigation";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { ACTION_ICONS, TOKENS_PER_PORTION, getActionLinks } from "@/lib/social-actions";
@@ -79,7 +81,8 @@ export default function MicroRewardsPage() {
       {/* Token summary */}
       {giftsEarned > 0 ? (
         <div className="bg-green-50 border-2 border-green-400 rounded-2xl p-5">
-          <p className="text-4xl mb-2 text-center">🎉</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={PARTY_EMOJI} alt="" className="w-14 h-14 mx-auto mb-2" />
           <p className="font-bold text-green-900 text-lg text-center">
             {giftsEarned} cadeau{giftsEarned > 1 ? "x" : ""} « {giftName} » gagné{giftsEarned > 1 ? "s" : ""}
           </p>
@@ -97,7 +100,10 @@ export default function MicroRewardsPage() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Cadeau à débloquer</p>
-              <p className="font-bold text-gray-900 text-lg mt-0.5">🎁 {giftName} offert</p>
+              <p className="flex items-center gap-1.5 font-bold text-gray-900 text-lg mt-0.5">
+                <Gift className="w-5 h-5 shrink-0 text-brand-red" aria-hidden="true" />
+                {giftName} offert
+              </p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-brand-red">{totalTokens}</p>
@@ -201,8 +207,8 @@ function ActionCard({
             <p className="text-xs text-gray-500 mt-0.5">{reward.description}</p>
           </div>
           <div className="shrink-0">
-            {status === "validated" && <span className="text-xl">✅</span>}
-            {status === "pending"   && <span className="text-xl">⏳</span>}
+            {status === "validated" && <CircleCheck className="w-5 h-5 text-green-600" aria-hidden="true" />}
+            {status === "pending" && <Clock className="w-5 h-5 text-amber-600" aria-hidden="true" />}
             {!status && (
               <span className="w-6 h-6 rounded-full border-2 border-gray-200 inline-flex items-center justify-center text-xs text-gray-300">
                 ○
@@ -212,18 +218,21 @@ function ActionCard({
         </div>
 
         {status === "validated" && (
-          <div className="mt-3 bg-green-50 px-3 py-2 rounded-lg text-xs font-medium text-green-800">
-            ✅ Validée — +1 jeton obtenu
+          <div className="mt-3 flex items-center gap-1.5 bg-green-50 px-3 py-2 rounded-lg text-xs font-medium text-green-800">
+            <CircleCheck className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            Validée — +1 jeton obtenu
           </div>
         )}
         {status === "pending" && (
-          <div className="mt-3 bg-amber-50 px-3 py-2 rounded-lg text-xs font-medium text-amber-800">
-            ⏳ En attente de validation par notre équipe
+          <div className="mt-3 flex items-center gap-1.5 bg-amber-50 px-3 py-2 rounded-lg text-xs font-medium text-amber-800">
+            <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            En attente de validation par notre équipe
           </div>
         )}
         {status === "rejected" && (
-          <div className="mt-3 bg-red-50 px-3 py-2 rounded-lg text-xs text-red-800">
-            ❌ Rejetée — contacte-nous pour plus d&apos;informations.
+          <div className="mt-3 flex items-center gap-1.5 bg-red-50 px-3 py-2 rounded-lg text-xs text-red-800">
+            <CircleX className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            Rejetée — contacte-nous pour plus d&apos;informations.
           </div>
         )}
 
@@ -242,9 +251,16 @@ function ActionCard({
             <button
               onClick={handleClaim}
               disabled={submitting}
-              className="w-full bg-brand-dark text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 bg-brand-dark text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
-              {submitting ? "Envoi…" : "J'ai effectué cette action ✓"}
+              {submitting ? (
+                "Envoi…"
+              ) : (
+                <>
+                  <Check className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  J&apos;ai effectué cette action
+                </>
+              )}
             </button>
             {error && (
               <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>
@@ -327,7 +343,14 @@ function ReferralSection({
                 onClick={copyLink}
                 className="shrink-0 text-xs font-semibold text-brand-red hover:text-red-700 transition-colors"
               >
-                {copied ? "✓ Copié" : "Copier"}
+                {copied ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    Copié
+                  </span>
+                ) : (
+                  "Copier"
+                )}
               </button>
             </div>
           ) : (

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { MapPin } from "lucide-react";
+import { GIFT_EMOJI, PARTY_EMOJI } from "@/lib/fluent-emoji";
 import { useRouter } from "next/navigation";
 import { teamTypeEmoji } from "@/lib/team-suggestions";
 import { track } from "@/lib/analytics";
@@ -109,7 +111,8 @@ export function TeamRecognitionPrompt({
       <div className={shell}>
         <div className={card}>
           <div className="text-center mb-5">
-            <p className="text-4xl mb-3">🎉</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={PARTY_EMOJI} alt="" className="w-14 h-14 mx-auto mb-3" />
             <h2 className="text-xl font-black text-gray-900">Te voilà dans {joined.name} !</h2>
             {joined.captain ? (
               <p className="text-gray-500 text-sm mt-2 leading-relaxed">
@@ -150,7 +153,8 @@ export function TeamRecognitionPrompt({
     <div className={shell}>
       <div className={card}>
         <div className="text-center mb-5">
-          <p className="text-4xl mb-2" aria-hidden="true">🎁</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={GIFT_EMOJI} alt="" className="w-14 h-14 mx-auto mb-2" />
           <h2 className="text-xl font-black text-gray-900">Ton cadeau peut doubler</h2>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed">
             En équipe, chaque commande des tiens débloque des cadeaux{" "}
@@ -174,7 +178,12 @@ export function TeamRecognitionPrompt({
               <span className="text-2xl shrink-0" aria-hidden="true">{teamTypeEmoji(s.type)}</span>
               <span className="flex-1 min-w-0">
                 <span className="block font-bold text-gray-900 leading-snug">{s.name}</span>
-                {s.zone && <span className="block text-xs text-gray-400 mt-0.5">📍 {s.zone}</span>}
+                {s.zone && (
+                  <span className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                    <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    {s.zone}
+                  </span>
+                )}
               </span>
               <span className="text-brand-red font-bold text-sm shrink-0">
                 {busy === s.id ? "…" : "C'est moi"}

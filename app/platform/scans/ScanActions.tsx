@@ -125,7 +125,7 @@ function Modale({ target, onClose }: { target: ScanActionTarget; onClose: () => 
                   inputMode="decimal"
                   value={montant}
                   onChange={(e) => setMontant(e.target.value)}
-                  className="w-32 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm tabular-nums focus:border-gray-900 focus:outline-none"
+                  className="w-32 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm tabular-nums focus:border-gray-900"
                   placeholder="0.00"
                 />
                 <span className="text-sm text-gray-500">€</span>
@@ -156,7 +156,7 @@ function Modale({ target, onClose }: { target: ScanActionTarget; onClose: () => 
                 type="text"
                 value={cle}
                 onChange={(e) => setCle(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:border-gray-900 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm focus:border-gray-900"
                 placeholder="laisser vide si illisible"
               />
               <p className="mt-1 text-xs text-gray-500">

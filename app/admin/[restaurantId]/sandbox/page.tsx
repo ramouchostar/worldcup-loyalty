@@ -214,7 +214,7 @@ export default function SandboxPage() {
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-20 focus:outline-none"
+                  className="w-20"
                 />
               </div>
             </div>

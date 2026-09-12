@@ -171,7 +171,7 @@ export function FlatSelect({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={searchPlaceholder}
-                    className="w-full bg-transparent text-sm text-white placeholder:text-neutral-500 focus:outline-none"
+                    className="w-full bg-transparent text-sm text-white placeholder:text-neutral-500"
                   />
                 </div>
               )}

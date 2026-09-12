@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PiggyBank } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { track } from "@/lib/analytics";
 
@@ -70,9 +71,10 @@ export function BankButton({ points }: { points: number | null }) {
   return (
     <button
       onClick={() => setConfirming(true)}
-      className="text-xs font-semibold text-brand-dark bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-dark bg-gray-100 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors"
     >
-      💰 Mettre de côté
+      <PiggyBank className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+      Mettre de côté
     </button>
   );
 }

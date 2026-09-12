@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Menu, X, Wrench, UtensilsCrossed, Settings } from "lucide-react";
 
 export type SwitcherRestaurant = { id: string; name: string };
 
 // Menu sandwich unique du header membre — remplace l'ancien duo
 // RestaurantSwitcher (gauche) + UserNav (droite) : logo + nom centrés dans
 // le header, tout le reste (établissements, console, compte, déco) regroupé
-// ici derrière ☰ pour laisser le centre au branding.
+// ici derrière l'icône Menu pour laisser le centre au branding.
 export function HeaderMenu({
   email,
   isSuperAdmin = false,
@@ -30,12 +31,12 @@ export function HeaderMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-white/10 transition-colors text-xl leading-none"
+        className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-white/10 transition-colors"
         aria-expanded={open}
         aria-haspopup="true"
         aria-label="Menu"
       >
-        {open ? "✕" : "☰"}
+        {open ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
       </button>
 
       {open && (
@@ -71,29 +72,32 @@ export function HeaderMenu({
               {isSuperAdmin && (
                 <Link
                   href="/platform"
-                  className="block px-3 py-2 text-sm hover:bg-gray-50"
+                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
                   onClick={() => setOpen(false)}
                 >
-                  🛠️ Plateforme
+                  <Wrench className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  Plateforme
                 </Link>
               )}
               {/* Pont membre → admin (ADR 0030 §2). */}
               {adminHref && (
                 <Link
                   href={adminHref}
-                  className="block px-3 py-2 text-sm hover:bg-gray-50"
+                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
                   onClick={() => setOpen(false)}
                 >
-                  🍽️ Ma console
+                  <UtensilsCrossed className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  Ma console
                 </Link>
               )}
               <Link
                 href="/compte"
-                className="block px-3 py-2 text-sm hover:bg-gray-50"
+                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
                 onClick={() => setOpen(false)}
                 aria-label="Mon compte et confidentialité"
               >
-                ⚙️ Compte
+                <Settings className="w-4 h-4 shrink-0" aria-hidden="true" />
+                Compte
               </Link>
             </div>
 

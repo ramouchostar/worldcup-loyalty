@@ -10,6 +10,7 @@ import { HeaderMenu } from "@/components/member/HeaderMenu";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { AppInstallBeacon } from "@/components/member/AppInstallBeacon";
 import { BottomNav } from "@/components/member/BottomNav";
+import { UtensilsCrossed } from "lucide-react";
 import { RestaurantProvider } from "@/components/member/RestaurantContext";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
@@ -113,14 +114,14 @@ export default async function RestaurantLayout({
         facebook_url: restaurant.facebook_url,
       }}
     >
-    <div className="min-h-screen bg-gray-50 font-brand" style={brandStyle(branding)}>
+    <div data-app="membre" className="min-h-screen bg-gray-50 font-brand" style={brandStyle(branding)}>
       {/* Anonyme : la vitrine post-scan (ADR 0042) est pensée sans chrome de
           navigation (switcher inter-établissements, "Rejoindre" redondant
           avec le CTA de la page) — ce header ne sert qu'un membre connecté. */}
       {user && (
         <header className="bg-brand-dark text-white shadow-md sticky top-0 z-10 pt-safe">
           <div className="max-w-2xl mx-auto px-4 py-3 grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2">
-            {/* Spacer côté gauche : même largeur que le bouton ☰ pour que le
+            {/* Spacer côté gauche : même largeur que le bouton menu pour que le
                 logo/nom au centre reste visuellement centré. */}
             <div aria-hidden="true" />
             <Link
@@ -131,7 +132,10 @@ export default async function RestaurantLayout({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logo} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
               ) : (
-                <span aria-hidden="true">🍗</span>
+                // Repli quand l'établissement n'a pas encore de logo : une
+                // icône neutre plutôt qu'un emoji poulet, qui préjugeait de ce
+                // que vend le resto (héritage Belchicken).
+                <UtensilsCrossed className="w-6 h-6 shrink-0" aria-hidden="true" />
               )}
               {/* Blanc forcé, pas text-brand-gold : pour Kraainem ce token
                   résout en rouge (brand_accent), lu comme un signal de

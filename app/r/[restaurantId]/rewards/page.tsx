@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CircleCheck, Clock, Gift, Lock, LockOpen, PartyPopper } from "lucide-react";
+import { PEOPLE_EMOJI } from "@/lib/fluent-emoji";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
@@ -49,7 +51,8 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
           </div>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-4xl mb-3">👥</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={PEOPLE_EMOJI} alt="" className="w-14 h-14 mx-auto mb-3" />
           <p className="font-bold text-gray-900 mb-1">Rejoins une équipe pour débloquer les paliers</p>
           <p className="text-sm text-gray-500 mb-4">
             Ton cadeau de base reste garanti à chaque commande — mais les bonus
@@ -130,7 +133,11 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
       {/* Statut double verrou */}
       <div className="grid grid-cols-2 gap-3">
         <div className={`rounded-xl p-3 text-center ${restaurantUnlocked ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}>
-          <p className="text-xl mb-1">{restaurantUnlocked ? "🔓" : "🔒"}</p>
+          {restaurantUnlocked ? (
+            <LockOpen className="w-5 h-5 mx-auto mb-1 text-green-700" aria-hidden="true" />
+          ) : (
+            <Lock className="w-5 h-5 mx-auto mb-1 text-amber-700" aria-hidden="true" />
+          )}
           <p className={`text-xs font-semibold ${restaurantUnlocked ? "text-green-800" : "text-amber-800"}`}>
             Bonus communautaire
           </p>
@@ -139,7 +146,11 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
           </p>
         </div>
         <div className={`rounded-xl p-3 text-center ${memberActive ? "bg-green-50 border border-green-200" : "bg-gray-50 border border-gray-200"}`}>
-          <p className="text-xl mb-1">{memberActive ? "✅" : "⏳"}</p>
+          {memberActive ? (
+            <CircleCheck className="w-5 h-5 mx-auto mb-1 text-green-700" aria-hidden="true" />
+          ) : (
+            <Clock className="w-5 h-5 mx-auto mb-1 text-gray-500" aria-hidden="true" />
+          )}
           <p className={`text-xs font-semibold ${memberActive ? "text-green-800" : "text-gray-600"}`}>
             Ton statut
           </p>
@@ -185,7 +196,11 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{isUnlocked ? "🎁" : "🔒"}</span>
+                    {isUnlocked ? (
+                      <Gift className="w-6 h-6 shrink-0 text-brand-red" aria-hidden="true" />
+                    ) : (
+                      <Lock className="w-6 h-6 shrink-0 text-gray-400" aria-hidden="true" />
+                    )}
                     <div>
                       <p className="font-bold text-gray-900">{tier.item}</p>
                       <p className="text-xs text-gray-500 mt-0.5">Palier communautaire</p>
@@ -210,8 +225,9 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
 
                 {isClaimable && (
                   <div className="mt-4 bg-green-50 rounded-lg p-3 text-center">
-                    <p className="text-green-800 text-sm font-semibold">
-                      🎉 Récompense disponible — présente-toi au comptoir {restaurant?.name ?? "du restaurant"} !
+                    <p className="flex items-center justify-center gap-1.5 text-green-800 text-sm font-semibold">
+                      <PartyPopper className="w-4 h-4 shrink-0" aria-hidden="true" />
+                      Récompense disponible — présente-toi au comptoir {restaurant?.name ?? "du restaurant"} !
                     </p>
                   </div>
                 )}

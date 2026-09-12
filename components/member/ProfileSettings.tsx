@@ -1,4 +1,5 @@
 "use client";
+import { Cake } from "lucide-react";
 
 import { useState } from "react";
 import { updateMemberProfile } from "@/app/compte/actions";
@@ -93,7 +94,10 @@ export function ProfileSettings({ initial }: { initial: ProfileInitial }) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
           <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={inputCls} />
-          <p className="text-xs text-gray-400 mt-1">🎂 De quoi te gâter le jour J.</p>
+          <p className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
+            <Cake className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            De quoi te gâter le jour J.
+          </p>
         </div>
 
         {isMinor && (
