@@ -30,6 +30,7 @@ export type Branding = {
 // <body> (voir app/layout.tsx) ; `key` est la valeur stockée en base.
 export const FONT_OPTIONS: { key: string; label: string; cssVar: string }[] = [
   { key: "inter", label: "Inter", cssVar: "var(--font-inter)" },
+  { key: "manrope", label: "Manrope", cssVar: "var(--font-manrope)" },
   { key: "poppins", label: "Poppins", cssVar: "var(--font-poppins)" },
   { key: "playfair", label: "Playfair Display", cssVar: "var(--font-playfair)" },
   { key: "dm_sans", label: "DM Sans", cssVar: "var(--font-dm-sans)" },
@@ -65,7 +66,13 @@ export function brandStyle(b: Partial<Branding> | null | undefined): CSSProperti
   set("--brand-red", b?.brand_primary);
   set("--brand-dark", b?.brand_dark);
   set("--brand-gold", b?.brand_accent);
+  // Une police choisie s'applique au corps ET aux titres : l'établissement
+  // garde une identité d'une seule police, comme avant l'ajout de
+  // --brand-display-font (Manrope par défaut, app/globals.css).
   const font = FONT_OPTIONS.find((f) => f.key === b?.brand_font);
-  if (font) (style as Record<string, string>)["--brand-font"] = font.cssVar;
+  if (font) {
+    (style as Record<string, string>)["--brand-font"] = font.cssVar;
+    (style as Record<string, string>)["--brand-display-font"] = font.cssVar;
+  }
   return style as CSSProperties;
 }

@@ -38,7 +38,11 @@ const config: Config = {
           DEFAULT: "#0A0A0A",
           body: "#3D3D3D",
           muted: "#5C5C56",
-          faint: "#9A9A92",
+          // Assombri le 2026-09-12 (#9A9A92 -> #6F6F68) : l'ancienne valeur
+          // donnait 2,71:1 sur paper, sous le minimum AA de 4,5:1 alors
+          // qu'elle porte des étiquettes de 11px et des chevrons (3:1 pour
+          // une icône). Reste distinct de muted (4,84:1 vs 6,44:1).
+          faint: "#6F6F68",
         },
         paper: {
           DEFAULT: "#FAFAF7",
@@ -48,9 +52,14 @@ const config: Config = {
         // Couleurs sémantiques de statut (redesign m54) — plus sourdes que
         // les red-600/amber-500 par défaut de Tailwind, cohérentes avec le
         // ton "console pro" plutôt qu'alerte grand public.
+        // Contraste vérifié sur paper (#FAFAF7) le 2026-09-12 : danger passait
+        // déjà (5,12:1), warn (2,50:1) et good (3,93:1) échouaient en petit
+        // texte — valeurs remontées au premier ton qui franchit 4,5:1, sans
+        // changer de teinte. Le blanc posé dessus (bg-good/bg-warn) y gagne
+        // aussi (4,11 -> 4,82).
         danger: "#B8443A",
-        warn: "#D4933A",
-        good: "#4A8C3F",
+        warn: "#9E6612",
+        good: "#467F3B",
         // Accent éditorial du site vitrine restaurateurs (redesign m55, design
         // Claude "Landing Restaurateurs") — fixe, indépendant des couleurs
         // brand-* par établissement (au même titre que ink/paper pour la
@@ -77,9 +86,19 @@ const config: Config = {
         },
       },
       fontFamily: {
+        // Police par défaut de TOUTE l'app (2026-09-12) — remplace la pile
+        // système que Tailwind pose sur <body>. Couvre les surfaces sans
+        // wrapper d'établissement : connexion, /join, /coupon, pages
+        // publiques. Les surfaces qui posent une police explicite gardent la
+        // leur (font-brand, font-display, font-landing, font-mono).
+        sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
         // Police de marque par établissement (m48) — --brand-font posé par
         // brandStyle() ; défaut neutre (pile système) dans app/globals.css.
         brand: ["var(--brand-font)"],
+        // Titres de l'app membre (2026-09-12) — Manrope par défaut, mais
+        // brandStyle() la remplace par la police de l'établissement quand il
+        // en a choisi une : un resto garde une seule police, comme avant m48.
+        "brand-display": ["var(--brand-display-font)"],
         // Identité fixe de la console restaurateur (redesign m54) — titres et
         // étiquettes techniques, indépendants de la police d'établissement.
         display: ["var(--font-space-grotesk)"],

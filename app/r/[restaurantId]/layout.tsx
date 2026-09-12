@@ -113,7 +113,7 @@ export default async function RestaurantLayout({
         facebook_url: restaurant.facebook_url,
       }}
     >
-    <div className="min-h-screen bg-gray-50 font-brand" style={brandStyle(branding)}>
+    <div data-app="membre" className="min-h-screen bg-gray-50 font-brand" style={brandStyle(branding)}>
       {/* Anonyme : la vitrine post-scan (ADR 0042) est pensée sans chrome de
           navigation (switcher inter-établissements, "Rejoindre" redondant
           avec le CTA de la page) — ce header ne sert qu'un membre connecté. */}

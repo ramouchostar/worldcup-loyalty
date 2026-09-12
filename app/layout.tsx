@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black } from "next/font/google";
+import { Inter, Manrope, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { Analytics } from "@/components/analytics/Analytics";
@@ -11,6 +11,13 @@ import { CookieBanner } from "@/components/analytics/CookieBanner";
 // laquelle s'applique. Rester listé, jamais chargé depuis un domaine externe
 // à la requête (next/font auto-héberge les fichiers).
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+// Manrope — police de titre par défaut de l'app membre (2026-09-12). Uber
+// Move / Uber Move Text, demandées en référence, sont propriétaires et non
+// licenciables : Manrope reprend la géométrie typée des titres Uber, Inter
+// le corps de texte. Variable (200–800) : une seule requête pour toutes les
+// graisses. Comme les autres, elle reste montée ici et n'entre en jeu que
+// via --brand-display-font (app/globals.css).
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-poppins", display: "swap" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
@@ -31,7 +38,7 @@ const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700
 // — display du support imprimé, distinct d'Archivo (corps) et non exposé
 // dans FONT_OPTIONS (pas sélectionnable comme --brand-font).
 const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
-const brandFontVariables = `${inter.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
+const brandFontVariables = `${inter.variable} ${manrope.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.boosteats.tech";
 
