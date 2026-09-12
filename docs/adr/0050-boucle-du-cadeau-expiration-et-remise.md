@@ -1,6 +1,6 @@
 # ADR 0050 — La boucle du cadeau se referme : expiration tenue, remise mesurée
 
-**Statut** : Accepté (2026-09-09). Implémente la fenêtre de 48 h de l'[ADR 0011](0011-redemption-coupon-anti-fraud.md)
+**Statut** : Accepté (2026-09-09) — **§3 corrigé le 2026-09-12** (voir *Correction* en fin de document) : la métrique ne mesure plus la remise au comptoir, qui n'est enregistrée nulle part, mais la **réclamation**. Implémente la fenêtre de 48 h de l'[ADR 0011](0011-redemption-coupon-anti-fraud.md)
 (décidée, jamais construite — constat déjà posé par l'[ADR 0021](0021-personal-points-reserve.md) §6)
 et corrige la définition de la métrique « récupération » de l'[ADR 0033](0033-console-plateforme-demo-chiffres-backlog.md) §2.
 Ne change rien au calcul des cadeaux (**ADR 0006**, **0017**), au cycle du coupon
@@ -172,3 +172,70 @@ t'en ouvre un nouveau. » Le message ne dit ni « validé », ni « automatique 
   surlendemain), le réglage est `REWARD_CLAIM_WINDOW_HOURS` — un paramètre, pas
   une réécriture. Le rendre configurable **par établissement** serait la suite
   logique, elle n'est pas construite ici.
+
+
+---
+
+## Correction — 2026-09-12 : le §3 mesurait un bouton, pas la vie du programme
+
+**Constat terrain du porteur** : des cadeaux ont bel et bien été remis au comptoir,
+alors que la tuile annonçait **0 %**. La mesure était fausse, pas le terrain.
+
+### Ce que j'avais raté
+
+Il existe **trois** chemins qui marquent un cadeau, et le §3 n'en mesurait qu'un :
+
+| Chemin | Ce qui est écrit | Qui l'emprunte |
+|---|---|---|
+| Le membre ouvre son coupon (`/api/redemption/generate`) | `pending_rewards.status = 'redeemed'` + token créé | le membre, systématiquement |
+| Le restaurateur clique « Remis » dans sa console (`PATCH /api/admin/pending-rewards`) | `status = 'redeemed'`, **aucun token touché** | le restaurateur |
+| Le caissier ouvre `/admin/coupon/[token]` → « Cadeau remis » | `redemption_tokens.redeemed_at` | **personne** |
+
+Le troisième est **court-circuité par construction**, et pas par négligence :
+l'ouverture du coupon bascule déjà `status` en `redeemed`, donc le cadeau quitte
+aussitôt la liste « À remettre » de la console — le restaurateur n'a plus rien à
+cliquer. Et `/admin/coupon/[token]` n'est lié depuis aucune surface : il faudrait
+taper un jeton de 12 caractères à la main, au comptoir, avec un client qui attend.
+
+L'ADR 0011 l'avait d'ailleurs conçu ainsi : le contrôle anti-capture d'écran est
+**visuel** (le caissier regarde l'horloge vivante sur le téléphone du membre). Le
+bouton « Cadeau remis » a toujours été facultatif.
+
+Mesuré au 2026-09-12 : **0 token confirmé sur 9**, pour 9 cadeaux réclamés. Le
+`redeemed_at` des tokens n'est pas un signal faible — c'est un signal **mort**.
+
+### Ce que la correction change
+
+`redemption` redevient un **taux de réclamation** :
+
+> `cadeaux réclamés (status = 'redeemed') ÷ (réclamés + expirés)`
+
+C'est-à-dire, exactement, ce que le code d'origine calculait **avant** cet ADR. Le
+vrai défaut que l'ADR 0050 a corrigé était l'autre : l'absence du cron
+d'expiration, qui rendait le dénominateur dégénéré. Ce correctif-là tient, et il
+reste. C'est le numérateur que j'ai cassé en le déplaçant vers les tokens.
+
+Le comptage `giftsRemitted` est **supprimé** plutôt que laissé à zéro : une colonne
+qui vaut structurellement 0 sur un tableau de bord n'informe pas, elle inquiète.
+
+### Ce qu'on ne mesure pas, et qu'on assume
+
+**L'instant de la remise est physique et n'est enregistré nulle part.** La base ne
+distingue pas « le membre a ouvert son coupon et reparti avec son burger » de « le
+membre a ouvert son coupon et changé d'avis ». La tuile le dit désormais en toutes
+lettres au lieu de le laisser croire.
+
+Rendre ce geste mesurable serait un **chantier produit**, pas un correctif de
+métrique : il faudrait un chemin réel vers la confirmation (un lien depuis la
+console, ou un scan du coupon), et surtout une raison pour le caissier de le
+faire — sans quoi on aurait un bouton de plus et le même zéro. À trancher
+séparément ; l'ADR 0011 a pour l'instant choisi le contrôle visuel, et rien dans
+le terrain ne dit encore que ce choix est mauvais.
+
+### La leçon, pour la prochaine métrique
+
+Un champ qui *porte le bon nom* (`redeemed_at`) n'est pas une preuve qu'il est
+*alimenté par le bon geste*. Avant de faire d'une colonne le numérateur d'un
+indicateur, vérifier **qui l'écrit, depuis quel écran, et si cet écran est
+atteignable** — un taux à 0 % doit faire suspecter la mesure avant de faire
+condamner l'opération.
