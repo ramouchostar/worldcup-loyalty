@@ -7,8 +7,20 @@
 ---
 
 **Project:** Boosteats
-**Generated:** 2026-09-12 21:27:55
+**Generated:** 2026-09-12 21:27:55 (ui-ux-pro-max 2.13.0)
 **Category:** Restaurant/Food Service
+**Révisé le 2026-09-12** — sortie du générateur réconciliée avec le code réel.
+
+> **Statut de ce fichier.** Les sections *Typographie*, *Palette*, *Espacement*,
+> *Ombres* et *Anti-patterns* ont été alignées sur ce que l'app fait
+> réellement — c'est la version qui fait foi. Le reste (pattern de page, style,
+> checklist) est la proposition brute du générateur, utile comme grille de
+> relecture, pas comme décision prise.
+>
+> Rappel de cadrage produit, qui prime sur tout ce document : `CLAUDE.md` et
+> `docs/adr/`. En particulier l'**ADR 0007** (aucun euro ni seuil côté membre)
+> et l'**ADR 0015** (chaque établissement a sa charte : couleurs et police
+> pilotées par `lib/branding.ts`, jamais figées dans un composant).
 
 ---
 
@@ -16,59 +28,83 @@
 
 ### Color Palette
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#DC2626` | `--color-primary` |
-| On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#F87171` | `--color-secondary` |
-| On Secondary | `#0F172A` | `--color-on-secondary` |
-| Accent/CTA | `#A16207` | `--color-accent` |
-| On Accent/CTA | `#FFFFFF` | `--color-on-accent` |
-| Background | `#FEF2F2` | `--color-background` |
-| Foreground | `#450A0A` | `--color-foreground` |
-| Card | `#FFFFFF` | `--color-card` |
-| Card Foreground | `#450A0A` | `--color-card-foreground` |
-| Muted | `#F0EDF1` | `--color-muted` |
-| Muted Foreground | `#475569` | `--color-muted-foreground` |
-| Border | `#FECACA` | `--color-border` |
-| Destructive | `#DC2626` | `--color-destructive` |
-| On Destructive | `#FFFFFF` | `--color-on-destructive` |
-| Ring | `#DC2626` | `--color-ring` |
+La palette proposée par le générateur (rouge « appétissant » + or) n'a pas été
+retenue : Boosteats n'a pas UNE palette, il en a une par établissement
+(`restaurants.brand_primary / brand_dark / brand_accent`, ADR 0015). Les jetons
+réels, définis dans `app/globals.css` et `tailwind.config.ts` :
 
-**Color Notes:** Appetizing red + warm gold [Accent adjusted from #CA8A04]
+| Rôle | Jeton Tailwind | Défaut Boosteats | Surchargé par établissement |
+|------|----------------|------------------|------------------------------|
+| Accent principal, boutons | `brand-red` | `#6B7C3F` (vert olive) | oui — `brand_primary` |
+| Mise en avant, badges | `brand-gold` | `#A9BB6E` | oui — `brand_accent` |
+| En-têtes, fonds sombres | `brand-dark` | `#0C1509` | oui — `brand_dark` |
+| Console restaurateur | `ink-*` / `paper-*` | neutres fixes (m54) | non |
+| Vitrine restaurateurs | `moss-*` / `night-*` | fixes (m55) | non |
+| Console plateforme | `platform-accent` | `#A2C523` | non — `/platform` uniquement |
+
+Statut, contrastes vérifiés sur `paper` (#FAFAF7) le 2026-09-12 :
+
+| Jeton | Valeur | Contraste |
+|-------|--------|-----------|
+| `danger` | `#B8443A` | 5,12:1 |
+| `warn` | `#9E6612` | 4,60:1 |
+| `good` | `#467F3B` | 4,61:1 |
+| `ink-faint` | `#6F6F68` | 4,84:1 |
+
+**Deux règles de couleur propres au produit**, plus fortes que n'importe quelle
+proposition de palette :
+- **jamais de texte rouge côté client** — `brand_accent` résout en rouge pour
+  Kraainem, ce qui fait lire une bonne nouvelle comme une alerte ;
+- **aucun accent rouge sur l'écran de gain** (ADR 0048 §7).
 
 ### Typography
 
-- **Heading Font:** Playfair Display SC
-- **Body Font:** Karla
-- **Mood:** restaurant, menu, culinary, elegant, foodie, hospitality
-- **Google Fonts:** [Playfair Display SC + Karla](https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Playfair+Display+SC:wght@400;700&display=swap)
+Référence demandée : Uber. **Uber Move** et **Uber Move Text** sont des polices
+propriétaires commandées par Uber — ni sur Google Fonts, ni licenciables pour
+une autre app. On reprend leur découpage, pas leurs fichiers :
 
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Playfair+Display+SC:wght@400;700&display=swap');
-```
+- **Titres — Manrope** (`--brand-display-font`, utilitaire `font-brand-display`) :
+  la géométrique typée, comme Uber Move pour les titres et les gros chiffres.
+- **Corps — Inter** (`--brand-font`, et `fontFamily.sans` pour toute l'app) :
+  la grotesque neutre, imbattable en 11–13px, comme Uber Move Text dans l'UI.
+
+Ce que le générateur proposait (Playfair Display SC en titre, Karla en corps)
+n'a pas été retenu : une display serif ne tient pas un écran de liste sur
+mobile, et aucune des deux n'est dans l'app.
+
+Portée :
+- les deux polices sont les **défauts** ; un établissement qui a choisi sa
+  police (m48, `FONT_OPTIONS`) la garde partout, titres compris ;
+- la console restaurateur garde **Space Grotesk** (titres) + **JetBrains Mono**
+  (étiquettes) — identité de l'outil, m54 ;
+- la vitrine restaurateurs garde **Archivo** — m55.
+
+Les variables `next/font` sont posées sur `<html>` et non sur `<body>` : le
+preflight Tailwind déclare `font-family` sur `<html>`, où une `var()` non
+définie invaliderait toute la déclaration.
 
 ### Spacing Variables
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+L'échelle recommandée (4 / 8 / 16 / 24 / 32 / 48 / 64 px) **est déjà** celle de
+Tailwind : `1 / 2 / 4 / 6 / 8 / 12 / 16`. Aucun jeton `--space-*` n'a été ajouté
+— deux systèmes d'espacement en parallèle, c'est la garantie que les deux
+divergent. On utilise les utilitaires Tailwind.
+
+| Recommandation | Utilitaire | Usage |
+|----------------|------------|-------|
+| 4px | `p-1` / `gap-1` | interstices serrés |
+| 8px | `p-2` / `gap-2` | icône ↔ texte |
+| 16px | `p-4` | padding standard |
+| 24px | `p-6` | padding de section |
+| 32px | `p-8` | grands écarts |
+| 48px | `p-12` | marges de section |
+| 64px | `p-16` | padding de hero |
 
 ### Shadow Depths
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+Même constat : les quatre niveaux proposés correspondent aux `shadow-sm`,
+`shadow-md`, `shadow-lg`, `shadow-xl` de Tailwind, aux ombres portées près.
+On utilise ces utilitaires.
 
 ---
 
@@ -189,7 +225,15 @@
 
 ### Additional Forbidden Patterns
 
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
+- ❌ **Emoji en guise d'icône d'interface** — trois registres, un par rôle
+  (appliqué à l'app membre le 2026-09-12 ; console et `/platform` à faire) :
+  1. **icône d'action ou d'état** → `lucide-react` (un emoji ne se rend pas
+     pareil sur iOS, Android et Windows) ;
+  2. **illustration d'état vide** → Fluent Emoji 3D (`lib/fluent-emoji.ts`) ;
+  3. **donnée** → l'emoji reste du texte : podium 🥇🥈🥉, type d'équipe
+     (`teamTypeEmoji`, ADR 0031), réseaux sociaux, messages WhatsApp sortants.
+  Exception : les glyphes qui **reproduisent l'interface d'un autre logiciel**
+  (⬆️ ＋ ⋮ de Safari/Chrome dans `PostTicketSheet`) restent tels quels.
 - ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
 - ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
 - ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
@@ -199,6 +243,12 @@
 ---
 
 ## Pre-Delivery Checklist
+
+Quatre points sont **déjà tenus globalement** dans `app/globals.css` (socle du
+2026-09-12) — ne pas les reposer composant par composant : `cursor: pointer`
+sur les éléments cliquables, focus clavier visible (`:focus-visible`, anneau en
+`currentColor`), `prefers-reduced-motion` respecté (chargeurs et squelettes
+ralentis plutôt que figés), et les jetons de couleur au-dessus de 4,5:1.
 
 Before delivering any UI code, verify:
 
