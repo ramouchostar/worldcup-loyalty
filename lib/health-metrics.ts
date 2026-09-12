@@ -23,12 +23,11 @@ export type HealthMetrics = {
   retention: HealthMetric;
   redemption: HealthMetric;
   /**
-   * Détail de la récupération, parce que le taux seul ne dit pas de quel côté
-   * la boucle casse : combien de coupons le membre a ouverts, combien le
-   * comptoir a confirmés, combien de cadeaux personne n'est venu chercher.
+   * Détail de la réclamation : combien de cadeaux le membre est venu chercher,
+   * combien personne n'est venu chercher. La REMISE elle-même (le geste au
+   * comptoir) n'est pas mesurable — voir le commentaire de `redemption`.
    */
-  couponsOpened: number;
-  giftsRemitted: number;
+  rewardsClaimed: number;
   rewardsExpired: number;
 };
 
@@ -49,8 +48,7 @@ const EMPTY: HealthMetrics = {
   activation: metric(0, 0, 30, 15),
   retention: metric(0, 0, 40, 20),
   redemption: metric(0, 0, 70, 40),
-  couponsOpened: 0,
-  giftsRemitted: 0,
+  rewardsClaimed: 0,
   rewardsExpired: 0,
 };
 
@@ -88,7 +86,7 @@ export async function getHealthMetrics(): Promise<HealthMetrics> {
     return count ?? 0;
   };
 
-  const [totalMembers, orders, couponsOpened, rewardsExpired, giftsRemitted] = await Promise.all([
+  const [totalMembers, orders, rewardsClaimed, rewardsExpired] = await Promise.all([
     countOf(
       excludeSuperAdmins(
         admin.from("memberships").select("user_id", { count: "exact", head: true }).in("restaurant_id", restaurantIds)
@@ -106,9 +104,10 @@ export async function getHealthMetrics(): Promise<HealthMetrics> {
       if (error) throw new Error(`orders: ${error.message}`);
       return ((data as unknown as { user_id: string; order_date: string }[] | null) ?? []);
     })(),
-    // `status = 'redeemed'` = le membre a OUVERT son coupon, pas « cadeau
-    // remis » : le statut est posé par le compare-and-swap anti-double-coupon
-    // de `/api/redemption/generate` (ADR 0050 §Contexte).
+    // `status = 'redeemed'` = le cadeau a été RÉCLAMÉ. Deux chemins y mènent,
+    // et les deux sont de vraies réclamations : le membre ouvre son coupon au
+    // comptoir (`/api/redemption/generate`), ou le restaurateur le marque à la
+    // main depuis sa console (`/api/admin/pending-rewards`).
     countOf(
       excludeSuperAdmins(
         admin
@@ -117,7 +116,7 @@ export async function getHealthMetrics(): Promise<HealthMetrics> {
           .eq("status", "redeemed")
           .in("restaurant_id", restaurantIds)
       ),
-      "pending_rewards(coupon ouvert)"
+      "pending_rewards(réclamé)"
     ),
     countOf(
       excludeSuperAdmins(
@@ -128,24 +127,6 @@ export async function getHealthMetrics(): Promise<HealthMetrics> {
           .in("restaurant_id", restaurantIds)
       ),
       "pending_rewards(expired)"
-    ),
-    // Le cadeau RÉELLEMENT remis : `redemption_tokens.redeemed_at`, posé par
-    // le bouton « Cadeau remis » du comptoir (`/admin/coupon/[token]`). Au
-    // plus un token par cadeau — sa création exige `status = 'available'` et
-    // l'a déjà basculé en `redeemed` — donc ce compte ne dépasse jamais celui
-    // des coupons ouverts.
-    countOf(
-      // `.not("redeemed_at", …)` est appliqué APRÈS `excludeSuperAdmins`, pas
-      // avant : chaîner deux `.not()` avant le helper générique fait exploser
-      // l'inférence du client Supabase (TS2589). Le filtre est le même, l'ordre
-      // des clauses n'a aucun effet sur la requête émise.
-      excludeSuperAdmins(
-        admin
-          .from("redemption_tokens")
-          .select("id", { count: "exact", head: true })
-          .in("restaurant_id", restaurantIds)
-      ).not("redeemed_at", "is", null),
-      "redemption_tokens(remis)"
     ),
   ]);
 
@@ -161,23 +142,28 @@ export async function getHealthMetrics(): Promise<HealthMetrics> {
   let retainedMembers = 0;
   for (const dates of datesByUser.values()) if (dates.size >= 2) retainedMembers++;
 
-  // Rappel de ce que le bug était (ADR 0050) : compter `status = 'redeemed'`
-  // comme une récupération. Sur kraainem au 2026-09-09, 6 coupons ouverts,
-  // ZÉRO confirmé au comptoir, et la tuile annonçait 100 %. Elle ne pouvait
-  // d'ailleurs annoncer que ça — le dénominateur ajoutait `expired`, qui
-  // n'existait dans aucune ligne faute du cron horaire de l'ADR 0011 (voir
-  // lib/reward-expiry.ts). Les deux défauts se couvraient l'un l'autre.
+  // CE QUE CE TAUX MESURE, ET CE QU'IL NE MESURE PAS (ADR 0050, amendé).
+  //
+  // Il mesure la RÉCLAMATION : le membre est-il venu chercher son cadeau dans
+  // ses 48 h ? C'est une question à laquelle la base sait répondre.
+  //
+  // Il ne mesure PAS la remise physique au comptoir, et aucune colonne ne le
+  // peut. `redemption_tokens.redeemed_at` en avait l'air, et une première
+  // version de cette tuile s'en servait — à tort : ce champ n'est posé que par
+  // l'écran `/admin/coupon/[token]`, qui n'est lié depuis nulle part (un jeton
+  // de 12 caractères à taper à la main) et que le parcours réel court-circuite,
+  // puisque l'ouverture du coupon a déjà sorti le cadeau de la liste « À
+  // remettre » du restaurateur. Résultat : 0 sur 9 coupons, alors que les
+  // cadeaux étaient bel et bien remis (constat terrain, 2026-09-12). Compter ce
+  // champ revenait à mesurer l'usage d'un bouton, pas la vie du programme.
   return {
     restaurantCount: restaurantIds.length,
     activation: metric(activatedMembers, totalMembers, 30, 15),
     retention: metric(retainedMembers, activatedMembers, 40, 20),
-    // "Tranché" = coupon ouvert + expiré ; un cadeau encore `available` n'a
-    // pas fini ses 48 h (ADR 0011), on ne sait pas de quel côté il tombera.
-    // Au numérateur, le seul fait qui prouve que la boucle se referme : le
-    // comptoir a confirmé la remise.
-    redemption: metric(giftsRemitted, couponsOpened + rewardsExpired, 70, 40),
-    couponsOpened,
-    giftsRemitted,
+    // "Tranché" = réclamé + expiré ; un cadeau encore `available` n'a pas fini
+    // ses 48 h (ADR 0011), on ne sait pas de quel côté il tombera.
+    redemption: metric(rewardsClaimed, rewardsClaimed + rewardsExpired, 70, 40),
+    rewardsClaimed,
     rewardsExpired,
   };
 }
