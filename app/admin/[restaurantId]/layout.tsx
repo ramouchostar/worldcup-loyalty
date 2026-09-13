@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
+import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
+import { RestaurantMark } from "@/components/admin/RestaurantMark";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
@@ -58,6 +59,12 @@ export default async function AdminLayout({
   const planBadge = PLAN_BADGE[plan] ?? PLAN_BADGE.gratuit;
 
   const branding = await getRestaurantBranding(restaurantId);
+  // ADR 0015 — le logo prend la place du nom en tête de console : le
+  // restaurateur reconnaît sa maison avant de lire. La console était la
+  // dernière surface à ne pas l'afficher, alors que le formulaire de charte
+  // le promet déjà ("ton logo s'applique à ta page membre, à ta console et à
+  // tes QR codes"). Sans logo, on garde la pastille à initiale + le nom.
+  const logo = logoPublicUrl(branding.logo_url);
   const base = `/admin/${restaurantId}`;
   // ADR 0041 §6 — un siège équipe n'a pas accès aux trois pages financières
   // /réglages (seuils CA, paliers d'équipe, réglages établissement) : leur
@@ -125,11 +132,16 @@ export default async function AdminLayout({
       <header className="bg-brand-dark text-white sticky top-0 z-10 pt-safe">
         <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-8 h-8 rounded-lg bg-brand-red flex items-center justify-center font-display font-bold text-brand-dark text-[15px] shrink-0">
-              {restaurant.name.charAt(0).toUpperCase()}
-            </span>
+            <RestaurantMark name={restaurant.name} logoUrl={logo} />
             <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-white font-semibold text-sm truncate">{restaurant.name}</span>
+              {/* Avec un logo, le nom passe en lecture d'écran seulement : le
+                  logo EST le nom. Sans logo, il reste écrit — la pastille à
+                  initiale ne suffit pas à identifier l'établissement. */}
+              {logo ? (
+                <span className="sr-only">{restaurant.name}</span>
+              ) : (
+                <span className="text-white font-semibold text-sm truncate">{restaurant.name}</span>
+              )}
               <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-brand-gold whitespace-nowrap">
                 Console restaurateur
               </span>
@@ -143,6 +155,18 @@ export default async function AdminLayout({
               mobile — ce groupe bascule alors sur sa propre ligne plutôt que
               de se superposer au reste. */}
           <div className="flex items-center gap-3 flex-wrap">
+            {/* Invitation à déposer le logo — visible tant qu'il n'y en a pas,
+                et seulement pour qui peut l'ajouter (ADR 0041 §6 : la page
+                réglages est réservée aux gérants/managers). Disparaît d'elle
+                -même une fois le logo en place. */}
+            {!logo && canManage && (
+              <Link
+                href={`${base}/settings#charte`}
+                className="text-xs text-gray-400 hover:text-white transition-colors whitespace-nowrap"
+              >
+                Ajouter ton logo
+              </Link>
+            )}
             {access.isSuperAdmin && (
               <Link href="/platform" className="text-xs text-brand-gold hover:text-white transition-colors whitespace-nowrap">
                 Plateforme

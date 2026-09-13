@@ -39,6 +39,27 @@ export function logoPublicUrl(path: string | null): string | null {
   return `${base}/storage/v1/object/public/${LOGO_BUCKET}/${path}`;
 }
 
+// Logos publics de plusieurs établissements en une requête — pour les écrans
+// qui en listent (sélecteur /admin). Même résilience que
+// getRestaurantBranding() : si la colonne n'existe pas encore (migration non
+// appliquée), on rend une table vide et l'appelant retombe sur la pastille à
+// initiale, plutôt que de casser la page.
+export async function getRestaurantLogos(ids: string[]): Promise<Record<string, string | null>> {
+  if (ids.length === 0) return {};
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.from("restaurants").select("id, logo_url").in("id", ids);
+    if (error || !data) return {};
+    const out: Record<string, string | null> = {};
+    for (const row of data as { id: string; logo_url: string | null }[]) {
+      out[row.id] = logoPublicUrl(row.logo_url);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export { LOGO_BUCKET };
 
 // Conservé pour app/admin/** uniquement (ADR 0015 §6-7 hors scope — l'admin

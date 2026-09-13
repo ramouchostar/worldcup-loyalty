@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { getRestaurantId } from "@/lib/restaurant";
+import { getRestaurantId, getRestaurantLogos } from "@/lib/restaurant";
 import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
+import { RestaurantMark } from "@/components/admin/RestaurantMark";
 
 export default async function AdminLandingPage() {
   const supabase = await createServerSupabaseClient();
@@ -38,6 +39,11 @@ export default async function AdminLandingPage() {
 
   if (restaurants.length === 1) redirect(`/admin/${restaurants[0].id}`);
 
+  // ADR 0015 — on choisit son établissement au logo, pas à la lecture d'une
+  // liste de noms : c'est exactement l'écran où la confusion coûte cher
+  // (valider les commandes du mauvais resto).
+  const logos = await getRestaurantLogos(restaurants.map((r) => r.id));
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -57,10 +63,15 @@ export default async function AdminLandingPage() {
               <Link
                 key={r.id}
                 href={`/admin/${r.id}`}
-                className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 hover:border-brand-red transition-colors"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:border-brand-red transition-colors"
               >
-                <span className="font-semibold text-gray-900">{r.name}</span>
-                <span className="text-sm font-semibold text-brand-red">Gérer →</span>
+                <RestaurantMark
+                  name={r.name}
+                  logoUrl={logos[r.id] ?? null}
+                  className={logos[r.id] ? "border border-gray-200" : ""}
+                />
+                <span className="font-semibold text-gray-900 flex-1 min-w-0 truncate">{r.name}</span>
+                <span className="text-sm font-semibold text-brand-red shrink-0">Gérer →</span>
               </Link>
             ))}
           </div>

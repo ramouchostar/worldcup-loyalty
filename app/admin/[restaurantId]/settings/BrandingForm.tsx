@@ -132,7 +132,8 @@ export function BrandingForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    // #charte : cible du lien « Ajouter ton logo » de l'en-tête de console.
+    <form id="charte" onSubmit={handleSubmit} className="scroll-mt-20 space-y-5">
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-5">
         <div>
           <h2 className="font-bold text-gray-900">Charte graphique</h2>
