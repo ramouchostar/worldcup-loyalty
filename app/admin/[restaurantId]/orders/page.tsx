@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { TriangleAlert, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { PageHeader, FilterTabs, StatusBadge } from "@/components/admin/ui";
+import { DuplicateReviews } from "@/components/admin/DuplicateReviews";
 
 type AdminOrder = {
   id: string;
@@ -24,7 +25,11 @@ type AdminOrder = {
   teams: { name: string; flag_emoji: string } | null;
 };
 
-const STATUS_FILTER = ["flagged", "pending", "validated", "rejected", "all"] as const;
+// ADR 0052 — « Doublons » est un onglet de cette barre, plus une page à part :
+// le même ticket y apparaissait deux fois (ici avec le badge « Doublon
+// possible », et sur sa propre page), et le valider depuis ici contournait la
+// comparaison côte à côte en laissant la ligne `duplicate_reviews` en attente.
+const STATUS_FILTER = ["flagged", "duplicates", "pending", "validated", "rejected", "all"] as const;
 type Filter = (typeof STATUS_FILTER)[number];
 
 const REJECT_REASONS = [
@@ -298,6 +303,10 @@ export default function AdminOrdersPage() {
   const [busy, setBusy]           = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [batchMode, setBatchMode] = useState(false);
+  // Remonté par l'onglet Doublons une fois sa file chargée (0 tant qu'on ne
+  // l'a pas ouvert : on n'appelle pas une deuxième API au chargement de la
+  // page pour un compteur).
+  const [duplicateCount, setDuplicateCount] = useState(0);
   const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [batchBusy, setBatchBusy] = useState(false);
   const [photoUrl, setPhotoUrl]   = useState<string | null>(null);
@@ -376,12 +385,17 @@ export default function AdminOrdersPage() {
     : rejectPreset || rejectFree;
 
   const isFlagged = (o: AdminOrder) => Array.isArray(o.flag_reasons) && o.flag_reasons.length > 0;
+  // Un ticket en cours d'arbitrage vit dans l'onglet « Doublons » et nulle
+  // part ailleurs : le valider depuis « Suspectes » sautait la comparaison
+  // côte à côte et laissait sa ligne `duplicate_reviews` en attente.
+  const inDuplicateReview = (o: AdminOrder) =>
+    Array.isArray(o.flag_reasons) && o.flag_reasons.includes("duplicate_review");
 
   // Sort pending/flagged by age (oldest first), others by recency (newest first)
   const filtered = orders
     .filter(o => {
       if (filter === "all")     return true;
-      if (filter === "flagged") return isFlagged(o) && o.status === "pending";
+      if (filter === "flagged") return isFlagged(o) && o.status === "pending" && !inDuplicateReview(o);
       return o.status === filter;
     })
     .sort((a, b) => {
@@ -393,7 +407,8 @@ export default function AdminOrdersPage() {
     });
 
   const counts = {
-    flagged:   orders.filter(o => isFlagged(o) && o.status === "pending").length,
+    flagged:   orders.filter(o => isFlagged(o) && o.status === "pending" && !inDuplicateReview(o)).length,
+    duplicates: duplicateCount,
     pending:   orders.filter(o => o.status === "pending").length,
     validated: orders.filter(o => o.status === "validated").length,
     rejected:  orders.filter(o => o.status === "rejected").length,
@@ -472,17 +487,22 @@ export default function AdminOrdersPage() {
         tabs={STATUS_FILTER.map(f => ({
           key: f,
           label:
-            f === "flagged"   ? "Suspectes" :
-            f === "all"       ? "Toutes" :
-            f === "pending"   ? "En attente" :
-            f === "validated" ? "Validées" : "Rejetées",
+            f === "flagged"    ? "Suspectes" :
+            f === "duplicates" ? "Doublons" :
+            f === "all"        ? "Toutes" :
+            f === "pending"    ? "En attente" :
+            f === "validated"  ? "Validées" : "Rejetées",
           count: counts[f],
           tone: f === "flagged" ? ("danger" as const) : undefined,
         }))}
       />
 
-      {/* Order list */}
-      {loading ? (
+      {/* Onglet Doublons — sa propre file (table `duplicate_reviews`), servie
+          par son API : ce ne sont pas des lignes de `orders` à filtrer, mais
+          des PAIRES à comparer. */}
+      {filter === "duplicates" ? (
+        <DuplicateReviews restaurantId={restaurantId} onCountChange={setDuplicateCount} />
+      ) : loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-white rounded-xl h-28 animate-pulse border border-paper-border" />

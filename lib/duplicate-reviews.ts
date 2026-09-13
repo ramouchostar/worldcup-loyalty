@@ -39,17 +39,10 @@ export type DuplicateReview = {
 };
 
 /** Phrase lisible par règle — jamais montrée au membre, seulement en console. */
-export const RULE_LABELS: Record<string, string> = {
-  same_order_number: "Numéro de ticket identique",
-  fingerprint_time: "Même contenu, même heure",
-  fingerprint_same_day: "Même contenu, même jour",
-  fingerprint_number_confusion: "Même contenu, numéro mal lu",
-  same_user_time_amount: "Même membre, même heure et même montant",
-  image_phash: "Photos quasi identiques",
-  image_phash_far: "Photos ressemblantes",
-  cross_user_fingerprint: "Contenu identique, deux membres différents",
-  near_fingerprint: "Contenu presque identique",
-};
+// Libellés déplacés dans `lib/duplicate-review-labels.ts` (module sans
+// dépendance serveur, lisible depuis un composant client) — re-exportés ici
+// pour les appelants serveur existants.
+export { RULE_LABELS } from "./duplicate-review-labels";
 
 function toStoragePath(value: string): string {
   // `receipt_url` stocke un chemin ; les lignes historiques peuvent porter une

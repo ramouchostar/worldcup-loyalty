@@ -571,18 +571,11 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       </div>
       </PaywallSection>
 
-      <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
-        <p>
-          <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Chaque proposition est calculée à partir de tes ventes scannées et de
-          tes coûts de revient — les remises suggérées préservent toujours au moins
-          la moitié de ta marge.
-        </p>
-        <p>
-          <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Le bouton « Ajuster et envoyer » ouvre le broadcast pré-rempli : tu
-          peux modifier le texte et cibler tous tes membres, certains types
-          d&apos;équipes ou des équipes précises.
-        </p>
-      </div>
+      <p className="text-xs text-ink-muted">
+        <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+        Chaque proposition est calculée sur tes ventes scannées et tes coûts de revient — les
+        remises suggérées préservent toujours au moins la moitié de ta marge.
+      </p>
     </div>
   );
 }

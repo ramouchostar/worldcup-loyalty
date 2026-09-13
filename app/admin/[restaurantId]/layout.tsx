@@ -84,10 +84,10 @@ export default async function AdminLayout({
       title: "Au quotidien",
       links: [
         { href: base,                      label: "Dashboard", icon: "dashboard" },
+        // ADR 0052 — la file des doublons ambigus est un ONGLET de Commandes,
+        // plus une entrée de nav : c'est le même geste de comptoir, et le même
+        // ticket apparaissait dans les deux.
         { href: `${base}/orders`,          label: "Commandes", icon: "orders" },
-        // ADR 0052 — file des doublons AMBIGUS (les certains sont refusés sans
-        // humain). Voisine de « Commandes » : c'est le même geste de comptoir.
-        { href: `${base}/duplicates`,      label: "Doublons",  icon: "duplicates" },
         { href: `${base}/pending-rewards`, label: "Cadeaux",   icon: "gifts" },
       ],
     },

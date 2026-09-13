@@ -24,13 +24,13 @@ export default async function TeamsPage({ params }: { params: Promise<{ restaura
           {membres} membre{membres > 1 ? "s" : ""} rattaché{membres > 1 ? "s" : ""}</>}
       />
 
-      <div className="bg-paper-subtle border border-paper-border rounded-xl p-4 text-sm text-ink-body">
-        Une équipe apparaît quand un client se reconnaît dans une communauté déclarée, ou en crée une lui-même.
-        Tu ne peux pas en créer à leur place — c&apos;est le premier « oui » qui la fait naître.{" "}
-        <Link href={`/admin/${restaurantId}/settings`} className="font-semibold underline">
+      <p className="text-sm text-ink-muted">
+        Tu ne crées pas les équipes : c&apos;est le premier « oui » d&apos;un client qui en fait
+        naître une.{" "}
+        <Link href={`/admin/${restaurantId}/settings`} className="font-semibold text-brand-red hover:underline">
           Gérer les communautés proposées
         </Link>
-      </div>
+      </p>
 
       <TeamsManager restaurantId={restaurantId} teams={teams} />
     </div>
