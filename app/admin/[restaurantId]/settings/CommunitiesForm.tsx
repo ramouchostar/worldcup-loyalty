@@ -64,10 +64,10 @@ export function CommunitiesForm({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+    <div className="bg-white rounded-xl border border-paper-border p-5 space-y-4">
       <div>
-        <h2 className="font-bold text-gray-900">👥 D&apos;où viennent tes clients ?</h2>
-        <p className="text-xs text-gray-400 mt-0.5">
+        <h2 className="font-bold text-ink">👥 D&apos;où viennent tes clients ?</h2>
+        <p className="text-xs text-ink-faint mt-0.5">
           Les écoles, entreprises et quartiers que tu vois passer le plus. À
           l&apos;inscription, on demande à chaque client s&apos;il s&apos;y
           reconnaît — il rejoint son équipe en un tap au lieu d&apos;avoir à en
@@ -79,11 +79,11 @@ export function CommunitiesForm({
       {rows.length > 0 && (
         <div className="space-y-2">
           {rows.map((r) => (
-            <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+            <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl bg-paper">
               <span className="text-lg shrink-0" aria-hidden="true">{teamTypeEmoji(r.type)}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{r.name}</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-sm font-semibold text-ink truncate">{r.name}</p>
+                <p className="text-xs text-ink-faint">
                   {SUGGESTION_TYPES.find((t) => t.value === r.type)?.label}
                   {r.materialized && " · équipe active"}
                 </p>
@@ -91,7 +91,7 @@ export function CommunitiesForm({
               <button
                 type="button"
                 onClick={() => remove(r.id)}
-                className="text-xs text-gray-400 hover:text-red-600 shrink-0"
+                className="text-xs text-ink-faint hover:text-danger shrink-0"
               >
                 Retirer
               </button>
@@ -114,12 +114,12 @@ export function CommunitiesForm({
               }}
               placeholder={SUGGESTION_TYPES.find((t) => t.value === type)?.hint ?? "Nom"}
               maxLength={60}
-              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="flex-1 min-w-0 border border-paper-border rounded-lg px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={add}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 shrink-0"
+              className="px-4 py-2 bg-paper-subtle text-ink-body rounded-lg text-sm font-medium hover:bg-paper-border shrink-0"
             >
               Ajouter
             </button>
@@ -127,7 +127,7 @@ export function CommunitiesForm({
           <select
             value={type}
             onChange={(e) => setType(e.target.value as TeamType)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+            className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm bg-white"
           >
             {SUGGESTION_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -139,14 +139,14 @@ export function CommunitiesForm({
       )}
 
       {rows.some((r) => r.materialized) && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-ink-faint">
           Retirer une communauté déjà rejointe ne supprime pas son équipe — elle
           reste active, seul le raccourci d&apos;adhésion disparaît.
         </p>
       )}
 
       {message && (
-        <p className={`text-sm ${message.kind === "error" ? "text-red-600" : "text-green-700"}`}>
+        <p className={`text-sm ${message.kind === "error" ? "text-danger" : "text-good"}`}>
           {message.text}
         </p>
       )}

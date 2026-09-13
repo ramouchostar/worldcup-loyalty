@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/ui";
 
 type Member = {
   id: string;
@@ -26,7 +27,7 @@ function StatusBadge({ result }: { result: Result | null }) {
   if (!result) return null;
   const isOk = result.ok;
   return (
-    <p className={`text-xs font-mono mt-2 ${isOk ? "text-green-700" : "text-red-600"}`}>
+    <p className={`text-xs font-mono mt-2 ${isOk ? "text-good" : "text-danger"}`}>
       {isOk
         ? `✓ ${JSON.stringify(Object.fromEntries(Object.entries(result).filter(([k]) => k !== "ok")))}`
         : `✗ ${result.error}`}
@@ -166,36 +167,36 @@ export default function SandboxPage() {
         {/* ADR 0030 §5 — hors sidebar admin : retour explicite au dashboard */}
         <Link
           href={`/admin/${restaurantId}`}
-          className="inline-block text-xs text-gray-400 hover:text-gray-600 mb-1"
+          className="inline-block text-xs text-ink-faint hover:text-ink-body mb-1"
         >
           ← Retour au dashboard
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">🧪 Sandbox</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Simule des commandes, scores et notifications sans passer par l&apos;OCR.
-          Données réelles en base — utilise un compte de test.
-        </p>
+        <PageHeader
+          title={<>Sandbox</>}
+          subtitle={<>Simule des commandes, scores et notifications sans passer par l&apos;OCR.
+            Données réelles en base — utilise un compte de test.</>}
+        />
       </div>
 
       {/* ── Section 1 : Commande test ───────────────────────────────────────── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <div className="bg-white border border-paper-border rounded-xl p-5 space-y-4">
         <div>
-          <h2 className="font-semibold text-gray-900">Commande test</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h2 className="font-semibold text-ink">Commande test</h2>
+          <p className="text-xs text-ink-muted mt-0.5">
             Crée une commande validée instantanément pour n&apos;importe quel montant.
             Déclenche les récompenses pendantes et met à jour le score.
           </p>
         </div>
 
         {loading ? (
-          <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="h-10 bg-paper-subtle rounded-lg animate-pulse" />
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-[1fr_auto] gap-3">
               <select
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                className="border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
               >
                 <option value="">— Sélectionner un membre —</option>
                 {members.map((m) => (
@@ -205,8 +206,8 @@ export default function SandboxPage() {
                 ))}
               </select>
 
-              <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                <span className="text-gray-400">€</span>
+              <div className="flex items-center gap-1 border border-paper-border rounded-lg px-3 py-2 text-sm">
+                <span className="text-ink-faint">€</span>
                 <input
                   type="number"
                   min="1"
@@ -220,7 +221,7 @@ export default function SandboxPage() {
             </div>
 
             {selectedMember?.teams && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ink-muted">
                 Équipe : {selectedMember.teams.flag_emoji} {selectedMember.teams.name}
                 {Number(amount) >= 60 && " · Palier solo : Chef's Combo"}
                 {Number(amount) >= 40 && Number(amount) < 60 && " · Palier solo : Menu 4 Tenders"}
@@ -243,10 +244,10 @@ export default function SandboxPage() {
       </div>
 
       {/* ── Section 2 : Score communautaire ────────────────────────────────── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <div className="bg-white border border-paper-border rounded-xl p-5 space-y-4">
         <div>
-          <h2 className="font-semibold text-gray-900">Score communautaire</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h2 className="font-semibold text-ink">Score communautaire</h2>
+          <p className="text-xs text-ink-muted mt-0.5">
             Fixe directement member_count et total_spent. Score = member_count × total_spent.
           </p>
         </div>
@@ -255,7 +256,7 @@ export default function SandboxPage() {
           <select
             value={scoreTeamId}
             onChange={(e) => setScoreTeamId(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+            className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
           >
             <option value="__all__">Toutes les équipes</option>
             {scores.map((s) => (
@@ -268,42 +269,42 @@ export default function SandboxPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Membres</label>
+              <label className="text-xs text-ink-muted mb-1 block">Membres</label>
               <input
                 type="number"
                 min="0"
                 value={memberCount}
                 onChange={(e) => setMemberCount(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Total dépensé (€)</label>
+              <label className="text-xs text-ink-muted mb-1 block">Total dépensé (€)</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={totalSpent}
                 onChange={(e) => setTotalSpent(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
               />
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
+          <div className="bg-paper rounded-lg px-3 py-2 text-sm text-ink-body">
             Score résultant :{" "}
             <strong className="text-brand-dark">
               {previewScore.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
             </strong>
             {scoreTeamId === "__all__" && (
-              <span className="text-xs text-gray-400 ml-2">(appliqué à toutes les équipes)</span>
+              <span className="text-xs text-ink-faint ml-2">(appliqué à toutes les équipes)</span>
             )}
           </div>
 
           <button
             onClick={applyScore}
             disabled={scoreBusy}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="w-full bg-ink text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
           >
             {scoreBusy ? "Application..." : "📊 Appliquer le score"}
           </button>
@@ -313,16 +314,16 @@ export default function SandboxPage() {
 
       {/* ── Section 3 : Scores actuels ─────────────────────────────────────── */}
       {scores.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-semibold text-gray-900 mb-3">Scores actuels (top 10)</h2>
+        <div className="bg-white border border-paper-border rounded-xl p-5">
+          <h2 className="font-semibold text-ink mb-3">Scores actuels (top 10)</h2>
           <div className="space-y-1.5">
             {scores.slice(0, 10).map((s, i) => (
               <div key={s.team_id} className="flex items-center gap-3 text-sm">
-                <span className="text-gray-400 w-5 text-right text-xs">{i + 1}</span>
+                <span className="text-ink-faint w-5 text-right text-xs">{i + 1}</span>
                 <span>{s.teams?.flag_emoji}</span>
-                <span className="flex-1 text-gray-700">{s.teams?.name}</span>
-                <span className="text-xs text-gray-500">{s.member_count}m · {Number(s.total_spent).toFixed(0)}€</span>
-                <span className="font-semibold text-gray-900 w-24 text-right">
+                <span className="flex-1 text-ink-body">{s.teams?.name}</span>
+                <span className="text-xs text-ink-muted">{s.member_count}m · {Number(s.total_spent).toFixed(0)}€</span>
+                <span className="font-semibold text-ink w-24 text-right">
                   {Number(s.score).toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
                 </span>
               </div>
@@ -332,22 +333,22 @@ export default function SandboxPage() {
       )}
 
       {/* ── Section 4 : Crons ──────────────────────────────────────────────── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+      <div className="bg-white border border-paper-border rounded-xl p-5 space-y-3">
         <div>
-          <h2 className="font-semibold text-gray-900">Déclenchement crons</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h2 className="font-semibold text-ink">Déclenchement crons</h2>
+          <p className="text-xs text-ink-muted mt-0.5">
             Lance les jobs planifiés immédiatement sans attendre cron-job.org.
           </p>
         </div>
         <button
           onClick={resetTest}
           disabled={resetTestBusy || !userId}
-          className="w-full bg-purple-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+          className="w-full bg-ink text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
         >
           {resetTestBusy ? "Reset..." : "🔄 Reset test — log + last_notified_at + orders → -7h"}
         </button>
         {resetTestResult && (
-          <p className={`text-xs font-mono ${resetTestResult.ok ? "text-green-700" : "text-red-600"}`}>
+          <p className={`text-xs font-mono ${resetTestResult.ok ? "text-good" : "text-danger"}`}>
             {resetTestResult.ok ? `✓ ${resetTestResult.reset}` : `✗ ${resetTestResult.error}`}
           </p>
         )}
@@ -355,12 +356,12 @@ export default function SandboxPage() {
         <button
           onClick={triggerCron}
           disabled={cronBusy === "notif"}
-          className="w-full bg-amber-500 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors"
+          className="w-full bg-warn text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-warn/85 disabled:opacity-50 transition-colors"
         >
           {cronBusy === "notif" ? "Envoi..." : "🔔 Déclencher les notifications"}
         </button>
         {cronResult && (
-          <pre className={`text-xs font-mono p-2 rounded-lg bg-gray-50 overflow-x-auto ${cronResult.ok ? "text-green-700" : "text-red-600"}`}>
+          <pre className={`text-xs font-mono p-2 rounded-lg bg-paper overflow-x-auto ${cronResult.ok ? "text-good" : "text-danger"}`}>
             {JSON.stringify(cronResult, null, 2)}
           </pre>
         )}
@@ -368,16 +369,16 @@ export default function SandboxPage() {
 
       {/* ── Section 5 : Membres inscrits ───────────────────────────────────── */}
       {members.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-semibold text-gray-900 mb-3">
+        <div className="bg-white border border-paper-border rounded-xl p-5">
+          <h2 className="font-semibold text-ink mb-3">
             Membres ({members.length})
           </h2>
           <div className="space-y-1.5">
             {members.map((m) => (
               <div key={m.id} className="flex items-center gap-3 text-sm">
                 <span>{m.teams?.flag_emoji ?? "🏳️"}</span>
-                <span className="flex-1 text-gray-700">{m.display_name}</span>
-                <span className="text-xs text-gray-400">{m.email ?? "—"}</span>
+                <span className="flex-1 text-ink-body">{m.display_name}</span>
+                <span className="text-xs text-ink-faint">{m.email ?? "—"}</span>
               </div>
             ))}
           </div>
@@ -385,10 +386,10 @@ export default function SandboxPage() {
       )}
 
       {/* ── Section 6 : Zone dangereuse ─────────────────────────────────────── */}
-      <div className="bg-red-50 border border-red-200 rounded-xl p-5 space-y-3">
+      <div className="bg-danger/10 border border-danger/30 rounded-xl p-5 space-y-3">
         <div>
-          <h2 className="font-semibold text-red-900">Zone dangereuse</h2>
-          <p className="text-xs text-red-600 mt-0.5">
+          <h2 className="font-semibold text-danger">Zone dangereuse</h2>
+          <p className="text-xs text-danger mt-0.5">
             Remet tous les scores communautaires à zéro (member_count et total_spent).
             Les commandes et récompenses existantes restent en base.
           </p>
@@ -396,23 +397,23 @@ export default function SandboxPage() {
         {!resetConfirm ? (
           <button
             onClick={() => setResetConfirm(true)}
-            className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-200 transition-colors"
+            className="bg-danger/12 text-danger px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger/20 transition-colors"
           >
             🗑️ Reset tous les scores à 0
           </button>
         ) : (
           <div className="flex gap-3 items-center">
-            <p className="text-sm text-red-700 font-medium">Confirmer le reset ?</p>
+            <p className="text-sm text-danger font-medium">Confirmer le reset ?</p>
             <button
               onClick={resetScores}
               disabled={resetBusy}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+              className="bg-danger text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger disabled:opacity-50"
             >
               {resetBusy ? "Reset..." : "Oui, reset"}
             </button>
             <button
               onClick={() => setResetConfirm(false)}
-              className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
+              className="border border-paper-border text-ink-body px-4 py-2 rounded-lg text-sm hover:bg-paper"
             >
               Annuler
             </button>

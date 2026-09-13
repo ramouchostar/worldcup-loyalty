@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import type { PendingReward } from "@/types";
+import { PageHeader, FilterTabs } from "@/components/admin/ui";
 
 type AdminPendingReward = PendingReward & {
   profiles: { display_name: string; email: string } | null;
@@ -69,29 +70,27 @@ export default function AdminPendingRewardsPage() {
   return (
     <div className="space-y-5">
       {actionError && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-start justify-between gap-2">
+        <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 text-sm text-danger flex items-start justify-between gap-2">
           <span>⚠️ {actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-700 shrink-0" aria-label="Fermer">✕</button>
+          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">✕</button>
         </div>
       )}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Récompenses en attente</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Marque comme récupérée quand le membre passe au comptoir.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Récompenses en attente</>}
+        subtitle={<>Marque comme récupérée quand le membre passe au comptoir.</>}
+      />
 
       {/* Résumé distribution */}
       {distribution.length > 0 && (
-        <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+        <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-xl p-4">
+          <p className="text-xs font-semibold text-ink-body uppercase tracking-wide mb-2">
             🧾 À préparer ({pending.length} récompense{pending.length > 1 ? "s" : ""})
           </p>
           <div className="flex flex-wrap gap-2">
             {distribution.map(([item, count]) => (
               <span
                 key={item}
-                className="inline-flex items-center gap-1 bg-white border border-gray-200 text-gray-800 text-sm font-medium px-3 py-1 rounded-full shadow-sm"
+                className="inline-flex items-center gap-1 bg-white border border-paper-border text-ink text-sm font-medium px-3 py-1 rounded-full"
               >
                 <span className="font-bold text-brand-red">{count}×</span> {item}
               </span>
@@ -102,29 +101,22 @@ export default function AdminPendingRewardsPage() {
 
       {/* Filtres + recherche */}
       <div className="flex flex-col gap-3">
-        <div className="flex gap-2">
-          {(["available", "redeemed"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === f
-                  ? "bg-brand-dark text-white"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-gray-400"
-              }`}
-            >
-              {f === "available" ? "À récupérer" : "Récupérées"}
-              <span className="ml-1.5 opacity-60">({counts[f]})</span>
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          value={filter}
+          onChange={setFilter}
+          tabs={(["available", "redeemed"] as const).map((f) => ({
+            key: f,
+            label: f === "available" ? "À récupérer" : "Récupérées",
+            count: counts[f],
+          }))}
+        />
 
         <input
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Rechercher par nom ou email..."
-          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900 placeholder:text-gray-400"
+          className="w-full px-4 py-2.5 border border-paper-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red text-ink placeholder:text-ink-faint"
         />
       </div>
 
@@ -132,12 +124,12 @@ export default function AdminPendingRewardsPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white rounded-xl h-20 animate-pulse border border-gray-100" />
+            <div key={i} className="bg-white rounded-xl h-20 animate-pulse border border-paper-border" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-          <p className="text-gray-400">
+        <div className="bg-white rounded-xl border border-paper-border p-8 text-center">
+          <p className="text-ink-faint">
             {search ? "Aucun résultat pour cette recherche." :
              filter === "available" ? "Aucune récompense en attente." : "Aucune récompense récupérée."}
           </p>
@@ -148,16 +140,16 @@ export default function AdminPendingRewardsPage() {
             <div
               key={r.id}
               className={`bg-white rounded-xl border p-4 ${
-                r.status === "available" ? "border-brand-gold/40" : "border-gray-100 opacity-70"
+                r.status === "available" ? "border-brand-gold/40" : "border-paper-border opacity-70"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className="font-bold text-sm text-gray-900">
+                    <span className="font-bold text-sm text-ink">
                       {r.profiles?.display_name ?? "—"}
                     </span>
-                    <span className="text-xs text-gray-400">{r.profiles?.email}</span>
+                    <span className="text-xs text-ink-faint">{r.profiles?.email}</span>
                   </div>
 
                   {/* Cadeaux par couche */}
@@ -165,27 +157,27 @@ export default function AdminPendingRewardsPage() {
                     {r.solo_item && (
                       <div className="flex items-center gap-1.5 text-sm">
                         <span>🍗</span>
-                        <span className="font-medium text-gray-800">{r.solo_item}</span>
-                        <span className="text-xs text-gray-400">— palier solo</span>
+                        <span className="font-medium text-ink">{r.solo_item}</span>
+                        <span className="text-xs text-ink-faint">— palier solo</span>
                       </div>
                     )}
                     {r.community_item && (
                       <div className="flex items-center gap-1.5 text-sm">
                         <span>👥</span>
-                        <span className="font-medium text-gray-800">+ {r.community_item}</span>
-                        <span className="text-xs text-gray-400">— bonus communautaire</span>
+                        <span className="font-medium text-ink">+ {r.community_item}</span>
+                        <span className="text-xs text-ink-faint">— bonus communautaire</span>
                       </div>
                     )}
                     {r.advancement_item && (
                       <div className="flex items-center gap-1.5 text-sm">
                         <span>🏆</span>
-                        <span className="font-medium text-gray-800">+ {r.advancement_item}</span>
-                        <span className="text-xs text-gray-400">— bonus d&apos;équipe</span>
+                        <span className="font-medium text-ink">+ {r.advancement_item}</span>
+                        <span className="text-xs text-ink-faint">— bonus d&apos;équipe</span>
                       </div>
                     )}
                   </div>
 
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-ink-faint">
                     Commande{" "}
                     {r.orders
                       ? `${Number(r.orders.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} — ${new Date(r.orders.order_date).toLocaleDateString("fr-BE")}`
@@ -200,17 +192,17 @@ export default function AdminPendingRewardsPage() {
                   <button
                     onClick={() => markRedeemed(r.id)}
                     disabled={busy === r.id}
-                    className="shrink-0 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    className="shrink-0 px-3 py-1.5 bg-good text-white rounded-lg text-xs font-semibold hover:bg-good disabled:opacity-50 transition-colors"
                   >
                     {busy === r.id ? "…" : "✓ Récupéré"}
                   </button>
                 ) : (
                   <div className="shrink-0 text-right">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-paper-subtle text-ink-muted">
                       Récupéré ✓
                     </span>
                     {r.redeemed_at && (
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-ink-faint mt-1">
                         {new Date(r.redeemed_at).toLocaleDateString("fr-BE")}
                       </p>
                     )}

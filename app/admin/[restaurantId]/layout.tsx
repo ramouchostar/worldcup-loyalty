@@ -52,7 +52,7 @@ export default async function AdminLayout({
   ]);
   const showEstablishmentSwitcher = adminRestaurantIds.length > 1;
   const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
-    gratuit: { label: "Gratuit", cls: "bg-white/10 text-gray-300" },
+    gratuit: { label: "Gratuit", cls: "bg-white/10 text-white/75" },
     croissance: { label: "Croissance", cls: "bg-brand-gold/20 text-brand-gold" },
     pro: { label: "Pro", cls: "bg-brand-gold text-brand-dark" },
   };
@@ -162,7 +162,7 @@ export default async function AdminLayout({
             {!logo && canManage && (
               <Link
                 href={`${base}/settings#charte`}
-                className="text-xs text-gray-400 hover:text-white transition-colors whitespace-nowrap"
+                className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap"
               >
                 Ajouter ton logo
               </Link>
@@ -173,11 +173,11 @@ export default async function AdminLayout({
               </Link>
             )}
             {showEstablishmentSwitcher && (
-              <Link href="/admin" className="text-xs text-gray-400 hover:text-white transition-colors whitespace-nowrap">
+              <Link href="/admin" className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
                 Mes établissements
               </Link>
             )}
-            <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-gray-400 hover:text-white transition-colors whitespace-nowrap">
+            <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
               ← Retour espace membre
             </Link>
           </div>
@@ -188,17 +188,17 @@ export default async function AdminLayout({
       {isPlatformMode && (
         <div className="bg-brand-gold/15 border-b border-brand-gold/30">
           <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs">
-            <span className="text-amber-900 font-semibold truncate">
+            <span className="text-warn font-semibold truncate">
               🛠️ Mode plateforme — vous consultez « {restaurant.name} »
             </span>
             <div className="flex items-center gap-3 shrink-0">
               <Link
                 href={`/platform/members?restaurant=${restaurantId}`}
-                className="text-amber-900 font-bold hover:underline"
+                className="text-warn font-bold hover:underline"
               >
                 👥 Membres
               </Link>
-              <Link href="/platform" className="text-amber-900 font-bold hover:underline">
+              <Link href="/platform" className="text-warn font-bold hover:underline">
                 ← Retour à la plateforme
               </Link>
             </div>

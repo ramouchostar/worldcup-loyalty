@@ -41,7 +41,7 @@ export function RequestPlanButton({
 
   if (state === "sent" || state === "already") {
     return (
-      <p className="text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-center">
+      <p className="text-sm font-semibold text-good bg-good/10 border border-good/30 rounded-xl px-4 py-2.5 text-center">
         ✓ {state === "already" ? "Demande déjà envoyée" : "Demande envoyée"} — on te recontacte
         très vite.
       </p>
@@ -62,7 +62,7 @@ export function RequestPlanButton({
         {state === "busy" ? "…" : `Demander le plan ${PLAN_LABEL[requiredPlan] ?? requiredPlan}`}
       </button>
       {state === "error" && (
-        <p className="text-xs text-red-600 mt-2">Échec de l&apos;envoi — réessaie.</p>
+        <p className="text-xs text-danger mt-2">Échec de l&apos;envoi — réessaie.</p>
       )}
     </div>
   );
@@ -81,7 +81,7 @@ export function TrialBanner({
   if (ent.state !== "essai") return null;
   return (
     <div className="bg-brand-gold/15 border border-brand-gold/40 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
-      <p className="text-sm text-amber-900">
+      <p className="text-sm text-warn">
         ⏳ <strong>Essai gratuit</strong> — encore {ent.trialDaysLeft} jour
         {(ent.trialDaysLeft ?? 0) > 1 ? "s" : ""} pour profiter de cette fonction.
       </p>
@@ -89,7 +89,7 @@ export function TrialBanner({
         restaurantId={restaurantId}
         feature={feature}
         requiredPlan={ent.requiredPlan}
-        className="bg-brand-dark text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shrink-0"
+        className="bg-brand-dark text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-ink transition-colors shrink-0"
       />
     </div>
   );
@@ -126,12 +126,12 @@ export function PaywallSection({
         {children}
       </div>
       <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl p-6 max-w-sm text-center space-y-3">
+        <div className="bg-white/95 border border-paper-border shadow-xl rounded-xl p-6 max-w-sm text-center space-y-3">
           <p className="text-3xl" aria-hidden="true">🔒</p>
-          <p className="font-bold text-gray-900">{title}</p>
-          <p className="text-sm text-gray-500">{pitch}</p>
+          <p className="font-bold text-ink">{title}</p>
+          <p className="text-sm text-ink-muted">{pitch}</p>
           <RequestPlanButton restaurantId={restaurantId} feature={feature} requiredPlan={ent.requiredPlan} />
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-ink-faint">
             Ton essai gratuit est terminé — tes données restent intactes et continuent de
             s&apos;accumuler.
           </p>

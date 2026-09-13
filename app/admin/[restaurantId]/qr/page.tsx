@@ -7,6 +7,7 @@ import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { BRAND_DEFAULTS } from "@/lib/branding";
 import { getStaffStats } from "@/lib/staff-codes";
 import { StaffCodesSection } from "@/components/admin/StaffCodesSection";
+import { PageHeader } from "@/components/admin/ui";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 
@@ -68,16 +69,14 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
 
   return (
     <div className="space-y-6 max-w-lg">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">QR code de {restaurant.name}</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Un client qui le scanne arrive sur ta page, s&apos;inscrit et rejoint ta
-          communauté. Choisis un support prêt-à-imprimer, ou télécharge le QR brut.
-        </p>
-      </div>
+      <PageHeader
+        title={<>QR code de {restaurant.name}</>}
+        subtitle={<>Un client qui le scanne arrive sur ta page, s&apos;inscrit et rejoint ta
+          communauté. Choisis un support prêt-à-imprimer, ou télécharge le QR brut.</>}
+      />
 
       {restaurant.status !== "active" && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+        <div className="bg-warn/10 border border-warn/30 rounded-xl p-4 text-sm text-warn">
           ⚠️ Ton établissement n&apos;est pas encore validé : la page de destination
           restera invisible aux clients jusqu&apos;à l&apos;approbation. Tu peux préparer
           l&apos;impression, mais attends la validation avant d&apos;afficher le QR.
@@ -87,8 +86,8 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
       {/* ADR 0053 — Équipe en salle : un QR par prénom, la mesure de qui
           apporte des clients. Aucune distinction de poste. */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Équipe en salle</p>
-        <p className="text-xs text-gray-500 -mt-1">
+        <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Équipe en salle</p>
+        <p className="text-xs text-ink-muted -mt-1">
           Un QR personnel par prénom : tu vois qui amène des clients, et chacun
           montre son badge depuis son téléphone.
         </p>
@@ -101,36 +100,36 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
 
       {/* Supports imprimables */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Supports prêts à imprimer</p>
+        <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Supports prêts à imprimer</p>
         <div className="grid gap-3">
           {formats.map((f) => (
             <Link
               key={f.key}
               href={`/admin/${restaurantId}/qr/print?format=${f.key}`}
-              className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-gold/50 hover:shadow-sm transition-all"
+              className="flex items-center gap-4 bg-white rounded-xl border border-paper-border p-4 hover:border-brand-gold/50 hover:shadow-sm transition-all"
             >
               <span className="text-3xl">{f.icon}</span>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{f.label}</p>
-                <p className="text-xs text-gray-400">{f.desc}</p>
+                <p className="font-semibold text-ink">{f.label}</p>
+                <p className="text-xs text-ink-faint">{f.desc}</p>
               </div>
               <span className="text-brand-red font-semibold text-sm shrink-0">Imprimer →</span>
             </Link>
           ))}
         </div>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-ink-faint">
           🎨 Les supports reprennent ton logo et tes couleurs. Configure-les dans{" "}
           <Link href={`/admin/${restaurantId}/settings`} className="text-brand-red hover:underline">Mon établissement</Link>.
         </p>
       </div>
 
       {/* Aperçu + QR brut */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center">
+      <div className="bg-white rounded-xl border border-paper-border p-6 flex flex-col items-center">
         <div
           className="w-56 h-56 [&>svg]:w-full [&>svg]:h-full"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
-        <p className="mt-4 text-xs text-gray-400 font-mono break-all text-center">{targetUrl}</p>
+        <p className="mt-4 text-xs text-ink-faint font-mono break-all text-center">{targetUrl}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -150,7 +149,7 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
         </a>
       </div>
 
-      <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
+      <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
         <p>💡 Pour les supports, imprime avec les marges « Aucune » et les couleurs d&apos;arrière-plan activées.</p>
         <p>💡 Le SVG est vectoriel : c&apos;est le format à donner à un imprimeur professionnel.</p>
         <p>💡 Teste toujours le QR imprimé avec ton téléphone avant de le distribuer.</p>

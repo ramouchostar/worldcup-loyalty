@@ -7,6 +7,7 @@ import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import { CatalogGapsSection } from "@/components/admin/CatalogGapsSection";
 import { menuImageUrl } from "@/lib/menu-images";
+import { PageHeader } from "@/components/admin/ui";
 
 const TEMPLATE = `nom;categorie;prix_vente;prix_revient
 Finest burger;Burger;9,00;0,94
@@ -227,11 +228,11 @@ export default function AdminMenuPage() {
             recouvrir le libellé de la colonne voisine. `whitespace-nowrap` sur
             le libellé évite le « € » renvoyé seul à la ligne suivante. */}
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600 w-44 shrink-0 whitespace-nowrap">{label}</span>
+          <span className="text-sm text-ink-body w-44 shrink-0 whitespace-nowrap">{label}</span>
           <select
             value={tiers[key] ?? ""}
             onChange={(e) => setTier(layer, threshold, e.target.value || null)}
-            className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+            className="flex-1 min-w-0 border border-paper-border rounded-lg px-3 py-2 text-sm bg-white"
           >
             <option value="">— aucun cadeau —</option>
             {giftItems.map((it) => (
@@ -246,26 +247,24 @@ export default function AdminMenuPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Menu &amp; coûts</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Téléverse ton catalogue, puis assigne un article à chaque palier de récompense. Ces données
-          servent au calcul des cadeaux et ne sont jamais visibles côté client.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Menu &amp; coûts</>}
+        subtitle={<>Téléverse ton catalogue, puis assigne un article à chaque palier de récompense. Ces données
+          servent au calcul des cadeaux et ne sont jamais visibles côté client.</>}
+      />
 
       {/* ── Upload ──────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <label className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:opacity-90 cursor-pointer">
             {uploading ? "Import en cours…" : "Importer un CSV"}
             <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} disabled={uploading} className="hidden" />
           </label>
-          <button onClick={downloadTemplate} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
+          <button onClick={downloadTemplate} className="px-4 py-2 bg-paper-subtle text-ink-body rounded-lg text-sm font-medium hover:bg-paper-border">
             Télécharger le modèle
           </button>
         </div>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-ink-faint">
           Séparateur <code>;</code> ou <code>,</code>, virgule décimale acceptée (ex. <code>0,31</code>).
           Re-téléverser remplace le catalogue : les articles absents sont désactivés (jamais supprimés).
         </p>
@@ -276,7 +275,7 @@ export default function AdminMenuPage() {
       <CatalogGapsSection restaurantId={restaurantId} menuItems={items} onResolved={loadAll} />
 
       {msg && (
-        <div className={`rounded-xl p-3 text-sm border ${msg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+        <div className={`rounded-xl p-3 text-sm border ${msg.kind === "ok" ? "bg-good/10 border-good/30 text-good" : "bg-danger/10 border-danger/30 text-danger"}`}>
           <p className="font-medium">{msg.text}</p>
           {msg.details && msg.details.length > 0 && (
             <ul className="mt-1 list-disc list-inside text-xs opacity-80">
@@ -289,10 +288,10 @@ export default function AdminMenuPage() {
       {/* ── Catalogue ───────────────────────────────────────────────────────── */}
       {loading ? (
         <div className="space-y-2">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="bg-white rounded-xl h-12 animate-pulse border border-gray-100" />)}
+          {[1, 2, 3, 4].map((i) => <div key={i} className="bg-white rounded-xl h-12 animate-pulse border border-paper-border" />)}
         </div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+        <div className="bg-white rounded-xl border border-dashed border-paper-border p-8 text-center text-sm text-ink-muted">
           Aucun article. Importe ton premier catalogue avec le bouton ci-dessus.
         </div>
       ) : (() => {
@@ -312,15 +311,15 @@ export default function AdminMenuPage() {
           <>
             {best && worst && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-green-50 border border-green-200 rounded-xl p-3">
-                  <p className="text-xs text-green-700 font-semibold uppercase tracking-wide">💎 Marge la plus forte</p>
-                  <p className="text-sm font-bold text-gray-900 mt-1 truncate">{best.name}</p>
-                  <p className="text-xs text-green-700">{euro(margin(best))} de marge par vente</p>
+                <div className="bg-good/10 border border-good/30 rounded-xl p-3">
+                  <p className="text-xs text-good font-semibold uppercase tracking-wide">💎 Marge la plus forte</p>
+                  <p className="text-sm font-bold text-ink mt-1 truncate">{best.name}</p>
+                  <p className="text-xs text-good">{euro(margin(best))} de marge par vente</p>
                 </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">⚠️ Marge la plus faible</p>
-                  <p className="text-sm font-bold text-gray-900 mt-1 truncate">{worst.name}</p>
-                  <p className="text-xs text-amber-700">{euro(margin(worst))} de marge par vente</p>
+                <div className="bg-warn/10 border border-warn/30 rounded-xl p-3">
+                  <p className="text-xs text-warn font-semibold uppercase tracking-wide">⚠️ Marge la plus faible</p>
+                  <p className="text-sm font-bold text-ink mt-1 truncate">{worst.name}</p>
+                  <p className="text-xs text-warn">{euro(margin(worst))} de marge par vente</p>
                 </div>
               </div>
             )}
@@ -330,8 +329,8 @@ export default function AdminMenuPage() {
             {(() => {
               const avec = items.filter((i) => i.image_path).length;
               return (
-                <p className="text-xs text-gray-500">
-                  <span className="font-semibold text-gray-700">{avec}</span> des {items.length} articles ont une photo.
+                <p className="text-xs text-ink-muted">
+                  <span className="font-semibold text-ink-body">{avec}</span> des {items.length} articles ont une photo.
                   Clique une miniature pour l&apos;ouvrir en grand et vérifier qu&apos;elle colle à l&apos;article ;
                   « Ajouter » / « Changer » dépose ta propre photo (JPG, PNG ou WebP, 2 Mo max).
                 </p>
@@ -339,9 +338,9 @@ export default function AdminMenuPage() {
             })()}
             {/* overflow-x-auto + min-w : la table 7 colonnes scrolle sur
                 téléphone au lieu de s'écraser (audit 2026-07-23) */}
-            <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+            <div className="bg-white rounded-xl border border-paper-border overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <thead className="bg-paper text-ink-muted text-xs uppercase">
                   <tr>
                     <th className="text-left font-medium px-4 py-2.5 w-16">Photo</th>
                     <th className="text-left font-medium px-4 py-2.5">Article</th>
@@ -352,7 +351,7 @@ export default function AdminMenuPage() {
                     <th className="text-right font-medium px-4 py-2.5" title="Valeur perçue par euro de coût">Ratio cadeau</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-paper-border">
                   {items.map((it) => {
                     const costKnown = it.cost_price != null;
                     const ratio = costKnown && it.cost_price! > 0 ? it.menu_price / it.cost_price! : 0;
@@ -362,7 +361,7 @@ export default function AdminMenuPage() {
                     const photo = menuImageUrl(it.image_path);
                     const busy = photoBusy === it.id;
                     return (
-                      <tr key={it.id} className={`${it.is_active ? "" : "opacity-50"} ${isTop ? "bg-green-50/60" : isFlop ? "bg-amber-50/60" : ""}`}>
+                      <tr key={it.id} className={`${it.is_active ? "" : "opacity-50"} ${isTop ? "bg-good/10/60" : isFlop ? "bg-warn/10/60" : ""}`}>
                         <td className="px-4 py-2.5">
                           {/* La miniature ouvre la photo en grand (vérifier
                               qu'elle colle à l'article) ; le lien dessous
@@ -379,11 +378,11 @@ export default function AdminMenuPage() {
                                   src={photo}
                                   alt={it.name}
                                   loading="lazy"
-                                  className="h-12 w-12 object-cover rounded-lg border border-gray-200 hover:opacity-80"
+                                  className="h-12 w-12 object-cover rounded-lg border border-paper-border hover:opacity-80"
                                 />
                               </a>
                             ) : (
-                              <label className="h-12 w-12 rounded-lg border border-dashed border-gray-200 grid place-items-center text-gray-300 text-lg cursor-pointer hover:border-gray-300 hover:text-gray-400" title="Ajouter une photo">
+                              <label className="h-12 w-12 rounded-lg border border-dashed border-paper-border grid place-items-center text-ink-faint text-lg cursor-pointer hover:border-ink-faint hover:text-ink-body" title="Ajouter une photo">
                                 📷
                                 <input
                                   type="file"
@@ -399,10 +398,10 @@ export default function AdminMenuPage() {
                               </label>
                             )}
                             {busy ? (
-                              <span className="block text-[11px] text-gray-400 mt-1 text-center">…</span>
+                              <span className="block text-[11px] text-ink-faint mt-1 text-center">…</span>
                             ) : (
                               <div className="flex items-center justify-center gap-1.5 mt-1">
-                                <label className="text-[11px] text-gray-500 hover:text-gray-800 underline cursor-pointer">
+                                <label className="text-[11px] text-ink-muted hover:text-ink underline cursor-pointer">
                                   {photo ? "Changer" : "Ajouter"}
                                   <input
                                     type="file"
@@ -419,7 +418,7 @@ export default function AdminMenuPage() {
                                   <button
                                     type="button"
                                     onClick={() => removePhoto(it)}
-                                    className="text-[11px] text-gray-400 hover:text-gray-700 underline"
+                                    className="text-[11px] text-ink-faint hover:text-ink-body underline"
                                   >
                                     Retirer
                                   </button>
@@ -428,33 +427,33 @@ export default function AdminMenuPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 font-medium text-gray-900">
+                        <td className="px-4 py-2.5 font-medium text-ink">
                           {it.name}
-                          {isTop && <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">💎 top marge</span>}
-                          {isFlop && <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">marge faible</span>}
-                          {!it.is_active && <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">inactif</span>}
-                          {!it.reward_eligible && <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">hors cadeau</span>}
+                          {isTop && <span className="ml-2 text-xs bg-good/12 text-good px-1.5 py-0.5 rounded-full">💎 top marge</span>}
+                          {isFlop && <span className="ml-2 text-xs bg-warn/12 text-warn px-1.5 py-0.5 rounded-full">marge faible</span>}
+                          {!it.is_active && <span className="ml-2 text-xs bg-danger/12 text-danger px-1.5 py-0.5 rounded-full">inactif</span>}
+                          {!it.reward_eligible && <span className="ml-2 text-xs bg-paper-subtle text-ink-muted px-1.5 py-0.5 rounded-full">hors cadeau</span>}
                         </td>
-                        <td className="px-4 py-2.5 text-gray-600">{it.category}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{euro(it.menu_price)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">
+                        <td className="px-4 py-2.5 text-ink-body">{it.category}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-ink-body">{euro(it.menu_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-ink-body">
                           {costKnown ? euro(it.cost_price!) : (
-                            <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full" title="Prix de revient inconnu — cet article est exclu des cadeaux et sa marge n'est pas calculée">
+                            <span className="text-xs bg-warn/10 text-warn px-1.5 py-0.5 rounded-full" title="Prix de revient inconnu — cet article est exclu des cadeaux et sa marge n'est pas calculée">
                               coût manquant
                             </span>
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
                           {m !== null ? (
-                            <span className={`font-semibold ${isTop ? "text-green-600" : isFlop ? "text-amber-600" : "text-gray-700"}`}>
+                            <span className={`font-semibold ${isTop ? "text-good" : isFlop ? "text-warn" : "text-ink-body"}`}>
                               {euro(m)}
                             </span>
                           ) : (
-                            <span className="text-gray-300">—</span>
+                            <span className="text-ink-faint/60">—</span>
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
-                          <span className={`font-semibold ${ratio >= 8 ? "text-green-600" : ratio >= 4 ? "text-amber-600" : "text-gray-400"}`}>
+                          <span className={`font-semibold ${ratio >= 8 ? "text-good" : ratio >= 4 ? "text-warn" : "text-ink-faint"}`}>
                             {ratio > 0 ? `×${ratio.toFixed(1)}` : "—"}
                           </span>
                         </td>
@@ -470,17 +469,17 @@ export default function AdminMenuPage() {
 
       {/* ── Paliers de récompense ───────────────────────────────────────────── */}
       {!loading && items.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+        <div className="bg-white rounded-xl border border-paper-border p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-bold text-gray-900">Paliers de récompense</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <h2 className="font-bold text-ink">Paliers de récompense</h2>
+              <p className="text-xs text-ink-muted mt-0.5">
                 Assigne un article à chaque palier. L&apos;app peut te suggérer le meilleur choix.
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={suggest} disabled={suggesting || giftItems.length === 0}
-                className="px-3 py-2 bg-brand-gold/15 text-amber-800 border border-brand-gold/40 rounded-lg text-sm font-semibold hover:bg-brand-gold/25 disabled:opacity-50">
+                className="px-3 py-2 bg-brand-gold/15 text-warn border border-brand-gold/40 rounded-lg text-sm font-semibold hover:bg-brand-gold/25 disabled:opacity-50">
                 {suggesting ? "Suggestion…" : "✨ Suggérer avec l'IA"}
               </button>
               <button onClick={saveTiers} disabled={savingTiers}
@@ -491,7 +490,7 @@ export default function AdminMenuPage() {
           </div>
 
           {tierMsg && (
-            <div className={`rounded-lg p-2.5 text-sm border ${tierMsg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+            <div className={`rounded-lg p-2.5 text-sm border ${tierMsg.kind === "ok" ? "bg-good/10 border-good/30 text-good" : "bg-danger/10 border-danger/30 text-danger"}`}>
               <p>{tierMsg.text}</p>
               {tierMsg.details && tierMsg.details.length > 0 && (
                 <ul className="mt-1 list-disc list-inside text-xs opacity-80">
@@ -503,20 +502,20 @@ export default function AdminMenuPage() {
 
           <div className="grid md:grid-cols-2 gap-5">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Récompense solo (montant de commande)</p>
-              <div className="divide-y divide-gray-50">
+              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Récompense solo (montant de commande)</p>
+              <div className="divide-y divide-paper-border">
                 {soloBands.map((b) => bandRow("solo", b, `Commande ≥ ${b} €`))}
               </div>
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Bonus communautaire (score d&apos;équipe)</p>
-              <div className="divide-y divide-gray-50">
+              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Bonus communautaire (score d&apos;équipe)</p>
+              <div className="divide-y divide-paper-border">
                 {COMMUNITY_BANDS.map((b) => bandRow("community", b, `Score ≥ ${b.toLocaleString("fr-BE")} pts`))}
               </div>
             </div>
           </div>
 
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-ink-faint">
             Un palier sans article ne donne aucun cadeau. Tant qu&apos;aucun palier n&apos;est enregistré pour
             une couche, la grille héritée s&apos;applique automatiquement.
           </p>
@@ -578,7 +577,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
   }
 
   if (!info) {
-    return <div className="bg-white rounded-xl h-24 animate-pulse border border-gray-100" />;
+    return <div className="bg-white rounded-xl h-24 animate-pulse border border-paper-border" />;
   }
 
   const affordable = items.filter(
@@ -586,24 +585,24 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
   );
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+    <div className="bg-white rounded-xl border border-paper-border p-5 space-y-3">
       <div>
-        <h2 className="font-bold text-gray-900">Cadeau des 4 jetons</h2>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <h2 className="font-bold text-ink">Cadeau des 4 jetons</h2>
+        <p className="text-xs text-ink-muted mt-0.5">
           Remis pour 4 jetons (actions sociales / parrainages) — aucun achat en face, donc coût réel
           plafonné à {euro(info.costCap)} ({euro(info.avgBasket)} de panier moyen × budget cadeaux).
         </p>
       </div>
 
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-500">Cadeau actuel :</span>
-        <span className="font-semibold text-gray-900">{info.current.name}</span>
-        <span className="text-xs text-gray-400">(coût {euro(info.current.cost)})</span>
+        <span className="text-ink-muted">Cadeau actuel :</span>
+        <span className="font-semibold text-ink">{info.current.name}</span>
+        <span className="text-xs text-ink-faint">(coût {euro(info.current.cost)})</span>
       </div>
 
       {info.suggestion && info.suggestion.id !== info.current.id && (
         <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-amber-800">
+          <p className="text-xs text-warn">
             💡 Suggestion : <span className="font-semibold">{info.suggestion.name}</span> — perçu à{" "}
             {euro(info.suggestion.menu_price)} pour {euro(info.suggestion.cost_price)} de coût réel
             (ratio ×{(info.suggestion.menu_price / info.suggestion.cost_price).toFixed(1)}).
@@ -611,7 +610,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
           <button
             onClick={() => save(info.suggestion!.id)}
             disabled={saving}
-            className="text-xs px-3 py-1.5 bg-brand-gold/20 text-amber-800 border border-brand-gold/40 rounded-lg font-semibold hover:bg-brand-gold/30 disabled:opacity-50"
+            className="text-xs px-3 py-1.5 bg-brand-gold/20 text-warn border border-brand-gold/40 rounded-lg font-semibold hover:bg-brand-gold/30 disabled:opacity-50"
           >
             Appliquer
           </button>
@@ -622,7 +621,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+          className="flex-1 min-w-0 border border-paper-border rounded-lg px-3 py-2 text-sm bg-white"
         >
           <option value="">— choisir un article (sous plafond) —</option>
           {affordable.map((it) => (
@@ -639,7 +638,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
       </div>
 
       {msg && (
-        <div className={`rounded-lg p-2.5 text-sm border ${msg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+        <div className={`rounded-lg p-2.5 text-sm border ${msg.kind === "ok" ? "bg-good/10 border-good/30 text-good" : "bg-danger/10 border-danger/30 text-danger"}`}>
           {msg.text}
         </div>
       )}

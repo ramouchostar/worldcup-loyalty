@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { PageHeader } from "@/components/admin/ui";
 
 type Threshold = {
   id: string;
@@ -104,15 +105,13 @@ export function ThresholdsClient() {
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Seuils CA Restaurant</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Gérer les objectifs de chiffre d&apos;affaires et débloquer les récompenses.
-          </p>
-        </div>
+        <PageHeader
+          title={<>Seuils CA Restaurant</>}
+          subtitle={<>Gérer les objectifs de chiffre d&apos;affaires et débloquer les récompenses.</>}
+        />
         <button
           onClick={() => setShowNew(!showNew)}
-          className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors"
+          className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:bg-ink transition-colors"
         >
           + Nouveau seuil
         </button>
@@ -120,14 +119,14 @@ export function ThresholdsClient() {
 
       {/* Formulaire nouveau seuil */}
       {showNew && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-          <h3 className="font-semibold text-blue-900 text-sm">Nouveau seuil de CA</h3>
+        <div className="bg-paper-subtle border border-paper-border rounded-xl p-4 space-y-3">
+          <h3 className="font-semibold text-ink-body text-sm">Nouveau seuil de CA</h3>
           <input
             type="text"
             placeholder="Label (ex : Phase de groupes — Semaine 2)"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+            className="w-full px-3 py-2 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
           />
           <input
             type="number"
@@ -135,7 +134,7 @@ export function ThresholdsClient() {
             value={newTarget}
             onChange={(e) => setNewTarget(e.target.value)}
             min="1"
-            className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+            className="w-full px-3 py-2 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
           />
           <div className="flex gap-2">
             <button
@@ -147,7 +146,7 @@ export function ThresholdsClient() {
             </button>
             <button
               onClick={() => setShowNew(false)}
-              className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+              className="px-4 py-2 border border-paper-border rounded-lg text-sm text-ink-body hover:bg-paper"
             >
               Annuler
             </button>
@@ -163,25 +162,25 @@ export function ThresholdsClient() {
           : 0;
         return (
           <div className={`bg-white rounded-xl border p-5 ${
-            budget.communityBonusActive ? "border-green-300" : "border-amber-300"
+            budget.communityBonusActive ? "border-good/40" : "border-warn/40"
           }`}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <h3 className="font-bold text-gray-900">💰 Budget cadeaux du mois</h3>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <h3 className="font-bold text-ink">💰 Budget cadeaux du mois</h3>
+                <p className="text-xs text-ink-faint mt-0.5">
                   Plafond : {(budget.budgetPct * 100).toFixed(0)}% du CA programme
                   ({Number(budget.programRevenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })})
                 </p>
               </div>
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
                 budget.communityBonusActive
-                  ? "bg-green-100 text-green-800"
-                  : "bg-amber-100 text-amber-800"
+                  ? "bg-good/12 text-good"
+                  : "bg-warn/12 text-warn"
               }`}>
                 {budget.communityBonusActive ? "🟢 Bonus actif" : "⏸️ Bonus en pause"}
               </span>
             </div>
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <div className="flex justify-between text-xs text-ink-muted mb-1">
               <span>
                 Distribué :{" "}
                 <strong>{Number(budget.rewardsCost).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}</strong>
@@ -191,17 +190,17 @@ export function ThresholdsClient() {
                 <strong>{budgetMax.toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}</strong>
               </span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-3">
+            <div className="w-full bg-paper-subtle rounded-full h-3">
               <div
                 className={`h-3 rounded-full transition-all ${
-                  budgetUsedPct >= 100 ? "bg-amber-500" : "bg-green-500"
+                  budgetUsedPct >= 100 ? "bg-warn" : "bg-good"
                 }`}
                 style={{ width: `${budgetUsedPct}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1 text-right">{budgetUsedPct}% du budget utilisé</p>
+            <p className="text-xs text-ink-faint mt-1 text-right">{budgetUsedPct}% du budget utilisé</p>
             {!budget.communityBonusActive && (
-              <p className="text-xs text-amber-700 mt-2">
+              <p className="text-xs text-warn mt-2">
                 Plafond atteint — couches 2 et 3 en pause jusqu&apos;au mois prochain. Le palier solo reste actif.
               </p>
             )}
@@ -211,10 +210,10 @@ export function ThresholdsClient() {
 
       {loading ? (
         <div className="space-y-3">
-          {[1, 2].map((i) => <div key={i} className="bg-white rounded-xl h-32 animate-pulse border border-gray-100" />)}
+          {[1, 2].map((i) => <div key={i} className="bg-white rounded-xl h-32 animate-pulse border border-paper-border" />)}
         </div>
       ) : thresholds.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+        <div className="bg-white rounded-xl border border-dashed border-paper-border p-8 text-center text-sm text-ink-muted">
           Aucun objectif de CA défini pour l&apos;instant. Ajoute une période cible
           pour suivre ta croissance et activer les bonus communautaires (double verrou).
         </div>
@@ -224,18 +223,18 @@ export function ThresholdsClient() {
             const pct = Math.min(100, Math.round((t.current_revenue / t.target_revenue) * 100));
             return (
               <div key={t.id} className={`bg-white rounded-xl border p-5 ${
-                t.is_unlocked ? "border-green-300" : "border-gray-100"
+                t.is_unlocked ? "border-good/40" : "border-paper-border"
               }`}>
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div>
-                    <h3 className="font-bold text-gray-900">{t.period_label}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <h3 className="font-bold text-ink">{t.period_label}</h3>
+                    <p className="text-xs text-ink-faint mt-0.5">
                       Créé le {new Date(t.created_at).toLocaleDateString("fr-BE")}
                       {t.unlocked_at && ` · Débloqué le ${new Date(t.unlocked_at).toLocaleDateString("fr-BE")}`}
                     </p>
                   </div>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
-                    t.is_unlocked ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
+                    t.is_unlocked ? "bg-good/12 text-good" : "bg-warn/12 text-warn"
                   }`}>
                     {t.is_unlocked ? "🔓 Débloqué" : "🔒 Verrouillé"}
                   </span>
@@ -243,7 +242,7 @@ export function ThresholdsClient() {
 
                 {/* Barre CA */}
                 <div className="mb-4">
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <div className="flex justify-between text-xs text-ink-muted mb-1">
                     <span>
                       CA actuel :{" "}
                       <strong>{Number(t.current_revenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}</strong>
@@ -253,17 +252,17 @@ export function ThresholdsClient() {
                       <strong>{Number(t.target_revenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}</strong>
                     </span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-3">
+                  <div className="w-full bg-paper-subtle rounded-full h-3">
                     <div
-                      className={`h-3 rounded-full transition-all ${t.is_unlocked ? "bg-green-500" : "bg-brand-red"}`}
+                      className={`h-3 rounded-full transition-all ${t.is_unlocked ? "bg-good" : "bg-brand-red"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1 text-right">{pct}%</p>
+                  <p className="text-xs text-ink-faint mt-1 text-right">{pct}%</p>
                 </div>
 
                 {/* Baseline croissance (ADR 0012) */}
-                <div className="mb-4 bg-gray-50 rounded-lg p-3">
+                <div className="mb-4 bg-paper rounded-lg p-3">
                   {editingBaselineId === t.id ? (
                     <div className="flex gap-2 items-center">
                       <input
@@ -272,25 +271,25 @@ export function ThresholdsClient() {
                         onChange={(e) => setEditBaseline(e.target.value)}
                         placeholder="Baseline hebdo (€)"
                         min="0"
-                        className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                        className="flex-1 px-3 py-1.5 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
                       />
                       <button
                         onClick={() => updateBaseline(t.id)}
                         disabled={!editBaseline || busy === t.id}
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-green-700"
+                        className="px-3 py-1.5 bg-good text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-good"
                       >
                         Enregistrer
                       </button>
                       <button
                         onClick={() => setEditingBaselineId(null)}
-                        className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+                        className="px-3 py-1.5 border border-paper-border text-ink-body rounded-lg text-sm hover:bg-paper"
                       >
                         Annuler
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-ink-body">
                         📈 Baseline hebdo :{" "}
                         <strong>
                           {t.baseline_weekly_revenue != null
@@ -330,18 +329,18 @@ export function ThresholdsClient() {
                         onChange={(e) => setEditRevenue(e.target.value)}
                         placeholder="Nouveau CA (€)"
                         min="0"
-                        className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                        className="flex-1 px-3 py-1.5 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
                       />
                       <button
                         onClick={() => updateRevenue(t.id)}
                         disabled={!editRevenue || busy === t.id}
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-green-700"
+                        className="px-3 py-1.5 bg-good text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-good"
                       >
                         Enregistrer
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
-                        className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+                        className="px-3 py-1.5 border border-paper-border text-ink-body rounded-lg text-sm hover:bg-paper"
                       >
                         Annuler
                       </button>
@@ -350,7 +349,7 @@ export function ThresholdsClient() {
                     <>
                       <button
                         onClick={() => { setEditingId(t.id); setEditRevenue(String(t.current_revenue)); }}
-                        className="px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
+                        className="px-3 py-1.5 border border-paper-border text-ink-body rounded-lg text-sm font-medium hover:bg-paper"
                       >
                         Mettre à jour le CA
                       </button>
@@ -359,8 +358,8 @@ export function ThresholdsClient() {
                         disabled={busy === t.id}
                         className={`px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-50 ${
                           t.is_unlocked
-                            ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                            : "bg-green-600 text-white hover:bg-green-700"
+                            ? "bg-warn/12 text-warn hover:bg-warn/20"
+                            : "bg-good text-white hover:bg-good"
                         }`}
                       >
                         {busy === t.id ? "..." : t.is_unlocked ? "Reverrouiller" : "🔓 Débloquer manuellement"}

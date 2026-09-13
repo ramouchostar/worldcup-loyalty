@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase";
 import { ClientsTable, type ClientRow } from "@/components/admin/ClientsTable";
 import { getAppInstallsByUser } from "@/lib/app-install";
+import { PageHeader } from "@/components/admin/ui";
 
 export const metadata = { title: "Mes clients" };
 
@@ -72,15 +73,13 @@ export default async function ClientsPage({ params }: { params: Promise<{ restau
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">👤 Mes clients</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          L&apos;activité de tes membres — {memberships.length} inscrit
+      <PageHeader
+        title={<>👤 Mes clients</>}
+        subtitle={<>L&apos;activité de tes membres — {memberships.length} inscrit
           {memberships.length > 1 ? "s" : ""}, dont {installs.size} avec l&apos;app installée 📱.
           Les coordonnées restent gérées par la plateforme (RGPD) : pour les joindre, passe par
-          les Broadcasts.
-        </p>
-      </div>
+          les Broadcasts.</>}
+      />
 
       <ClientsTable rows={rows} />
     </div>

@@ -93,24 +93,24 @@ export function CatalogGapsSection({
 
   if (gaps.length === 0) {
     return msg ? (
-      <div id="rattacher" className={`rounded-xl p-3 text-sm border ${msg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+      <div id="rattacher" className={`rounded-xl p-3 text-sm border ${msg.kind === "ok" ? "bg-good/10 border-good/30 text-good" : "bg-danger/10 border-danger/30 text-danger"}`}>
         {msg.text}
       </div>
     ) : null;
   }
 
   return (
-    <div id="rattacher" className="bg-white rounded-xl border border-amber-200 p-5 space-y-4">
+    <div id="rattacher" className="bg-white rounded-xl border border-warn/30 p-5 space-y-4">
       <div>
-        <h2 className="font-bold text-gray-900">🧾 Lus sur tes tickets, absents de ton catalogue</h2>
-        <p className="text-xs text-gray-400 mt-0.5">
+        <h2 className="font-bold text-ink">🧾 Lus sur tes tickets, absents de ton catalogue</h2>
+        <p className="text-xs text-ink-faint mt-0.5">
           Ces articles reviennent sur plusieurs tickets mais ne sont rattachés à rien — tes chiffres
           de marge les ignorent. Un geste par ligne suffit ; l&apos;historique est repris automatiquement.
         </p>
       </div>
 
       {msg && (
-        <div className={`rounded-lg p-2.5 text-sm border ${msg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+        <div className={`rounded-lg p-2.5 text-sm border ${msg.kind === "ok" ? "bg-good/10 border-good/30 text-good" : "bg-danger/10 border-danger/30 text-danger"}`}>
           {msg.text}
         </div>
       )}
@@ -125,40 +125,40 @@ export function CatalogGapsSection({
             .filter((m) => m.is_active)
             .sort((a, b) => similarity(gap.label, b.name) - similarity(gap.label, a.name));
           return (
-            <div key={gap.normalized} className="border border-gray-100 rounded-xl p-4 space-y-3">
+            <div key={gap.normalized} className="border border-paper-border rounded-xl p-4 space-y-3">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <p className="font-mono text-sm text-gray-800">{gap.rawSample}</p>
-                <p className="text-xs text-gray-400">
+                <p className="font-mono text-sm text-ink">{gap.rawSample}</p>
+                <p className="text-xs text-ink-faint">
                   vu sur {gap.orders} ticket{gap.orders > 1 ? "s" : ""}
                 </p>
               </div>
 
               <div className="grid sm:grid-cols-[1fr_110px_110px_auto] gap-2 items-end">
-                <label className="text-xs text-gray-500">
+                <label className="text-xs text-ink-muted">
                   Nom au catalogue
                   <input
                     value={d.name}
                     onChange={(e) => setD({ name: e.target.value })}
-                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900"
+                    className="mt-1 w-full border border-paper-border rounded-lg px-3 py-2 text-sm text-ink"
                   />
                 </label>
-                <label className="text-xs text-gray-500">
+                <label className="text-xs text-ink-muted">
                   Prix de vente €
                   <input
                     type="number" step="0.1" min="0" inputMode="decimal"
                     value={d.price}
                     onChange={(e) => setD({ price: e.target.value })}
-                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900"
+                    className="mt-1 w-full border border-paper-border rounded-lg px-3 py-2 text-sm text-ink"
                   />
                 </label>
-                <label className="text-xs text-gray-500">
+                <label className="text-xs text-ink-muted">
                   Prix de revient €
                   <input
                     type="number" step="0.01" min="0" inputMode="decimal"
                     value={d.cost}
                     onChange={(e) => setD({ cost: e.target.value })}
                     placeholder="optionnel"
-                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900"
+                    className="mt-1 w-full border border-paper-border rounded-lg px-3 py-2 text-sm text-ink"
                   />
                 </label>
                 <button
@@ -177,7 +177,7 @@ export function CatalogGapsSection({
                 <select
                   value={d.linkTo}
                   onChange={(e) => setD({ linkTo: e.target.value })}
-                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white text-gray-700 max-w-[260px]"
+                  className="border border-paper-border rounded-lg px-2 py-1.5 text-sm bg-white text-ink-body max-w-[260px]"
                 >
                   <option value="">— Produit existant du catalogue —</option>
                   {candidates.map((m) => (
@@ -188,7 +188,7 @@ export function CatalogGapsSection({
                   type="button"
                   disabled={isBusy || d.linkTo === ""}
                   onClick={() => act(gap, { action: "link", menu_item_id: d.linkTo }, "Rattaché au catalogue")}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 disabled:opacity-50"
+                  className="px-3 py-1.5 bg-paper-subtle text-ink-body rounded-lg text-sm font-semibold hover:bg-paper-border disabled:opacity-50"
                 >
                   Rattacher
                 </button>
@@ -196,7 +196,7 @@ export function CatalogGapsSection({
                   type="button"
                   disabled={isBusy}
                   onClick={() => act(gap, { action: "ignore" }, "Ligne ignorée (pas un produit)")}
-                  className="ml-auto text-xs text-gray-400 hover:text-gray-600 underline disabled:opacity-50"
+                  className="ml-auto text-xs text-ink-faint hover:text-ink-body underline disabled:opacity-50"
                 >
                   Pas un produit → ignorer
                 </button>

@@ -7,6 +7,7 @@ import { getSchoolCalendars } from "@/lib/school-calendar";
 import { SettingsForm } from "./SettingsForm";
 import { BrandingForm } from "./BrandingForm";
 import { CommunitiesForm } from "./CommunitiesForm";
+import { PageHeader, Restricted } from "@/components/admin/ui";
 
 // « Mon établissement » — édition des infos publiques et des liens sociaux
 // après l'onboarding (elles n'étaient modifiables nulle part jusqu'ici).
@@ -22,10 +23,7 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
   const access = await getAdminAccess(user.id, restaurantId);
   if (!canManageEstablishment(access)) {
     return (
-      <div className="max-w-lg bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Accès réservé</h1>
-        <p className="text-sm text-gray-500">Réservé aux gérants et managers de cet établissement.</p>
-      </div>
+      <Restricted />
     );
   }
 
@@ -45,13 +43,11 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6 max-w-lg">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mon établissement</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Ces infos apparaissent sur ta page publique et alimentent les actions
-          sociales de tes membres.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Mon établissement</>}
+        subtitle={<>Ces infos apparaissent sur ta page publique et alimentent les actions
+          sociales de tes membres.</>}
+      />
 
       <SettingsForm
         restaurantId={restaurantId}

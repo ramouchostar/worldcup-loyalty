@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listTeamsForAdmin } from "@/lib/teams-admin";
 import { TeamsManager } from "@/components/admin/TeamsManager";
+import { PageHeader } from "@/components/admin/ui";
 
 export const metadata = { title: "Équipes" };
 
@@ -17,15 +18,13 @@ export default async function TeamsPage({ params }: { params: Promise<{ restaura
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Équipes</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {actives.length} équipe{actives.length > 1 ? "s" : ""} active{actives.length > 1 ? "s" : ""} ·{" "}
-          {membres} membre{membres > 1 ? "s" : ""} rattaché{membres > 1 ? "s" : ""}
-        </p>
-      </div>
+      <PageHeader
+        title={<>Équipes</>}
+        subtitle={<>{actives.length} équipe{actives.length > 1 ? "s" : ""} active{actives.length > 1 ? "s" : ""} ·{" "}
+          {membres} membre{membres > 1 ? "s" : ""} rattaché{membres > 1 ? "s" : ""}</>}
+      />
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
+      <div className="bg-paper-subtle border border-paper-border rounded-xl p-4 text-sm text-ink-body">
         Une équipe apparaît quand un client se reconnaît dans une communauté déclarée, ou en crée une lui-même.
         Tu ne peux pas en créer à leur place — c&apos;est le premier « oui » qui la fait naître.{" "}
         <Link href={`/admin/${restaurantId}/settings`} className="font-semibold underline">

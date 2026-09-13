@@ -33,6 +33,7 @@ import {
 } from "@/lib/insights";
 import { getAverageBasket } from "@/lib/avg-basket";
 import { todayInBrussels } from "@/lib/broadcast";
+import { PageHeader } from "@/components/admin/ui";
 
 // Opportunités — l'app force de proposition (promos jours/heures creux,
 // combos par co-occurrence et par marges), le restaurateur ajuste le
@@ -434,13 +435,11 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Opportunités</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {cards.length > 0 ? `${cards.length} proposition${cards.length > 1 ? "s" : ""} calculée${cards.length > 1 ? "s" : ""}` : "Des propositions calculées"} sur
-          tes {PERIOD_DAYS} derniers jours de ventes scannées — tu ajustes, tu décides, tu envoies.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Opportunités</>}
+        subtitle={<>{cards.length > 0 ? `${cards.length} proposition${cards.length > 1 ? "s" : ""} calculée${cards.length > 1 ? "s" : ""}` : "Des propositions calculées"} sur
+          tes {PERIOD_DAYS} derniers jours de ventes scannées — tu ajustes, tu décides, tu envoies.</>}
+      />
 
       <TrialBanner ent={ent} restaurantId={restaurantId} feature="insights" />
 
@@ -454,17 +453,17 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       >
       <div className="space-y-6">
       {totalItems < MIN_ITEMS_FOR_INSIGHTS ? (
-        <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center">
+        <div className="bg-white rounded-xl border border-dashed border-paper-border p-8 text-center">
           <p className="text-3xl mb-2">🌱</p>
-          <p className="font-bold text-gray-900">Pas encore assez de données</p>
-          <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
+          <p className="font-bold text-ink">Pas encore assez de données</p>
+          <p className="text-sm text-ink-muted mt-1 max-w-md mx-auto">
             Les suggestions se débloquent à partir de {MIN_ITEMS_FOR_INSIGHTS} articles
             vendus et scannés ({totalItems} pour l&apos;instant). Encourage tes clients à
             scanner leurs tickets — chaque scan enrichit tes statistiques.
           </p>
         </div>
       ) : cards.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+        <div className="bg-white rounded-xl border border-dashed border-paper-border p-8 text-center text-sm text-ink-muted">
           Rien à signaler : tes ventes sont régulières sur la période et aucune
           paire de plats ne se détache encore. Reviens quand il y aura plus de
           scans.
@@ -483,36 +482,36 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
             .filter(([, , list]) => list.length > 0)
             .map(([sectionTitle, sectionSub, list]) => (
               <section key={sectionTitle}>
-                <h2 className="font-bold text-gray-900 mb-0.5">
-                  {sectionTitle} <span className="text-gray-400 font-normal text-sm">({list.length})</span>
+                <h2 className="font-bold text-ink mb-0.5">
+                  {sectionTitle} <span className="text-ink-faint font-normal text-sm">({list.length})</span>
                 </h2>
-                {sectionSub && <p className="text-xs text-gray-500 mb-3">{sectionSub}</p>}
+                {sectionSub && <p className="text-xs text-ink-muted mb-3">{sectionSub}</p>}
                 <div className={`space-y-4 ${sectionSub ? "" : "mt-3"}`}>
                   {list.map((card, i) => (
-                    <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
+                    <div key={i} className="bg-white rounded-xl border border-paper-border p-5">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">{card.icon}</span>
-                        <h3 className="font-bold text-gray-900">{card.title}</h3>
+                        <h3 className="font-bold text-ink">{card.title}</h3>
                       </div>
-                      <p className="text-sm text-gray-600 leading-relaxed mb-3">{card.rationale}</p>
+                      <p className="text-sm text-ink-body leading-relaxed mb-3">{card.rationale}</p>
 
                       {card.message && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-1.5">
-                          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">
+                        <div className="bg-paper border border-paper-border rounded-xl p-3 mb-1.5">
+                          <p className="text-xs text-ink-faint font-semibold uppercase tracking-wide mb-1">
                             Notification proposée
                           </p>
-                          <p className="text-sm text-gray-800">{card.message}</p>
+                          <p className="text-sm text-ink">{card.message}</p>
                         </div>
                       )}
                       {card.planning && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-1.5">
-                          <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">
+                        <div className="bg-warn/10 border border-warn/30 rounded-xl p-3 mb-1.5">
+                          <p className="text-xs text-warn font-semibold uppercase tracking-wide mb-1">
                             📆 Planning
                           </p>
-                          <p className="text-sm text-amber-900">{card.planning}</p>
+                          <p className="text-sm text-warn">{card.planning}</p>
                         </div>
                       )}
-                      {card.detail && <p className="text-xs text-gray-400 mb-2">💡 {card.detail}</p>}
+                      {card.detail && <p className="text-xs text-ink-faint mb-2">💡 {card.detail}</p>}
 
                       {card.message && (
                         <div className="flex justify-end mt-2">
@@ -533,12 +532,12 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       )}
 
       {menuAudit && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-xl border border-paper-border p-5">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-2xl">🔬</span>
-            <h2 className="font-bold text-gray-900">Ta carte au rayon X</h2>
+            <h2 className="font-bold text-ink">Ta carte au rayon X</h2>
           </div>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-ink-muted mb-4">
             Chaque article classé selon sa popularité (seuil : {menuAudit.popThreshold.toFixed(0)} ventes
             sur la période) et sa marge unitaire (seuil : {euro(menuAudit.marginThreshold)}).
           </p>
@@ -551,17 +550,17 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
                 ["🪨", "Tes poids morts", "Ni vendus ni rentables — retire-les de la carte ou repense-les, ils encombrent le choix.", menuAudit.dogs],
               ] as [string, string, string, ProductStat[]][]
             ).map(([emoji, title, advice, list]) => (
-              <div key={title} className="border border-gray-100 rounded-xl p-3">
-                <p className="font-semibold text-gray-900 text-sm mb-1">
-                  {emoji} {title} <span className="text-gray-400 font-normal">({list.length})</span>
+              <div key={title} className="border border-paper-border rounded-xl p-3">
+                <p className="font-semibold text-ink text-sm mb-1">
+                  {emoji} {title} <span className="text-ink-faint font-normal">({list.length})</span>
                 </p>
-                <p className="text-xs text-gray-500 mb-2">{advice}</p>
+                <p className="text-xs text-ink-muted mb-2">{advice}</p>
                 {list.slice(0, 4).map((p) => (
-                  <p key={p.id} className="text-xs text-gray-700">
+                  <p key={p.id} className="text-xs text-ink-body">
                     {p.name} — {p.qty}× · {euro(p.menuPrice - p.costPrice)} de marge
                   </p>
                 ))}
-                {list.length > 4 && <p className="text-xs text-gray-400 mt-1">+ {list.length - 4} autres</p>}
+                {list.length > 4 && <p className="text-xs text-ink-faint mt-1">+ {list.length - 4} autres</p>}
               </div>
             ))}
           </div>
@@ -570,7 +569,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       </div>
       </PaywallSection>
 
-      <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
+      <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
         <p>
           💡 Chaque proposition est calculée à partir de tes ventes scannées et de
           tes coûts de revient — les remises suggérées préservent toujours au moins

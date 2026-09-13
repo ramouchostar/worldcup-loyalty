@@ -215,8 +215,8 @@ export default async function AdminDashboardPage({
           plutôt que de laisser la personne découvrir en silence qu'elle a un
           rôle différent de celui annoncé. */}
       {seat === "equipe-quota" && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-sm text-blue-900">
+        <div className="bg-paper-subtle border border-paper-border rounded-xl p-4">
+          <p className="text-sm text-ink-body">
             Ton accès a été ajouté en <strong>équipe (accès établissement)</strong> — le quota de
             gérants/managers était déjà atteint. Ton accès à la console reste complet.
           </p>
@@ -228,18 +228,18 @@ export default async function AdminDashboardPage({
           console vide sans explication). */}
       {restaurant?.status === "pending" && (
         <div className="bg-warn/10 border border-warn/30 rounded-xl p-4">
-          <p className="font-bold text-amber-900 text-sm mb-1">
+          <p className="font-bold text-warn text-sm mb-1">
             ⏳ Ton établissement n&apos;est pas encore visible des clients
           </p>
-          <p className="text-xs text-amber-800 mb-3">
+          <p className="text-xs text-warn mb-3">
             Il sera mis en ligne après validation par notre équipe. En attendant,
             assure-toi d&apos;avoir terminé les 3 étapes de l&apos;inscription :
           </p>
           <div className="flex flex-wrap gap-2">
-            <Link href={r("/menu")} className="text-xs font-semibold bg-white border border-warn/30 text-amber-900 px-3 py-1.5 rounded-lg hover:bg-warn/10 transition-colors">
+            <Link href={r("/menu")} className="text-xs font-semibold bg-white border border-warn/30 text-warn px-3 py-1.5 rounded-lg hover:bg-warn/10 transition-colors">
               2/3 · Menu &amp; coûts →
             </Link>
-            <Link href={`/become-a-partner/${restaurantId}/receipt`} className="text-xs font-semibold bg-white border border-warn/30 text-amber-900 px-3 py-1.5 rounded-lg hover:bg-warn/10 transition-colors">
+            <Link href={`/become-a-partner/${restaurantId}/receipt`} className="text-xs font-semibold bg-white border border-warn/30 text-warn px-3 py-1.5 rounded-lg hover:bg-warn/10 transition-colors">
               3/3 · Configurer le ticket de caisse →
             </Link>
           </div>
@@ -250,10 +250,10 @@ export default async function AdminDashboardPage({
           « quota dépassé, paie ». Rien ne s'arrête au-dessus du plafond. */}
       {scanUsage.over && (
         <div className="bg-good/10 border border-good/30 rounded-xl p-4">
-          <p className="font-bold text-green-900 text-sm mb-1">
+          <p className="font-bold text-good text-sm mb-1">
             🚀 {scanUsage.count} tickets scannés ce mois-ci — tes clients jouent le jeu !
           </p>
-          <p className="text-xs text-green-800 mb-3">
+          <p className="text-xs text-good mb-3">
             Ton programme dépasse le volume couvert par le plan Gratuit ({SCAN_CAP_GRATUIT}{" "}
             scans/mois). Rien ne s&apos;arrête — mais avec le plan Croissance, les scans
             deviennent illimités et tu touches cette communauté avec des promos ciblées,

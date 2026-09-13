@@ -134,17 +134,17 @@ export function BrandingForm({
   return (
     // #charte : cible du lien « Ajouter ton logo » de l'en-tête de console.
     <form id="charte" onSubmit={handleSubmit} className="scroll-mt-20 space-y-5">
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-5">
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-5">
         <div>
-          <h2 className="font-bold text-gray-900">Charte graphique</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <h2 className="font-bold text-ink">Charte graphique</h2>
+          <p className="text-xs text-ink-faint mt-0.5">
             Ton logo, tes couleurs et ta police s&apos;appliquent à ta page membre, à ta console et à tes QR codes.
             Laisse un champ vide pour garder le style par défaut.
           </p>
         </div>
 
         {/* Détection depuis le site web */}
-        <div className="bg-gray-50 rounded-xl border border-gray-100 p-3.5">
+        <div className="bg-paper rounded-xl border border-paper-border p-3.5">
           <button
             type="button"
             onClick={handleDetect}
@@ -153,13 +153,13 @@ export function BrandingForm({
           >
             {detecting ? "Analyse en cours... (jusqu'à 45 secondes)" : "✨ Détecter mon design depuis mon site"}
           </button>
-          <p className="text-xs text-gray-400 mt-1.5">
+          <p className="text-xs text-ink-faint mt-1.5">
             {websiteUrl
               ? "Propose couleurs et police à partir de ton site (et Instagram/TikTok si renseignés) — à valider ci-dessous, rien n'est enregistré automatiquement."
               : "Ajoute le lien de ton site dans « Infos & liens » ci-dessus pour activer la détection."}
           </p>
           {detectMessage && (
-            <p className={`text-sm mt-2 ${detectMessage.kind === "error" ? "text-red-600" : "text-green-700"}`}>
+            <p className={`text-sm mt-2 ${detectMessage.kind === "error" ? "text-danger" : "text-good"}`}>
               {detectMessage.text}
             </p>
           )}
@@ -167,56 +167,56 @@ export function BrandingForm({
 
         {/* Logo */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Logo</label>
+          <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Logo</label>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-16 h-16 rounded-xl border border-paper-border bg-paper flex items-center justify-center overflow-hidden shrink-0">
               {logoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
               ) : (
-                <span className="text-gray-300 text-2xl">🏪</span>
+                <span className="text-ink-faint/60 text-2xl">🏪</span>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-3 py-1.5 rounded-lg inline-block w-fit transition-colors">
+              <label className="cursor-pointer bg-paper-subtle hover:bg-paper-border text-ink-body text-sm font-medium px-3 py-1.5 rounded-lg inline-block w-fit transition-colors">
                 {logoPreview ? "Changer" : "Ajouter un logo"}
                 <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onLogoChange} className="hidden" />
               </label>
               {logoPreview && (
-                <button type="button" onClick={clearLogo} className="text-xs text-red-500 hover:underline w-fit">
+                <button type="button" onClick={clearLogo} className="text-xs text-danger hover:underline w-fit">
                   Retirer le logo
                 </button>
               )}
-              <p className="text-xs text-gray-400">PNG, JPG, WebP ou SVG — 2 Mo max.</p>
+              <p className="text-xs text-ink-faint">PNG, JPG, WebP ou SVG — 2 Mo max.</p>
             </div>
           </div>
         </div>
 
         {/* Image hero */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
             Image hero (dashboard membre)
           </label>
           <div className="flex items-center gap-4">
-            <div className="w-24 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-24 h-16 rounded-xl border border-paper-border bg-paper flex items-center justify-center overflow-hidden shrink-0">
               {heroPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={heroPreview} alt="Hero" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-gray-300 text-xl">🖼️</span>
+                <span className="text-ink-faint/60 text-xl">🖼️</span>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-3 py-1.5 rounded-lg inline-block w-fit transition-colors">
+              <label className="cursor-pointer bg-paper-subtle hover:bg-paper-border text-ink-body text-sm font-medium px-3 py-1.5 rounded-lg inline-block w-fit transition-colors">
                 {heroPreview ? "Changer" : "Ajouter une image"}
                 <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onHeroChange} className="hidden" />
               </label>
               {heroPreview && (
-                <button type="button" onClick={clearHero} className="text-xs text-red-500 hover:underline w-fit">
+                <button type="button" onClick={clearHero} className="text-xs text-danger hover:underline w-fit">
                   Retirer l&apos;image
                 </button>
               )}
-              <p className="text-xs text-gray-400">En fond de la carte d&apos;accueil du dashboard membre — 2 Mo max.</p>
+              <p className="text-xs text-ink-faint">En fond de la carte d&apos;accueil du dashboard membre — 2 Mo max.</p>
             </div>
           </div>
         </div>
@@ -232,9 +232,9 @@ export function BrandingForm({
         >
           {/* Aperçu live */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Aperçu</p>
+            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Aperçu</p>
             <div
-              className="rounded-xl overflow-hidden border border-gray-200"
+              className="rounded-xl overflow-hidden border border-paper-border"
               style={{ fontFamily: FONT_OPTIONS.find((f) => f.key === font)?.cssVar }}
             >
               <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: eff("brand_dark", BRAND_DEFAULTS.dark) }}>
@@ -257,7 +257,7 @@ export function BrandingForm({
 
           {/* Police */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Police</label>
+            <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Police</label>
             <div className="grid grid-cols-2 gap-2">
               {FONT_OPTIONS.map((f) => (
                 <button
@@ -265,12 +265,12 @@ export function BrandingForm({
                   type="button"
                   onClick={() => setFont(font === f.key ? "" : f.key)}
                   className={`text-left border rounded-lg px-3 py-2 transition-colors ${
-                    font === f.key ? "border-brand-red bg-brand-red/5" : "border-gray-200 hover:border-gray-300"
+                    font === f.key ? "border-brand-red bg-brand-red/5" : "border-paper-border hover:border-paper-border"
                   }`}
                   style={{ fontFamily: f.cssVar }}
                 >
-                  <span className="text-sm font-medium text-gray-800">{f.label}</span>
-                  <p className="text-xs text-gray-400" style={{ fontFamily: f.cssVar }}>
+                  <span className="text-sm font-medium text-ink">{f.label}</span>
+                  <p className="text-xs text-ink-faint" style={{ fontFamily: f.cssVar }}>
                     Ton établissement
                   </p>
                 </button>
@@ -286,22 +286,22 @@ export function BrandingForm({
                   type="color"
                   value={eff(field, def)}
                   onChange={(e) => setColor(field, e.target.value.toUpperCase())}
-                  className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer shrink-0 bg-white"
+                  className="w-10 h-10 rounded-lg border border-paper-border cursor-pointer shrink-0 bg-white"
                   aria-label={label}
                 />
                 <div className="flex-1 min-w-0">
-                  <label className="block text-sm font-medium text-gray-800">{label}</label>
-                  <p className="text-xs text-gray-400">{help}</p>
+                  <label className="block text-sm font-medium text-ink">{label}</label>
+                  <p className="text-xs text-ink-faint">{help}</p>
                 </div>
                 <input
                   type="text"
                   value={colors[field]}
                   onChange={(e) => setColor(field, e.target.value)}
                   placeholder={def}
-                  className="w-28 border border-gray-300 rounded-lg px-2 py-1.5 text-sm font-mono uppercase"
+                  className="w-28 border border-paper-border rounded-lg px-2 py-1.5 text-sm font-mono uppercase"
                 />
                 {colors[field] && (
-                  <button type="button" onClick={() => setColor(field, "")} className="text-gray-300 hover:text-red-500 text-lg leading-none" aria-label="Réinitialiser">
+                  <button type="button" onClick={() => setColor(field, "")} className="text-ink-faint hover:text-danger text-lg leading-none" aria-label="Réinitialiser">
                     ×
                   </button>
                 )}
@@ -312,7 +312,7 @@ export function BrandingForm({
       </div>
 
       {message && (
-        <p className={`text-sm ${message.kind === "error" ? "text-red-600" : "text-green-700"}`}>{message.text}</p>
+        <p className={`text-sm ${message.kind === "error" ? "text-danger" : "text-good"}`}>{message.text}</p>
       )}
 
       <button

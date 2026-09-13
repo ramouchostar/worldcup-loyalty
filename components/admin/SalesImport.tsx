@@ -151,10 +151,10 @@ export default function SalesImport({
   const gran = preview && preview.rows.length > 0 ? detectGranularity(preview.rows.map((r) => r.d)) : null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
-      <h2 className="font-bold text-gray-900">Dépose le rapport de ventes de ta caisse</h2>
+    <div className="bg-white rounded-xl border border-paper-border p-5">
+      <h2 className="font-bold text-ink">Dépose le rapport de ventes de ta caisse</h2>
       {/* 4 lignes, pour tout le monde : où trouver le rapport, ce qu'on en fait, ce que ça apporte */}
-      <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+      <p className="text-sm text-ink-body mt-1 leading-relaxed">
         Dépose ici le rapport de ventes de ton logiciel de caisse, <span className="font-medium">tel quel</span> — par jour,
         par semaine ou par mois, en CSV ou Excel. Tu le trouves dans ta caisse sous « Rapports », « Exports » ou
         « Ventes ». On n&apos;en garde que les dates et les montants, jamais tes clients. En échange, Boosteats te
@@ -162,7 +162,7 @@ export default function SalesImport({
       </p>
 
       {lastImport && (
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-ink-faint mt-2">
           Dernier import : {lastImport.row_count.toLocaleString("fr-BE")} ventes
           {lastImport.date_min && lastImport.date_max ? ` (${fr(lastImport.date_min)} → ${fr(lastImport.date_max)})` : ""}.
         </p>
@@ -174,18 +174,18 @@ export default function SalesImport({
           type="file"
           accept=".csv,text/csv,.txt,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={onFile}
-          className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-dark file:text-white hover:file:bg-black/80 cursor-pointer"
+          className="block w-full text-sm text-ink-body file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-dark file:text-white hover:file:bg-black/80 cursor-pointer"
         />
       </div>
 
       {error && (
-        <div className="mt-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
+        <div className="mt-3 text-sm bg-warn/10 border border-warn/30 text-warn rounded-lg px-3 py-2">
           {error}
         </div>
       )}
 
       {result && (
-        <div className="mt-3 text-sm bg-green-50 border border-green-200 text-green-800 rounded-lg px-3 py-2">
+        <div className="mt-3 text-sm bg-good/10 border border-good/30 text-good rounded-lg px-3 py-2">
           ✅ {result.imported.toLocaleString("fr-BE")} ventes importées
           {result.dateMin && result.dateMax ? ` (${fr(result.dateMin)} → ${fr(result.dateMax)})` : ""}.
           {result.dropped > 0 && ` ${result.dropped} ligne(s) illisible(s) ignorée(s).`}
@@ -196,7 +196,7 @@ export default function SalesImport({
         <div className="mt-4 space-y-4">
           {/* Secours : la détection n'a pas suffi, ou le resto veut vérifier */}
           {!autoOk && !advanced && (
-            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-warn bg-warn/10 border border-warn/30 rounded-lg px-3 py-2">
               On n&apos;a pas reconnu tout seul les colonnes de ce fichier — indique-nous juste laquelle contient la
               date et laquelle contient le montant.
             </p>
@@ -216,32 +216,32 @@ export default function SalesImport({
           )}
 
           {preview && (
-            <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
+            <div className="text-xs text-ink-muted bg-paper rounded-lg p-3">
               {preview.rows.length > 0 ? (
                 <>
-                  <span className="font-semibold text-gray-700">✓ {gran?.label ?? `${preview.rows.length} ventes`}</span>
+                  <span className="font-semibold text-ink-body">✓ {gran?.label ?? `${preview.rows.length} ventes`}</span>
                   {preview.dateMin && preview.dateMax ? ` du ${fr(preview.dateMin)} au ${fr(preview.dateMax)}` : ""}
                   {" · "}
                   {preview.rows.length.toLocaleString("fr-BE")} ligne{preview.rows.length > 1 ? "s" : ""} reconnue
                   {preview.rows.length > 1 ? "s" : ""}.
                   {preview.dropped > 0 && (
-                    <span className="text-amber-700"> {preview.dropped} ligne(s) ignorée(s).</span>
+                    <span className="text-warn"> {preview.dropped} ligne(s) ignorée(s).</span>
                   )}
                   {gran && gran.kind !== "daily" && gran.kind !== "unknown" && (
-                    <span className="block mt-1 text-gray-600">
+                    <span className="block mt-1 text-ink-body">
                       Rapport {gran.kind === "weekly" ? "hebdomadaire" : "mensuel"} : on te donnera la tendance par{" "}
                       {gran.kind === "weekly" ? "semaine" : "mois"}. Pour une prévision jour par jour, exporte plutôt le
                       détail par jour quand ta caisse le permet.
                     </span>
                   )}
                   {autoOk && !advanced && (
-                    <button type="button" onClick={() => setAdvanced(true)} className="block mt-1 text-gray-400 underline">
+                    <button type="button" onClick={() => setAdvanced(true)} className="block mt-1 text-ink-faint underline">
                       Ce n&apos;est pas ça ? Ajuster les colonnes
                     </button>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     {preview.rows.slice(0, 3).map((r, i) => (
-                      <span key={i} className="bg-white border border-gray-200 rounded px-2 py-0.5 tabular-nums">
+                      <span key={i} className="bg-white border border-paper-border rounded px-2 py-0.5 tabular-nums">
                         {fr(r.d)}
                         {r.t ? ` ${r.t}` : ""} · {r.a.toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
                       </span>
@@ -249,7 +249,7 @@ export default function SalesImport({
                   </div>
                 </>
               ) : (
-                <span className="text-amber-700">
+                <span className="text-warn">
                   Aucune vente reconnue avec ces colonnes — choisis la colonne date et la colonne montant ci-dessus.
                 </span>
               )}
@@ -264,11 +264,11 @@ export default function SalesImport({
             >
               {busy ? "Import en cours…" : "C'est bon, importer"}
             </button>
-            <button onClick={reset} disabled={busy} className="text-sm text-gray-500 hover:text-gray-700">
+            <button onClick={reset} disabled={busy} className="text-sm text-ink-muted hover:text-ink-body">
               Annuler
             </button>
           </div>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-ink-faint">
             Ré-importer une période déjà chargée la <span className="font-medium">remplace</span> proprement —
             aucun risque de compter deux fois.
           </p>
@@ -285,7 +285,7 @@ function fr(ymd: string): string {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-gray-600">{label}</span>
+      <span className="text-xs font-medium text-ink-body">{label}</span>
       <div className="mt-1">{children}</div>
     </label>
   );
@@ -306,7 +306,7 @@ function Select({
     <select
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-      className="w-full text-sm border border-gray-200 rounded-lg px-2 py-2 bg-white"
+      className="w-full text-sm border border-paper-border rounded-lg px-2 py-2 bg-white"
     >
       <option value="">{allowNone ? "— aucune —" : "Choisir…"}</option>
       {options.map((o) => (

@@ -45,12 +45,12 @@ export default async function AdminLandingPage() {
   const logos = await getRestaurantLogos(restaurants.map((r) => r.id));
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-paper flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <p className="text-4xl mb-2">⚙️</p>
-          <h1 className="text-2xl font-bold text-gray-900">Console admin</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink">Console admin</h1>
+          <p className="text-ink-muted text-sm mt-1">
             {restaurants.length === 0
               ? "Aucun établissement à administrer pour ce compte."
               : "Choisis l'établissement à gérer."}
@@ -63,21 +63,21 @@ export default async function AdminLandingPage() {
               <Link
                 key={r.id}
                 href={`/admin/${r.id}`}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:border-brand-red transition-colors"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-paper-border hover:border-brand-red transition-colors"
               >
                 <RestaurantMark
                   name={r.name}
                   logoUrl={logos[r.id] ?? null}
-                  className={logos[r.id] ? "border border-gray-200" : ""}
+                  className={logos[r.id] ? "border border-paper-border" : ""}
                 />
-                <span className="font-semibold text-gray-900 flex-1 min-w-0 truncate">{r.name}</span>
+                <span className="font-semibold text-ink flex-1 min-w-0 truncate">{r.name}</span>
                 <span className="text-sm font-semibold text-brand-red shrink-0">Gérer →</span>
               </Link>
             ))}
           </div>
         )}
 
-        <p className="text-center text-sm text-gray-500 mt-5">
+        <p className="text-center text-sm text-ink-muted mt-5">
           Tu veux inscrire ton propre restaurant ?{" "}
           <Link href="/become-a-partner" className="font-semibold text-brand-red hover:underline">
             Deviens partenaire →

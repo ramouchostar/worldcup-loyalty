@@ -5,6 +5,7 @@ import { barometerFromItems } from "@/lib/barometer";
 import { QualityFeedbackAdmin } from "@/components/admin/QualityFeedbackAdmin";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { TrialBanner } from "@/components/admin/Paywall";
+import { PageHeader } from "@/components/admin/ui";
 
 export const metadata = { title: "Baromètre de confiance" };
 
@@ -33,13 +34,11 @@ export default async function AdminQualityPage({ params }: { params: Promise<{ r
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Baromètre de confiance</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Ce que tes clients te disent en privé — encouragements et signalements.
-          Visible par toi seul, jamais par le client.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Baromètre de confiance</>}
+        subtitle={<>Ce que tes clients te disent en privé — encouragements et signalements.
+          Visible par toi seul, jamais par le client.</>}
+      />
       <TrialBanner ent={ent} restaurantId={restaurantId} feature="barometer_advanced" />
       <QualityFeedbackAdmin
         restaurantId={restaurantId}

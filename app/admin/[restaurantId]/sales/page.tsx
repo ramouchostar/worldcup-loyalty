@@ -4,6 +4,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
+import { PageHeader } from "@/components/admin/ui";
 
 // Ventes par plat (ADR 0020) — agrégats des lignes d'articles lues sur les
 // tickets scannés par les membres. Surface admin uniquement : les euros et
@@ -171,13 +172,11 @@ export default async function AdminSalesPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ventes par plat</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Ce que les commandes du programme te rapportent, plat par plat —
-            calculé sur les tickets scannés par tes membres.
-          </p>
-        </div>
+        <PageHeader
+          title={<>Ventes par plat</>}
+          subtitle={<>Ce que les commandes du programme te rapportent, plat par plat —
+            calculé sur les tickets scannés par tes membres.</>}
+        />
         <div className="flex gap-1.5">
           {PERIODS.map((p) => (
             <Link
@@ -186,7 +185,7 @@ export default async function AdminSalesPage({
               className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
                 p.days === days
                   ? "bg-brand-dark text-white"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300"
+                  : "bg-white border border-paper-border text-ink-body hover:border-paper-border"
               }`}
             >
               {p.label}
@@ -207,24 +206,24 @@ export default async function AdminSalesPage({
       <div className="space-y-6">
       {/* Totaux de la période */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-          <p className="text-2xl font-black text-gray-900">{orders.length}</p>
-          <p className="text-xs text-gray-500 mt-1">commandes validées</p>
+        <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
+          <p className="text-2xl font-black text-ink">{orders.length}</p>
+          <p className="text-xs text-ink-muted mt-1">commandes validées</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-          <p className="text-2xl font-black text-gray-900">{euro(totalRevenue)}</p>
-          <p className="text-xs text-gray-500 mt-1">CA scanné</p>
+        <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
+          <p className="text-2xl font-black text-ink">{euro(totalRevenue)}</p>
+          <p className="text-xs text-ink-muted mt-1">CA scanné</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-          <p className="text-2xl font-black text-gray-900">{totalItems}</p>
-          <p className="text-xs text-gray-500 mt-1">articles vendus</p>
+        <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
+          <p className="text-2xl font-black text-ink">{totalItems}</p>
+          <p className="text-xs text-ink-muted mt-1">articles vendus</p>
         </div>
-        <div className="bg-white rounded-2xl border border-green-200 bg-green-50 p-4 text-center">
-          <p className="text-2xl font-black text-green-700">{euro(totalMargin)}</p>
-          <p className="text-xs text-green-700 mt-1">
+        <div className="bg-white rounded-xl border border-good/30 bg-good/10 p-4 text-center">
+          <p className="text-2xl font-black text-good">{euro(totalMargin)}</p>
+          <p className="text-xs text-good mt-1">
             marge sur articles reconnus
             {analyzedPct !== null && (
-              <span className={analyzedPct < 60 ? "block font-semibold text-amber-700" : "block"}>
+              <span className={analyzedPct < 60 ? "block font-semibold text-warn" : "block"}>
                 {analyzedPct} % du volume analysé
               </span>
             )}
@@ -233,7 +232,7 @@ export default async function AdminSalesPage({
       </div>
 
       {items.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+        <div className="bg-white rounded-xl border border-dashed border-paper-border p-8 text-center text-sm text-ink-muted">
           Aucun article détaillé sur la période. Les détails de plats sont lus
           sur les tickets scannés depuis début juillet 2026 — ils
           s&apos;accumuleront au fil des commandes de tes membres.
@@ -243,16 +242,16 @@ export default async function AdminSalesPage({
           {/* Performance par plat */}
           {/* overflow-x-auto + min-w : la table scrolle sur téléphone au lieu
               de s'écraser (audit 2026-07-23) */}
-          <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+          <div className="bg-white rounded-xl border border-paper-border overflow-x-auto">
             <div className="px-4 pt-4 pb-2">
-              <h2 className="font-bold text-gray-900">Performance par plat</h2>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <h2 className="font-bold text-ink">Performance par plat</h2>
+              <p className="text-xs text-ink-faint mt-0.5">
                 Prix et coûts du catalogue × quantités lues sur les tickets.
                 Triés par marge totale.
               </p>
             </div>
             <table className="w-full min-w-[520px] text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <thead className="bg-paper text-ink-muted text-xs uppercase">
                 <tr>
                   <th className="text-left font-medium px-4 py-2.5">Plat</th>
                   <th className="text-right font-medium px-4 py-2.5">Qté</th>
@@ -262,37 +261,37 @@ export default async function AdminSalesPage({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-paper-border">
                 {dishList.map((d, idx) => (
                   <tr key={`${d.name}-${idx}`}>
                     <td className="px-4 py-2.5">
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-ink">
                         {d.name}
                         {!d.matched && (
-                          <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full" title="Lu sur le ticket mais absent du catalogue — ajoute-le depuis Menu & coûts pour suivre sa marge">
+                          <span className="ml-2 text-xs bg-paper-subtle text-ink-muted px-1.5 py-0.5 rounded-full" title="Lu sur le ticket mais absent du catalogue — ajoute-le depuis Menu & coûts pour suivre sa marge">
                             hors catalogue
                           </span>
                         )}
                         {d.matched && d.costMissing && (
-                          <span className="ml-2 text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full" title="Article au catalogue sans prix de revient — renseigne-le sur Menu & coûts pour suivre sa marge">
+                          <span className="ml-2 text-xs bg-warn/10 text-warn px-1.5 py-0.5 rounded-full" title="Article au catalogue sans prix de revient — renseigne-le sur Menu & coûts pour suivre sa marge">
                             coût manquant
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 w-full bg-gray-100 rounded-full h-1.5 max-w-[240px]">
+                      <div className="mt-1 w-full bg-paper-subtle rounded-full h-1.5 max-w-[240px]">
                         <div
                           className="bg-brand-red h-1.5 rounded-full"
                           style={{ width: `${Math.round((d.qty / maxQty) * 100)}%` }}
                         />
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900 align-top">{d.qty}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-700 align-top">{euro(d.revenue)}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-ink align-top">{d.qty}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-ink-body align-top">{euro(d.revenue)}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums align-top">
                       {d.margin !== null ? (
-                        <span className="font-semibold text-green-700">{euro(d.margin)}</span>
+                        <span className="font-semibold text-good">{euro(d.margin)}</span>
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        <span className="text-ink-faint/60">—</span>
                       )}
                     </td>
                   </tr>
@@ -303,46 +302,46 @@ export default async function AdminSalesPage({
 
           {/* Par heure / par jour */}
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h2 className="font-bold text-gray-900 mb-1">Articles vendus par heure</h2>
-              <p className="text-xs text-gray-400 mb-4">
+            <div className="bg-white rounded-xl border border-paper-border p-5">
+              <h2 className="font-bold text-ink mb-1">Articles vendus par heure</h2>
+              <p className="text-xs text-ink-faint mb-4">
                 Heure imprimée sur le ticket ({withTime}/{orders.length} commandes datées).
               </p>
               <div className="flex items-end gap-0.5 h-28">
                 {byHour.map((v, h) => (
                   <div key={h} className="flex-1 flex flex-col items-center justify-end h-full" title={`${h}h : ${v} article${v > 1 ? "s" : ""}`}>
                     <div
-                      className={`w-full rounded-t ${v > 0 ? "bg-brand-red" : "bg-gray-100"}`}
+                      className={`w-full rounded-t ${v > 0 ? "bg-brand-red" : "bg-paper-subtle"}`}
                       style={{ height: `${Math.max(v > 0 ? 6 : 2, Math.round((v / maxHour) * 100))}%` }}
                     />
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+              <div className="flex justify-between text-[10px] text-ink-faint mt-1">
                 <span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h2 className="font-bold text-gray-900 mb-1">Articles vendus par jour</h2>
-              <p className="text-xs text-gray-400 mb-4">Cumul par jour de la semaine sur la période.</p>
+            <div className="bg-white rounded-xl border border-paper-border p-5">
+              <h2 className="font-bold text-ink mb-1">Articles vendus par jour</h2>
+              <p className="text-xs text-ink-faint mb-4">Cumul par jour de la semaine sur la période.</p>
               <div className="flex items-end gap-2 h-28">
                 {byWeekday.map((v, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${WEEKDAYS[i]} : ${v} article${v > 1 ? "s" : ""}`}>
                     <div
-                      className={`w-full rounded-t ${v > 0 ? "bg-brand-dark" : "bg-gray-100"}`}
+                      className={`w-full rounded-t ${v > 0 ? "bg-brand-dark" : "bg-paper-subtle"}`}
                       style={{ height: `${Math.max(v > 0 ? 6 : 2, Math.round((v / maxWeekday) * 100))}%` }}
                     />
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+              <div className="flex justify-between text-[10px] text-ink-faint mt-1">
                 {WEEKDAYS.map((d) => <span key={d} className="flex-1 text-center">{d}</span>)}
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
+          <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
             <p>
               💡 Ces chiffres couvrent uniquement les commandes <span className="font-semibold">scannées par tes membres</span> —
               c&apos;est la vue « ce que le programme me rapporte », pas ta caisse complète.

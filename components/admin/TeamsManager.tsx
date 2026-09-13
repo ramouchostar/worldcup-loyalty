@@ -45,10 +45,10 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
 
   if (teams.length === 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+      <div className="bg-white rounded-xl border border-paper-border p-8 text-center">
         <p className="text-4xl mb-3">👥</p>
-        <p className="font-semibold text-gray-900">Aucune équipe pour l&apos;instant</p>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="font-semibold text-ink">Aucune équipe pour l&apos;instant</p>
+        <p className="text-sm text-ink-muted mt-1">
           Une équipe naît quand un client se reconnaît dans une des communautés que tu as déclarées.
         </p>
       </div>
@@ -58,7 +58,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
   return (
     <div className="space-y-3">
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+        <p className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-lg px-3 py-2">{error}</p>
       )}
 
       {teams.map((team) => {
@@ -67,7 +67,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
         return (
           <div
             key={team.id}
-            className={`bg-white rounded-2xl shadow-sm border p-4 ${team.isActive ? "border-gray-100" : "border-gray-200 bg-gray-50"}`}
+            className={`bg-white rounded-xl border p-4 ${team.isActive ? "border-paper-border" : "border-paper-border bg-paper"}`}
           >
             <div className="flex items-start gap-3">
               <span className="text-2xl shrink-0">{team.emoji}</span>
@@ -80,7 +80,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                       onChange={(e) => setDraftName(e.target.value)}
                       maxLength={60}
                       autoFocus
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+                      className="flex-1 border border-paper-border rounded-lg px-3 py-1.5 text-sm"
                     />
                     <button
                       onClick={() => act(team.id, "rename", { name: draftName })}
@@ -91,29 +91,29 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="text-sm text-gray-500 px-2 hover:text-gray-700"
+                      className="text-sm text-ink-muted px-2 hover:text-ink-body"
                     >
                       Annuler
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-gray-900">{team.name}</span>
-                    <span className="text-xs text-gray-500">{TYPE_LABELS[team.type] ?? team.type}</span>
+                    <span className="font-bold text-ink">{team.name}</span>
+                    <span className="text-xs text-ink-muted">{TYPE_LABELS[team.type] ?? team.type}</span>
                     {!team.isActive && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-paper-border text-ink-body">
                         Archivée
                       </span>
                     )}
                     {team.fromSuggestion && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-paper-subtle text-ink-body">
                         Communauté déclarée
                       </span>
                     )}
                   </div>
                 )}
 
-                <p className="text-sm text-gray-500 mt-0.5">
+                <p className="text-sm text-ink-muted mt-0.5">
                   {team.memberCount} membre{team.memberCount > 1 ? "s" : ""} · {euros(team.totalSpent)} cumulés ·{" "}
                   {team.orderCount} commande{team.orderCount > 1 ? "s" : ""}
                   {team.joinCode && <> · code {team.joinCode}</>}
@@ -131,7 +131,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                       setEditingId(team.id);
                       setDraftName(team.name);
                     }}
-                    className="text-gray-500 hover:text-gray-800"
+                    className="text-ink-muted hover:text-ink"
                   >
                     Renommer
                   </button>
@@ -139,7 +139,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                     <button
                       onClick={() => act(team.id, "archive")}
                       disabled={busy}
-                      className="text-gray-500 hover:text-gray-800 disabled:opacity-50"
+                      className="text-ink-muted hover:text-ink disabled:opacity-50"
                     >
                       Archiver
                     </button>
@@ -147,7 +147,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                     <button
                       onClick={() => act(team.id, "restore")}
                       disabled={busy}
-                      className="text-gray-500 hover:text-gray-800 disabled:opacity-50"
+                      className="text-ink-muted hover:text-ink disabled:opacity-50"
                     >
                       Réactiver
                     </button>
@@ -156,7 +156,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                     <button
                       onClick={() => setConfirmDelete(team.id)}
                       disabled={busy}
-                      className="text-red-600 hover:underline disabled:opacity-50"
+                      className="text-danger hover:underline disabled:opacity-50"
                     >
                       Supprimer
                     </button>
@@ -164,8 +164,8 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                 </div>
 
                 {confirmDelete === team.id && (
-                  <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-900">
+                  <div className="mt-3 bg-danger/10 border border-danger/30 rounded-lg p-3">
+                    <p className="text-sm text-danger">
                       Supprimer « {team.name} » ?{" "}
                       {team.memberCount > 0
                         ? `Ses ${team.memberCount} membre${team.memberCount > 1 ? "s" : ""} se retrouveront sans équipe — ils gardent leur compte et peuvent continuer à envoyer leurs tickets.`
@@ -175,11 +175,11 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                       <button
                         onClick={() => act(team.id, "delete")}
                         disabled={busy}
-                        className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-50"
+                        className="bg-danger text-white px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-50"
                       >
                         {busy ? "Suppression..." : "Confirmer"}
                       </button>
-                      <button onClick={() => setConfirmDelete(null)} className="text-sm text-gray-600 px-2">
+                      <button onClick={() => setConfirmDelete(null)} className="text-sm text-ink-body px-2">
                         Annuler
                       </button>
                     </div>
@@ -187,15 +187,15 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                 )}
 
                 {open && (
-                  <div className="mt-3 border-t border-gray-100 pt-3">
+                  <div className="mt-3 border-t border-paper-border pt-3">
                     {team.members.length === 0 ? (
-                      <p className="text-sm text-gray-400">Aucun membre.</p>
+                      <p className="text-sm text-ink-faint">Aucun membre.</p>
                     ) : (
                       <ul className="space-y-1.5">
                         {team.members.map((m) => (
                           <li key={m.userId} className="flex justify-between gap-3 text-sm">
-                            <span className="text-gray-900 truncate">{m.name}</span>
-                            <span className="text-gray-500 shrink-0">
+                            <span className="text-ink truncate">{m.name}</span>
+                            <span className="text-ink-muted shrink-0">
                               {m.orderCount} cmd · {euros(m.totalSpent)}
                             </span>
                           </li>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
+import { PageHeader } from "@/components/admin/ui";
 
 type RewardKind = "percent" | "free_item";
 type TierForm = { threshold_spent: string; reward_kind: RewardKind; percent_value: string; menu_item_id: string };
@@ -77,57 +78,55 @@ export function TeamTiersClient() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Paliers d&apos;équipe</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Quand la dépense cumulée d&apos;une équipe atteint un seuil, tous ses membres débloquent la
+      <PageHeader
+        title={<>Paliers d&apos;équipe</>}
+        subtitle={<>Quand la dépense cumulée d&apos;une équipe atteint un seuil, tous ses membres débloquent la
           récompense. Le pourcentage s&apos;applique de façon bornée (prochaine commande). Ces seuils en
-          euros ne sont jamais visibles côté client.
-        </p>
-      </div>
+          euros ne sont jamais visibles côté client.</>}
+      />
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+      <div className="bg-warn/10 border border-warn/30 rounded-xl p-4 text-sm text-warn">
         Rétro-financé : grâce au plafond de budget cadeaux, le restaurant a déjà encaissé la marge avant
         que la récompense ne parte.
       </div>
 
       {msg && (
-        <div className={`rounded-xl p-3 text-sm border ${msg.kind === "ok" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
+        <div className={`rounded-xl p-3 text-sm border ${msg.kind === "ok" ? "bg-good/10 border-good/30 text-good" : "bg-danger/10 border-danger/30 text-danger"}`}>
           {msg.text}
         </div>
       )}
 
       {loading ? (
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => <div key={i} className="bg-white rounded-xl h-16 animate-pulse border border-gray-100" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="bg-white rounded-xl h-16 animate-pulse border border-paper-border" />)}
         </div>
       ) : (
         <div className="space-y-3">
           {tiers.length === 0 && (
-            <div className="bg-white rounded-xl border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+            <div className="bg-white rounded-xl border border-dashed border-paper-border p-6 text-center text-sm text-ink-muted">
               Aucun palier. Ajoute-en un ci-dessous.
             </div>
           )}
 
           {tiers.map((t, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 flex flex-wrap items-end gap-3">
+            <div key={i} className="bg-white rounded-xl border border-paper-border p-4 flex flex-wrap items-end gap-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Dépense cumulée (€)</label>
+                <label className="text-xs text-ink-muted mb-1 block">Dépense cumulée (€)</label>
                 <input
                   type="number"
                   min={0}
                   value={t.threshold_spent}
                   onChange={(e) => update(i, { threshold_spent: e.target.value })}
-                  className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  className="w-32 border border-paper-border rounded-lg px-3 py-2 text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Récompense</label>
+                <label className="text-xs text-ink-muted mb-1 block">Récompense</label>
                 <select
                   value={t.reward_kind}
                   onChange={(e) => update(i, { reward_kind: e.target.value as RewardKind })}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                  className="border border-paper-border rounded-lg px-3 py-2 text-sm bg-white"
                 >
                   <option value="free_item">Article gratuit</option>
                   <option value="percent">Pourcentage</option>
@@ -136,23 +135,23 @@ export function TeamTiersClient() {
 
               {t.reward_kind === "percent" ? (
                 <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Remise (%)</label>
+                  <label className="text-xs text-ink-muted mb-1 block">Remise (%)</label>
                   <input
                     type="number"
                     min={1}
                     max={100}
                     value={t.percent_value}
                     onChange={(e) => update(i, { percent_value: e.target.value })}
-                    className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                    className="w-24 border border-paper-border rounded-lg px-3 py-2 text-sm"
                   />
                 </div>
               ) : (
                 <div className="flex-1 min-w-[12rem]">
-                  <label className="text-xs text-gray-500 mb-1 block">Article offert</label>
+                  <label className="text-xs text-ink-muted mb-1 block">Article offert</label>
                   <select
                     value={t.menu_item_id}
                     onChange={(e) => update(i, { menu_item_id: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                    className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm bg-white"
                   >
                     <option value="">— choisir —</option>
                     {giftItems.map((it) => (
@@ -164,7 +163,7 @@ export function TeamTiersClient() {
 
               <button
                 onClick={() => removeRow(i)}
-                className="px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg font-medium"
+                className="px-3 py-2 text-xs text-danger hover:bg-danger/10 rounded-lg font-medium"
               >
                 Supprimer
               </button>
@@ -172,7 +171,7 @@ export function TeamTiersClient() {
           ))}
 
           <div className="flex items-center gap-3">
-            <button onClick={addRow} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
+            <button onClick={addRow} className="px-4 py-2 bg-paper-subtle text-ink-body rounded-lg text-sm font-medium hover:bg-paper-border">
               + Ajouter un palier
             </button>
             <button
