@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Smartphone } from "lucide-react";
 
 export type ClientRow = {
   name: string;
@@ -55,7 +56,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
                   <td className="py-2.5 pr-3 font-medium text-ink">
                     {r.name}
                     {r.appInstalled && (
-                      <span className="ml-1.5 text-xs" title="A installé l'app sur son téléphone">📱</span>
+                      <Smartphone size={12} strokeWidth={1.8} className="inline-block ml-1.5 -mt-0.5 text-ink-faint" aria-label="A installé l'app sur son téléphone" />
                     )}
                   </td>
                   <td className="py-2.5 pr-3 text-ink-muted">{r.team ?? "—"}</td>

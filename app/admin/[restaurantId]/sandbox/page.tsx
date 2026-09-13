@@ -29,8 +29,8 @@ function StatusBadge({ result }: { result: Result | null }) {
   return (
     <p className={`text-xs font-mono mt-2 ${isOk ? "text-good" : "text-danger"}`}>
       {isOk
-        ? `✓ ${JSON.stringify(Object.fromEntries(Object.entries(result).filter(([k]) => k !== "ok")))}`
-        : `✗ ${result.error}`}
+        ? `OK — ${JSON.stringify(Object.fromEntries(Object.entries(result).filter(([k]) => k !== "ok")))}`
+        : `Échec — ${result.error}`}
     </p>
   );
 }
@@ -236,7 +236,7 @@ export default function SandboxPage() {
               disabled={!userId || orderBusy}
               className="w-full bg-brand-red text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
             >
-              {orderBusy ? "Création..." : "✅ Créer commande validée"}
+              {orderBusy ? "Création..." : "Créer commande validée"}
             </button>
           </div>
         )}
@@ -306,7 +306,7 @@ export default function SandboxPage() {
             disabled={scoreBusy}
             className="w-full bg-ink text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
           >
-            {scoreBusy ? "Application..." : "📊 Appliquer le score"}
+            {scoreBusy ? "Application..." : "Appliquer le score"}
           </button>
         </div>
         <StatusBadge result={scoreResult} />
@@ -345,11 +345,11 @@ export default function SandboxPage() {
           disabled={resetTestBusy || !userId}
           className="w-full bg-ink text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
         >
-          {resetTestBusy ? "Reset..." : "🔄 Reset test — log + last_notified_at + orders → -7h"}
+          {resetTestBusy ? "Reset..." : "Reset test — log + last_notified_at + orders → -7h"}
         </button>
         {resetTestResult && (
           <p className={`text-xs font-mono ${resetTestResult.ok ? "text-good" : "text-danger"}`}>
-            {resetTestResult.ok ? `✓ ${resetTestResult.reset}` : `✗ ${resetTestResult.error}`}
+            {resetTestResult.ok ? `OK — ${resetTestResult.reset}` : `Échec — ${resetTestResult.error}`}
           </p>
         )}
 
@@ -358,7 +358,7 @@ export default function SandboxPage() {
           disabled={cronBusy === "notif"}
           className="w-full bg-warn text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-warn/85 disabled:opacity-50 transition-colors"
         >
-          {cronBusy === "notif" ? "Envoi..." : "🔔 Déclencher les notifications"}
+          {cronBusy === "notif" ? "Envoi..." : "Déclencher les notifications"}
         </button>
         {cronResult && (
           <pre className={`text-xs font-mono p-2 rounded-lg bg-paper overflow-x-auto ${cronResult.ok ? "text-good" : "text-danger"}`}>
@@ -376,7 +376,7 @@ export default function SandboxPage() {
           <div className="space-y-1.5">
             {members.map((m) => (
               <div key={m.id} className="flex items-center gap-3 text-sm">
-                <span>{m.teams?.flag_emoji ?? "🏳️"}</span>
+                <span>{m.teams?.flag_emoji ?? "—"}</span>
                 <span className="flex-1 text-ink-body">{m.display_name}</span>
                 <span className="text-xs text-ink-faint">{m.email ?? "—"}</span>
               </div>
@@ -399,7 +399,7 @@ export default function SandboxPage() {
             onClick={() => setResetConfirm(true)}
             className="bg-danger/12 text-danger px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger/20 transition-colors"
           >
-            🗑️ Reset tous les scores à 0
+            Reset tous les scores à 0
           </button>
         ) : (
           <div className="flex gap-3 items-center">

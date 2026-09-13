@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { CalendarDays, Lightbulb, Microscope, Sprout } from "lucide-react";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
@@ -454,7 +455,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       <div className="space-y-6">
       {totalItems < MIN_ITEMS_FOR_INSIGHTS ? (
         <div className="bg-white rounded-xl border border-dashed border-paper-border p-8 text-center">
-          <p className="text-3xl mb-2">🌱</p>
+          <Sprout size={26} strokeWidth={1.6} className="mx-auto mb-2 text-ink-muted" aria-hidden="true" />
           <p className="font-bold text-ink">Pas encore assez de données</p>
           <p className="text-sm text-ink-muted mt-1 max-w-md mx-auto">
             Les suggestions se débloquent à partir de {MIN_ITEMS_FOR_INSIGHTS} articles
@@ -474,9 +475,9 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
         <div className="space-y-6">
           {(
             [
-              ["📆 Promos datées", "L'annonce part automatiquement à la date prévue — prépare ton stock.", cards.filter((c) => c.sendOn)],
-              ["📣 Offres à lancer quand tu veux", null, cards.filter((c) => !c.sendOn && c.message)],
-              ["🛠️ Conseils internes", "Changements de carte ou de prix — rien n'est envoyé aux membres.", cards.filter((c) => !c.message)],
+              ["Promos datées", "L'annonce part automatiquement à la date prévue — prépare ton stock.", cards.filter((c) => c.sendOn)],
+              ["Offres à lancer quand tu veux", null, cards.filter((c) => !c.sendOn && c.message)],
+              ["Conseils internes", "Changements de carte ou de prix — rien n'est envoyé aux membres.", cards.filter((c) => !c.message)],
             ] as [string, string | null, Card[]][]
           )
             .filter(([, , list]) => list.length > 0)
@@ -505,13 +506,14 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
                       )}
                       {card.planning && (
                         <div className="bg-warn/10 border border-warn/30 rounded-xl p-3 mb-1.5">
-                          <p className="text-xs text-warn font-semibold uppercase tracking-wide mb-1">
-                            📆 Planning
+                          <p className="text-xs text-warn font-semibold uppercase tracking-wide mb-1 flex items-center gap-1">
+                            <CalendarDays size={12} strokeWidth={2} aria-hidden="true" />
+                            Planning
                           </p>
                           <p className="text-sm text-warn">{card.planning}</p>
                         </div>
                       )}
-                      {card.detail && <p className="text-xs text-ink-faint mb-2">💡 {card.detail}</p>}
+                      {card.detail && <p className="text-xs text-ink-faint mb-2"><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />{card.detail}</p>}
 
                       {card.message && (
                         <div className="flex justify-end mt-2">
@@ -534,7 +536,7 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
       {menuAudit && (
         <div className="bg-white rounded-xl border border-paper-border p-5">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">🔬</span>
+            <Microscope size={20} strokeWidth={1.7} className="text-ink-muted" aria-hidden="true" />
             <h2 className="font-bold text-ink">Ta carte au rayon X</h2>
           </div>
           <p className="text-sm text-ink-muted mb-4">
@@ -571,12 +573,12 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
 
       <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
         <p>
-          💡 Chaque proposition est calculée à partir de tes ventes scannées et de
+          <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Chaque proposition est calculée à partir de tes ventes scannées et de
           tes coûts de revient — les remises suggérées préservent toujours au moins
           la moitié de ta marge.
         </p>
         <p>
-          💡 Le bouton « Ajuster et envoyer » ouvre le broadcast pré-rempli : tu
+          <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Le bouton « Ajuster et envoyer » ouvre le broadcast pré-rempli : tu
           peux modifier le texte et cibler tous tes membres, certains types
           d&apos;équipes ou des équipes précises.
         </p>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Lightbulb } from "lucide-react";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import {
@@ -157,7 +158,7 @@ export default async function ForecastPage({
               </div>
             </div>
             <p className="text-xs text-ink-muted mt-4">
-              💡 Ton rapport est {trend.periodLabel === "semaine" ? "hebdomadaire" : "mensuel"} : on lit la tendance, pas le jour par jour.
+              <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Ton rapport est {trend.periodLabel === "semaine" ? "hebdomadaire" : "mensuel"} : on lit la tendance, pas le jour par jour.
               Pour une prévision des 7 prochains jours (paye, vacances, événements), dépose le détail <span className="font-medium">par jour</span> —
               la plupart des caisses l&apos;exportent sous « Rapports » › « Ventes par jour ».
             </p>
@@ -209,13 +210,13 @@ export default async function ForecastPage({
 
           <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
             <p>
-              💡 La fourchette reflète la <span className="font-semibold">variabilité habituelle</span> de chaque
+              <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />La fourchette reflète la <span className="font-semibold">variabilité habituelle</span> de chaque
               jour. Les facteurs affichés (paye, vacances, événements…) sont calibrés sur{" "}
               <span className="font-semibold">ton propre historique</span> quand il est assez riche ; un «&nbsp;≈&nbsp;»
               signale une estimation (événement ou promo à venir, sans recul suffisant).
             </p>
             <p>
-              💡 Plus tu importes de semaines, plus les prévisions se précisent et la confiance monte.
+              <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Plus tu importes de semaines, plus les prévisions se précisent et la confiance monte.
             </p>
           </div>
         </>

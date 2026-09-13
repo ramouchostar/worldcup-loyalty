@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ICONS } from "@/components/admin/AdminNavIcons";
@@ -29,8 +30,8 @@ export function AdminMobileNav({ sections }: { sections: AdminNavSection[] }) {
         className="w-full flex items-center justify-between bg-white border border-paper-border rounded-xl px-4 py-3"
       >
         <span className="text-sm font-semibold text-ink">{current}</span>
-        <span className="text-ink-faint text-lg leading-none" aria-hidden="true">
-          {open ? "✕" : "☰"}
+        <span className="text-ink-faint" aria-hidden="true">
+          {open ? <X size={18} strokeWidth={1.8} /> : <Menu size={18} strokeWidth={1.8} />}
         </span>
       </button>
 

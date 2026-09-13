@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Receipt } from "lucide-react";
 import {
   listPendingDuplicateReviews,
   RULE_LABELS,
@@ -120,7 +121,7 @@ export default async function DuplicatesPage({
 
       {reviews.length === 0 ? (
         <div className="rounded-xl border border-paper-border bg-white p-8 text-center">
-          <p className="text-3xl mb-2">🧾</p>
+          <Receipt size={26} strokeWidth={1.6} className="mx-auto mb-2 text-ink-muted" aria-hidden="true" />
           <p className="font-semibold text-ink">Rien à arbitrer</p>
           <p className="text-sm text-ink-muted mt-1">
             Les doublons certains sont refusés automatiquement — ils n&apos;arrivent jamais ici.

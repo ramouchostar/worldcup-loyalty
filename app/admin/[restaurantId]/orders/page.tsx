@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { TriangleAlert, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { PageHeader, FilterTabs, StatusBadge } from "@/components/admin/ui";
 
@@ -170,7 +171,7 @@ function SwipeCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* ADR 0034 — un membre sans équipe envoie ses tickets comme les autres */}
               <span className="text-base shrink-0" title={order.teams?.name ?? "Sans équipe"}>
-                {order.teams?.flag_emoji ?? "👤"}
+                {order.teams?.flag_emoji ?? "—"}
               </span>
               <span className="font-semibold text-ink text-sm">
                 {order.profiles?.display_name ?? "—"}
@@ -252,7 +253,7 @@ function SwipeCard({
                 ? "bg-good/12 text-good"
                 : "bg-danger/12 text-danger"
             }`}>
-              {order.status === "validated" ? "Validée ✓" : "Rejetée"}
+              {order.status === "validated" ? "Validée" : "Rejetée"}
             </span>
           ) : !batchMode ? (
             <div className="flex flex-col gap-1.5">
@@ -261,14 +262,14 @@ function SwipeCard({
                 disabled={busy}
                 className="px-3 py-1.5 bg-good text-white rounded-lg text-xs font-semibold hover:bg-good disabled:opacity-50 whitespace-nowrap"
               >
-                {busy ? "…" : "✓ Valider"}
+                {busy ? "…" : "Valider"}
               </button>
               <button
                 onClick={onReject}
                 disabled={busy}
                 className="px-3 py-1.5 bg-danger/12 text-danger rounded-lg text-xs font-semibold hover:bg-danger/20 disabled:opacity-50"
               >
-                ✕ Rejeter
+                Rejeter
               </button>
             </div>
           ) : null}
@@ -405,8 +406,13 @@ export default function AdminOrdersPage() {
     <div className="space-y-4">
       {actionError && (
         <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 text-sm text-danger flex items-start justify-between gap-2">
-          <span>⚠️ {actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">✕</button>
+          <span className="flex items-start gap-2">
+            <TriangleAlert size={15} strokeWidth={1.8} className="shrink-0 mt-0.5" aria-hidden="true" />
+            {actionError}
+          </span>
+          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">
+            <X size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
         </div>
       )}
       {/* Header */}
@@ -558,7 +564,7 @@ export default function AdminOrdersPage() {
             disabled={batchBusy}
             className="flex-1 py-3 bg-good text-white rounded-xl font-semibold text-sm hover:bg-good disabled:opacity-50"
           >
-            {batchBusy ? "Validation…" : `✓ Valider ${selected.size} commande${selected.size > 1 ? "s" : ""}`}
+            {batchBusy ? "Validation…" : `Valider ${selected.size} commande${selected.size > 1 ? "s" : ""}`}
           </button>
           <button
             onClick={() => { setSelected(new Set()); setBatchMode(false); }}

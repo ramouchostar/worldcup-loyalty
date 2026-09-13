@@ -1,19 +1,5 @@
 import Link from "next/link";
-import {
-  TriangleAlert,
-  Receipt,
-  Star,
-  CircleCheck,
-  ChevronRight,
-  Lightbulb,
-  Trophy,
-  TrendingUp,
-  QrCode,
-  Settings,
-  Award,
-  ListPlus,
-  type LucideIcon,
-} from "lucide-react";
+import { Award, ChevronRight, CircleCheck, Hourglass, Lightbulb, ListPlus, QrCode, Receipt, Rocket, Settings, Star, TrendingUp, TriangleAlert, Trophy, type LucideIcon } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
@@ -229,7 +215,8 @@ export default async function AdminDashboardPage({
       {restaurant?.status === "pending" && (
         <div className="bg-warn/10 border border-warn/30 rounded-xl p-4">
           <p className="font-bold text-warn text-sm mb-1">
-            ⏳ Ton établissement n&apos;est pas encore visible des clients
+            <Hourglass size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+            Ton établissement n&apos;est pas encore visible des clients
           </p>
           <p className="text-xs text-warn mb-3">
             Il sera mis en ligne après validation par notre équipe. En attendant,
@@ -251,7 +238,8 @@ export default async function AdminDashboardPage({
       {scanUsage.over && (
         <div className="bg-good/10 border border-good/30 rounded-xl p-4">
           <p className="font-bold text-good text-sm mb-1">
-            🚀 {scanUsage.count} tickets scannés ce mois-ci — tes clients jouent le jeu !
+            <Rocket size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+            {scanUsage.count} tickets scannés ce mois-ci — tes clients jouent le jeu !
           </p>
           <p className="text-xs text-good mb-3">
             Ton programme dépasse le volume couvert par le plan Gratuit ({SCAN_CAP_GRATUIT}{" "}
@@ -519,7 +507,7 @@ export default async function AdminDashboardPage({
 
           <p className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink my-2.5">
             {th.is_unlocked
-              ? "Bonus communautaire débloqué pour cette période 🎉"
+              ? "Bonus communautaire débloqué pour cette période"
               : `${missingToUnlock.toLocaleString("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })} pour débloquer le bonus communautaire`}
           </p>
 

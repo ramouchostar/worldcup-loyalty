@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Camera, Gem, Lightbulb, TriangleAlert } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
@@ -240,7 +241,7 @@ export default function AdminMenuPage() {
             ))}
           </select>
         </div>
-        {rationale && <p className="text-xs text-brand-gold mt-1 ml-[11.75rem]">💡 {rationale}</p>}
+        {rationale && <p className="text-xs text-brand-gold mt-1 ml-[11.75rem]"><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />{rationale}</p>}
       </div>
     );
   }
@@ -312,12 +313,12 @@ export default function AdminMenuPage() {
             {best && worst && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-good/10 border border-good/30 rounded-xl p-3">
-                  <p className="text-xs text-good font-semibold uppercase tracking-wide">💎 Marge la plus forte</p>
+                  <p className="text-xs text-good font-semibold uppercase tracking-wide flex items-center gap-1"><Gem size={12} strokeWidth={2} aria-hidden="true" />Marge la plus forte</p>
                   <p className="text-sm font-bold text-ink mt-1 truncate">{best.name}</p>
                   <p className="text-xs text-good">{euro(margin(best))} de marge par vente</p>
                 </div>
                 <div className="bg-warn/10 border border-warn/30 rounded-xl p-3">
-                  <p className="text-xs text-warn font-semibold uppercase tracking-wide">⚠️ Marge la plus faible</p>
+                  <p className="text-xs text-warn font-semibold uppercase tracking-wide flex items-center gap-1"><TriangleAlert size={12} strokeWidth={2} aria-hidden="true" />Marge la plus faible</p>
                   <p className="text-sm font-bold text-ink mt-1 truncate">{worst.name}</p>
                   <p className="text-xs text-warn">{euro(margin(worst))} de marge par vente</p>
                 </div>
@@ -383,7 +384,7 @@ export default function AdminMenuPage() {
                               </a>
                             ) : (
                               <label className="h-12 w-12 rounded-lg border border-dashed border-paper-border grid place-items-center text-ink-faint text-lg cursor-pointer hover:border-ink-faint hover:text-ink-body" title="Ajouter une photo">
-                                📷
+                                <Camera size={17} strokeWidth={1.7} aria-hidden="true" />
                                 <input
                                   type="file"
                                   accept="image/jpeg,image/png,image/webp"
@@ -429,7 +430,7 @@ export default function AdminMenuPage() {
                         </td>
                         <td className="px-4 py-2.5 font-medium text-ink">
                           {it.name}
-                          {isTop && <span className="ml-2 text-xs bg-good/12 text-good px-1.5 py-0.5 rounded-full">💎 top marge</span>}
+                          {isTop && <span className="ml-2 text-xs bg-good/12 text-good px-1.5 py-0.5 rounded-full">top marge</span>}
                           {isFlop && <span className="ml-2 text-xs bg-warn/12 text-warn px-1.5 py-0.5 rounded-full">marge faible</span>}
                           {!it.is_active && <span className="ml-2 text-xs bg-danger/12 text-danger px-1.5 py-0.5 rounded-full">inactif</span>}
                           {!it.reward_eligible && <span className="ml-2 text-xs bg-paper-subtle text-ink-muted px-1.5 py-0.5 rounded-full">hors cadeau</span>}
@@ -480,7 +481,7 @@ export default function AdminMenuPage() {
             <div className="flex items-center gap-2">
               <button onClick={suggest} disabled={suggesting || giftItems.length === 0}
                 className="px-3 py-2 bg-brand-gold/15 text-warn border border-brand-gold/40 rounded-lg text-sm font-semibold hover:bg-brand-gold/25 disabled:opacity-50">
-                {suggesting ? "Suggestion…" : "✨ Suggérer avec l'IA"}
+                {suggesting ? "Suggestion…" : "Suggérer avec l'IA"}
               </button>
               <button onClick={saveTiers} disabled={savingTiers}
                 className="px-3 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50">
@@ -603,7 +604,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
       {info.suggestion && info.suggestion.id !== info.current.id && (
         <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-warn">
-            💡 Suggestion : <span className="font-semibold">{info.suggestion.name}</span> — perçu à{" "}
+            <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Suggestion : <span className="font-semibold">{info.suggestion.name}</span> — perçu à{" "}
             {euro(info.suggestion.menu_price)} pour {euro(info.suggestion.cost_price)} de coût réel
             (ratio ×{(info.suggestion.menu_price / info.suggestion.cost_price).toFixed(1)}).
           </p>

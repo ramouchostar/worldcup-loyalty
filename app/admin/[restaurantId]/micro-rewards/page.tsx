@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Gift, TriangleAlert, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { PageHeader, FilterTabs } from "@/components/admin/ui";
 
@@ -15,10 +16,10 @@ type AdminClaim = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  google_review:    "⭐ Avis Google",
-  instagram_follow: "📸 Follow Instagram",
-  tiktok_follow:    "🎵 Follow TikTok",
-  facebook_follow:  "👍 Follow Facebook",
+  google_review:    "Avis Google",
+  instagram_follow: "Follow Instagram",
+  tiktok_follow:    "Follow TikTok",
+  facebook_follow:  "Follow Facebook",
 };
 
 export default function AdminMicroRewardsPage() {
@@ -83,8 +84,13 @@ export default function AdminMicroRewardsPage() {
     <div className="space-y-5">
       {actionError && (
         <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 text-sm text-danger flex items-start justify-between gap-2">
-          <span>⚠️ {actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">✕</button>
+          <span className="flex items-start gap-2">
+            <TriangleAlert size={15} strokeWidth={1.8} className="shrink-0 mt-0.5" aria-hidden="true" />
+            {actionError}
+          </span>
+          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">
+            <X size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
         </div>
       )}
       <PageHeader
@@ -96,7 +102,8 @@ export default function AdminMicroRewardsPage() {
       {churrosEligible.length > 0 && (
         <div className="bg-good/10 border-2 border-good/50 rounded-xl p-4">
           <p className="font-bold text-good mb-3">
-            🎁 {churrosEligible.length} membre(s) avec 4+ jetons sociaux
+            <Gift size={15} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+          {churrosEligible.length} membre(s) avec 4+ jetons sociaux
           </p>
           <p className="text-xs text-good mb-3">
             Note : des jetons parrainages peuvent s&apos;y ajouter — vérifier dans &quot;Parrainages&quot;.
@@ -114,7 +121,7 @@ export default function AdminMicroRewardsPage() {
                   <p className="text-xs text-ink-faint">{profile?.email}</p>
                 </div>
                 <span className="text-xs font-bold bg-good/12 text-good px-2 py-1 rounded-full">
-                  {count} jeton{count > 1 ? "s" : ""} sociaux ✓
+                  {count} jeton{count > 1 ? "s" : ""} sociaux
                 </span>
               </div>
             ))}
@@ -205,14 +212,14 @@ export default function AdminMicroRewardsPage() {
                         disabled={busy === claim.id}
                         className="px-3 py-1.5 bg-good text-white rounded-lg text-xs font-semibold hover:bg-good disabled:opacity-50"
                       >
-                        {busy === claim.id ? "..." : "✓ Valider"}
+                        {busy === claim.id ? "..." : "Valider"}
                       </button>
                       <button
                         onClick={() => handleAction(claim.id, "reject")}
                         disabled={busy === claim.id}
                         className="px-3 py-1.5 bg-danger/12 text-danger rounded-lg text-xs font-semibold hover:bg-danger/20 disabled:opacity-50"
                       >
-                        ✕ Rejeter
+                        Rejeter
                       </button>
                     </div>
                   )}
@@ -225,7 +232,7 @@ export default function AdminMicroRewardsPage() {
                           : "bg-danger/12 text-danger"
                       }`}
                     >
-                      {claim.status === "validated" ? "Validée ✓" : "Rejetée"}
+                      {claim.status === "validated" ? "Validée" : "Rejetée"}
                     </span>
                   )}
                 </div>

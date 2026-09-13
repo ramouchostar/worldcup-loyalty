@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Image as ImageIcon, Store } from "lucide-react";
 import { updateRestaurantBranding, detectRestaurantDesign } from "./actions";
 import { BRAND_DEFAULTS, FONT_OPTIONS } from "@/lib/branding";
 
@@ -151,7 +152,7 @@ export function BrandingForm({
             disabled={!websiteUrl || detecting}
             className="w-full bg-brand-dark text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-brand-dark/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {detecting ? "Analyse en cours... (jusqu'à 45 secondes)" : "✨ Détecter mon design depuis mon site"}
+            {detecting ? "Analyse en cours... (jusqu'à 45 secondes)" : "Détecter mon design depuis mon site"}
           </button>
           <p className="text-xs text-ink-faint mt-1.5">
             {websiteUrl
@@ -174,7 +175,7 @@ export function BrandingForm({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
               ) : (
-                <span className="text-ink-faint/60 text-2xl">🏪</span>
+                <Store size={22} strokeWidth={1.6} className="text-ink-faint/70" aria-hidden="true" />
               )}
             </div>
             <div className="flex flex-col gap-1.5">
@@ -203,7 +204,7 @@ export function BrandingForm({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={heroPreview} alt="Hero" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-ink-faint/60 text-xl">🖼️</span>
+                <ImageIcon size={20} strokeWidth={1.6} className="text-ink-faint/70" aria-hidden="true" />
               )}
             </div>
             <div className="flex flex-col gap-1.5">

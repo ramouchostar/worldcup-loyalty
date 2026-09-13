@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { parseCsvTable, guessMappingSmart, parseSalesRows, parseRowsFromGrid } from "@/lib/sales-import";
 import { parseXlsxToGrid } from "@/lib/xlsx";
@@ -186,7 +187,8 @@ export default function SalesImport({
 
       {result && (
         <div className="mt-3 text-sm bg-good/10 border border-good/30 text-good rounded-lg px-3 py-2">
-          ✅ {result.imported.toLocaleString("fr-BE")} ventes importées
+          <Check size={14} strokeWidth={2.2} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+          {result.imported.toLocaleString("fr-BE")} ventes importées
           {result.dateMin && result.dateMax ? ` (${fr(result.dateMin)} → ${fr(result.dateMax)})` : ""}.
           {result.dropped > 0 && ` ${result.dropped} ligne(s) illisible(s) ignorée(s).`}
         </div>
@@ -219,7 +221,7 @@ export default function SalesImport({
             <div className="text-xs text-ink-muted bg-paper rounded-lg p-3">
               {preview.rows.length > 0 ? (
                 <>
-                  <span className="font-semibold text-ink-body">✓ {gran?.label ?? `${preview.rows.length} ventes`}</span>
+                  <span className="font-semibold text-ink-body">{gran?.label ?? `${preview.rows.length} ventes`}</span>
                   {preview.dateMin && preview.dateMax ? ` du ${fr(preview.dateMin)} au ${fr(preview.dateMax)}` : ""}
                   {" · "}
                   {preview.rows.length.toLocaleString("fr-BE")} ligne{preview.rows.length > 1 ? "s" : ""} reconnue

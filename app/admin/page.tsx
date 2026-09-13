@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Store } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, getRestaurantLogos } from "@/lib/restaurant";
@@ -48,7 +49,9 @@ export default async function AdminLandingPage() {
     <div className="min-h-screen bg-paper flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <p className="text-4xl mb-2">⚙️</p>
+          <span className="w-12 h-12 rounded-xl bg-paper-subtle text-ink-muted flex items-center justify-center mx-auto mb-3">
+            <Store size={24} strokeWidth={1.6} aria-hidden="true" />
+          </span>
           <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink">Console admin</h1>
           <p className="text-ink-muted text-sm mt-1">
             {restaurants.length === 0

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Lightbulb, Sprout } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { computeSectorBenchmarks, WEEKDAY_LABELS, SECTOR_MIN_RESTAURANTS } from "@/lib/sector-benchmarks";
@@ -41,7 +42,7 @@ export default async function BenchmarksPage({ params }: { params: Promise<{ res
 
       {bench.status === "insufficient" ? (
         <div className="bg-white rounded-xl border border-dashed border-paper-border p-8 text-center">
-          <p className="text-3xl mb-2">🌱</p>
+          <Sprout size={26} strokeWidth={1.6} className="mx-auto mb-2 text-ink-muted" aria-hidden="true" />
           <p className="font-bold text-ink">Pas encore assez d&apos;établissements comparables</p>
           <p className="text-sm text-ink-muted mt-2 max-w-md mx-auto">
             Les repères s&apos;affichent à partir de {SECTOR_MIN_RESTAURANTS} établissements
@@ -132,12 +133,12 @@ export default async function BenchmarksPage({ params }: { params: Promise<{ res
 
           <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
             <p>
-              💡 Un jour creux chez toi mais fort {bench.scope === "secteur" ? "dans ton secteur" : "dans le réseau"} ={" "}
+              <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Un jour creux chez toi mais fort {bench.scope === "secteur" ? "dans ton secteur" : "dans le réseau"} ={" "}
               une opportunité : les clients sortent ce jour-là, mais pas chez toi. Une promo
               ciblée (Broadcasts) peut inverser la tendance.
             </p>
             <p>
-              💡 Ces repères couvrent les commandes scannées par les membres — même biais pour
+              <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Ces repères couvrent les commandes scannées par les membres — même biais pour
               tout le monde, donc comparable. Chaque établissement du réseau contribue aux
               médianes, personne n&apos;y est identifiable.
             </p>
