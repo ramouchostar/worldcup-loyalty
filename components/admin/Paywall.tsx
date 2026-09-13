@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check, Lock } from "lucide-react";
 import type { Entitlement } from "@/lib/entitlements";
 
 // ADR 0029 §5 — paywall DOUX : la fonction reste visible mais verrouillée
@@ -42,7 +43,8 @@ export function RequestPlanButton({
   if (state === "sent" || state === "already") {
     return (
       <p className="text-sm font-semibold text-good bg-good/10 border border-good/30 rounded-xl px-4 py-2.5 text-center">
-        ✓ {state === "already" ? "Demande déjà envoyée" : "Demande envoyée"} — on te recontacte
+        <Check size={14} strokeWidth={2.2} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+        {state === "already" ? "Demande déjà envoyée" : "Demande envoyée"} — on te recontacte
         très vite.
       </p>
     );
@@ -127,7 +129,7 @@ export function PaywallSection({
       </div>
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <div className="bg-white/95 border border-paper-border shadow-xl rounded-xl p-6 max-w-sm text-center space-y-3">
-          <p className="text-3xl" aria-hidden="true">🔒</p>
+          <Lock size={26} strokeWidth={1.6} className="text-ink-muted mx-auto" aria-hidden="true" />
           <p className="font-bold text-ink">{title}</p>
           <p className="text-sm text-ink-muted">{pitch}</p>
           <RequestPlanButton restaurantId={restaurantId} feature={feature} requiredPlan={ent.requiredPlan} />

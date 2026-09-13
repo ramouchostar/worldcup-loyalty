@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { TeamType } from "@/types";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
@@ -241,7 +242,7 @@ export default function AdminBroadcastPage() {
 
       {/* Envoi programmé (ADR 0023) */}
       <div className="bg-white rounded-xl border border-paper-border p-5 space-y-2">
-        <label className="text-sm font-semibold text-ink">📆 Programmer l&apos;envoi (optionnel)</label>
+        <label className="text-sm font-semibold text-ink flex items-center gap-1.5"><CalendarDays size={15} strokeWidth={1.8} aria-hidden="true" />Programmer l&apos;envoi (optionnel)</label>
         <p className="text-xs text-ink-muted">
           Laisse vide pour envoyer maintenant. Pour annoncer une promo, programme l&apos;envoi la veille
           ou l&apos;avant-veille du jour de la promo — jamais plus tôt, sinon les membres reportent leurs

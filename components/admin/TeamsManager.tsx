@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { AdminTeam } from "@/lib/teams-admin";
 
@@ -46,7 +47,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
   if (teams.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-paper-border p-8 text-center">
-        <p className="text-4xl mb-3">👥</p>
+        <Users size={28} strokeWidth={1.6} className="mx-auto mb-3 text-ink-muted" aria-hidden="true" />
         <p className="font-semibold text-ink">Aucune équipe pour l&apos;instant</p>
         <p className="text-sm text-ink-muted mt-1">
           Une équipe naît quand un client se reconnaît dans une des communautés que tu as déclarées.

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { Users, Wrench } from "lucide-react";
 import Link from "next/link";
 import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
@@ -189,14 +190,16 @@ export default async function AdminLayout({
         <div className="bg-brand-gold/15 border-b border-brand-gold/30">
           <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs">
             <span className="text-warn font-semibold truncate">
-              🛠️ Mode plateforme — vous consultez « {restaurant.name} »
+              <Wrench size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+              Mode plateforme — vous consultez « {restaurant.name} »
             </span>
             <div className="flex items-center gap-3 shrink-0">
               <Link
                 href={`/platform/members?restaurant=${restaurantId}`}
                 className="text-warn font-bold hover:underline"
               >
-                👥 Membres
+                <Users size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+                Membres
               </Link>
               <Link href="/platform" className="text-warn font-bold hover:underline">
                 ← Retour à la plateforme

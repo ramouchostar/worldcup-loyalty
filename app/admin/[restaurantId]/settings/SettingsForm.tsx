@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarDays } from "lucide-react";
 import { updateRestaurantInfo } from "./actions";
 import { SCHOOL_COMMUNITIES, type SchoolCommunity } from "@/lib/school-calendar";
 
@@ -18,11 +19,11 @@ type Initial = {
 };
 
 const SOCIAL_FIELDS: { name: keyof Initial; label: string; placeholder: string }[] = [
-  { name: "google_maps_url", label: "⭐ Google Maps (avis)", placeholder: "https://maps.app.goo.gl/..." },
-  { name: "website_url", label: "🌐 Site web", placeholder: "https://tonsite.com" },
-  { name: "instagram_url", label: "📸 Instagram", placeholder: "https://instagram.com/..." },
-  { name: "tiktok_url", label: "🎵 TikTok", placeholder: "https://tiktok.com/@..." },
-  { name: "facebook_url", label: "👍 Facebook", placeholder: "https://facebook.com/..." },
+  { name: "google_maps_url", label: "Google Maps (avis)", placeholder: "https://maps.app.goo.gl/..." },
+  { name: "website_url", label: "Site web", placeholder: "https://tonsite.com" },
+  { name: "instagram_url", label: "Instagram", placeholder: "https://instagram.com/..." },
+  { name: "tiktok_url", label: "TikTok", placeholder: "https://tiktok.com/@..." },
+  { name: "facebook_url", label: "Facebook", placeholder: "https://facebook.com/..." },
 ];
 
 export function SettingsForm({ restaurantId, initial }: { restaurantId: string; initial: Initial }) {
@@ -108,7 +109,8 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
             clientèle suit souvent les écoles francophones ET néerlandophones. */}
         <fieldset>
           <legend className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
-            🗓️ Calendriers scolaires de ta clientèle
+            <CalendarDays size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+          Calendriers scolaires de ta clientèle
           </legend>
           <div className="space-y-2">
             {SCHOOL_COMMUNITIES.map((c) => {

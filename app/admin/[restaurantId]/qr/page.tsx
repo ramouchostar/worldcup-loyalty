@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Download, FileText, Lightbulb, Palette, ShoppingBag, TriangleAlert, Utensils, type LucideIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -55,16 +56,16 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
 
   const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
-  const formats: { key: string; icon: string; label: string; desc: string }[] = isKraainem
+  const formats: { key: string; icon: LucideIcon; label: string; desc: string }[] = isKraainem
     ? [
-        { key: "sticker", icon: "🍽️", label: "Sticker vitrine", desc: "80 × 80 mm — vitrine & caisse" },
-        { key: "flyer", icon: "🛍️", label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },
-        { key: "affiche", icon: "🧾", label: "Affiche murale", desc: "A3 · 297 × 420 mm — mur & entrée" },
+        { key: "sticker", icon: Utensils, label: "Sticker vitrine", desc: "80 × 80 mm — vitrine & caisse" },
+        { key: "flyer", icon: ShoppingBag, label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },
+        { key: "affiche", icon: FileText, label: "Affiche murale", desc: "A3 · 297 × 420 mm — mur & entrée" },
       ]
     : [
-        { key: "a6", icon: "🍽️", label: "Sticker de table", desc: "A6 · 105 × 148 mm — à coller sur les tables" },
-        { key: "flyer", icon: "🛍️", label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },
-        { key: "a4", icon: "🧾", label: "Affiche caisse", desc: "A4 · 210 × 297 mm — à afficher au comptoir" },
+        { key: "a6", icon: Utensils, label: "Sticker de table", desc: "A6 · 105 × 148 mm — à coller sur les tables" },
+        { key: "flyer", icon: ShoppingBag, label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },
+        { key: "a4", icon: FileText, label: "Affiche caisse", desc: "A4 · 210 × 297 mm — à afficher au comptoir" },
       ];
 
   return (
@@ -77,7 +78,8 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
 
       {restaurant.status !== "active" && (
         <div className="bg-warn/10 border border-warn/30 rounded-xl p-4 text-sm text-warn">
-          ⚠️ Ton établissement n&apos;est pas encore validé : la page de destination
+          <TriangleAlert size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+          Ton établissement n&apos;est pas encore validé : la page de destination
           restera invisible aux clients jusqu&apos;à l&apos;approbation. Tu peux préparer
           l&apos;impression, mais attends la validation avant d&apos;afficher le QR.
         </div>
@@ -108,7 +110,9 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
               href={`/admin/${restaurantId}/qr/print?format=${f.key}`}
               className="flex items-center gap-4 bg-white rounded-xl border border-paper-border p-4 hover:border-brand-gold/50 hover:shadow-sm transition-all"
             >
-              <span className="text-3xl">{f.icon}</span>
+              <span className="w-10 h-10 rounded-xl bg-paper-subtle text-ink-muted flex items-center justify-center shrink-0">
+                <f.icon size={20} strokeWidth={1.6} aria-hidden="true" />
+              </span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-ink">{f.label}</p>
                 <p className="text-xs text-ink-faint">{f.desc}</p>
@@ -118,7 +122,8 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
           ))}
         </div>
         <p className="text-xs text-ink-faint">
-          🎨 Les supports reprennent ton logo et tes couleurs. Configure-les dans{" "}
+          <Palette size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+          Les supports reprennent ton logo et tes couleurs. Configure-les dans{" "}
           <Link href={`/admin/${restaurantId}/settings`} className="text-brand-red hover:underline">Mon établissement</Link>.
         </p>
       </div>
@@ -138,21 +143,23 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
           download={`qr-${restaurantId}.png`}
           className="bg-brand-dark text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
         >
-          ⬇️ PNG (2048 px)
+          <Download size={15} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+          PNG (2048 px)
         </a>
         <a
           href={svgDataUrl}
           download={`qr-${restaurantId}.svg`}
           className="bg-brand-dark text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
         >
-          ⬇️ SVG (imprimeur)
+          <Download size={15} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+          SVG (imprimeur)
         </a>
       </div>
 
       <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
-        <p>💡 Pour les supports, imprime avec les marges « Aucune » et les couleurs d&apos;arrière-plan activées.</p>
-        <p>💡 Le SVG est vectoriel : c&apos;est le format à donner à un imprimeur professionnel.</p>
-        <p>💡 Teste toujours le QR imprimé avec ton téléphone avant de le distribuer.</p>
+        <p><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Pour les supports, imprime avec les marges « Aucune » et les couleurs d&apos;arrière-plan activées.</p>
+        <p><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Le SVG est vectoriel : c&apos;est le format à donner à un imprimeur professionnel.</p>
+        <p><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Teste toujours le QR imprimé avec ton téléphone avant de le distribuer.</p>
       </div>
     </div>
   );

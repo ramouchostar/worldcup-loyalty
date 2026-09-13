@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Hand, Heart, Lock, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DIMENSION_LABELS } from "@/lib/feedback-constants";
 import { RequestPlanButton } from "@/components/admin/Paywall";
@@ -9,10 +10,10 @@ import type { AdminFeedbackItem, Barometer } from "@/types";
 // ADR 0023 §8 — le baromètre est un ÉTAT + une TENDANCE + une DÉCOMPOSITION,
 // jamais une note chiffrée. « Pas assez de signaux » sous le seuil.
 const STATE = {
-  good: { emoji: "🟢", label: "Bonne dynamique", cls: "text-good bg-good/10 border-good/30" },
-  watch: { emoji: "🟠", label: "À surveiller", cls: "text-warn bg-warn/10 border-warn/30" },
-  tense: { emoji: "🔴", label: "Tendu", cls: "text-danger bg-danger/10 border-danger/30" },
-  insufficient: { emoji: "🌱", label: "Pas assez de signaux", cls: "text-ink-body bg-paper border-paper-border" },
+  good: { dot: "bg-good", label: "Bonne dynamique", cls: "text-good bg-good/10 border-good/30" },
+  watch: { dot: "bg-warn", label: "À surveiller", cls: "text-warn bg-warn/10 border-warn/30" },
+  tense: { dot: "bg-danger", label: "Tendu", cls: "text-danger bg-danger/10 border-danger/30" },
+  insufficient: { dot: "bg-ink-faint", label: "Pas assez de signaux", cls: "text-ink-body bg-paper border-paper-border" },
 } as const;
 
 const TREND: Record<Barometer["trend"], string> = {
@@ -44,7 +45,10 @@ export function QualityFeedbackAdmin({
       {/* Baromètre */}
       <div className={`rounded-xl border p-5 ${st.cls}`}>
         <div className="flex items-center justify-between">
-          <span className="text-lg font-bold">{st.emoji} {st.label}</span>
+          <span className="text-lg font-bold flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${st.dot}`} aria-hidden="true" />
+            {st.label}
+          </span>
           {!advancedLocked && barometer.trend !== "na" && (
             <span className="text-sm font-medium">{TREND[barometer.trend]}</span>
           )}
@@ -58,14 +62,15 @@ export function QualityFeedbackAdmin({
         ) : (
           <>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              <span>💛 {barometer.encouragements} encouragement{barometer.encouragements > 1 ? "s" : ""}</span>
-              <span>🙋 {barometer.incidents} signalement{barometer.incidents > 1 ? "s" : ""}</span>
-              {barometer.unresolved > 0 && <span className="font-semibold">⚠️ {barometer.unresolved} sans réponse</span>}
+              <span className="inline-flex items-center gap-1"><Heart size={13} strokeWidth={1.8} aria-hidden="true" />{barometer.encouragements} encouragement{barometer.encouragements > 1 ? "s" : ""}</span>
+              <span className="inline-flex items-center gap-1"><Hand size={13} strokeWidth={1.8} aria-hidden="true" />{barometer.incidents} signalement{barometer.incidents > 1 ? "s" : ""}</span>
+              {barometer.unresolved > 0 && <span className="font-semibold inline-flex items-center gap-1"><TriangleAlert size={13} strokeWidth={1.8} aria-hidden="true" />{barometer.unresolved} sans réponse</span>}
             </div>
             {advancedLocked ? (
               <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/70 border border-paper-border rounded-xl px-3 py-2.5">
                 <p className="text-xs text-ink-body">
-                  🔒 La <strong>tendance</strong> et les <strong>axes récurrents</strong> font
+                  <Lock size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+                La <strong>tendance</strong> et les <strong>axes récurrents</strong> font
                   partie du baromètre avancé (plan Croissance).
                 </p>
                 <RequestPlanButton
@@ -96,7 +101,7 @@ export function QualityFeedbackAdmin({
           Signalements{incidents.length > 0 && <span className="text-ink-faint font-normal"> ({incidents.length})</span>}
         </h2>
         {incidents.length === 0 ? (
-          <p className="text-sm text-ink-muted">Aucun signalement — profites-en 🙂</p>
+          <p className="text-sm text-ink-muted">Aucun signalement — profites-en.</p>
         ) : (
           incidents.map((it) => <AdminCard key={it.id} restaurantId={restaurantId} item={it} />)
         )}
@@ -147,7 +152,11 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
     <div className="bg-white rounded-xl border border-paper-border p-4 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-ink">
-          {isInc ? "🙋 Signalement" : `💛 ${item.authorName ?? "Un membre"}`}
+          {isInc ? (
+                        <span className="inline-flex items-center gap-1"><Hand size={12} strokeWidth={1.8} aria-hidden="true" />Signalement</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1"><Heart size={12} strokeWidth={1.8} aria-hidden="true" />{item.authorName ?? "Un membre"}</span>
+                      )}
         </span>
         <span className="text-xs text-ink-faint">{item.weekday} · {item.slot}</span>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Receipt } from "lucide-react";
 import type { MenuItem } from "@/types";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import { normalizeItemName } from "@/lib/menu-match";
@@ -102,7 +103,7 @@ export function CatalogGapsSection({
   return (
     <div id="rattacher" className="bg-white rounded-xl border border-warn/30 p-5 space-y-4">
       <div>
-        <h2 className="font-bold text-ink">🧾 Lus sur tes tickets, absents de ton catalogue</h2>
+        <h2 className="font-bold text-ink flex items-center gap-1.5"><Receipt size={16} strokeWidth={1.8} aria-hidden="true" />Lus sur tes tickets, absents de ton catalogue</h2>
         <p className="text-xs text-ink-faint mt-0.5">
           Ces articles reviennent sur plusieurs tickets mais ne sont rattachés à rien — tes chiffres
           de marge les ignorent. Un geste par ligne suffit ; l&apos;historique est repris automatiquement.

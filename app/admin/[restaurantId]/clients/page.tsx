@@ -74,9 +74,9 @@ export default async function ClientsPage({ params }: { params: Promise<{ restau
   return (
     <div className="space-y-5">
       <PageHeader
-        title={<>👤 Mes clients</>}
+        title={<>Mes clients</>}
         subtitle={<>L&apos;activité de tes membres — {memberships.length} inscrit
-          {memberships.length > 1 ? "s" : ""}, dont {installs.size} avec l&apos;app installée 📱.
+          {memberships.length > 1 ? "s" : ""}, dont {installs.size} avec l&apos;app installée.
           Les coordonnées restent gérées par la plateforme (RGPD) : pour les joindre, passe par
           les Broadcasts.</>}
       />

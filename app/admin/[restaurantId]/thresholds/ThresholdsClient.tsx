@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TrendingUp, Wallet } from "lucide-react";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui";
 
@@ -166,7 +167,7 @@ export function ThresholdsClient() {
           }`}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <h3 className="font-bold text-ink">💰 Budget cadeaux du mois</h3>
+                <h3 className="font-bold text-ink flex items-center gap-1.5"><Wallet size={16} strokeWidth={1.8} aria-hidden="true" />Budget cadeaux du mois</h3>
                 <p className="text-xs text-ink-faint mt-0.5">
                   Plafond : {(budget.budgetPct * 100).toFixed(0)}% du CA programme
                   ({Number(budget.programRevenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })})
@@ -177,7 +178,7 @@ export function ThresholdsClient() {
                   ? "bg-good/12 text-good"
                   : "bg-warn/12 text-warn"
               }`}>
-                {budget.communityBonusActive ? "🟢 Bonus actif" : "⏸️ Bonus en pause"}
+                {budget.communityBonusActive ? "Bonus actif" : "Bonus en pause"}
               </span>
             </div>
             <div className="flex justify-between text-xs text-ink-muted mb-1">
@@ -236,7 +237,7 @@ export function ThresholdsClient() {
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
                     t.is_unlocked ? "bg-good/12 text-good" : "bg-warn/12 text-warn"
                   }`}>
-                    {t.is_unlocked ? "🔓 Débloqué" : "🔒 Verrouillé"}
+                    {t.is_unlocked ? "Débloqué" : "Verrouillé"}
                   </span>
                 </div>
 
@@ -290,7 +291,8 @@ export function ThresholdsClient() {
                   ) : (
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-ink-body">
-                        📈 Baseline hebdo :{" "}
+                        <TrendingUp size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+            Baseline hebdo :{" "}
                         <strong>
                           {t.baseline_weekly_revenue != null
                             ? Number(t.baseline_weekly_revenue).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })
@@ -362,7 +364,7 @@ export function ThresholdsClient() {
                             : "bg-good text-white hover:bg-good"
                         }`}
                       >
-                        {busy === t.id ? "..." : t.is_unlocked ? "Reverrouiller" : "🔓 Débloquer manuellement"}
+                        {busy === t.id ? "..." : t.is_unlocked ? "Reverrouiller" : "Débloquer manuellement"}
                       </button>
                     </>
                   )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Receipt, TriangleAlert, Trophy, Users, Utensils, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { PendingReward } from "@/types";
 import { PageHeader, FilterTabs } from "@/components/admin/ui";
@@ -71,8 +72,13 @@ export default function AdminPendingRewardsPage() {
     <div className="space-y-5">
       {actionError && (
         <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 text-sm text-danger flex items-start justify-between gap-2">
-          <span>⚠️ {actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">✕</button>
+          <span className="flex items-start gap-2">
+            <TriangleAlert size={15} strokeWidth={1.8} className="shrink-0 mt-0.5" aria-hidden="true" />
+            {actionError}
+          </span>
+          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">
+            <X size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
         </div>
       )}
       <PageHeader
@@ -84,7 +90,8 @@ export default function AdminPendingRewardsPage() {
       {distribution.length > 0 && (
         <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-xl p-4">
           <p className="text-xs font-semibold text-ink-body uppercase tracking-wide mb-2">
-            🧾 À préparer ({pending.length} récompense{pending.length > 1 ? "s" : ""})
+            <Receipt size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
+          À préparer ({pending.length} récompense{pending.length > 1 ? "s" : ""})
           </p>
           <div className="flex flex-wrap gap-2">
             {distribution.map(([item, count]) => (
@@ -156,21 +163,21 @@ export default function AdminPendingRewardsPage() {
                   <div className="space-y-1 mb-2">
                     {r.solo_item && (
                       <div className="flex items-center gap-1.5 text-sm">
-                        <span>🍗</span>
+                        <span className="text-ink-faint" aria-hidden="true"><Utensils size={14} strokeWidth={1.7} /></span>
                         <span className="font-medium text-ink">{r.solo_item}</span>
                         <span className="text-xs text-ink-faint">— palier solo</span>
                       </div>
                     )}
                     {r.community_item && (
                       <div className="flex items-center gap-1.5 text-sm">
-                        <span>👥</span>
+                        <span className="text-ink-faint" aria-hidden="true"><Users size={14} strokeWidth={1.7} /></span>
                         <span className="font-medium text-ink">+ {r.community_item}</span>
                         <span className="text-xs text-ink-faint">— bonus communautaire</span>
                       </div>
                     )}
                     {r.advancement_item && (
                       <div className="flex items-center gap-1.5 text-sm">
-                        <span>🏆</span>
+                        <span className="text-ink-faint" aria-hidden="true"><Trophy size={14} strokeWidth={1.7} /></span>
                         <span className="font-medium text-ink">+ {r.advancement_item}</span>
                         <span className="text-xs text-ink-faint">— bonus d&apos;équipe</span>
                       </div>
@@ -194,12 +201,12 @@ export default function AdminPendingRewardsPage() {
                     disabled={busy === r.id}
                     className="shrink-0 px-3 py-1.5 bg-good text-white rounded-lg text-xs font-semibold hover:bg-good disabled:opacity-50 transition-colors"
                   >
-                    {busy === r.id ? "…" : "✓ Récupéré"}
+                    {busy === r.id ? "…" : "Récupéré"}
                   </button>
                 ) : (
                   <div className="shrink-0 text-right">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-paper-subtle text-ink-muted">
-                      Récupéré ✓
+                      Récupéré
                     </span>
                     {r.redeemed_at && (
                       <p className="text-xs text-ink-faint mt-1">

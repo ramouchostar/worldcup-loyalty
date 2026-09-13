@@ -143,7 +143,7 @@ export default function AdminReferralsPage() {
                     </p>
                   </div>
                   <span className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full bg-good/12 text-good">
-                    ✓ Inscrit
+                    Inscrit
                   </span>
                 </div>
               </div>

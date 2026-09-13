@@ -69,7 +69,7 @@ export function SeatInviteForm({
             }}
             className="px-3 py-2 bg-white border border-good/30 rounded-lg text-sm font-medium hover:bg-good/12 shrink-0"
           >
-            {copied ? "Copié ✓" : "Copier"}
+            {copied ? "Copié" : "Copier"}
           </button>
         </div>
         <a

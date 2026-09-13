@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
@@ -343,11 +344,11 @@ export default async function AdminSalesPage({
 
           <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
             <p>
-              💡 Ces chiffres couvrent uniquement les commandes <span className="font-semibold">scannées par tes membres</span> —
+              <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Ces chiffres couvrent uniquement les commandes <span className="font-semibold">scannées par tes membres</span> —
               c&apos;est la vue « ce que le programme me rapporte », pas ta caisse complète.
             </p>
             <p>
-              💡 La lecture des plats sur les tickets est automatique et prudente : un plat
+              <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />La lecture des plats sur les tickets est automatique et prudente : un plat
               « hors catalogue » est un libellé lu sur le ticket qui ne correspond à aucun article
               de ton CSV — ajoute-le à ton catalogue pour suivre sa marge.
             </p>

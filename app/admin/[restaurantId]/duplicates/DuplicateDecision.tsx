@@ -31,8 +31,8 @@ export function DuplicateDecision({
     return (
       <p className="text-sm font-semibold text-ink-body">
         {done === "confirmed_duplicate"
-          ? "✅ Doublon confirmé — la commande a été rejetée."
-          : "✅ Deux commandes distinctes — la commande repart en file de validation."}
+          ? "Doublon confirmé — la commande a été rejetée."
+          : "Deux commandes distinctes — la commande repart en file de validation."}
       </p>
     );
   }

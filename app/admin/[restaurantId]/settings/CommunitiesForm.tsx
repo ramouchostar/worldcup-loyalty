@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Users } from "lucide-react";
 import { updateTeamSuggestions } from "./actions";
 import {
   MAX_SUGGESTIONS,
@@ -66,7 +67,7 @@ export function CommunitiesForm({
   return (
     <div className="bg-white rounded-xl border border-paper-border p-5 space-y-4">
       <div>
-        <h2 className="font-bold text-ink">👥 D&apos;où viennent tes clients ?</h2>
+        <h2 className="font-bold text-ink flex items-center gap-1.5"><Users size={16} strokeWidth={1.8} aria-hidden="true" />D&apos;où viennent tes clients ?</h2>
         <p className="text-xs text-ink-faint mt-0.5">
           Les écoles, entreprises et quartiers que tu vois passer le plus. À
           l&apos;inscription, on demande à chaque client s&apos;il s&apos;y

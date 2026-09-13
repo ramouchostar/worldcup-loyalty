@@ -85,7 +85,7 @@ export function StaffCodesSection({
                 <th className="px-4 py-2">Prénom</th>
                 <th className="px-2 py-2 text-right" title="Arrivées sur ta page via son QR, 30 derniers jours">Arrivées 30 j</th>
                 <th className="px-2 py-2 text-right">Inscrits</th>
-                <th className="px-2 py-2 text-right" title="Parmi ses inscrits, combien ont envoyé au moins un ticket validé">Dont 1 ticket ✓</th>
+                <th className="px-2 py-2 text-right" title="Parmi ses inscrits, combien ont envoyé au moins un ticket validé">Dont 1 ticket</th>
                 <th className="px-4 py-2 text-right">Badge</th>
               </tr>
             </thead>
@@ -118,7 +118,7 @@ export function StaffCodesSection({
                       onClick={() => void copierBadge(c.id, c.code)}
                       className="ml-2 text-xs font-semibold text-ink-body hover:text-ink"
                     >
-                      {copiedId === c.id ? "✓ Copié" : "Copier le lien"}
+                      {copiedId === c.id ? "Copié" : "Copier le lien"}
                     </button>
                     <button
                       type="button"
