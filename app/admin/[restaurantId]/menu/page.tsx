@@ -6,6 +6,7 @@ import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import { CatalogGapsSection } from "@/components/admin/CatalogGapsSection";
+import { menuImageUrl } from "@/lib/menu-images";
 
 const TEMPLATE = `nom;categorie;prix_vente;prix_revient
 Finest burger;Burger;9,00;0,94
@@ -278,12 +279,26 @@ export default function AdminMenuPage() {
                 </div>
               </div>
             )}
-            {/* overflow-x-auto + min-w : la table 6 colonnes scrolle sur
+            {/* Repère de complétude des photos : dit d'un coup d'œil combien
+                d'articles sont illustrés, sans dramatiser les manquants (une
+                sauce ou une canette n'a pas vocation à avoir une photo). */}
+            {(() => {
+              const avec = items.filter((i) => i.image_path).length;
+              if (avec === 0) return null;
+              return (
+                <p className="text-xs text-gray-500">
+                  <span className="font-semibold text-gray-700">{avec}</span> des {items.length} articles ont une photo.
+                  Clique une miniature pour l'ouvrir en grand et vérifier qu'elle correspond bien à l'article.
+                </p>
+              );
+            })()}
+            {/* overflow-x-auto + min-w : la table 7 colonnes scrolle sur
                 téléphone au lieu de s'écraser (audit 2026-07-23) */}
             <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                   <tr>
+                    <th className="text-left font-medium px-4 py-2.5 w-16">Photo</th>
                     <th className="text-left font-medium px-4 py-2.5">Article</th>
                     <th className="text-left font-medium px-4 py-2.5">Catégorie</th>
                     <th className="text-right font-medium px-4 py-2.5">Prix vente</th>
@@ -299,8 +314,28 @@ export default function AdminMenuPage() {
                     const m = costKnown ? margin(it) : null;
                     const isTop = topIds.has(it.id);
                     const isFlop = flopIds.has(it.id);
+                    const photo = menuImageUrl(it.image_path);
                     return (
                       <tr key={it.id} className={`${it.is_active ? "" : "opacity-50"} ${isTop ? "bg-green-50/60" : isFlop ? "bg-amber-50/60" : ""}`}>
+                        <td className="px-4 py-2.5">
+                          {photo ? (
+                            <a href={photo} target="_blank" rel="noopener noreferrer" title="Ouvrir en grand">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={photo}
+                                alt={it.name}
+                                loading="lazy"
+                                className="h-12 w-12 object-cover rounded-lg border border-gray-200 hover:opacity-80"
+                              />
+                            </a>
+                          ) : (
+                            // Absence de photo = information neutre, pas une alerte :
+                            // beaucoup d'articles n'en auront jamais (sauces, boissons).
+                            <div className="h-12 w-12 rounded-lg border border-dashed border-gray-200 grid place-items-center text-gray-300 text-lg" title="Aucune photo">
+                              📷
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 font-medium text-gray-900">
                           {it.name}
                           {isTop && <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">💎 top marge</span>}

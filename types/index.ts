@@ -221,6 +221,10 @@ export type MenuItem = {
   cost_price: number | null; // prix de revient réel — NULL = inconnu (ADR 0046), jamais un cadeau
   is_active: boolean;
   reward_eligible: boolean;
+  // Photo produit (migration 20260912-1120) — chemin dans le bucket public
+  // `menu-images`, jamais une URL externe. NULL = article sans photo.
+  image_path: string | null;
+  image_source: string | null;  // provenance, traçabilité des droits
   created_at: string;
   updated_at: string;
 };
