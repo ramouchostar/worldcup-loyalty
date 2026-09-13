@@ -29,6 +29,7 @@ export default function AdminMenuPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
+  const [photoBusy, setPhotoBusy] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
@@ -176,6 +177,44 @@ export default function AdminMenuPage() {
     setTiers((prev) => ({ ...prev, [tierKey(layer, threshold)]: itemId }));
   }
 
+  // Photo d'un article — dépôt manuel par le restaurateur, en complément de
+  // l'import en masse. Le serveur valide type, poids et appartenance de
+  // l'article à l'établissement ; ici on ne fait que transmettre et recharger.
+  async function uploadPhoto(item: MenuItem, file: File) {
+    setPhotoBusy(item.id);
+    setMsg(null);
+    const fd = new FormData();
+    fd.set("restaurantId", restaurantId);
+    fd.set("menuItemId", item.id);
+    fd.set("file", file);
+    const res = await fetch("/api/admin/menu/image", { method: "POST", body: fd });
+    const body = (await readJsonSafe<{ error?: string }>(res)).data;
+    setPhotoBusy(null);
+    if (!res.ok) {
+      setMsg({ kind: "err", text: body?.error ?? describeHttpFailure(res.status, null) });
+      return;
+    }
+    setMsg({ kind: "ok", text: `Photo enregistrée pour « ${item.name} ».` });
+    await loadAll();
+  }
+
+  async function removePhoto(item: MenuItem) {
+    setPhotoBusy(item.id);
+    setMsg(null);
+    const res = await fetch(
+      `/api/admin/menu/image?restaurantId=${encodeURIComponent(restaurantId)}&menuItemId=${item.id}`,
+      { method: "DELETE" }
+    );
+    const body = (await readJsonSafe<{ error?: string }>(res)).data;
+    setPhotoBusy(null);
+    if (!res.ok) {
+      setMsg({ kind: "err", text: body?.error ?? describeHttpFailure(res.status, null) });
+      return;
+    }
+    setMsg({ kind: "ok", text: `Photo retirée de « ${item.name} ».` });
+    await loadAll();
+  }
+
   function bandRow(layer: "solo" | "community", threshold: number, label: string) {
     const key = tierKey(layer, threshold);
     const rationale = rationales[key];
@@ -290,11 +329,11 @@ export default function AdminMenuPage() {
                 sauce ou une canette n'a pas vocation à avoir une photo). */}
             {(() => {
               const avec = items.filter((i) => i.image_path).length;
-              if (avec === 0) return null;
               return (
                 <p className="text-xs text-gray-500">
                   <span className="font-semibold text-gray-700">{avec}</span> des {items.length} articles ont une photo.
-                  Clique une miniature pour l'ouvrir en grand et vérifier qu'elle correspond bien à l'article.
+                  Clique une miniature pour l&apos;ouvrir en grand et vérifier qu&apos;elle colle à l&apos;article ;
+                  « Ajouter » / « Changer » dépose ta propre photo (JPG, PNG ou WebP, 2 Mo max).
                 </p>
               );
             })()}
@@ -321,26 +360,73 @@ export default function AdminMenuPage() {
                     const isTop = topIds.has(it.id);
                     const isFlop = flopIds.has(it.id);
                     const photo = menuImageUrl(it.image_path);
+                    const busy = photoBusy === it.id;
                     return (
                       <tr key={it.id} className={`${it.is_active ? "" : "opacity-50"} ${isTop ? "bg-green-50/60" : isFlop ? "bg-amber-50/60" : ""}`}>
                         <td className="px-4 py-2.5">
-                          {photo ? (
-                            <a href={photo} target="_blank" rel="noopener noreferrer" title="Ouvrir en grand">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={photo}
-                                alt={it.name}
-                                loading="lazy"
-                                className="h-12 w-12 object-cover rounded-lg border border-gray-200 hover:opacity-80"
-                              />
-                            </a>
-                          ) : (
-                            // Absence de photo = information neutre, pas une alerte :
-                            // beaucoup d'articles n'en auront jamais (sauces, boissons).
-                            <div className="h-12 w-12 rounded-lg border border-dashed border-gray-200 grid place-items-center text-gray-300 text-lg" title="Aucune photo">
-                              📷
-                            </div>
-                          )}
+                          {/* La miniature ouvre la photo en grand (vérifier
+                              qu'elle colle à l'article) ; le lien dessous
+                              ouvre le sélecteur de fichier. Un article sans
+                              photo présente directement une zone cliquable :
+                              l'absence de photo est neutre — beaucoup
+                              d'articles n'en auront jamais (sauces, canettes)
+                              — mais doit rester actionnable en un geste. */}
+                          <div className="w-12">
+                            {photo ? (
+                              <a href={photo} target="_blank" rel="noopener noreferrer" title="Ouvrir en grand">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={photo}
+                                  alt={it.name}
+                                  loading="lazy"
+                                  className="h-12 w-12 object-cover rounded-lg border border-gray-200 hover:opacity-80"
+                                />
+                              </a>
+                            ) : (
+                              <label className="h-12 w-12 rounded-lg border border-dashed border-gray-200 grid place-items-center text-gray-300 text-lg cursor-pointer hover:border-gray-300 hover:text-gray-400" title="Ajouter une photo">
+                                📷
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  className="hidden"
+                                  disabled={busy}
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    e.target.value = ""; // re-choisir le même fichier doit redéclencher
+                                    if (f) uploadPhoto(it, f);
+                                  }}
+                                />
+                              </label>
+                            )}
+                            {busy ? (
+                              <span className="block text-[11px] text-gray-400 mt-1 text-center">…</span>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1.5 mt-1">
+                                <label className="text-[11px] text-gray-500 hover:text-gray-800 underline cursor-pointer">
+                                  {photo ? "Changer" : "Ajouter"}
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      e.target.value = "";
+                                      if (f) uploadPhoto(it, f);
+                                    }}
+                                  />
+                                </label>
+                                {photo && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhoto(it)}
+                                    className="text-[11px] text-gray-400 hover:text-gray-700 underline"
+                                  >
+                                    Retirer
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-2.5 font-medium text-gray-900">
                           {it.name}
