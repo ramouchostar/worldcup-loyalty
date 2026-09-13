@@ -181,12 +181,18 @@ export default function AdminMenuPage() {
     const rationale = rationales[key];
     return (
       <div key={key} className="py-2.5 first:pt-0 last:pb-0">
+        {/* `min-w-0` sur le select n'est pas cosmétique : un élément flex a
+            `min-width: auto` par défaut, donc un <select> refuse de descendre
+            sous la largeur de sa plus longue option (« Magnifique Chicken
+            Menu »…). Sans lui il déborde de sa colonne de grille et vient
+            recouvrir le libellé de la colonne voisine. `whitespace-nowrap` sur
+            le libellé évite le « € » renvoyé seul à la ligne suivante. */}
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600 w-32 shrink-0">{label}</span>
+          <span className="text-sm text-gray-600 w-44 shrink-0 whitespace-nowrap">{label}</span>
           <select
             value={tiers[key] ?? ""}
             onChange={(e) => setTier(layer, threshold, e.target.value || null)}
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+            className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
           >
             <option value="">— aucun cadeau —</option>
             {giftItems.map((it) => (
@@ -194,7 +200,7 @@ export default function AdminMenuPage() {
             ))}
           </select>
         </div>
-        {rationale && <p className="text-xs text-brand-gold mt-1 ml-[8.75rem]">💡 {rationale}</p>}
+        {rationale && <p className="text-xs text-brand-gold mt-1 ml-[11.75rem]">💡 {rationale}</p>}
       </div>
     );
   }
@@ -410,13 +416,13 @@ export default function AdminMenuPage() {
           )}
 
           <div className="grid md:grid-cols-2 gap-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Récompense solo (montant de commande)</p>
               <div className="divide-y divide-gray-50">
                 {soloBands.map((b) => bandRow("solo", b, `Commande ≥ ${b} €`))}
               </div>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Bonus communautaire (score d&apos;équipe)</p>
               <div className="divide-y divide-gray-50">
                 {COMMUNITY_BANDS.map((b) => bandRow("community", b, `Score ≥ ${b.toLocaleString("fr-BE")} pts`))}
@@ -530,7 +536,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
         >
           <option value="">— choisir un article (sous plafond) —</option>
           {affordable.map((it) => (
