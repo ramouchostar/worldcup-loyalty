@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Award, ChevronRight, CircleCheck, Hourglass, Lightbulb, ListPlus, QrCode, Receipt, Rocket, Settings, Star, TrendingUp, TriangleAlert, Trophy, type LucideIcon } from "lucide-react";
+import { Award, ChevronRight, CircleCheck, Hourglass, Lightbulb, ListPlus, Receipt, Rocket, Star, TriangleAlert, Trophy, type LucideIcon } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
@@ -173,13 +173,10 @@ export default async function AdminDashboardPage({
     });
   }
 
-  const secondaryLinks = [
-    { href: r("/team-tiers"), icon: Trophy, label: "Paliers d'équipe", sub: "Récompenses collectives" },
-    { href: `/r/${restaurantId}/leaderboard`, icon: Award, label: "Classement public", sub: "Vue temps réel ↗", external: true },
-    { href: r("/sales"), icon: TrendingUp, label: "Ventes par plat", sub: "Quantités, CA, marges, heures" },
-    { href: r("/qr"), icon: QrCode, label: "QR code", sub: "À imprimer pour tes clients" },
-    { href: r("/settings"), icon: Settings, label: "Mon établissement", sub: "Infos & liens sociaux" },
-  ];
+  // « Pour aller plus loin » listait cinq liens dont QUATRE étaient déjà dans
+  // la nav de gauche (Paliers d'équipe, Ventes, QR code, Réglages) : du
+  // défilement en plus, aucune destination en plus. Seul le classement public
+  // n'existait nulle part ailleurs — il reste, sur une ligne.
 
   return (
     <div className="space-y-5">
@@ -549,31 +546,23 @@ export default async function AdminDashboardPage({
         )}
       </section>
 
-      {/* Pour aller plus loin — liens secondaires, volontairement en retrait
-          visuel (icônes fines, pas de couleur) : la priorité de la page va
-          aux sections ci-dessus. */}
-      <section>
-        <SectionLabel tone="muted" className="mb-2">Pour aller plus loin</SectionLabel>
-        <div className="bg-white border border-paper-border rounded-xl overflow-hidden">
-          {secondaryLinks.map((link, i) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              target={link.external ? "_blank" : undefined}
-              className={`flex items-center gap-3.5 px-5 py-3.5 hover:bg-paper transition-colors ${i > 0 ? "border-t border-paper-border" : ""}`}
-            >
-              <span className="w-[34px] h-[34px] rounded-lg bg-paper-subtle text-ink-muted flex items-center justify-center shrink-0">
-                <link.icon size={17} strokeWidth={1.6} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-semibold text-ink">{link.label}</p>
-                <p className="text-xs text-ink-faint mt-0.5">{link.sub}</p>
-              </div>
-              <ChevronRight size={14} className="text-ink-faint shrink-0" />
-            </Link>
-          ))}
+      {/* Le classement public — la seule destination de l'ancienne liste
+          « Pour aller plus loin » qui n'était pas déjà dans la nav. */}
+      <Link
+        href={`/r/${restaurantId}/leaderboard`}
+        target="_blank"
+        className="flex items-center gap-3.5 bg-white border border-paper-border rounded-xl px-5 py-3.5 hover:bg-paper transition-colors"
+      >
+        <span className="w-[34px] h-[34px] rounded-lg bg-paper-subtle text-ink-muted flex items-center justify-center shrink-0">
+          <Award size={17} strokeWidth={1.6} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13.5px] font-semibold text-ink">Classement public</p>
+          <p className="text-xs text-ink-faint mt-0.5">Ce que tes clients voient en temps réel ↗</p>
         </div>
-      </section>
+        <ChevronRight size={14} className="text-ink-faint shrink-0" />
+      </Link>
+
     </div>
   );
 }

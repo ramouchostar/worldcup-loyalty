@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin-guard";
 import { decideDuplicateReview, type ReviewOutcome } from "@/lib/duplicate-reviews";
 
-// Phase C — décision humaine sur un cas ambigu. La garde reprend celle des
+// ADR 0052 — décision humaine sur un cas ambigu. La garde reprend celle des
 // autres surfaces de la console (gérant, manager, siège équipe, super-admin) :
 // arbitrer un doublon fait partie du quotidien du comptoir, pas des trois pages
 // financières réservées (ADR 0041 §6).
+//
+// Déplacé depuis `duplicates/actions.ts` avec la page : l'arbitrage est
+// maintenant un onglet de « Commandes ».
 export async function decideDuplicate(
   restaurantId: string,
   reviewId: string,
@@ -22,9 +25,6 @@ export async function decideDuplicate(
     deciderId: guard.userId,
     outcome,
   });
-  if (result.ok) {
-    revalidatePath(`/admin/${restaurantId}/duplicates`);
-    revalidatePath(`/admin/${restaurantId}/orders`);
-  }
+  if (result.ok) revalidatePath(`/admin/${restaurantId}/orders`);
   return result;
 }
