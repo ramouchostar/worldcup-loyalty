@@ -24,6 +24,7 @@ import { getCatalogGaps } from "@/lib/catalog-gaps";
 import { getProgramValue } from "@/lib/program-value";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { PageHeader, Card, SectionLabel, StatTile, StatusBadge } from "@/components/admin/ui";
 
 // Dashboard admin (redesign m54) — priorise ce qui demande une action
 // aujourd'hui avant les chiffres. Un restaurateur débordé doit comprendre en
@@ -196,12 +197,7 @@ export default async function AdminDashboardPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display text-[26px] font-bold tracking-[-0.02em] text-ink">Tableau de bord</h1>
-          <p className="text-ink-muted text-[13.5px] mt-1">{dateLabel} · {membersLabel}</p>
-        </div>
-      </div>
+      <PageHeader title="Tableau de bord" subtitle={`${dateLabel} · ${membersLabel}`} />
 
       {/* ── ADR 0038 — installer la console ─────────────────────────────────
           Le restaurateur arrive ici par le lien d'invitation (ADR 0032) et
@@ -275,7 +271,7 @@ export default async function AdminDashboardPage({
       {/* À faire aujourd'hui — priorité n°1 de la page */}
       <section className="bg-white border border-paper-border rounded-xl overflow-hidden">
         <div className="px-5 pt-4 pb-3">
-          <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-red">▶ À faire aujourd&apos;hui</p>
+          <SectionLabel>▶ À faire aujourd&apos;hui</SectionLabel>
         </div>
 
         {actionItems.length > 0 ? (
@@ -296,13 +292,9 @@ export default async function AdminDashboardPage({
                 <p className="text-[14.5px] font-semibold text-ink">{item.title}</p>
                 <p className="text-[12.5px] text-ink-muted mt-0.5">{item.sub}</p>
               </div>
-              <span
-                className={`text-white text-[11px] font-bold rounded-full px-2.5 py-0.5 shrink-0 ${
-                  item.tone === "danger" ? "bg-danger" : "bg-warn"
-                }`}
-              >
+              <StatusBadge tone={item.tone} solid className="shrink-0">
                 {item.count}
-              </span>
+              </StatusBadge>
               <ChevronRight size={15} className="text-ink-faint shrink-0" />
             </Link>
           ))
@@ -348,7 +340,7 @@ export default async function AdminDashboardPage({
       <section className="space-y-3">
         <div className="bg-brand-dark text-white rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-gold">Ce que le programme t&apos;a rapporté</p>
+            <SectionLabel tone="gold">Ce que le programme t&apos;a rapporté</SectionLabel>
             <Link href={r("/sales")} className="text-xs font-semibold text-brand-gold hover:text-white transition-colors">Détail par plat →</Link>
           </div>
 
@@ -365,31 +357,39 @@ export default async function AdminDashboardPage({
               {/* Mois en cours */}
               <p className="text-[12px] text-white/60 mb-2">{monthTitle(curMonth.month)}</p>
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="font-display text-2xl font-bold tabular-nums">{eur(curMonth.revenue)}</p>
-                  <p className="text-[11.5px] text-white/70 mt-1">
-                    CA de tes clients du programme
-                    {prevDeltaPct !== null && (
-                      <span className={prevDeltaPct >= 0 ? " text-good" : " text-danger"}>
-                        {" "}· {prevDeltaPct >= 0 ? "+" : ""}{prevDeltaPct} % vs {monthShort(prevMonth!.month)}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-display text-2xl font-bold tabular-nums text-brand-gold">{curMonth.activeMembers}</p>
-                  <p className="text-[11.5px] text-white/70 mt-1">
-                    client{curMonth.activeMembers > 1 ? "s" : ""} ce mois-ci
-                    {curMonth.returningMembers > 0 && ` · dont ${curMonth.returningMembers} revenu${curMonth.returningMembers > 1 ? "s" : ""}`}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-display text-2xl font-bold tabular-nums">{curMonth.newMembers}</p>
-                  <p className="text-[11.5px] text-white/70 mt-1">
-                    nouveau{curMonth.newMembers > 1 ? "x" : ""} inscrit{curMonth.newMembers > 1 ? "s" : ""}
-                    {curMonth.referredSignups > 0 && ` · dont ${curMonth.referredSignups} parrainé${curMonth.referredSignups > 1 ? "s" : ""}`}
-                  </p>
-                </div>
+                <StatTile
+                  surface="dark"
+                  value={eur(curMonth.revenue)}
+                  label={
+                    <>
+                      CA de tes clients du programme
+                      {prevDeltaPct !== null && (
+                        <span className={prevDeltaPct >= 0 ? "text-good" : "text-danger"}>
+                          {" "}· {prevDeltaPct >= 0 ? "+" : ""}{prevDeltaPct} % vs {monthShort(prevMonth!.month)}
+                        </span>
+                      )}
+                    </>
+                  }
+                />
+                <StatTile
+                  surface="dark"
+                  accent
+                  value={curMonth.activeMembers}
+                  label={`client${curMonth.activeMembers > 1 ? "s" : ""} ce mois-ci${
+                    curMonth.returningMembers > 0
+                      ? ` · dont ${curMonth.returningMembers} revenu${curMonth.returningMembers > 1 ? "s" : ""}`
+                      : ""
+                  }`}
+                />
+                <StatTile
+                  surface="dark"
+                  value={curMonth.newMembers}
+                  label={`nouveau${curMonth.newMembers > 1 ? "x" : ""} inscrit${curMonth.newMembers > 1 ? "s" : ""}${
+                    curMonth.referredSignups > 0
+                      ? ` · dont ${curMonth.referredSignups} parrainé${curMonth.referredSignups > 1 ? "s" : ""}`
+                      : ""
+                  }`}
+                />
               </div>
 
               {/* Tendance mois par mois — barres proportionnelles au CA */}
@@ -417,22 +417,31 @@ export default async function AdminDashboardPage({
                   accompagnent : coût engagé (jamais décrémenté, prudence ADR
                   0012), dont réellement retiré au comptoir. */}
               <div className="mt-5 pt-4 border-t border-white/15 grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="font-display text-lg font-bold tabular-nums">{eur(value.totals.revenue)}</p>
-                  <p className="text-[11px] text-white/60 mt-0.5">CA cumulé · {value.totals.orders} commandes</p>
-                </div>
-                <div>
-                  <p className="font-display text-lg font-bold tabular-nums text-brand-gold">{eur(value.totals.margin)}</p>
-                  <p className="text-[11px] text-white/60 mt-0.5">marge sur articles à coût connu</p>
-                </div>
-                <div>
-                  <p className="font-display text-lg font-bold tabular-nums">{eur(totalGiftCost)}</p>
-                  <p className="text-[11px] text-white/60 mt-0.5">
-                    de cadeaux engagés
-                    {value.rewards.countRedeemed > 0 && ` · ${eur(value.rewards.costRedeemed)} retirés`}
-                    {value.jetons.gifts > 0 && ` · dont ${value.jetons.gifts} cadeau${value.jetons.gifts > 1 ? "x" : ""} jetons`}
-                  </p>
-                </div>
+                <StatTile
+                  surface="dark"
+                  size="sm"
+                  value={eur(value.totals.revenue)}
+                  label={`CA cumulé · ${value.totals.orders} commandes`}
+                />
+                <StatTile
+                  surface="dark"
+                  size="sm"
+                  accent
+                  value={eur(value.totals.margin)}
+                  label="marge sur articles à coût connu"
+                />
+                <StatTile
+                  surface="dark"
+                  size="sm"
+                  value={eur(totalGiftCost)}
+                  label={`de cadeaux engagés${
+                    value.rewards.countRedeemed > 0 ? ` · ${eur(value.rewards.costRedeemed)} retirés` : ""
+                  }${
+                    value.jetons.gifts > 0
+                      ? ` · dont ${value.jetons.gifts} cadeau${value.jetons.gifts > 1 ? "x" : ""} jetons`
+                      : ""
+                  }`}
+                />
               </div>
               <p className="text-[11.5px] text-white/50 mt-3">
                 Soit {eur(value.totals.margin - totalGiftCost)} de marge nette après cadeaux —{" "}
@@ -465,9 +474,9 @@ export default async function AdminDashboardPage({
             caisse importées (jamais d'estimation). Sinon : le hook data-ready
             de l'ADR 0029, qui nourrit aussi le forecast. */}
         {value.sales.status === "ok" && latestSales ? (
-          <div className="bg-white border border-paper-border rounded-xl p-5">
+          <Card>
             <div className="flex items-center justify-between mb-2">
-              <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-red">Ton CA total — {monthTitle(latestSales.month)}</p>
+              <SectionLabel>Ton CA total — {monthTitle(latestSales.month)}</SectionLabel>
               <Link href={r("/forecast")} className="text-xs font-semibold text-brand-red hover:underline">Ventes &amp; prévisions →</Link>
             </div>
             <p className="font-display text-[22px] font-bold text-ink tabular-nums">{eur(latestSales.totalSales)}</p>
@@ -481,7 +490,7 @@ export default async function AdminDashboardPage({
                 </p>
               </>
             )}
-          </div>
+          </Card>
         ) : (
           <Link
             href={r("/forecast")}
@@ -500,9 +509,9 @@ export default async function AdminDashboardPage({
             (plutôt qu'une barre plate) : rendre la progression désirable, pas
             juste l'afficher. */}
         {th && (
-        <div className="bg-white border border-paper-border rounded-xl p-5">
+        <Card>
           <div className="flex items-center justify-between mb-1">
-            <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-brand-red">Objectif CA — {th.period_label}</p>
+            <SectionLabel>Objectif CA — {th.period_label}</SectionLabel>
             <Link href={r("/thresholds")} className="text-xs font-semibold text-brand-red hover:underline">
               Gérer →
             </Link>
@@ -548,7 +557,7 @@ export default async function AdminDashboardPage({
               </span>
             )}
           </div>
-        </div>
+        </Card>
         )}
       </section>
 
@@ -556,7 +565,7 @@ export default async function AdminDashboardPage({
           visuel (icônes fines, pas de couleur) : la priorité de la page va
           aux sections ci-dessus. */}
       <section>
-        <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-ink-faint mb-2">Pour aller plus loin</p>
+        <SectionLabel tone="muted" className="mb-2">Pour aller plus loin</SectionLabel>
         <div className="bg-white border border-paper-border rounded-xl overflow-hidden">
           {secondaryLinks.map((link, i) => (
             <Link
