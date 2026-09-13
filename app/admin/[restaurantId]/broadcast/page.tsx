@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { TeamType } from "@/types";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
+import { PageHeader } from "@/components/admin/ui";
 
 type TargetKind = "all" | "types" | "teams";
 type Team = { id: string; name: string; type: TeamType; flag_emoji: string };
@@ -138,31 +139,29 @@ export default function AdminBroadcastPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Broadcasts</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Envoie une notification à tes équipes — par exemple un menu étudiant aux écoles, ou un service
-          de nuit aux taxis. Push gratuit, WhatsApp en secours.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Broadcasts</>}
+        subtitle={<>Envoie une notification à tes équipes — par exemple un menu étudiant aux écoles, ou un service
+          de nuit aux taxis. Push gratuit, WhatsApp en secours.</>}
+      />
 
       {/* Message */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-2">
-        <label className="text-sm font-semibold text-gray-900">Message</label>
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-2">
+        <label className="text-sm font-semibold text-ink">Message</label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           maxLength={280}
           rows={3}
           placeholder="Ex. Menu étudiant à 8,90 € ce midi sur présentation de l'app 🎓"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+          className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm"
         />
-        <p className="text-xs text-gray-400 text-right">{message.length}/280</p>
+        <p className="text-xs text-ink-faint text-right">{message.length}/280</p>
       </div>
 
       {/* Cible */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
-        <p className="text-sm font-semibold text-gray-900">Nature du message</p>
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-3">
+        <p className="text-sm font-semibold text-ink">Nature du message</p>
 
         <div className="flex flex-wrap gap-2">
           {([["service", "Information"], ["promo", "Promotion"]] as ["service" | "promo", string][]).map(
@@ -171,7 +170,7 @@ export default function AdminBroadcastPage() {
                 key={value}
                 onClick={() => setNature(value)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                  nature === value ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  nature === value ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-ink-body border-paper-border hover:bg-paper"
                 }`}
               >
                 {label}
@@ -179,13 +178,13 @@ export default function AdminBroadcastPage() {
             )
           )}
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-ink-muted">
           {nature === "service"
             ? "Information liée au programme (cadeau prêt, incident, changement de règle) : elle part à tous les membres visés."
             : "Offre commerciale : elle ne part qu'aux membres qui ont accepté de recevoir des offres."}
         </p>
 
-        <p className="text-sm font-semibold text-gray-900 pt-2">Destinataires</p>
+        <p className="text-sm font-semibold text-ink pt-2">Destinataires</p>
 
         <div className="flex flex-wrap gap-2">
           {([["all", "Tous les membres"], ["types", "Par type"], ["teams", "Par équipe"]] as [TargetKind, string][]).map(
@@ -194,7 +193,7 @@ export default function AdminBroadcastPage() {
                 key={value}
                 onClick={() => setKind(value)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                  kind === value ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  kind === value ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-ink-body border-paper-border hover:bg-paper"
                 }`}
               >
                 {label}
@@ -210,7 +209,7 @@ export default function AdminBroadcastPage() {
                 key={o.value}
                 onClick={() => setTypes((prev) => toggle(prev, o.value))}
                 className={`px-3 py-1.5 rounded-full text-sm border ${
-                  types.includes(o.value) ? "bg-brand-gold/20 border-brand-gold/50 text-amber-800" : "bg-white border-gray-200 text-gray-600"
+                  types.includes(o.value) ? "bg-brand-gold/20 border-brand-gold/50 text-warn" : "bg-white border-paper-border text-ink-body"
                 }`}
               >
                 {o.label}
@@ -222,17 +221,17 @@ export default function AdminBroadcastPage() {
         {kind === "teams" && (
           <div className="pt-1 max-h-60 overflow-y-auto space-y-1">
             {teams.length === 0 ? (
-              <p className="text-sm text-gray-400">Aucune équipe pour l&apos;instant.</p>
+              <p className="text-sm text-ink-faint">Aucune équipe pour l&apos;instant.</p>
             ) : (
               teams.map((t) => (
-                <label key={t.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <label key={t.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-paper cursor-pointer">
                   <input
                     type="checkbox"
                     checked={teamIds.includes(t.id)}
                     onChange={() => setTeamIds((prev) => toggle(prev, t.id))}
                   />
                   <span>{t.flag_emoji}</span>
-                  <span className="text-sm text-gray-800">{t.name}</span>
+                  <span className="text-sm text-ink">{t.name}</span>
                 </label>
               ))
             )}
@@ -241,9 +240,9 @@ export default function AdminBroadcastPage() {
       </div>
 
       {/* Envoi programmé (ADR 0023) */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-2">
-        <label className="text-sm font-semibold text-gray-900">📆 Programmer l&apos;envoi (optionnel)</label>
-        <p className="text-xs text-gray-500">
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-2">
+        <label className="text-sm font-semibold text-ink">📆 Programmer l&apos;envoi (optionnel)</label>
+        <p className="text-xs text-ink-muted">
           Laisse vide pour envoyer maintenant. Pour annoncer une promo, programme l&apos;envoi la veille
           ou l&apos;avant-veille du jour de la promo — jamais plus tôt, sinon les membres reportent leurs
           commandes des autres jours.
@@ -253,30 +252,30 @@ export default function AdminBroadcastPage() {
             type="date"
             value={sendOn}
             onChange={(e) => setSendOn(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            className="border border-paper-border rounded-lg px-3 py-2 text-sm"
           />
           {sendOn && (
-            <button onClick={() => { setSendOn(""); setPromoOn(""); }} className="text-xs text-gray-400 underline">
+            <button onClick={() => { setSendOn(""); setPromoOn(""); }} className="text-xs text-ink-faint underline">
               Envoyer maintenant à la place
             </button>
           )}
         </div>
         {sendOn && promoOn && (
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-warn">
             Promo du {fmtDate(promoOn)} — annonce le {fmtDate(sendOn)}, envoyée en début de soirée.
           </p>
         )}
       </div>
 
-      {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 text-sm text-danger">{error}</div>}
       {result && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800">
+        <div className="bg-good/10 border border-good/30 rounded-xl p-3 text-sm text-good">
           Envoyé à {result.sent} membre(s) sur {result.targeted} ciblé(s).
           {result.skipped > 0 && ` ${result.skipped} ignoré(s) (quota hebdo atteint).`}
         </div>
       )}
       {scheduledOk && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800">
+        <div className="bg-good/10 border border-good/30 rounded-xl p-3 text-sm text-good">
           Annonce programmée pour le {fmtDate(scheduledOk)} — elle partira en début de soirée.
         </div>
       )}
@@ -291,20 +290,20 @@ export default function AdminBroadcastPage() {
 
       {/* Annonces programmées */}
       {scheduled.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
-          <p className="text-sm font-semibold text-gray-900">Annonces programmées</p>
+        <div className="bg-white rounded-xl border border-paper-border p-5 space-y-3">
+          <p className="text-sm font-semibold text-ink">Annonces programmées</p>
           {scheduled.map((s) => (
-            <div key={s.id} className="flex items-start justify-between gap-3 border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+            <div key={s.id} className="flex items-start justify-between gap-3 border-b border-paper-border pb-2 last:border-0 last:pb-0">
               <div className="min-w-0">
-                <p className="text-sm text-gray-800 truncate">{s.message}</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-sm text-ink truncate">{s.message}</p>
+                <p className="text-xs text-ink-faint">
                   {s.sent_at
                     ? `Envoyée le ${fmtDate(s.send_on)}${s.result ? ` — ${s.result.sent}/${s.result.targeted} membres` : ""}`
                     : `Prévue le ${fmtDate(s.send_on)}${s.promo_on ? ` (promo du ${fmtDate(s.promo_on)})` : ""}`}
                 </p>
               </div>
               {!s.sent_at && (
-                <button onClick={() => cancelScheduled(s.id)} className="text-xs text-red-500 underline shrink-0">
+                <button onClick={() => cancelScheduled(s.id)} className="text-xs text-danger underline shrink-0">
                   Annuler
                 </button>
               )}

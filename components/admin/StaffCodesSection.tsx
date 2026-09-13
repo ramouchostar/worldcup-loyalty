@@ -25,9 +25,9 @@ export function StaffCodesSection({
 
   if (migrationMissing) {
     return (
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+      <div className="bg-warn/10 border border-warn/30 rounded-xl p-4 text-sm text-warn">
         La mesure « Équipe en salle » attend la migration{" "}
-        <code className="bg-amber-100 px-1 rounded">20260910-1430-codes-personnel-salle.sql</code>{" "}
+        <code className="bg-warn/12 px-1 rounded">20260910-1430-codes-personnel-salle.sql</code>{" "}
         (éditeur SQL Supabase). Rien d&apos;autre n&apos;est bloqué.
       </div>
     );
@@ -78,9 +78,9 @@ export function StaffCodesSection({
   return (
     <div className="space-y-3">
       {stats.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-paper-border overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="bg-paper text-left text-[11px] uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-2">Prénom</th>
                 <th className="px-2 py-2 text-right" title="Arrivées sur ta page via son QR, 30 derniers jours">Arrivées 30 j</th>
@@ -91,16 +91,16 @@ export function StaffCodesSection({
             </thead>
             <tbody>
               {stats.map((c) => (
-                <tr key={c.id} className={`border-t border-gray-100 ${c.isActive ? "" : "opacity-50"}`}>
-                  <td className="px-4 py-2.5 font-semibold text-gray-900">
+                <tr key={c.id} className={`border-t border-paper-border ${c.isActive ? "" : "opacity-50"}`}>
+                  <td className="px-4 py-2.5 font-semibold text-ink">
                     {c.label}
-                    {!c.isActive && <span className="ml-2 text-[11px] text-gray-400 font-normal">désactivé</span>}
+                    {!c.isActive && <span className="ml-2 text-[11px] text-ink-faint font-normal">désactivé</span>}
                   </td>
                   <td className="px-2 py-2.5 text-right tabular-nums">{c.landings30d}</td>
                   <td className="px-2 py-2.5 text-right tabular-nums font-bold">
                     {c.signupsTotal}
                     {c.signups30d > 0 && c.signups30d !== c.signupsTotal && (
-                      <span className="text-[11px] text-gray-400 font-normal"> ({c.signups30d} / 30 j)</span>
+                      <span className="text-[11px] text-ink-faint font-normal"> ({c.signups30d} / 30 j)</span>
                     )}
                   </td>
                   <td className="px-2 py-2.5 text-right tabular-nums">{c.withTicket}</td>
@@ -116,14 +116,14 @@ export function StaffCodesSection({
                     <button
                       type="button"
                       onClick={() => void copierBadge(c.id, c.code)}
-                      className="ml-2 text-xs font-semibold text-gray-600 hover:text-gray-900"
+                      className="ml-2 text-xs font-semibold text-ink-body hover:text-ink"
                     >
                       {copiedId === c.id ? "✓ Copié" : "Copier le lien"}
                     </button>
                     <button
                       type="button"
                       onClick={() => void basculer(c.id, !c.isActive)}
-                      className="ml-2 text-xs text-gray-400 hover:text-gray-700"
+                      className="ml-2 text-xs text-ink-faint hover:text-ink-body"
                     >
                       {c.isActive ? "Désactiver" : "Réactiver"}
                     </button>
@@ -142,7 +142,7 @@ export function StaffCodesSection({
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Prénom (ex. Sofia)"
           maxLength={40}
-          className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-brand-red"
+          className="flex-1 border border-paper-border rounded-xl px-3 py-2 text-sm focus:border-brand-red"
         />
         <button
           type="submit"
@@ -152,8 +152,8 @@ export function StaffCodesSection({
           {busy ? "…" : "Créer son QR"}
         </button>
       </form>
-      {error && <p className="text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-      <p className="text-xs text-gray-400">
+      {error && <p className="text-danger text-xs bg-danger/10 px-3 py-2 rounded-lg">{error}</p>}
+      <p className="text-xs text-ink-faint">
         Envoie le lien du badge par WhatsApp : la personne l&apos;affiche depuis son
         téléphone ou l&apos;imprime au format carte. La phrase à dire est au dos.
       </p>

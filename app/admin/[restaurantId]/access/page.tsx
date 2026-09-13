@@ -6,6 +6,7 @@ import { listRestaurantAdmins, getSeatCounts } from "@/lib/restaurant-admins";
 import { getActiveInvitesByRestaurant } from "@/lib/owner-invites";
 import { SeatInviteForm } from "./SeatInviteForm";
 import { SeatRow } from "./SeatRow";
+import { PageHeader } from "@/components/admin/ui";
 
 // ADR 0041 §7/§10 — « Accès console » : qui a un siège sur cet établissement,
 // invitation d'un nouveau siège et retrait d'un siège existant, pour qui le
@@ -33,20 +34,18 @@ export default async function AdminAccessPage({ params }: { params: Promise<{ re
 
   return (
     <div className="space-y-6 max-w-lg">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Accès console</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Qui a la main sur la console de {restaurant.name} — gérant, manager, équipe.
-          Maximum 2 gérants et 2 managers ; équipe est illimité.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Accès console</>}
+        subtitle={<>Qui a la main sur la console de {restaurant.name} — gérant, manager, équipe.
+          Maximum 2 gérants et 2 managers ; équipe est illimité.</>}
+      />
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-3">
+        <p className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
           Gérant {counts.gerant}/2 · Manager {counts.manager}/2 · Équipe {counts.equipe}
         </p>
         {seats.length === 0 ? (
-          <p className="text-sm text-gray-400">Aucun siège attribué pour l&apos;instant.</p>
+          <p className="text-sm text-ink-faint">Aucun siège attribué pour l&apos;instant.</p>
         ) : (
           <ul className="space-y-2">
             {seats.map((seat) => (
@@ -63,11 +62,11 @@ export default async function AdminAccessPage({ params }: { params: Promise<{ re
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <h2 className="font-bold text-gray-900 mb-1">Inviter</h2>
+      <div className="bg-white rounded-xl border border-paper-border p-5">
+        <h2 className="font-bold text-ink mb-1">Inviter</h2>
         {canManage ? (
           <>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-ink-faint mb-4">
               Génère un lien à envoyer. Le rôle proposé est confirmé par la personne invitée en
               l&apos;activant — inviter n&apos;évince jamais un siège existant.
             </p>
@@ -77,7 +76,7 @@ export default async function AdminAccessPage({ params }: { params: Promise<{ re
             />
           </>
         ) : (
-          <p className="text-sm text-gray-500">Seuls les gérants et managers peuvent inviter.</p>
+          <p className="text-sm text-ink-muted">Seuls les gérants et managers peuvent inviter.</p>
         )}
       </div>
     </div>

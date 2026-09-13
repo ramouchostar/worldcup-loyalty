@@ -52,62 +52,62 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-        <h2 className="font-bold text-gray-900">Identité</h2>
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-4">
+        <h2 className="font-bold text-ink">Identité</h2>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+          <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
             Nom de l&apos;établissement
           </label>
           <input
             name="name"
             required
             defaultValue={initial.name}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm"
           />
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-ink-faint mt-1">
             L&apos;adresse de ta page (<span className="font-mono">/r/{restaurantId}</span>) ne change
             pas — tes QR codes imprimés restent valables.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
               Secteur (ville / quartier)
             </label>
             <input
               name="sector"
               required
               defaultValue={initial.sector}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
               Adresse
             </label>
             <input
               name="address"
               defaultValue={initial.address}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm"
             />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+          <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
             Types de cuisine (séparés par des virgules, max 5)
           </label>
           <input
             name="cuisine_types"
             defaultValue={initial.cuisine_types}
             placeholder="Ex : Burger artisanal, Halal, Dessert"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm"
           />
         </div>
         {/* ADR 0027 §5 (amendé 2026-08-22) — calendriers scolaires : pilotent le
             facteur « vacances » des prévisions. De 1 à 3 : à Bruxelles, la
             clientèle suit souvent les écoles francophones ET néerlandophones. */}
         <fieldset>
-          <legend className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+          <legend className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
             🗓️ Calendriers scolaires de ta clientèle
           </legend>
           <div className="space-y-2">
@@ -117,7 +117,7 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
                 <label
                   key={c.code}
                   className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
-                    checked ? "border-orange-300 bg-orange-50" : "border-gray-300 bg-white hover:bg-gray-50"
+                    checked ? "border-brand-red/50 bg-brand-red/8" : "border-paper-border bg-white hover:bg-paper"
                   }`}
                 >
                   <input
@@ -126,17 +126,17 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
                     value={c.code}
                     checked={checked}
                     onChange={() => toggleCalendar(c.code)}
-                    className="h-4 w-4 accent-orange-500"
+                    className="h-4 w-4 accent-brand-red"
                   />
                   <span>
                     🇧🇪 {c.label}
-                    <span className="text-gray-400"> — {c.short}</span>
+                    <span className="text-ink-faint"> — {c.short}</span>
                   </span>
                 </label>
               );
             })}
           </div>
-          <p className={`text-xs mt-1 ${calendars.length === 0 ? "text-red-500" : "text-gray-400"}`}>
+          <p className={`text-xs mt-1 ${calendars.length === 0 ? "text-danger" : "text-ink-faint"}`}>
             {calendars.length === 0
               ? "Coche au moins un calendrier — tes Prévisions en ont besoin pour anticiper les vacances."
               : "Coche tous ceux que suivent tes clients (à Bruxelles, souvent les deux premiers). Les congés diffèrent selon la communauté depuis 2022 — tes Prévisions s'en servent pour anticiper l'affluence."}
@@ -144,10 +144,10 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
         </fieldset>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-xl border border-paper-border p-5 space-y-4">
         <div>
-          <h2 className="font-bold text-gray-900">Infos & liens</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <h2 className="font-bold text-ink">Infos & liens</h2>
+          <p className="text-xs text-ink-faint mt-0.5">
             Insta/TikTok/Facebook alimentent les actions sociales de tes membres
             (jetons) — un lien vide masque le bouton correspondant. Le site web
             sert aussi à la détection de design ci-dessous.
@@ -155,7 +155,7 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
         </div>
         {SOCIAL_FIELDS.map((f) => (
           <div key={f.name}>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
               {f.label}
             </label>
             <input
@@ -163,14 +163,14 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
               type="url"
               defaultValue={initial[f.name]}
               placeholder={f.placeholder}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm"
             />
           </div>
         ))}
       </div>
 
       {message && (
-        <p className={`text-sm ${message.kind === "error" ? "text-red-600" : "text-green-700"}`}>
+        <p className={`text-sm ${message.kind === "error" ? "text-danger" : "text-good"}`}>
           {message.text}
         </p>
       )}

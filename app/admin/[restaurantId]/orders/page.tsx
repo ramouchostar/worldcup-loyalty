@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { PageHeader, FilterTabs, StatusBadge } from "@/components/admin/ui";
 
 type AdminOrder = {
   id: string;
@@ -34,27 +35,32 @@ const REJECT_REASONS = [
   "Autre (préciser ci-dessous)",
 ];
 
-const FLAG_LABELS: Record<string, { label: string; color: string }> = {
-  high_amount:            { label: "> €200",         color: "bg-orange-100 text-orange-800" },
-  low_confidence:         { label: "OCR < 70%",      color: "bg-red-100 text-red-800" },
-  unreadable_bestelnummer:{ label: "N° illisible",   color: "bg-red-100 text-red-800" },
-  amount_mismatch:        { label: "Écart > 5%",     color: "bg-red-100 text-red-800" },
-  no_restaurant_header:   { label: "Hors restaurant",color: "bg-purple-100 text-purple-800" },
-  too_many_today:         { label: "3+/jour",        color: "bg-amber-100 text-amber-800" },
+// Motifs de signalement — des ÉTIQUETTES DESCRIPTIVES, pas cinq niveaux
+// d'alerte. Elles portaient six couleurs (rouge, orange, ambre, violet,
+// fuchsia…) qui ne disaient rien de plus : la carte est déjà bordée selon son
+// statut (validée / rejetée / hors SLA / en attente), et un ticket qui affiche
+// une étiquette est de toute façon à regarder. Une seule teinte neutre, et le
+// regard va là où il doit — la bordure et le délai d'attente.
+const FLAG_LABELS: Record<string, string> = {
+  high_amount:             "> €200",
+  low_confidence:          "OCR < 70%",
+  unreadable_bestelnummer: "N° illisible",
+  amount_mismatch:         "Écart > 5%",
+  no_restaurant_header:    "Hors restaurant",
+  too_many_today:          "3+/jour",
   // ADR 0019 : no_order_key remplace no_bestelnummer — les deux restent
   // mappés pour les commandes historiques.
-  no_order_key:           { label: "Sans n° de ticket", color: "bg-red-100 text-red-800" },
-  no_bestelnummer:        { label: "Sans n° de ticket", color: "bg-red-100 text-red-800" },
-  no_receipt:             { label: "Sans photo",     color: "bg-red-100 text-red-800" },
-  ocr_failed:             { label: "OCR en échec",   color: "bg-red-100 text-red-800" },
+  no_order_key:            "Sans n° de ticket",
+  no_bestelnummer:         "Sans n° de ticket",
+  no_receipt:              "Sans photo",
+  ocr_failed:              "OCR en échec",
   // ADR 0052 — empreinte proche d'un ticket déjà en base sans certitude : ni
   // crédité, ni rejeté. Les deux tickets sont à comparer côte à côte.
-  duplicate_review:       { label: "Doublon possible", color: "bg-fuchsia-100 text-fuchsia-800" },
+  duplicate_review:        "Doublon possible",
   // La photo ressemble à une affiche/QR du programme, pas à un ticket — mais
   // un numéro a été tapé à la main : à vérifier sur l'image.
-  looks_like_poster:      { label: "Photo d'affiche ?", color: "bg-purple-100 text-purple-800" },
+  looks_like_poster:       "Photo d'affiche ?",
 };
-
 function waitHours(submitted_at: string): number {
   return (Date.now() - new Date(submitted_at).getTime()) / 3_600_000;
 }
@@ -135,14 +141,14 @@ function SwipeCard({
   }
 
   const borderColor =
-    order.status === "validated" ? "border-green-200" :
-    order.status === "rejected"  ? "border-red-200"   :
-    overSLA                      ? "border-red-400"   : "border-amber-200";
+    order.status === "validated" ? "border-good/30" :
+    order.status === "rejected"  ? "border-danger/30"   :
+    overSLA                      ? "border-danger/50"   : "border-warn/30";
 
   return (
     <div
       ref={cardRef}
-      className={`bg-white rounded-xl border-2 p-4 select-none ${borderColor} ${selected ? "ring-2 ring-blue-400" : ""}`}
+      className={`bg-white rounded-xl border-2 p-4 select-none ${borderColor} ${selected ? "ring-2 ring-brand-red/40" : ""}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -156,7 +162,7 @@ function SwipeCard({
               type="checkbox"
               checked={selected}
               onChange={onToggleSelect}
-              className="mt-0.5 shrink-0 h-4 w-4 accent-blue-600"
+              className="mt-0.5 shrink-0 h-4 w-4 accent-brand-red"
             />
           )}
           <div className="min-w-0">
@@ -166,38 +172,38 @@ function SwipeCard({
               <span className="text-base shrink-0" title={order.teams?.name ?? "Sans équipe"}>
                 {order.teams?.flag_emoji ?? "👤"}
               </span>
-              <span className="font-semibold text-gray-900 text-sm">
+              <span className="font-semibold text-ink text-sm">
                 {order.profiles?.display_name ?? "—"}
               </span>
-              <span className="text-xs text-gray-400 truncate">{order.profiles?.email}</span>
+              <span className="text-xs text-ink-faint truncate">{order.profiles?.email}</span>
             </div>
 
             {/* Amount row */}
             <div className="flex items-baseline gap-2 mt-0.5">
-              <p className="text-xl font-black text-gray-900">
+              <p className="text-xl font-black text-ink">
                 {Number(order.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
               </p>
               {order.ocr_amount !== null && (
                 <p className={`text-xs font-medium ${
                   Math.abs(order.ocr_amount - order.amount) / order.amount > 0.05
-                    ? "text-red-600"
-                    : "text-gray-500"
+                    ? "text-danger"
+                    : "text-ink-muted"
                 }`}>
                   OCR {Number(order.ocr_amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })}
                 </p>
               )}
               {order.ocr_confidence !== null && (
-                <p className={`text-xs font-medium ${order.ocr_confidence < 70 ? "text-red-600" : "text-gray-400"}`}>
+                <p className={`text-xs font-medium ${order.ocr_confidence < 70 ? "text-danger" : "text-ink-faint"}`}>
                   {order.ocr_confidence}%
                 </p>
               )}
             </div>
 
             {/* Order number + date */}
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-ink-muted mt-0.5">
               {order.order_number
-                ? <span className="font-mono text-gray-700">{order.order_number}</span>
-                : <span className="italic text-gray-400">N° non extrait</span>
+                ? <span className="font-mono text-ink-body">{order.order_number}</span>
+                : <span className="italic text-ink-faint">N° non extrait</span>
               }
               {" · "}
               {new Date(order.order_date + "T00:00:00Z").toLocaleDateString("fr-BE", { timeZone: "UTC" })}
@@ -208,20 +214,18 @@ function SwipeCard({
             {/* SLA + flags */}
             <div className="flex flex-wrap gap-1 mt-1.5">
               {order.status === "pending" && overSLA && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-danger/12 text-danger">
                   ⏱ {Math.floor(hoursOld)}h d&apos;attente
                 </span>
               )}
               {flags.map(flag => {
-                const meta = FLAG_LABELS[flag];
-                return meta ? (
-                  <span key={flag} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${meta.color}`}>
-                    {meta.label}
-                  </span>
+                const label = FLAG_LABELS[flag];
+                return label ? (
+                  <StatusBadge key={flag} tone="neutral">{label}</StatusBadge>
                 ) : null;
               })}
               {order.rejection_reason && (
-                <span className="text-xs text-red-600 mt-0.5 w-full">Rejet : {order.rejection_reason}</span>
+                <span className="text-xs text-danger mt-0.5 w-full">Rejet : {order.rejection_reason}</span>
               )}
             </div>
           </div>
@@ -233,7 +237,7 @@ function SwipeCard({
           {order.receipt_url && (
             <button
               onClick={onPhotoOpen}
-              className="w-12 h-16 rounded-lg overflow-hidden border border-gray-200 shrink-0 bg-gray-50"
+              className="w-12 h-16 rounded-lg overflow-hidden border border-paper-border shrink-0 bg-paper"
               title="Voir le ticket"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -245,8 +249,8 @@ function SwipeCard({
           {order.status !== "pending" ? (
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
               order.status === "validated"
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
+                ? "bg-good/12 text-good"
+                : "bg-danger/12 text-danger"
             }`}>
               {order.status === "validated" ? "Validée ✓" : "Rejetée"}
             </span>
@@ -255,14 +259,14 @@ function SwipeCard({
               <button
                 onClick={onValidate}
                 disabled={busy}
-                className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50 whitespace-nowrap"
+                className="px-3 py-1.5 bg-good text-white rounded-lg text-xs font-semibold hover:bg-good disabled:opacity-50 whitespace-nowrap"
               >
                 {busy ? "…" : "✓ Valider"}
               </button>
               <button
                 onClick={onReject}
                 disabled={busy}
-                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 disabled:opacity-50"
+                className="px-3 py-1.5 bg-danger/12 text-danger rounded-lg text-xs font-semibold hover:bg-danger/20 disabled:opacity-50"
               >
                 ✕ Rejeter
               </button>
@@ -273,7 +277,7 @@ function SwipeCard({
 
       {/* Swipe hint (mobile, pending only) */}
       {order.status === "pending" && !batchMode && (
-        <p className="text-center text-xs text-gray-300 mt-2 md:hidden">
+        <p className="text-center text-xs text-ink-faint mt-2 md:hidden">
           ← rejeter · glisser · valider →
         </p>
       )}
@@ -400,19 +404,17 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-4">
       {actionError && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-start justify-between gap-2">
+        <div className="bg-danger/10 border border-danger/30 rounded-xl p-3 text-sm text-danger flex items-start justify-between gap-2">
           <span>⚠️ {actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-700 shrink-0" aria-label="Fermer">✕</button>
+          <button onClick={() => setActionError(null)} className="text-danger/60 hover:text-danger shrink-0" aria-label="Fermer">✕</button>
         </div>
       )}
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Commandes suspectes</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            Glisser droite = valider · Glisser gauche = rejeter
-          </p>
-        </div>
+        <PageHeader
+          title={<>Commandes suspectes</>}
+          subtitle={<>Glisser droite = valider · Glisser gauche = rejeter</>}
+        />
         {counts.pending > 0 && (
           <div className="flex gap-2 shrink-0">
             {batchMode && (
@@ -427,7 +429,7 @@ export default function AdminOrdersPage() {
                       : new Set(pendingIds)
                   );
                 }}
-                className="text-xs font-semibold px-3 py-2 rounded-lg border bg-white text-gray-700 border-gray-200 hover:border-gray-400 transition-colors"
+                className="text-xs font-semibold px-3 py-2 rounded-lg border bg-white text-ink-body border-paper-border hover:border-ink-faint transition-colors"
               >
                 Tout sélectionner
               </button>
@@ -436,8 +438,8 @@ export default function AdminOrdersPage() {
               onClick={() => { setBatchMode(b => !b); setSelected(new Set()); }}
               className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors ${
                 batchMode
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+                  ? "bg-ink text-white border-ink"
+                  : "bg-white text-ink-body border-paper-border hover:border-ink-faint"
               }`}
             >
               {batchMode ? "Annuler" : "Sélection"}
@@ -448,48 +450,42 @@ export default function AdminOrdersPage() {
 
       {/* SLA alert */}
       {pendingOverSLA > 0 && (
-        <div className="bg-red-50 border border-red-300 rounded-xl p-3 flex items-center gap-2">
+        <div className="bg-danger/10 border border-danger/40 rounded-xl p-3 flex items-center gap-2">
           <span className="text-lg">⏱</span>
-          <p className="text-red-800 text-sm font-semibold">
+          <p className="text-danger text-sm font-semibold">
             {pendingOverSLA} commande{pendingOverSLA > 1 ? "s" : ""} en attente depuis plus de 2h
           </p>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        {STATUS_FILTER.map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === f
-                ? f === "flagged" ? "bg-red-600 text-white" : "bg-brand-dark text-white"
-                : f === "flagged" && counts.flagged > 0
-                  ? "bg-red-50 text-red-700 border border-red-300 hover:border-red-500"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-gray-400"
-            }`}
-          >
-            {f === "flagged" ? "🚩 Suspectes" :
-             f === "all" ? "Toutes" :
-             f === "pending" ? "En attente" :
-             f === "validated" ? "Validées" : "Rejetées"}
-            <span className="ml-1.5 opacity-60">({counts[f]})</span>
-          </button>
-        ))}
-      </div>
+      {/* Filtres — l'onglet « Suspectes » ne crie que s'il a de quoi
+          (FilterTabs, tone danger) : vide, c'est un onglet comme un autre. */}
+      <FilterTabs
+        value={filter}
+        onChange={setFilter}
+        tabs={STATUS_FILTER.map(f => ({
+          key: f,
+          label:
+            f === "flagged"   ? "Suspectes" :
+            f === "all"       ? "Toutes" :
+            f === "pending"   ? "En attente" :
+            f === "validated" ? "Validées" : "Rejetées",
+          count: counts[f],
+          tone: f === "flagged" ? ("danger" as const) : undefined,
+        }))}
+      />
 
       {/* Order list */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white rounded-xl h-28 animate-pulse border border-gray-100" />
+            <div key={i} className="bg-white rounded-xl h-28 animate-pulse border border-paper-border" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-          <p className="text-gray-400">Aucune commande dans cette catégorie.</p>
-          <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+        <div className="bg-white rounded-xl border border-paper-border p-8 text-center">
+          <p className="text-ink-faint">Aucune commande dans cette catégorie.</p>
+          <p className="text-xs text-ink-faint mt-1 max-w-sm mx-auto">
             Les tickets signalés (montant élevé, OCR incertain…) arrivent ici pour
             revue — les commandes normales se valident toutes seules.
           </p>
@@ -511,12 +507,12 @@ export default function AdminOrdersPage() {
 
               {/* Reject form */}
               {rejectId === order.id && (
-                <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
-                  <p className="text-sm font-semibold text-red-900">Motif du rejet</p>
+                <div className="mt-2 bg-danger/10 border border-danger/30 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-danger">Motif du rejet</p>
                   <select
                     value={rejectPreset}
                     onChange={e => setRejectPreset(e.target.value)}
-                    className="w-full px-3 py-2 border border-red-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400"
+                    className="w-full px-3 py-2 border border-danger/30 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-danger/50"
                   >
                     <option value="">Choisir un motif…</option>
                     {REJECT_REASONS.map(r => (
@@ -529,20 +525,20 @@ export default function AdminOrdersPage() {
                       value={rejectFree}
                       onChange={e => setRejectFree(e.target.value)}
                       placeholder="Préciser le motif…"
-                      className="w-full px-3 py-2 border border-red-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                      className="w-full px-3 py-2 border border-danger/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-danger/50"
                     />
                   )}
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleAction(order.id, "reject", rejectReason)}
                       disabled={!rejectReason.trim() || busy === order.id}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-red-700"
+                      className="flex-1 px-4 py-2 bg-danger text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-danger"
                     >
                       {busy === order.id ? "…" : "Confirmer le rejet"}
                     </button>
                     <button
                       onClick={() => setRejectId(null)}
-                      className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                      className="px-4 py-2 border border-paper-border rounded-lg text-sm text-ink-body hover:bg-paper"
                     >
                       Annuler
                     </button>
@@ -556,17 +552,17 @@ export default function AdminOrdersPage() {
 
       {/* Batch action bar */}
       {batchMode && selected.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-xl p-4 flex gap-3 z-40 safe-bottom">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-paper-border shadow-xl p-4 flex gap-3 z-40 safe-bottom">
           <button
             onClick={handleBatchValidate}
             disabled={batchBusy}
-            className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 disabled:opacity-50"
+            className="flex-1 py-3 bg-good text-white rounded-xl font-semibold text-sm hover:bg-good disabled:opacity-50"
           >
             {batchBusy ? "Validation…" : `✓ Valider ${selected.size} commande${selected.size > 1 ? "s" : ""}`}
           </button>
           <button
             onClick={() => { setSelected(new Set()); setBatchMode(false); }}
-            className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
+            className="px-5 py-3 border border-paper-border rounded-xl text-sm text-ink-body hover:bg-paper"
           >
             Annuler
           </button>

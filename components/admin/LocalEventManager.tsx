@@ -76,22 +76,22 @@ export default function LocalEventManager({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
-      <h2 className="font-bold text-gray-900">Mes événements locaux</h2>
-      <p className="text-xs text-gray-500 mt-1">
+    <div className="bg-white rounded-xl border border-paper-border p-5">
+      <h2 className="font-bold text-ink">Mes événements locaux</h2>
+      <p className="text-xs text-ink-muted mt-1">
         Braderie de quartier, concert voisin, fermeture… Ajoute-les pour affiner tes prévisions ces jours-là.
       </p>
 
       {events.length > 0 && (
         <ul className="mt-4 space-y-2">
           {events.map((ev) => (
-            <li key={ev.id} className="flex items-center justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
+            <li key={ev.id} className="flex items-center justify-between gap-3 bg-paper rounded-lg px-3 py-2">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{ev.label}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-sm font-medium text-ink truncate">{ev.label}</p>
+                <p className="text-xs text-ink-muted">
                   {fr(ev.starts_on)}
                   {ev.ends_on !== ev.starts_on ? ` → ${fr(ev.ends_on)}` : ""} ·{" "}
-                  <span className={ev.expected_effect === "up" ? "text-green-700" : "text-red-700"}>
+                  <span className={ev.expected_effect === "up" ? "text-good" : "text-danger"}>
                     {ev.expected_effect === "up" ? "hausse attendue" : "baisse attendue"}
                   </span>
                 </p>
@@ -99,7 +99,7 @@ export default function LocalEventManager({
               <button
                 onClick={() => remove(ev.id)}
                 disabled={busy}
-                className="text-xs text-gray-400 hover:text-red-600 shrink-0"
+                className="text-xs text-ink-faint hover:text-danger shrink-0"
                 aria-label="Supprimer"
               >
                 Supprimer
@@ -111,39 +111,39 @@ export default function LocalEventManager({
 
       <div className="mt-4 grid sm:grid-cols-2 gap-3">
         <label className="block sm:col-span-2">
-          <span className="text-xs font-medium text-gray-600">Nom de l&apos;événement</span>
+          <span className="text-xs font-medium text-ink-body">Nom de l&apos;événement</span>
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             maxLength={120}
             placeholder="ex. Braderie du quartier"
-            className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+            className="mt-1 w-full text-sm border border-paper-border rounded-lg px-3 py-2"
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-gray-600">Du</span>
+          <span className="text-xs font-medium text-ink-body">Du</span>
           <input
             type="date"
             value={startsOn}
             onChange={(e) => setStartsOn(e.target.value)}
-            className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+            className="mt-1 w-full text-sm border border-paper-border rounded-lg px-3 py-2"
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-gray-600">Au (optionnel)</span>
+          <span className="text-xs font-medium text-ink-body">Au (optionnel)</span>
           <input
             type="date"
             value={endsOn}
             onChange={(e) => setEndsOn(e.target.value)}
-            className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+            className="mt-1 w-full text-sm border border-paper-border rounded-lg px-3 py-2"
           />
         </label>
         <label className="block sm:col-span-2">
-          <span className="text-xs font-medium text-gray-600">Effet attendu sur les ventes</span>
+          <span className="text-xs font-medium text-ink-body">Effet attendu sur les ventes</span>
           <select
             value={effect}
             onChange={(e) => setEffect(e.target.value === "down" ? "down" : "up")}
-            className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white"
+            className="mt-1 w-full text-sm border border-paper-border rounded-lg px-3 py-2 bg-white"
           >
             <option value="up">Hausse (plus de monde)</option>
             <option value="down">Baisse (moins de monde)</option>
@@ -151,7 +151,7 @@ export default function LocalEventManager({
         </label>
       </div>
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       <button
         onClick={add}

@@ -33,11 +33,11 @@ export function SeatRow({
   }
 
   return (
-    <li className="border border-gray-100 rounded-xl px-3 py-2 space-y-1">
+    <li className="border border-paper-border rounded-xl px-3 py-2 space-y-1">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-gray-900 truncate">{label}</span>
+        <span className="text-sm text-ink truncate">{label}</span>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+          <span className="text-xs font-semibold text-ink-muted bg-paper-subtle px-2 py-1 rounded-full">
             {ADMIN_ROLE_LABELS[role]}
           </span>
           {canRemove && (
@@ -45,14 +45,14 @@ export function SeatRow({
               type="button"
               onClick={handleRemove}
               disabled={pending}
-              className="text-xs text-red-600 hover:underline disabled:opacity-50"
+              className="text-xs text-danger hover:underline disabled:opacity-50"
             >
               {pending ? "..." : "Retirer"}
             </button>
           )}
         </div>
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </li>
   );
 }

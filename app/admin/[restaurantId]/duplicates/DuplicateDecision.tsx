@@ -29,7 +29,7 @@ export function DuplicateDecision({
 
   if (done) {
     return (
-      <p className="text-sm font-semibold text-gray-600">
+      <p className="text-sm font-semibold text-ink-body">
         {done === "confirmed_duplicate"
           ? "✅ Doublon confirmé — la commande a été rejetée."
           : "✅ Deux commandes distinctes — la commande repart en file de validation."}
@@ -44,7 +44,7 @@ export function DuplicateDecision({
           type="button"
           disabled={pending}
           onClick={() => decide("confirmed_duplicate")}
-          className="bg-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-red-700 disabled:opacity-60 transition-colors"
+          className="bg-danger text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-danger disabled:opacity-60 transition-colors"
         >
           C&apos;est le même ticket
         </button>
@@ -52,12 +52,12 @@ export function DuplicateDecision({
           type="button"
           disabled={pending}
           onClick={() => decide("legit")}
-          className="bg-white border border-gray-300 text-gray-800 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 disabled:opacity-60 transition-colors"
+          className="bg-white border border-paper-border text-ink text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-paper disabled:opacity-60 transition-colors"
         >
           Ce sont deux commandes différentes
         </button>
       </div>
-      {error && <p className="text-red-600 text-xs mt-2">{error}</p>}
+      {error && <p className="text-danger text-xs mt-2">{error}</p>}
     </div>
   );
 }

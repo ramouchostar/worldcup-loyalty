@@ -49,8 +49,8 @@ export function SeatInviteForm({
 
   if (invite) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-xl p-3 space-y-2">
-        <p className="text-sm text-green-900">
+      <div className="bg-good/10 border border-good/30 rounded-xl p-3 space-y-2">
+        <p className="text-sm text-good">
           Lien {invite.emailed ? "envoyé par email" : "prêt à partager"} — rôle proposé :{" "}
           <span className="font-semibold">{ADMIN_ROLE_LABELS[invite.role]}</span>.
         </p>
@@ -59,7 +59,7 @@ export function SeatInviteForm({
             readOnly
             value={invite.url}
             onFocus={(e) => e.currentTarget.select()}
-            className="flex-1 border border-green-200 rounded-lg px-3 py-2 text-xs bg-white font-mono"
+            className="flex-1 border border-good/30 rounded-lg px-3 py-2 text-xs bg-white font-mono"
           />
           <button
             type="button"
@@ -67,7 +67,7 @@ export function SeatInviteForm({
               navigator.clipboard?.writeText(invite.url);
               setCopied(true);
             }}
-            className="px-3 py-2 bg-white border border-green-200 rounded-lg text-sm font-medium hover:bg-green-100 shrink-0"
+            className="px-3 py-2 bg-white border border-good/30 rounded-lg text-sm font-medium hover:bg-good/12 shrink-0"
           >
             {copied ? "Copié ✓" : "Copier"}
           </button>
@@ -84,7 +84,7 @@ export function SeatInviteForm({
           type="button"
           disabled={loading}
           onClick={handleRevoke}
-          className="w-full text-xs text-red-700 hover:underline disabled:opacity-50"
+          className="w-full text-xs text-danger hover:underline disabled:opacity-50"
         >
           Révoquer ce lien
         </button>
@@ -95,20 +95,20 @@ export function SeatInviteForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <select name="role" defaultValue="gerant" className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+        <select name="role" defaultValue="gerant" className="border border-paper-border rounded-lg px-3 py-2 text-sm bg-white">
           {ADMIN_ROLES.map((role) => (
             <option key={role} value={role}>
               {ADMIN_ROLE_LABELS[role]}
             </option>
           ))}
         </select>
-        <input name="email" type="email" placeholder="Email (facultatif)" className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        <input name="email" type="email" placeholder="Email (facultatif)" className="border border-paper-border rounded-lg px-3 py-2 text-sm" />
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+        className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-danger disabled:opacity-50 transition-colors"
       >
         {loading ? "Génération..." : "Générer le lien d'invitation"}
       </button>

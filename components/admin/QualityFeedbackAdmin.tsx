@@ -9,10 +9,10 @@ import type { AdminFeedbackItem, Barometer } from "@/types";
 // ADR 0023 §8 — le baromètre est un ÉTAT + une TENDANCE + une DÉCOMPOSITION,
 // jamais une note chiffrée. « Pas assez de signaux » sous le seuil.
 const STATE = {
-  good: { emoji: "🟢", label: "Bonne dynamique", cls: "text-green-800 bg-green-50 border-green-200" },
-  watch: { emoji: "🟠", label: "À surveiller", cls: "text-amber-800 bg-amber-50 border-amber-200" },
-  tense: { emoji: "🔴", label: "Tendu", cls: "text-red-800 bg-red-50 border-red-200" },
-  insufficient: { emoji: "🌱", label: "Pas assez de signaux", cls: "text-gray-600 bg-gray-50 border-gray-200" },
+  good: { emoji: "🟢", label: "Bonne dynamique", cls: "text-good bg-good/10 border-good/30" },
+  watch: { emoji: "🟠", label: "À surveiller", cls: "text-warn bg-warn/10 border-warn/30" },
+  tense: { emoji: "🔴", label: "Tendu", cls: "text-danger bg-danger/10 border-danger/30" },
+  insufficient: { emoji: "🌱", label: "Pas assez de signaux", cls: "text-ink-body bg-paper border-paper-border" },
 } as const;
 
 const TREND: Record<Barometer["trend"], string> = {
@@ -42,7 +42,7 @@ export function QualityFeedbackAdmin({
   return (
     <div className="space-y-6">
       {/* Baromètre */}
-      <div className={`rounded-2xl border p-5 ${st.cls}`}>
+      <div className={`rounded-xl border p-5 ${st.cls}`}>
         <div className="flex items-center justify-between">
           <span className="text-lg font-bold">{st.emoji} {st.label}</span>
           {!advancedLocked && barometer.trend !== "na" && (
@@ -63,8 +63,8 @@ export function QualityFeedbackAdmin({
               {barometer.unresolved > 0 && <span className="font-semibold">⚠️ {barometer.unresolved} sans réponse</span>}
             </div>
             {advancedLocked ? (
-              <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/70 border border-gray-200 rounded-xl px-3 py-2.5">
-                <p className="text-xs text-gray-600">
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/70 border border-paper-border rounded-xl px-3 py-2.5">
+                <p className="text-xs text-ink-body">
                   🔒 La <strong>tendance</strong> et les <strong>axes récurrents</strong> font
                   partie du baromètre avancé (plan Croissance).
                 </p>
@@ -72,7 +72,7 @@ export function QualityFeedbackAdmin({
                   restaurantId={restaurantId}
                   feature="barometer_advanced"
                   requiredPlan="croissance"
-                  className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shrink-0"
+                  className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-ink transition-colors shrink-0"
                 />
               </div>
             ) : (
@@ -92,11 +92,11 @@ export function QualityFeedbackAdmin({
 
       {/* Signalements — d'abord, c'est là qu'on agit */}
       <section className="space-y-3">
-        <h2 className="font-semibold text-gray-900">
-          Signalements{incidents.length > 0 && <span className="text-gray-400 font-normal"> ({incidents.length})</span>}
+        <h2 className="font-semibold text-ink">
+          Signalements{incidents.length > 0 && <span className="text-ink-faint font-normal"> ({incidents.length})</span>}
         </h2>
         {incidents.length === 0 ? (
-          <p className="text-sm text-gray-500">Aucun signalement — profites-en 🙂</p>
+          <p className="text-sm text-ink-muted">Aucun signalement — profites-en 🙂</p>
         ) : (
           incidents.map((it) => <AdminCard key={it.id} restaurantId={restaurantId} item={it} />)
         )}
@@ -105,8 +105,8 @@ export function QualityFeedbackAdmin({
       {/* Encouragements */}
       {encouragements.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-semibold text-gray-900">
-            Encouragements <span className="text-gray-400 font-normal">({encouragements.length})</span>
+          <h2 className="font-semibold text-ink">
+            Encouragements <span className="text-ink-faint font-normal">({encouragements.length})</span>
           </h2>
           {encouragements.map((it) => (
             <AdminCard key={it.id} restaurantId={restaurantId} item={it} />
@@ -144,36 +144,36 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+    <div className="bg-white rounded-xl border border-paper-border p-4 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-900">
+        <span className="text-sm font-semibold text-ink">
           {isInc ? "🙋 Signalement" : `💛 ${item.authorName ?? "Un membre"}`}
         </span>
-        <span className="text-xs text-gray-400">{item.weekday} · {item.slot}</span>
+        <span className="text-xs text-ink-faint">{item.weekday} · {item.slot}</span>
       </div>
 
       {isInc && item.dimensions.length > 0 && (
-        <p className="text-xs text-gray-500">{item.dimensions.map((d) => DIMENSION_LABELS[d]).join(" · ")}</p>
+        <p className="text-xs text-ink-muted">{item.dimensions.map((d) => DIMENSION_LABELS[d]).join(" · ")}</p>
       )}
-      {item.comment && <p className="text-sm text-gray-700">« {item.comment} »</p>}
+      {item.comment && <p className="text-sm text-ink-body">« {item.comment} »</p>}
 
       <div className="flex items-center gap-2">
-        <span className="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+        <span className="inline-block rounded-full bg-paper-subtle px-2 py-0.5 text-xs text-ink-muted">
           {item.status === "new" ? "Nouveau" : item.status === "acknowledged" ? "Répondu" : "Réglé"}
         </span>
         {isInc && !item.contactOptIn && (
-          <span className="text-xs text-gray-400">Le membre n&apos;a pas demandé de réponse</span>
+          <span className="text-xs text-ink-faint">Le membre n&apos;a pas demandé de réponse</span>
         )}
       </div>
 
       {item.messages.length > 0 && (
-        <div className="space-y-2 border-t border-gray-100 pt-2">
+        <div className="space-y-2 border-t border-paper-border pt-2">
           {item.messages.map((m) => (
             <div
               key={m.id}
-              className={`rounded-xl px-3 py-2 text-sm ${m.sender === "establishment" ? "bg-brand-red/5 text-gray-800" : "bg-gray-100 text-gray-700"}`}
+              className={`rounded-xl px-3 py-2 text-sm ${m.sender === "establishment" ? "bg-brand-red/5 text-ink" : "bg-paper-subtle text-ink-body"}`}
             >
-              <span className="block text-xs text-gray-400 mb-0.5">{m.sender === "establishment" ? "Toi" : "Le membre"}</span>
+              <span className="block text-xs text-ink-faint mb-0.5">{m.sender === "establishment" ? "Toi" : "Le membre"}</span>
               {m.body}
             </div>
           ))}
@@ -185,7 +185,7 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={isInc ? "Répondre au membre…" : "Remercier…"}
-          className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm"
+          className="flex-1 rounded-xl border border-paper-border px-3 py-2 text-sm"
         />
         <button
           type="button"
@@ -200,13 +200,13 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
             type="button"
             onClick={() => act({ resolve: true })}
             disabled={busy}
-            className="rounded-xl border border-gray-200 px-3 text-sm text-gray-600"
+            className="rounded-xl border border-paper-border px-3 text-sm text-ink-body"
           >
             Réglé
           </button>
         )}
       </div>
-      {err && <p className="text-xs text-red-600">{err}</p>}
+      {err && <p className="text-xs text-danger">{err}</p>}
     </div>
   );
 }

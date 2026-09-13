@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { PageHeader } from "@/components/admin/ui";
 
 type AdminReferral = {
   id: string;
@@ -41,29 +42,27 @@ export default function AdminReferralsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Parrainages</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Attribution automatique à l&apos;inscription via lien WhatsApp. 5 inscrits = 1 jeton.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Parrainages</>}
+        subtitle={<>Attribution automatique à l&apos;inscription via lien WhatsApp. 5 inscrits = 1 jeton.</>}
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Amis inscrits</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{totalReferrals}</p>
+        <div className="bg-white rounded-xl border border-paper-border p-4">
+          <p className="text-xs text-ink-muted uppercase tracking-wide font-medium">Amis inscrits</p>
+          <p className="text-3xl font-bold text-ink mt-1">{totalReferrals}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Parrains actifs</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{totalReferrers}</p>
+        <div className="bg-white rounded-xl border border-paper-border p-4">
+          <p className="text-xs text-ink-muted uppercase tracking-wide font-medium">Parrains actifs</p>
+          <p className="text-3xl font-bold text-ink mt-1">{totalReferrers}</p>
         </div>
       </div>
 
       {/* Referrers leaderboard */}
       {Object.keys(byReferrer).length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wide mb-3">
             Parrains — jetons gagnés
           </h2>
           <div className="space-y-2">
@@ -73,11 +72,11 @@ export default function AdminReferralsPage() {
                 const tokens = Math.floor(data.count / 5);
                 const progress = data.count % 5;
                 return (
-                  <div key={uid} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between gap-3">
+                  <div key={uid} className="bg-white rounded-xl border border-paper-border p-4 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm text-gray-900">{data.name}</p>
-                      <p className="text-xs text-gray-400">{data.email}</p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="font-semibold text-sm text-ink">{data.name}</p>
+                      <p className="text-xs text-ink-faint">{data.email}</p>
+                      <p className="text-xs text-ink-muted mt-1">
                         {data.count} ami{data.count > 1 ? "s" : ""} inscrit{data.count > 1 ? "s" : ""}
                         {" · "}{progress}/5 vers prochain jeton
                       </p>
@@ -88,7 +87,7 @@ export default function AdminReferralsPage() {
                           {tokens} jeton{tokens > 1 ? "s" : ""}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-sm font-medium px-3 py-1.5 rounded-full">
+                        <span className="inline-flex items-center gap-1 bg-paper-subtle text-ink-muted text-sm font-medium px-3 py-1.5 rounded-full">
                           {progress}/5
                         </span>
                       )}
@@ -102,39 +101,39 @@ export default function AdminReferralsPage() {
 
       {/* Referral log */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wide mb-3">
           Historique des inscriptions
         </h2>
 
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl h-16 animate-pulse border border-gray-100" />
+              <div key={i} className="bg-white rounded-xl h-16 animate-pulse border border-paper-border" />
             ))}
           </div>
         ) : referrals.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-            <p className="text-gray-400">Aucun parrainage enregistré.</p>
-            <p className="text-xs text-gray-300 mt-2">
+          <div className="bg-white rounded-xl border border-paper-border p-8 text-center">
+            <p className="text-ink-faint">Aucun parrainage enregistré.</p>
+            <p className="text-xs text-ink-faint mt-2">
               Les parrainages s&apos;enregistrent automatiquement quand un ami s&apos;inscrit via un lien WhatsApp.
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             {referrals.map((r) => (
-              <div key={r.id} className="bg-white rounded-xl border border-green-200 p-4">
+              <div key={r.id} className="bg-white rounded-xl border border-good/30 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-semibold text-sm text-gray-900">
+                      <span className="font-semibold text-sm text-ink">
                         {r.referrer?.display_name ?? "—"}
                       </span>
-                      <span className="text-gray-400 text-xs">a parrainé</span>
-                      <span className="font-semibold text-sm text-gray-900">
+                      <span className="text-ink-faint text-xs">a parrainé</span>
+                      <span className="font-semibold text-sm text-ink">
                         {r.referee?.display_name ?? "—"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-ink-faint mt-0.5">
                       {r.referee?.email} · Inscrit le{" "}
                       {new Date(r.referred_at).toLocaleDateString("fr-BE", {
                         day: "numeric",
@@ -143,7 +142,7 @@ export default function AdminReferralsPage() {
                       })}
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-800">
+                  <span className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full bg-good/12 text-good">
                     ✓ Inscrit
                   </span>
                 </div>
