@@ -62,6 +62,15 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - L'équipe d'une commande est résolue **à la validation**, jamais à la soumission ; à la première adhésion, les commandes déjà validées du membre sont reprises dans le score de l'équipe
 - Ne jamais réintroduire de préalable social à la soumission : une config absente côté restaurateur ne doit pas couper le parcours client
 
+### ADR 0054 — Console restaurateur : un seul jeu de primitives
+- Toute page de `/admin/[restaurantId]/**` part de **`components/admin/ui/`** (`PageHeader`, `Card`, `FilterTabs`, `EmptyState`, `StatTile`, `StatusBadge`, `Restricted`) — une primitive qui manque s'y ajoute, elle ne se réinvente pas sur place
+- **Aucune couleur Tailwind brute** : neutres `ink-*`/`paper-*`, statuts `danger`/`warn`/`good` (AA mesuré), accent d'établissement `brand-*`. Pas de bleu ; le **rouge ne sert qu'à ce qui est cassé ou refusé** (un libellé descriptif est neutre)
+- Surfaces sombres (`brand-dark`) : blancs transparents, jamais `ink-faint` — illisible
+- Emojis : icône d'interface → `lucide-react` ; état vide → icône lucide sur pastille (PAS Fluent 3D, contrairement au membre) ; donnée et **textes sortants** (messages WhatsApp/push) → inchangés
+- Le **logo** de l'établissement remplace son nom en tête de console, sur pastille blanche (un logo sombre disparaîtrait sur `brand_dark`)
+- Une décision se prend à **un seul endroit** : l'arbitrage des doublons est un onglet de Commandes (ADR 0052), pas une page ; une destination déjà dans la nav n'est pas relistée au dashboard
+- Exceptions documentées : supports imprimables (`qr/print/**`) et `/platform` (autre console)
+
 ### ADR 0010 — Dashboard : conséquences, pas chiffres
 - Section 1 (hero) : aperçu prochaine commande avec 3 lignes étiquetées par couche
 - Section 2 : progress bar communauté + conséquence concrète du prochain palier

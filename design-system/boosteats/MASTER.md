@@ -57,6 +57,13 @@ proposition de palette :
   Kraainem, ce qui fait lire une bonne nouvelle comme une alerte ;
 - **aucun accent rouge sur l'écran de gain** (ADR 0048 §7).
 
+**Console restaurateur — ADR 0054.** Aucune couleur Tailwind brute : neutres en
+`ink-*`/`paper-*`, statuts en `danger`/`warn`/`good`, accent d'établissement en
+`brand-*`. Le **bleu n'existe pas** (les encarts d'information sont neutres), et
+le **rouge ne sert qu'à ce qui est cassé ou refusé** — un libellé descriptif
+(« > €200 », « OCR < 70 % ») prend le ton neutre. Une page de la console part
+toujours de `components/admin/ui/`.
+
 ### Typography
 
 Référence demandée : Uber. **Uber Move** et **Uber Move Text** sont des polices
@@ -226,10 +233,13 @@ On utilise ces utilitaires.
 ### Additional Forbidden Patterns
 
 - ❌ **Emoji en guise d'icône d'interface** — trois registres, un par rôle
-  (appliqué à l'app membre le 2026-09-12 ; console et `/platform` à faire) :
+  (app membre le 2026-09-12, console restaurateur le 2026-09-13 — ADR 0054 ;
+  reste `/platform`) :
   1. **icône d'action ou d'état** → `lucide-react` (un emoji ne se rend pas
      pareil sur iOS, Android et Windows) ;
-  2. **illustration d'état vide** → Fluent Emoji 3D (`lib/fluent-emoji.ts`) ;
+  2. **illustration d'état vide** → Fluent Emoji 3D (`lib/fluent-emoji.ts`)
+     côté MEMBRE ; côté CONSOLE, une icône lucide sur pastille teintée
+     (`EmptyState`) — le registre de l'outil, pas celui du grand public ;
   3. **donnée** → l'emoji reste du texte : podium 🥇🥈🥉, type d'équipe
      (`teamTypeEmoji`, ADR 0031), réseaux sociaux, messages WhatsApp sortants.
   Exception : les glyphes qui **reproduisent l'interface d'un autre logiciel**
