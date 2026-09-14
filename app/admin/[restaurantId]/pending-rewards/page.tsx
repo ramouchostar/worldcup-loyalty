@@ -4,12 +4,29 @@ import { useEffect, useMemo, useState } from "react";
 import { Receipt, TriangleAlert, Trophy, Users, Utensils, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { PendingReward } from "@/types";
-import { PageHeader, FilterTabs } from "@/components/admin/ui";
+import { PageHeader, FilterTabs, StatusBadge } from "@/components/admin/ui";
 
 type AdminPendingReward = PendingReward & {
   profiles: { display_name: string; email: string } | null;
   orders: { amount: number; order_date: string } | null;
 };
+
+// Cadeaux sans commande en face — gros cadeau échangé contre la réserve
+// (ADR 0021 / 0060) ou cadeau d'anniversaire (ADR 0024). Le comptoir sait
+// d'un coup d'œil qu'aucun ticket du jour ne l'accompagne. Les cadeaux liés à
+// un ticket, l'immense majorité, n'ont AUCUNE étiquette : la liste reste
+// aussi légère qu'avant (ADR 0054 — pastille neutre, jamais d'alerte).
+function sourceLabel(source: string | null | undefined): string | null {
+  if (source === "saver") return "Gros cadeau · réserve";
+  if (source === "birthday") return "Anniversaire";
+  return null;
+}
+
+function sourceNote(source: string | null | undefined): string | null {
+  if (source === "saver") return "Échangé contre des points de réserve";
+  if (source === "birthday") return "Offert pour l'anniversaire";
+  return null;
+}
 
 export default function AdminPendingRewardsPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
@@ -157,6 +174,7 @@ export default function AdminPendingRewardsPage() {
                       {r.profiles?.display_name ?? "—"}
                     </span>
                     <span className="text-xs text-ink-faint">{r.profiles?.email}</span>
+                    {sourceLabel(r.source) && <StatusBadge>{sourceLabel(r.source)}</StatusBadge>}
                   </div>
 
                   {/* Cadeaux par couche */}
@@ -165,7 +183,9 @@ export default function AdminPendingRewardsPage() {
                       <div className="flex items-center gap-1.5 text-sm">
                         <span className="text-ink-faint" aria-hidden="true"><Utensils size={14} strokeWidth={1.7} /></span>
                         <span className="font-medium text-ink">{r.solo_item}</span>
-                        <span className="text-xs text-ink-faint">— palier solo</span>
+                        {/* « palier solo » n'est vrai que pour un cadeau issu d'un ticket :
+                            un gros cadeau de réserve ou d'anniversaire portait ce libellé à tort. */}
+                        {!sourceLabel(r.source) && <span className="text-xs text-ink-faint">— palier solo</span>}
                       </div>
                     )}
                     {r.community_item && (
@@ -185,10 +205,9 @@ export default function AdminPendingRewardsPage() {
                   </div>
 
                   <p className="text-xs text-ink-faint">
-                    Commande{" "}
                     {r.orders
-                      ? `${Number(r.orders.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} — ${new Date(r.orders.order_date).toLocaleDateString("fr-BE")}`
-                      : "—"
+                      ? `Commande ${Number(r.orders.amount).toLocaleString("fr-BE", { style: "currency", currency: "EUR" })} — ${new Date(r.orders.order_date).toLocaleDateString("fr-BE")}`
+                      : sourceNote(r.source) ?? "Commande —"
                     }{" "}
                     · Généré le{" "}
                     {new Date(r.created_at).toLocaleDateString("fr-BE")}
