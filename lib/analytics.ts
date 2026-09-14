@@ -107,6 +107,11 @@ export type AnalyticsEventMap = {
   visitor_ticket_captured: { restaurant_id: string };
   visitor_signup_started: { restaurant_id: string; method: "google" | "signup" | "login" };
   visitor_ticket_resumed: { restaurant_id: string };
+  /** Caméra intégrée quittée pour un repli (ADR 0056) — `app_closed` : Android a fermé l'app pendant une photo prise avec l'appareil du téléphone. */
+  receipt_camera_fallback: {
+    restaurant_id: string;
+    reason: "unsupported" | "denied" | "error" | "app_closed";
+  };
   /** Ticket soumis — `amount_band`, jamais le montant (ADR 0028). */
   order_submitted: {
     restaurant_id: string;
