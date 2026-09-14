@@ -1,7 +1,7 @@
 # ADR 0021 — Réserve de points personnelle : « Mettre de côté »
 
 **Date** : 2026-07-06
-**Statut** : Accepté
+**Statut** : Accepté — le choix « Mettre de côté » et la réserve sont aussi sur l'accueil membre depuis l'[ADR 0059](0059-l-accueil-repond-a-trois-questions.md)
 
 ## Contexte
 

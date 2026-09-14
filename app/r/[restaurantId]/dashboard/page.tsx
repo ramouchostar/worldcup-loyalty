@@ -1,30 +1,43 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Camera, ConciergeBell, Gift, Lightbulb, MessageCircle, PiggyBank, Share2, Trophy, Users, UtensilsCrossed } from "lucide-react";
+import { Camera, Gift, Lightbulb, MessageCircle, PiggyBank, Share2, Trophy, UtensilsCrossed } from "lucide-react";
 import { PEOPLE_EMOJI } from "@/lib/fluent-emoji";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
-import { loadRewardGrid, resolveSoloReward, resolveCommunityBonus, nextSoloTier } from "@/lib/rewards";
-import { loadTeamTiers, resolveTeamTier } from "@/lib/team-tiers";
+import { loadRewardGrid, resolveCommunityBonus } from "@/lib/rewards";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
 import { getPointsBalance } from "@/lib/points";
 import { pointsForOrder } from "@/lib/points-model";
-import { COIN_EMOJI } from "@/lib/fluent-emoji";
-import { heroFirstScanMessage, heroProgressMessage, heroMaxTierMessage } from "@/lib/hero-copy";
+import { getTeamsHidden } from "@/lib/teams";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
+import { reserveView, ticketPromiseItems, type SaverTier } from "@/lib/home-view";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { InstallAppCard } from "@/components/InstallAppCard";
-import { ActionsLadder } from "@/components/member/ActionsLadder";
-import { ReferralCTA } from "@/components/member/ReferralCTA";
+import { TokensLine } from "@/components/member/TokensLine";
 import { foodIconUrl } from "@/lib/food-icon";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
+import { BankButton } from "@/app/r/[restaurantId]/my-rewards/BankButton";
+import { ExchangeButton } from "@/app/r/[restaurantId]/reserve/ExchangeButton";
+
+// ADR 0059 — l'accueil membre répond à trois questions, dans l'ordre, sans
+// faire défiler : qu'est-ce que j'ai (un cadeau qui attend, et le choix
+// récupérer / mettre de côté), qu'est-ce que je peux viser (ce que rapporte
+// le prochain ticket, la réserve), qu'est-ce que je fais (la photo). Le reste
+// (jetons, installation, équipe, tuiles, historique) vient ensuite, en
+// compact. Remplace l'ordre des ADR 0010 et 0030 §4.
 
 type MembershipWithTeam = {
   team_id: string | null;
   teams: { name: string; flag_emoji: string } | null;
+};
+
+// Cadeau disponible, colonnes explicites : jamais les *_cost (ADR 0007).
+// `orders.amount` sert au crédit de réserve affiché avant « Mettre de côté ».
+type AvailableReward = Pick<PendingReward, "id" | "order_id" | "solo_item" | "community_item" | "advancement_item" | "created_at"> & {
+  orders: { amount: number } | null;
 };
 
 export default async function DashboardPage({ params }: { params: Promise<{ restaurantId: string }> }) {
@@ -35,25 +48,23 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const r = (path: string) => `/r/${restaurantId}${path}`;
 
   // Entonnoir (ADR 0037) — dernier étage : le membre est arrivé chez lui.
-  // Ce n'est pas une sortie d'entonnoir (aucun taux de passage), c'est le
-  // repère qui dit si les gens reviennent dans l'app une fois le ticket
-  // passé. Best-effort, jamais bloquant, comme `recordLanding` — et attendu
-  // comme lui : une promesse flottante dans un composant serveur peut être
-  // coupée à la fin du rendu, et un compteur qu'on perd une fois sur deux ne
-  // vaut rien.
+  // Attendu : une promesse flottante dans un composant serveur peut être
+  // coupée à la fin du rendu.
   await recordFunnelStep(restaurantId, "home_viewed");
 
+  const admin = createAdminClient();
   const [
     { data: membershipRaw },
     { data: orders },
-    { data: pendingRaw },
+    { data: availableRaw },
     { count: redeemedCount },
-    restaurantUnlocked,
-    budget,
-    { data: validatedOrdersData, count: validatedOrderCount },
+    { count: validatedOrderCount },
     grid,
     isOwnerOfCurrent,
     { data: profileFlags },
+    teamsHidden,
+    reserveBalance,
+    { data: saverTiersRaw },
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -63,14 +74,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       .maybeSingle(),
     supabase
       .from("orders")
-      .select("id, amount, order_number, order_date, status, rejection_reason")
+      .select("id, amount, order_date, status, rejection_reason")
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .order("submitted_at", { ascending: false })
       .limit(10),
     supabase
       .from("pending_rewards")
-      .select("*")
+      .select("id, order_id, solo_item, community_item, advancement_item, created_at, orders(amount)")
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .eq("status", "available")
@@ -81,17 +92,27 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .eq("status", "redeemed"),
-    isRestaurantThresholdUnlocked(restaurantId),
-    getBudgetStatus(restaurantId),
     supabase
       .from("orders")
-      .select("amount", { count: "exact" })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .eq("status", "validated"),
     loadRewardGrid(restaurantId),
     isRestaurantOwner(user.id, restaurantId),
     supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+    // Réglage par établissement (kraainem) : sans équipes, l'accueil ne
+    // montre ni bloc équipe, ni tuiles Récompenses / Classement.
+    getTeamsHidden(restaurantId),
+    // Réserve (ADR 0021) : le solde qui s'échange, et les gros cadeaux visés.
+    getPointsBalance(user.id, restaurantId),
+    admin
+      .from("reward_tiers")
+      .select("id, min_threshold, menu_items(name, is_active, reward_eligible)")
+      .eq("restaurant_id", restaurantId)
+      .eq("layer", "saver")
+      .eq("is_active", true)
+      .order("min_threshold", { ascending: true }),
   ]);
 
   // Carte gérant (ADR 0030 §2) — owner de CE resto ou admin legacy sur le
@@ -101,110 +122,73 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     (!!(profileFlags as { is_admin: boolean } | null)?.is_admin && restaurantId === getRestaurantId());
 
   const membership = membershipRaw as unknown as MembershipWithTeam | null;
-  const hasTeam = !!membership?.team_id;
+  const team = teamsHidden ? null : membership?.teams ?? null;
+  const hasTeam = !teamsHidden && !!membership?.team_id;
+  const validCount = validatedOrderCount ?? 0;
+  const orderList = (orders as Order[] | null) ?? [];
 
-  // Score (points, côté membre) + dépense cumulée d'équipe (euros, service role —
-  // jamais rendue, sert seulement à résoudre la couche 3). ADR 0007.
-  const admin = createAdminClient();
-  // Étape 10 onboarding — la question d'équipe (ADR 0031) ne se pose plus à
-  // l'arrivée ici : elle vit sur l'écran de succès du ticket validé.
-  const [scoreResult, spentResult, teamTiers, reserveBalance, { count: saverTierCount }, rankResult] = await Promise.all([
-    hasTeam
-      ? supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
-      : Promise.resolve({ data: null }),
-    hasTeam
-      ? admin.from("community_scores").select("total_spent").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single()
-      : Promise.resolve({ data: null }),
-    loadTeamTiers(restaurantId),
-    // Réserve de points (ADR 0021) — micro-état de la tuile d'accès
-    getPointsBalance(user.id, restaurantId),
-    admin
-      .from("reward_tiers")
-      .select("id", { count: "exact", head: true })
-      .eq("restaurant_id", restaurantId)
-      .eq("layer", "saver")
-      .eq("is_active", true),
-    // Rang de l'équipe (micro-état tuile Classement, ADR 0030 §4, + comparaison
-    // vs équipe en tête sur la carte équipe) — colonnes publiques uniquement
-    // (score/member_count, m41), petit volume par resto. Jointure teams pour
-    // nom/drapeau/is_active — même filtre que /leaderboard (ADR 0018 : le
-    // classement expose déjà toutes les équipes, mais seulement les actives).
-    hasTeam
-      ? supabase
-          .from("community_scores")
-          .select("team_id, score, teams(name, flag_emoji, is_active)")
-          .eq("restaurant_id", restaurantId)
-          .order("score", { ascending: false })
-      : Promise.resolve({ data: null }),
-  ]);
-  const scoreRaw = scoreResult.data;
-  const spentRaw = spentResult.data;
+  // ── Ce que j'ai : le cadeau qui attend (un seul actif, ADR 0011) ────────────
+  const available = (availableRaw as unknown as AvailableReward[] | null) ?? [];
+  const gift = available[0] ?? null;
+  const giftExpiresAt = gift ? new Date(new Date(gift.created_at).getTime() + 48 * 60 * 60 * 1000) : null;
+  const giftHoursLeft = giftExpiresAt ? Math.max(0, Math.floor((giftExpiresAt.getTime() - Date.now()) / 3_600_000)) : 0;
+  // Seuls les cadeaux issus d'un ticket se mettent de côté (ADR 0021).
+  const giftBankPoints = gift?.order_id && gift.orders ? Math.floor(Number(gift.orders.amount)) : null;
 
-  const score = (scoreRaw as { score: number } | null)?.score ?? 0;
-  const memberCount = (scoreRaw as { member_count: number } | null)?.member_count ?? 0;
+  // ── Ce que je peux viser : le prochain ticket, la réserve ───────────────────
+  const promiseItems = ticketPromiseItems(grid.solo);
+  type SaverRow = { id: string; min_threshold: number; menu_items: { name: string; is_active: boolean; reward_eligible: boolean } | { name: string; is_active: boolean; reward_eligible: boolean }[] | null };
+  const saverTiers: SaverTier[] = ((saverTiersRaw as unknown as SaverRow[] | null) ?? [])
+    .map((row) => {
+      const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
+      if (!mi || !mi.is_active || !mi.reward_eligible) return null;
+      return { id: row.id, min_threshold: Number(row.min_threshold), item_name: mi.name };
+    })
+    .filter((t): t is SaverTier => t !== null);
+  const reserve = reserveView(reserveBalance, saverTiers);
+  const showReserve = saverTiers.length > 0 || reserveBalance > 0;
 
-  // Micro-états des tuiles d'accès (ADR 0030 §4) + comparaison classement.
-  // Équipes inactives filtrées ici, comme /leaderboard — sinon le rang
-  // affiché sur le dashboard peut diverger de celui du classement public.
-  type RankRow = {
-    team_id: string;
-    score: number;
-    teams: { name: string; flag_emoji: string; is_active: boolean } | null;
-  };
-  const rankRows = ((rankResult.data as unknown as RankRow[]) ?? []).filter((row) => row.teams?.is_active);
+  // ── Équipe (établissements qui l'utilisent) ─────────────────────────────────
+  // Score et rang : colonnes publiques uniquement (m41). La dépense cumulée
+  // (euros, service role) ne sert qu'à résoudre le palier réellement
+  // finançable (ADR 0017) — jamais rendue (ADR 0007).
+  type RankRow = { team_id: string; score: number; teams: { name: string; flag_emoji: string; is_active: boolean } | null };
+  const [scoreResult, spentResult, rankResult, restaurantUnlocked, budget] = hasTeam
+    ? await Promise.all([
+        supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single(),
+        admin.from("community_scores").select("total_spent").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single(),
+        supabase.from("community_scores").select("team_id, score, teams(name, flag_emoji, is_active)").eq("restaurant_id", restaurantId).order("score", { ascending: false }),
+        isRestaurantThresholdUnlocked(restaurantId),
+        getBudgetStatus(restaurantId),
+      ])
+    : [null, null, null, false, null];
+
+  const score = (scoreResult?.data as { score: number } | null)?.score ?? 0;
+  const memberCount = (scoreResult?.data as { member_count: number } | null)?.member_count ?? 0;
+  const teamTotalSpent = Number((spentResult?.data as { total_spent: number } | null)?.total_spent ?? 0);
+  const rankRows = ((rankResult?.data as unknown as RankRow[] | null) ?? []).filter((row) => row.teams?.is_active);
   const teamRank = hasTeam ? rankRows.findIndex((row) => row.team_id === membership!.team_id) + 1 : 0;
   const teamCount = rankRows.length;
   const leaderRow = teamRank > 1 ? rankRows[0] : null;
-  const teamTotalSpent = Number((spentRaw as { total_spent: number } | null)?.total_spent ?? 0);
-  const pendingRewards = (pendingRaw as PendingReward[] ?? []);
-  const orderList = (orders as Order[] ?? []);
-  const team = membership?.teams ?? null;
-
-  // ── Hero preview ───────────────────────────────────────────────────────────
-  const totalSpent = (validatedOrdersData ?? []).reduce((s, o) => s + Number((o as { amount: number }).amount), 0);
-  // Points perso cumulés (ADR 0028) — côté client, zéro euro même pour soi.
-  const totalPoints = (validatedOrdersData ?? []).reduce((s, o) => s + pointsForOrder(Number((o as { amount: number }).amount)), 0);
-  const validCount = validatedOrderCount ?? 0;
-  const memberActive = validCount > 0;
-  // Sans historique, previewAmt reste à 0 — pas de panier fictif à €25.
-  // L'ancien fallback faisait passer un membre sans aucune commande pour un
-  // palier déjà atteint (ex. "Finest" affiché comme acquis avec 0 commande) :
-  // factuellement faux, pas juste mal étiqueté. resolveSoloReward(grid, 0) et
-  // nextSoloTier(grid, 0) donnent alors l'état honnête : aucun cadeau acquis,
-  // 0 % de progression vers le premier palier.
-  const avgAmount = validCount > 0 ? totalSpent / validCount : 0;
-  const previewAmt = validCount > 0 ? Math.max(15, Math.round(avgAmount)) : 0;
-
-  // Plafond budget (ADR 0012) : couches 2 et 3 masquées si en pause.
-  // Couverture d'équipe (ADR 0017) : le bonus affiché est le palier réellement
-  // finançable pour cette taille d'équipe — cohérent avec createPendingReward.
-  const coverage = { memberCount, teamTotalSpent, budgetPct: budget.budgetPct };
-  const heroSolo = resolveSoloReward(grid, previewAmt);
-  const heroNextSolo = nextSoloTier(grid, previewAmt);
-  const heroCommunity = resolveCommunityBonus(
-    grid,
-    score,
-    restaurantUnlocked && budget.communityBonusActive,
-    coverage
-  );
-  const heroTeamTier = budget.communityBonusActive
-    ? resolveTeamTier(teamTiers, teamTotalSpent, coverage)
-    : { item: null, cost: 0 };
-
-  // Grille communautaire affichée : celle du catalogue (loadRewardGrid gère
-  // le fallback hérité pour le resto legacy). Vide = section masquée.
+  const communityBonusActive = budget?.communityBonusActive ?? false;
   const communityTiers = grid.community.map((t) => ({ score: t.min, item: t.item }));
-
-  const isWeakCommunity = communityTiers.length > 0 && score < communityTiers[0].score;
   const nextTier = communityTiers.find((t) => t.score > score) ?? null;
   const prevTierScore = nextTier ? (communityTiers[communityTiers.indexOf(nextTier) - 1]?.score ?? 0) : 0;
   const tierPct = nextTier
     ? Math.min(100, Math.round(((score - prevTierScore) / (nextTier.score - prevTierScore)) * 100))
     : 100;
+  const isWeakCommunity = communityTiers.length > 0 && score < communityTiers[0].score;
+  const financedCommunity = hasTeam && budget
+    ? resolveCommunityBonus(grid, score, restaurantUnlocked && communityBonusActive, {
+        memberCount,
+        teamTotalSpent,
+        budgetPct: budget.budgetPct,
+      })
+    : { item: null };
 
   return (
-    <div className="space-y-5 pb-4">
-      {/* ── Carte gérant (ADR 0030 §2, position 0) ─────────────────────────── */}
+    <div className="space-y-4 pb-4">
+      {/* ── Carte gérant (ADR 0030 §2) ─────────────────────────────────────── */}
       {isManager && (
         <Link
           href={`/admin/${restaurantId}`}
@@ -221,502 +205,349 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         </Link>
       )}
 
-      {/* ── ADR 0038 — rattrapage de l'installation ────────────────────────
-          Priorité haute : un membre qui n'a pas l'app ne reçoit aucune des
-          notifications (équipe, cadeau prêt) qui le font revenir — mieux
-          vaut le proposer avant le reste plutôt qu'en bas de page, où il
-          n'était quasiment jamais vu. Disparaît une fois installée. */}
-      <InstallAppCard audience="membre" surface="dashboard_membre" />
-
-      {/* Récompenses à récupérer au comptoir — le plus urgent (48h avant
-          expiration), reste un bloc distinct en tête de flux. */}
-      {pendingRewards.length > 0 && (
-        <div className="bg-gradient-to-br from-brand-gold/15 to-brand-red/5 rounded-2xl border-2 border-brand-gold/40 p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="flex items-center gap-1.5 text-xs font-bold text-brand-gold uppercase tracking-widest">
-              <ConciergeBell className="w-4 h-4 shrink-0" aria-hidden="true" />
-              À récupérer au comptoir
-              {pendingRewards.length > 1 && (
-                <span className="ml-2 bg-brand-gold text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                  {pendingRewards.length}
-                </span>
-              )}
-            </p>
-            <Link href={r("/my-rewards")} className="text-xs text-gray-400 hover:text-gray-600 underline">
-              Historique →
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {pendingRewards.map((r2, idx) => (
-              <div key={r2.id} className={idx > 0 ? "pt-3 border-t border-brand-gold/20" : ""}>
-                {pendingRewards.length > 1 && (
-                  <p className="text-xs text-gray-400 mb-1.5">Commande {pendingRewards.length - idx}</p>
-                )}
-                <div className="space-y-1.5">
-                  {/* Illustration du PLAT (lib/food-icon) — la couche reste
-                      dite par le sous-libellé, le plat se voit. */}
-                  {r2.solo_item && (
-                    <div className="flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={foodIconUrl(r2.solo_item)} alt="" className="w-6 h-6" />
-                      <span className="font-bold text-gray-900">{r2.solo_item}</span>
-                      <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
-                    </div>
-                  )}
-                  {r2.community_item && (
-                    <div className="flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={foodIconUrl(r2.community_item)} alt="" className="w-6 h-6" />
-                      <span className="font-bold text-gray-900">+ {r2.community_item}</span>
-                      <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
-                    </div>
-                  )}
-                  {r2.advancement_item && (
-                    <div className="flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={foodIconUrl(r2.advancement_item)} alt="" className="w-6 h-6" />
-                      <span className="font-bold text-gray-900">+ {r2.advancement_item}</span>
-                      <span className="text-xs text-gray-400 ml-auto">bonus d&apos;équipe</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 pt-3 border-t border-brand-gold/20 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500">
-                {pendingRewards.length > 1
-                  ? `${pendingRewards.length} cadeaux à récupérer au comptoir`
-                  : "Cadeau à récupérer au comptoir"}
-              </p>
-              <p className="text-xs text-amber-600 font-medium mt-0.5">⏰ 48h pour récupérer avant expiration</p>
-            </div>
-            <RedeemButton />
-          </div>
-        </div>
-      )}
-
-      {/* ── Flux continu — plus de cartes compartimentées : un seul feuillet
-          blanc, sections séparées par un simple trait, dans l'ordre de
-          priorité (ADR 0010 : hero d'abord, contenu = conséquence pas
-          chiffre). Palier solo + jetons à faire d'abord — ce qui bouge le
-          plus souvent pour le membre. */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
-        {/* Compteur de points — solde cumulé de pointsForOrder() (formule non
-            linéaire, ADR 0028), en points jamais en euros (ADR 0007 autorise
-            les points perso, contrairement aux euros). Distinct de « Ma
-            réserve » (ADR 0021, banking optionnel pour les gros cadeaux) :
-            ceci est le compteur de fidélité qui grandit à chaque commande
-            validée, pas un solde échangeable. Icône Fluent Emoji, déjà
-            utilisée ailleurs dans l'app (landing, écran de scan). */}
-        <div className="p-5 text-center">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Tes points</p>
-          <div className="flex items-center justify-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={COIN_EMOJI} alt="" className="w-9 h-9" />
-            <span className="text-4xl font-black text-gray-900">{totalPoints.toLocaleString("fr-BE")}</span>
-          </div>
-        </div>
-
-        {/* Palier solo : nom du cadeau + barre de progression vers le
-            suivant, jamais de seuil/écart chiffré (ADR 0028 §6, "perd le
-            ~€25"). Orange codé en dur — pour Kraainem brand-gold/brand-red
-            résolvent en rouge (brand_accent), lu comme un danger. */}
-        <div className="p-5">
-          {heroSolo.item || heroNextSolo ? (
-            <div className={heroCommunity.item || heroTeamTier.item ? "mb-4" : ""}>
-              {heroSolo.item ? (
-                // Distingue explicitement cette barre du compteur "Tes points"
-                // juste au-dessus : ceci est une PROJECTION liée à ta
-                // prochaine commande (panier habituel — ADR 0010), pas ton
-                // solde de points accumulé. Sans ce libellé, une barre déjà
-                // remplie à côté d'un "0 pts" se lit comme une contradiction.
-                <>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">
-                    Sur ta prochaine commande
-                  </p>
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={foodIconUrl(heroSolo.item)} alt="" aria-hidden="true" className="w-10 h-10" />
-                    <span className="text-xl font-black text-gray-900 text-center">{heroSolo.item}</span>
-                  </div>
-                </>
-              ) : (
-                // Jamais commandé (previewAmt reste à 0) — message d'amorçage
-                // orienté action plutôt qu'un nom de palier non atteint.
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Camera className="w-6 h-6 shrink-0 text-gray-700" aria-hidden="true" />
-                  <span className="text-lg font-black text-gray-900 text-center">
-                    {heroFirstScanMessage()}
-                  </span>
-                </div>
-              )}
-
-              {heroNextSolo ? (
-                <>
-                  <div className="w-full bg-gray-100 rounded-full h-3">
-                    <div
-                      className="h-3 rounded-full bg-orange-500 transition-all duration-700"
-                      style={{ width: `${heroNextSolo.pct}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-xs font-semibold text-gray-400 truncate">
-                      {heroSolo.item ?? "Début"}
-                    </span>
-                    <span className="text-xs font-semibold text-gray-400 truncate">
-                      {heroNextSolo.item}
-                    </span>
-                  </div>
-                  {/* Encouragement façon Duolingo — jamais de chiffre, jamais
-                      "loin" : uniquement pour un membre déjà actif, le message
-                      d'amorçage ci-dessus suffit pour un tout nouveau membre. */}
-                  {heroSolo.item && (
-                    <p className="text-xs font-semibold text-orange-600 text-center mt-2">
-                      {heroProgressMessage(heroNextSolo.pct, heroSolo.item)}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p className="text-xs text-center text-gray-400">{heroMaxTierMessage()}</p>
-              )}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-gray-400">Aucun cadeau solo pour l&apos;instant</p>
-          )}
-
-          {(heroCommunity.item || heroTeamTier.item) && (
-            <div className="space-y-3 pt-4 border-t border-gray-100">
-              {heroCommunity.item && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 shrink-0 text-orange-600" aria-hidden="true" />
-                    <span className="font-bold text-orange-600">+ {heroCommunity.item}</span>
-                  </div>
-                  <span className="text-xs text-gray-400">← {team?.flag_emoji} force de ta communauté</span>
-                </div>
-              )}
-
-              {heroTeamTier.item && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 shrink-0 text-orange-600" aria-hidden="true" />
-                    <span className="font-bold text-orange-600">+ {heroTeamTier.item}</span>
-                  </div>
-                  <span className="text-xs text-gray-400">← palier d&apos;équipe débloqué</span>
-                </div>
-              )}
+      {gift ? (
+        // ── Ce que j'ai — le cadeau qui attend ──────────────────────────────
+        // Vert fixe, comme la carte de gain (ADR 0048) : brand-gold résout en
+        // rouge chez Kraainem, lu comme une alerte sur une bonne nouvelle.
+        <section className="rounded-2xl border-2 border-green-200 bg-green-50 p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-green-800 text-center">
+            Ton cadeau t&apos;attend au comptoir
+          </p>
+          {gift.solo_item && (
+            <div className="flex flex-col items-center mt-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={foodIconUrl(gift.solo_item)} alt="" aria-hidden="true" className="w-20 h-20 drop-shadow" />
+              <p className="text-2xl font-black text-gray-900 text-center mt-1">{gift.solo_item}</p>
             </div>
           )}
-        </div>
-
-        {/* Jetons — échelle complète (fait / en cours / à venir), plus le
-            bonus d'équipe en dernière marche. Disparaît pour de bon une
-            fois toutes les actions validées (ADR 0024 : pas de nouvelle
-            proposition pour une action déjà faite). */}
-        <div className="p-5">
-          <ActionsLadder
-            nextCommunityItem={nextTier?.item ?? null}
-            nextCommunityScore={nextTier?.score ?? null}
-          />
-        </div>
-      </div>
-
-      {/* Rappel scan — l'action la plus rentable, toujours accessible en
-          plus du bouton flottant de la bottom nav. */}
-      <Link
-        href={r("/submit-order")}
-        className="flex items-center justify-between gap-4 bg-brand-dark text-white rounded-2xl p-5 hover:bg-gray-800 transition-colors"
-      >
-        <div>
-          <p className="font-bold text-sm">Prendre mon ticket en photo</p>
-          <p className="text-xs text-gray-400 mt-0.5">pour accumuler des points</p>
-        </div>
-        <span className="shrink-0 w-11 h-11 rounded-full bg-orange-500 flex items-center justify-center">
-          <Camera className="w-5 h-5 text-white" strokeWidth={2.5} aria-hidden="true" />
-        </span>
-      </Link>
-
-      {/* Parrainage — récompense rappelée, lien WhatsApp direct. */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <ReferralCTA />
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
-        {/* ── Progression d'équipe ────────────────────────────────────────── */}
-        {!team ? (
-          <div id="tour-community-progress" className="p-5 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={PEOPLE_EMOJI} alt="" className="w-12 h-12 mx-auto mb-2" />
-            <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
-            <p className="text-sm text-gray-500 mb-4">
-              Crée ton équipe ou rejoins-en une pour débloquer le bonus communautaire sur chaque commande.
-            </p>
-            <Link
-              href={r("/my-team")}
-              className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
-            >
-              Voir mon équipe →
-            </Link>
-          </div>
-        ) : (
-        <div id="tour-community-progress" className="p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">{team.flag_emoji}</span>
-            <p className="font-bold text-gray-900">Équipe {team.name}</p>
-          </div>
-
-          <ScoreCard
-            teamId={membership!.team_id!}
-            initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
-          />
-
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            {/* Ce qu'est le score, en une phrase — avant les chiffres, pour
-                que le membre sache ce qu'il regarde. */}
-            <p className="text-xs text-gray-400 text-center mb-3">
-              Le score communautaire grandit à chaque commande directe d&apos;un coéquipier — plus il
-              est haut, meilleur le bonus sur chaque commande.
-            </p>
-
-            {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
-            {!budget.communityBonusActive && (
-              <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                <span className="text-sm">⏸️</span>
-                <p className="text-xs font-medium text-gray-600">
-                  Bonus communautaire en pause — ton cadeau de base reste garanti à chaque commande.
-                </p>
-              </div>
-            )}
-
-            {communityTiers.length === 0 ? (
-              // Aucun palier communautaire configuré (resto sans grille) —
-              // aucune promesse d'article, message neutre (ADR 0007)
-              <p className="text-xs text-gray-400 text-center py-1">
-                Le score de ton équipe grandit à chaque commande directe.
-              </p>
-            ) : nextTier ? (
-              <>
-                <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
-                  <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
-                  <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div
-                    className="bg-brand-red h-2 rounded-full transition-all duration-700"
-                    style={{ width: `${tierPct}%` }}
-                  />
-                </div>
-
-                {/* Récompense du prochain palier — toujours affichée de la
-                    même façon, quel que soit l'état (proche ou loin). */}
-                <div className="mt-3 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-2">
+          {(gift.community_item || gift.advancement_item) && (
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+              {[gift.community_item, gift.advancement_item].filter(Boolean).map((item) => (
+                <span key={item} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-800">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={foodIconUrl(nextTier.item)} alt="" aria-hidden="true" className="w-7 h-7" />
-                  <div>
-                    <p className="text-xs text-gray-500">Prochain palier d&apos;équipe</p>
-                    <p className="font-bold text-gray-900 text-sm">+ {nextTier.item} sur chaque commande</p>
-                  </div>
-                </div>
-
-                {isWeakCommunity ? (
-                  <Link
-                    href={r("/my-team")}
-                    className="mt-3 flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
-                  >
-                    <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" /> Inviter dans mon équipe
-                  </Link>
-                ) : (
-                  <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mt-2 text-center">
-                    <Lightbulb className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                    Chaque commande directe de ton équipe vous rapproche.
-                  </p>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-1">
-                <Trophy className="w-6 h-6 mx-auto mb-1 text-green-700" aria-hidden="true" />
-                <p className="font-bold text-green-800 text-sm">Bonus maximum atteint !</p>
-                {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
-                <p className="text-xs text-gray-500">
-                  + {heroCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque commande
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Comparaison au classement — motive à dépasser l'équipe en tête,
-              plutôt qu'un simple rang abstrait ("#3 sur 12"). Équipe seule en
-              lice (teamCount ≤ 1) → rien à comparer, bloc masqué. Toujours
-              en points (ADR 0007), jamais score/membres (ADR 0028 §"non
-              inversible"). Reste dans la carte équipe plutôt que d'agrandir
-              la tuile "Classement" (ADR 0030 §4 — tuile = micro-état). */}
-          {teamCount > 1 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Classement</p>
-              {teamRank === 1 ? (
-                <p className="text-sm text-center text-gray-700">
-                  🥇 <span className="font-bold text-orange-600">Ton équipe est en tête</span> avec{" "}
-                  {score.toLocaleString("fr-BE")} pts !
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {leaderRow && (
-                    <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3">
-                      <span className="text-lg shrink-0" aria-hidden="true">🥇</span>
-                      <span className="text-xl shrink-0" aria-hidden="true">{leaderRow.teams?.flag_emoji}</span>
-                      <p className="flex-1 min-w-0 font-semibold text-sm text-gray-900 truncate">
-                        {leaderRow.teams?.name}
-                      </p>
-                      <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">
-                        {leaderRow.score.toLocaleString("fr-BE")} pts
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 rounded-xl bg-orange-50 border border-orange-200 p-3">
-                    <span className="text-xs font-bold text-orange-600 w-6 text-center shrink-0">#{teamRank}</span>
-                    <span className="text-xl shrink-0" aria-hidden="true">{team.flag_emoji}</span>
-                    <p className="flex-1 min-w-0 font-semibold text-sm text-orange-600 flex items-baseline gap-1">
-                      <span className="truncate">{team.name}</span>
-                      <span className="font-normal shrink-0">← toi</span>
-                    </p>
-                    <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">
-                      {score.toLocaleString("fr-BE")} pts
-                    </p>
-                  </div>
-                </div>
-              )}
-              <Link
-                href={r("/leaderboard")}
-                className="block text-center text-xs font-semibold text-orange-600 mt-3 hover:underline"
-              >
-                Classement complet →
-              </Link>
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* ── Tuiles d'accès (ADR 0030 §4) — permanentes, à états
-            progressifs : on ne cache jamais une fonctionnalité, on montre ce
-            qui manque pour l'utiliser. */}
-        <div className="p-5">
-          <div className="grid grid-cols-2 gap-3">
-            <Link
-              href={r("/rewards")}
-              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
-            >
-              <Gift className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
-              <p className="font-bold text-gray-900 text-sm">Récompenses</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {!hasTeam
-                  ? "Rejoins une équipe"
-                  : (() => {
-                      const unlocked = communityTiers.filter((t) => t.score <= score).length;
-                      return unlocked > 0
-                        ? `${unlocked} palier${unlocked > 1 ? "s" : ""} atteint${unlocked > 1 ? "s" : ""}`
-                        : "Découvre les paliers";
-                    })()}
-              </p>
-            </Link>
-
-            <Link
-              href={r("/leaderboard")}
-              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
-            >
-              <Trophy className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
-              <p className="font-bold text-gray-900 text-sm">Classement</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
-              </p>
-            </Link>
-
-            <Link
-              href={r("/feedback")}
-              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
-            >
-              <MessageCircle className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
-              <p className="font-bold text-gray-900 text-sm">Mon resto</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {validCount >= FEEDBACK_ELIGIBILITY_MIN
-                  ? "Encourage ou signale, en privé"
-                  : `Encore ${FEEDBACK_ELIGIBILITY_MIN - validCount} commande${FEEDBACK_ELIGIBILITY_MIN - validCount > 1 ? "s" : ""} pour donner ton avis`}
-              </p>
-            </Link>
-
-            <Link
-              href={r("/reserve")}
-              className="rounded-xl bg-gray-50 p-4 hover:bg-gray-100 transition-colors"
-            >
-              <PiggyBank className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
-              <p className="font-bold text-gray-900 text-sm">Ma réserve</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {reserveBalance > 0
-                  ? `${reserveBalance} de côté`
-                  : (saverTierCount ?? 0) > 0
-                    ? "Échange-la contre un gros cadeau"
-                    : "Mets tes cadeaux de côté"}
-              </p>
-            </Link>
-          </div>
-        </div>
-
-        {/* Commandes récentes */}
-        <div className="p-5">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-bold text-gray-900">Mes commandes</h3>
-            <Link href={r("/submit-order")} className="text-brand-red text-sm font-semibold hover:underline">
-              + Ajouter
-            </Link>
-          </div>
-
-          {orderList.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-gray-400 text-sm">Aucune commande soumise.</p>
-              <Link
-                href={r("/submit-order")}
-                className="inline-block mt-3 bg-brand-red text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85 transition-colors"
-              >
-                Soumettre ma première commande
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {orderList.map((order) => (
-                <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                  <div>
-                    <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-400"}`}>
-                      {order.status === "validated"
-                        ? `+${pointsForOrder(Number(order.amount))} pts`
-                        : order.status === "pending" ? "En validation…" : "Non validée"}
-                    </p>
-                    <p className="text-xs text-gray-500 font-mono">
-                      {order.order_number ?? new Date(order.order_date).toLocaleDateString("fr-BE")}
-                    </p>
-                    {order.rejection_reason && <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>}
-                  </div>
-                  <StatusBadge status={order.status} />
-                </div>
+                  <img src={foodIconUrl(item!)} alt="" aria-hidden="true" className="w-5 h-5" />+ {item}
+                </span>
               ))}
             </div>
           )}
+          <p className={`text-center text-xs font-semibold mt-3 ${giftHoursLeft <= 6 ? "text-red-700" : "text-green-800"}`}>
+            {giftHoursLeft <= 0
+              ? "Expire très bientôt !"
+              : giftHoursLeft <= 6
+                ? `Plus que ${giftHoursLeft} h pour le récupérer`
+                : `À récupérer avant le ${giftExpiresAt!.toLocaleDateString("fr-BE", { day: "numeric", month: "long" })} à ${giftExpiresAt!.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}`}
+          </p>
+          {/* ADR 0021 — le choix se fait ICI, pas seulement dans Mes cadeaux. */}
+          <div className="mt-4 space-y-2">
+            <RedeemButton size="lg" />
+            {giftBankPoints !== null && <BankButton points={giftBankPoints} size="lg" />}
+          </div>
+          {/* ADR 0011 — un seul cadeau actif : sans cette phrase, le membre
+              enchaîne des tickets en croyant cumuler des cadeaux. */}
+          <p className="text-xs text-gray-600 text-center mt-3">
+            Tant qu&apos;il t&apos;attend, tes prochains tickets ne créent pas de nouveau cadeau.
+          </p>
+          {available.length > 1 && (
+            <Link href={r("/my-rewards")} className="block text-center text-xs font-semibold text-green-800 underline mt-2">
+              {available.length - 1} autre{available.length > 2 ? "s" : ""} cadeau{available.length > 2 ? "x" : ""} dans Mes cadeaux
+            </Link>
+          )}
+        </section>
+      ) : (
+        // ── Ce que je peux viser — le prochain ticket ───────────────────────
+        // Noms des cadeaux de la grille solo, jamais de seuil (ADR 0028 §6).
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-sm font-semibold text-gray-500 text-center">Ton prochain ticket peut te rapporter</p>
+          {promiseItems.length > 0 ? (
+            <div className="flex justify-center gap-3 mt-3">
+              {promiseItems.map((item) => (
+                <div key={item} className="flex flex-col items-center w-24">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={foodIconUrl(item)} alt="" aria-hidden="true" className="w-12 h-12" />
+                  <p className="text-sm font-bold text-gray-900 text-center leading-tight mt-1">{item}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-lg font-black text-gray-900 text-center mt-2">Un cadeau au comptoir</p>
+          )}
+        </section>
+      )}
+
+      {/* ── Ce que je fais — la photo, l'action la plus rentable ──────────── */}
+      <Link
+        href={r("/submit-order")}
+        className="flex items-center justify-center gap-3 w-full bg-brand-red text-white py-5 rounded-2xl text-lg font-black shadow-lg hover:bg-brand-red/85 transition-colors"
+      >
+        <Camera className="w-6 h-6 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+        Prendre mon ticket en photo
+      </Link>
+
+      {/* ── Ma réserve (ADR 0021) — le solde qui s'échange ────────────────── */}
+      {showReserve && (
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="flex items-center gap-2 font-bold text-gray-900">
+              <PiggyBank className="w-5 h-5 shrink-0 text-gray-700" aria-hidden="true" />
+              Ma réserve
+            </p>
+            <p className="text-2xl font-black text-gray-900 tabular-nums">{reserve.balance}</p>
+          </div>
+
+          {reserve.reachable && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-green-50 border border-green-200 p-3">
+              <div className="flex items-center gap-2 min-w-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={foodIconUrl(reserve.reachable.item_name)} alt="" aria-hidden="true" className="w-8 h-8 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-green-800">À échanger dès maintenant</p>
+                  <p className="font-bold text-gray-900 text-sm truncate">{reserve.reachable.item_name}</p>
+                </div>
+              </div>
+              <ExchangeButton tierId={reserve.reachable.id} disabled={false} />
+            </div>
+          )}
+
+          {reserve.next && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between gap-2 text-xs text-gray-500 mb-1.5">
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={foodIconUrl(reserve.next.item_name)} alt="" aria-hidden="true" className="w-5 h-5 shrink-0" />
+                  <span className="font-semibold text-gray-700 truncate">{reserve.next.item_name}</span>
+                </span>
+                <span className="tabular-nums shrink-0">
+                  {reserve.balance} / {reserve.next.min_threshold}
+                </span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2">
+                <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${Math.max(reserve.pct, 3)}%` }} />
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500 mt-3">
+            Mets un cadeau de côté pour faire grandir ta réserve.{" "}
+            <Link href={r("/reserve")} className="font-semibold text-gray-700 underline">
+              Voir
+            </Link>
+          </p>
+        </section>
+      )}
+
+      {/* ── Un cadeau en plus : les jetons, en une ligne ─────────────────── */}
+      <TokensLine />
+
+      {/* ADR 0038 — l'installation reste proposée, mais après ce que le membre
+          est venu chercher (ADR 0059) ; disparaît une fois l'app installée. */}
+      <InstallAppCard audience="membre" surface="dashboard_membre" />
+
+      {/* ── Équipe — seulement là où l'établissement l'utilise ───────────── */}
+      {!teamsHidden && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+          {!team ? (
+            <div id="tour-community-progress" className="p-5 text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={PEOPLE_EMOJI} alt="" className="w-12 h-12 mx-auto mb-2" />
+              <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
+              <p className="text-sm text-gray-500 mb-4">
+                Rejoins une équipe : chaque ticket de l&apos;équipe peut ajouter un cadeau au tien.
+              </p>
+              <Link
+                href={r("/my-team")}
+                className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
+              >
+                Voir les équipes →
+              </Link>
+            </div>
+          ) : (
+            <div id="tour-community-progress" className="p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-2xl">{team.flag_emoji}</span>
+                <p className="font-bold text-gray-900">Équipe {team.name}</p>
+              </div>
+
+              <ScoreCard
+                teamId={membership!.team_id!}
+                initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
+              />
+
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
+                {!communityBonusActive && (
+                  <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    <span className="text-sm">⏸️</span>
+                    <p className="text-xs font-medium text-gray-600">
+                      Le cadeau d&apos;équipe est en pause — ton cadeau à chaque ticket reste garanti.
+                    </p>
+                  </div>
+                )}
+
+                {communityTiers.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-1">
+                    Le score de ton équipe grandit à chaque ticket.
+                  </p>
+                ) : nextTier ? (
+                  <>
+                    <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
+                      <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
+                      <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div className="bg-brand-red h-2 rounded-full transition-all duration-700" style={{ width: `${tierPct}%` }} />
+                    </div>
+                    <div className="mt-3 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={foodIconUrl(nextTier.item)} alt="" aria-hidden="true" className="w-7 h-7" />
+                      <div>
+                        <p className="text-xs text-gray-500">Quand ton équipe l&apos;atteint</p>
+                        <p className="font-bold text-gray-900 text-sm">+ {nextTier.item} sur chaque ticket</p>
+                      </div>
+                    </div>
+                    {isWeakCommunity ? (
+                      <Link
+                        href={r("/my-team")}
+                        className="mt-3 flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
+                      >
+                        <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" /> Inviter dans mon équipe
+                      </Link>
+                    ) : (
+                      <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mt-2 text-center">
+                        <Lightbulb className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                        Chaque ticket de ton équipe vous rapproche.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-1">
+                    <Trophy className="w-6 h-6 mx-auto mb-1 text-green-700" aria-hidden="true" />
+                    <p className="font-bold text-green-800 text-sm">Meilleur cadeau d&apos;équipe atteint !</p>
+                    {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
+                    <p className="text-xs text-gray-500">
+                      + {financedCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque ticket
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Comparaison au classement — en points (ADR 0007), jamais
+                  score/membres (ADR 0028). Seule en lice → rien à comparer. */}
+              {teamCount > 1 && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  {teamRank === 1 ? (
+                    <p className="text-sm text-center text-gray-700">
+                      🥇 <span className="font-bold text-orange-600">Ton équipe est en tête</span> avec{" "}
+                      {score.toLocaleString("fr-BE")} pts !
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {leaderRow && (
+                        <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3">
+                          <span className="text-lg shrink-0" aria-hidden="true">🥇</span>
+                          <span className="text-xl shrink-0" aria-hidden="true">{leaderRow.teams?.flag_emoji}</span>
+                          <p className="flex-1 min-w-0 font-semibold text-sm text-gray-900 truncate">{leaderRow.teams?.name}</p>
+                          <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">{leaderRow.score.toLocaleString("fr-BE")} pts</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 rounded-xl bg-orange-50 border border-orange-200 p-3">
+                        <span className="text-xs font-bold text-orange-600 w-6 text-center shrink-0">#{teamRank}</span>
+                        <span className="text-xl shrink-0" aria-hidden="true">{team.flag_emoji}</span>
+                        <p className="flex-1 min-w-0 font-semibold text-sm text-orange-600 flex items-baseline gap-1">
+                          <span className="truncate">{team.name}</span>
+                          <span className="font-normal shrink-0">← toi</span>
+                        </p>
+                        <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">{score.toLocaleString("fr-BE")} pts</p>
+                      </div>
+                    </div>
+                  )}
+                  <Link href={r("/leaderboard")} className="block text-center text-xs font-semibold text-orange-600 mt-3 hover:underline">
+                    Classement complet →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+      )}
+
+      {/* ── Tuiles d'accès (ADR 0030 §4) — sans les tuiles d'équipe quand
+          l'établissement a masqué les équipes. « Ma réserve » est devenue
+          une carte au-dessus (ADR 0059). */}
+      <div className="grid grid-cols-2 gap-3">
+        {!teamsHidden && (
+          <Link href={r("/rewards")} className="rounded-xl bg-white border border-gray-100 p-4 hover:bg-gray-50 transition-colors">
+            <Gift className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
+            <p className="font-bold text-gray-900 text-sm">Cadeaux d&apos;équipe</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {!hasTeam
+                ? "Rejoins une équipe"
+                : (() => {
+                    const unlocked = communityTiers.filter((t) => t.score <= score).length;
+                    return unlocked > 0 ? `${unlocked} atteint${unlocked > 1 ? "s" : ""}` : "Découvre-les";
+                  })()}
+            </p>
+          </Link>
+        )}
+        {!teamsHidden && (
+          <Link href={r("/leaderboard")} className="rounded-xl bg-white border border-gray-100 p-4 hover:bg-gray-50 transition-colors">
+            <Trophy className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
+            <p className="font-bold text-gray-900 text-sm">Classement</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {hasTeam && teamRank > 0 ? `#${teamRank} sur ${teamCount}` : "Découvre les équipes"}
+            </p>
+          </Link>
+        )}
+        <Link href={r("/feedback")} className="rounded-xl bg-white border border-gray-100 p-4 hover:bg-gray-50 transition-colors">
+          <MessageCircle className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
+          <p className="font-bold text-gray-900 text-sm">Mon resto</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {validCount >= FEEDBACK_ELIGIBILITY_MIN
+              ? "Encourage ou signale, en privé"
+              : `Encore ${FEEDBACK_ELIGIBILITY_MIN - validCount} ticket${FEEDBACK_ELIGIBILITY_MIN - validCount > 1 ? "s" : ""} pour donner ton avis`}
+          </p>
+        </Link>
       </div>
 
-      {/* ── SECTION 3 — Stats perso (subtil, bas de page) ─────────────────── */}
-      {memberActive && (
+      {/* ── Mes tickets — points gagnés et statut, sans le numéro de commande ── */}
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-bold text-gray-900">Mes tickets</h3>
+          <Link href={r("/submit-order")} className="text-brand-red text-sm font-semibold hover:underline">
+            + Ajouter
+          </Link>
+        </div>
+        {orderList.length === 0 ? (
+          <p className="text-gray-400 text-sm text-center py-4">Aucun ticket pour l&apos;instant.</p>
+        ) : (
+          <div className="space-y-2">
+            {orderList.map((order) => (
+              <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                <div>
+                  <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-400"}`}>
+                    {order.status === "validated"
+                      ? `+${pointsForOrder(Number(order.amount))} pts`
+                      : order.status === "pending" ? "En vérification…" : "Non validé"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(order.order_date).toLocaleDateString("fr-BE", { day: "numeric", month: "short" })}
+                  </p>
+                  {order.rejection_reason && <p className="text-xs text-red-500 mt-0.5">{order.rejection_reason}</p>}
+                </div>
+                <StatusBadge status={order.status} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {validCount > 0 && (
         <p className="text-center text-xs text-gray-400 py-1">
-          {validCount} commande{validCount > 1 ? "s" : ""} validée{validCount > 1 ? "s" : ""}
-          {" · "}
-          {totalPoints.toLocaleString("fr-BE")} pts gagnés
+          {validCount} ticket{validCount > 1 ? "s" : ""} validé{validCount > 1 ? "s" : ""}
           {(redeemedCount ?? 0) > 0 && (
             <> · {redeemedCount} cadeau{(redeemedCount ?? 0) > 1 ? "x" : ""} récupéré{(redeemedCount ?? 0) > 1 ? "s" : ""}</>
           )}
         </p>
       )}
-
-      <p className="text-center text-xs text-gray-500 pb-2">Score mis à jour toutes les 30 secondes</p>
     </div>
   );
 }
@@ -724,8 +555,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
     pending: { cls: "bg-amber-100 text-amber-800", label: "En attente" },
-    validated: { cls: "bg-green-100 text-green-800", label: "Validée" },
-    rejected: { cls: "bg-red-100 text-red-800", label: "Rejetée" },
+    validated: { cls: "bg-green-100 text-green-800", label: "Validé" },
+    rejected: { cls: "bg-red-100 text-red-800", label: "Refusé" },
   };
   const { cls, label } = map[status] ?? map.pending;
   return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${cls}`}>{label}</span>;

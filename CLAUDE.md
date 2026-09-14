@@ -72,11 +72,11 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - Une décision se prend à **un seul endroit** : l'arbitrage des doublons est un onglet de Commandes (ADR 0052), pas une page ; une destination déjà dans la nav n'est pas relistée au dashboard
 - Exceptions documentées : supports imprimables (`qr/print/**`) et `/platform` (autre console)
 
-### ADR 0010 — Dashboard : conséquences, pas chiffres
-- Section 1 (hero) : aperçu prochaine commande avec 3 lignes étiquetées par couche
-- Section 2 : progress bar communauté + conséquence concrète du prochain palier
-- Section 3 : chemin World Cup avec position actuelle
-- Fallback si aucun historique : prévisualiser pour €25
+### ADR 0059 — Accueil membre : trois questions, sans défiler (remplace l'ordre ADR 0010)
+- **Qu'est-ce que j'ai** : le cadeau qui attend en grand, avec « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique (ADR 0011)
+- **Qu'est-ce que je peux viser** : sans cadeau, « Ton prochain ticket peut te rapporter » + plats de la grille solo — jamais de seuil (ADR 0028) ; le cadeau de base ne se cumule pas, pas de barre de « progression » vers lui
+- **Qu'est-ce que je fais** : grand bouton photo ; puis Ma réserve (le seul solde affiché), jetons en une ligne, installation, équipe **seulement si `teams_hidden` est faux**, tuiles, Mes tickets
+- Pas de compteur de points courbés sur l'accueil, pas de projection du panier habituel, jamais une demande (installation, parrainage) avant le cadeau
 
 ### Parrainage — lien WhatsApp, pas email
 - Système d'invitation par **lien unique** (`/join?ref=CODE`) partagé via `wa.me/?text=...`
