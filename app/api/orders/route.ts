@@ -16,6 +16,18 @@ export const maxDuration = 30;
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
+// ADR 0058 — refus « reprends la photo » : la lecture serveur ne donne pas le
+// total ou la clé. `missing` permet à l'écran ticket de dire QUOI recadrer.
+function reframe(missing: { total: boolean; key: boolean }, error?: string) {
+  return NextResponse.json(
+    {
+      error: error ?? "On voit mal ton ticket : reprends la photo en cadrant bien le total et le numéro.",
+      missing,
+    },
+    { status: 422 }
+  );
+}
+
 async function countTodayOrders(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string, restaurantId: string) {
   const today = new Date().toISOString().split("T")[0];
   const { count } = await supabase
@@ -36,63 +48,69 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   }
 
+  // ADR 0058 — un ticket est une PHOTO, rien d'autre. Le montant et la clé de
+  // commande ne viennent JAMAIS du client : ils sont lus plus bas par l'OCR
+  // serveur, seule source de vérité. Tout champ `amount` / `order_number`
+  // envoyé est ignoré. L'ancien chemin JSON (montant + numéro sans photo,
+  // « outils admin ») n'avait plus aucun appelant : c'était une porte ouverte
+  // à la fraude, il est retiré.
   const contentType = request.headers.get("content-type") ?? "";
-  const isMultipart = contentType.includes("multipart/form-data");
-
-  let orderNumber: string;
-  let amount: number;
-  let receiptFile: File | null = null;
-  let restaurantId: string;
-  let scanId: string | null = null;
-
-  if (isMultipart) {
-    const formData = await request.formData();
-    const rawOrderNumber = formData.get("order_number");
-    const rawAmount = formData.get("amount");
-    const rawRestaurantId = formData.get("restaurantId");
-    const rawScanId = formData.get("scan_id");
-    receiptFile = formData.get("receipt") as File | null;
-    scanId = rawScanId ? String(rawScanId) : null;
-
-    // order_number vide autorisé : c'est le chemin « pas de numéro lisible »
-    // (clé synthétique + file admin, ADR 0019) — seule son absence totale
-    // du formulaire est une erreur.
-    if (rawOrderNumber === null || rawAmount === null || !receiptFile || !rawRestaurantId) {
-      return NextResponse.json({ error: "Champs manquants (order_number, amount, receipt, restaurantId)." }, { status: 400 });
-    }
-
-    orderNumber = String(rawOrderNumber).trim();
-    amount = parseFloat(String(rawAmount));
-    restaurantId = String(rawRestaurantId);
-
-    // Les champs OCR du formData (ocr_amount, ocr_confidence,
-    // no_restaurant_header) ne sont volontairement PAS lus : le serveur
-    // ré-analyse le ticket lui-même plus bas. Aucune donnée client ne
-    // doit influencer l'auto-validation.
-  } else {
-    // Legacy JSON path (backward compat for admin tools)
-    const body = await request.json().catch(() => null);
-    if (!body || !body.order_number || body.amount === undefined || !body.restaurantId) {
-      return NextResponse.json({ error: "Champs manquants." }, { status: 400 });
-    }
-    orderNumber = String(body.order_number).trim();
-    amount = parseFloat(String(body.amount));
-    restaurantId = String(body.restaurantId);
+  if (!contentType.includes("multipart/form-data")) {
+    return NextResponse.json({ error: "La photo du ticket est requise." }, { status: 400 });
   }
+  const formData = await request.formData();
+  const receiptFile = formData.get("receipt") as File | null;
+  const rawRestaurantId = formData.get("restaurantId");
+  const rawScanId = formData.get("scan_id");
+  if (!receiptFile || !rawRestaurantId) {
+    return NextResponse.json({ error: "Champs manquants (receipt, restaurantId)." }, { status: 400 });
+  }
+  if (!ALLOWED_TYPES.includes(receiptFile.type as typeof ALLOWED_TYPES[number])) {
+    return NextResponse.json({ error: "Format de ticket non supporté." }, { status: 400 });
+  }
+  const restaurantId = String(rawRestaurantId);
+  const scanId = rawScanId ? String(rawScanId) : null;
 
   // ADR 0019 — la clé de commande est définie par l'établissement
   // (restaurant_receipt_config, fallback Bestelnummer legacy).
   const receiptConfig = await getReceiptConfig(restaurantId);
+
+  // ADR 0058 — sans lecture serveur, pas de commande (plus de repli en revue
+  // sur des valeurs tapées) : on demande de réessayer.
+  let serverOcr: ReceiptAnalysis;
+  try {
+    serverOcr = await analyzeReceipt(receiptFile, await getRestaurantDisplayName(restaurantId), receiptConfig);
+  } catch {
+    return NextResponse.json(
+      { error: "On n'a pas pu lire ton ticket. Réessaie dans un instant." },
+      { status: 502 }
+    );
+  }
+
+  // Lecture incomplète : total absent, ou — là où l'établissement a une clé
+  // fiable — clé absente ou à l'année réparée. Rien n'est créé : le membre
+  // reprend la photo, `missing` dit quoi recadrer. Aucune saisie ne comble
+  // le trou (ADR 0058).
+  const missing = {
+    total: serverOcr.amount === null,
+    key: receiptConfig.has_reliable_key && (!serverOcr.order_number || serverOcr.key_corrected),
+  };
+  if (missing.total || missing.key) {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "unreadable");
+    return reframe(missing);
+  }
+
+  let orderNumber = serverOcr.order_number ?? "";
+  const amount = serverOcr.amount as number;
   const hasOrderKey = receiptConfig.has_reliable_key && orderNumber.trim().length > 0;
 
   if (hasOrderKey) {
-    const orderKeyError = validateOrderKey(orderNumber, receiptConfig);
-    if (orderKeyError) return NextResponse.json({ error: orderKeyError }, { status: 400 });
+    // Défensif : analyzeReceipt ne rend qu'une clé conforme au pattern.
+    if (validateOrderKey(orderNumber, receiptConfig)) return reframe({ total: false, key: true });
     orderNumber = orderNumber.trim();
   }
 
-  const amountError = validateAmount(amount);
-  if (amountError) return NextResponse.json({ error: amountError }, { status: 400 });
+  if (validateAmount(amount)) return reframe({ total: true, key: false });
 
   // Date dérivée de la clé quand le format l'encapsule (date_group),
   // sinon date du jour.
@@ -102,12 +120,12 @@ export async function POST(request: NextRequest) {
   if (keyDate) {
     const dateError = validateOrderDate(orderDate);
     // La date vient du NUMÉRO lu sur le ticket : si elle est refusée, c'est
-    // presque toujours une année mal lue (incident Kasia) — on le dit, au
-    // lieu d'un « comptabilisées à partir du … » incompréhensible.
+    // presque toujours une année mal lue (incident Kasia). Plus de correction
+    // à la main (ADR 0058) : on redemande une photo, en disant pourquoi.
     if (dateError)
-      return NextResponse.json(
-        { error: `${dateError} La date ${keyDate} vient du numéro de ticket : vérifie-le (surtout l'année) et corrige-le.` },
-        { status: 400 }
+      return reframe(
+        { total: false, key: true },
+        `${dateError} La date ${keyDate} vient du numéro lu sur ton ticket : reprends la photo en cadrant bien le numéro.`
       );
 
     // Plancher par établissement : un ticket ne peut pas être antérieur à
@@ -149,17 +167,6 @@ export async function POST(request: NextRequest) {
   const teamId = membership.team_id ?? null;
 
   const parsedAmount = parseFloat(amount.toFixed(2));
-
-  // OCR serveur — seule source de vérité pour le flagging anti-fraude
-  let serverOcr: ReceiptAnalysis | null = null;
-  let ocrFailed = false;
-  if (receiptFile) {
-    try {
-      serverOcr = await analyzeReceipt(receiptFile, await getRestaurantDisplayName(restaurantId), receiptConfig);
-    } catch {
-      ocrFailed = true;
-    }
-  }
 
   // Upload receipt to storage (service role bypasses bucket RLS)
   // receipt_url stocke le CHEMIN storage, jamais une URL publique —
@@ -207,14 +214,11 @@ export async function POST(request: NextRequest) {
   if (!hasOrderKey)       flagReasons.push("no_order_key");
   if (parsedAmount > 200) flagReasons.push("high_amount");
   if (todayCount >= 3)    flagReasons.push("too_many_today");
-  if (!receiptFile)       flagReasons.push("no_receipt");
-  if (ocrFailed)          flagReasons.push("ocr_failed");
+  // ADR 0058 — plus de `no_receipt` ni `ocr_failed` (photo et lecture sont
+  // obligatoires), plus d'`amount_mismatch` : le montant EST la lecture
+  // serveur. Ces libellés restent mappés côté admin pour l'historique.
   if (serverOcr) {
     if (serverOcr.confidence < 70) flagReasons.push("low_confidence");
-    if (serverOcr.amount !== null && parsedAmount > 0) {
-      const mismatch = Math.abs(serverOcr.amount - parsedAmount) / parsedAmount;
-      if (mismatch > 0.05) flagReasons.push("amount_mismatch");
-    }
     // Même règle qu'à l'aperçu (incident 2026-09-02) : une clé lue par l'OCR
     // SERVEUR (pattern du resto + date saine) prouve le ticket mieux que le
     // nom en haut — pas de flag, l'auto-validation reste possible. Une clé

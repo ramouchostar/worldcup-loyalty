@@ -47,6 +47,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - Le Bestelnummer `YYYY-MM-DD/NNN/NNNNN` n'est plus codé en dur — ne jamais le réintroduire dans le prompt OCR ou la validation
 - Délai artificiel 3–5s côté client avec message "Vérification en cours..."
 - Jamais les mots "automatique" ou "instantané" côté client
+- **ADR 0058 — le ticket ne se corrige pas** : `/api/orders` n'accepte qu'une photo et n'utilise **que la lecture OCR serveur** pour le montant et la clé ; tout `amount` / `order_number` venu du client est ignoré. Lecture incomplète (total, clé, année réparée) → 422 « reprends la photo », rien n'est créé. Ne jamais réintroduire de saisie ou de correction côté membre, ni de route acceptant des valeurs sans photo
 
 ### ADR 0021 — Réserve de points personnelle
 - « Mettre de côté » (onglet récompenses) : cadeau `available` → `banked`, crédit `floor(montant commande)` points dans le ledger `point_transactions` (jamais de colonne solde)

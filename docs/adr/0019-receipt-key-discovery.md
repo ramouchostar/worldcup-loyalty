@@ -1,7 +1,7 @@
 # ADR 0019 — Découverte de la clé unique de ticket à l'onboarding
 
 **Date** : 2026-07-06
-**Statut** : Accepté — complété par l'ADR 0052 (dédoublonnage par empreinte de contenu quand la clé est mal lue ou absente)
+**Statut** : Accepté — complété par l'ADR 0052 (dédoublonnage par empreinte de contenu quand la clé est mal lue ou absente) ; amendé par l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (la clé est celle que lit l'OCR serveur, jamais saisie ; pour un établissement à clé fiable, une clé illisible se reprend en photo — plus de chemin « numéro illisible » en file admin)
 
 ## Contexte
 

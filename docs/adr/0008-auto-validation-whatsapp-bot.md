@@ -1,6 +1,6 @@
 # ADR 0008 — Validation automatique + illusion de contrôle humain
 
-**Statut** : Accepté — amendé par l'ADR 0052 (le numéro de commande n'est plus le seul verrou anti-doublon : empreinte de contenu + photo en signaux complémentaires)
+**Statut** : Accepté — amendé par l'ADR 0052 (le numéro de commande n'est plus le seul verrou anti-doublon : empreinte de contenu + photo en signaux complémentaires) et par l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (l'OCR serveur est la source des VALEURS — montant et numéro —, plus seulement du flagging ; aucune saisie côté membre)
 
 ## Contexte
 

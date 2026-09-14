@@ -152,7 +152,8 @@ Return ONLY valid JSON, no markdown, no explanation:
   // Incident Kasia (2026-08-22) : l'OCR lisait l'année 2025 sur un ticket du
   // jour → numéro en lecture seule → date refusée à la soumission → 6 essais.
   // On répare une année manifestement fausse, on invalide une date future ou
-  // trop vieille (le membre pourra alors saisir le numéro à la main).
+  // trop vieille. Une clé réparée ou invalidée se reprend en photo : le
+  // membre ne saisit plus rien (ADR 0058).
   const sanity = sanitizeKeyDate(
     rawOrderNumber,
     keyPattern,
