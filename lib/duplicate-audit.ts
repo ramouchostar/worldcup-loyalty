@@ -1,5 +1,6 @@
 import { contentFingerprint, type FingerprintLine } from "./receipt-fingerprint";
 import { detectDuplicate, type DuplicateVerdict } from "./duplicate-detection";
+import { pointsForOrder } from "./points-model";
 
 // ============================================================
 // Audit rétroactif des doublons — phase C.
@@ -126,9 +127,10 @@ export type AuditReportInput = {
 };
 
 const euros = (n: number) => `${Number(n).toFixed(2).replace(".", ",")} €`;
-// ADR 0021 : « mettre de côté » crédite floor(montant) points. C'est la mesure
-// la plus parlante de ce qu'un doublon a coûté côté membre.
-const points = (n: number) => Math.floor(Number(n));
+// ADR 0060 : un ticket vaut ses points courbés — ceux du score d'équipe et
+// ceux que « mettre de côté » crédite en réserve. C'est la mesure la plus
+// parlante de ce qu'un doublon a coûté côté membre.
+const points = (n: number) => pointsForOrder(Number(n));
 const heure = (t: string | null) => (t ? String(t).slice(0, 5) : "—");
 
 function articles(lines: FingerprintLine[]): string {
@@ -259,8 +261,8 @@ Pour **chaque doublon certain** de la section 3 :
    dépense du score de l'équipe. À vérifier après coup plutôt qu'à recalculer
    à la main.
 3. **Réserve de points** (ADR 0021) : si le cadeau de la commande en double a
-   été **mis de côté**, \`point_transactions\` porte un crédit de
-   \`floor(montant)\` points. Le ledger est append-only : la correction est une
+   été **mis de côté**, \`point_transactions\` porte un crédit des points
+   courbés du ticket (ADR 0060). Le ledger est append-only : la correction est une
    **écriture de compensation**, jamais une suppression.
 4. **Cadeau déjà récupéré au comptoir** (\`pending_rewards.status = 'redeemed'\`) :
    **ne rien reprendre**. Le client a le produit en main ; le lui retirer coûte

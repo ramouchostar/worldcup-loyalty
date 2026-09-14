@@ -1,13 +1,13 @@
 # ADR 0028 — Points client découplés de l'euro (non-dérivables)
 
-**Statut** : Accepté (2026-07-27). **Amende l'ADR 0007** (retire l'exception « dépenses perso en euros » et le score `membres × euros`). Touche l'ADR 0021 (réserve), l'ADR 0006/0017 (paliers). L'ADR 0012 (budget) est **inchangé** — il reste en euros côté serveur.
+**Statut** : Accepté (2026-07-27). **Amende l'ADR 0007** (retire l'exception « dépenses perso en euros » et le score `membres × euros`). Touche l'ADR 0021 (réserve), l'ADR 0006/0017 (paliers). Le suivi « réserve encore en `floor(montant)` » est clos par l'[ADR 0060](0060-la-reserve-en-points-courbes.md) (2026-09-14). L'ADR 0012 (budget) est **inchangé** — il reste en euros côté serveur.
 
 ## Contexte
 
 L'ADR 0007 posait « le client ne voit pas les euros », mais laissait **deux fuites** qui permettent au client de reconstituer les euros :
 
 1. **Le score communautaire valait `membres × dépense cumulée`.** Un client — voire un visiteur anonyme du leaderboard — calcule `score ÷ membres` et **retrouve le CA de l'équipe** (finding d'audit H1).
-2. **Les dépenses perso étaient affichées en euros** (« Mes stats »). Or si le membre connaît ses euros **et** voit ses points, il **déduit le taux** (aujourd'hui 1 pt = 1 €, ADR 0021) et reconvertit n'importe quel total de points en euros — y compris le score de son équipe.
+2. **Les dépenses perso étaient affichées en euros** (« Mes stats »). Or si le membre connaît ses euros **et** voit ses points, il **déduit le taux** (à l'époque 1 pt = 1 €, ADR 0021 — corrigé par l'ADR 0060) et reconvertit n'importe quel total de points en euros — y compris le score de son équipe.
 
 Le porteur a tranché : **côté client, zéro euro — même ses propres dépenses ; tout en points ; et les points ne doivent pas être convertibles en euros.**
 

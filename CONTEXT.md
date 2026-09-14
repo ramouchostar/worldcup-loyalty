@@ -127,8 +127,8 @@ _Avoid_ : QR code (non utilisé), voucher, bon de réduction.
 Action du cashier qui valide le coupon de récupération depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → `redeemed_at = NOW()`, `pending_rewards.status = 'redeemed'`. Idempotente (double-tap ignoré). Débloque la génération d'une nouvelle récompense à la prochaine commande du membre.
 _Avoid_ : remboursement, échange, validation (terme réservé à la validation des commandes).
 
-**Réserve** *(ADR 0021)* :
-Solde de points personnels du membre (« Ma réserve », ledger `point_transactions`). Alimenté quand le membre choisit **« Mettre de côté »** son cadeau disponible au lieu de le récupérer : le cadeau passe `banked` et crédite `floor(montant de la commande)` points (1 point = 1 € dépensé). S'échange contre un **gros cadeau** des paliers `reward_tiers` layer `saver` (seuils en points, plafond ADR 0017 : coût ≤ seuil × budget %), qui redevient une récompense en attente standard (coupon 10 min). Le score communautaire n'est **jamais** affecté par ce choix — il est crédité à la validation du ticket. Ne pas confondre avec le score communautaire (« points » de l'équipe) ni avec les jetons.
+**Réserve** *(ADR 0021, amendé par ADR 0060)* :
+Solde de points personnels du membre (« Ma réserve », ledger `point_transactions`). Alimenté quand le membre choisit **« Mettre de côté »** son cadeau disponible au lieu de le récupérer : le cadeau passe `banked` et crédite les **points courbés** du ticket (`points_for_order(montant)`, ADR 0028) — jamais le montant arrondi. S'échange contre un **gros cadeau** des paliers `reward_tiers` layer `saver` (seuils en points courbés, ≈ 4 / 8 / 12 tickets moyens ; plafond ADR 0017 calculé par les tickets moyens que le seuil représente), qui redevient une récompense en attente standard (coupon 10 min). Le score communautaire n'est **jamais** affecté par ce choix — il est crédité à la validation du ticket. Ne pas confondre avec le score communautaire (« points » de l'équipe) ni avec les jetons.
 _Avoid_ : points (seul — réservé au score communautaire), cagnotte, solde, crédit, épargne.
 
 **Micro-récompense** :

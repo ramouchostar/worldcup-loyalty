@@ -7,6 +7,7 @@ import {
   jetonsGiftCostCap,
   pickBestGift,
   pickGenerousGift,
+  saverCostCap,
   soloCostCap,
   suggestSoloBands,
   suggestSaverBands,
@@ -102,12 +103,13 @@ export async function applyDefaultRewardConfig(restaurantId: string): Promise<De
     result.communityConfigured = true;
   }
 
-  // Paliers de la réserve (ADR 0021) : gros cadeaux contre points cumulés.
-  // 1 pt = 1 € dépensé → le plafond soloCostCap s'applique tel quel, et le
-  // palier élevé mérite l'article le plus généreux que son plafond autorise.
+  // Paliers de la réserve (ADR 0021) : gros cadeaux contre points cumulés,
+  // en points courbés (ADR 0060) — le plafond passe par les tickets moyens
+  // que le seuil représente, et le palier élevé mérite l'article le plus
+  // généreux que son plafond autorise.
   if (!configuredLayers.has("saver")) {
     suggestSaverBands(avgBasket).forEach((band) => {
-      const gift = pickGenerousGift(candidates, soloCostCap(band, BUDGET_PCT));
+      const gift = pickGenerousGift(candidates, saverCostCap(band, avgBasket, BUDGET_PCT));
       rows.push({
         restaurant_id: restaurantId,
         layer: "saver",

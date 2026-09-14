@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { soloCostCap, DEFAULT_BUDGET_PCT } from "@/lib/reward-sizing";
+import { saverCostCap, soloCostCap, DEFAULT_BUDGET_PCT } from "@/lib/reward-sizing";
+import { getAverageBasket } from "@/lib/avg-basket";
 
 const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
 
@@ -74,17 +75,23 @@ export async function PUT(req: Request) {
   // Plafond de palier (ADR 0017) : le coût réel du cadeau ne doit pas
   // dépasser BUDGET_PCT des dépenses qui le déclenchent. Rejet dur —
   // c'est la protection de rentabilité de l'établissement, pas un
-  // avertissement. Vaut pour solo (seuil en € de commande) et saver
-  // (seuil en points, 1 pt = 1 € dépensé — ADR 0021, même formule).
+  // avertissement. Solo : seuil en € de commande. Saver : seuil en points
+  // courbés (ADR 0060), converti en dépense estimée via le panier moyen —
+  // même calcul que la re-vérification SQL `saver_cost_cap` à l'échange.
+  const avgBasket = rows.some((r) => r.layer === "saver") ? await getAverageBasket(restaurantId) : 0;
+  const capFor = (row: { layer: string; min_threshold: number }) =>
+    row.layer === "saver"
+      ? saverCostCap(row.min_threshold, avgBasket, BUDGET_PCT)
+      : soloCostCap(row.min_threshold, BUDGET_PCT);
   const violations = rows
     .filter((r) => (r.layer === "solo" || r.layer === "saver") && r.menu_item_id)
     .map((r) => ({ row: r, item: itemById.get(r.menu_item_id!)! }))
-    .filter(({ row, item }) => Number(item.cost_price) > soloCostCap(row.min_threshold, BUDGET_PCT))
+    .filter(({ row, item }) => Number(item.cost_price) > capFor(row))
     .map(
       ({ row, item }) =>
         `Palier ${row.layer === "saver" ? `${row.min_threshold} pts` : `€${row.min_threshold}`} : ` +
         `« ${item.name} » coûte €${Number(item.cost_price).toFixed(2)}, ` +
-        `au-dessus du plafond de €${soloCostCap(row.min_threshold, BUDGET_PCT).toFixed(2)} ` +
+        `au-dessus du plafond de €${capFor(row).toFixed(2)} ` +
         `(${Math.round(BUDGET_PCT * 100)} % ${row.layer === "saver" ? "des dépenses cumulées" : "de la commande"}). ` +
         `Choisis un article moins cher ou un palier plus haut.`
     );
