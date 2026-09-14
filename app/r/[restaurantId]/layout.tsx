@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase";
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurant, getRestaurantBranding, getRestaurantId, logoPublicUrl } from "@/lib/restaurant";
 import { brandStyle } from "@/lib/branding";
-import { pointsForOrder } from "@/lib/points-model";
+import { getPointsBalance } from "@/lib/points";
+import { headerStatus } from "@/lib/home-view";
 import { TOKENS_PER_PORTION } from "@/lib/social-actions";
-import { COIN_EMOJI, TICKET_EMOJI } from "@/lib/fluent-emoji";
+import { TICKET_EMOJI } from "@/lib/fluent-emoji";
 import { HeaderMenu } from "@/components/member/HeaderMenu";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { AppInstallBeacon } from "@/components/member/AppInstallBeacon";
 import { BottomNav } from "@/components/member/BottomNav";
-import { UtensilsCrossed } from "lucide-react";
+import { Gift, PiggyBank, UtensilsCrossed } from "lucide-react";
 import { RestaurantProvider } from "@/components/member/RestaurantContext";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
@@ -71,19 +72,29 @@ export default async function RestaurantLayout({
 
   const logo = logoPublicUrl(branding.logo_url);
 
-  // Compteurs du bandeau — points de fidélité (pointsForOrder, ADR 0028) +
-  // jetons (actions sociales validées + parrainage/5, même formule que
-  // TokensLine sur l'accueil et la page Actions). Toujours en points/jetons,
-  // jamais en euros (ADR 0007). À noter (ADR 0059) : ces points-là ne
-  // s'échangent pas — le solde échangeable est la réserve (ADR 0021).
-  const [{ data: validatedOrdersData }, { count: socialValidatedCount }, { count: referralCount }] = user
+  // Bandeau (ADR 0059 §3) — deux pastilles qui mènent quelque part.
+  // L'état : le cadeau qui attend, sinon le solde de la réserve là où un gros
+  // cadeau est actif (règle `headerStatus`). Les jetons : actions sociales
+  // validées + parrainage/5, même formule que TokensLine et la page Actions.
+  // Jamais d'euros (ADR 0007), et plus le total des points courbés, qui ne
+  // s'échange contre rien.
+  const headerData = user
     ? await Promise.all([
         supabase
-          .from("orders")
-          .select("amount")
+          .from("pending_rewards")
+          .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
           .eq("restaurant_id", restaurantId)
-          .eq("status", "validated"),
+          .eq("status", "available"),
+        getPointsBalance(user.id, restaurantId),
+        // Paliers de réserve : service role (reward_tiers n'a pas de lecture
+        // membre) — seuls leur nombre et l'éligibilité de l'article servent.
+        createAdminClient()
+          .from("reward_tiers")
+          .select("id, menu_items(is_active, reward_eligible)")
+          .eq("restaurant_id", restaurantId)
+          .eq("layer", "saver")
+          .eq("is_active", true),
         supabase
           .from("micro_reward_claims")
           .select("id", { count: "exact", head: true })
@@ -96,13 +107,19 @@ export default async function RestaurantLayout({
           .eq("referrer_id", user.id)
           .eq("restaurant_id", restaurantId),
       ])
-    : [{ data: null }, { count: null }, { count: null }];
-  const totalPoints = ((validatedOrdersData as { amount: number }[] | null) ?? []).reduce(
-    (s, o) => s + pointsForOrder(Number(o.amount)),
-    0
-  );
-  const referralTokens = Math.floor((referralCount ?? 0) / 5);
-  const totalTokens = Math.min((socialValidatedCount ?? 0) + referralTokens, TOKENS_PER_PORTION);
+    : null;
+  type SaverTierEligibility = { menu_items: { is_active: boolean; reward_eligible: boolean } | { is_active: boolean; reward_eligible: boolean }[] | null };
+  const activeSaverTiers = ((headerData?.[2].data as unknown as SaverTierEligibility[] | null) ?? []).filter((row) => {
+    const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
+    return !!mi && mi.is_active && mi.reward_eligible;
+  }).length;
+  const status = headerStatus({
+    hasGift: (headerData?.[0].count ?? 0) > 0,
+    reserveBalance: headerData?.[1] ?? 0,
+    activeSaverTiers,
+  });
+  const referralTokens = Math.floor((headerData?.[4].count ?? 0) / 5);
+  const totalTokens = Math.min((headerData?.[3].count ?? 0) + referralTokens, TOKENS_PER_PORTION);
 
   return (
     <RestaurantProvider
@@ -155,20 +172,39 @@ export default async function RestaurantLayout({
             </div>
           </div>
 
-          {/* Compteurs — points de fidélité + jetons, toujours visibles en
-              un coup d'œil. Pastilles translucides (pas de fond plein) pour
-              rester lisibles sur la charte de n'importe quel établissement. */}
+          {/* Pastilles (ADR 0059 §3) — cliquables, visibles sur tous les
+              écrans. Le cadeau prêt se voit en blanc plein : c'est la seule
+              qui appelle une action immédiate. Les autres restent
+              translucides pour s'accorder à la charte de l'établissement. */}
           <div className="max-w-2xl mx-auto px-4 pb-2.5 flex items-center justify-center gap-2">
-            <span className="flex items-center gap-1.5 bg-white/10 rounded-full pl-1.5 pr-2.5 py-1 text-xs font-bold text-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={COIN_EMOJI} alt="" className="w-4 h-4" />
-              {totalPoints.toLocaleString("fr-BE")}
-            </span>
-            <span className="flex items-center gap-1.5 bg-white/10 rounded-full pl-1.5 pr-2.5 py-1 text-xs font-bold text-white">
+            {status?.kind === "gift" && (
+              <Link
+                href={`/r/${restaurant.id}/my-rewards`}
+                className="flex items-center gap-1.5 bg-white hover:bg-white/90 rounded-full pl-2 pr-2.5 py-1 text-xs font-bold text-gray-900 transition-colors"
+              >
+                <Gift className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                Cadeau prêt
+              </Link>
+            )}
+            {status?.kind === "reserve" && (
+              <Link
+                href={`/r/${restaurant.id}/reserve`}
+                aria-label={`Ma réserve : ${status.balance}`}
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-full pl-2 pr-2.5 py-1 text-xs font-bold text-white transition-colors"
+              >
+                <PiggyBank className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                Réserve {status.balance.toLocaleString("fr-BE")}
+              </Link>
+            )}
+            <Link
+              href={`/r/${restaurant.id}/micro-rewards`}
+              aria-label={`Jetons : ${totalTokens} sur ${TOKENS_PER_PORTION}`}
+              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-full pl-1.5 pr-2.5 py-1 text-xs font-bold text-white transition-colors"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={TICKET_EMOJI} alt="" className="w-4 h-4" />
               {totalTokens}/{TOKENS_PER_PORTION}
-            </span>
+            </Link>
           </div>
         </header>
       )}

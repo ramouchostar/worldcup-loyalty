@@ -322,6 +322,10 @@ _Avoid_ : campagne CRM, marketing automation, segment (les décisions sont par m
 L'écran répond à trois questions sans défiler : **qu'est-ce que j'ai** (le cadeau qui attend, avec le choix « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique), **qu'est-ce que je peux viser** (sans cadeau : « Ton prochain ticket peut te rapporter » + plats de la grille solo, jamais de seuil), **qu'est-ce que je fais** (grand bouton photo). Ensuite, en compact : Ma réserve (solde qui s'échange, gros cadeau atteignable, suivant), jetons en une ligne, installation, équipe si l'établissement l'utilise, tuiles, Mes tickets.
 _Avoid_ : un compteur de points qui ne s'échange contre rien ; projeter le cadeau du « panier habituel » ; demander (installation, parrainage) avant de montrer le cadeau ; afficher bloc ou tuiles d'équipe quand l'établissement a masqué les équipes.
 
+**Bandeau membre** *(ADR 0059 §3)* :
+En-tête de chaque écran membre : logo, menu, et deux pastilles cliquables — l'état (« 🎁 Cadeau prêt » → Mes cadeaux ; sinon « Réserve N » là où un gros cadeau est actif → Ma réserve ; sinon rien) et les jetons X/4 → Actions.
+_Avoid_ : un total de points qui ne s'échange contre rien ; une pastille qui ne mène nulle part.
+
 **Notification d'incitation** :
 Message proactif envoyé à un membre montrant l'état de sa communauté et le cadeau concret qu'il obtiendrait en commandant maintenant. Toujours spécifique ("ton cadeau passe à Finest burger + Churros 12 pcs") — jamais générique. Trois déclencheurs : franchissement de palier, membre inactif 72h+ avec +500 pts absolus depuis sa dernière commande, proximité du prochain seuil (< 10%). Anti-spam : 48h minimum, max 3/semaine. Canal : PWA push (gratuit) → WhatsApp (~€0,05/conversation) en fallback. Voir ADR 0009.
 _Avoid_ : rappel, relance, marketing push (toujours ancré dans le score réel).
