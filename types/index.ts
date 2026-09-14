@@ -186,7 +186,7 @@ export type PendingRewardStatus = "pending" | "redeemed" | "expired" | "availabl
 export type PendingReward = {
   id: string;
   user_id: string;
-  order_id: string | null; // NULL = cadeau échangé depuis la réserve (ADR 0021)
+  order_id: string | null; // NULL = gros cadeau de réserve (ADR 0021) ou cadeau d'anniversaire (ADR 0024)
   restaurant_id: string;
   solo_item: string | null;
   solo_cost: number | null;
@@ -195,7 +195,8 @@ export type PendingReward = {
   advancement_item: string | null;
   advancement_cost: number | null;
   status: PendingRewardStatus;
-  source: "order" | "saver";
+  // 'birthday' existe en base depuis m37 (ADR 0024) — le type l'ignorait.
+  source: "order" | "saver" | "birthday";
   created_at: string;
   redeemed_at: string | null;
   banked_at: string | null;
