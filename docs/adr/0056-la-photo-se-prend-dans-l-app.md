@@ -3,7 +3,9 @@
 **Statut** : Accepté (2026-09-14) — complète [ADR 0055](0055-le-ticket-part-tout-seul.md)
 (l'envoi automatique ne sert à rien si la photo n'arrive jamais dans la page). Ne
 change rien à la préparation de l'image, à l'OCR ni à la validation (**ADR 0008**,
-**0036**, **0045**).
+**0036**, **0045**). §1 amendé par
+[ADR 0057](0057-l-ecran-ticket-s-ouvre-sur-la-camera.md) : l'écran ticket s'ouvre
+directement sur la caméra.
 
 ## Contexte
 

@@ -112,6 +112,14 @@ export type AnalyticsEventMap = {
     restaurant_id: string;
     reason: "unsupported" | "denied" | "error" | "app_closed";
   };
+  /** Photo incomplète : recadrage demandé (ADR 0057). `attempt` = n-ième photo ratée sur ce ticket. */
+  receipt_reframe_requested: {
+    restaurant_id: string;
+    missing: "total" | "key" | "both" | "unrecognized";
+    attempt: number;
+  };
+  /** Saisie à la main choisie après des photos ratées (ADR 0057). */
+  receipt_manual_entry: { restaurant_id: string; attempts: number };
   /** Ticket soumis — `amount_band`, jamais le montant (ADR 0028). */
   order_submitted: {
     restaurant_id: string;

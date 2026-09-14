@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Camera, Images } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
@@ -14,7 +14,8 @@ import { beaconFunnelStep } from "@/lib/funnel-beacon";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
-import { canAutoSend } from "@/lib/ticket-auto-send";
+import { canAutoSend, missingReceiptParts, type MissingParts } from "@/lib/ticket-auto-send";
+import { OPEN_RECEIPT_CAMERA_EVENT } from "@/lib/open-camera-event";
 import ReceiptCamera, { inAppCameraAvailable, type CameraFailure } from "@/components/member/ReceiptCamera";
 import {
   clearNativeCameraMark,
@@ -146,6 +147,14 @@ export default function SubmitOrderClient({
   // pendant que l'appareil photo du téléphone était ouvert.
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraLost, setCameraLost] = useState(false);
+  // ADR 0057 — photo lue mais incomplète (total ou clé illisible) : on
+  // demande de recadrer au lieu d'ouvrir le récap. Après 2 photos ratées sur
+  // le même ticket, la saisie à la main est proposée — un ticket froissé ou
+  // effacé ne bloque jamais (il part alors en vérification manuelle).
+  const [framingIssue, setFramingIssue] = useState<MissingParts | null>(null);
+  const [framingFailures, setFramingFailures] = useState(0);
+  const [manualEntry, setManualEntry] = useState(false);
+  const router = useRouter();
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
   // à annoncer, et on propose d'en rejoindre une depuis l'écran de succès.
   const [hasTeam, setHasTeam] = useState(true);
@@ -174,13 +183,33 @@ export default function SubmitOrderClient({
     track("order_submit_started", { restaurant_id: restaurantId, visitor });
   }, [restaurantId, visitor]);
 
-  // ADR 0056 — une marque « appareil photo ouvert » survit au redémarrage :
-  // la page n'a jamais repris vie, la photo est perdue. On le dit.
+  // À l'arrivée. ADR 0056 — une marque « appareil photo ouvert » survit au
+  // redémarrage : la page n'a jamais repris vie, la photo est perdue, on le
+  // dit. ADR 0057 — sinon l'écran s'ouvre directement sur la caméra : tous
+  // les boutons ticket y mènent, l'étape « grand bouton photo » disparaît.
+  // Pas sur une reprise (`?resume=1`) : une photo attend déjà.
   useEffect(() => {
-    if (!consumeAppClosedDuringCamera()) return;
-    setCameraLost(true);
-    track("receipt_camera_fallback", { restaurant_id: restaurantId, reason: "app_closed" });
-  }, [restaurantId]);
+    if (consumeAppClosedDuringCamera()) {
+      setCameraLost(true);
+      track("receipt_camera_fallback", { restaurant_id: restaurantId, reason: "app_closed" });
+      return;
+    }
+    if (!resume && inAppCameraAvailable()) setCameraOpen(true);
+    // montage uniquement
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Bouton photo de la barre du bas tapé alors qu'on est déjà ici.
+  useEffect(() => {
+    const open = () => {
+      reset();
+      openCamera();
+    };
+    window.addEventListener(OPEN_RECEIPT_CAMERA_EVENT, open);
+    return () => window.removeEventListener(OPEN_RECEIPT_CAMERA_EVENT, open);
+    // reset/openCamera n'utilisent que des setters et des refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Étape 06 — pré-vérification débouncée : à chaque changement du montant ou
   // du numéro, le serveur dit quel cadeau ce ticket vise et si le numéro est
@@ -188,8 +217,10 @@ export default function SubmitOrderClient({
   // spécial, le 409 de /api/orders reste le filet.
   useEffect(() => {
     // Pendant l'envoi automatique (ADR 0055), le doublon est déjà vérifié par
-    // sendIfClean — inutile de doubler l'appel.
+    // sendIfClean — inutile de doubler l'appel. Photo à recadrer (ADR 0057) :
+    // pas de récap à l'écran, rien à pré-vérifier.
     if (visitor || parseStatus !== "done" || autoSending) return;
+    if (framingIssue && !manualEntry) return;
     const t = setTimeout(async () => {
       try {
         const res = await fetch("/api/orders/precheck", {
@@ -218,7 +249,7 @@ export default function SubmitOrderClient({
       }
     }, 500);
     return () => clearTimeout(t);
-  }, [visitor, parseStatus, autoSending, amount, orderNumber, restaurantId]);
+  }, [visitor, parseStatus, autoSending, framingIssue, manualEntry, amount, orderNumber, restaurantId]);
 
   // Retour de connexion OU tap sur le bandeau « ton ticket t'attend » de la
   // vitrine (`?resume=1`) : la photo attend dans l'appareil, on la recharge et
@@ -290,6 +321,7 @@ export default function SubmitOrderClient({
     setPrecheck(null);
     setGainReward(null);
     setGainNextTier(null);
+    setFramingIssue(null);
     setPreparing(true);
     try {
       const prepared = await prepareReceiptImage(file);
@@ -342,7 +374,7 @@ export default function SubmitOrderClient({
     } finally {
       setPreparing(false);
     }
-    if (readFile && reading) await sendIfClean(readFile, reading);
+    if (readFile && reading) await afterReading(readFile, reading);
   }
 
   // ADR 0056 — la caméra intégrée d'abord ; l'appareil photo du téléphone
@@ -369,6 +401,48 @@ export default function SubmitOrderClient({
 
   function handleCameraFailure(reason: CameraFailure) {
     track("receipt_camera_fallback", { restaurant_id: restaurantId, reason });
+  }
+
+  // ADR 0057 — caméra fermée sans photo à l'écran : la personne a changé
+  // d'avis, retour là où elle était (accueil, vitrine…). Arrivée directe
+  // (lien partagé, app rouverte) : pas d'historique, on rejoint l'établissement.
+  function leaveTicketScreen() {
+    if (window.history.length > 1) router.back();
+    else router.replace(`/r/${restaurantId}`);
+  }
+
+  // ADR 0057 — après la lecture : photo incomplète → recadrer (sauf si la
+  // personne a choisi la saisie à la main) ; sinon envoi auto ou récap.
+  async function afterReading(file: File, reading: ParsedReceipt) {
+    const missing = visitor ? null : missingReceiptParts(reading);
+    if (missing && !manualEntry) {
+      const attempt = framingFailures + 1;
+      setFramingIssue(missing);
+      setFramingFailures(attempt);
+      track("receipt_reframe_requested", {
+        restaurant_id: restaurantId,
+        missing: missing.total && missing.key ? "both" : missing.total ? "total" : "key",
+        attempt,
+      });
+      return;
+    }
+    await sendIfClean(file, reading);
+  }
+
+  // Deux photos ratées sur ce ticket : la personne choisit de taper les
+  // valeurs. Le récap s'ouvre avec les champs manquants à remplir ; le
+  // serveur relit la photo et envoie en revue ce qui ne se prouve pas.
+  function enterManualEntry() {
+    setManualEntry(true);
+    setFramingIssue(null);
+    track("receipt_manual_entry", { restaurant_id: restaurantId, attempts: framingFailures });
+    if (parseStatus === "error") {
+      // aperçu refusé (ticket non reconnu) : récap vide à compléter
+      setParseError("");
+      setParseStatus("done");
+      setOrderNumberEditable(true);
+      setAmountEditable(true);
+    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -441,7 +515,14 @@ export default function SubmitOrderClient({
         // 422 : l'aperçu a refusé la photo (pas un ticket, affiche). Inutile
         // de la reproposer au membre via « Ton ticket t'attend » (ADR 0055).
         // La photo du visiteur suit son parcours inchangé (ADR 0045).
-        if (status === 422 && !visitor) void clearPendingTicket(restaurantId);
+        // ADR 0057 — c'est aussi une photo ratée : elle compte pour proposer
+        // la saisie à la main au bout de deux.
+        if (status === 422 && !visitor) {
+          void clearPendingTicket(restaurantId);
+          const attempt = framingFailures + 1;
+          setFramingFailures(attempt);
+          track("receipt_reframe_requested", { restaurant_id: restaurantId, missing: "unrecognized", attempt });
+        }
         setParseStatus("error");
         setParseError(describeUploadFailure(status, data.error));
         return null;
@@ -534,7 +615,7 @@ export default function SubmitOrderClient({
     const file = receiptFile;
     if (!file) return;
     const reading = await analyseReceipt(file);
-    if (reading) await sendIfClean(file, reading);
+    if (reading) await afterReading(file, reading);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -655,6 +736,9 @@ export default function SubmitOrderClient({
     setGainReward(null);
     setGainNextTier(null);
     setSubmitStatus("idle");
+    setFramingIssue(null);
+    setFramingFailures(0);
+    setManualEntry(false);
     setReward(null);
     setNextTier(null);
     setErrorMsg("");
@@ -666,7 +750,14 @@ export default function SubmitOrderClient({
   // refus affiché sous les repères 1-2-3 tombait hors écran : « aucun
   // message ». Côté visiteur, seul le refus d'une photo qui n'a pas pu être
   // gardée s'affiche ; l'échec de l'aperçu OCR reste silencieux (ADR 0045).
-  const topAlert: { tone: "error" | "warn"; title: string; hint?: string } | null =
+  const framingTitle = framingIssue
+    ? framingIssue.total && framingIssue.key
+      ? `On voit mal le total et le ${keyLabel}`
+      : framingIssue.total
+        ? "On voit mal le total"
+        : `On voit mal le ${keyLabel}`
+    : "";
+  const topAlert: { tone: "error" | "warn"; title: string; hint?: string; reframe?: boolean } | null =
     submitStatus === "error" && errorMsg
       ? { tone: "error", title: errorMsg }
       : submitStatus === "duplicate"
@@ -679,13 +770,17 @@ export default function SubmitOrderClient({
               title: "Ce numéro de ticket a déjà été utilisé",
               hint: `Vérifie le ${keyLabel.toLowerCase()} ci-dessous — ou reprends la photo si ce n'est pas le bon ticket.`,
             }
-          : parseStatus === "error" && parseError && (!visitor || !preview)
-            ? {
-                tone: "error",
-                title: parseError,
-                hint: preview ? "Assure-toi que le numéro de commande est bien visible sur la photo." : undefined,
+          : !visitor && parseStatus === "done" && framingIssue && !manualEntry
+            ? // ADR 0057 — photo incomplète : dire QUOI recadrer, et rouvrir la caméra.
+              {
+                tone: "warn",
+                title: framingTitle,
+                hint: "Rapproche-toi, ticket bien à plat, et cadre-les dans le rectangle.",
+                reframe: true,
               }
-            : null;
+            : parseStatus === "error" && parseError && (!visitor || !preview)
+              ? { tone: "error", title: parseError, reframe: true }
+              : null;
   const topAlertKey = topAlert ? `${topAlert.tone}:${topAlert.title}` : "";
 
   // Un message qui apparaît alors qu'on a scrollé (récap long) : on remonte.
@@ -818,7 +913,11 @@ export default function SubmitOrderClient({
           ) : null}
           <button
             type="button"
-            onClick={reset}
+            onClick={() => {
+              // ADR 0057 — « un autre ticket » = la caméra, directement.
+              reset();
+              openCamera();
+            }}
             className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
           >
             <Camera className="w-4 h-4" aria-hidden="true" /> Photographier un autre ticket
@@ -852,7 +951,11 @@ export default function SubmitOrderClient({
           </Link>
           <button
             type="button"
-            onClick={reset}
+            onClick={() => {
+              // ADR 0057 — « un autre ticket » = la caméra, directement.
+              reset();
+              openCamera();
+            }}
             className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
           >
             <Camera className="w-4 h-4" aria-hidden="true" /> Photographier un autre ticket
@@ -885,7 +988,12 @@ export default function SubmitOrderClient({
             setCameraOpen(false);
             void acceptFile(file);
           }}
-          onClose={() => setCameraOpen(false)}
+          onClose={() => {
+            setCameraOpen(false);
+            // ADR 0057 — fermée sans photo à l'écran : retour là où elle était.
+            // Avec une photo (reprise en cours) ou le filet affiché, on reste.
+            if (!preview && !cameraLost) leaveTicketScreen();
+          }}
           onNativeCamera={() => {
             setCameraOpen(false);
             openNativeCamera();
@@ -949,6 +1057,27 @@ export default function SubmitOrderClient({
             <p className={`text-xs mt-1 ${topAlert.tone === "error" ? "text-red-500" : "text-orange-700"}`}>
               {topAlert.hint}
             </p>
+          )}
+          {topAlert.reframe && (
+            <div className="flex flex-wrap items-center gap-3 mt-3">
+              <button
+                type="button"
+                onClick={openCamera}
+                className="inline-flex items-center gap-2 bg-brand-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85"
+              >
+                <Camera className="w-4 h-4" aria-hidden="true" /> Reprendre la photo
+              </button>
+              {/* ADR 0057 — au bout de deux photos ratées, jamais bloqué. */}
+              {!visitor && preview && framingFailures >= 2 && (
+                <button
+                  type="button"
+                  onClick={enterManualEntry}
+                  className={`text-xs underline ${topAlert.tone === "error" ? "text-red-700" : "text-orange-900"}`}
+                >
+                  Je n&apos;y arrive pas, saisir à la main
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -1216,7 +1345,7 @@ export default function SubmitOrderClient({
       {/* Formulaire — visible après analyse réussie, réservé aux membres
           connectés (un visiteur ne peut pas soumettre, /api/orders exige une
           session — ADR 0045). */}
-      {parseStatus === "done" && !visitor && !autoSending && (
+      {parseStatus === "done" && !visitor && !autoSending && (!framingIssue || manualEntry) && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Clé de commande — lue par l'OCR mais TOUJOURS corrigeable : une
               lecture fausse (année…) ne doit jamais enfermer le membre dans

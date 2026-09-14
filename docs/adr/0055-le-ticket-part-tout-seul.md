@@ -6,7 +6,9 @@
 sur l'appareil pour le membre aussi). Ne change rien à la validation serveur ni au
 délai artificiel (**ADR 0008**), ni au dédoublonnage (**ADR 0052**). Complété par
 [ADR 0056](0056-la-photo-se-prend-dans-l-app.md) : la photo se prend dans l'app, et
-les messages s'affichent en haut de l'écran.
+les messages s'affichent en haut de l'écran. §2 amendé par
+[ADR 0057](0057-l-ecran-ticket-s-ouvre-sur-la-camera.md) : une photo sans total ou
+sans numéro se reprend avant tout récap.
 
 ## Contexte
 
