@@ -15,6 +15,12 @@ import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
 import { canAutoSend } from "@/lib/ticket-auto-send";
+import ReceiptCamera, { inAppCameraAvailable, type CameraFailure } from "@/components/member/ReceiptCamera";
+import {
+  clearNativeCameraMark,
+  consumeAppClosedDuringCamera,
+  markNativeCameraOpened,
+} from "@/lib/native-camera-guard";
 import { memoriserCadeauAReclamer } from "@/lib/claim-reward";
 import { PostTicketSheet } from "@/components/member/PostTicketSheet";
 import TicketGainCard from "@/components/member/TicketGainCard";
@@ -136,6 +142,10 @@ export default function SubmitOrderClient({
   // du verdict « lecture propre » jusqu'à la réponse de /api/orders ; le récap
   // ne réapparaît que si l'envoi échoue ou tombe sur un doublon.
   const [autoSending, setAutoSending] = useState(false);
+  // ADR 0056 — vue caméra intégrée ouverte ; et filet : la page a été tuée
+  // pendant que l'appareil photo du téléphone était ouvert.
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraLost, setCameraLost] = useState(false);
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
   // à annoncer, et on propose d'en rejoindre une depuis l'écran de succès.
   const [hasTeam, setHasTeam] = useState(true);
@@ -163,6 +173,14 @@ export default function SubmitOrderClient({
   useEffect(() => {
     track("order_submit_started", { restaurant_id: restaurantId, visitor });
   }, [restaurantId, visitor]);
+
+  // ADR 0056 — une marque « appareil photo ouvert » survit au redémarrage :
+  // la page n'a jamais repris vie, la photo est perdue. On le dit.
+  useEffect(() => {
+    if (!consumeAppClosedDuringCamera()) return;
+    setCameraLost(true);
+    track("receipt_camera_fallback", { restaurant_id: restaurantId, reason: "app_closed" });
+  }, [restaurantId]);
 
   // Étape 06 — pré-vérification débouncée : à chaque changement du montant ou
   // du numéro, le serveur dit quel cadeau ce ticket vise et si le numéro est
@@ -327,7 +345,35 @@ export default function SubmitOrderClient({
     if (readFile && reading) await sendIfClean(readFile, reading);
   }
 
+  // ADR 0056 — la caméra intégrée d'abord ; l'appareil photo du téléphone
+  // seulement si elle n'existe pas ici.
+  function openCamera() {
+    setCameraLost(false);
+    if (inAppCameraAvailable()) setCameraOpen(true);
+    else openNativeCamera();
+  }
+
+  // Doit rester appelé DANS un clic (sinon le navigateur refuse d'ouvrir).
+  // La marque est effacée dès que la page reprend la main ; si Android la
+  // tue entre-temps, elle survit et le montage suivant affiche le filet.
+  function openNativeCamera() {
+    markNativeCameraOpened();
+    window.addEventListener("focus", () => window.setTimeout(() => clearNativeCameraMark(), 1500), { once: true });
+    cameraInputRef.current?.click();
+  }
+
+  function openGallery() {
+    setCameraOpen(false);
+    fileInputRef.current?.click();
+  }
+
+  function handleCameraFailure(reason: CameraFailure) {
+    track("receipt_camera_fallback", { restaurant_id: restaurantId, reason });
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    clearNativeCameraMark();
+    setCameraLost(false);
     void acceptFile(e.target.files?.[0]);
     // Permet de reprendre exactement la même photo après une erreur.
     e.target.value = "";
@@ -616,6 +662,37 @@ export default function SubmitOrderClient({
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   }
 
+  // ADR 0056 §4 — UN emplacement pour tout message, en haut de l'écran. Un
+  // refus affiché sous les repères 1-2-3 tombait hors écran : « aucun
+  // message ». Côté visiteur, seul le refus d'une photo qui n'a pas pu être
+  // gardée s'affiche ; l'échec de l'aperçu OCR reste silencieux (ADR 0045).
+  const topAlert: { tone: "error" | "warn"; title: string; hint?: string } | null =
+    submitStatus === "error" && errorMsg
+      ? { tone: "error", title: errorMsg }
+      : submitStatus === "duplicate"
+        ? // ADR 0052 §6 — message unique, sans détail technique : le membre
+          // n'a pas à savoir QUEL signal a détecté le doublon.
+          { tone: "warn", title: "Ce ticket a déjà été utilisé." }
+        : !visitor && parseStatus === "done" && precheck?.duplicate
+          ? {
+              tone: "warn",
+              title: "Ce numéro de ticket a déjà été utilisé",
+              hint: `Vérifie le ${keyLabel.toLowerCase()} ci-dessous — ou reprends la photo si ce n'est pas le bon ticket.`,
+            }
+          : parseStatus === "error" && parseError && (!visitor || !preview)
+            ? {
+                tone: "error",
+                title: parseError,
+                hint: preview ? "Assure-toi que le numéro de commande est bien visible sur la photo." : undefined,
+              }
+            : null;
+  const topAlertKey = topAlert ? `${topAlert.tone}:${topAlert.title}` : "";
+
+  // Un message qui apparaît alors qu'on a scrollé (récap long) : on remonte.
+  useEffect(() => {
+    if (topAlertKey) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [topAlertKey]);
+
   // ADR 0030 §6 — après un scan réussi, la suite naturelle est « qu'est-ce
   // que ça m'a rapporté ? » (libellés neutres : la validation est différée,
   // ADR 0008 — ne jamais promettre un cadeau déjà là).
@@ -801,6 +878,22 @@ export default function SubmitOrderClient({
 
   return (
     <div>
+      {cameraOpen && (
+        <ReceiptCamera
+          keyLabel={keyLabel}
+          onCapture={(file) => {
+            setCameraOpen(false);
+            void acceptFile(file);
+          }}
+          onClose={() => setCameraOpen(false)}
+          onNativeCamera={() => {
+            setCameraOpen(false);
+            openNativeCamera();
+          }}
+          onGallery={openGallery}
+          onFailure={handleCameraFailure}
+        />
+      )}
       <div className="mb-6 text-center">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -816,6 +909,49 @@ export default function SubmitOrderClient({
           </h1>
         )}
       </div>
+
+      {/* ADR 0056 §3 — la page a été tuée pendant la photo : la photo n'existe
+          plus nulle part. La galerie passe devant — la photo prise avec
+          l'appareil du téléphone y est, elle. */}
+      {cameraLost && !preview && (
+        <div role="alert" className="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-4">
+          <p className="font-bold text-amber-900 text-sm">Ton téléphone a fermé l&apos;app pendant la photo</p>
+          <p className="text-amber-800 text-xs mt-1">
+            Ta photo est dans ta galerie : choisis-la ici pour l&apos;envoyer.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+            <button
+              type="button"
+              onClick={openGallery}
+              className="inline-flex items-center gap-2 bg-brand-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85"
+            >
+              <Images className="w-4 h-4" aria-hidden="true" /> Choisir dans la galerie
+            </button>
+            <button type="button" onClick={openCamera} className="text-xs text-amber-900 underline">
+              Reprendre une photo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ADR 0056 §4 — tous les messages ici, jamais sous la ligne de flottaison. */}
+      {topAlert && (
+        <div
+          role="alert"
+          className={`rounded-xl p-4 mb-4 border ${
+            topAlert.tone === "error" ? "bg-red-50 border-red-200" : "bg-orange-50 border-orange-200"
+          }`}
+        >
+          <p className={`text-sm font-semibold ${topAlert.tone === "error" ? "text-red-700" : "text-orange-900"}`}>
+            {topAlert.title}
+          </p>
+          {topAlert.hint && (
+            <p className={`text-xs mt-1 ${topAlert.tone === "error" ? "text-red-500" : "text-orange-700"}`}>
+              {topAlert.hint}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Bandeau de reprise — une photo dort en IndexedDB et rien n'est
           encore affiché : un tap la recharge, prendre une autre photo
@@ -860,7 +996,7 @@ export default function SubmitOrderClient({
             <div className="flex justify-center gap-2 mt-3">
               <button
                 type="button"
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={openCamera}
                 disabled={sending}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-50"
               >
@@ -921,7 +1057,7 @@ export default function SubmitOrderClient({
             <p className="font-semibold text-gray-700 mb-4">Photo du ticket de caisse</p>
             <button
               type="button"
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={openCamera}
               disabled={preparing}
               className="flex items-center justify-center gap-2 w-full sm:w-auto sm:mx-auto bg-brand-red text-white py-5 px-8 rounded-full font-bold text-xl hover:bg-brand-red/85 disabled:opacity-60 transition-colors shadow-lg"
             >
@@ -1077,19 +1213,6 @@ export default function SubmitOrderClient({
         </button>
       )}
 
-      {/* Un visiteur n'a pas encore de compte : ce message parle du numéro de
-          commande d'un formulaire qu'il ne voit pas encore (ADR 0045) — la
-          preuve de scan côté visiteur reste best-effort, silencieuse en cas
-          d'échec, jamais bloquante. */}
-      {parseStatus === "error" && !visitor && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
-          <p className="text-red-700 text-sm">{parseError}</p>
-          <p className="text-red-500 text-xs mt-1">
-            Assure-toi que le numéro de commande est bien visible sur la photo.
-          </p>
-        </div>
-      )}
-
       {/* Formulaire — visible après analyse réussie, réservé aux membres
           connectés (un visiteur ne peut pas soumettre, /api/orders exige une
           session — ADR 0045). */}
@@ -1189,14 +1312,8 @@ export default function SubmitOrderClient({
               l'envoi ; sinon, le cadeau visé est mis en évidence (libellé
               prudent : la validation est différée, ADR 0008 — jamais de
               cadeau promis comme acquis). */}
-          {precheck?.duplicate ? (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-              <p className="font-semibold text-orange-900 text-sm">Ce numéro de ticket a déjà été utilisé</p>
-              <p className="text-orange-700 text-xs mt-1">
-                Vérifie le {keyLabel.toLowerCase()} ci-dessus — ou reprends la photo si ce n&apos;est pas le bon ticket.
-              </p>
-            </div>
-          ) : precheck?.reward ? (
+          {/* Le doublon lui-même s'annonce en haut de l'écran (ADR 0056 §4). */}
+          {precheck?.duplicate ? null : precheck?.reward ? (
             // Même palette verte fixe que la carte de gain visiteur
             // (TicketGainCard) : brand-gold résout en rouge pour Kraainem, et
             // le cadeau visé s'affichait dans un encadré rose — lu comme une
@@ -1238,21 +1355,6 @@ export default function SubmitOrderClient({
                   Analyse de ton ticket en cours, merci de patienter.
                 </p>
               </div>
-            </div>
-          )}
-
-          {submitStatus === "duplicate" && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-              {/* ADR 0052 §6 — message unique, sans détail technique : le
-                  membre n'a pas à savoir QUEL signal a détecté le doublon
-                  (ADR 0008/0019), et il peut s'agir d'un doublon accidentel. */}
-              <p className="font-semibold text-orange-900 text-sm">Ce ticket a déjà été utilisé.</p>
-            </div>
-          )}
-
-          {submitStatus === "error" && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <p className="text-red-700 text-sm">{errorMsg}</p>
             </div>
           )}
 
