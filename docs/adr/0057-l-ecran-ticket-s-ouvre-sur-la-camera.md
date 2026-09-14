@@ -4,7 +4,8 @@
 (une photo incomplète se reprend avant tout récap) et
 [ADR 0056](0056-la-photo-se-prend-dans-l-app.md) §1 (la caméra s'ouvre sans bouton
 intermédiaire). Ne change rien à l'OCR, à la validation ni au délai artificiel
-(**ADR 0008**).
+(**ADR 0008**). §3 et §4 amendés par [ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) :
+plus de saisie à la main, et l'année réparée se reprend en photo.
 
 ## Contexte
 

@@ -39,9 +39,10 @@ test("parties manquantes : dit quoi recadrer", () => {
   assert.deepEqual(missingReceiptParts({ ...clean, amount: null, order_number: "" }), { total: true, key: true });
 });
 
-test("parties manquantes : pas de clé exigée sans clé fiable, année réparée ≠ recadrage", () => {
+test("parties manquantes : pas de clé exigée sans clé fiable ; année réparée = nouvelle photo (ADR 0058)", () => {
   assert.equal(missingReceiptParts({ ...clean, has_reliable_key: false, order_number: null }), null);
-  // l'année réparée se vérifie au récap, elle ne demande pas une nouvelle photo
-  assert.equal(missingReceiptParts({ ...clean, key_corrected: true }), null);
+  assert.deepEqual(missingReceiptParts({ ...clean, key_corrected: true }), { total: false, key: true });
   assert.equal(canAutoSend({ ...clean, key_corrected: true }), false);
+  // sans clé fiable, la clé n'est pas exigée : sa réparation ne bloque rien
+  assert.equal(missingReceiptParts({ ...clean, has_reliable_key: false, key_corrected: true }), null);
 });

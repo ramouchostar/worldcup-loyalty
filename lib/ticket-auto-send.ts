@@ -7,11 +7,10 @@
 // « Envoyer mon ticket » tombait sous la ligne de flottaison, derrière la
 // barre du bas. La personne croyait avoir fini et quittait l'app.
 //
-// Le récap « Montant · Numéro » ne sert qu'aux lectures qu'un humain peut
-// réparer. Le serveur relit le ticket lui-même (/api/orders) : un montant
-// corrigé à la main ne valide rien, il part en revue (amount_mismatch). Seul
-// le NUMÉRO compte — s'il manque ou si son année a été réparée, on montre le
-// récap ; sinon le ticket part tout seul.
+// ADR 0058 — il n'y a plus de récap : ni le montant ni le numéro ne se
+// saisissent. Le serveur relit la photo et n'utilise que sa propre lecture.
+// Une lecture incomplète (total ou numéro absent, année du numéro réparée)
+// se reprend en photo ; sinon le ticket part tout seul.
 //
 // Client-safe : aucune dépendance serveur.
 // ============================================================
@@ -33,13 +32,13 @@ export type ReceiptReading = {
  * - numéro lu, sauf si l'établissement n'a pas de clé fiable : le serveur
  *   ignore alors le numéro et envoie en revue quoi qu'il arrive, le récap
  *   n'aurait rien à corriger ;
- * - année du numéro NON réparée par le serveur : c'est l'incident Kasia, la
- *   personne doit comparer avec son ticket.
+ * - année du numéro NON réparée : une réparation (incident Kasia) se refait
+ *   par une nouvelle photo, jamais par une saisie (ADR 0058).
  *
  * Le doublon se vérifie à part (/api/orders/precheck, réseau).
  */
 export function canAutoSend(reading: ReceiptReading): boolean {
-  return missingReceiptParts(reading) === null && reading.key_corrected !== true;
+  return missingReceiptParts(reading) === null;
 }
 
 /** Ce que la photo n'a pas su montrer. */
@@ -53,8 +52,11 @@ export type MissingParts = { total: boolean; key: boolean };
  */
 export function missingReceiptParts(reading: ReceiptReading): MissingParts | null {
   const total = typeof reading.amount !== "number" || validateAmount(reading.amount) !== null;
+  // ADR 0058 — une année réparée compte comme une clé manquante : même
+  // issue, une nouvelle photo.
   const key =
     reading.has_reliable_key !== false &&
-    !(typeof reading.order_number === "string" && reading.order_number.trim().length > 0);
+    (reading.key_corrected === true ||
+      !(typeof reading.order_number === "string" && reading.order_number.trim().length > 0));
   return total || key ? { total, key } : null;
 }

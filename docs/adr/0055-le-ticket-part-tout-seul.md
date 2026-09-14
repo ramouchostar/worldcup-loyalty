@@ -8,7 +8,8 @@ délai artificiel (**ADR 0008**), ni au dédoublonnage (**ADR 0052**). Complét�
 [ADR 0056](0056-la-photo-se-prend-dans-l-app.md) : la photo se prend dans l'app, et
 les messages s'affichent en haut de l'écran. §2 amendé par
 [ADR 0057](0057-l-ecran-ticket-s-ouvre-sur-la-camera.md) : une photo sans total ou
-sans numéro se reprend avant tout récap.
+sans numéro se reprend avant tout récap. Récap supprimé par
+[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) : ni montant ni numéro ne se saisissent.
 
 ## Contexte
 

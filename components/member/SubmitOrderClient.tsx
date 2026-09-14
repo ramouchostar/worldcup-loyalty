@@ -106,38 +106,24 @@ export default function SubmitOrderClient({
   const [preparing, setPreparing] = useState(false);
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
   const [parseError, setParseError] = useState("");
-  // L'année de la clé a été réparée côté serveur (lecture OCR fausse) :
-  // on l'affiche et on invite à vérifier.
-  const [keyCorrected, setKeyCorrected] = useState(false);
-
-  const [orderNumber, setOrderNumber] = useState("");
-  const [orderNumberEditable, setOrderNumberEditable] = useState(false);
-  // Libellé + exemple de la clé de commande propres à l'établissement (ADR 0019)
+  // ADR 0058 — rien ne se modifie : ces valeurs viennent de la lecture de
+  // l'aperçu et ne servent qu'à l'affichage et à la mesure. Le serveur relit
+  // la photo et n'utilise que sa propre lecture.
+  // Libellé de la clé de commande propre à l'établissement (ADR 0019).
   const [keyLabel, setKeyLabel] = useState(receiptKeyLabel ?? "Numéro de commande");
-  const [keyExample, setKeyExample] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
-  const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
-  const [noRestaurantHeader, setNoRestaurantHeader] = useState(false);
   // ADR 0048 — ce que le ticket VAUT, rendu par l'aperçu OCR avant toute
   // demande de compte : le cadeau de couche 1 atteint par ce montant, ou la
   // distance jusqu'au premier palier. Noms d'articles et proportion de barre
   // uniquement — jamais un seuil, jamais un euro (ADR 0007/0028).
   const [gainReward, setGainReward] = useState<string | null>(null);
   const [gainNextTier, setGainNextTier] = useState<{ item: string; pct: number } | null>(null);
-  // ADR 0036 — jeton du scan rendu par l'aperçu OCR : renvoyé tel quel à la
-  // soumission pour que le serveur réutilise la photo déjà stockée.
-  const [scanId, setScanId] = useState<string | null>(null);
-  // Étape 06 — récap modifiable au tap : le montant s'affiche en ligne de
-  // récap, l'input ne s'ouvre qu'à la demande (la clé a déjà ce pattern).
-  const [amountEditable, setAmountEditable] = useState(false);
-  // Étape 06 — pré-vérification avant envoi : cadeau visé par le montant +
-  // doublon détecté à la saisie du numéro (au lieu d'un rejet après envoi).
-  const [precheck, setPrecheck] = useState<{
-    reward: string | null;
-    next_tier: { item: string; pct: number } | null;
-    duplicate: boolean;
-  } | null>(null);
+  // Doublon repéré AVANT l'envoi, sur la clé lue (précheck) — ADR 0055.
+  const [precheckDuplicate, setPrecheckDuplicate] = useState(false);
+  // Dernière photo lue et envoyée : « Réessayer l'envoi » la renvoie telle
+  // quelle après une coupure, sans nouvelle photo.
+  const lastSendRef = useRef<{ file: File; reading: ParsedReceipt } | null>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   // ADR 0055 — lecture propre : le ticket part sans passer par le récap. Vrai
   // du verdict « lecture propre » jusqu'à la réponse de /api/orders ; le récap
@@ -147,13 +133,12 @@ export default function SubmitOrderClient({
   // pendant que l'appareil photo du téléphone était ouvert.
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraLost, setCameraLost] = useState(false);
-  // ADR 0057 — photo lue mais incomplète (total ou clé illisible) : on
-  // demande de recadrer au lieu d'ouvrir le récap. Après 2 photos ratées sur
-  // le même ticket, la saisie à la main est proposée — un ticket froissé ou
-  // effacé ne bloque jamais (il part alors en vérification manuelle).
+  // ADR 0057/0058 — photo lue mais incomplète (total ou clé illisible, année
+  // de la clé réparée) : on demande de recadrer. Aucune saisie à la main —
+  // seule une nouvelle photo comble le trou. Le compteur ne sert qu'à la
+  // mesure (n-ième photo ratée sur ce ticket).
   const [framingIssue, setFramingIssue] = useState<MissingParts | null>(null);
   const [framingFailures, setFramingFailures] = useState(0);
-  const [manualEntry, setManualEntry] = useState(false);
   const router = useRouter();
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
   // à annoncer, et on propose d'en rejoindre une depuis l'écran de succès.
@@ -210,46 +195,6 @@ export default function SubmitOrderClient({
     // reset/openCamera n'utilisent que des setters et des refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Étape 06 — pré-vérification débouncée : à chaque changement du montant ou
-  // du numéro, le serveur dit quel cadeau ce ticket vise et si le numéro est
-  // un doublon — AVANT l'envoi. Best-effort : un échec n'affiche rien de
-  // spécial, le 409 de /api/orders reste le filet.
-  useEffect(() => {
-    // Pendant l'envoi automatique (ADR 0055), le doublon est déjà vérifié par
-    // sendIfClean — inutile de doubler l'appel. Photo à recadrer (ADR 0057) :
-    // pas de récap à l'écran, rien à pré-vérifier.
-    if (visitor || parseStatus !== "done" || autoSending) return;
-    if (framingIssue && !manualEntry) return;
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch("/api/orders/precheck", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            restaurantId,
-            amount: Number(amount) || null,
-            order_number: orderNumber,
-          }),
-        });
-        const { data } = await readJsonSafe<{
-          reward?: string | null;
-          next_tier?: { item: string; pct: number } | null;
-          duplicate?: boolean;
-        }>(res);
-        if (res.ok && data) {
-          setPrecheck({
-            reward: data.reward ?? null,
-            next_tier: data.next_tier ?? null,
-            duplicate: data.duplicate === true,
-          });
-        }
-      } catch {
-        // silencieux — la soumission reste possible, le serveur tranche
-      }
-    }, 500);
-    return () => clearTimeout(t);
-  }, [visitor, parseStatus, autoSending, framingIssue, manualEntry, amount, orderNumber, restaurantId]);
 
   // Retour de connexion OU tap sur le bandeau « ton ticket t'attend » de la
   // vitrine (`?resume=1`) : la photo attend dans l'appareil, on la recharge et
@@ -312,13 +257,10 @@ export default function SubmitOrderClient({
     let readFile: File | null = null;
     setParseStatus("idle");
     setParseError("");
-    setOrderNumber("");
-    setOrderNumberEditable(false);
-    setKeyCorrected(false);
     setAmount("");
-    setScanId(null);
-    setAmountEditable(false);
-    setPrecheck(null);
+    setPrecheckDuplicate(false);
+    setSubmitStatus("idle");
+    setErrorMsg("");
     setGainReward(null);
     setGainNextTier(null);
     setFramingIssue(null);
@@ -411,38 +353,27 @@ export default function SubmitOrderClient({
     else router.replace(`/r/${restaurantId}`);
   }
 
-  // ADR 0057 — après la lecture : photo incomplète → recadrer (sauf si la
-  // personne a choisi la saisie à la main) ; sinon envoi auto ou récap.
+  // ADR 0057/0058 — après la lecture : photo incomplète → recadrer ; sinon
+  // envoi automatique. Il n'y a plus d'autre issue (aucun récap).
   async function afterReading(file: File, reading: ParsedReceipt) {
     const missing = visitor ? null : missingReceiptParts(reading);
-    if (missing && !manualEntry) {
-      const attempt = framingFailures + 1;
-      setFramingIssue(missing);
-      setFramingFailures(attempt);
-      track("receipt_reframe_requested", {
-        restaurant_id: restaurantId,
-        missing: missing.total && missing.key ? "both" : missing.total ? "total" : "key",
-        attempt,
-      });
+    if (missing) {
+      askReframe(missing);
       return;
     }
     await sendIfClean(file, reading);
   }
 
-  // Deux photos ratées sur ce ticket : la personne choisit de taper les
-  // valeurs. Le récap s'ouvre avec les champs manquants à remplir ; le
-  // serveur relit la photo et envoie en revue ce qui ne se prouve pas.
-  function enterManualEntry() {
-    setManualEntry(true);
-    setFramingIssue(null);
-    track("receipt_manual_entry", { restaurant_id: restaurantId, attempts: framingFailures });
-    if (parseStatus === "error") {
-      // aperçu refusé (ticket non reconnu) : récap vide à compléter
-      setParseError("");
-      setParseStatus("done");
-      setOrderNumberEditable(true);
-      setAmountEditable(true);
-    }
+  // Dit quoi recadrer — appelé par l'aperçu comme par la relecture serveur.
+  function askReframe(missing: MissingParts) {
+    const attempt = framingFailures + 1;
+    setFramingIssue(missing);
+    setFramingFailures(attempt);
+    track("receipt_reframe_requested", {
+      restaurant_id: restaurantId,
+      missing: missing.total && missing.key ? "both" : missing.total ? "total" : "key",
+      attempt,
+    });
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -515,8 +446,7 @@ export default function SubmitOrderClient({
         // 422 : l'aperçu a refusé la photo (pas un ticket, affiche). Inutile
         // de la reproposer au membre via « Ton ticket t'attend » (ADR 0055).
         // La photo du visiteur suit son parcours inchangé (ADR 0045).
-        // ADR 0057 — c'est aussi une photo ratée : elle compte pour proposer
-        // la saisie à la main au bout de deux.
+        // ADR 0057 — c'est aussi une photo ratée (mesure : n-ième essai).
         if (status === 422 && !visitor) {
           void clearPendingTicket(restaurantId);
           const attempt = framingFailures + 1;
@@ -529,27 +459,13 @@ export default function SubmitOrderClient({
       }
 
       setParseStatus("done");
-      setScanId(data.scan_id ?? null);
-      setKeyCorrected(data.key_corrected === true);
       if (data.key_label) setKeyLabel(data.key_label);
-      if (data.key_example) setKeyExample(data.key_example);
-      if (data.order_number) {
-        setOrderNumber(data.order_number);
-        setOrderNumberEditable(false);
-      } else {
-        setOrderNumber("");
-        setOrderNumberEditable(true);
-      }
       if (data.amount) {
         setAmount(String(data.amount));
         setOcrAmount(data.amount);
-        setAmountEditable(false);
       } else {
-        // Montant non lu → l'input est directement ouvert, rien à taper de plus.
-        setAmountEditable(true);
+        setOcrAmount(null);
       }
-      setOcrConfidence(data.confidence ?? null);
-      setNoRestaurantHeader(!(data.has_restaurant_header ?? true));
       setGainReward(data.reward ?? null);
       setGainNextTier(data.next_tier ?? null);
       return data;
@@ -566,47 +482,37 @@ export default function SubmitOrderClient({
     }
   }
 
-  // ADR 0055 — lecture propre : le ticket part sans passer par le récap. Le
-  // doublon est vérifié d'abord (best-effort : si le précheck échoue, le 409
-  // de /api/orders reste le filet). Tout échec rend la main au récap, déjà
-  // rempli par l'aperçu, qui affiche le message et le bouton.
+  // ADR 0055/0058 — lecture complète : le ticket part tout seul, et SEULE la
+  // photo part — le serveur la relit et n'utilise que sa propre lecture. Le
+  // doublon est vérifié d'abord sur la clé lue (best-effort : si le précheck
+  // échoue, le 409 de /api/orders reste le filet).
   async function sendIfClean(file: File, reading: ParsedReceipt) {
     if (visitor || !canAutoSend(reading)) return;
+    lastSendRef.current = { file, reading };
     setAutoSending(true);
-    const readOrderNumber = reading.order_number?.trim() ?? "";
     try {
       const res = await fetch("/api/orders/precheck", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId, amount: reading.amount, order_number: readOrderNumber }),
+        body: JSON.stringify({ restaurantId, amount: reading.amount, order_number: reading.order_number?.trim() ?? "" }),
       });
-      const { data } = await readJsonSafe<{
-        reward?: string | null;
-        next_tier?: { item: string; pct: number } | null;
-        duplicate?: boolean;
-      }>(res);
-      if (res.ok && data) {
-        const duplicate = data.duplicate === true;
-        setPrecheck({ reward: data.reward ?? null, next_tier: data.next_tier ?? null, duplicate });
-        if (duplicate) {
-          setAutoSending(false);
-          return;
-        }
+      const { data } = await readJsonSafe<{ duplicate?: boolean }>(res);
+      if (res.ok && data?.duplicate === true) {
+        setPrecheckDuplicate(true);
+        setAutoSending(false);
+        return;
       }
     } catch {
       // silencieux — le serveur tranche à l'envoi
     }
-    await submitTicket({
-      file,
-      orderNumber: readOrderNumber,
-      amount: String(reading.amount),
-      scanId: reading.scan_id ?? null,
-      ocrAmount: reading.amount ?? null,
-      ocrConfidence: reading.confidence ?? null,
-      noRestaurantHeader: !(reading.has_restaurant_header ?? true),
-      autoSent: true,
-    });
+    await submitTicket(file, reading);
     setAutoSending(false);
+  }
+
+  // Envoi coupé (réseau, serveur) : on renvoie la même photo, sans en reprendre une.
+  async function retrySend() {
+    const last = lastSendRef.current;
+    if (last) await sendIfClean(last.file, last.reading);
   }
 
   // Relance manuelle de l'analyse après une erreur : même suite qu'une photo
@@ -618,54 +524,24 @@ export default function SubmitOrderClient({
     if (reading) await afterReading(file, reading);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!receiptFile) return;
-    await submitTicket({
-      file: receiptFile,
-      orderNumber,
-      amount,
-      scanId,
-      ocrAmount,
-      ocrConfidence,
-      noRestaurantHeader,
-      autoSent: false,
-    });
-  }
-
-  // Valeurs passées explicitement et non lues dans le state : l'envoi
-  // automatique part dans le même tour que l'aperçu, avant que React n'ait
-  // appliqué les setState de analyseReceipt.
-  async function submitTicket(t: {
-    file: File;
-    orderNumber: string;
-    amount: string;
-    scanId: string | null;
-    ocrAmount: number | null;
-    ocrConfidence: number | null;
-    noRestaurantHeader: boolean;
-    autoSent: boolean;
-  }) {
+  // ADR 0058 — la requête ne porte QUE la photo (et le jeton du scan déjà
+  // stocké, ADR 0036) : ni montant ni numéro, que le serveur lit lui-même.
+  // La lecture de l'aperçu ne sert ici qu'à la mesure (tranche de montant).
+  async function submitTicket(file: File, reading: ParsedReceipt) {
     setSubmitStatus("loading");
     setErrorMsg("");
 
     const formData = new FormData();
-    formData.append("receipt", t.file);
-    formData.append("order_number", t.orderNumber);
-    formData.append("amount", t.amount);
+    formData.append("receipt", file);
     formData.append("restaurantId", restaurantId);
-    if (t.ocrAmount !== null)      formData.append("ocr_amount", String(t.ocrAmount));
-    if (t.ocrConfidence !== null)  formData.append("ocr_confidence", String(t.ocrConfidence));
-    if (t.noRestaurantHeader)      formData.append("no_restaurant_header", "true");
-    if (t.scanId !== null)         formData.append("scan_id", t.scanId);
+    if (reading.scan_id) formData.append("scan_id", reading.scan_id);
 
     // Le montant part en tranche, jamais en euros (ADR 0028) : la charge utile
     // d'un événement analytics est lisible côté client.
     track("order_submitted", {
       restaurant_id: restaurantId,
-      amount_band: amountBand(Number(t.amount)),
+      amount_band: amountBand(Number(reading.amount)),
       has_receipt_photo: true,
-      auto_sent: t.autoSent,
     });
 
     // Délai artificiel 3–5s + fetch en parallèle (ADR 0008)
@@ -682,13 +558,14 @@ export default function SubmitOrderClient({
         reward?: string | null;
         next_tier?: { item: string; pct: number } | null;
         has_reward?: boolean;
+        missing?: MissingParts;
       }>(res);
       const data = submitData ?? {};
 
-      // Le serveur a tranché : ticket enregistré ou déjà utilisé. La photo
-      // n'a plus rien à attendre sur l'appareil (ADR 0055). Une autre erreur
-      // (date refusée, réseau) la garde pour un nouvel essai.
-      if (res.status === 201 || res.status === 409) void clearPendingTicket(restaurantId);
+      // Le serveur a tranché : ticket enregistré, déjà utilisé, ou photo à
+      // reprendre (ADR 0058). La photo n'a plus rien à attendre sur l'appareil
+      // (ADR 0055). Une coupure (réseau, serveur) la garde pour un nouvel essai.
+      if (res.status === 201 || res.status === 409 || res.status === 422) void clearPendingTicket(restaurantId);
 
       if (res.status === 201) {
         const validated = data.status === "validated";
@@ -711,6 +588,13 @@ export default function SubmitOrderClient({
         return;
       }
       track("order_result", { restaurant_id: restaurantId, result: "rejected" });
+      // ADR 0058 — la relecture serveur ne trouve pas le total ou la clé (ou
+      // la date du numéro est impossible) : même issue qu'à l'aperçu.
+      if (res.status === 422 && data.missing) {
+        setSubmitStatus("idle");
+        askReframe(data.missing);
+        return;
+      }
       setSubmitStatus("error");
       setErrorMsg(describeUploadFailure(res.status, data.error));
     } catch {
@@ -726,19 +610,14 @@ export default function SubmitOrderClient({
     setReceiptFile(null);
     setParseStatus("idle");
     setParseError("");
-    setOrderNumber("");
-    setOrderNumberEditable(false);
     setAmount("");
-    setScanId(null);
-    setKeyCorrected(false);
-    setAmountEditable(false);
-    setPrecheck(null);
+    setPrecheckDuplicate(false);
+    lastSendRef.current = null;
     setGainReward(null);
     setGainNextTier(null);
     setSubmitStatus("idle");
     setFramingIssue(null);
     setFramingFailures(0);
-    setManualEntry(false);
     setReward(null);
     setNextTier(null);
     setErrorMsg("");
@@ -757,20 +636,27 @@ export default function SubmitOrderClient({
         ? "On voit mal le total"
         : `On voit mal le ${keyLabel}`
     : "";
-  const topAlert: { tone: "error" | "warn"; title: string; hint?: string; reframe?: boolean } | null =
+  const topAlert: {
+    tone: "error" | "warn";
+    title: string;
+    hint?: string;
+    reframe?: boolean;
+    retry?: boolean;
+  } | null =
     submitStatus === "error" && errorMsg
-      ? { tone: "error", title: errorMsg }
+      ? { tone: "error", title: errorMsg, retry: !!lastSendRef.current, reframe: true }
       : submitStatus === "duplicate"
         ? // ADR 0052 §6 — message unique, sans détail technique : le membre
           // n'a pas à savoir QUEL signal a détecté le doublon.
           { tone: "warn", title: "Ce ticket a déjà été utilisé." }
-        : !visitor && parseStatus === "done" && precheck?.duplicate
+        : !visitor && parseStatus === "done" && precheckDuplicate
           ? {
               tone: "warn",
-              title: "Ce numéro de ticket a déjà été utilisé",
-              hint: `Vérifie le ${keyLabel.toLowerCase()} ci-dessous — ou reprends la photo si ce n'est pas le bon ticket.`,
+              title: "Ce ticket a déjà été utilisé",
+              hint: "Si ce n'est pas le bon ticket, reprends la photo.",
+              reframe: true,
             }
-          : !visitor && parseStatus === "done" && framingIssue && !manualEntry
+          : !visitor && parseStatus === "done" && framingIssue
             ? // ADR 0057 — photo incomplète : dire QUOI recadrer, et rouvrir la caméra.
               {
                 tone: "warn",
@@ -1058,23 +944,30 @@ export default function SubmitOrderClient({
               {topAlert.hint}
             </p>
           )}
-          {topAlert.reframe && (
+          {(topAlert.reframe || topAlert.retry) && (
             <div className="flex flex-wrap items-center gap-3 mt-3">
-              <button
-                type="button"
-                onClick={openCamera}
-                className="inline-flex items-center gap-2 bg-brand-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85"
-              >
-                <Camera className="w-4 h-4" aria-hidden="true" /> Reprendre la photo
-              </button>
-              {/* ADR 0057 — au bout de deux photos ratées, jamais bloqué. */}
-              {!visitor && preview && framingFailures >= 2 && (
+              {/* Coupure pendant l'envoi : la même photo repart. */}
+              {topAlert.retry && (
                 <button
                   type="button"
-                  onClick={enterManualEntry}
-                  className={`text-xs underline ${topAlert.tone === "error" ? "text-red-700" : "text-orange-900"}`}
+                  onClick={() => void retrySend()}
+                  className="inline-flex items-center gap-2 bg-brand-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85"
                 >
-                  Je n&apos;y arrive pas, saisir à la main
+                  Réessayer l&apos;envoi
+                </button>
+              )}
+              {/* ADR 0058 — la seule façon de corriger un ticket : une nouvelle photo. */}
+              {topAlert.reframe && (
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  className={
+                    topAlert.retry
+                      ? `text-xs underline ${topAlert.tone === "error" ? "text-red-700" : "text-orange-900"}`
+                      : "inline-flex items-center gap-2 bg-brand-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-red/85"
+                  }
+                >
+                  {!topAlert.retry && <Camera className="w-4 h-4" aria-hidden="true" />} Reprendre la photo
                 </button>
               )}
             </div>
@@ -1342,173 +1235,9 @@ export default function SubmitOrderClient({
         </button>
       )}
 
-      {/* Formulaire — visible après analyse réussie, réservé aux membres
-          connectés (un visiteur ne peut pas soumettre, /api/orders exige une
-          session — ADR 0045). */}
-      {parseStatus === "done" && !visitor && !autoSending && (!framingIssue || manualEntry) && (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Clé de commande — lue par l'OCR mais TOUJOURS corrigeable : une
-              lecture fausse (année…) ne doit jamais enfermer le membre dans
-              une boucle d'erreurs (incident Kasia, 2026-08-22). */}
-          {orderNumberEditable && !keyCorrected && orderNumber === "" && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-              <p className="text-orange-800 text-sm font-semibold">{keyLabel} non détecté</p>
-              <p className="text-orange-700 text-xs mt-1">
-                Entre le numéro manuellement si tu le vois sur ton ticket,
-                ou laisse vide — ta commande sera vérifiée manuellement sous 2h.
-              </p>
-            </div>
-          )}
-          {keyCorrected && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-              <p className="text-amber-900 text-sm font-semibold">Vérifie le {keyLabel.toLowerCase()}</p>
-              <p className="text-amber-800 text-xs mt-1">
-                L&apos;année lue sur le ticket semblait erronée et a été corrigée automatiquement.
-                Compare avec ton ticket et corrige si besoin.
-              </p>
-            </div>
-          )}
-
-          {/* Étape 06 — récap en 2 lignes, modifiables AU TAP : plus de
-              formulaire à relire, on tape la ligne qu'on veut corriger. */}
-          <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
-            <div className="p-4">
-              {amountEditable ? (
-                <label className="block">
-                  <span className="text-xs font-medium text-gray-500">Montant total (€)</span>
-                  <div className="relative mt-1">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      min="1"
-                      max="500"
-                      step="0.01"
-                      placeholder="Ex : 12.50"
-                      required
-                      autoFocus
-                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-gray-900"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">€</span>
-                  </div>
-                </label>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setAmountEditable(true)}
-                  className="w-full flex items-center justify-between gap-2 text-left"
-                >
-                  <span className="text-sm text-gray-500">Montant</span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-lg font-black text-gray-900 tabular-nums">
-                      {Number(amount) > 0 ? `${Number(amount).toFixed(2)} €` : "—"}
-                    </span>
-                    <span className="text-xs font-semibold text-brand-red">Modifier</span>
-                  </span>
-                </button>
-              )}
-            </div>
-            <div className="p-4">
-              {orderNumberEditable ? (
-                <label className="block">
-                  <span className="text-xs font-medium text-gray-500">{keyLabel}</span>
-                  <input
-                    type="text"
-                    value={orderNumber}
-                    onChange={(e) => setOrderNumber(e.target.value)}
-                    placeholder={keyExample ?? ""}
-                    className="mt-1 w-full px-4 py-3 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono text-sm"
-                  />
-                </label>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setOrderNumberEditable(true)}
-                  className="w-full flex items-center justify-between gap-2 text-left"
-                >
-                  <span className="text-sm text-gray-500 shrink-0">{keyLabel}</span>
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-sm text-gray-900 truncate">{orderNumber || "—"}</span>
-                    <span className="text-xs font-semibold text-brand-red shrink-0">Modifier</span>
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Étape 06 — le doublon se voit À LA SAISIE, pas en rejet après
-              l'envoi ; sinon, le cadeau visé est mis en évidence (libellé
-              prudent : la validation est différée, ADR 0008 — jamais de
-              cadeau promis comme acquis). */}
-          {/* Le doublon lui-même s'annonce en haut de l'écran (ADR 0056 §4). */}
-          {precheck?.duplicate ? null : precheck?.reward ? (
-            // Même palette verte fixe que la carte de gain visiteur
-            // (TicketGainCard) : brand-gold résout en rouge pour Kraainem, et
-            // le cadeau visé s'affichait dans un encadré rose — lu comme une
-            // alerte à l'endroit exact où l'on annonce une bonne nouvelle.
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={foodIconUrl(precheck.reward)} alt="" aria-hidden="true" className="w-14 h-14 shrink-0" />
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Cadeau visé</p>
-                <p className="font-black text-gray-900">{precheck.reward}</p>
-                <p className="text-xs text-gray-500">À récupérer au comptoir après validation.</p>
-              </div>
-            </div>
-          ) : precheck?.next_tier ? (
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-gray-600">Prochain cadeau</span>
-                <span className="font-bold text-gray-900 inline-flex items-center gap-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={foodIconUrl(precheck.next_tier.item)} alt="" className="w-5 h-5" />
-                  {precheck.next_tier.item}
-                </span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brand-red rounded-full transition-all"
-                  style={{ width: `${Math.max(precheck.next_tier.pct, 4)}%` }}
-                />
-              </div>
-            </div>
-          ) : null}
-
-          {submitStatus === "loading" && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-2xl animate-spin">⏳</span>
-              <div>
-                <p className="font-semibold text-blue-900 text-sm">Vérification en cours...</p>
-                <p className="text-blue-700 text-xs mt-0.5">
-                  Analyse de ton ticket en cours, merci de patienter.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* ADR 0055 — collé au-dessus de la barre du bas (≈ 58 px + le
-              bouton photo qui dépasse de 24 px, + zone sûre iOS) tant que le
-              récap est à l'écran : le bouton ne doit jamais demander de
-              scroller, quelle que soit la hauteur d'écran ou le nombre
-              d'alertes au-dessus. */}
-          <button
-            type="submit"
-            disabled={submitStatus === "loading" || precheck?.duplicate === true}
-            className="sticky bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[5] w-full bg-brand-red text-white py-4 px-4 rounded-xl font-semibold text-lg shadow-lg hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {submitStatus === "loading" ? "Vérification en cours..." : "Envoyer mon ticket"}
-          </button>
-
-          {/* Étape 06 — la confirmation « pas via une plateforme » n'est plus
-              une case bloquante mais une mention à l'envoi (la règle est déjà
-              affichée avant, étape 03). */}
-          <p className="text-center text-xs text-gray-400">
-            En envoyant, tu confirmes une commande passée directement au restaurant{" "}
-            {restaurantName} — pas via une plateforme de livraison.
-          </p>
-        </form>
-      )}
+      {/* ADR 0058 — il n'y a plus de récap : ni montant ni numéro ne se
+          modifient. Une lecture complète part toute seule ; une lecture
+          incomplète se reprend en photo (message en haut de l'écran). */}
     </div>
   );
 }
