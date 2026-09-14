@@ -14,6 +14,7 @@ import { beaconFunnelStep } from "@/lib/funnel-beacon";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
+import { canAutoSend } from "@/lib/ticket-auto-send";
 import { memoriserCadeauAReclamer } from "@/lib/claim-reward";
 import { PostTicketSheet } from "@/components/member/PostTicketSheet";
 import TicketGainCard from "@/components/member/TicketGainCard";
@@ -23,6 +24,22 @@ import { createClient } from "@/lib/supabase-browser";
 
 type SubmitStatus = "idle" | "loading" | "success_validated" | "success_pending" | "error" | "duplicate";
 type ParseStatus = "idle" | "parsing" | "done" | "error";
+
+// Réponse de l'aperçu OCR (/api/orders/parse-receipt) — noms d'articles et
+// proportion de barre uniquement côté cadeau (ADR 0007/0028).
+type ParsedReceipt = {
+  order_number?: string | null;
+  amount?: number | null;
+  confidence?: number | null;
+  has_restaurant_header?: boolean;
+  key_label?: string | null;
+  key_example?: string | null;
+  key_corrected?: boolean;
+  has_reliable_key?: boolean;
+  scan_id?: string | null;
+  reward?: string | null;
+  next_tier?: { item: string; pct: number } | null;
+};
 
 // Repris de la landing (ADR 0042) — même repère 1-2-3 tout au long du
 // parcours visiteur, retour terrain 2026-08-30.
@@ -115,6 +132,10 @@ export default function SubmitOrderClient({
     duplicate: boolean;
   } | null>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
+  // ADR 0055 — lecture propre : le ticket part sans passer par le récap. Vrai
+  // du verdict « lecture propre » jusqu'à la réponse de /api/orders ; le récap
+  // ne réapparaît que si l'envoi échoue ou tombe sur un doublon.
+  const [autoSending, setAutoSending] = useState(false);
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
   // à annoncer, et on propose d'en rejoindre une depuis l'écran de succès.
   const [hasTeam, setHasTeam] = useState(true);
@@ -148,7 +169,9 @@ export default function SubmitOrderClient({
   // un doublon — AVANT l'envoi. Best-effort : un échec n'affiche rien de
   // spécial, le 409 de /api/orders reste le filet.
   useEffect(() => {
-    if (visitor || parseStatus !== "done") return;
+    // Pendant l'envoi automatique (ADR 0055), le doublon est déjà vérifié par
+    // sendIfClean — inutile de doubler l'appel.
+    if (visitor || parseStatus !== "done" || autoSending) return;
     const t = setTimeout(async () => {
       try {
         const res = await fetch("/api/orders/precheck", {
@@ -177,7 +200,7 @@ export default function SubmitOrderClient({
       }
     }, 500);
     return () => clearTimeout(t);
-  }, [visitor, parseStatus, amount, orderNumber, restaurantId]);
+  }, [visitor, parseStatus, autoSending, amount, orderNumber, restaurantId]);
 
   // Retour de connexion OU tap sur le bandeau « ton ticket t'attend » de la
   // vitrine (`?resume=1`) : la photo attend dans l'appareil, on la recharge et
@@ -191,10 +214,9 @@ export default function SubmitOrderClient({
     (async () => {
       const file = await loadPendingTicket(restaurantId);
       if (!file || cancelled) return;
-      // Côté visiteur, la photo doit SURVIVRE à ce rechargement (le compte
-      // n'existe pas encore) — acceptFile la re-sauve ; on ne l'efface que
-      // pour un membre connecté, dont la soumission suit.
-      if (!visitor) await clearPendingTicket(restaurantId);
+      // La photo SURVIT à ce rechargement, visiteur comme membre (ADR 0055) :
+      // acceptFile la re-sauve, et seule la réponse de /api/orders l'efface.
+      // L'effacer ici perdait le ticket d'un membre qui quittait avant l'envoi.
       track("visitor_ticket_resumed", { restaurant_id: restaurantId });
       await acceptFile(file);
     })();
@@ -226,7 +248,6 @@ export default function SubmitOrderClient({
     const file = pendingFile;
     if (!file) return;
     setPendingFile(null);
-    if (!visitor) await clearPendingTicket(restaurantId);
     track("visitor_ticket_resumed", { restaurant_id: restaurantId });
     await acceptFile(file);
   }
@@ -238,6 +259,8 @@ export default function SubmitOrderClient({
   // Vercel → « erreur réseau » → 6 essais.
   async function acceptFile(file: File | undefined | null) {
     if (!file) return;
+    let reading: ParsedReceipt | null = null;
+    let readFile: File | null = null;
     setParseStatus("idle");
     setParseError("");
     setOrderNumber("");
@@ -289,18 +312,19 @@ export default function SubmitOrderClient({
       // membre déjà inscrit, et c'est le rapport photo → envoi qui nous
       // intéresse. GA4 est aveugle ici (Consent Mode v2 refuse par défaut).
       beaconFunnelStep(restaurantId, "ticket_capture_opened");
-      if (visitor) {
-        // La photo reste sur l'appareil en attendant le compte (ADR 0040) ;
-        // l'aperçu OCR tourne quand même — non authentifié, bridé par IP
-        // (ADR 0045) — pour prouver que le scan a marché avant de demander
-        // le compte.
-        await savePendingTicket(restaurantId, prepared.file);
-        track("visitor_ticket_captured", { restaurant_id: restaurantId });
-      }
-      await analyseReceipt(prepared.file);
+      // La photo reste sur l'appareil jusqu'à ce que le serveur ait le ticket :
+      // le visiteur en attendant son compte (ADR 0040), le membre en attendant
+      // l'envoi (ADR 0055) — s'il quitte avant, le bandeau « Ton ticket
+      // t'attend » la lui rend. L'aperçu OCR tourne dans les deux cas
+      // (visiteur : non authentifié, bridé par IP — ADR 0045).
+      await savePendingTicket(restaurantId, prepared.file);
+      if (visitor) track("visitor_ticket_captured", { restaurant_id: restaurantId });
+      readFile = prepared.file;
+      reading = await analyseReceipt(prepared.file);
     } finally {
       setPreparing(false);
     }
+    if (readFile && reading) await sendIfClean(readFile, reading);
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -342,9 +366,9 @@ export default function SubmitOrderClient({
     }
   }
 
-  async function analyseReceipt(fileArg?: File) {
+  async function analyseReceipt(fileArg?: File): Promise<ParsedReceipt | null> {
     const file = fileArg ?? receiptFile;
-    if (!file) return;
+    if (!file) return null;
     setParseStatus("parsing");
     setParseError("");
 
@@ -364,25 +388,17 @@ export default function SubmitOrderClient({
 
       // Jamais `res.json()` à l'aveugle : un 413/502 de la plateforme est du
       // texte, et tombait dans le catch « erreur réseau » (faux, re-essais).
-      const { ok, status, data: parsedData } = await readJsonSafe<{
-        order_number?: string | null;
-        amount?: number | null;
-        confidence?: number | null;
-        has_restaurant_header?: boolean;
-        key_label?: string | null;
-        key_example?: string | null;
-        key_corrected?: boolean;
-        scan_id?: string | null;
-        reward?: string | null;
-        next_tier?: { item: string; pct: number } | null;
-        error?: string;
-      }>(res);
+      const { ok, status, data: parsedData } = await readJsonSafe<ParsedReceipt & { error?: string }>(res);
       const data = parsedData ?? {};
 
       if (!ok) {
+        // 422 : l'aperçu a refusé la photo (pas un ticket, affiche). Inutile
+        // de la reproposer au membre via « Ton ticket t'attend » (ADR 0055).
+        // La photo du visiteur suit son parcours inchangé (ADR 0045).
+        if (status === 422 && !visitor) void clearPendingTicket(restaurantId);
         setParseStatus("error");
         setParseError(describeUploadFailure(status, data.error));
-        return;
+        return null;
       }
 
       setParseStatus("done");
@@ -409,6 +425,7 @@ export default function SubmitOrderClient({
       setNoRestaurantHeader(!(data.has_restaurant_header ?? true));
       setGainReward(data.reward ?? null);
       setGainNextTier(data.next_tier ?? null);
+      return data;
     } catch (err) {
       setParseStatus("error");
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -416,34 +433,112 @@ export default function SubmitOrderClient({
       } else {
         setParseError("Erreur réseau. Vérifie ta connexion et réessaie.");
       }
+      return null;
     } finally {
       clearTimeout(timeout);
     }
   }
 
+  // ADR 0055 — lecture propre : le ticket part sans passer par le récap. Le
+  // doublon est vérifié d'abord (best-effort : si le précheck échoue, le 409
+  // de /api/orders reste le filet). Tout échec rend la main au récap, déjà
+  // rempli par l'aperçu, qui affiche le message et le bouton.
+  async function sendIfClean(file: File, reading: ParsedReceipt) {
+    if (visitor || !canAutoSend(reading)) return;
+    setAutoSending(true);
+    const readOrderNumber = reading.order_number?.trim() ?? "";
+    try {
+      const res = await fetch("/api/orders/precheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId, amount: reading.amount, order_number: readOrderNumber }),
+      });
+      const { data } = await readJsonSafe<{
+        reward?: string | null;
+        next_tier?: { item: string; pct: number } | null;
+        duplicate?: boolean;
+      }>(res);
+      if (res.ok && data) {
+        const duplicate = data.duplicate === true;
+        setPrecheck({ reward: data.reward ?? null, next_tier: data.next_tier ?? null, duplicate });
+        if (duplicate) {
+          setAutoSending(false);
+          return;
+        }
+      }
+    } catch {
+      // silencieux — le serveur tranche à l'envoi
+    }
+    await submitTicket({
+      file,
+      orderNumber: readOrderNumber,
+      amount: String(reading.amount),
+      scanId: reading.scan_id ?? null,
+      ocrAmount: reading.amount ?? null,
+      ocrConfidence: reading.confidence ?? null,
+      noRestaurantHeader: !(reading.has_restaurant_header ?? true),
+      autoSent: true,
+    });
+    setAutoSending(false);
+  }
+
+  // Relance manuelle de l'analyse après une erreur : même suite qu'une photo
+  // neuve, une lecture propre part toute seule.
+  async function retryAnalysis() {
+    const file = receiptFile;
+    if (!file) return;
+    const reading = await analyseReceipt(file);
+    if (reading) await sendIfClean(file, reading);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!receiptFile) return;
+    await submitTicket({
+      file: receiptFile,
+      orderNumber,
+      amount,
+      scanId,
+      ocrAmount,
+      ocrConfidence,
+      noRestaurantHeader,
+      autoSent: false,
+    });
+  }
 
+  // Valeurs passées explicitement et non lues dans le state : l'envoi
+  // automatique part dans le même tour que l'aperçu, avant que React n'ait
+  // appliqué les setState de analyseReceipt.
+  async function submitTicket(t: {
+    file: File;
+    orderNumber: string;
+    amount: string;
+    scanId: string | null;
+    ocrAmount: number | null;
+    ocrConfidence: number | null;
+    noRestaurantHeader: boolean;
+    autoSent: boolean;
+  }) {
     setSubmitStatus("loading");
     setErrorMsg("");
 
     const formData = new FormData();
-    formData.append("receipt", receiptFile);
-    formData.append("order_number", orderNumber);
-    formData.append("amount", amount);
+    formData.append("receipt", t.file);
+    formData.append("order_number", t.orderNumber);
+    formData.append("amount", t.amount);
     formData.append("restaurantId", restaurantId);
-    if (ocrAmount !== null)      formData.append("ocr_amount", String(ocrAmount));
-    if (ocrConfidence !== null)  formData.append("ocr_confidence", String(ocrConfidence));
-    if (noRestaurantHeader)      formData.append("no_restaurant_header", "true");
-    if (scanId !== null)         formData.append("scan_id", scanId);
+    if (t.ocrAmount !== null)      formData.append("ocr_amount", String(t.ocrAmount));
+    if (t.ocrConfidence !== null)  formData.append("ocr_confidence", String(t.ocrConfidence));
+    if (t.noRestaurantHeader)      formData.append("no_restaurant_header", "true");
+    if (t.scanId !== null)         formData.append("scan_id", t.scanId);
 
     // Le montant part en tranche, jamais en euros (ADR 0028) : la charge utile
     // d'un événement analytics est lisible côté client.
     track("order_submitted", {
       restaurant_id: restaurantId,
-      amount_band: amountBand(Number(amount)),
+      amount_band: amountBand(Number(t.amount)),
       has_receipt_photo: true,
+      auto_sent: t.autoSent,
     });
 
     // Délai artificiel 3–5s + fetch en parallèle (ADR 0008)
@@ -462,6 +557,11 @@ export default function SubmitOrderClient({
         has_reward?: boolean;
       }>(res);
       const data = submitData ?? {};
+
+      // Le serveur a tranché : ticket enregistré ou déjà utilisé. La photo
+      // n'a plus rien à attendre sur l'appareil (ADR 0055). Une autre erreur
+      // (date refusée, réseau) la garde pour un nouvel essai.
+      if (res.status === 201 || res.status === 409) void clearPendingTicket(restaurantId);
 
       if (res.status === 201) {
         const validated = data.status === "validated";
@@ -685,14 +785,19 @@ export default function SubmitOrderClient({
     );
   }
 
-  // ADR 0048 — côté visiteur, l'écran change de sujet dès que la photo est
-  // là : la consigne a fait son travail, la suite est le gain puis le compte.
-  // La garder en 4xl sur deux lignes repoussait les boutons de connexion sous
-  // la ligne de flottaison (mesuré à 390×844 : bouton Google à 901 px, 749 px
-  // sans elle). Basculé sur `preview` et non sur la fin de l'analyse, pour ne
-  // pas faire sauter la mise en page au milieu des 2 à 6 s d'OCR. Le logo
-  // reste — c'est le repère d'établissement, pas une consigne.
-  const visitorPhotoTaken = visitor && !!preview;
+  // ADR 0048 §6, étendu au membre par ADR 0055 — l'écran change de sujet dès
+  // que la photo est là : la consigne a fait son travail. La garder en 4xl sur
+  // deux lignes repoussait la suite sous la ligne de flottaison — les boutons
+  // de connexion du visiteur (bouton Google à 901 px à 390×844, 749 px sans
+  // elle), et « Envoyer mon ticket » du membre (~870 px sur 360×800, terrain
+  // 2026-09-14 : la personne croyait avoir fini et quittait l'app). Basculé
+  // sur `preview` et non sur la fin de l'analyse, pour ne pas faire sauter la
+  // mise en page au milieu des 2 à 6 s d'OCR. Le logo reste — c'est le repère
+  // d'établissement, pas une consigne.
+  const photoTaken = !!preview;
+  // Aucun changement de photo pendant qu'un envoi est en vol : la réponse
+  // arriverait pour l'ancienne.
+  const sending = autoSending || submitStatus === "loading";
 
   return (
     <div>
@@ -702,10 +807,10 @@ export default function SubmitOrderClient({
           <img
             src={logoUrl}
             alt=""
-            className={`block mx-auto h-14 w-auto object-contain ${visitorPhotoTaken ? "" : "mb-6"}`}
+            className={`block mx-auto h-14 w-auto object-contain ${photoTaken ? "" : "mb-6"}`}
           />
         ) : null}
-        {!visitorPhotoTaken && (
+        {!photoTaken && (
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">
             Prends ton ticket en photo
           </h1>
@@ -746,20 +851,18 @@ export default function SubmitOrderClient({
             <img
               src={preview}
               alt="Ticket de caisse"
-              // ADR 0045 — côté visiteur, la photo cède la place à la preuve
-              // du scan (montant OCR) et aux boutons de connexion : vignette
-              // plutôt qu'aperçu pleine taille.
-              className={
-                visitor
-                  ? "h-20 w-20 mx-auto rounded-lg object-cover"
-                  : "max-h-56 mx-auto rounded-lg object-contain"
-              }
+              // ADR 0045 puis 0055 — la photo cède la place à la suite (preuve
+              // du scan et connexion côté visiteur, envoi ou récap côté
+              // membre) : vignette plutôt qu'aperçu pleine taille. Le ticket
+              // papier est dans la main, l'aperçu géant n'apprend rien.
+              className="h-20 w-20 mx-auto rounded-lg object-cover"
             />
             <div className="flex justify-center gap-2 mt-3">
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
+                disabled={sending}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-50"
               >
                 <Camera className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 Reprendre
@@ -767,7 +870,8 @@ export default function SubmitOrderClient({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200"
+                disabled={sending}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-50"
               >
                 <Images className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 Autre photo
@@ -837,6 +941,12 @@ export default function SubmitOrderClient({
             </p>
             <p className="text-xs text-gray-400 mt-1">
               Ticket très long ? Photographie seulement la partie où ils apparaissent — inutile de tout cadrer.
+            </p>
+            {/* ADR 0055 — une lecture propre part toute seule : c'est la photo
+                qui envoie, la confirmation l'accompagne donc ici. */}
+            <p className="text-xs text-gray-400 mt-3">
+              En prenant la photo, tu confirmes une commande passée directement au restaurant{" "}
+              {restaurantName} — pas via une plateforme de livraison.
             </p>
           </div>
         )}
@@ -941,15 +1051,29 @@ export default function SubmitOrderClient({
         </div>
       )}
 
+      {/* ADR 0055 — côté membre, un seul état d'attente de la photo au
+          résultat : la lecture puis, si elle est propre, l'envoi (délai
+          ADR 0008 inclus). Aucun bouton à trouver entre les deux. */}
+      {!visitor && preview && (preparing || parseStatus === "parsing" || autoSending) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex items-center gap-3">
+          <span className="text-2xl animate-spin">⏳</span>
+          <div>
+            <p className="font-semibold text-blue-900 text-sm">
+              {autoSending ? "Vérification en cours..." : "Lecture de ton ticket…"}
+            </p>
+            <p className="text-blue-700 text-xs mt-0.5">Reste sur cet écran, c&apos;est presque fini.</p>
+          </div>
+        </div>
+      )}
+
       {/* L'analyse part automatiquement après la photo ; ce bouton ne sert
           qu'à relancer après une erreur (ou si l'auto-lancement a échoué). */}
-      {!visitor && preview && parseStatus !== "done" && (
+      {!visitor && preview && !preparing && (parseStatus === "idle" || parseStatus === "error") && (
         <button
-          onClick={() => analyseReceipt()}
-          disabled={parseStatus === "parsing" || preparing}
+          onClick={() => void retryAnalysis()}
           className="w-full bg-brand-red text-white py-3 px-4 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors mb-4"
         >
-          {parseStatus === "parsing" ? "Analyse en cours..." : parseStatus === "error" ? "Réessayer l'analyse" : "Analyser le ticket"}
+          {parseStatus === "error" ? "Réessayer l'analyse" : "Analyser le ticket"}
         </button>
       )}
 
@@ -969,7 +1093,7 @@ export default function SubmitOrderClient({
       {/* Formulaire — visible après analyse réussie, réservé aux membres
           connectés (un visiteur ne peut pas soumettre, /api/orders exige une
           session — ADR 0045). */}
-      {parseStatus === "done" && !visitor && (
+      {parseStatus === "done" && !visitor && !autoSending && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Clé de commande — lue par l'OCR mais TOUJOURS corrigeable : une
               lecture fausse (année…) ne doit jamais enfermer le membre dans
@@ -1132,10 +1256,15 @@ export default function SubmitOrderClient({
             </div>
           )}
 
+          {/* ADR 0055 — collé au-dessus de la barre du bas (≈ 58 px + le
+              bouton photo qui dépasse de 24 px, + zone sûre iOS) tant que le
+              récap est à l'écran : le bouton ne doit jamais demander de
+              scroller, quelle que soit la hauteur d'écran ou le nombre
+              d'alertes au-dessus. */}
           <button
             type="submit"
             disabled={submitStatus === "loading" || precheck?.duplicate === true}
-            className="w-full bg-brand-red text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="sticky bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[5] w-full bg-brand-red text-white py-4 px-4 rounded-xl font-semibold text-lg shadow-lg hover:bg-brand-red/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitStatus === "loading" ? "Vérification en cours..." : "Envoyer mon ticket"}
           </button>

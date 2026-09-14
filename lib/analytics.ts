@@ -112,6 +112,8 @@ export type AnalyticsEventMap = {
     restaurant_id: string;
     amount_band: AmountBand;
     has_receipt_photo: boolean;
+    /** Parti tout seul après une lecture propre, sans tap sur « Envoyer » (ADR 0055). */
+    auto_sent: boolean;
   };
   /** Verdict rendu au membre après la soumission. */
   order_result: {

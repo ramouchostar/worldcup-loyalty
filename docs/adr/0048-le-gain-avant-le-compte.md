@@ -5,6 +5,7 @@
 l'[ADR 0028](0028-points-decoupled-from-euros.md) §5. Lot 2 du parcours cible
 « le ticket avant tout ». Ne change rien au calcul des points ni des cadeaux
 (**ADR 0006**, **0017**, **0021**), ni à l'anti-fraude (**ADR 0008**).
+§6 étendu au membre connecté par [ADR 0055](0055-le-ticket-part-tout-seul.md).
 
 > **Où sont les documents source.** L'audit (`docs/audit-parcours.md`) et le plan
 > (`docs/plan-parcours-cible.md`, arbitrages du porteur du 2026-09-04) vivent sur
