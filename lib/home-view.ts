@@ -49,3 +49,22 @@ export function reserveView(balance: number, tiers: SaverTier[]): ReserveView {
     : 100;
   return { balance: safeBalance, reachable, next, pct };
 }
+
+/**
+ * Pastille d'état du bandeau, visible sur tous les écrans (ADR 0059 §3) :
+ * ce qui appelle une action. Le cadeau qui attend passe avant tout ; sinon
+ * le solde de la réserve, seulement là où un gros cadeau est actif — sans
+ * rien à échanger, un solde n'appelle aucune action. `null` : rien à
+ * signaler, seule la pastille des jetons reste.
+ */
+export type HeaderStatus = { kind: "gift" } | { kind: "reserve"; balance: number } | null;
+
+export function headerStatus(input: {
+  hasGift: boolean;
+  reserveBalance: number;
+  activeSaverTiers: number;
+}): HeaderStatus {
+  if (input.hasGift) return { kind: "gift" };
+  if (input.activeSaverTiers > 0) return { kind: "reserve", balance: Math.max(0, input.reserveBalance) };
+  return null;
+}

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reserveView, ticketPromiseItems } from "./home-view";
+import { headerStatus, reserveView, ticketPromiseItems } from "./home-view";
 
 const tier = (min: number, item: string) => ({ min, item, cost: 1 });
 
@@ -46,4 +46,16 @@ test("réserve : tout est atteignable, solde négatif ramené à zéro", () => {
   assert.equal(all.pct, 100);
   assert.equal(reserveView(-5, saver).balance, 0);
   assert.equal(reserveView(10, []).next, null);
+});
+
+test("bandeau : le cadeau qui attend passe avant la réserve", () => {
+  assert.deepEqual(headerStatus({ hasGift: true, reserveBalance: 90, activeSaverTiers: 2 }), { kind: "gift" });
+});
+
+test("bandeau : la réserve seulement là où un gros cadeau est actif", () => {
+  assert.deepEqual(headerStatus({ hasGift: false, reserveBalance: 44, activeSaverTiers: 1 }), { kind: "reserve", balance: 44 });
+  assert.deepEqual(headerStatus({ hasGift: false, reserveBalance: 0, activeSaverTiers: 1 }), { kind: "reserve", balance: 0 });
+  // Kraainem aujourd'hui : un solde, mais rien à échanger → pas de pastille
+  assert.equal(headerStatus({ hasGift: false, reserveBalance: 44, activeSaverTiers: 0 }), null);
+  assert.deepEqual(headerStatus({ hasGift: false, reserveBalance: -3, activeSaverTiers: 1 }), { kind: "reserve", balance: 0 });
 });

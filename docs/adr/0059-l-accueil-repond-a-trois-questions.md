@@ -59,6 +59,24 @@ des jetons, carte photo, parrainage, bloc équipe, quatre tuiles, historique. Co
 La logique d'affichage (cadeaux promis, vue de la réserve) est pure et testée dans
 `lib/home-view.ts`.
 
+### 3. Le bandeau : des pastilles qui mènent quelque part *(complément du 2026-09-14)*
+
+Le bandeau en haut de chaque écran membre affichait le total des points courbés (il ne
+s'échange contre rien) et les jetons, sans lien ni l'un ni l'autre. Il affiche désormais
+deux pastilles **cliquables** :
+
+- **une pastille d'état** : « 🎁 Cadeau prêt » quand un cadeau attend (→ Mes cadeaux) ;
+  sinon le solde de la réserve, **seulement là où un gros cadeau est actif**
+  (→ Ma réserve) ; sinon rien ;
+- **les jetons** X/4 (→ Actions).
+
+Le total des points courbés quitte le bandeau ; les points restent visibles ticket par
+ticket dans l'historique. Règle pure et testée : `headerStatus` dans `lib/home-view.ts`.
+
+Choix du porteur : « Mettre de côté » reste proposé même là où aucun gros cadeau n'est
+actif (Kraainem au 2026-09-14). La pastille réserve, elle, n'apparaît qu'avec quelque
+chose à échanger.
+
 ## Alternatives rejetées
 
 - **Garder le gros compteur de points** : un nombre qui ne s'échange contre rien détourne
