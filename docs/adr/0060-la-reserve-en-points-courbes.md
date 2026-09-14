@@ -47,7 +47,12 @@ serveur.
 - **Kraainem**, sans gros cadeau actif, reçoit trois gros cadeaux par défaut (décision du
   porteur) : 170, 345 et 515 points avec un panier moyen de 18,86 €.
 
-Migration `docs/migrations/20260914-1932-reserve-points-courbes.sql`, rejouable (marqueur).
+Migration **`docs/migrations/20260914-2010-reserve-points-courbes-correctif.sql`**, rejouable
+(marqueur). Elle remplace `20260914-1932-reserve-points-courbes.sql`, qui n'a jamais été
+appliquée : sa conversion des seuils, écrite en une seule instruction, heurtait la contrainte
+d'unicité (seuil 150 converti en 400 alors que le seuil 400 n'était pas encore converti,
+établissement de démonstration) et la transaction a tout annulé. La version corrigée convertit
+les seuils un par un, dans l'ordre qui ne croise jamais un seuil non converti.
 
 ## Alternatives rejetées
 
