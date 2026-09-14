@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import type { PendingReward } from "@/types";
 import { RedeemButton } from "./RedeemButton";
 import { foodIconUrl } from "@/lib/food-icon";
+import { pointsForOrder } from "@/lib/points-model";
 import { BankButton } from "./BankButton";
 
 // Montant de la commande d'origine (jointure RLS own-read) — sert à
@@ -152,7 +153,9 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
   // Seuls les cadeaux issus d'une commande se mettent de côté (ADR 0021) —
   // un cadeau échangé depuis la réserve (order_id NULL) ne se re-banke pas.
   const canBank     = isAvailable && reward.order_id !== null;
-  const bankPoints  = reward.orders ? Math.floor(Number(reward.orders.amount)) : null;
+  // Points courbés du ticket (ADR 0060) — le montant arrondi laissait
+  // deviner les euros.
+  const bankPoints  = reward.orders ? pointsForOrder(Number(reward.orders.amount)) : null;
 
   const expiresAt = new Date(new Date(reward.created_at).getTime() + 48 * 60 * 60 * 1000);
   const hoursLeft = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)));

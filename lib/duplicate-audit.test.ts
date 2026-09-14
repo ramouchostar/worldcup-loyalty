@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { replayDuplicates, buildAuditReport, type AuditOrder } from "./duplicate-audit";
+import { pointsForOrder } from "./points-model";
 import type { FingerprintLine } from "./receipt-fingerprint";
 
 const TICKET: FingerprintLine[] = [
@@ -122,8 +123,11 @@ test("le rapport compte les points et les euros comptés deux fois", () => {
   assert.match(md, /# Audit rétroactif des doublons/);
   assert.match(md, /Ce rapport ne modifie rien/);
   assert.match(md, /Doublons \*\*certains\*\* \| \*\*1\*\*/);
-  // floor(17,90) = 17 points crédités en trop.
-  assert.match(md, /Points crédités en trop \(doublons certains\) \| \*\*17\*\*/);
+  // ADR 0060 — les points courbés du ticket de 17,90 €, plus le montant
+  // arrondi (17) qui laissait deviner les euros.
+  const pointsEnTrop = pointsForOrder(17.9);
+  assert.notEqual(pointsEnTrop, 17);
+  assert.match(md, new RegExp(`Points crédités en trop \\(doublons certains\\) \\| \\*\\*${pointsEnTrop}\\*\\*`));
   assert.match(md, /17,90 €/);
   assert.match(md, /Kasia/);
   assert.match(md, /2026-08-22\/223\/08223/);

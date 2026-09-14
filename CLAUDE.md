@@ -50,9 +50,9 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - **ADR 0058 — le ticket ne se corrige pas** : `/api/orders` n'accepte qu'une photo et n'utilise **que la lecture OCR serveur** pour le montant et la clé ; tout `amount` / `order_number` venu du client est ignoré. Lecture incomplète (total, clé, année réparée) → 422 « reprends la photo », rien n'est créé. Ne jamais réintroduire de saisie ou de correction côté membre, ni de route acceptant des valeurs sans photo
 
 ### ADR 0021 — Réserve de points personnelle
-- « Mettre de côté » (onglet récompenses) : cadeau `available` → `banked`, crédit `floor(montant commande)` points dans le ledger `point_transactions` (jamais de colonne solde)
+- « Mettre de côté » (onglet récompenses et accueil) : cadeau `available` → `banked`, crédit `points_for_order(montant)` — **points courbés, jamais `floor(montant)`** (ADR 0060) — dans le ledger `point_transactions` (jamais de colonne solde, corrections en `admin_adjust`)
 - Le score communautaire n'est **jamais** affecté par ce choix (crédité à la validation du ticket)
-- Gros cadeaux : `reward_tiers` layer `saver`, seuils en points, plafond ADR 0017 (`cost_price ≤ seuil × 8%`)
+- Gros cadeaux : `reward_tiers` layer `saver`, seuils en points courbés (≈ 4 / 8 / 12 tickets moyens), plafond ADR 0017 par les tickets moyens : `cost_price ≤ seuil ÷ points_for_order(panier moyen) × panier moyen × 8%` (`saverCostCap` / SQL `saver_cost_cap`, ADR 0060)
 - Échange via RPC transactionnel → `pending_rewards` standard (cycle coupon inchangé) ; un cadeau `saver` n'est pas re-bankable
 - Budget ADR 0012 : coût re-crédité au bank, débité à l'échange
 - UI : « Ma réserve » — jamais « points » seuls (réservés au score communautaire), jamais de coûts sur `/api/saver-tiers`

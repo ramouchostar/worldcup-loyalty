@@ -4,6 +4,8 @@
 // Fonctions pures, sans dépendance serveur — importables côté client, mais les
 // VALEURS en euros qu'on leur passe restent service-role (ADR 0007).
 
+import { pointsForOrder } from "./points-model";
+
 export const DEFAULT_BUDGET_PCT = 0.08;
 
 // Panier moyen par défaut quand l'établissement n'a aucune commande validée
@@ -43,16 +45,28 @@ export function suggestSoloBands(
 // ─── Règle 1bis — paliers de la réserve (ADR 0021) ──────────────────────────
 
 // Multiplicateurs des paliers « saver » : la réserve doit valoir l'attente,
-// le premier gros cadeau arrive après ~4 commandes moyennes mises de côté.
+// le premier gros cadeau arrive après ~4 tickets moyens mis de côté.
 const SAVER_BAND_MULTIPLIERS = [4, 8, 12] as const;
 
-// Paliers de la réserve en POINTS. 1 point = 1 € dépensé (ADR 0021), donc le
-// plafond de coût d'un palier réutilise soloCostCap(seuil) tel quel.
+// Paliers de la réserve en POINTS COURBÉS (ADR 0060) : N tickets moyens mis
+// de côté = N × pointsForOrder(panier moyen). Miroir de la migration
+// 20260914-1932 (bloc 5c) — mêmes multiplicateurs, même arrondi à 5.
 export function suggestSaverBands(avgBasket: number): number[] {
   const safeBasket = avgBasket > 0 ? avgBasket : DEFAULT_AVG_BASKET;
-  const base = roundTo5(0.85 * safeBasket);
-  const bands = SAVER_BAND_MULTIPLIERS.map((m) => roundTo5(base * m));
+  const perTicket = pointsForOrder(safeBasket);
+  const bands = SAVER_BAND_MULTIPLIERS.map((m) => roundTo5(perTicket * m));
   return bands.filter((b, i) => i === 0 || b > bands[i - 1]);
+}
+
+// Plafond de coût d'un gros cadeau de réserve (ADR 0017 + ADR 0060). Le seuil
+// est en points courbés, non convertibles en euros un à un : on estime la
+// dépense qui l'a alimenté par le nombre de tickets moyens qu'il représente.
+// Miroir de la fonction SQL `saver_cost_cap`.
+export function saverCostCap(threshold: number, avgBasket: number, pct: number = DEFAULT_BUDGET_PCT): number {
+  const safeBasket = avgBasket > 0 ? avgBasket : DEFAULT_AVG_BASKET;
+  const perTicket = pointsForOrder(safeBasket);
+  if (perTicket <= 0) return 0;
+  return (threshold / perTicket) * safeBasket * pct;
 }
 
 // ─── Règle 2 — cadeau à coût pur (jetons) ────────────────────────────────────

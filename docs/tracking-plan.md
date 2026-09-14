@@ -25,8 +25,8 @@ En conséquence :
   les paliers solo : `lt_15`, `15_24`, `25_39`, `40_59`, `60_plus` ;
 - aucun paramètre `value`, `currency`, `total_revenue`, `target_revenue`,
   `community_score`, `cost_price` n'est jamais émis ;
-- `reward_banked` n'envoie pas le nombre de points crédités — c'est
-  `floor(montant)`, donc le montant en clair.
+- `reward_banked` n'envoie pas le nombre de points crédités — ce sont les
+  points courbés du ticket (ADR 0060), tirés du montant.
 
 > Corollaire : les rapports « e-commerce » et « revenu » de GA4 resteront vides,
 > et c'est voulu. Le chiffre d'affaires se lit dans la console restaurateur, qui

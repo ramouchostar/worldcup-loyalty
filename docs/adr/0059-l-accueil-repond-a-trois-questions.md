@@ -95,9 +95,8 @@ chose à échanger.
 
 ### À surveiller
 
-- **La réserve crédite le montant du ticket** (1 point par euro, ADR 0021) : un
-  « +25 » laisse deviner 25 €. Antérieur à l'ADR 0028 ; à aligner sur les points courbés
-  dans un chantier séparé.
+- **La réserve crédite le montant du ticket** (1 point par euro, ADR 0021) — **réglé** par
+  l'[ADR 0060](0060-la-reserve-en-points-courbes.md) : crédit et seuils en points courbés.
 - **Deux sortes de « points »** coexistent encore (points courbés dans l'historique, solde de
   réserve) : l'accueil n'affiche plus que la réserve, mais la question du vocabulaire reste
   ouverte.

@@ -27,8 +27,8 @@ export function BankButton({ points, size = "sm" }: { points: number | null; siz
         body: JSON.stringify({ restaurantId }),
       });
       if (res.ok) {
-        // Le nombre de points n'est pas envoyé : c'est `floor(montant)`, donc
-        // le montant de la commande en clair (ADR 0028).
+        // Le nombre de points n'est pas envoyé : même courbés (ADR 0060), ils
+        // restent tirés du montant du ticket (ADR 0028).
         track("reward_banked", { restaurant_id: restaurantId });
         router.push(`/r/${restaurantId}/reserve`);
         router.refresh();

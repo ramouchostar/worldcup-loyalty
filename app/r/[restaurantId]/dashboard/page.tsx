@@ -132,8 +132,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const gift = available[0] ?? null;
   const giftExpiresAt = gift ? new Date(new Date(gift.created_at).getTime() + 48 * 60 * 60 * 1000) : null;
   const giftHoursLeft = giftExpiresAt ? Math.max(0, Math.floor((giftExpiresAt.getTime() - Date.now()) / 3_600_000)) : 0;
-  // Seuls les cadeaux issus d'un ticket se mettent de côté (ADR 0021).
-  const giftBankPoints = gift?.order_id && gift.orders ? Math.floor(Number(gift.orders.amount)) : null;
+  // Seuls les cadeaux issus d'un ticket se mettent de côté (ADR 0021), crédités
+  // en points courbés du ticket (ADR 0060).
+  const giftBankPoints = gift?.order_id && gift.orders ? pointsForOrder(Number(gift.orders.amount)) : null;
 
   // ── Ce que je peux viser : le prochain ticket, la réserve ───────────────────
   const promiseItems = ticketPromiseItems(grid.solo);
