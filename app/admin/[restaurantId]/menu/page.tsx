@@ -5,6 +5,7 @@ import { Camera, Gem, Lightbulb, TriangleAlert } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
+import { fitsSaverCap, saverBandView, saverBandsFor, suggestSaverGifts } from "@/lib/reserve-tiers-view";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import { CatalogGapsSection } from "@/components/admin/CatalogGapsSection";
 import { menuImageUrl } from "@/lib/menu-images";
@@ -22,6 +23,8 @@ const euro = (n: number) =>
 type Msg = { kind: "ok" | "err"; text: string; details?: string[] };
 type TierRow = { layer: string; min_threshold: number; menu_item_id: string | null; is_active: boolean };
 type Suggestion = { layer: string; threshold: number; item_name: string | null; rationale: string };
+// Données serveur des gros cadeaux de la réserve (ADR 0060) — euros, console uniquement.
+type ReserveInfo = { avgBasket: number; budgetPct: number };
 
 const tierKey = (layer: string, threshold: number) => `${layer}:${threshold}`;
 
@@ -42,16 +45,31 @@ export default function AdminMenuPage() {
   const [suggesting, setSuggesting] = useState(false);
   const [savingTiers, setSavingTiers] = useState(false);
   const [tierMsg, setTierMsg] = useState<Msg | null>(null);
+  // ADR 0060 — gros cadeaux de la réserve : seuils actifs enregistrés, sinon
+  // calculés sur le panier moyen ; seul l'article se choisit.
+  const [saverBands, setSaverBands] = useState<number[]>([]);
+  const [reserveInfo, setReserveInfo] = useState<ReserveInfo | null>(null);
 
   const loadAll = useCallback(async () => {
-    const [itemsRes, tiersRes] = await Promise.all([
+    const [itemsRes, tiersRes, reserveRes] = await Promise.all([
       fetch(`/api/admin/menu?restaurantId=${restaurantId}`),
       fetch(`/api/admin/reward-tiers?restaurantId=${restaurantId}`),
+      fetch(`/api/admin/reserve-tiers?restaurantId=${restaurantId}`),
     ]);
     const itemsData: MenuItem[] = itemsRes.ok ? await itemsRes.json() : [];
     const allTiers: TierRow[] = tiersRes.ok ? await tiersRes.json() : [];
+    const reserve: ReserveInfo | null = reserveRes.ok ? await reserveRes.json() : null;
     const tiersData = allTiers.filter((t) => t.is_active);
     setItems(itemsData);
+    setReserveInfo(reserve);
+
+    // Gros cadeaux (ADR 0060) : sans panier moyen, on n'affiche que les
+    // seuils déjà enregistrés — jamais des seuils calculés à l'aveugle.
+    const savedSaver = tiersData.filter((t) => t.layer === "saver").map((t) => Number(t.min_threshold));
+    const nextSaverBands = reserve
+      ? saverBandsFor(savedSaver, reserve.avgBasket)
+      : Array.from(new Set(savedSaver)).sort((a, b) => a - b);
+    setSaverBands(nextSaverBands);
 
     const savedSolo = tiersData
       .filter((t) => t.layer === "solo")
@@ -63,6 +81,7 @@ export default function AdminMenuPage() {
     const map: Record<string, string | null> = {};
     bands.forEach((b) => { map[tierKey("solo", b)] = null; });
     COMMUNITY_BANDS.forEach((b) => { map[tierKey("community", b)] = null; });
+    nextSaverBands.forEach((b) => { map[tierKey("saver", b)] = null; });
     tiersData.forEach((t) => { map[tierKey(t.layer, Number(t.min_threshold))] = t.menu_item_id; });
     setTiers(map);
     setLoading(false);
@@ -141,7 +160,28 @@ export default function AdminMenuPage() {
         if (item) nextTiers[key] = item.id;
         if (s.rationale) nextRationales[key] = s.rationale;
       });
+
+      // ADR 0060 — bug corrigé : la suggestion reconstruisait la liste avec
+      // les seules couches solo et équipe. Les gros cadeaux de la réserve en
+      // disparaissaient, et « Enregistrer » les désactivait (un palier absent
+      // de l'envoi est désactivé côté serveur). Ils sont désormais recalculés
+      // et proposés : l'article le plus généreux sous chaque plafond.
+      const nextSaverBands = reserveInfo ? saverBandsFor([], reserveInfo.avgBasket) : saverBands;
+      nextSaverBands.forEach((b) => { nextTiers[tierKey("saver", b)] = tiers[tierKey("saver", b)] ?? null; });
+      if (reserveInfo) {
+        const candidates = giftItems
+          .filter((i) => i.cost_price != null)
+          .map((i) => ({ id: i.id, name: i.name, menu_price: Number(i.menu_price), cost_price: Number(i.cost_price) }));
+        suggestSaverGifts(nextSaverBands, candidates, reserveInfo.avgBasket, reserveInfo.budgetPct).forEach(({ threshold, item, costCap }) => {
+          if (!item) return;
+          const key = tierKey("saver", threshold);
+          nextTiers[key] = item.id;
+          nextRationales[key] = `Le plus généreux sous le plafond de ${euro(costCap)} (coût ${euro(item.cost_price)}).`;
+        });
+      }
+
       setSoloBands(nextBands);
+      setSaverBands(nextSaverBands);
       setTiers(nextTiers);
       setRationales(nextRationales);
       setTierMsg({ kind: "ok", text: body.note ?? "Suggestions générées." });
@@ -217,7 +257,10 @@ export default function AdminMenuPage() {
     await loadAll();
   }
 
-  function bandRow(layer: "solo" | "community", threshold: number, label: string) {
+  // `costCap` : gros cadeaux de la réserve seulement (ADR 0060) — le plafond
+  // s'affiche et les articles au-dessus ne se choisissent pas (le serveur les
+  // refuserait à l'enregistrement).
+  function bandRow(layer: "solo" | "community" | "saver", threshold: number, label: string, costCap?: number) {
     const key = tierKey(layer, threshold);
     const rationale = rationales[key];
     return (
@@ -236,10 +279,23 @@ export default function AdminMenuPage() {
             className="flex-1 min-w-0 border border-paper-border rounded-lg px-3 py-2 text-sm bg-white"
           >
             <option value="">— aucun cadeau —</option>
-            {giftItems.map((it) => (
-              <option key={it.id} value={it.id}>{it.name}</option>
-            ))}
+            {giftItems.map((it) => {
+              const blocked = costCap !== undefined && !fitsSaverCap(it, costCap);
+              return (
+                // Un article déjà assigné reste sélectionnable même au-dessus
+                // du plafond (plafond qui bouge avec le panier moyen) : le
+                // restaurateur le voit, et l'enregistrement dira pourquoi.
+                <option key={it.id} value={it.id} disabled={blocked && tiers[key] !== it.id}>
+                  {it.name}{blocked ? " — au-dessus du plafond" : ""}
+                </option>
+              );
+            })}
           </select>
+          {costCap !== undefined && (
+            <span className="text-xs text-ink-faint shrink-0 whitespace-nowrap tabular-nums">
+              plafond {euro(costCap)}
+            </span>
+          )}
         </div>
         {rationale && <p className="text-xs text-brand-gold mt-1 ml-[11.75rem]"><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />{rationale}</p>}
       </div>
@@ -514,6 +570,34 @@ export default function AdminMenuPage() {
                 {COMMUNITY_BANDS.map((b) => bandRow("community", b, `Score ≥ ${b.toLocaleString("fr-BE")} pts`))}
               </div>
             </div>
+          </div>
+
+          {/* ADR 0060 — gros cadeaux de la réserve : le client les échange
+              contre les points des cadeaux qu'il a mis de côté. Seuils
+              calculés, jamais saisis ; même bouton « Enregistrer » que le
+              reste des paliers. */}
+          <div className="min-w-0 border-t border-paper-border pt-4">
+            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
+              Gros cadeaux de la réserve (points mis de côté)
+            </p>
+            <p className="text-xs text-ink-faint mb-2">
+              Un client qui met ses cadeaux de côté cumule des points et les échange contre un gros cadeau.
+              Les seuils sont calculés sur ton panier moyen
+              {reserveInfo ? <> ({euro(reserveInfo.avgBasket)})</> : null} : environ 4, 8 et 12 tickets moyens.
+              Choisis l&apos;article de chacun, sous le plafond de coût indiqué.
+            </p>
+            {saverBands.length > 0 && reserveInfo ? (
+              <div className="divide-y divide-paper-border">
+                {saverBands.map((b) => {
+                  const v = saverBandView(b, reserveInfo.avgBasket, reserveInfo.budgetPct);
+                  return bandRow("saver", b, `${b.toLocaleString("fr-BE")} pts · ≈ ${v.tickets} tickets`, v.costCap);
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-warn">
+                Panier moyen indisponible pour le moment : les gros cadeaux s&apos;afficheront au prochain chargement.
+              </p>
+            )}
           </div>
 
           <p className="text-xs text-ink-faint">

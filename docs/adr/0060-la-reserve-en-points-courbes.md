@@ -62,8 +62,14 @@ les seuils un par un, dans l'ordre qui ne croise jamais un seuil non converti.
 
 ## Conséquences
 
-- Le restaurateur ne voit toujours pas ses gros cadeaux dans l'écran Menu : PR suivante
-  (décision du 2026-09-14).
+- **Écran Menu (complément du 2026-09-14)** : les gros cadeaux de la réserve y sont
+  désormais visibles, dans la carte des paliers. Seuils calculés sur le panier moyen, jamais
+  saisis (décision du porteur) ; le restaurateur choisit l'article de chacun, plafond de coût
+  affiché, articles au-dessus non sélectionnables. Logique pure et testée :
+  `lib/reserve-tiers-view.ts`. **Bug corrigé au passage** : « Suggérer avec l'IA » reconstruisait
+  la liste avec les seules couches solo et équipe, puis « Enregistrer » désactivait les gros
+  cadeaux absents de l'envoi — cause probable du gros cadeau désactivé de Kraainem. La suggestion
+  les recalcule et les propose désormais.
 - Le crédit sans commande d'un compte de démonstration n'est pas recalculable et reste tel quel.
 
 ### À surveiller
