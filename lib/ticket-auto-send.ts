@@ -39,8 +39,22 @@ export type ReceiptReading = {
  * Le doublon se vérifie à part (/api/orders/precheck, réseau).
  */
 export function canAutoSend(reading: ReceiptReading): boolean {
-  if (typeof reading.amount !== "number" || validateAmount(reading.amount) !== null) return false;
-  if (reading.key_corrected === true) return false;
-  if (reading.has_reliable_key === false) return true;
-  return typeof reading.order_number === "string" && reading.order_number.trim().length > 0;
+  return missingReceiptParts(reading) === null && reading.key_corrected !== true;
+}
+
+/** Ce que la photo n'a pas su montrer. */
+export type MissingParts = { total: boolean; key: boolean };
+
+/**
+ * ADR 0057 — une photo lue mais incomplète se REPREND avant tout récap : on
+ * dit quoi recadrer (le total, la clé, ou les deux). `null` = rien ne manque.
+ * La clé ne manque jamais pour un établissement sans clé fiable : le serveur
+ * l'ignore de toute façon.
+ */
+export function missingReceiptParts(reading: ReceiptReading): MissingParts | null {
+  const total = typeof reading.amount !== "number" || validateAmount(reading.amount) !== null;
+  const key =
+    reading.has_reliable_key !== false &&
+    !(typeof reading.order_number === "string" && reading.order_number.trim().length > 0);
+  return total || key ? { total, key } : null;
 }

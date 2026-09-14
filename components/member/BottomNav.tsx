@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, UsersRound, Gift, Star, Camera, type LucideIcon } from "lucide-react";
+import { requestReceiptCamera } from "@/lib/open-camera-event";
 
 type Tab = { href: string; label: string; icon: LucideIcon; id?: string };
 
@@ -47,6 +48,13 @@ export function BottomNav({ restaurantId }: { restaurantId: string }) {
           id="tour-nav-commande"
           aria-label="Prendre mon ticket en photo"
           aria-current={scanActive ? "page" : undefined}
+          onClick={(e) => {
+            // ADR 0057 — l'écran ticket s'ouvre sur la caméra ; déjà dessus,
+            // le lien ne ferait rien : on rouvre la caméra sur place.
+            if (!scanActive) return;
+            e.preventDefault();
+            requestReceiptCamera();
+          }}
           className="absolute left-1/2 -top-6 -translate-x-1/2 flex items-center justify-center w-14 h-14 rounded-full bg-brand-red text-white transition-transform hover:scale-105 active:scale-95"
           style={{ boxShadow: "0 8px 20px -2px rgb(var(--brand-red) / 0.5)" }}
         >
