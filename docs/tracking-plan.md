@@ -84,7 +84,7 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `visitor_ticket_captured` | `restaurant_id` | Photo de ticket prise sans compte (ADR 0040) |
 | `visitor_signup_started` | `restaurant_id`, `method` | Départ vers la connexion depuis « garde tes points » |
 | `visitor_ticket_resumed` | `restaurant_id` | Photo reprise après connexion (`?resume=1`) |
-| `order_submitted` | `restaurant_id`, `amount_band`, `has_receipt_photo` | Ticket envoyé |
+| `order_submitted` | `restaurant_id`, `amount_band`, `has_receipt_photo`, `auto_sent` | Ticket envoyé — `auto_sent` : parti seul après une lecture propre (ADR 0055) |
 | `order_result` | `restaurant_id`, `result` | Verdict rendu au membre |
 | `reward_redeem_started` | `restaurant_id` | Coupon 10 min généré (ADR 0011) |
 | `reward_banked` | `restaurant_id` | Cadeau mis en réserve (ADR 0021) |
