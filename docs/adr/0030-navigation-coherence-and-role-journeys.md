@@ -1,6 +1,6 @@
 # ADR 0030 — Cohérence de navigation et parcours par rôle
 
-**Statut** : Accepté (2026-08-05) — **décisions validées par le porteur (session de grill), PAS encore implémentées**. Périmètre : navigation, points d'entrée, retours arrière, parcours post-action, et deux écrans à créer (« Membres » plateforme / « Mes clients » resto). Aucun changement au modèle de données hors ces deux écrans.
+**Statut** : Accepté (2026-08-05) — §4 (ordre du dashboard, tuiles) remplacé par l'[ADR 0059](0059-l-accueil-repond-a-trois-questions.md) le 2026-09-14 — **décisions validées par le porteur (session de grill), PAS encore implémentées**. Périmètre : navigation, points d'entrée, retours arrière, parcours post-action, et deux écrans à créer (« Membres » plateforme / « Mes clients » resto). Aucun changement au modèle de données hors ces deux écrans.
 
 ## Contexte
 

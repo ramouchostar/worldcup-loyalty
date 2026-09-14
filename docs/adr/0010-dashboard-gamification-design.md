@@ -1,6 +1,6 @@
 # ADR 0010 — Design du dashboard : gamification et lisibilité de la mécanique
 
-**Statut** : Accepté — **amendé par l'ADR 0030** (2026-08-05) : le dashboard devient le hub membre. Le hero et la progression communautaire restent tels quels ; s'y ajoutent la carte gérant (position 0), la carte Actions (ADR 0024, position 2) et une rangée de tuiles d'accès permanentes à micro-états (position 4). Ordre complet dans l'ADR 0030 §4.
+**Statut** : Accepté — **ordre et contenu du dashboard remplacés par l'[ADR 0059](0059-l-accueil-repond-a-trois-questions.md)** (2026-09-14 : cadeau qui attend → promesse du prochain ticket → photo → réserve ; plus de compteur de points ni de projection du panier). Précédemment **amendé par l'ADR 0030** (2026-08-05) : le dashboard devient le hub membre. Le hero et la progression communautaire restent tels quels ; s'y ajoutent la carte gérant (position 0), la carte Actions (ADR 0024, position 2) et une rangée de tuiles d'accès permanentes à micro-états (position 4). Ordre complet dans l'ADR 0030 §4.
 
 ## Contexte
 

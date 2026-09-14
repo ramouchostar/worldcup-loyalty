@@ -5,7 +5,9 @@ import { Gift } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { track } from "@/lib/analytics";
 
-export function RedeemButton() {
+// `size="lg"` : version pleine largeur de l'accueil (ADR 0059), où le choix
+// récupérer / mettre de côté est le geste principal de l'écran.
+export function RedeemButton({ size = "sm" }: { size?: "sm" | "lg" } = {}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -39,18 +41,22 @@ export function RedeemButton() {
   }
 
   return (
-    <span className="inline-flex flex-col items-end gap-1">
+    <span className={size === "lg" ? "flex flex-col gap-1 w-full" : "inline-flex flex-col items-end gap-1"}>
       <button
         onClick={handleClick}
         disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className={
+          size === "lg"
+            ? "w-full inline-flex items-center justify-center gap-2 text-base font-bold text-white bg-brand-red px-4 py-3 rounded-xl hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+            : "inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-red px-3 py-1.5 rounded-full hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        }
       >
         {busy ? (
           "…"
         ) : (
           <>
-            <Gift className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-            Récupérer
+            <Gift className={size === "lg" ? "w-5 h-5 shrink-0" : "w-3.5 h-3.5 shrink-0"} aria-hidden="true" />
+            {size === "lg" ? "Récupérer au comptoir" : "Récupérer"}
           </>
         )}
       </button>

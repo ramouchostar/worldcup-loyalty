@@ -100,7 +100,7 @@ Niveau de récompense communautaire avec un score seuil et un cadeau associé. S
 _Avoid_ : niveau, récompense (récompense est plus large — inclut les micro-récompenses).
 
 **Palier solo** :
-Couche 1 du système de récompenses. Récompense individuelle promise automatiquement à chaque commande directe validée, basée sur le montant de cette commande. Affichée immédiatement sur le dashboard : "ta prochaine visite → [cadeau]". Non soumise au double verrou.
+Couche 1 du système de récompenses. Récompense individuelle promise automatiquement à chaque commande directe validée, basée sur le montant de cette commande. Sur l'accueil membre, promise sans seuil : « Ton prochain ticket peut te rapporter » + noms des cadeaux (ADR 0059). Ne se cumule pas : chaque ticket a le sien. Non soumise au double verrou.
 Grille : < €15 → aucune récompense solo (la commande compte quand même pour le score communautaire) / €15–24 → Churros 6 pcs (coût €0,31) / €25–39 → Finest burger (coût €0,94) / €40–59 → Menu 4 Tenders (coût €1,93) / €60+ → Chef's Combo (coût €1,92).
 Depuis ADR 0013, les articles et coûts de cette grille proviennent du catalogue menu (`menu_items`) ; les valeurs ci-dessus sont les exemples Belchicken — seules les tranches de montant constituent la structure.
 _Avoid_ : récompense individuelle, fidélité solo, cagnotte.
@@ -318,9 +318,9 @@ _Avoid_ : campagne CRM, marketing automation, segment (les décisions sont par m
 
 ### Dashboard membre
 
-**Aperçu prochaine commande** :
-Section hero du dashboard membre. Affiche en temps réel la récompense totale (couches 1+2+3) que le membre obtiendrait s'il commandait maintenant, avec une ligne étiquetée par couche ("ton cadeau de base" / "force de ta communauté" / "palier d'équipe débloqué"). C'est la réponse à la question fondamentale : "qu'est-ce que je gagne ce soir ?". Calculé via `getDashboardData()`, rafraîchi toutes les 30s. Fallback si aucun historique : prévisualisation pour €25. Masque le bonus communautaire si double verrou non satisfait. (Le bonus d'avancement Coupe du Monde a été remplacé par les paliers d'équipe — ADR 0014.) Voir ADR 0010.
-_Avoid_ : carte de récompenses, aperçu des points (la récompense est concrète — jamais abstraite).
+**Accueil membre** *(ADR 0059, remplace l'« aperçu prochaine commande » de l'ADR 0010)* :
+L'écran répond à trois questions sans défiler : **qu'est-ce que j'ai** (le cadeau qui attend, avec le choix « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique), **qu'est-ce que je peux viser** (sans cadeau : « Ton prochain ticket peut te rapporter » + plats de la grille solo, jamais de seuil), **qu'est-ce que je fais** (grand bouton photo). Ensuite, en compact : Ma réserve (solde qui s'échange, gros cadeau atteignable, suivant), jetons en une ligne, installation, équipe si l'établissement l'utilise, tuiles, Mes tickets.
+_Avoid_ : un compteur de points qui ne s'échange contre rien ; projeter le cadeau du « panier habituel » ; demander (installation, parrainage) avant de montrer le cadeau ; afficher bloc ou tuiles d'équipe quand l'établissement a masqué les équipes.
 
 **Notification d'incitation** :
 Message proactif envoyé à un membre montrant l'état de sa communauté et le cadeau concret qu'il obtiendrait en commandant maintenant. Toujours spécifique ("ton cadeau passe à Finest burger + Churros 12 pcs") — jamais générique. Trois déclencheurs : franchissement de palier, membre inactif 72h+ avec +500 pts absolus depuis sa dernière commande, proximité du prochain seuil (< 10%). Anti-spam : 48h minimum, max 3/semaine. Canal : PWA push (gratuit) → WhatsApp (~€0,05/conversation) en fallback. Voir ADR 0009.
@@ -342,11 +342,11 @@ Toute page qui n'est pas un onglet de la BottomNav (membre) ou une entrée de la
 _Avoid_ : breadcrumb, fil d'Ariane.
 
 **Hub membre** :
-Le dashboard membre comme point d'accès permanent à toutes les fonctionnalités. Principe : **on ne cache jamais une fonctionnalité, on montre ce qui manque pour l'utiliser** — un lien conditionnel devient une entrée permanente à état progressif (« Encore 2 commandes pour donner ton avis »). Ordre des sections : carte gérant → hero (ADR 0010) → carte Actions (ADR 0024) → progression équipe → tuiles d'accès → historique.
+Le dashboard membre comme point d'accès permanent à toutes les fonctionnalités. Principe : **on ne cache jamais une fonctionnalité, on montre ce qui manque pour l'utiliser** — un lien conditionnel devient une entrée permanente à état progressif (« Encore 2 commandes pour donner ton avis »). Ordre des sections (ADR 0059) : carte gérant → cadeau qui attend ou promesse du prochain ticket → photo → Ma réserve → jetons → installation → équipe (si active) → tuiles d'accès → Mes tickets.
 _Avoid_ : page d'accueil (vague), menu (réservé au catalogue).
 
 **Tuile d'accès** :
-Petite tuile permanente du hub membre (grille compacte 2×2) : icône + label + **micro-état** (« 2 paliers atteints », « 3ᵉ/12 », solde réserve). Jamais de grande carte empilée. Tuiles v1 : Récompenses · Classement · Avis · Réserve.
+Petite tuile permanente du hub membre (grille compacte 2×2) : icône + label + **micro-état** (« 2 paliers atteints », « 3ᵉ/12 », solde réserve). Jamais de grande carte empilée. Tuiles (ADR 0059) : Cadeaux d'équipe · Classement (si les équipes sont actives) · Mon resto. La réserve est une carte à part entière au-dessus.
 _Avoid_ : carte (réservé aux grandes sections du dashboard), widget.
 
 **Carte gérant** :

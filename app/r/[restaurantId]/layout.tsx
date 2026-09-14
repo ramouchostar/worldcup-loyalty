@@ -71,10 +71,11 @@ export default async function RestaurantLayout({
 
   const logo = logoPublicUrl(branding.logo_url);
 
-  // Compteurs du bandeau — points de fidélité (pointsForOrder, ADR 0028,
-  // même calcul que "Tes points" au dashboard) + jetons (actions sociales
-  // validées + parrainage/5, même formule que ActionsLadder et la page
-  // Actions). Toujours en points/jetons, jamais en euros (ADR 0007).
+  // Compteurs du bandeau — points de fidélité (pointsForOrder, ADR 0028) +
+  // jetons (actions sociales validées + parrainage/5, même formule que
+  // TokensLine sur l'accueil et la page Actions). Toujours en points/jetons,
+  // jamais en euros (ADR 0007). À noter (ADR 0059) : ces points-là ne
+  // s'échangent pas — le solde échangeable est la réserve (ADR 0021).
   const [{ data: validatedOrdersData }, { count: socialValidatedCount }, { count: referralCount }] = user
     ? await Promise.all([
         supabase

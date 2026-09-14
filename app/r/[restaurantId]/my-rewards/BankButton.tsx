@@ -8,7 +8,9 @@ import { track } from "@/lib/analytics";
 // ADR 0021 — « Mettre de côté » : convertit le cadeau disponible en points
 // de réserve. Confirmation inline (pas de window.confirm) avec le nombre de
 // points quand le montant de la commande est connu.
-export function BankButton({ points }: { points: number | null }) {
+// `size="lg"` : version pleine largeur de l'accueil (ADR 0059), à côté de
+// « Récupérer au comptoir ».
+export function BankButton({ points, size = "sm" }: { points: number | null; size?: "sm" | "lg" }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,45 @@ export function BankButton({ points }: { points: number | null }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (confirming && size === "lg") {
+    return (
+      <span className="flex flex-col gap-1.5 w-full rounded-xl bg-gray-100 p-3">
+        <span className="text-sm text-gray-700 text-center">
+          {points !== null ? `+${points} dans ta réserve, et ce cadeau disparaît ?` : "Mettre ce cadeau dans ta réserve ?"}
+        </span>
+        <span className="flex gap-2">
+          <button
+            onClick={handleBank}
+            disabled={busy}
+            className="flex-1 text-sm font-semibold text-white bg-brand-dark py-2 rounded-lg hover:bg-brand-dark/80 disabled:opacity-50 transition-colors"
+          >
+            {busy ? "…" : "Oui, mettre de côté"}
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            disabled={busy}
+            className="flex-1 text-sm font-semibold text-gray-600 bg-white py-2 rounded-lg hover:text-gray-800 disabled:opacity-50"
+          >
+            Non
+          </button>
+        </span>
+        {error && <span className="text-xs text-red-600 text-center">{error}</span>}
+      </span>
+    );
+  }
+
+  if (size === "lg") {
+    return (
+      <button
+        onClick={() => setConfirming(true)}
+        className="w-full inline-flex items-center justify-center gap-2 text-base font-semibold text-brand-dark bg-gray-100 px-4 py-3 rounded-xl hover:bg-gray-200 transition-colors"
+      >
+        <PiggyBank className="w-5 h-5 shrink-0" aria-hidden="true" />
+        Mettre de côté{points !== null ? ` (+${points})` : ""}
+      </button>
+    );
   }
 
   if (confirming) {
