@@ -1,6 +1,7 @@
 # ADR 0048 — Le gain avant le compte : l'aperçu OCR visiteur devient l'écran de conversion
 
-**Statut** : Accepté (2026-09-09) — amende [ADR 0045](0045-preuve-scan-avant-compte.md)
+**Statut** : Accepté (2026-09-09), amendé le 2026-09-15 (pas de compte sans
+ticket lu, voir en fin de document) — amende [ADR 0045](0045-preuve-scan-avant-compte.md)
 (la preuve du scan n'est plus le montant seul) et précise l'exception euro de
 l'[ADR 0028](0028-points-decoupled-from-euros.md) §5. Lot 2 du parcours cible
 « le ticket avant tout ». Ne change rien au calcul des points ni des cadeaux
@@ -225,3 +226,20 @@ le rapport « photo prise → départ vers la connexion » est exactement ce que
 - Si un établissement n'a **aucune grille solo configurée**, le visiteur ne voit
   que ses points — la configuration des paliers devient encore plus importante
   (même remarque que l'ADR 0040 sur le tour de bienvenue).
+
+## Amendement 2026-09-15 — pas de compte sans ticket lu
+
+**Constat (Kraainem, 7-14 septembre).** Sur 16 visites de visiteurs, 11 des 12
+dont le ticket était lu ont créé un compte en une minute : la demande de compte
+fonctionne. Mais quand l'aperçu **refusait** la photo (affiche, rien de
+lisible), l'écran masquait le refus et affichait quand même « Ton ticket est
+prêt ! Crée ton compte ». Le 14 à 11 h 52, un visiteur a créé un compte Google
+sur une photo d'affiche, puis s'est heurté à deux refus et est reparti.
+
+**Décision.**
+- La carte visiteur n'apparaît que pendant la lecture (sans bouton) et après une
+  lecture **acceptée**. Une photo refusée affiche son refus en haut avec
+  « Reprendre la photo », comme pour un membre (ADR 0056 §4).
+- La photo refusée est effacée de l'appareil : « Ton ticket t'attend » ne la
+  repropose pas.
+- Le compte reste payé par le ticket lu : on ne le demande jamais avant.
