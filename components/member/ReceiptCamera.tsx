@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Images, X } from "lucide-react";
+import { Camera, Flashlight, FlashlightOff, Images, X } from "lucide-react";
 import { RECEIPT_JPEG_QUALITY, RECEIPT_MAX_EDGE } from "@/lib/receipt-image-client";
 import { createQrDetector, showsProgramQr } from "@/lib/poster-detect";
 
@@ -9,6 +9,14 @@ import { createQrDetector, showsProgramQr } from "@/lib/poster-detect";
 // dernière vue du QR, pour ne pas clignoter quand la main bouge.
 const POSTER_SCAN_MS = 600;
 const POSTER_HOLD_MS = 1500;
+
+// Lampe (audit écran photo, 2026-09-15). Luminosité moyenne du viseur
+// (0-255) sous laquelle on propose d'allumer la lampe, mesurée chaque seconde
+// sur une vignette de 24 px — coût négligeable.
+const DARK_LUMA = 60;
+const DARK_SCAN_MS = 1000;
+
+type TorchConstraint = MediaTrackConstraintSet & { torch?: boolean };
 
 // ADR 0056 — la photo du ticket se prend DANS la page.
 //
@@ -59,6 +67,7 @@ export default function ReceiptCamera({
   onGallery,
   onFailure,
   onPosterSeen,
+  onTorchOn,
 }: {
   keyLabel: string;
   onCapture: (file: File) => void;
@@ -71,6 +80,8 @@ export default function ReceiptCamera({
   onFailure?: (reason: CameraFailure) => void;
   /** Mesure uniquement — une fois par ouverture, quand l'affiche entre dans le viseur. */
   onPosterSeen?: () => void;
+  /** Mesure uniquement — une fois par ouverture, quand la lampe est allumée. */
+  onTorchOn?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -81,6 +92,15 @@ export default function ReceiptCamera({
   const [failure, setFailure] = useState<CameraFailure | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Lampe : pilotable depuis une page web sur Chrome Android seulement (Safari
+  // iOS n'expose pas `torch`) — le bouton n'apparaît que si le téléphone
+  // l'annonce dans les capacités de la caméra.
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [dark, setDark] = useState(false);
+  const onTorchOnRef = useRef(onTorchOn);
+  onTorchOnRef.current = onTorchOn;
+  const torchReportedRef = useRef(false);
 
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -90,6 +110,9 @@ export default function ReceiptCamera({
   const start = useCallback(async () => {
     stop();
     setReady(false);
+    // Un flux relancé repart lampe éteinte.
+    setTorchOn(false);
+    setTorchAvailable(false);
     if (!inAppCameraAvailable()) {
       setFailure("unsupported");
       return;
@@ -114,6 +137,9 @@ export default function ReceiptCamera({
         video.srcObject = stream;
         await video.play().catch(() => {});
       }
+      const videoTrack = stream.getVideoTracks()[0];
+      const caps = (videoTrack?.getCapabilities?.() ?? {}) as MediaTrackCapabilities & { torch?: boolean };
+      setTorchAvailable(caps.torch === true);
       setFailure(null);
     } catch (err) {
       if (!mountedRef.current) return;
@@ -179,6 +205,49 @@ export default function ReceiptCamera({
     };
   }, [ready, failure]);
 
+  // Viseur trop sombre et lampe éteinte : on propose de l'allumer.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !ready || failure || !torchAvailable || torchOn) {
+      setDark(false);
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = 24;
+    canvas.height = 24;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+    const measure = () => {
+      if (video.readyState < 2) return;
+      ctx.drawImage(video, 0, 0, 24, 24);
+      const px = ctx.getImageData(0, 0, 24, 24).data;
+      let sum = 0;
+      for (let i = 0; i < px.length; i += 4) sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      setDark(sum / (px.length / 4) < DARK_LUMA);
+    };
+    measure();
+    const timer = window.setInterval(measure, DARK_SCAN_MS);
+    return () => window.clearInterval(timer);
+  }, [ready, failure, torchAvailable, torchOn]);
+
+  async function toggleTorch() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next } as TorchConstraint] });
+      setTorchOn(next);
+      if (next && !torchReportedRef.current) {
+        torchReportedRef.current = true;
+        onTorchOnRef.current?.();
+      }
+    } catch {
+      // Capacité annoncée mais refusée (certains appareils) : on retire le bouton.
+      setTorchAvailable(false);
+      setTorchOn(false);
+    }
+  }
+
   async function capture() {
     const video = videoRef.current;
     const stream = streamRef.current;
@@ -188,9 +257,11 @@ export default function ReceiptCamera({
       let blob: Blob | null = null;
       // Une vraie photo (mise au point, pleine résolution) quand le navigateur
       // le permet — Chrome Android. prepareReceiptImage la réduit ensuite.
+      // Lampe allumée : selon les téléphones, la prise de photo coupe la lampe
+      // continue au moment du déclenchement — on garde l'image du flux, éclairée.
       const Ctor = (window as unknown as { ImageCapture?: ImageCaptureCtor }).ImageCapture;
       const track = stream.getVideoTracks()[0];
-      if (Ctor && track) {
+      if (Ctor && track && !torchOn) {
         try {
           blob = await new Ctor(track).takePhoto();
         } catch {
@@ -325,6 +396,11 @@ export default function ReceiptCamera({
 
       {!failure && (
         <div className="pb-safe bg-black">
+          {dark && (
+            <p className="px-6 pt-3 text-center text-sm font-semibold text-amber-300">
+              Il fait sombre ? Allume la lampe
+            </p>
+          )}
           <div className="grid grid-cols-3 items-center px-6 py-5">
             <button
               type="button"
@@ -342,7 +418,29 @@ export default function ReceiptCamera({
               aria-label={posterInView ? "Vise ton ticket de caisse, pas l'affiche" : "Prendre la photo"}
               className="h-20 w-20 justify-self-center rounded-full border-4 border-white bg-white/30 transition-transform active:scale-95 disabled:opacity-40"
             />
-            <span aria-hidden="true" />
+            {torchAvailable ? (
+              <button
+                type="button"
+                onClick={() => void toggleTorch()}
+                aria-label={torchOn ? "Éteindre la lampe" : "Allumer la lampe"}
+                aria-pressed={torchOn}
+                className={`flex h-12 w-12 items-center justify-center justify-self-end rounded-full transition-colors ${
+                  torchOn
+                    ? "bg-amber-300 text-black"
+                    : dark
+                      ? "bg-white/15 text-amber-300 ring-2 ring-amber-300 animate-pulse"
+                      : "bg-white/15 text-white"
+                }`}
+              >
+                {torchOn ? (
+                  <Flashlight className="h-6 w-6" aria-hidden="true" />
+                ) : (
+                  <FlashlightOff className="h-6 w-6" aria-hidden="true" />
+                )}
+              </button>
+            ) : (
+              <span aria-hidden="true" />
+            )}
           </div>
         </div>
       )}

@@ -84,6 +84,25 @@ n'est effacée que quand le serveur a tranché : ticket accepté (201), doublon
 quitte avant retrouve « Ton ticket t'attend » sur la vitrine et sur l'écran de
 scan ; en le reprenant, le ticket repart tout seul s'il est bien lu.
 
+### 5. L'attente sert à quelque chose *(2026-09-15)*
+
+Depuis la lecture unique (ADR 0058 §4), le membre attend 5 à 10 s entre la photo et le
+résultat (lecture serveur + délai de l'ADR 0008). Une petite carte bleue « Vérification
+en cours… » occupait cet instant, sans rien dire d'autre.
+
+La carte d'attente devient une carte claire, visible sans défiler sous la vignette de la
+photo : un indicateur qui tourne, « Vérification en cours… », « Reste sur cet écran », puis
+**une information utile** :
+
+- **aucun cadeau en attente** → « Ce ticket peut te rapporter » et deux ou trois plats de
+  la grille solo (`ticketPromiseItems`, comme l'accueil — ADR 0059), **jamais de seuil** ;
+- **un cadeau attend déjà** → « Ton {cadeau} t'attend au comptoir : pense à le
+  récupérer ». Tant qu'il attend, un ticket n'en crée pas d'autre (ADR 0011) : annoncer
+  des cadeaux possibles serait trompeur.
+
+Aucune promesse sur le résultat du ticket en cours, jamais « automatique » ni
+« instantané » (ADR 0008).
+
 ## Alternatives rejetées
 
 - **Garder le tap et remonter le bouton seulement.** Règle le scroll, pas la

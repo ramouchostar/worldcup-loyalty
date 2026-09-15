@@ -6,7 +6,7 @@ change rien à la préparation de l'image, à l'OCR ni à la validation (**ADR 0
 **0036**, **0045**). §1 amendé par
 [ADR 0057](0057-l-ecran-ticket-s-ouvre-sur-la-camera.md) : l'écran ticket s'ouvre
 directement sur la caméra. §5 ajouté le 2026-09-15 : cadre au format ticket, affiche
-repérée dans le viseur.
+repérée dans le viseur. §6 ajouté le même jour : la lampe.
 
 ## Contexte
 
@@ -92,6 +92,24 @@ total » ne disaient jamais « ton ticket de caisse ».
 **Mesure.** `receipt_poster_seen_live` compte les affiches repérées dans le
 viseur ; l'effet se lit sur les refus serveur `qr_detected` et `unreadable`
 (entonnoir) et sur la part de `header_rejected` dans `receipt_scans`.
+
+### 6. La lampe (2026-09-15)
+
+Dans une salle sombre, la photo du ticket est illisible et part en refus. La caméra
+intégrée n'avait aucun moyen d'éclairer.
+
+- **Bouton lampe** à droite du déclencheur, **seulement** quand la caméra annonce la
+  capacité `torch` (Chrome Android). Safari iOS ne l'expose pas aux pages web : pas de
+  bouton, pas de faux espoir.
+- **Rappel** : quand le viseur est sombre (luminosité moyenne sous 60/255, mesurée chaque
+  seconde sur une vignette de 24 px) et la lampe éteinte, « Il fait sombre ? Allume la
+  lampe » s'affiche et le bouton pulse.
+- **Photo lampe allumée** : l'image vient du flux vidéo, pas de `takePhoto()`. Selon les
+  téléphones, la prise de photo coupe la lampe continue au déclenchement ; l'image du flux
+  est déjà éclairée.
+- Un flux relancé (retour au premier plan) repart lampe éteinte ; une capacité annoncée
+  mais refusée retire le bouton.
+- Mesure : `receipt_torch_used`, une fois par ouverture.
 
 ## Alternatives rejetées
 
