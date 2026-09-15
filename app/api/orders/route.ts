@@ -1,16 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { validateOrderDate, validateAmount } from "@/lib/orders";
+import { validateOrderDate } from "@/lib/orders";
 import { getReceiptConfig, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
 import { createPendingReward, loadRewardGrid, nextSoloTier, LEGACY_RESTAURANT_ID, type NextSoloTier } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
-import { claimScanImage, linkScanToOrder } from "@/lib/receipt-scans";
+import { claimScanImage, linkScanToOrder, storeScan } from "@/lib/receipt-scans";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { guardAgainstDuplicates, recordDuplicateReview } from "@/lib/duplicate-guard";
 import { DUPLICATE_MEMBER_MESSAGE } from "@/lib/duplicate-detection";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { recordScan } from "@/lib/scan-meter";
+import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
+import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
+import { judgeReceipt, notAReceiptMessage } from "@/lib/receipt-proof";
+import { missingReceiptParts } from "@/lib/ticket-auto-send";
+import { pointsForOrder } from "@/lib/points-model";
+import { amountBand } from "@/lib/analytics";
 
 export const maxDuration = 30;
 
@@ -68,8 +76,21 @@ export async function POST(request: NextRequest) {
   if (!ALLOWED_TYPES.includes(receiptFile.type as typeof ALLOWED_TYPES[number])) {
     return NextResponse.json({ error: "Format de ticket non supporté." }, { status: 400 });
   }
+  // Même garde qu'à l'aperçu : au-delà de ~4,5 Mo, Vercel coupe avant ce code.
+  if (receiptFile.size > MAX_UPLOAD_BYTES)
+    return NextResponse.json({ error: describeUploadFailure(413, null) }, { status: 413 });
   const restaurantId = String(rawRestaurantId);
   const scanId = rawScanId ? String(rawScanId) : null;
+
+  // F8 (sécurité) — chaque envoi paie un appel Vision. Le membre n'ayant plus
+  // d'aperçu (ADR 0058 §4), c'est ici que l'OCR se plafonne : même compteur
+  // que l'aperçu, 20 lectures par heure.
+  if (!(await checkRateLimit(user.id, "ocr_parse_receipt", 20, 3600))) {
+    return NextResponse.json(
+      { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
+      { status: 429 }
+    );
+  }
 
   // ADR 0019 — la clé de commande est définie par l'établissement
   // (restaurant_receipt_config, fallback Bestelnummer legacy).
@@ -77,9 +98,10 @@ export async function POST(request: NextRequest) {
 
   // ADR 0058 — sans lecture serveur, pas de commande (plus de repli en revue
   // sur des valeurs tapées) : on demande de réessayer.
+  const restaurantName = await getRestaurantDisplayName(restaurantId);
   let serverOcr: ReceiptAnalysis;
   try {
-    serverOcr = await analyzeReceipt(receiptFile, await getRestaurantDisplayName(restaurantId), receiptConfig);
+    serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig);
   } catch {
     return NextResponse.json(
       { error: "On n'a pas pu lire ton ticket. Réessaie dans un instant." },
@@ -87,15 +109,53 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Lecture incomplète : total absent, ou — là où l'établissement a une clé
-  // fiable — clé absente ou à l'année réparée. Rien n'est créé : le membre
-  // reprend la photo, `missing` dit quoi recadrer. Aucune saisie ne comble
-  // le trou (ADR 0058).
-  const missing = {
-    total: serverOcr.amount === null,
-    key: receiptConfig.has_reliable_key && (!serverOcr.order_number || serverOcr.key_corrected),
-  };
-  if (missing.total || missing.key) {
+  // ADR 0029 §6 — l'appel Vision vient d'être facturé : on le compte.
+  await recordScan(restaurantId);
+
+  // ADR 0058 §4 — lecture unique : ce que faisait l'aperçu du membre se fait
+  // ici, avec la même règle que l'aperçu du visiteur (lib/receipt-proof).
+  const verdict = judgeReceipt(serverOcr);
+
+  // ADR 0036 — chaque lecture est conservée 30 jours, refus compris : c'est
+  // l'outil de contrôle qualité de l'OCR. Un jeton d'aperçu encore valide
+  // réutilise l'image déjà rangée.
+  const readingScanId =
+    scanId ??
+    (await storeScan({
+      restaurantId,
+      userId: user.id,
+      file: receiptFile,
+      analysis: serverOcr,
+      outcome: verdict === "receipt" ? "parsed" : "header_rejected",
+    }));
+
+  if (verdict === "poster") {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "qr_detected");
+    return NextResponse.json({ error: POSTER_MEMBER_MESSAGE }, { status: 422 });
+  }
+  if (verdict === "not_a_receipt") {
+    await recordFunnelStep(
+      restaurantId,
+      "ticket_rejected",
+      serverOcr.amount === null ? "unreadable" : "header_rejected"
+    );
+    return NextResponse.json(
+      { error: notAReceiptMessage(restaurantName, receiptConfig.key_label) },
+      { status: 422 }
+    );
+  }
+
+  // Lecture incomplète : total absent ou hors bornes, ou — là où
+  // l'établissement a une clé fiable — clé absente ou à l'année réparée. Rien
+  // n'est créé : le membre reprend la photo, `missing` dit quoi recadrer.
+  // Aucune saisie ne comble le trou (ADR 0058).
+  const missing = missingReceiptParts({
+    amount: serverOcr.amount,
+    order_number: serverOcr.order_number,
+    key_corrected: serverOcr.key_corrected,
+    has_reliable_key: receiptConfig.has_reliable_key,
+  });
+  if (missing) {
     await recordFunnelStep(restaurantId, "ticket_rejected", "unreadable");
     return reframe(missing);
   }
@@ -109,8 +169,6 @@ export async function POST(request: NextRequest) {
     if (validateOrderKey(orderNumber, receiptConfig)) return reframe({ total: false, key: true });
     orderNumber = orderNumber.trim();
   }
-
-  if (validateAmount(amount)) return reframe({ total: true, key: false });
 
   // Date dérivée de la clé quand le format l'encapsule (date_group),
   // sinon date du jour.
@@ -177,11 +235,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Format de ticket non supporté." }, { status: 400 });
     }
 
-    // ADR 0036 — l'aperçu OCR a déjà rangé cette photo : on pointe dessus
-    // plutôt que d'en garder deux exemplaires. `scan_id` est vérifié côté
-    // serveur (même membre, même établissement, moins de deux heures) —
-    // un jeton forgé retombe simplement sur l'upload normal.
-    receiptPath = scanId ? await claimScanImage(scanId, user.id, restaurantId) : null;
+    // ADR 0036 — la lecture ci-dessus (ou un aperçu) a déjà rangé cette
+    // photo : on pointe dessus plutôt que d'en garder deux exemplaires. Le
+    // scan est vérifié côté serveur (même membre, même établissement, moins
+    // de deux heures) — un jeton forgé retombe simplement sur l'upload normal.
+    receiptPath = readingScanId ? await claimScanImage(readingScanId, user.id, restaurantId) : null;
   }
 
   if (receiptFile && !receiptPath) {
@@ -219,20 +277,9 @@ export async function POST(request: NextRequest) {
   // serveur. Ces libellés restent mappés côté admin pour l'historique.
   if (serverOcr) {
     if (serverOcr.confidence < 70) flagReasons.push("low_confidence");
-    // Même règle qu'à l'aperçu (incident 2026-09-02) : une clé lue par l'OCR
-    // SERVEUR (pattern du resto + date saine) prouve le ticket mieux que le
-    // nom en haut — pas de flag, l'auto-validation reste possible. Une clé
-    // seulement TAPÉE par le membre ne suffit pas : sans en-tête ni lecture
-    // OCR, la commande part en revue manuelle.
-    if (!serverOcr.has_restaurant_header && !serverOcr.order_number) {
-      flagReasons.push("no_restaurant_header");
-    }
-    // Photo d'affiche/QR du programme sans clé lisible : l'aperçu la refuse
-    // déjà, mais une soumission avec numéro tapé à la main sur une photo
-    // d'affiche doit passer par la revue humaine.
-    if (serverOcr.looks_like_qr_or_poster && !serverOcr.order_number) {
-      flagReasons.push("looks_like_poster");
-    }
+    // `no_restaurant_header` et `looks_like_poster` ne se lèvent plus : ces
+    // photos sont refusées plus haut (judgeReceipt, ADR 0058 §4). Les
+    // libellés restent mappés côté admin pour l'historique.
   }
 
   // Dédoublonnage par empreinte de contenu (ADR 0052). Le numéro de commande
@@ -348,8 +395,8 @@ export async function POST(request: NextRequest) {
 
   // ADR 0036 — le scan sait désormais ce qu'il est devenu : c'est ce lien qui
   // permet de comparer, côté plateforme, la lecture OCR et l'encodage final.
-  if (scanId && insertedOrder?.id) {
-    await linkScanToOrder(scanId, user.id, insertedOrder.id);
+  if (readingScanId && insertedOrder?.id) {
+    await linkScanToOrder(readingScanId, user.id, insertedOrder.id);
   }
 
   // Create 3-layer pending reward for validated orders — awaited pour
@@ -403,7 +450,19 @@ export async function POST(request: NextRequest) {
   // has_team : l'écran de succès adapte son message (pas de score d'équipe
   // à annoncer sans équipe) et propose d'en rejoindre une — ADR 0034.
   return NextResponse.json(
-    { success: true, status, has_team: teamId !== null, reward: rewardName, next_tier: nextTier, has_reward: hasReward },
+    {
+      success: true,
+      status,
+      has_team: teamId !== null,
+      reward: rewardName,
+      next_tier: nextTier,
+      has_reward: hasReward,
+      // ADR 0058 §4 — les points de l'écran de succès viennent de CETTE
+      // lecture (points courbés, ADR 0028) ; la mesure reçoit une tranche,
+      // jamais le montant.
+      points: pointsForOrder(parsedAmount),
+      amount_band: amountBand(parsedAmount),
+    },
     { status: 201 }
   );
 }

@@ -8,13 +8,12 @@ import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { CAMERA_EMOJI, COIN_EMOJI } from "@/lib/fluent-emoji";
 import { foodIconUrl } from "@/lib/food-icon";
 import { createQrDetector, showsProgramQr, POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
-import { pointsForOrder } from "@/lib/points-model";
-import { amountBand, track } from "@/lib/analytics";
+import { track, type AmountBand } from "@/lib/analytics";
 import { beaconFunnelStep } from "@/lib/funnel-beacon";
 import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
-import { canAutoSend, missingReceiptParts, type MissingParts } from "@/lib/ticket-auto-send";
+import type { MissingParts } from "@/lib/ticket-auto-send";
 import { OPEN_RECEIPT_CAMERA_EVENT } from "@/lib/open-camera-event";
 import ReceiptCamera, { inAppCameraAvailable, type CameraFailure } from "@/components/member/ReceiptCamera";
 import {
@@ -112,28 +111,25 @@ export default function SubmitOrderClient({
   // L'app a été tuée pendant l'appareil photo natif : ne pas rouvrir la
   // caméra par-dessus le filet (lu par l'effet de reprise, asynchrone).
   const appClosedRef = useRef(false);
-  // ADR 0058 — rien ne se modifie : ces valeurs viennent de la lecture de
-  // l'aperçu et ne servent qu'à l'affichage et à la mesure. Le serveur relit
-  // la photo et n'utilise que sa propre lecture.
   // Libellé de la clé de commande propre à l'établissement (ADR 0019).
   const [keyLabel, setKeyLabel] = useState(receiptKeyLabel ?? "Numéro de commande");
-  const [amount, setAmount] = useState("");
+  // Montant lu par l'aperçu du VISITEUR, pour sa carte de gain (ADR 0048).
   const [ocrAmount, setOcrAmount] = useState<number | null>(null);
+  // ADR 0058 §4 — points de l'écran de succès, calculés par le serveur sur
+  // SA lecture : le membre n'a plus d'aperçu.
+  const [earnedPoints, setEarnedPoints] = useState(0);
   // ADR 0048 — ce que le ticket VAUT, rendu par l'aperçu OCR avant toute
   // demande de compte : le cadeau de couche 1 atteint par ce montant, ou la
   // distance jusqu'au premier palier. Noms d'articles et proportion de barre
   // uniquement — jamais un seuil, jamais un euro (ADR 0007/0028).
   const [gainReward, setGainReward] = useState<string | null>(null);
   const [gainNextTier, setGainNextTier] = useState<{ item: string; pct: number } | null>(null);
-  // Doublon repéré AVANT l'envoi, sur la clé lue (précheck) — ADR 0055.
-  const [precheckDuplicate, setPrecheckDuplicate] = useState(false);
-  // Dernière photo lue et envoyée : « Réessayer l'envoi » la renvoie telle
-  // quelle après une coupure, sans nouvelle photo.
-  const lastSendRef = useRef<{ file: File; reading: ParsedReceipt } | null>(null);
+  // Dernière photo envoyée : « Réessayer l'envoi » la renvoie telle quelle
+  // après une coupure, sans nouvelle photo.
+  const lastSendRef = useRef<File | null>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
-  // ADR 0055 — lecture propre : le ticket part sans passer par le récap. Vrai
-  // du verdict « lecture propre » jusqu'à la réponse de /api/orders ; le récap
-  // ne réapparaît que si l'envoi échoue ou tombe sur un doublon.
+  // ADR 0055 / 0058 §4 — la photo du membre part toute seule : vrai de l'envoi
+  // jusqu'à la réponse de /api/orders (lecture, vérification, délai ADR 0008).
   const [autoSending, setAutoSending] = useState(false);
   // ADR 0056 — vue caméra intégrée ouverte ; et filet : la page a été tuée
   // pendant que l'appareil photo du téléphone était ouvert.
@@ -268,12 +264,9 @@ export default function SubmitOrderClient({
   // Vercel → « erreur réseau » → 6 essais.
   async function acceptFile(file: File | undefined | null) {
     if (!file) return;
-    let reading: ParsedReceipt | null = null;
-    let readFile: File | null = null;
+    let sendFile: File | null = null;
     setParseStatus("idle");
     setParseError("");
-    setAmount("");
-    setPrecheckDuplicate(false);
     setSubmitStatus("idle");
     setErrorMsg("");
     setGainReward(null);
@@ -324,16 +317,22 @@ export default function SubmitOrderClient({
       // La photo reste sur l'appareil jusqu'à ce que le serveur ait le ticket :
       // le visiteur en attendant son compte (ADR 0040), le membre en attendant
       // l'envoi (ADR 0055) — s'il quitte avant, le bandeau « Ton ticket
-      // t'attend » la lui rend. L'aperçu OCR tourne dans les deux cas
-      // (visiteur : non authentifié, bridé par IP — ADR 0045).
+      // t'attend » la lui rend. Seul le visiteur passe par l'aperçu OCR (non
+      // authentifié, bridé par IP — ADR 0045) : il voit ce que vaut son
+      // ticket AVANT le compte (ADR 0048).
       await savePendingTicket(restaurantId, prepared.file);
-      if (visitor) track("visitor_ticket_captured", { restaurant_id: restaurantId });
-      readFile = prepared.file;
-      reading = await analyseReceipt(prepared.file);
+      if (visitor) {
+        track("visitor_ticket_captured", { restaurant_id: restaurantId });
+        await analyseReceipt(prepared.file);
+      } else {
+        sendFile = prepared.file;
+      }
     } finally {
       setPreparing(false);
     }
-    if (readFile && reading) await afterReading(readFile, reading);
+    // ADR 0058 §4 — le membre : pas d'aperçu, la photo part directement et le
+    // serveur la lit une seule fois.
+    if (sendFile) await sendTicket(sendFile);
   }
 
   // ADR 0056 — la caméra intégrée d'abord ; l'appareil photo du téléphone
@@ -370,18 +369,7 @@ export default function SubmitOrderClient({
     else router.replace(`/r/${restaurantId}`);
   }
 
-  // ADR 0057/0058 — après la lecture : photo incomplète → recadrer ; sinon
-  // envoi automatique. Il n'y a plus d'autre issue (aucun récap).
-  async function afterReading(file: File, reading: ParsedReceipt) {
-    const missing = visitor ? null : missingReceiptParts(reading);
-    if (missing) {
-      askReframe(missing);
-      return;
-    }
-    await sendIfClean(file, reading);
-  }
-
-  // Dit quoi recadrer — appelé par l'aperçu comme par la relecture serveur.
+  // Dit quoi recadrer — la lecture du serveur est incomplète (ADR 0057/0058).
   function askReframe(missing: MissingParts) {
     const attempt = framingFailures + 1;
     setFramingIssue(missing);
@@ -480,7 +468,6 @@ export default function SubmitOrderClient({
       setParseStatus("done");
       if (data.key_label) setKeyLabel(data.key_label);
       if (data.amount) {
-        setAmount(String(data.amount));
         setOcrAmount(data.amount);
       } else {
         setOcrAmount(null);
@@ -501,67 +488,31 @@ export default function SubmitOrderClient({
     }
   }
 
-  // ADR 0055/0058 — lecture complète : le ticket part tout seul, et SEULE la
-  // photo part — le serveur la relit et n'utilise que sa propre lecture. Le
-  // doublon est vérifié d'abord sur la clé lue (best-effort : si le précheck
-  // échoue, le 409 de /api/orders reste le filet).
-  async function sendIfClean(file: File, reading: ParsedReceipt) {
-    if (visitor || !canAutoSend(reading)) return;
-    lastSendRef.current = { file, reading };
+  // ADR 0055 / 0058 §4 — la photo du membre part toute seule, et SEULE la
+  // photo : le serveur la lit une fois, refuse l'affiche, dit quoi recadrer
+  // et écarte le doublon. Plus d'aperçu ni de précheck avant l'envoi.
+  async function sendTicket(file: File) {
+    lastSendRef.current = file;
     setAutoSending(true);
-    try {
-      const res = await fetch("/api/orders/precheck", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId, amount: reading.amount, order_number: reading.order_number?.trim() ?? "" }),
-      });
-      const { data } = await readJsonSafe<{ duplicate?: boolean }>(res);
-      if (res.ok && data?.duplicate === true) {
-        setPrecheckDuplicate(true);
-        setAutoSending(false);
-        return;
-      }
-    } catch {
-      // silencieux — le serveur tranche à l'envoi
-    }
-    await submitTicket(file, reading);
+    await submitTicket(file);
     setAutoSending(false);
   }
 
   // Envoi coupé (réseau, serveur) : on renvoie la même photo, sans en reprendre une.
   async function retrySend() {
     const last = lastSendRef.current;
-    if (last) await sendIfClean(last.file, last.reading);
+    if (last) await sendTicket(last);
   }
 
-  // Relance manuelle de l'analyse après une erreur : même suite qu'une photo
-  // neuve, une lecture propre part toute seule.
-  async function retryAnalysis() {
-    const file = receiptFile;
-    if (!file) return;
-    const reading = await analyseReceipt(file);
-    if (reading) await afterReading(file, reading);
-  }
-
-  // ADR 0058 — la requête ne porte QUE la photo (et le jeton du scan déjà
-  // stocké, ADR 0036) : ni montant ni numéro, que le serveur lit lui-même.
-  // La lecture de l'aperçu ne sert ici qu'à la mesure (tranche de montant).
-  async function submitTicket(file: File, reading: ParsedReceipt) {
+  // ADR 0058 — la requête ne porte QUE la photo : ni montant ni numéro, que
+  // le serveur lit lui-même.
+  async function submitTicket(file: File) {
     setSubmitStatus("loading");
     setErrorMsg("");
 
     const formData = new FormData();
     formData.append("receipt", file);
     formData.append("restaurantId", restaurantId);
-    if (reading.scan_id) formData.append("scan_id", reading.scan_id);
-
-    // Le montant part en tranche, jamais en euros (ADR 0028) : la charge utile
-    // d'un événement analytics est lisible côté client.
-    track("order_submitted", {
-      restaurant_id: restaurantId,
-      amount_band: amountBand(Number(reading.amount)),
-      has_receipt_photo: true,
-    });
 
     // Délai artificiel 3–5s + fetch en parallèle (ADR 0008)
     try {
@@ -578,6 +529,8 @@ export default function SubmitOrderClient({
         next_tier?: { item: string; pct: number } | null;
         has_reward?: boolean;
         missing?: MissingParts;
+        points?: number;
+        amount_band?: AmountBand;
       }>(res);
       const data = submitData ?? {};
 
@@ -588,6 +541,16 @@ export default function SubmitOrderClient({
 
       if (res.status === 201) {
         const validated = data.status === "validated";
+        setEarnedPoints(data.points ?? 0);
+        // Tranche calculée par le serveur sur sa lecture — jamais d'euro dans
+        // un événement lisible côté client (ADR 0028).
+        if (data.amount_band) {
+          track("order_submitted", {
+            restaurant_id: restaurantId,
+            amount_band: data.amount_band,
+            has_receipt_photo: true,
+          });
+        }
         setHasTeam(data.has_team !== false);
         setReward(data.reward ?? null);
         setNextTier(data.next_tier ?? null);
@@ -610,9 +573,18 @@ export default function SubmitOrderClient({
       // ADR 0058 — la relecture serveur ne trouve pas le total ou la clé (ou
       // la date du numéro est impossible) : même issue qu'à l'aperçu.
       if (res.status === 422 && data.missing) {
+        lastSendRef.current = null;
         setSubmitStatus("idle");
         askReframe(data.missing);
         return;
+      }
+      // ADR 0058 §4 — pas un ticket (affiche, rien de reconnu) : le message du
+      // serveur, et une nouvelle photo — jamais « Réessayer l'envoi » de la même.
+      if (res.status === 422) {
+        lastSendRef.current = null;
+        const attempt = framingFailures + 1;
+        setFramingFailures(attempt);
+        track("receipt_reframe_requested", { restaurant_id: restaurantId, missing: "unrecognized", attempt });
       }
       setSubmitStatus("error");
       setErrorMsg(describeUploadFailure(res.status, data.error));
@@ -629,8 +601,6 @@ export default function SubmitOrderClient({
     setReceiptFile(null);
     setParseStatus("idle");
     setParseError("");
-    setAmount("");
-    setPrecheckDuplicate(false);
     lastSendRef.current = null;
     setGainReward(null);
     setGainNextTier(null);
@@ -667,15 +637,13 @@ export default function SubmitOrderClient({
       : submitStatus === "duplicate"
         ? // ADR 0052 §6 — message unique, sans détail technique : le membre
           // n'a pas à savoir QUEL signal a détecté le doublon.
-          { tone: "warn", title: "Ce ticket a déjà été utilisé." }
-        : !visitor && parseStatus === "done" && precheckDuplicate
-          ? {
-              tone: "warn",
-              title: "Ce ticket a déjà été utilisé",
-              hint: "Si ce n'est pas le bon ticket, reprends la photo.",
-              reframe: true,
-            }
-          : !visitor && parseStatus === "done" && framingIssue
+          {
+            tone: "warn",
+            title: "Ce ticket a déjà été utilisé.",
+            hint: "Si ce n'est pas le bon ticket, reprends la photo.",
+            reframe: true,
+          }
+          : !visitor && framingIssue
             ? // ADR 0057 — photo incomplète : dire QUOI recadrer, et rouvrir la caméra.
               {
                 tone: "warn",
@@ -706,10 +674,9 @@ export default function SubmitOrderClient({
   // que ça m'a rapporté ? » (libellés neutres : la validation est différée,
   // ADR 0008 — ne jamais promettre un cadeau déjà là).
   if (submitStatus === "success_validated") {
-    // ADR 0028 — points gagnés sur CE ticket, même formule courbée
-    // (pointsForOrder) que le score d'équipe et les compteurs header/dashboard :
-    // pas d'euro affiché, "amount" ne ressort qu'ici, transformé en points.
-    const earnedPoints = pointsForOrder(Number(amount));
+    // ADR 0028 — points gagnés sur CE ticket, même formule courbée que le
+    // score d'équipe, calculés par le serveur sur sa propre lecture
+    // (`earnedPoints`, ADR 0058 §4) : aucun euro ne ressort ici.
     const pointsLabel = `point${earnedPoints > 1 ? "s" : ""} gagné${earnedPoints > 1 ? "s" : ""}`;
     const askTeam =
       !hasTeam && !teamAskDone && !!teamPrompt && teamPrompt.suggestions.length > 0;
@@ -1249,30 +1216,19 @@ export default function SubmitOrderClient({
         </div>
       )}
 
-      {/* ADR 0055 — côté membre, un seul état d'attente de la photo au
-          résultat : la lecture puis, si elle est propre, l'envoi (délai
-          ADR 0008 inclus). Aucun bouton à trouver entre les deux. */}
-      {!visitor && preview && (preparing || parseStatus === "parsing" || autoSending) && (
+      {/* ADR 0055 / 0058 §4 — côté membre, un seul état d'attente de la photo
+          au résultat : l'envoi, que le serveur lit et vérifie (délai ADR 0008
+          inclus). Aucun bouton à trouver entre les deux. */}
+      {!visitor && preview && (preparing || autoSending) && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex items-center gap-3">
           <span className="text-2xl animate-spin">⏳</span>
           <div>
             <p className="font-semibold text-blue-900 text-sm">
-              {autoSending ? "Vérification en cours..." : "Lecture de ton ticket…"}
+              {autoSending ? "Vérification en cours..." : "Préparation de la photo…"}
             </p>
             <p className="text-blue-700 text-xs mt-0.5">Reste sur cet écran, c&apos;est presque fini.</p>
           </div>
         </div>
-      )}
-
-      {/* L'analyse part automatiquement après la photo ; ce bouton ne sert
-          qu'à relancer après une erreur (ou si l'auto-lancement a échoué). */}
-      {!visitor && preview && !preparing && (parseStatus === "idle" || parseStatus === "error") && (
-        <button
-          onClick={() => void retryAnalysis()}
-          className="w-full bg-brand-red text-white py-3 px-4 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-60 transition-colors mb-4"
-        >
-          {parseStatus === "error" ? "Réessayer l'analyse" : "Analyser le ticket"}
-        </button>
       )}
 
       {/* ADR 0058 — il n'y a plus de récap : ni montant ni numéro ne se

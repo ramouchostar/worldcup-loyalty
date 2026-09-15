@@ -48,6 +48,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - Délai artificiel 3–5s côté client avec message "Vérification en cours..."
 - Jamais les mots "automatique" ou "instantané" côté client
 - **ADR 0058 — le ticket ne se corrige pas** : `/api/orders` n'accepte qu'une photo et n'utilise **que la lecture OCR serveur** pour le montant et la clé ; tout `amount` / `order_number` venu du client est ignoré. Lecture incomplète (total, clé, année réparée) → 422 « reprends la photo », rien n'est créé. Ne jamais réintroduire de saisie ou de correction côté membre, ni de route acceptant des valeurs sans photo
+- **ADR 0058 §4 — une seule lecture** : le membre n'a pas d'aperçu OCR, sa photo part directement ; `/api/orders` refuse l'affiche et la photo sans ticket (`judgeReceipt`), plafonne l'OCR (20/h), conserve la lecture (`receipt_scans`), la compte (`recordScan`) et renvoie les points. Ne jamais réintroduire un aperçu ou un précheck avant l'envoi du membre
 
 ### ADR 0021 — Réserve de points personnelle
 - « Mettre de côté » (onglet récompenses et accueil) : cadeau `available` → `banked`, crédit `points_for_order(montant)` — **points courbés, jamais `floor(montant)`** (ADR 0060) — dans le ledger `point_transactions` (jamais de colonne solde, corrections en `admin_adjust`)

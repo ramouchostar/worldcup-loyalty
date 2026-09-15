@@ -6,7 +6,8 @@ valeurs), [ADR 0019](0019-receipt-key-discovery.md) (plus de clé saisie ni de
 chemin « numéro illisible » pour un établissement à clé fiable),
 [ADR 0055](0055-le-ticket-part-tout-seul.md) §2 (le récap disparaît) et
 [ADR 0057](0057-l-ecran-ticket-s-ouvre-sur-la-camera.md) §3-§4 (plus de saisie à la
-main ; l'année réparée se reprend en photo).
+main ; l'année réparée se reprend en photo). **§4 ajouté le 2026-09-15** : la photo du
+membre est lue une seule fois, par le serveur.
 
 ## Contexte
 
@@ -55,6 +56,32 @@ entre ne jamais bloquer et ne jamais laisser taper.
 L'année réparée d'un Bestelnummer (incident Kasia) n'ouvre plus de vérification : elle
 demande une nouvelle photo, comme un numéro absent.
 
+### 4. Une seule lecture, celle du serveur *(2026-09-15)*
+
+**Constat (audit de l'écran photo).** Après les §1 à §3, le ticket d'un membre était lu
+**deux fois** : par l'aperçu (`/api/orders/parse-receipt`), qui ne servait plus qu'à
+décider du recadrage et à repérer un doublon, puis par `/api/orders`, seule lecture qui
+compte. Deux appels Vision payés par ticket, plusieurs secondes d'attente en plus, et des
+points affichés à l'écran de succès tirés de la première lecture.
+
+**Décision.**
+- Le membre n'a plus d'aperçu : sa photo part directement à `/api/orders`, qui la lit une
+  fois. L'aperçu reste réservé au visiteur, à qui il montre ce que vaut son ticket avant
+  le compte (ADR 0048).
+- Ce que faisait l'aperçu du membre se fait dans l'envoi :
+  - refus de l'affiche et de la photo sans ticket reconnu, avec la même règle que l'aperçu
+    visiteur (`judgeReceipt`, `lib/receipt-proof.ts`) et les mêmes motifs d'entonnoir
+    (`qr_detected`, `unreadable`, `header_rejected`) ;
+  - plafond de 20 lectures par heure (même compteur que l'aperçu) ;
+  - conservation de la lecture et de l'image dans `receipt_scans` (ADR 0036), réutilisée
+    comme photo de la commande ;
+  - comptage du scan pour la facturation (ADR 0029 §6).
+- La règle de recadrage (`missingReceiptParts`) est la même fonction côté serveur.
+- Le précheck de doublon (`/api/orders/precheck`) disparaît : le serveur refuse le doublon
+  à l'envoi (409, ADR 0052), l'écran propose alors de reprendre la photo.
+- `/api/orders` renvoie les **points** du ticket et sa **tranche de montant** : l'écran de
+  succès et la mesure viennent de la lecture qui crédite.
+
 ## Alternatives rejetées
 
 - **Masquer les boutons, garder le serveur tel quel.** La fraude passe par la route,
@@ -72,5 +99,8 @@ demande une nouvelle photo, comme un numéro absent.
 - Un ticket mal imprimé ou abîmé ne rapporte rien. À suivre avec
   `receipt_reframe_requested` (`missing`, `attempt`) : des essais répétés sur un même
   établissement signalent un problème de tickets ou de guide de cadrage.
-- Les points annoncés à l'écran de succès viennent encore de la lecture de l'aperçu ;
-  en cas d'écart avec la relecture serveur, c'est le serveur qui crédite.
+- ~~Les points annoncés à l'écran de succès viennent encore de la lecture de l'aperçu.~~
+  Réglé par le §4 : ils viennent de la lecture du serveur.
+- §4 : un envoi coûte désormais l'attente d'une lecture complète avant toute réponse
+  (plus d'étape intermédiaire). Le délai artificiel de l'ADR 0008 (3 à 5 s) est absorbé
+  par la lecture elle-même dans la plupart des cas.
