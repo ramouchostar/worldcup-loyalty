@@ -78,6 +78,8 @@ export default function SubmitOrderClient({
   receiptKeyLabel = null,
   guidePhotoUrl = null,
   teamPrompt = null,
+  waitPromise = [],
+  waitingGift = null,
 }: {
   visitor: boolean;
   resume: boolean;
@@ -93,6 +95,10 @@ export default function SubmitOrderClient({
   // du ticket validé. Null si : visiteur, déjà une équipe, relance pas échue
   // (posée même quand l'établissement masque la compétition — ADR 0059 amendé).
   teamPrompt?: { suggestions: PromptSuggestion[] } | null;
+  // Écran d'attente du membre : plats que le ticket peut rapporter (noms,
+  // jamais de seuil), ou le cadeau qui attend déjà (ADR 0011).
+  waitPromise?: string[];
+  waitingGift?: string | null;
 }) {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const { name: restaurantName } = useRestaurantInfo();
@@ -884,6 +890,7 @@ export default function SubmitOrderClient({
           onGallery={openGallery}
           onFailure={handleCameraFailure}
           onPosterSeen={() => track("receipt_poster_seen_live", { restaurant_id: restaurantId })}
+          onTorchOn={() => track("receipt_torch_used", { restaurant_id: restaurantId })}
         />
       )}
       <div className="mb-6 text-center">
@@ -1219,15 +1226,42 @@ export default function SubmitOrderClient({
       {/* ADR 0055 / 0058 §4 — côté membre, un seul état d'attente de la photo
           au résultat : l'envoi, que le serveur lit et vérifie (délai ADR 0008
           inclus). Aucun bouton à trouver entre les deux. */}
+      {/* Audit écran photo (2026-09-15) — l'attente (lecture + délai ADR 0008,
+          5 à 10 s) sert à quelque chose : ce que le ticket peut rapporter, ou
+          le cadeau qui attend déjà et qu'un ticket ne remplacerait pas
+          (ADR 0011). Jamais de seuil ni de promesse de cadeau (ADR 0059). */}
       {!visitor && preview && (preparing || autoSending) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex items-center gap-3">
-          <span className="text-2xl animate-spin">⏳</span>
-          <div>
-            <p className="font-semibold text-blue-900 text-sm">
-              {autoSending ? "Vérification en cours..." : "Préparation de la photo…"}
-            </p>
-            <p className="text-blue-700 text-xs mt-0.5">Reste sur cet écran, c&apos;est presque fini.</p>
-          </div>
+        <div role="status" aria-live="polite" className="bg-white border border-gray-200 rounded-2xl p-5 mb-4 text-center shadow-sm">
+          <div
+            aria-hidden="true"
+            className="mx-auto mb-3 h-10 w-10 rounded-full border-4 border-gray-200 border-t-brand-red animate-spin"
+          />
+          <p className="font-bold text-gray-900">
+            {autoSending ? "Vérification en cours…" : "Préparation de la photo…"}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">Reste sur cet écran, c&apos;est l&apos;affaire de quelques secondes.</p>
+          {waitingGift ? (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-3 text-left">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={foodIconUrl(waitingGift)} alt="" aria-hidden="true" className="h-10 w-10 shrink-0" />
+              <p className="text-sm text-green-900">
+                Ton <span className="font-bold">{waitingGift}</span> t&apos;attend au comptoir : pense à le récupérer.
+              </p>
+            </div>
+          ) : waitPromise.length > 0 ? (
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Ce ticket peut te rapporter</p>
+              <div className="flex justify-center gap-4">
+                {waitPromise.map((item) => (
+                  <div key={item} className="w-20">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={foodIconUrl(item)} alt="" aria-hidden="true" className="mx-auto h-10 w-10" />
+                    <p className="mt-1 text-xs font-semibold text-gray-800 leading-tight">{item}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
 

@@ -120,6 +120,8 @@ export type AnalyticsEventMap = {
   };
   /** Le QR de l'affiche est entré dans le viseur (ADR 0056 amendé) — une fois par ouverture de la caméra. */
   receipt_poster_seen_live: { restaurant_id: string };
+  /** Lampe allumée dans la caméra intégrée (ADR 0056 §6) — une fois par ouverture ; Chrome Android seulement. */
+  receipt_torch_used: { restaurant_id: string };
   /** Ticket soumis —`amount_band`, jamais le montant (ADR 0028). */
   order_submitted: {
     restaurant_id: string;
