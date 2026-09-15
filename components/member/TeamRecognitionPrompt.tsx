@@ -19,8 +19,10 @@ import type { TeamType } from "@/types";
 //   semaine côté serveur, jamais localStorage — la question doit revenir même
 //   sur un autre appareil). Le refus définitif n'existe plus ici : la liste
 //   complète reste explorable sur « Mon équipe ».
-// - Jamais posée dans un établissement où les équipes sont masquées
-//   (restaurants.teams_hidden — filtré en amont par getTeamPrompt).
+// - Posée aussi là où l'établissement masque la compétition
+//   (restaurants.teams_hidden, ADR 0059 amendé le 2026-09-15) : déclarer sa
+//   communauté n'est pas un classement, et c'est ce qui permet au
+//   restaurateur de cibler ses diffusions.
 //
 // Question de gain, pas de stratégie : on ne montre NI points NI nombre de
 // membres — le membre reconnaît une appartenance, il ne compare pas des

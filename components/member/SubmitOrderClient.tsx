@@ -91,8 +91,8 @@ export default function SubmitOrderClient({
   // le spécimen dessiné quand elle existe pour ce resto.
   guidePhotoUrl?: string | null;
   // Étape 10 — question d'équipe due (ADR 0031), posée sur l'écran de succès
-  // du ticket validé. Null si : visiteur, déjà une équipe, relance pas échue,
-  // équipes masquées.
+  // du ticket validé. Null si : visiteur, déjà une équipe, relance pas échue
+  // (posée même quand l'établissement masque la compétition — ADR 0059 amendé).
   teamPrompt?: { suggestions: PromptSuggestion[] } | null;
 }) {
   const { restaurantId } = useParams<{ restaurantId: string }>();

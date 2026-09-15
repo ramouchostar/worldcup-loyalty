@@ -312,6 +312,10 @@ export type TeamPrompt = { suggestions: TeamSuggestionRow[] };
 // Étape 10 onboarding — « équipes masquées » par établissement (migration
 // 20260902-0500). Fail-open : colonne absente → hardcode kraainem historique
 // (le masquage vitrine datait du retour restaurateur du 2026-08-10).
+// Depuis le 2026-09-15 (ADR 0059 amendé), le réglage ne masque que la
+// COMPÉTITION : Top 5 de la vitrine, classement sur l'accueil. L'appartenance
+// à une équipe reste visible et proposée — c'est elle qui permet au
+// restaurateur de cibler ses diffusions (ADR 0014, 0039).
 export async function getTeamsHidden(restaurantId: string): Promise<boolean> {
   try {
     const { data, error } = await createAdminClient()
@@ -332,10 +336,9 @@ export async function getTeamsHidden(restaurantId: string): Promise<boolean> {
 export async function getTeamPrompt(userId: string, restaurantId: string): Promise<TeamPrompt | null> {
   const admin = createAdminClient();
 
-  // Étape 10 — jamais de question d'équipe dans un établissement qui masque
-  // le concept d'équipe (kraainem tant que le concept n'est pas validé).
-  if (await getTeamsHidden(restaurantId)) return null;
-
+  // La question est posée même quand l'établissement masque la compétition
+  // (ADR 0059 amendé, 2026-09-15) : déclarer sa communauté n'est pas un
+  // classement, et c'est ce qui nourrit la diffusion ciblée.
   const { data: membershipRaw } = await admin
     .from("memberships")
     .select("team_id, team_prompt_next_at, team_prompt_declined")
