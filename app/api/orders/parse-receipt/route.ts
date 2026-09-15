@@ -9,6 +9,7 @@ import { recordFunnelStep } from "@/lib/funnel";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
+import { judgeReceipt, notAReceiptMessage } from "@/lib/receipt-proof";
 import { loadRewardGrid, resolveSoloReward, nextSoloTier, type NextSoloTier } from "@/lib/rewards";
 
 export const maxDuration = 30;
@@ -117,24 +118,23 @@ export async function POST(request: NextRequest) {
   // porte le nom du resto, donc l'en-tête seule ne la départage pas d'un
   // ticket. Une clé de commande lue, elle, prouve un ticket quelle que soit
   // la lecture « affiche » du modèle — même prudence que le scan indulgent.
-  const posterSuspected = analysis.looks_like_qr_or_poster && analysis.order_number === null;
-  const receiptProven =
-    !posterSuspected && (analysis.has_restaurant_header || analysis.order_number !== null);
+  // Règle partagée avec l'envoi du membre (lib/receipt-proof, ADR 0058 §4).
+  const verdict = judgeReceipt(analysis);
 
   const scanId = await storeScan({
     restaurantId: String(rawRestaurantId),
     userId: user?.id ?? null,
     file,
     analysis,
-    outcome: receiptProven ? "parsed" : "header_rejected",
+    outcome: verdict === "receipt" ? "parsed" : "header_rejected",
   });
 
-  if (posterSuspected) {
+  if (verdict === "poster") {
     await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "qr_detected");
     return NextResponse.json({ error: POSTER_MEMBER_MESSAGE }, { status: 422 });
   }
 
-  if (!receiptProven) {
+  if (verdict === "not_a_receipt") {
     // Entonnoir (ADR 0037) : on distingue « rien de lisible sur la photo » de
     // « montant lu, mais rien qui rattache le ticket à cet établissement ».
     // Deux causes, deux remèdes — le cadrage d'un côté, l'affichage de la
@@ -144,11 +144,8 @@ export async function POST(request: NextRequest) {
       "ticket_rejected",
       analysis.amount === null ? "unreadable" : "header_rejected"
     );
-    const keyLabel = receiptConfig.key_label ?? "numéro de commande";
     return NextResponse.json(
-      {
-        error: `On n'a pas reconnu de ticket ${restaurantName} sur cette photo. Cadre la zone du total et du ${keyLabel}, de près et bien à plat — pas besoin de tout le ticket.`,
-      },
+      { error: notAReceiptMessage(restaurantName, receiptConfig.key_label) },
       { status: 422 }
     );
   }
@@ -162,11 +159,11 @@ export async function POST(request: NextRequest) {
   //
   // Ce qui sort : des NOMS d'articles et une proportion de barre. Jamais un
   // seuil, jamais un euro, jamais un prix de revient (ADR 0007 amendé par
-  // 0028, ADR 0017) — même contrat que /api/orders/precheck et le hero.
+  // 0028, ADR 0017) — même contrat que l'écran de succès et le hero.
   //
-  // Calculé pour tout le monde, consommé côté visiteur : un membre connecté a
-  // déjà la même carte via /api/orders/precheck (qui suit la saisie du montant
-  // corrigé). Une seule requête indexée derrière un appel Vision de 2-6 s, et
+  // Consommé côté visiteur : le membre n'appelle plus cet aperçu, sa photo
+  // part directement à /api/orders (ADR 0058 §4). Une seule requête indexée
+  // derrière un appel Vision de 2-6 s, et
   // la forme de la réponse ne dépend pas de l'authentification.
   //
   // Best-effort : grille non configurée ou panne → null, et l'écran retombe
