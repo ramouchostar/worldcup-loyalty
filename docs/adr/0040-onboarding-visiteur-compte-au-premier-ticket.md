@@ -49,7 +49,11 @@ du premier ticket — « pour garder tes points ».** Avant cela, tout se visite
    `pending_ticket` (même mécanique que l'existant) ramènent la session sur
    `/r/[id]/submit-order?resume=1` après login/signup/OAuth ; la photo est
    rechargée et l'analyse enchaîne. Photo absente (autre navigateur,
-   expiration) → écran normal, on reprend la photo — jamais d'erreur.
+   expiration) → jamais d'erreur. **Amendé 2026-09-15** : plus d'« écran
+   normal » muet (terrain Kraainem, 14/09 : compte créé, photo jamais relue,
+   client reparti) — la caméra se rouvre et l'écran dit « Ton compte est
+   prêt — reprends ton ticket en photo » ; la fermer ne ramène pas en arrière
+   (l'historique mène aux pages de connexion).
 5. **Adhésion automatique à l'écran de scan.** Un connecté non-membre qui
    ouvre le scan d'un resto veut soumettre un ticket ici : adhésion créée
    (adhésion libre, ADR 0015 §3 ; attribution du parrainage préservée via

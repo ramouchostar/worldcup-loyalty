@@ -106,6 +106,12 @@ export default function SubmitOrderClient({
   const [preparing, setPreparing] = useState(false);
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
   const [parseError, setParseError] = useState("");
+  // Retour d'inscription (`?resume=1`) sans photo retrouvée sur l'appareil
+  // (terrain Kraainem 2026-09-14) : on le dit, et la caméra se rouvre.
+  const [resumeMissing, setResumeMissing] = useState(false);
+  // L'app a été tuée pendant l'appareil photo natif : ne pas rouvrir la
+  // caméra par-dessus le filet (lu par l'effet de reprise, asynchrone).
+  const appClosedRef = useRef(false);
   // ADR 0058 — rien ne se modifie : ces valeurs viennent de la lecture de
   // l'aperçu et ne servent qu'à l'affichage et à la mesure. Le serveur relit
   // la photo et n'utilise que sa propre lecture.
@@ -175,6 +181,7 @@ export default function SubmitOrderClient({
   // Pas sur une reprise (`?resume=1`) : une photo attend déjà.
   useEffect(() => {
     if (consumeAppClosedDuringCamera()) {
+      appClosedRef.current = true;
       setCameraLost(true);
       track("receipt_camera_fallback", { restaurant_id: restaurantId, reason: "app_closed" });
       return;
@@ -207,7 +214,15 @@ export default function SubmitOrderClient({
     let cancelled = false;
     (async () => {
       const file = await loadPendingTicket(restaurantId);
-      if (!file || cancelled) return;
+      if (cancelled) return;
+      // Photo introuvable (autre navigateur, expirée, page quittée) : le
+      // compte, lui, est prêt. Plutôt qu'une page fixe, la caméra — le ticket
+      // papier est encore dans la main.
+      if (!file) {
+        setResumeMissing(true);
+        if (!appClosedRef.current && inAppCameraAvailable()) setCameraOpen(true);
+        return;
+      }
       // La photo SURVIT à ce rechargement, visiteur comme membre (ADR 0055) :
       // acceptFile la re-sauve, et seule la réponse de /api/orders l'efface.
       // L'effacer ici perdait le ticket d'un membre qui quittait avant l'envoi.
@@ -264,6 +279,7 @@ export default function SubmitOrderClient({
     setGainReward(null);
     setGainNextTier(null);
     setFramingIssue(null);
+    setResumeMissing(false);
     setPreparing(true);
     try {
       const prepared = await prepareReceiptImage(file);
@@ -444,10 +460,12 @@ export default function SubmitOrderClient({
 
       if (!ok) {
         // 422 : l'aperçu a refusé la photo (pas un ticket, affiche). Inutile
-        // de la reproposer au membre via « Ton ticket t'attend » (ADR 0055).
-        // La photo du visiteur suit son parcours inchangé (ADR 0045).
+        // de la reproposer via « Ton ticket t'attend » (ADR 0055) — ni au
+        // membre, ni au visiteur : ADR 0048 amendé, un visiteur dont la photo
+        // est refusée ne se voit plus demander de compte (terrain Kraainem
+        // 2026-09-14 : compte créé sur une photo d'affiche, puis bloqué).
         // ADR 0057 — c'est aussi une photo ratée (mesure : n-ième essai).
-        if (status === 422 && !visitor) {
+        if (status === 422) {
           void clearPendingTicket(restaurantId);
           const attempt = framingFailures + 1;
           setFramingFailures(attempt);
@@ -664,9 +682,18 @@ export default function SubmitOrderClient({
                 hint: "Rapproche-toi, ticket bien à plat, et cadre-les dans le rectangle.",
                 reframe: true,
               }
-            : parseStatus === "error" && parseError && (!visitor || !preview)
+            : // Visiteur compris (ADR 0048 amendé) : le refus s'affiche, il n'est
+              // plus recouvert par « Ton ticket est prêt ! ».
+              parseStatus === "error" && parseError
               ? { tone: "error", title: parseError, reframe: true }
-              : null;
+              : resumeMissing && !preview
+                ? {
+                    tone: "warn",
+                    title: "Ton compte est prêt — reprends ton ticket en photo",
+                    hint: "La photo prise avant l'inscription n'est plus sur ce téléphone.",
+                    reframe: true,
+                  }
+                : null;
   const topAlertKey = topAlert ? `${topAlert.tone}:${topAlert.title}` : "";
 
   // Un message qui apparaît alors qu'on a scrollé (récap long) : on remonte.
@@ -878,7 +905,9 @@ export default function SubmitOrderClient({
             setCameraOpen(false);
             // ADR 0057 — fermée sans photo à l'écran : retour là où elle était.
             // Avec une photo (reprise en cours) ou le filet affiché, on reste.
-            if (!preview && !cameraLost) leaveTicketScreen();
+            // Retour d'inscription sans photo : on reste, l'historique mène
+            // aux pages de connexion.
+            if (!preview && !cameraLost && !resumeMissing) leaveTicketScreen();
           }}
           onNativeCamera={() => {
             setCameraOpen(false);
@@ -1151,7 +1180,10 @@ export default function SubmitOrderClient({
           ADR 0048 — et il ne dit plus seulement que le scan a marché : il dit
           ce que le ticket VAUT. Le cadeau est gagné AVANT qu'on demande quoi
           que ce soit, puis c'est lui qui paie la demande de compte. */}
-      {visitor && preview && !preparing && (
+      {/* ADR 0048 amendé (2026-09-15) — jamais de demande de compte sans ticket
+          LU : une photo refusée (affiche, rien de lisible) montre son refus en
+          haut et « Reprendre la photo », pas « Ton ticket est prêt ! ». */}
+      {visitor && preview && !preparing && (parseStatus === "parsing" || parseStatus === "done") && (
         <div className="bg-white border-2 border-brand-red/40 rounded-2xl p-5 text-center mb-4">
           {parseStatus === "done" && ocrAmount !== null ? (
             <TicketGainCard amount={ocrAmount} reward={gainReward} nextTier={gainNextTier} />
@@ -1167,7 +1199,9 @@ export default function SubmitOrderClient({
           {/* L'argument du compte devient le CADEAU quand il y en a un : c'est
               le gain déjà acquis qui justifie la demande, plus une promesse.
               Sans cadeau atteint (petit ticket, grille non configurée), les
-              points restent l'argument. */}
+              points restent l'argument. Pendant la lecture : rien à demander. */}
+          {parseStatus === "done" && (
+          <>
           <p className="text-gray-600 text-sm mb-4">
             {gainReward ? (
               <>
@@ -1206,6 +1240,8 @@ export default function SubmitOrderClient({
               J&apos;ai déjà un compte
             </button>
           </div>
+          </>
+          )}
         </div>
       )}
 
