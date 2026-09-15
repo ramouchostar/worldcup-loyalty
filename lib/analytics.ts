@@ -117,7 +117,10 @@ export type AnalyticsEventMap = {
     restaurant_id: string;
     missing: "total" | "key" | "both" | "unrecognized";
     attempt: number;
-  };  /** Ticket soumis — `amount_band`, jamais le montant (ADR 0028). */
+  };
+  /** Le QR de l'affiche est entré dans le viseur (ADR 0056 amendé) — une fois par ouverture de la caméra. */
+  receipt_poster_seen_live: { restaurant_id: string };
+  /** Ticket soumis —`amount_band`, jamais le montant (ADR 0028). */
   order_submitted: {
     restaurant_id: string;
     amount_band: AmountBand;

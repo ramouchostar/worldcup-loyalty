@@ -85,7 +85,9 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `visitor_signup_started` | `restaurant_id`, `method` | Départ vers la connexion depuis « garde tes points » |
 | `visitor_ticket_resumed` | `restaurant_id` | Photo reprise après connexion (`?resume=1`) |
 | `receipt_camera_fallback` | `restaurant_id`, `reason` | Caméra intégrée quittée pour un repli (ADR 0056) : `unsupported`, `denied`, `error`, ou `app_closed` (Android a fermé l'app pendant la photo) |
-| `receipt_reframe_requested` | `restaurant_id`, `missing`, `attempt` | Photo incomplète, recadrage demandé (ADR 0057) : `total`, `key`, `both` ou `unrecognized` ; `attempt` = n-ième photo ratée || `order_submitted` | `restaurant_id`, `amount_band`, `has_receipt_photo` | Ticket envoyé — toujours automatiquement, photo seule (ADR 0058) |
+| `receipt_reframe_requested` | `restaurant_id`, `missing`, `attempt` | Photo incomplète, recadrage demandé (ADR 0057) : `total`, `key`, `both` ou `unrecognized` ; `attempt` = n-ième photo ratée |
+| `receipt_poster_seen_live` | `restaurant_id` | Le QR de l'affiche est entré dans le viseur de la caméra intégrée, déclencheur bloqué (ADR 0056 amendé) — une fois par ouverture ; Chrome Android seulement |
+| `order_submitted` | `restaurant_id`, `amount_band`, `has_receipt_photo` | Ticket envoyé — toujours automatiquement, photo seule (ADR 0058) |
 | `order_result` | `restaurant_id`, `result` | Verdict rendu au membre |
 | `reward_redeem_started` | `restaurant_id` | Coupon 10 min généré (ADR 0011) |
 | `reward_banked` | `restaurant_id` | Cadeau mis en réserve (ADR 0021) |
