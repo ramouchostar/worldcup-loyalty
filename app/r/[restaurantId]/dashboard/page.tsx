@@ -101,8 +101,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     loadRewardGrid(restaurantId),
     isRestaurantOwner(user.id, restaurantId),
     supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
-    // Réglage par établissement (kraainem) : sans équipes, l'accueil ne
-    // montre ni bloc équipe, ni tuiles Récompenses / Classement.
+    // Réglage par établissement (kraainem) : compétition masquée — ni
+    // comparaison au classement, ni tuile Classement. L'équipe reste.
     getTeamsHidden(restaurantId),
     // Réserve (ADR 0021) : le solde qui s'échange, et les gros cadeaux visés.
     getPointsBalance(user.id, restaurantId),
@@ -122,8 +122,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     (!!(profileFlags as { is_admin: boolean } | null)?.is_admin && restaurantId === getRestaurantId());
 
   const membership = membershipRaw as unknown as MembershipWithTeam | null;
-  const team = teamsHidden ? null : membership?.teams ?? null;
-  const hasTeam = !teamsHidden && !!membership?.team_id;
+  const team = membership?.teams ?? null;
+  const hasTeam = !!membership?.team_id;
   const validCount = validatedOrderCount ?? 0;
   const orderList = (orders as Order[] | null) ?? [];
 
@@ -343,152 +343,151 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           est venu chercher (ADR 0059) ; disparaît une fois l'app installée. */}
       <InstallAppCard audience="membre" surface="dashboard_membre" />
 
-      {/* ── Équipe — seulement là où l'établissement l'utilise ───────────── */}
-      {!teamsHidden && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-          {!team ? (
-            <div id="tour-community-progress" className="p-5 text-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={PEOPLE_EMOJI} alt="" className="w-12 h-12 mx-auto mb-2" />
-              <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Rejoins une équipe : chaque ticket de l&apos;équipe peut ajouter un cadeau au tien.
-              </p>
-              <Link
-                href={r("/my-team")}
-                className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
-              >
-                Voir les équipes →
-              </Link>
+      {/* ── Équipe — toujours : l'appartenance sert la diffusion ciblée du
+          restaurateur. Seule la comparaison au classement suit le réglage
+          « équipes masquées » (ADR 0059 amendé, 2026-09-15). ─────────────── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        {!team ? (
+          <div id="tour-community-progress" className="p-5 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={PEOPLE_EMOJI} alt="" className="w-12 h-12 mx-auto mb-2" />
+            <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Rejoins une équipe : chaque ticket de l&apos;équipe peut ajouter un cadeau au tien.
+            </p>
+            <Link
+              href={r("/my-team")}
+              className="inline-block bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-red/85 transition-colors"
+            >
+              Voir les équipes →
+            </Link>
+          </div>
+        ) : (
+          <div id="tour-community-progress" className="p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-2xl">{team.flag_emoji}</span>
+              <p className="font-bold text-gray-900">Équipe {team.name}</p>
             </div>
-          ) : (
-            <div id="tour-community-progress" className="p-5">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-2xl">{team.flag_emoji}</span>
-                <p className="font-bold text-gray-900">Équipe {team.name}</p>
-              </div>
 
-              <ScoreCard
-                teamId={membership!.team_id!}
-                initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
-              />
+            <ScoreCard
+              teamId={membership!.team_id!}
+              initial={{ team_id: membership!.team_id!, member_count: memberCount, score }}
+            />
 
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
-                {!communityBonusActive && (
-                  <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                    <span className="text-sm">⏸️</span>
-                    <p className="text-xs font-medium text-gray-600">
-                      Le cadeau d&apos;équipe est en pause — ton cadeau à chaque ticket reste garanti.
-                    </p>
-                  </div>
-                )}
-
-                {communityTiers.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-1">
-                    Le score de ton équipe grandit à chaque ticket.
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              {/* Plafond budget atteint (ADR 0012) — message neutre (ADR 0007) */}
+              {!communityBonusActive && (
+                <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  <span className="text-sm">⏸️</span>
+                  <p className="text-xs font-medium text-gray-600">
+                    Le cadeau d&apos;équipe est en pause — ton cadeau à chaque ticket reste garanti.
                   </p>
-                ) : nextTier ? (
-                  <>
-                    <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
-                      <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
-                      <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="bg-brand-red h-2 rounded-full transition-all duration-700" style={{ width: `${tierPct}%` }} />
-                    </div>
-                    <div className="mt-3 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={foodIconUrl(nextTier.item)} alt="" aria-hidden="true" className="w-7 h-7" />
-                      <div>
-                        <p className="text-xs text-gray-500">Quand ton équipe l&apos;atteint</p>
-                        <p className="font-bold text-gray-900 text-sm">+ {nextTier.item} sur chaque ticket</p>
-                      </div>
-                    </div>
-                    {isWeakCommunity ? (
-                      <Link
-                        href={r("/my-team")}
-                        className="mt-3 flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
-                      >
-                        <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" /> Inviter dans mon équipe
-                      </Link>
-                    ) : (
-                      <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mt-2 text-center">
-                        <Lightbulb className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                        Chaque ticket de ton équipe vous rapproche.
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-1">
-                    <Trophy className="w-6 h-6 mx-auto mb-1 text-green-700" aria-hidden="true" />
-                    <p className="font-bold text-green-800 text-sm">Meilleur cadeau d&apos;équipe atteint !</p>
-                    {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
-                    <p className="text-xs text-gray-500">
-                      + {financedCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque ticket
-                    </p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Comparaison au classement — en points (ADR 0007), jamais
-                  score/membres (ADR 0028). Seule en lice → rien à comparer. */}
-              {teamCount > 1 && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  {teamRank === 1 ? (
-                    <p className="text-sm text-center text-gray-700">
-                      🥇 <span className="font-bold text-orange-600">Ton équipe est en tête</span> avec{" "}
-                      {score.toLocaleString("fr-BE")} pts !
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {leaderRow && (
-                        <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3">
-                          <span className="text-lg shrink-0" aria-hidden="true">🥇</span>
-                          <span className="text-xl shrink-0" aria-hidden="true">{leaderRow.teams?.flag_emoji}</span>
-                          <p className="flex-1 min-w-0 font-semibold text-sm text-gray-900 truncate">{leaderRow.teams?.name}</p>
-                          <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">{leaderRow.score.toLocaleString("fr-BE")} pts</p>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-3 rounded-xl bg-orange-50 border border-orange-200 p-3">
-                        <span className="text-xs font-bold text-orange-600 w-6 text-center shrink-0">#{teamRank}</span>
-                        <span className="text-xl shrink-0" aria-hidden="true">{team.flag_emoji}</span>
-                        <p className="flex-1 min-w-0 font-semibold text-sm text-orange-600 flex items-baseline gap-1">
-                          <span className="truncate">{team.name}</span>
-                          <span className="font-normal shrink-0">← toi</span>
-                        </p>
-                        <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">{score.toLocaleString("fr-BE")} pts</p>
-                      </div>
+              {communityTiers.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-1">
+                  Le score de ton équipe grandit à chaque ticket.
+                </p>
+              ) : nextTier ? (
+                <>
+                  <div className="flex justify-between text-xs text-gray-400 mb-1.5 tabular-nums">
+                    <span>{score.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts</span>
+                    <span>vers {nextTier.score.toLocaleString("fr-BE")} pts</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-brand-red h-2 rounded-full transition-all duration-700" style={{ width: `${tierPct}%` }} />
+                  </div>
+                  <div className="mt-3 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={foodIconUrl(nextTier.item)} alt="" aria-hidden="true" className="w-7 h-7" />
+                    <div>
+                      <p className="text-xs text-gray-500">Quand ton équipe l&apos;atteint</p>
+                      <p className="font-bold text-gray-900 text-sm">+ {nextTier.item} sur chaque ticket</p>
                     </div>
+                  </div>
+                  {isWeakCommunity ? (
+                    <Link
+                      href={r("/my-team")}
+                      className="mt-3 flex items-center justify-center gap-2 w-full bg-green-500 text-white py-2.5 px-4 rounded-xl font-semibold text-sm hover:bg-green-600 transition-colors"
+                    >
+                      <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" /> Inviter dans mon équipe
+                    </Link>
+                  ) : (
+                    <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mt-2 text-center">
+                      <Lightbulb className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      Chaque ticket de ton équipe vous rapproche.
+                    </p>
                   )}
-                  <Link href={r("/leaderboard")} className="block text-center text-xs font-semibold text-orange-600 mt-3 hover:underline">
-                    Classement complet →
-                  </Link>
+                </>
+              ) : (
+                <div className="text-center py-1">
+                  <Trophy className="w-6 h-6 mx-auto mb-1 text-green-700" aria-hidden="true" />
+                  <p className="font-bold text-green-800 text-sm">Meilleur cadeau d&apos;équipe atteint !</p>
+                  {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
+                  <p className="text-xs text-gray-500">
+                    + {financedCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque ticket
+                  </p>
                 </div>
               )}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* ── Tuiles d'accès (ADR 0030 §4) — sans les tuiles d'équipe quand
-          l'établissement a masqué les équipes. « Ma réserve » est devenue
+            {/* Comparaison au classement — en points (ADR 0007), jamais
+                score/membres (ADR 0028). Seule en lice → rien à comparer.
+                Compétition masquée par l'établissement → rien non plus. */}
+            {!teamsHidden && teamCount > 1 && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                {teamRank === 1 ? (
+                  <p className="text-sm text-center text-gray-700">
+                    🥇 <span className="font-bold text-orange-600">Ton équipe est en tête</span> avec{" "}
+                    {score.toLocaleString("fr-BE")} pts !
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {leaderRow && (
+                      <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3">
+                        <span className="text-lg shrink-0" aria-hidden="true">🥇</span>
+                        <span className="text-xl shrink-0" aria-hidden="true">{leaderRow.teams?.flag_emoji}</span>
+                        <p className="flex-1 min-w-0 font-semibold text-sm text-gray-900 truncate">{leaderRow.teams?.name}</p>
+                        <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">{leaderRow.score.toLocaleString("fr-BE")} pts</p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 rounded-xl bg-orange-50 border border-orange-200 p-3">
+                      <span className="text-xs font-bold text-orange-600 w-6 text-center shrink-0">#{teamRank}</span>
+                      <span className="text-xl shrink-0" aria-hidden="true">{team.flag_emoji}</span>
+                      <p className="flex-1 min-w-0 font-semibold text-sm text-orange-600 flex items-baseline gap-1">
+                        <span className="truncate">{team.name}</span>
+                        <span className="font-normal shrink-0">← toi</span>
+                      </p>
+                      <p className="font-bold text-sm text-gray-900 tabular-nums shrink-0">{score.toLocaleString("fr-BE")} pts</p>
+                    </div>
+                  </div>
+                )}
+                <Link href={r("/leaderboard")} className="block text-center text-xs font-semibold text-orange-600 mt-3 hover:underline">
+                  Classement complet →
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Tuiles d'accès (ADR 0030 §4) — sans la tuile Classement quand
+          l'établissement masque la compétition. « Ma réserve » est devenue
           une carte au-dessus (ADR 0059). */}
       <div className="grid grid-cols-2 gap-3">
-        {!teamsHidden && (
-          <Link href={r("/rewards")} className="rounded-xl bg-white border border-gray-100 p-4 hover:bg-gray-50 transition-colors">
-            <Gift className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
-            <p className="font-bold text-gray-900 text-sm">Cadeaux d&apos;équipe</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {!hasTeam
-                ? "Rejoins une équipe"
-                : (() => {
-                    const unlocked = communityTiers.filter((t) => t.score <= score).length;
-                    return unlocked > 0 ? `${unlocked} atteint${unlocked > 1 ? "s" : ""}` : "Découvre-les";
-                  })()}
-            </p>
-          </Link>
-        )}
+        <Link href={r("/rewards")} className="rounded-xl bg-white border border-gray-100 p-4 hover:bg-gray-50 transition-colors">
+          <Gift className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />
+          <p className="font-bold text-gray-900 text-sm">Cadeaux d&apos;équipe</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {!hasTeam
+              ? "Rejoins une équipe"
+              : (() => {
+                  const unlocked = communityTiers.filter((t) => t.score <= score).length;
+                  return unlocked > 0 ? `${unlocked} atteint${unlocked > 1 ? "s" : ""}` : "Découvre-les";
+                })()}
+          </p>
+        </Link>
         {!teamsHidden && (
           <Link href={r("/leaderboard")} className="rounded-xl bg-white border border-gray-100 p-4 hover:bg-gray-50 transition-colors">
             <Trophy className="w-5 h-5 mb-1 text-gray-700" aria-hidden="true" />

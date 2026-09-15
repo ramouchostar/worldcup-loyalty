@@ -75,7 +75,8 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 ### ADR 0059 — Accueil membre : trois questions, sans défiler (remplace l'ordre ADR 0010)
 - **Qu'est-ce que j'ai** : le cadeau qui attend en grand, avec « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique (ADR 0011)
 - **Qu'est-ce que je peux viser** : sans cadeau, « Ton prochain ticket peut te rapporter » + plats de la grille solo — jamais de seuil (ADR 0028) ; le cadeau de base ne se cumule pas, pas de barre de « progression » vers lui
-- **Qu'est-ce que je fais** : grand bouton photo ; puis Ma réserve (le seul solde affiché), jetons en une ligne, installation, équipe **seulement si `teams_hidden` est faux**, tuiles, Mes tickets
+- **Qu'est-ce que je fais** : grand bouton photo ; puis Ma réserve (le seul solde affiché), jetons en une ligne, installation, équipe, tuiles, Mes tickets
+- **`teams_hidden` masque la compétition, jamais les équipes** (ADR 0059 §4) : Top 5 vitrine, tuile Classement et comparaison au classement cachés ; bloc équipe, tuile Cadeaux d'équipe et question de reconnaissance (ADR 0031) restent — l'appartenance sert la diffusion ciblée
 - Pas de compteur de points courbés sur l'accueil, pas de projection du panier habituel, jamais une demande (installation, parrainage) avant le cadeau
 
 ### Parrainage — lien WhatsApp, pas email

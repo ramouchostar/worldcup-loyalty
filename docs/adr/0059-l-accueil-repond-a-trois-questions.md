@@ -6,7 +6,8 @@ l'[ADR 0030](0030-navigation-coherence-and-role-journeys.md) §4 ; déplace la c
 d'installation de l'[ADR 0038](0038-install-app-second-chance.md) ; ajoute le choix
 « Mettre de côté » de l'[ADR 0021](0021-personal-points-reserve.md) sur l'accueil. Ne
 change rien au calcul des cadeaux (**ADR 0006**, **0011**, **0017**) ni à la règle
-« zéro euro » (**ADR 0007**, **0028**).
+« zéro euro » (**ADR 0007**, **0028**). **Amendé le 2026-09-15** (§4) : le réglage
+« équipes masquées » ne masque plus que la compétition.
 
 ## Contexte
 
@@ -76,6 +77,30 @@ ticket dans l'historique. Règle pure et testée : `headerStatus` dans `lib/home
 Choix du porteur : « Mettre de côté » reste proposé même là où aucun gros cadeau n'est
 actif (Kraainem au 2026-09-14). La pastille réserve, elle, n'apparaît qu'avec quelque
 chose à échanger.
+
+### 4. « Équipes masquées » masque la compétition, pas les équipes *(amendement du 2026-09-15)*
+
+Le §2 (points 7 et 8) cachait tout ce qui touche aux équipes là où le réglage
+`restaurants.teams_hidden` est actif (Kraainem). C'était une lecture trop large :
+
+- le réglage est né du retour restaurateur du 2026-08-10 sur le **Top 5 des équipes** de la
+  vitrine, puis a coupé la question de reconnaissance (ADR 0031, 2026-09-02) ;
+- or les équipes de Kraainem sont actives (6 équipes, 15 membres sur 86 au 2026-09-15) et
+  servent au restaurateur à **cibler ses diffusions** par équipe ou par type (ADR 0014,
+  0039). Cette segmentation vaut exactement la part de clients qui déclarent leur
+  communauté ;
+- sans bloc équipe ni question, il ne restait que l'onglet « Équipe » : 18 % des membres
+  inscrits avant le 2 septembre ont une équipe, 16 % après.
+
+**Décision (choix du porteur).** Le réglage masque seulement la **compétition** :
+
+- restent cachés : le Top 5 de la vitrine, la tuile Classement et la comparaison au
+  classement dans le bloc équipe ;
+- redeviennent visibles : le bloc équipe de l'accueil (à sa place, après la réserve), la
+  tuile « Cadeaux d'équipe », et la question « Te reconnais-tu dans une de ces équipes ? »
+  sur l'écran de succès du ticket ;
+- inchangés : l'onglet « Équipe », la page de l'équipe et la page du classement (jamais
+  masquées par ce réglage).
 
 ## Alternatives rejetées
 

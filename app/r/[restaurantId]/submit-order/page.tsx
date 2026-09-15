@@ -50,7 +50,7 @@ export default async function SubmitOrderPage({
   // Étape 10 — la question d'équipe (ADR 0031) se pose sur l'écran de succès
   // du ticket validé, plus à l'arrivée au dashboard : le cadeau vient de
   // tomber, la question se formule par le gain. getTeamPrompt filtre déjà :
-  // équipe existante, relance pas échue, équipes masquées → null.
+  // équipe existante, relance pas échue → null.
   const teamPrompt = user ? await getTeamPrompt(user.id, restaurantId) : null;
 
   return (
