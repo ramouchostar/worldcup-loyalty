@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Images, X } from "lucide-react";
 import { RECEIPT_JPEG_QUALITY, RECEIPT_MAX_EDGE } from "@/lib/receipt-image-client";
+import { createQrDetector, showsProgramQr } from "@/lib/poster-detect";
+
+// Viseur surveillé toutes les 600 ms ; le message reste 1,5 s après la
+// dernière vue du QR, pour ne pas clignoter quand la main bouge.
+const POSTER_SCAN_MS = 600;
+const POSTER_HOLD_MS = 1500;
 
 // ADR 0056 — la photo du ticket se prend DANS la page.
 //
@@ -52,6 +58,7 @@ export default function ReceiptCamera({
   onNativeCamera,
   onGallery,
   onFailure,
+  onPosterSeen,
 }: {
   keyLabel: string;
   onCapture: (file: File) => void;
@@ -62,6 +69,8 @@ export default function ReceiptCamera({
   onGallery: () => void;
   /** Mesure uniquement — une fois par échec. */
   onFailure?: (reason: CameraFailure) => void;
+  /** Mesure uniquement — une fois par ouverture, quand l'affiche entre dans le viseur. */
+  onPosterSeen?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -135,6 +144,41 @@ export default function ReceiptCamera({
     if (failure) onFailureRef.current?.(failure);
   }, [failure]);
 
+  // Le QR de l'affiche dans le viseur : on le dit AVANT la photo (terrain
+  // Kraainem, septembre 2026 : une lecture sur cinq était l'affiche, que le
+  // client venait de scanner). Chrome Android seulement ; ailleurs le cadre
+  // et son libellé guident seuls, et le serveur refuse l'affiche.
+  const [posterInView, setPosterInView] = useState(false);
+  const onPosterSeenRef = useRef(onPosterSeen);
+  onPosterSeenRef.current = onPosterSeen;
+  const posterReportedRef = useRef(false);
+  useEffect(() => {
+    const video = videoRef.current;
+    const detector = ready && !failure ? createQrDetector() : null;
+    if (!video || !detector) return;
+    let stopped = false;
+    let lastSeen = 0;
+    let timer: number | undefined;
+    const tick = async () => {
+      if (video.readyState >= 2 && (await showsProgramQr(detector, video))) {
+        lastSeen = Date.now();
+        if (!posterReportedRef.current) {
+          posterReportedRef.current = true;
+          onPosterSeenRef.current?.();
+        }
+      }
+      if (stopped) return;
+      setPosterInView(Date.now() - lastSeen < POSTER_HOLD_MS);
+      timer = window.setTimeout(() => void tick(), POSTER_SCAN_MS);
+    };
+    void tick();
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      setPosterInView(false);
+    };
+  }, [ready, failure]);
+
   async function capture() {
     const video = videoRef.current;
     const stream = streamRef.current;
@@ -181,14 +225,58 @@ export default function ReceiptCamera({
         />
 
         {!failure && (
-          // Cadre de la seule zone qui compte — total + clé de commande
-          // (incident 2026-09-02 : les photos du ticket entier à bout de bras
-          // étaient illisibles). L'ombre géante assombrit tout le reste.
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8">
-            <div className="aspect-[4/3] w-full max-w-xs rounded-2xl border-4 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]" />
+          // ADR 0056 amendé (2026-09-15) — un cadre qui A LA FORME d'un ticket
+          // de caisse (étroit, vertical, bord déchiré) : le client vient de
+          // scanner l'affiche et vise encore dans sa direction. Étroit plutôt
+          // que le ticket entier : le total et la clé tiennent en bas du ticket,
+          // sur sa largeur — la photo à bout de bras d'un ticket de 50 cm
+          // était illisible (incident 2026-09-02). L'ombre assombrit le reste.
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-10">
+            <p
+              // z-10 : au-dessus de l'ombre du cadre, qui l'assombrissait.
+              className={`relative z-10 mb-5 rounded-full px-4 py-1.5 text-center text-sm font-bold text-white ${
+                posterInView ? "bg-red-600" : "bg-black/55"
+              }`}
+            >
+              {posterInView ? "C'est l'affiche : vise ton ticket" : "Ton ticket de caisse"}
+            </p>
+            <div
+              className={`relative aspect-[5/7] w-full max-w-[15rem] rounded-b-2xl border-4 border-t-0 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] transition-colors ${
+                posterInView ? "border-red-500" : "border-white/90"
+              }`}
+            >
+              {/* Bord supérieur déchiré */}
+              <svg
+                viewBox="0 0 120 8"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+                className={`absolute -left-1 -right-1 -top-2 h-3 w-[calc(100%+0.5rem)] ${
+                  posterInView ? "text-red-500" : "text-white/90"
+                }`}
+              >
+                <polyline
+                  points="0,7 7.5,1 15,7 22.5,1 30,7 37.5,1 45,7 52.5,1 60,7 67.5,1 75,7 82.5,1 90,7 97.5,1 105,7 112.5,1 120,7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+              {/* Repères discrets : les lignes d'articles, puis la zone utile en bas */}
+              <div className="absolute inset-x-5 top-6 space-y-2.5 opacity-40">
+                <div className="h-1 w-3/4 rounded-full bg-white" />
+                <div className="h-1 w-2/3 rounded-full bg-white" />
+                <div className="h-1 w-4/5 rounded-full bg-white" />
+              </div>
+              <div className="absolute inset-x-3 bottom-3 flex h-[34%] flex-col justify-center gap-2 rounded-lg border-2 border-dashed border-white/60 px-3 text-left text-[11px] font-bold uppercase tracking-wide text-white/85">
+                <span>Total</span>
+                <span className="truncate">{keyLabel}</span>
+              </div>
+            </div>
             <p className="mt-4 text-center text-sm font-semibold text-white drop-shadow">
-              Cadre le <span className="font-black">total</span> et le{" "}
-              <span className="font-black">{keyLabel}</span>, de près
+              Le <span className="font-black">total</span> et le{" "}
+              <span className="font-black">{keyLabel}</span> dans le cadre, de près
             </p>
           </div>
         )}
@@ -249,8 +337,9 @@ export default function ReceiptCamera({
             <button
               type="button"
               onClick={() => void capture()}
-              disabled={!ready || busy}
-              aria-label="Prendre la photo"
+              // L'affiche serait refusée juste après la photo : autant ne pas la prendre.
+              disabled={!ready || busy || posterInView}
+              aria-label={posterInView ? "Vise ton ticket de caisse, pas l'affiche" : "Prendre la photo"}
               className="h-20 w-20 justify-self-center rounded-full border-4 border-white bg-white/30 transition-transform active:scale-95 disabled:opacity-40"
             />
             <span aria-hidden="true" />

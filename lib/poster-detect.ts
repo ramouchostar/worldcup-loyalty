@@ -30,5 +30,33 @@ export function isProgramQrPayload(raw: string | null | undefined): boolean {
   return false;
 }
 
+export type QrDetector = { detect(source: ImageBitmapSource): Promise<{ rawValue: string }[]> };
+type QrDetectorCtor = new (options: { formats: string[] }) => QrDetector;
+
+/** Détecteur de QR du navigateur (Chrome Android) ; null ailleurs (iOS, Firefox). */
+export function createQrDetector(): QrDetector | null {
+  if (typeof window === "undefined") return null;
+  const Ctor = (window as unknown as { BarcodeDetector?: QrDetectorCtor }).BarcodeDetector;
+  if (!Ctor) return null;
+  try {
+    return new Ctor({ formats: ["qr_code"] });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * L'image (photo prise ou image du viseur) montre-t-elle le QR de NOTRE
+ * programme ? Faux si le détecteur échoue : le serveur tranche alors.
+ */
+export async function showsProgramQr(detector: QrDetector, source: ImageBitmapSource): Promise<boolean> {
+  try {
+    const codes = await detector.detect(source);
+    return codes.some((c) => isProgramQrPayload(c.rawValue));
+  } catch {
+    return false;
+  }
+}
+
 export const POSTER_MEMBER_MESSAGE =
   "Ça, c'est l'affiche du programme 😅 Photographie le ticket de caisse remis avec ta commande — le total et le numéro doivent être lisibles.";

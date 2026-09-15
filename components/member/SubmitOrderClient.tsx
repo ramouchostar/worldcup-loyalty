@@ -7,7 +7,7 @@ import { Camera, Images } from "lucide-react";
 import { useRestaurantInfo } from "@/components/member/RestaurantContext";
 import { CAMERA_EMOJI, COIN_EMOJI } from "@/lib/fluent-emoji";
 import { foodIconUrl } from "@/lib/food-icon";
-import { isProgramQrPayload, POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
+import { createQrDetector, showsProgramQr, POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
 import { pointsForOrder } from "@/lib/points-model";
 import { amountBand, track } from "@/lib/analytics";
 import { beaconFunnelStep } from "@/lib/funnel-beacon";
@@ -296,13 +296,16 @@ export default function SubmitOrderClient({
       // bas des tickets pointe ailleurs et ne déclenche jamais ce verrou.
       // BarcodeDetector n'existe que sur Chrome/Android : ailleurs (iOS), le
       // serveur tranche avec le champ « affiche » de l'analyse. Best-effort.
-      try {
-        const Detector = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => { detect(i: ImageBitmap): Promise<{ rawValue: string }[]> } }).BarcodeDetector;
-        if (Detector) {
-          const bitmap = await createImageBitmap(prepared.file);
-          const codes = await new Detector({ formats: ["qr_code"] }).detect(bitmap);
+      // Le viseur prévient déjà en direct (ReceiptCamera) ; ce contrôle reste
+      // le filet de la galerie et de l'appareil photo du téléphone.
+      const detector = createQrDetector();
+      if (detector) {
+        // Image récalcitrante → le serveur tranche.
+        const bitmap = await createImageBitmap(prepared.file).catch(() => null);
+        if (bitmap) {
+          const poster = await showsProgramQr(detector, bitmap);
           bitmap.close();
-          if (codes.some((c) => isProgramQrPayload(c.rawValue))) {
+          if (poster) {
             setReceiptFile(null);
             setPreview(null);
             setParseStatus("error");
@@ -310,8 +313,6 @@ export default function SubmitOrderClient({
             return;
           }
         }
-      } catch {
-        // détecteur indisponible ou image récalcitrante → le serveur tranche
       }
       setReceiptFile(prepared.file);
       setPreview(URL.createObjectURL(prepared.file));
@@ -915,6 +916,7 @@ export default function SubmitOrderClient({
           }}
           onGallery={openGallery}
           onFailure={handleCameraFailure}
+          onPosterSeen={() => track("receipt_poster_seen_live", { restaurant_id: restaurantId })}
         />
       )}
       <div className="mb-6 text-center">

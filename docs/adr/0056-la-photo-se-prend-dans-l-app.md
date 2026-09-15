@@ -5,7 +5,8 @@
 change rien à la préparation de l'image, à l'OCR ni à la validation (**ADR 0008**,
 **0036**, **0045**). §1 amendé par
 [ADR 0057](0057-l-ecran-ticket-s-ouvre-sur-la-camera.md) : l'écran ticket s'ouvre
-directement sur la caméra.
+directement sur la caméra. §5 ajouté le 2026-09-15 : cadre au format ticket, affiche
+repérée dans le viseur.
 
 ## Contexte
 
@@ -65,6 +66,32 @@ l'écran**, sous le logo, et la page remonte d'elle-même quand un message appar
 visiteur voit aussi le refus d'une photo qui n'a pas pu être gardée (sinon il
 reste devant un écran vide) ; l'échec de l'aperçu OCR sur une photo gardée reste
 silencieux côté visiteur (ADR 0045).
+
+### 5. Un cadre au format ticket, l'affiche repérée avant la photo (2026-09-15)
+
+**Constat (Kraainem, 7-14 septembre).** Une lecture sur cinq n'était pas un ticket
+mais l'affiche du programme : le client vient d'en scanner le QR et la caméra
+s'ouvre alors qu'il la vise encore. Le cadre horizontal et la consigne « cadre le
+total » ne disaient jamais « ton ticket de caisse ».
+
+**Décision.**
+- Le cadre prend la forme d'un ticket : étroit, vertical, bord supérieur déchiré,
+  surmonté de « Ton ticket de caisse ». Une zone pointillée en bas du cadre montre
+  où tombent le total et la clé de commande.
+- Pas le ticket entier : sur les photos réelles, le total et la clé tiennent en bas
+  du ticket, sur sa largeur. Un cadre étroit fait remplir la largeur du ticket, donc
+  photographier de près (l'incident du 2026-09-02 reste la limite).
+- Chrome Android : le viseur cherche le QR du programme toutes les 600 ms. Tant
+  qu'il est visible (et 1,5 s après), le cadre passe au rouge, le libellé devient
+  « C'est l'affiche : vise ton ticket » et le déclencheur est bloqué :
+  la photo serait refusée juste après. Le QR d'avis imprimé sur les tickets ne
+  déclenche rien (`isProgramQrPayload`).
+- iOS : pas de détecteur ; la forme et le libellé guident seuls, le serveur refuse
+  l'affiche. Le contrôle après la photo reste le filet de la galerie.
+
+**Mesure.** `receipt_poster_seen_live` compte les affiches repérées dans le
+viseur ; l'effet se lit sur les refus serveur `qr_detected` et `unreadable`
+(entonnoir) et sur la part de `header_rejected` dans `receipt_scans`.
 
 ## Alternatives rejetées
 
