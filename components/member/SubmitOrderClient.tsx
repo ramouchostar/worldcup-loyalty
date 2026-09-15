@@ -1165,8 +1165,10 @@ export default function SubmitOrderClient({
           qu'une photo est là, la carte de gain (ADR 0048) dit la même chose en
           concret — un cadeau nommé plutôt qu'une promesse — et le rappel
           générique ne ferait que repousser les boutons sous la ligne de
-          flottaison. */}
-      {!preview && (
+          flottaison. Visiteur seulement (audit écran photo, 2026-09-15) : un
+          membre a déjà son compte, l'étape « Compte en 10 secondes » ne le
+          concerne pas. */}
+      {visitor && !preview && (
         <div className="mb-6 space-y-2">
           {STEPS.map((step) => (
             <p key={step.num} className="text-sm text-gray-500">
