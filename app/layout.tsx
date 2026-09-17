@@ -106,7 +106,7 @@ export default function RootLayout({
     // au Times du navigateur). Vérifié en rendu réel le 2026-09-12.
     <html lang="fr" className={brandFontVariables}>
       <head>
-        <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/icons/icon-art.png" type="image/png" sizes="512x512" />
         <link rel="icon" href="/api/icons/192" type="image/png" sizes="192x192" />
         <link rel="apple-touch-icon" href="/api/icons/192" />
         {/* Consent Mode v2 + gtag.js. Monté dans le <head> et avant tout le
