@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Camera, Gift, Lightbulb, MessageCircle, PiggyBank, Share2, Trophy, UtensilsCrossed } from "lucide-react";
+import { Camera, Coins, Gift, Lightbulb, MessageCircle, Share2, Trophy, UtensilsCrossed } from "lucide-react";
 import { PEOPLE_EMOJI } from "@/lib/fluent-emoji";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
@@ -8,11 +8,13 @@ import { loadRewardGrid, resolveCommunityBonus } from "@/lib/rewards";
 import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
 import { getBudgetStatus } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
-import { getPointsBalance } from "@/lib/points";
+import { getPointsSummary, listCatalogue } from "@/lib/points";
+import { catalogueView, personalPointsForOrder } from "@/lib/catalogue";
+import { menuImageUrl } from "@/lib/menu-images";
 import { pointsForOrder } from "@/lib/points-model";
 import { getTeamsHidden } from "@/lib/teams";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
-import { reserveView, ticketPromiseItems, type SaverTier } from "@/lib/home-view";
+import { ticketPromiseItems } from "@/lib/home-view";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { TokensLine } from "@/components/member/TokensLine";
@@ -20,7 +22,7 @@ import { foodIconUrl } from "@/lib/food-icon";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
 import { BankButton } from "@/app/r/[restaurantId]/my-rewards/BankButton";
-import { ExchangeButton } from "@/app/r/[restaurantId]/reserve/ExchangeButton";
+import { ChooseButton } from "@/app/r/[restaurantId]/points/ChooseButton";
 import { claimDeadline, claimOpensAt, isClaimNotYetOpen, redemptionRule } from "@/lib/reward-window";
 
 // ADR 0059 — l'accueil membre répond à trois questions, dans l'ordre, sans
@@ -64,8 +66,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     isOwnerOfCurrent,
     { data: profileFlags },
     teamsHidden,
-    reserveBalance,
-    { data: saverTiersRaw },
+    pointsSummary,
+    catalogue,
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -105,15 +107,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     // Réglage par établissement (kraainem) : compétition masquée — ni
     // comparaison au classement, ni tuile Classement. L'équipe reste.
     getTeamsHidden(restaurantId),
-    // Réserve (ADR 0021) : le solde qui s'échange, et les gros cadeaux visés.
-    getPointsBalance(user.id, restaurantId),
-    admin
-      .from("reward_tiers")
-      .select("id, min_threshold, menu_items(name, is_active, reward_eligible)")
-      .eq("restaurant_id", restaurantId)
-      .eq("layer", "saver")
-      .eq("is_active", true)
-      .order("min_threshold", { ascending: true }),
+    // « Mes points » (ADR 0061) : le solde qui s'échange, et le catalogue.
+    getPointsSummary(user.id, restaurantId),
+    listCatalogue(restaurantId),
   ]);
 
   // Carte gérant (ADR 0030 §2) — owner de CE resto ou admin legacy sur le
@@ -138,21 +134,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const giftExpiresAt = gift ? claimDeadline(gift.created_at, gift.source) : null;
   const giftHoursLeft = giftExpiresAt ? Math.max(0, Math.floor((giftExpiresAt.getTime() - Date.now()) / 3_600_000)) : 0;
   // Seuls les cadeaux issus d'un ticket se mettent de côté (ADR 0021), crédités
-  // en points courbés du ticket (ADR 0060).
-  const giftBankPoints = gift?.order_id && gift.orders ? pointsForOrder(Number(gift.orders.amount)) : null;
+  // en points proportionnels, même échelle que le catalogue (ADR 0061).
+  const giftBankPoints = gift?.order_id && gift.orders ? personalPointsForOrder(Number(gift.orders.amount)) : null;
 
   // ── Ce que je peux viser : le prochain ticket, la réserve ───────────────────
   const promiseItems = ticketPromiseItems(grid.solo);
-  type SaverRow = { id: string; min_threshold: number; menu_items: { name: string; is_active: boolean; reward_eligible: boolean } | { name: string; is_active: boolean; reward_eligible: boolean }[] | null };
-  const saverTiers: SaverTier[] = ((saverTiersRaw as unknown as SaverRow[] | null) ?? [])
-    .map((row) => {
-      const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
-      if (!mi || !mi.is_active || !mi.reward_eligible) return null;
-      return { id: row.id, min_threshold: Number(row.min_threshold), item_name: mi.name };
-    })
-    .filter((t): t is SaverTier => t !== null);
-  const reserve = reserveView(reserveBalance, saverTiers);
-  const showReserve = saverTiers.length > 0 || reserveBalance > 0;
+  // ADR 0061 §5 — ce que les points permettent déjà, ou ce qui manque.
+  const pointsGoal = catalogueView(pointsSummary.available, catalogue);
+  const showPoints = catalogue.length > 0 || pointsSummary.available + pointsSummary.pending > 0;
 
   // ── Équipe (établissements qui l'utilisent) ─────────────────────────────────
   // Score et rang : colonnes publiques uniquement (m41). La dépense cumulée
@@ -291,53 +280,63 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         Prendre mon ticket en photo
       </Link>
 
-      {/* ── Ma réserve (ADR 0021) — le solde qui s'échange ────────────────── */}
-      {showReserve && (
+      {/* ── Mes points (ADR 0061) — le solde, et ce qu’il permet ─────────── */}
+      {showPoints && (
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="flex items-center gap-2 font-bold text-gray-900">
-              <PiggyBank className="w-5 h-5 shrink-0 text-gray-700" aria-hidden="true" />
-              Ma réserve
+              <Coins className="w-5 h-5 shrink-0 text-gray-700" aria-hidden="true" />
+              Mes points
             </p>
-            <p className="text-2xl font-black text-gray-900 tabular-nums">{reserve.balance}</p>
+            <p className="text-2xl font-black text-gray-900 tabular-nums">{pointsSummary.available.toLocaleString("fr-BE")}</p>
           </div>
+          {pointsSummary.pending > 0 && (
+            <p className="text-xs text-gray-500 text-right">+{pointsSummary.pending.toLocaleString("fr-BE")} en attente</p>
+          )}
 
-          {reserve.reachable && (
+          {pointsGoal.reachable && !gift && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-green-50 border border-green-200 p-3">
               <div className="flex items-center gap-2 min-w-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={foodIconUrl(reserve.reachable.item_name)} alt="" aria-hidden="true" className="w-8 h-8 shrink-0" />
+                <img
+                  src={menuImageUrl(pointsGoal.reachable.imagePath) ?? foodIconUrl(pointsGoal.reachable.name)}
+                  alt=""
+                  aria-hidden="true"
+                  className={pointsGoal.reachable.imagePath ? "w-10 h-10 shrink-0 rounded-lg object-cover" : "w-8 h-8 shrink-0"}
+                />
                 <div className="min-w-0">
-                  <p className="text-xs text-green-800">À échanger dès maintenant</p>
-                  <p className="font-bold text-gray-900 text-sm truncate">{reserve.reachable.item_name}</p>
+                  <p className="text-xs text-green-800">Tu peux déjà avoir</p>
+                  <p className="font-bold text-gray-900 text-sm truncate">{pointsGoal.reachable.name}</p>
                 </div>
               </div>
-              <ExchangeButton tierId={reserve.reachable.id} disabled={false} />
+              <div className="w-24 shrink-0">
+                <ChooseButton itemId={pointsGoal.reachable.id} itemName={pointsGoal.reachable.name} price={pointsGoal.reachable.pricePoints} />
+              </div>
             </div>
           )}
 
-          {reserve.next && (
+          {pointsGoal.next && (
             <div className="mt-3">
               <div className="flex items-center justify-between gap-2 text-xs text-gray-500 mb-1.5">
                 <span className="inline-flex items-center gap-1.5 min-w-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={foodIconUrl(reserve.next.item_name)} alt="" aria-hidden="true" className="w-5 h-5 shrink-0" />
-                  <span className="font-semibold text-gray-700 truncate">{reserve.next.item_name}</span>
-                </span>
-                <span className="tabular-nums shrink-0">
-                  {reserve.balance} / {reserve.next.min_threshold}
+                  <img src={foodIconUrl(pointsGoal.next.name)} alt="" aria-hidden="true" className="w-5 h-5 shrink-0" />
+                  <span className="truncate">
+                    Plus que <span className="font-semibold text-gray-700">{pointsGoal.missing.toLocaleString("fr-BE")} points</span> pour{" "}
+                    <span className="font-semibold text-gray-700">{pointsGoal.next.name}</span>
+                  </span>
                 </span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">
-                <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${Math.max(reserve.pct, 3)}%` }} />
+                <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${Math.max(pointsGoal.pct, 3)}%` }} />
               </div>
             </div>
           )}
 
           <p className="text-xs text-gray-500 mt-3">
-            Mets un cadeau de côté pour faire grandir ta réserve.{" "}
-            <Link href={r("/reserve")} className="font-semibold text-gray-700 underline">
-              Voir
+            Chaque ticket te rapporte des points.{" "}
+            <Link href={r("/points")} className="font-semibold text-gray-700 underline">
+              Voir le catalogue
             </Link>
           </p>
         </section>

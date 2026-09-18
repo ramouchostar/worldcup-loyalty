@@ -48,14 +48,14 @@ test("réserve : tout est atteignable, solde négatif ramené à zéro", () => {
   assert.equal(reserveView(10, []).next, null);
 });
 
-test("bandeau : le cadeau qui attend passe avant la réserve", () => {
-  assert.deepEqual(headerStatus({ hasGift: true, reserveBalance: 90, activeSaverTiers: 2 }), { kind: "gift" });
+test("bandeau : le cadeau qui attend passe avant les points", () => {
+  assert.deepEqual(headerStatus({ hasGift: true, pointsBalance: 900, catalogueSize: 20 }), { kind: "gift" });
 });
 
-test("bandeau : la réserve seulement là où un gros cadeau est actif", () => {
-  assert.deepEqual(headerStatus({ hasGift: false, reserveBalance: 44, activeSaverTiers: 1 }), { kind: "reserve", balance: 44 });
-  assert.deepEqual(headerStatus({ hasGift: false, reserveBalance: 0, activeSaverTiers: 1 }), { kind: "reserve", balance: 0 });
-  // Kraainem aujourd'hui : un solde, mais rien à échanger → pas de pastille
-  assert.equal(headerStatus({ hasGift: false, reserveBalance: 44, activeSaverTiers: 0 }), null);
-  assert.deepEqual(headerStatus({ hasGift: false, reserveBalance: -3, activeSaverTiers: 1 }), { kind: "reserve", balance: 0 });
+test("bandeau : « Mes points » seulement là où le catalogue propose un article (ADR 0061)", () => {
+  assert.deepEqual(headerStatus({ hasGift: false, pointsBalance: 440, catalogueSize: 12 }), { kind: "points", balance: 440 });
+  assert.deepEqual(headerStatus({ hasGift: false, pointsBalance: 0, catalogueSize: 12 }), { kind: "points", balance: 0 });
+  // Un solde sans rien à choisir n'appelle aucune action → pas de pastille
+  assert.equal(headerStatus({ hasGift: false, pointsBalance: 440, catalogueSize: 0 }), null);
+  assert.deepEqual(headerStatus({ hasGift: false, pointsBalance: -3, catalogueSize: 1 }), { kind: "points", balance: 0 });
 });

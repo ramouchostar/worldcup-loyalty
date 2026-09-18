@@ -11,7 +11,7 @@ import { HeaderMenu } from "@/components/member/HeaderMenu";
 import { InAppNotificationBanner } from "@/components/member/InAppNotificationBanner";
 import { AppInstallBeacon } from "@/components/member/AppInstallBeacon";
 import { BottomNav } from "@/components/member/BottomNav";
-import { Gift, PiggyBank, UtensilsCrossed } from "lucide-react";
+import { Coins, Gift, UtensilsCrossed } from "lucide-react";
 import { RestaurantProvider } from "@/components/member/RestaurantContext";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
@@ -87,14 +87,16 @@ export default async function RestaurantLayout({
           .eq("restaurant_id", restaurantId)
           .eq("status", "available"),
         getPointsBalance(user.id, restaurantId),
-        // Paliers de réserve : service role (reward_tiers n'a pas de lecture
-        // membre) — seuls leur nombre et l'éligibilité de l'article servent.
+        // Taille du catalogue « Mes points » (ADR 0061) : service role
+        // (menu_items n'a pas de lecture membre) — seul le nombre sert, même
+        // filtre que la fonction SQL catalog_items.
         createAdminClient()
-          .from("reward_tiers")
-          .select("id, menu_items(is_active, reward_eligible)")
+          .from("menu_items")
+          .select("id", { count: "exact", head: true })
           .eq("restaurant_id", restaurantId)
-          .eq("layer", "saver")
-          .eq("is_active", true),
+          .eq("is_active", true)
+          .eq("reward_eligible", true)
+          .gt("cost_price", 0),
         supabase
           .from("micro_reward_claims")
           .select("id", { count: "exact", head: true })
@@ -108,15 +110,10 @@ export default async function RestaurantLayout({
           .eq("restaurant_id", restaurantId),
       ])
     : null;
-  type SaverTierEligibility = { menu_items: { is_active: boolean; reward_eligible: boolean } | { is_active: boolean; reward_eligible: boolean }[] | null };
-  const activeSaverTiers = ((headerData?.[2].data as unknown as SaverTierEligibility[] | null) ?? []).filter((row) => {
-    const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items;
-    return !!mi && mi.is_active && mi.reward_eligible;
-  }).length;
   const status = headerStatus({
     hasGift: (headerData?.[0].count ?? 0) > 0,
-    reserveBalance: headerData?.[1] ?? 0,
-    activeSaverTiers,
+    pointsBalance: headerData?.[1] ?? 0,
+    catalogueSize: headerData?.[2].count ?? 0,
   });
   const referralTokens = Math.floor((headerData?.[4].count ?? 0) / 5);
   const totalTokens = Math.min((headerData?.[3].count ?? 0) + referralTokens, TOKENS_PER_PORTION);
@@ -186,14 +183,14 @@ export default async function RestaurantLayout({
                 Cadeau prêt
               </Link>
             )}
-            {status?.kind === "reserve" && (
+            {status?.kind === "points" && (
               <Link
-                href={`/r/${restaurant.id}/reserve`}
-                aria-label={`Ma réserve : ${status.balance}`}
+                href={`/r/${restaurant.id}/points`}
+                aria-label={`Mes points : ${status.balance}`}
                 className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-full pl-2 pr-2.5 py-1 text-xs font-bold text-white transition-colors"
               >
-                <PiggyBank className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                Réserve {status.balance.toLocaleString("fr-BE")}
+                <Coins className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                {status.balance.toLocaleString("fr-BE")} points
               </Link>
             )}
             <Link

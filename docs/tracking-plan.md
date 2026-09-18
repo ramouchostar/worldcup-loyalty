@@ -92,6 +92,7 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `order_result` | `restaurant_id`, `result` | Verdict rendu au membre |
 | `reward_redeem_started` | `restaurant_id` | Coupon 10 min généré (ADR 0011) |
 | `reward_banked` | `restaurant_id` | Cadeau mis en réserve (ADR 0021) |
+| `points_gift_chosen` | `restaurant_id` | Cadeau choisi au catalogue « Mes points » (ADR 0061) — ni l'article ni le prix en points |
 | `micro_reward_claimed` | `channel` | Action sociale réclamée |
 | `referral_shared` | `channel` | Partage du lien de parrainage |
 | `team_invite_shared` | `channel` | Partage du lien d'adhésion d'équipe |

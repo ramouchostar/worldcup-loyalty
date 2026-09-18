@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import type { PendingReward } from "@/types";
 import { RedeemButton } from "./RedeemButton";
 import { foodIconUrl } from "@/lib/food-icon";
-import { pointsForOrder } from "@/lib/points-model";
+import { personalPointsForOrder } from "@/lib/catalogue";
 import { BankButton } from "./BankButton";
 import { claimDeadline, claimOpensAt, redemptionRule } from "@/lib/reward-window";
 
@@ -90,8 +90,8 @@ export default async function MyRewardsPage({ params }: { params: Promise<{ rest
           </div>
           <p className="text-xs text-gray-400 mt-2">
             Ces cadeaux ont rejoint{" "}
-            <Link href={`/r/${restaurantId}/reserve`} className="underline">
-              ta réserve
+            <Link href={`/r/${restaurantId}/points`} className="underline">
+              tes points
             </Link>
             .
           </p>
@@ -156,7 +156,8 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
   const canBank     = isAvailable && reward.order_id !== null;
   // Points courbés du ticket (ADR 0060) — le montant arrondi laissait
   // deviner les euros.
-  const bankPoints  = reward.orders ? pointsForOrder(Number(reward.orders.amount)) : null;
+  // ADR 0061 — points proportionnels, même échelle que le catalogue.
+  const bankPoints  = reward.orders ? personalPointsForOrder(Number(reward.orders.amount)) : null;
 
   // ADR 0011 amendé — un cadeau de ticket s'ouvre 4 h après le ticket, puis
   // reste 48 h (lib/reward-window, même règle que le serveur).

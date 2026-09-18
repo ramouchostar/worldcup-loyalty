@@ -5,7 +5,8 @@ import { Camera, Gem, Lightbulb, TriangleAlert } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
-import { fitsSaverCap, saverBandView, saverBandsFor, suggestSaverGifts } from "@/lib/reserve-tiers-view";
+import { fitsSaverCap } from "@/lib/reserve-tiers-view";
+import { CATALOGUE_BUDGET_PCT, catalogPricePoints } from "@/lib/catalogue";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import { CatalogGapsSection } from "@/components/admin/CatalogGapsSection";
 import { menuImageUrl } from "@/lib/menu-images";
@@ -63,13 +64,9 @@ export default function AdminMenuPage() {
     setItems(itemsData);
     setReserveInfo(reserve);
 
-    // Gros cadeaux (ADR 0060) : sans panier moyen, on n'affiche que les
-    // seuils déjà enregistrés — jamais des seuils calculés à l'aveugle.
-    const savedSaver = tiersData.filter((t) => t.layer === "saver").map((t) => Number(t.min_threshold));
-    const nextSaverBands = reserve
-      ? saverBandsFor(savedSaver, reserve.avgBasket)
-      : Array.from(new Set(savedSaver)).sort((a, b) => a - b);
-    setSaverBands(nextSaverBands);
+    // ADR 0061 — les gros cadeaux de la réserve cèdent la place au catalogue
+    // « Mes points » : plus aucun palier `saver` n'est proposé ni enregistré.
+    setSaverBands([]);
 
     const savedSolo = tiersData
       .filter((t) => t.layer === "solo")
@@ -81,8 +78,11 @@ export default function AdminMenuPage() {
     const map: Record<string, string | null> = {};
     bands.forEach((b) => { map[tierKey("solo", b)] = null; });
     COMMUNITY_BANDS.forEach((b) => { map[tierKey("community", b)] = null; });
-    nextSaverBands.forEach((b) => { map[tierKey("saver", b)] = null; });
-    tiersData.forEach((t) => { map[tierKey(t.layer, Number(t.min_threshold))] = t.menu_item_id; });
+    // ADR 0061 — les paliers `saver` ne sont plus repris : « Enregistrer » les
+    // laisse désactivés (un palier absent de l'envoi est désactivé côté serveur).
+    tiersData
+      .filter((t) => t.layer !== "saver")
+      .forEach((t) => { map[tierKey(t.layer, Number(t.min_threshold))] = t.menu_item_id; });
     setTiers(map);
     setLoading(false);
   }, [restaurantId]);
@@ -161,27 +161,9 @@ export default function AdminMenuPage() {
         if (s.rationale) nextRationales[key] = s.rationale;
       });
 
-      // ADR 0060 — bug corrigé : la suggestion reconstruisait la liste avec
-      // les seules couches solo et équipe. Les gros cadeaux de la réserve en
-      // disparaissaient, et « Enregistrer » les désactivait (un palier absent
-      // de l'envoi est désactivé côté serveur). Ils sont désormais recalculés
-      // et proposés : l'article le plus généreux sous chaque plafond.
-      const nextSaverBands = reserveInfo ? saverBandsFor([], reserveInfo.avgBasket) : saverBands;
-      nextSaverBands.forEach((b) => { nextTiers[tierKey("saver", b)] = tiers[tierKey("saver", b)] ?? null; });
-      if (reserveInfo) {
-        const candidates = giftItems
-          .filter((i) => i.cost_price != null)
-          .map((i) => ({ id: i.id, name: i.name, menu_price: Number(i.menu_price), cost_price: Number(i.cost_price) }));
-        suggestSaverGifts(nextSaverBands, candidates, reserveInfo.avgBasket, reserveInfo.budgetPct).forEach(({ threshold, item, costCap }) => {
-          if (!item) return;
-          const key = tierKey("saver", threshold);
-          nextTiers[key] = item.id;
-          nextRationales[key] = `Le plus généreux sous le plafond de ${euro(costCap)} (coût ${euro(item.cost_price)}).`;
-        });
-      }
-
+      // ADR 0061 — plus de gros cadeaux de la réserve à suggérer : le client
+      // choisit lui-même au catalogue « Mes points ».
       setSoloBands(nextBands);
-      setSaverBands(nextSaverBands);
       setTiers(nextTiers);
       setRationales(nextRationales);
       setTierMsg({ kind: "ok", text: body.note ?? "Suggestions générées." });
@@ -238,6 +220,28 @@ export default function AdminMenuPage() {
     }
     setMsg({ kind: "ok", text: `Photo enregistrée pour « ${item.name} ».` });
     await loadAll();
+  }
+
+  // ADR 0061 — le restaurateur règle son catalogue « Mes points » d'un clic :
+  // un article « au catalogue » est proposé aux clients (prix en points
+  // calculé), un article « hors catalogue » ne l'est pas. Mise à jour
+  // optimiste, annulée si le serveur refuse.
+  async function toggleEligible(item: MenuItem) {
+    const next = !item.reward_eligible;
+    const setFlag = (value: boolean) =>
+      setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, reward_eligible: value } : x)));
+    setFlag(next);
+    try {
+      const res = await fetch("/api/admin/menu/eligible", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId, menuItemId: item.id, rewardEligible: next }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+    } catch {
+      setFlag(!next);
+      setMsg({ kind: "err", text: `Impossible de modifier « ${item.name} » au catalogue. Réessaie.` });
+    }
   }
 
   async function removePhoto(item: MenuItem) {
@@ -489,7 +493,19 @@ export default function AdminMenuPage() {
                           {isTop && <span className="ml-2 text-xs bg-good/12 text-good px-1.5 py-0.5 rounded-full">top marge</span>}
                           {isFlop && <span className="ml-2 text-xs bg-warn/12 text-warn px-1.5 py-0.5 rounded-full">marge faible</span>}
                           {!it.is_active && <span className="ml-2 text-xs bg-danger/12 text-danger px-1.5 py-0.5 rounded-full">inactif</span>}
-                          {!it.reward_eligible && <span className="ml-2 text-xs bg-paper-subtle text-ink-muted px-1.5 py-0.5 rounded-full">hors cadeau</span>}
+                          {/* ADR 0061 — un clic met l'article au catalogue « Mes points » ou l'en retire. */}
+                          <button
+                            type="button"
+                            onClick={() => void toggleEligible(it)}
+                            title={it.reward_eligible ? "Retirer du catalogue « Mes points »" : "Mettre au catalogue « Mes points »"}
+                            className={`ml-2 text-xs px-1.5 py-0.5 rounded-full border transition-colors ${
+                              it.reward_eligible
+                                ? "border-good/30 bg-good/12 text-good hover:bg-good/20"
+                                : "border-paper-border bg-paper-subtle text-ink-muted hover:text-ink-body"
+                            }`}
+                          >
+                            {it.reward_eligible ? "au catalogue" : "hors catalogue"}
+                          </button>
                         </td>
                         <td className="px-4 py-2.5 text-ink-body">{it.category}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-ink-body">{euro(it.menu_price)}</td>
@@ -572,33 +588,49 @@ export default function AdminMenuPage() {
             </div>
           </div>
 
-          {/* ADR 0060 — gros cadeaux de la réserve : le client les échange
-              contre les points des cadeaux qu'il a mis de côté. Seuils
-              calculés, jamais saisis ; même bouton « Enregistrer » que le
-              reste des paliers. */}
-          <div className="min-w-0 border-t border-paper-border pt-4">
-            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">
-              Gros cadeaux de la réserve (points mis de côté)
-            </p>
-            <p className="text-xs text-ink-faint mb-2">
-              Un client qui met ses cadeaux de côté cumule des points et les échange contre un gros cadeau.
-              Les seuils sont calculés sur ton panier moyen
-              {reserveInfo ? <> ({euro(reserveInfo.avgBasket)})</> : null} : environ 4, 8 et 12 tickets moyens.
-              Choisis l&apos;article de chacun, sous le plafond de coût indiqué.
-            </p>
-            {saverBands.length > 0 && reserveInfo ? (
-              <div className="divide-y divide-paper-border">
-                {saverBands.map((b) => {
-                  const v = saverBandView(b, reserveInfo.avgBasket, reserveInfo.budgetPct);
-                  return bandRow("saver", b, `${b.toLocaleString("fr-BE")} pts · ≈ ${v.tickets} tickets`, v.costCap);
-                })}
+          {/* ADR 0061 — le catalogue « Mes points » remplace les gros cadeaux
+              de la réserve : tout article « au catalogue » (actif, prix de
+              revient connu) est proposé aux clients, à un prix en points
+              calculé pour tenir le budget cadeaux. Aucun seuil à choisir. */}
+          {(() => {
+            const pct = reserveInfo?.budgetPct ?? CATALOGUE_BUDGET_PCT;
+            const rows = items
+              .filter((i) => i.is_active && i.reward_eligible && Number(i.cost_price) > 0)
+              .map((i) => ({ id: i.id, name: i.name, cost: Number(i.cost_price), points: catalogPricePoints(Number(i.cost_price), pct) ?? 0 }))
+              .sort((a, b) => a.points - b.points || a.name.localeCompare(b.name));
+            return (
+              <div className="min-w-0 border-t border-paper-border pt-4">
+                <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Catalogue « Mes points »</p>
+                <p className="text-xs text-ink-faint mb-2">
+                  Tes clients gagnent des points à chaque ticket et choisissent eux-mêmes leur cadeau parmi les
+                  articles « au catalogue ». Le prix en points est calculé depuis le prix de revient pour tenir ton
+                  budget cadeaux ({Math.round(pct * 100)} %). Un clic sur « au catalogue » dans la liste ci-dessus
+                  retire l&apos;article, ou l&apos;y remet.
+                </p>
+                {rows.length > 0 ? (
+                  <details>
+                    <summary className="cursor-pointer text-xs font-semibold text-ink-body">
+                      {rows.length} articles au catalogue — voir les prix en points
+                    </summary>
+                    <div className="mt-2 divide-y divide-paper-border">
+                      {rows.map((row) => (
+                        <div key={row.id} className="flex items-center justify-between gap-3 py-1.5 text-xs">
+                          <span className="text-ink-body">{row.name}</span>
+                          <span className="tabular-nums text-ink-muted shrink-0">
+                            coût {euro(row.cost)} → <span className="font-semibold text-ink">{row.points.toLocaleString("fr-BE")} points</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                ) : (
+                  <p className="text-xs text-warn">
+                    Aucun article au catalogue : ajoute un prix de revient et mets l&apos;article « au catalogue ».
+                  </p>
+                )}
               </div>
-            ) : (
-              <p className="text-xs text-warn">
-                Panier moyen indisponible pour le moment : les gros cadeaux s&apos;afficheront au prochain chargement.
-              </p>
-            )}
-          </div>
+            );
+          })()}
 
           <p className="text-xs text-ink-faint">
             Un palier sans article ne donne aucun cadeau. Tant qu&apos;aucun palier n&apos;est enregistré pour
