@@ -54,6 +54,7 @@ const FLAG_LABELS: Record<string, string> = {
   amount_mismatch:         "Écart > 5%",
   no_restaurant_header:    "Hors restaurant",
   too_many_today:          "3+/jour",
+  frequent_submitter:      "Envois fréquents (6+/7 j)",
   // ADR 0019 : no_order_key remplace no_bestelnummer — les deux restent
   // mappés pour les commandes historiques.
   no_order_key:            "Sans n° de ticket",

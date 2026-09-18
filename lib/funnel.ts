@@ -39,7 +39,7 @@ export const FUNNEL_STEPS = [
 export type FunnelStep = (typeof FUNNEL_STEPS)[number];
 
 /** Motifs de refus d'un ticket — le `reason` de `ticket_rejected`. */
-export const REJECTION_REASONS = ["qr_detected", "unreadable", "duplicate", "header_rejected"] as const;
+export const REJECTION_REASONS = ["qr_detected", "unreadable", "duplicate", "header_rejected", "daily_limit"] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
 
 export const REJECTION_LABELS: Record<RejectionReason, string> = {
@@ -52,6 +52,8 @@ export const REJECTION_LABELS: Record<RejectionReason, string> = {
   // motif veut dire « total lu, clé de commande non lue » — l'en-tête ne
   // bloque plus rien (audit 2026-09-18). La valeur stockée ne change pas.
   header_rejected: "Total lu, numéro de commande non lu",
+  // Troisième ticket du jour, refusé avant lecture (lib/ticket-limits.ts).
+  daily_limit: "Limite de 2 tickets par jour",
 };
 
 /**

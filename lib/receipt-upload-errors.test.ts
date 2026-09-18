@@ -9,7 +9,9 @@ test("413 Vercel (photo trop lourde) → message vrai et actionnable, jamais « 
 });
 
 test("429 rate-limit → message d'attente", () => {
-  assert.match(describeUploadFailure(429, "Trop de scans"), /Attends/);
+  assert.match(describeUploadFailure(429, null), /Attends/);
+  // Limite de 2 tickets par jour : le message du serveur dit quoi faire
+  assert.match(describeUploadFailure(429, "Tu as déjà envoyé 2 tickets aujourd'hui."), /2 tickets/);
 });
 
 test("400 avec message serveur → message serveur tel quel", () => {

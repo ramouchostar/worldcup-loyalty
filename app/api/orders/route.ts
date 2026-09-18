@@ -20,6 +20,13 @@ import { missingReceiptParts } from "@/lib/ticket-auto-send";
 import { personalPointsForOrder, type PointsGoal } from "@/lib/catalogue";
 import { getPointsGoal } from "@/lib/points";
 import { amountBand } from "@/lib/analytics";
+import {
+  DAILY_LIMIT_MESSAGE,
+  FREQUENT_WINDOW_DAYS,
+  brusselsDayStartIso,
+  isDailyLimitReached,
+  isFrequentSubmitter,
+} from "@/lib/ticket-limits";
 
 export const maxDuration = 30;
 
@@ -37,14 +44,22 @@ function reframe(missing: { total: boolean; key: boolean }, error?: string) {
   );
 }
 
-async function countTodayOrders(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string, restaurantId: string) {
-  const today = new Date().toISOString().split("T")[0];
+// Commandes créées par ce membre dans cet établissement depuis `sinceIso`
+// (en attente ou validées — une commande rejetée par le restaurateur ne
+// consomme pas la limite). Limites : lib/ticket-limits.ts.
+async function countOrdersSince(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  userId: string,
+  restaurantId: string,
+  sinceIso: string
+) {
   const { count } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("restaurant_id", restaurantId)
-    .gte("submitted_at", `${today}T00:00:00Z`);
+    .in("status", ["pending", "validated"])
+    .gte("submitted_at", sinceIso);
   return count ?? 0;
 }
 
@@ -82,6 +97,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: describeUploadFailure(413, null) }, { status: 413 });
   const restaurantId = String(rawRestaurantId);
   const scanId = rawScanId ? String(rawScanId) : null;
+
+  // Deux tickets par jour au plus (décision du porteur, 2026-09-18) : vérifié
+  // AVANT la lecture, pour ne pas payer un appel Vision voué au refus. Le
+  // client garde son ticket et l'envoie demain (valable des semaines).
+  const sentToday = await countOrdersSince(supabase, user.id, restaurantId, brusselsDayStartIso());
+  if (isDailyLimitReached(sentToday)) {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "daily_limit");
+    return NextResponse.json({ error: DAILY_LIMIT_MESSAGE }, { status: 429 });
+  }
 
   // F8 (sécurité) — chaque envoi paie un appel Vision. Le membre n'ayant plus
   // d'aperçu (ADR 0058 §4), c'est ici que l'OCR se plafonne : même compteur
@@ -265,14 +289,22 @@ export async function POST(request: NextRequest) {
 
   // Compute flag_reasons — uniquement à partir de la lecture OCR serveur
   const flagReasons: string[] = [];
-  const todayCount = await countTodayOrders(supabase, user.id, restaurantId);
+  const sentLastWeek = await countOrdersSince(
+    supabase,
+    user.id,
+    restaurantId,
+    new Date(Date.now() - FREQUENT_WINDOW_DAYS * 86_400_000).toISOString()
+  );
 
   // no_order_key remplace no_bestelnummer (ADR 0019) — les deux libellés
   // restent mappés côté admin pour l'historique. Un resto sans clé fiable
   // déclarée passe toujours par la file admin.
   if (!hasOrderKey)       flagReasons.push("no_order_key");
   if (parsedAmount > 200) flagReasons.push("high_amount");
-  if (todayCount >= 3)    flagReasons.push("too_many_today");
+  // Envois très fréquents (6+ sur 7 jours) : peut-être un employé qui
+  // enregistre à son nom les tickets oubliés par les clients — le
+  // restaurateur tranche (`too_many_today` est remplacé par la limite dure).
+  if (isFrequentSubmitter(sentLastWeek)) flagReasons.push("frequent_submitter");
   // ADR 0058 — plus de `no_receipt` ni `ocr_failed` (photo et lecture sont
   // obligatoires), plus d'`amount_mismatch` : le montant EST la lecture
   // serveur. Ces libellés restent mappés côté admin pour l'historique.
@@ -321,13 +353,13 @@ export async function POST(request: NextRequest) {
   const needsDuplicateReview = guard.verdict.decision === "review";
   if (needsDuplicateReview) flagReasons.push("duplicate_review");
 
-  // Auto-validate only when no flags and amount in normal range
+  // Validation automatique dès que rien n'est suspect (décision du porteur,
+  // 2026-09-18 : les restaurateurs n'ont pas le temps de valider). Le seuil
+  // « moins de 8 € » est retiré : il envoyait en file des tickets parfaits
+  // (7 sur 14 validations manuelles à Kraainem en septembre) ; les points
+  // étant proportionnels, un petit ticket ne rapporte que peu (ADR 0061).
   const autoValidateEnabled = process.env.AUTO_VALIDATE !== "false";
-  let status = "pending";
-
-  if (autoValidateEnabled && flagReasons.length === 0 && parsedAmount >= 8) {
-    status = "validated";
-  }
+  const status = autoValidateEnabled && flagReasons.length === 0 ? "validated" : "pending";
 
   const orderRow = {
     user_id: user.id,
