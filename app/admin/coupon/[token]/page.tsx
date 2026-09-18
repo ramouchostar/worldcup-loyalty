@@ -74,7 +74,13 @@ export default async function AdminCouponPage({
       label: reward.solo_item,
       // ADR 0060 — un gros cadeau de la réserve n'est pas un « cadeau de base » :
       // le client l'a obtenu contre des points mis de côté, sans ticket du jour.
-      sublabel: birthdaySublabel ?? (reward.source === "saver" ? "gros cadeau · réserve (points mis de côté)" : "cadeau de base"),
+      sublabel:
+        birthdaySublabel ??
+        (reward.source === "saver"
+          ? "gros cadeau · réserve (points mis de côté)"
+          : reward.source === "catalog"
+            ? "choisi avec ses points"
+            : "cadeau de base"),
     });
   if (reward?.community_item)
     items.push({ icon: foodIconUrl(reward.community_item), label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });

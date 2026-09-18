@@ -196,7 +196,8 @@ export type PendingReward = {
   advancement_cost: number | null;
   status: PendingRewardStatus;
   // 'birthday' existe en base depuis m37 (ADR 0024) — le type l'ignorait.
-  source: "order" | "saver" | "birthday";
+  // 'catalog' : cadeau choisi avec ses points (ADR 0061).
+  source: "order" | "saver" | "birthday" | "catalog";
   created_at: string;
   redeemed_at: string | null;
   banked_at: string | null;
