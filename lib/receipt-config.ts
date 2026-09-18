@@ -27,7 +27,12 @@ export const LEGACY_BESTELNUMMER_CONFIG: ReceiptKeyConfig = {
   key_description: "a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993)",
   key_pattern: "^(\\d{4}-\\d{2}-\\d{2})/\\d{3}/\\d{5}$",
   key_examples: ["2026-06-01/258/03993"],
-  position_hint: "printed near the top of the receipt",
+  // Terrain Houba 2026-09-17 : « near the top » était faux — le Bestelnummer
+  // est EN BAS, dans le bloc de paiement. Les établissements créés avec ce
+  // défaut (houba, de-bue) voyaient leurs tickets de borne refusés : le petit
+  // ticket n'a pas le nom du resto en haut, la clé est sa seule preuve.
+  position_hint:
+    "printed near the bottom of the receipt, in the payment block after the total (Betaalmethode / Bestelnummer / Kanaal)",
   date_group: 1,
   confirmed_at: null,
 };
