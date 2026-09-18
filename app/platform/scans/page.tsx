@@ -38,6 +38,9 @@ type ScanRow = {
   ocr_items: { name: string; quantity: number; unit_price: number | null }[];
   outcome: "parsed" | "header_rejected" | "submitted";
   order_id: string | null;
+  // Migration 20260918-0800 — absents tant qu'elle n'est pas appliquée.
+  ocr_order_number_raw?: string | null;
+  ocr_key_second_read?: boolean;
 };
 
 type OrderRow = {
@@ -55,7 +58,8 @@ const OUTCOME_LABELS: Record<ScanRow["outcome"], { label: string; color: string 
   // Depuis le scan indulgent (PR #143), ce statut ne veut plus dire « entête
   // absente » : une clé lue suffit à prouver le ticket. Il ne reste que les
   // photos où NI la clé NI l'enseigne ne sont lisibles — le libellé le dit.
-  header_rejected: { label: "Ticket non reconnu", color: "bg-purple-100 text-purple-800" },
+  // Nom interne historique ; lire « numéro de commande non lu » (audit 2026-09-18).
+  header_rejected: { label: "Numéro non lu", color: "bg-purple-100 text-purple-800" },
 };
 
 function euros(n: number | null): string {
@@ -363,7 +367,15 @@ export default async function PlatformScansPage({
                       <div className="whitespace-nowrap">{euros(scan.ocr_amount)}</div>
                       <div className="whitespace-nowrap text-xs text-gray-500">
                         n° {scan.ocr_order_number ?? "—"}
+                        {scan.ocr_key_second_read && " · seconde lecture"}
                       </div>
+                      {/* Clé lue mais refusée par le format : c'est elle qui dit
+                          si un format inconnu revient (audit 2026-09-18). */}
+                      {!scan.ocr_order_number && scan.ocr_order_number_raw && (
+                        <div className="whitespace-nowrap text-xs text-purple-800">
+                          lu hors format : {scan.ocr_order_number_raw}
+                        </div>
+                      )}
                       <div className="text-xs text-gray-500">
                         confiance {scan.ocr_confidence ?? "—"} % · {scan.ocr_order_time ?? "—"} ·{" "}
                         {scan.ocr_items?.length ?? 0} article{(scan.ocr_items?.length ?? 0) > 1 ? "s" : ""}
