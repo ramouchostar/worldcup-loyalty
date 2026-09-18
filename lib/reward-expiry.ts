@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase";
+import { REWARD_CLAIM_WINDOW_HOURS, REWARD_UNLOCK_DELAY_HOURS } from "./reward-window";
 
 // ADR 0011 — la fenêtre de 48 h du cadeau, enfin tenue côté serveur.
 //
@@ -15,38 +16,24 @@ import { createAdminClient } from "./supabase";
 //   2. `pending_rewards.status = 'expired'` n'existait dans aucune ligne,
 //      donc tout dénominateur qui le compte valait zéro (lib/health-metrics).
 //
-// La fenêtre part de `created_at` (la colonne réelle ; l'`earned_at` de
-// l'ADR 0006 n'a jamais été créé sous ce nom).
+// Les règles de temps (ouverture 4 h après un ticket, puis 48 h pour
+// récupérer — ADR 0011 amendé le 2026-09-18) vivent dans lib/reward-window.ts,
+// pur et partagé avec la génération du coupon et les écrans membre.
 
-export const REWARD_CLAIM_WINDOW_HOURS = 48;
+export { REWARD_CLAIM_WINDOW_HOURS };
 
 const HOUR_MS = 3_600_000;
-
-/** Instant où le cadeau cesse d'être récupérable. Pur. */
-export function claimDeadline(createdAt: string | Date): Date {
-  const from = typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-  return new Date(from.getTime() + REWARD_CLAIM_WINDOW_HOURS * HOUR_MS);
-}
-
-/**
- * La fenêtre est-elle passée ? Pur, `now` injecté — c'est ce prédicat que
- * partagent le cron (balayage) et la génération de coupon (garde à la
- * demande), pour qu'ils ne puissent pas dériver l'un de l'autre.
- *
- * Une date illisible renvoie `false` : on ne fait pas expirer un cadeau sur
- * une donnée qu'on ne sait pas lire.
- */
-export function isClaimWindowOver(createdAt: string | Date, now: Date = new Date()): boolean {
-  const deadline = claimDeadline(createdAt).getTime();
-  if (Number.isNaN(deadline)) return false;
-  return deadline <= now.getTime();
-}
 
 export type ExpiryResult = { expired: number };
 
 /**
  * Balayage horaire : tout cadeau resté `available` au-delà de sa fenêtre
  * passe `expired`, ce qui libère le slot un-seul-actif du membre.
+ *
+ * Deux échéances, miroir de lib/reward-window.ts :
+ *   - cadeau de ticket (ou sans source, valeur historique) : ouvert 4 h après
+ *     le ticket, puis 48 h ;
+ *   - anniversaire et gros cadeau de la réserve : ouverts tout de suite, 48 h.
  *
  * Ne touche QUE `available` :
  *   - `redeemed` est posé dès l'ouverture du coupon (compare-and-swap
@@ -60,15 +47,30 @@ export type ExpiryResult = { expired: number };
  */
 export async function expireStaleRewards(now: Date = new Date()): Promise<ExpiryResult> {
   const admin = createAdminClient();
-  const cutoff = new Date(now.getTime() - REWARD_CLAIM_WINDOW_HOURS * HOUR_MS).toISOString();
+  const ticketCutoff = new Date(
+    now.getTime() - (REWARD_UNLOCK_DELAY_HOURS + REWARD_CLAIM_WINDOW_HOURS) * HOUR_MS
+  ).toISOString();
+  const otherCutoff = new Date(now.getTime() - REWARD_CLAIM_WINDOW_HOURS * HOUR_MS).toISOString();
 
-  const { data, error } = await admin
-    .from("pending_rewards")
-    .update({ status: "expired" })
-    .eq("status", "available")
-    .lt("created_at", cutoff)
-    .select("id");
+  const [tickets, others] = await Promise.all([
+    admin
+      .from("pending_rewards")
+      .update({ status: "expired" })
+      .eq("status", "available")
+      .or("source.is.null,source.eq.order")
+      .lt("created_at", ticketCutoff)
+      .select("id"),
+    admin
+      .from("pending_rewards")
+      .update({ status: "expired" })
+      .eq("status", "available")
+      .in("source", ["saver", "birthday"])
+      .lt("created_at", otherCutoff)
+      .select("id"),
+  ]);
 
-  if (error) throw new Error(`pending_rewards(expire): ${error.message}`);
-  return { expired: (data ?? []).length };
+  for (const result of [tickets, others]) {
+    if (result.error) throw new Error(`pending_rewards(expire): ${result.error.message}`);
+  }
+  return { expired: (tickets.data ?? []).length + (others.data ?? []).length };
 }

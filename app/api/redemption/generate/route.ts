@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { isClaimWindowOver } from "@/lib/reward-expiry";
+import {
+  REDEMPTION_MIN_ORDER_EUR,
+  claimOpensAt,
+  formatOpensAt,
+  isClaimNotYetOpen,
+  isClaimWindowOver,
+} from "@/lib/reward-window";
 import { randomBytes } from "crypto";
 
 export async function POST(request: Request) {
@@ -16,7 +22,7 @@ export async function POST(request: Request) {
 
   const { data: reward } = await admin
     .from("pending_rewards")
-    .select("id, created_at")
+    .select("id, created_at, source")
     .eq("user_id", user.id)
     .eq("restaurant_id", restaurantId)
     .eq("status", "available")
@@ -26,13 +32,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Aucune récompense à récupérer" }, { status: 404 });
   }
 
+  // ADR 0011 amendé (terrain Houba 2026-09-17) — un cadeau né d'un ticket ne
+  // se récupère pas pendant la même visite : le coupon s'ouvre 4 h après le
+  // ticket. Refus déterministe ici ; l'écran le dit déjà avant (RedeemButton).
+  if (isClaimNotYetOpen(reward.created_at, reward.source)) {
+    const opensAt = claimOpensAt(reward.created_at, reward.source);
+    return NextResponse.json(
+      {
+        error: `Ton cadeau se récupère lors de ta prochaine visite : dès ${formatOpensAt(opensAt).replace(/^à /, "")}, avec une commande d'au moins ${REDEMPTION_MIN_ORDER_EUR} €.`,
+        opens_at: opensAt.toISOString(),
+      },
+      { status: 425 }
+    );
+  }
+
   // ADR 0011 — fenêtre de 48 h, tenue ICI et pas seulement par le cron
   // horaire (`/api/cron/expire-rewards`). Le cron nettoie l'état ; cette
   // garde rend le refus déterministe, sans dépendre de l'instant où il a
   // tourné pour la dernière fois. On profite du passage pour clore la ligne :
   // c'est ce qui libère le slot un-seul-actif du membre, donc son cadeau
   // suivant, sans lui faire attendre l'heure ronde.
-  if (isClaimWindowOver(reward.created_at)) {
+  if (isClaimWindowOver(reward.created_at, reward.source)) {
     await admin
       .from("pending_rewards")
       .update({ status: "expired" })

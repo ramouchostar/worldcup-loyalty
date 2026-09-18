@@ -82,3 +82,23 @@ Zéro. Uniquement :
 - La route `POST /api/redemption/[token]/redeem` doit être idempotente (double-tap du cashier → deuxième appel ignoré silencieusement)
 - Le dashboard membre affiche un compte à rebours 48h visible dès qu'une récompense est en attente
 - Le cashier n'a besoin que de son téléphone/tablette pour valider — pas d'accès caisse requis
+
+## Amendement 2026-09-18 — jamais pendant la même visite, et la condition écrite
+
+**Constat (terrain Houba, 17/09).** Deux clients ont ouvert leur coupon **0 et 2 minutes**
+après avoir scanné leur ticket : le cadeau payait la commande qui venait d'avoir lieu au
+lieu d'en provoquer une nouvelle. Et la règle des 10 € n'existait qu'oralement.
+
+**Décision (choix du porteur).**
+- **Un cadeau né d'un ticket s'ouvre 4 h après ce ticket**, puis reste récupérable
+  **48 h** (échéance = ticket + 52 h). Un retour le soir même compte comme une nouvelle
+  visite. Avant l'ouverture, le bouton dit « Récupérable dès 18:10 » et le serveur refuse
+  le coupon (425). Les cadeaux d'anniversaire et de la réserve ne suivent pas une
+  commande : ouverts tout de suite, 48 h.
+- **La commande minimum de 10 € est écrite** partout où un cadeau attend (accueil, Mes
+  cadeaux, écran de succès, carte de gain, coupon) : « À récupérer lors de ta prochaine
+  visite, avec une commande d'au moins 10 € ». Le caissier la vérifie toujours ; exception
+  écrite à la règle « aucun euro » (ADR 0007, amendement du même jour).
+- Règles pures et testées dans `lib/reward-window.ts` (ouverture, échéance, libellés),
+  partagées par la génération du coupon, le balayage d'expiration, les rappels et les
+  écrans. « Mettre de côté » reste possible tout de suite.

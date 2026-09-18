@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { REDEMPTION_MIN_ORDER_EUR } from "@/lib/reward-window";
 
 type Item = { icon: string; label: string; sublabel: string };
 
@@ -158,6 +159,12 @@ export function CouponClient({ token, expiresAt, memberName, items, isAdmin = fa
                 </div>
               ))}
             </div>
+
+            {/* ADR 0011 — la condition de retrait, lisible par le client comme
+                par le caissier (plus seulement une consigne orale). */}
+            <p className="mt-4 text-center text-sm font-semibold text-gray-700">
+              Avec une commande d&apos;au moins {REDEMPTION_MIN_ORDER_EUR} €
+            </p>
 
             {/* Token visible pour le cashier */}
             <div className="mt-4 pt-4 border-t border-gray-100 text-center">

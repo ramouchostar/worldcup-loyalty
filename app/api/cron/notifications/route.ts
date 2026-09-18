@@ -15,6 +15,7 @@ import {
   sendCatalogGapsReminderEmail,
 } from "@/lib/email";
 import { getCatalogGaps } from "@/lib/catalog-gaps";
+import { claimDeadline } from "@/lib/reward-window";
 
 // Paliers communautaires : catalogue de l'établissement (ADR 0013), fallback
 // grille héritée — même source de vérité que la résolution des récompenses.
@@ -55,8 +56,8 @@ const CATALOG_GAPS_EMAIL_COOLDOWN = 7 * 24;
 const ONBOARDING_STUCK_HOURS   = 48;
 const ONBOARDING_EMAIL_COOLDOWN = 48;
 
-// Rappel cadeau prêt à récupérer avant expiration (ADR 0011 : 48h)
-const REWARD_EXPIRY_HOURS           = 48;
+// Rappel cadeau prêt à récupérer avant expiration (ADR 0011 : échéance
+// calculée par lib/reward-window — 4 h + 48 h pour un cadeau de ticket)
 const REWARD_READY_REMAINING_HOURS  = 12; // envoi quand il reste ≤ 12h
 const REWARD_READY_EMAIL_COOLDOWN   = 48;
 
@@ -271,13 +272,13 @@ export async function GET(request: Request) {
   // ── Cadeau prêt à récupérer avant expiration (ADR 0011, 48h) ────────────
   const { data: readyRewardsRaw } = await admin
     .from("pending_rewards")
-    .select("id, user_id, created_at, profiles!inner(email, display_name)")
+    .select("id, user_id, created_at, source, profiles!inner(email, display_name)")
     .eq("restaurant_id", restaurantId)
     .eq("status", "available");
 
   for (const reward of (readyRewardsRaw ?? []) as any[]) {
-    const hoursSince = (now.getTime() - new Date(reward.created_at).getTime()) / 3_600_000;
-    const hoursRemaining = REWARD_EXPIRY_HOURS - hoursSince;
+    const hoursRemaining =
+      (claimDeadline(reward.created_at, reward.source).getTime() - now.getTime()) / 3_600_000;
     if (hoursRemaining <= 0 || hoursRemaining > REWARD_READY_REMAINING_HOURS) continue;
     if (!reward.profiles?.email) continue;
 

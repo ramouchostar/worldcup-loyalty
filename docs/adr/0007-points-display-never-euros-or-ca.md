@@ -43,3 +43,12 @@ Deux règles de cet ADR sont **remplacées** par l'[ADR 0028](0028-points-decoup
 2. **Le score n'est plus la « valeur brute `membres × euros` ».** Il devient une **somme de points courbés** (non-linéaires) par membre, de sorte que `score ÷ membres` ne redonne pas d'euros. Les points sont **délibérément non-convertibles** en euros (découplage structurel, pas obscurité).
 
 L'euro reste la vérité **serveur** (budget 0012, marge 0017, forecast 0027) et l'outil du **restaurateur** — il ne franchit jamais la frontière vers l'expérience client.
+
+## Amendement — 2026-09-18 : la commande minimum de retrait s'affiche
+
+La condition « commande d'au moins 10 € pour récupérer un cadeau » (ADR 0011) est
+désormais **écrite côté client** (terrain Houba : les clients la découvraient au
+comptoir). Ce n'est ni un chiffre d'affaires, ni un seuil de cadeau, ni une dépense du
+membre : c'est une **condition de retrait**, comme en affichent toutes les enseignes.
+Elle ne permet de déduire aucune marge. Seule valeur concernée : `REDEMPTION_MIN_ORDER_EUR`
+(`lib/reward-window.ts`). Toute autre valeur en euros reste interdite côté client.

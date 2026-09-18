@@ -29,6 +29,7 @@ import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { CircleCheck } from "lucide-react";
 import { foodIconUrl } from "@/lib/food-icon";
 import { pointsForOrder } from "@/lib/points-model";
+import { redemptionRule } from "@/lib/reward-window";
 
 export default function TicketGainCard({
   amount,
@@ -76,7 +77,8 @@ export default function TicketGainCard({
           />
           <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Ton cadeau</p>
           <p className="font-black text-gray-900 text-lg leading-tight">{reward}</p>
-          <p className="text-xs text-gray-500 mt-0.5">À récupérer au comptoir.</p>
+          {/* ADR 0011 amendé — jamais pendant la même visite, 10 € minimum. */}
+          <p className="text-xs text-gray-500 mt-0.5">{redemptionRule("order")}</p>
         </div>
       )}
 
