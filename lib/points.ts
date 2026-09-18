@@ -1,5 +1,5 @@
 import { createAdminClient } from "./supabase";
-import type { CatalogueItem } from "./catalogue";
+import { pointsGoalFrom, type CatalogueItem, type PointsGoal } from "./catalogue";
 
 // ADR 0021 — Réserve de points personnelle (« Ma réserve »).
 // Solde et mouvements dérivés du ledger point_transactions ; toutes les
@@ -132,4 +132,10 @@ export async function exchangePointsForGift(
     throw new Error(`exchange_points_for_gift failed: ${error.message}`);
   }
   return { rewardId: String(data) };
+}
+
+/** Ce que les points d'un membre permettent (ADR 0061 §5) — écran de succès, accueil. */
+export async function getPointsGoal(userId: string, restaurantId: string): Promise<PointsGoal> {
+  const [summary, catalogue] = await Promise.all([getPointsSummary(userId, restaurantId), listCatalogue(restaurantId)]);
+  return pointsGoalFrom(summary.available, summary.pending, catalogue);
 }

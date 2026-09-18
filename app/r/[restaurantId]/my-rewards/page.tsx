@@ -7,7 +7,6 @@ import type { PendingReward } from "@/types";
 import { RedeemButton } from "./RedeemButton";
 import { foodIconUrl } from "@/lib/food-icon";
 import { personalPointsForOrder } from "@/lib/catalogue";
-import { BankButton } from "./BankButton";
 import { claimDeadline, claimOpensAt, redemptionRule } from "@/lib/reward-window";
 
 // Montant de la commande d'origine (jointure RLS own-read) — sert à
@@ -151,12 +150,8 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
   const isAvailable = reward.status === "available";
   const isRedeemed  = reward.status === "redeemed";
   const isBanked    = reward.status === "banked";
-  // Seuls les cadeaux issus d'une commande se mettent de côté (ADR 0021) —
-  // un cadeau échangé depuis la réserve (order_id NULL) ne se re-banke pas.
-  const canBank     = isAvailable && reward.order_id !== null;
-  // Points courbés du ticket (ADR 0060) — le montant arrondi laissait
-  // deviner les euros.
-  // ADR 0061 — points proportionnels, même échelle que le catalogue.
+  // Historique « Mis de côté (+N) » (ADR 0021, retiré par l'ADR 0061) —
+  // en points proportionnels, même échelle que le catalogue.
   const bankPoints  = reward.orders ? personalPointsForOrder(Number(reward.orders.amount)) : null;
 
   // ADR 0011 amendé — un cadeau de ticket s'ouvre 4 h après le ticket, puis
@@ -226,7 +221,6 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
         </p>
         {isAvailable ? (
           <span className="flex items-center gap-2">
-            {canBank && <BankButton points={bankPoints} />}
             <RedeemButton opensAt={opensAt.toISOString()} />
           </span>
         ) : isRedeemed ? (

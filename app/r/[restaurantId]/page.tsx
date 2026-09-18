@@ -26,11 +26,13 @@ type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
 // la place à l'illustration du PLAT (lib/food-icon) — seul le sous-texte
 // distingue encore les couches.
 const TIER_COPY: Record<TierPreviewRow["layer"], { hint: string }> = {
-  solo: { hint: "Lors de prochaines commandes" },
+  // ADR 0061 — plus de cadeau imposé par commande : le premier ticket offre
+  // un cadeau d'accueil, les suivants rapportent des points.
+  solo: { hint: "Avec les points de tes tickets" },
   community: { hint: "En cumulant avec ta communauté" },
   // "réserve", pas "points" seul — le mot est réservé au score communautaire
   // (glossaire CONTEXT.md, ADR 0021).
-  saver: { hint: "En cumulant dans ta réserve" },
+  saver: { hint: "Avec les points de tes tickets" },
 };
 
 export default async function RestaurantLandingPage({

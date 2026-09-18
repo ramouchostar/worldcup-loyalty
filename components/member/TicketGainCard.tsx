@@ -28,22 +28,24 @@
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
 import { CircleCheck } from "lucide-react";
 import { foodIconUrl } from "@/lib/food-icon";
-import { pointsForOrder } from "@/lib/points-model";
+import { personalPointsForOrder, type PointsGoal } from "@/lib/catalogue";
 import { redemptionRule } from "@/lib/reward-window";
+import PointsGoalLine from "@/components/member/PointsGoalLine";
 
 export default function TicketGainCard({
   amount,
   reward,
-  nextTier,
+  goal,
 }: {
   /** Montant lu par l'OCR, en euros — la seule donnée d'ingestion de la carte. */
   amount: number;
-  /** Article de la couche 1 atteint par ce montant, ou null (grille non configurée / rien d'atteint). */
+  /** Cadeau d'accueil du premier ticket (ADR 0061 §4), ou null (grille non configurée). */
   reward: string | null;
-  /** Palier solo suivant : nom + proportion de barre. Null au palier maximal. */
-  nextTier: { item: string; pct: number } | null;
+  /** Ce que les points de ce ticket permettent (catalogue « Mes points »), ou null. */
+  goal: PointsGoal | null;
 }) {
-  const points = pointsForOrder(amount);
+  // ADR 0061 — points personnels, 10 par euro (proportionnels).
+  const points = personalPointsForOrder(amount);
 
   return (
     <div>
@@ -75,7 +77,7 @@ export default function TicketGainCard({
             aria-hidden="true"
             className="w-14 h-14 mx-auto mb-1 drop-shadow"
           />
-          <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Ton cadeau</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Ton cadeau de bienvenue</p>
           <p className="font-black text-gray-900 text-lg leading-tight">{reward}</p>
           {/* ADR 0011 amendé — jamais pendant la même visite, 10 € minimum. */}
           <p className="text-xs text-gray-500 mt-0.5">{redemptionRule("order")}</p>
@@ -88,22 +90,11 @@ export default function TicketGainCard({
           dimensionnés sur le panier moyen, ADR 0017 §1). Même bloc et même
           libellé que l'écran de succès : le visiteur retrouve la forme qu'il
           vient de voir. */}
-      {nextTier && (
-        <div className="bg-white border border-gray-200 rounded-xl p-3 mb-3">
-          <div className="flex items-center justify-between text-sm mb-1.5">
-            <span className="text-gray-600">Prochain cadeau</span>
-            <span className="font-bold text-gray-900 inline-flex items-center gap-1.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={foodIconUrl(nextTier.item)} alt="" className="w-5 h-5" />
-              {nextTier.item}
-            </span>
-          </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-600 rounded-full transition-all"
-              style={{ width: `${Math.max(nextTier.pct, 4)}%` }}
-            />
-          </div>
+      {/* ADR 0061 §5 — ce que ces points permettent au catalogue : l'article à
+          portée à la prochaine visite, sinon les points qui manquent. */}
+      {goal && (
+        <div className="mb-3">
+          <PointsGoalLine goal={goal} tone="light" />
         </div>
       )}
 

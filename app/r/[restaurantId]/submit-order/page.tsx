@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { loadRewardGrid } from "@/lib/rewards";
-import { ticketPromiseItems } from "@/lib/home-view";
+import { getPointsSummary, listCatalogue } from "@/lib/points";
+import { goalShortlist } from "@/lib/catalogue";
 import { ensureMembership } from "@/app/join/actions";
 import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { getReceiptConfig } from "@/lib/receipt-config";
@@ -56,14 +56,15 @@ export default async function SubmitOrderPage({
   const teamPrompt = user ? await getTeamPrompt(user.id, restaurantId) : null;
 
   // Écran d'attente du membre (audit écran photo, 2026-09-15) : pendant la
-  // vérification, ce que le ticket peut rapporter — noms de la grille solo,
-  // jamais de seuil (ADR 0059) — ou, si un cadeau attend déjà, ce cadeau :
-  // tant qu'il attend, un ticket n'en crée pas d'autre (ADR 0011).
+  // vérification, trois articles du catalogue autour de son objectif (ADR
+  // 0061 — noms, jamais de prix de revient) — ou, si un cadeau attend déjà,
+  // ce cadeau (ADR 0011).
   let waitPromise: string[] = [];
   let waitingGift: string | null = null;
   if (user) {
-    const [grid, { data: gift }] = await Promise.all([
-      loadRewardGrid(restaurantId),
+    const [summary, catalogue, { data: gift }] = await Promise.all([
+      getPointsSummary(user.id, restaurantId),
+      listCatalogue(restaurantId),
       supabase
         .from("pending_rewards")
         .select("solo_item")
@@ -73,7 +74,7 @@ export default async function SubmitOrderPage({
         .limit(1)
         .maybeSingle(),
     ]);
-    waitPromise = ticketPromiseItems(grid.solo);
+    waitPromise = goalShortlist(summary.available + summary.pending, catalogue).map((i) => i.name);
     waitingGift = (gift as { solo_item: string | null } | null)?.solo_item ?? null;
   }
 

@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { orderValidatedMessage } from "./order-notification";
-import { pointsForOrder } from "./points-model";
 
 test("aucun euro ne sort du message, quel que soit le cas", () => {
   // La régression qu'on corrige : « Ta commande de 36,10 € a été validée ».
@@ -25,9 +24,9 @@ test("aucun euro ne sort du message, quel que soit le cas", () => {
   }
 });
 
-test("le gain est exprimé en points, sur la courbe du modèle", () => {
+test("le gain est exprimé en points personnels, 10 par euro (ADR 0061)", () => {
   const msg = orderValidatedMessage({ amountEur: 25 });
-  assert.ok(msg.includes(`+${pointsForOrder(25)} points`), msg);
+  assert.ok(msg.includes("+250 points"), msg);
 });
 
 test("le cadeau est nommé quand ce ticket en a créé un", () => {

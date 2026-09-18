@@ -16,8 +16,8 @@ export function welcomeEmail(displayName: string): { subject: string; html: stri
     emailHeading(`Bienvenue, ${firstName} !`),
     emailParagraph(
       "Ton compte est prêt. Boosteats te permet de commander directement chez tes restaurants " +
-      "préférés — en salle ou par téléphone — et de gagner des cadeaux à chaque commande, " +
-      "seul ou avec ton équipe."
+      "préférés — en salle ou par téléphone — et de gagner des points à chaque commande, " +
+      "à échanger contre le cadeau de ton choix, seul ou avec ton équipe."
     ),
     emailParagraph("Prochaine étape : choisis ton restaurant pour rejoindre son réseau."),
     emailButton("Choisir mon restaurant →", joinUrl),
@@ -28,7 +28,7 @@ export function welcomeEmail(displayName: string): { subject: string; html: stri
   const text = `Bienvenue, ${firstName} !
 
 Ton compte Boosteats est prêt. Commande directement chez tes restaurants préférés
-et gagne des cadeaux à chaque commande, seul ou avec ton équipe.
+et gagne des points à chaque commande, à échanger contre le cadeau de ton choix.
 
 Choisis ton restaurant : ${joinUrl}
 

@@ -76,3 +76,43 @@ export function catalogueView(balance: number, items: CatalogueItem[]): Catalogu
   const pct = next ? Math.max(0, Math.min(100, Math.round((safe / next.pricePoints) * 100))) : 100;
   return { reachable, next, missing, pct };
 }
+
+/**
+ * Ce que les points permettent, tel qu'un écran l'annonce après un ticket
+ * (ADR 0061 §5). `total` compte aussi les points en attente (4 h) : l'écran
+ * dit « tu peux déjà l'avoir » si les points disponibles suffisent, sinon
+ * « à ta prochaine visite ». Jamais de coût, jamais d'euro.
+ */
+export type PointsGoal = {
+  total: number;
+  reachable: { name: string; imagePath: string | null } | null;
+  /** Vrai si les points DÉJÀ disponibles suffisent pour `reachable`. */
+  reachableNow: boolean;
+  next: { name: string; imagePath: string | null; missing: number; pct: number } | null;
+};
+
+export function pointsGoalFrom(available: number, pending: number, items: CatalogueItem[]): PointsGoal {
+  const avail = Math.max(0, Math.floor(Number(available) || 0));
+  const total = avail + Math.max(0, Math.floor(Number(pending) || 0));
+  const all = catalogueView(total, items);
+  const now = catalogueView(avail, items);
+  return {
+    total,
+    reachable: all.reachable ? { name: all.reachable.name, imagePath: all.reachable.imagePath } : null,
+    reachableNow: !!all.reachable && !!now.reachable && now.reachable.pricePoints >= all.reachable.pricePoints,
+    next: all.next
+      ? { name: all.next.name, imagePath: all.next.imagePath, missing: all.missing, pct: all.pct }
+      : null,
+  };
+}
+
+/**
+ * Trois articles autour de l'objectif (le plus généreux à portée, le suivant,
+ * celui d'après) — ce que l'écran d'attente montre pendant la vérification.
+ */
+export function goalShortlist(total: number, items: CatalogueItem[], max = 3): CatalogueItem[] {
+  const sorted = [...items].filter((i) => i.pricePoints > 0).sort((a, b) => a.pricePoints - b.pricePoints);
+  const nextIdx = sorted.findIndex((i) => i.pricePoints > Math.max(0, total));
+  const start = nextIdx === -1 ? Math.max(0, sorted.length - max) : Math.max(0, nextIdx - 1);
+  return sorted.slice(start, start + max);
+}

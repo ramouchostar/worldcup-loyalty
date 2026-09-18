@@ -1,7 +1,8 @@
 # ADR 0061 — Les cadeaux se choisissent avec ses points
 
-**Statut** : Proposé (2026-09-18) — décisions du porteur prises le 2026-09-18, mise en
-œuvre en cinq PR (voir « Découpage »). Remplacera, une fois en service :
+**Statut** : Accepté — **en service depuis la bascule du 2026-09-18** (PR 2 fondations,
+PR 3 catalogue, PR 4 bascule livrées ; restent la PR 5 équipes et la PR 6 nettoyage).
+Décisions du porteur prises le 2026-09-18. Remplace désormais :
 l'[ADR 0006](0006-three-layer-reward-system.md) (plus de cadeau par ticket en trois
 couches), l'[ADR 0021](0021-personal-points-reserve.md) et
 l'[ADR 0060](0060-la-reserve-en-points-courbes.md) (la réserve et « Mettre de côté »
@@ -153,3 +154,20 @@ ramène l'ancien modèle.
 - Chemins de validation à assainir au passage (PR 4) : la route bac à sable crée une
   commande validée sans cadeau ni revenu programme et double la dépense d'équipe ; la
   validation admin unitaire peut revalider une commande refusée.
+
+## Notes de mise en œuvre (bascule, 2026-09-18)
+
+- **Catalogue épuré** (choix du porteur) : sauces, boissons et pièces à l'unité retirées
+  du catalogue des trois établissements (migration `20260918-0530`). Réversible article
+  par article dans l'écran Menu.
+- **Un cadeau payé en points qui expire rend ses points.** Constaté en préparant la
+  bascule : les cadeaux du catalogue n'expiraient jamais (ils auraient bloqué le membre
+  indéfiniment), et s'ils avaient expiré le client aurait perdu ses points. Le balayage
+  horaire les fait expirer à 48 h et appelle `refund_catalog_reward` (idempotent, coût
+  retiré du budget).
+- **Relances** : « ta commande habituelle te donne droit à… » devient « chaque ticket te
+  rapporte des points vers le cadeau de ton choix » ; la relance « commande un peu plus
+  pour un meilleur cadeau » est retirée (plus de palier de montant).
+- **Ordre d'application** : le déclencheur de crédit (`20260918-0600`) s'applique juste
+  après la fusion de la bascule, sinon les tickets validés entre les deux ne
+  rapporteraient ni cadeau ni points.

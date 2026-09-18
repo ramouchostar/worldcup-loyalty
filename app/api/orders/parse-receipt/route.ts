@@ -10,7 +10,9 @@ import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
 import { judgeReceipt, notAReceiptMessage } from "@/lib/receipt-proof";
-import { loadRewardGrid, resolveSoloReward, nextSoloTier, type NextSoloTier } from "@/lib/rewards";
+import { loadRewardGrid, welcomeReward } from "@/lib/rewards";
+import { listCatalogue } from "@/lib/points";
+import { personalPointsForOrder, pointsGoalFrom, type PointsGoal } from "@/lib/catalogue";
 
 export const maxDuration = 30;
 
@@ -168,13 +170,21 @@ export async function POST(request: NextRequest) {
   //
   // Best-effort : grille non configurée ou panne → null, et l'écran retombe
   // sur le montant lu. Jamais une erreur pour un aperçu.
+  //
+  // ADR 0061 — le visiteur en est à son PREMIER ticket : il reçoit le cadeau
+  // d'accueil (premier cadeau de la grille) et les points de ce ticket, en
+  // attente 4 h — d'où « à ta prochaine visite ». L'objectif vient du
+  // catalogue « Mes points » : noms et proportion de barre, jamais de coût.
   let reward: string | null = null;
-  let nextTier: NextSoloTier | null = null;
+  let pointsGoal: PointsGoal | null = null;
   if (analysis.amount !== null) {
     try {
-      const grid = await loadRewardGrid(String(rawRestaurantId));
-      reward = resolveSoloReward(grid, analysis.amount).item;
-      nextTier = nextSoloTier(grid, analysis.amount);
+      const [grid, catalogue] = await Promise.all([
+        loadRewardGrid(String(rawRestaurantId)),
+        listCatalogue(String(rawRestaurantId)),
+      ]);
+      reward = welcomeReward(grid).item;
+      pointsGoal = pointsGoalFrom(0, personalPointsForOrder(analysis.amount), catalogue);
     } catch (err) {
       console.error("[parse-receipt] aperçu du cadeau indisponible:", err);
     }
@@ -191,6 +201,6 @@ export async function POST(request: NextRequest) {
     has_reliable_key: receiptConfig.has_reliable_key,
     scan_id: scanId,
     reward,
-    next_tier: nextTier,
+    points_goal: pointsGoal,
   });
 }
