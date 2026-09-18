@@ -19,12 +19,14 @@ type AdminPendingReward = PendingReward & {
 function sourceLabel(source: string | null | undefined): string | null {
   if (source === "saver") return "Gros cadeau · réserve";
   if (source === "birthday") return "Anniversaire";
+  if (source === "catalog") return "Choisi avec ses points";
   return null;
 }
 
 function sourceNote(source: string | null | undefined): string | null {
   if (source === "saver") return "Échangé contre des points de réserve";
   if (source === "birthday") return "Offert pour l'anniversaire";
+  if (source === "catalog") return "Choisi au catalogue avec ses points (ADR 0061)";
   return null;
 }
 

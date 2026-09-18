@@ -37,8 +37,8 @@ test("une ligne sans source est un cadeau de ticket", () => {
   assert.equal(claimOpensAt(CREATED, null).toISOString(), "2026-09-07T14:00:00.000Z");
 });
 
-test("anniversaire et gros cadeau de la réserve : ouverts tout de suite, 48 h", () => {
-  for (const source of ["birthday", "saver"] as const) {
+test("anniversaire, gros cadeau de la réserve et cadeau du catalogue : ouverts tout de suite, 48 h", () => {
+  for (const source of ["birthday", "saver", "catalog"] as const) {
     assert.equal(isClaimNotYetOpen(CREATED, source, new Date(CREATED)), false);
     assert.equal(claimDeadline(CREATED, source).toISOString(), "2026-09-09T10:00:00.000Z");
   }

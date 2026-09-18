@@ -31,7 +31,7 @@ export const REWARD_UNLOCK_DELAY_HOURS = 4;
  */
 export const REDEMPTION_MIN_ORDER_EUR = 10;
 
-export type RewardSource = "order" | "saver" | "birthday";
+export type RewardSource = "order" | "saver" | "birthday" | "catalog";
 
 const HOUR_MS = 3_600_000;
 
@@ -41,7 +41,9 @@ function toDate(value: string | Date): Date {
 
 function unlockDelayHours(source: RewardSource | string | null | undefined): number {
   // Une ligne sans source est un cadeau de ticket (valeur historique par défaut).
-  return source === "saver" || source === "birthday" ? 0 : REWARD_UNLOCK_DELAY_HOURS;
+  // Un cadeau choisi au catalogue (ADR 0061) s'ouvre tout de suite : ses points
+  // étaient déjà disponibles — ceux d'un ticket restent en attente 4 h.
+  return source === "saver" || source === "birthday" || source === "catalog" ? 0 : REWARD_UNLOCK_DELAY_HOURS;
 }
 
 /** Instant à partir duquel le coupon peut s'ouvrir. */
