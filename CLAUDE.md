@@ -143,7 +143,7 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun
 ### ADR 0011 — Coupon de récupération anti-fraude
 - **Un seul cadeau actif** par membre à la fois — Option B : si une récompense est `available`, aucune nouvelle n'est créée jusqu'à ce qu'elle soit `redeemed` ou `expired`
 - **Jamais pendant la même visite** (amendé 2026-09-18) : un cadeau de ticket s'ouvre **4 h après le ticket**, puis reste **48 h** ; anniversaire et réserve : 48 h tout de suite. Règles dans `lib/reward-window.ts`, partagées par `/api/redemption/generate` (425 avant l'ouverture), le cron d'expiration, les rappels et les écrans
-- **Coupon 10 minutes** avec timer actif (countdown + horloge live mise à jour chaque seconde) — anti-capture d'écran
+- **Coupon 10 minutes** avec timer actif (countdown + horloge live mise à jour chaque seconde) — anti-capture d'écran ; **précédé d'une confirmation** (« Je suis au comptoir — afficher mon coupon » / « Pas maintenant », amendé 2026-09-18) : jamais de coupon au premier appui
 - **10 € minimum** sur la commande de récupération — vérifié par le caissier, **écrit côté membre** partout où un cadeau attend (`redemptionRule`)
 - **Cashier valide** depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → idempotent
 - Table `redemption_tokens` : `token TEXT UNIQUE`, `expires_at = NOW() + 10 min`, `redeemed_at`

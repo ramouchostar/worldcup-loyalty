@@ -135,6 +135,10 @@ export type AnalyticsEventMap = {
   };
   /** Le membre déclenche son coupon de récupération 10 min (ADR 0011). */
   reward_redeem_started: { restaurant_id: string };
+  /** « Récupérer » touché : la fenêtre de confirmation s'ouvre, aucun coupon encore. */
+  reward_redeem_confirm_shown: { restaurant_id: string };
+  /** « Pas maintenant » : le membre referme sans ouvrir son coupon (appui involontaire évité). */
+  reward_redeem_dismissed: { restaurant_id: string };
   /** Cadeau choisi au catalogue avec ses points (ADR 0061) — ni l'article ni le prix. */
   points_gift_chosen: { restaurant_id: string };
   /** Une micro-récompense sociale est réclamée (ADR : avis Google, IG, TikTok, FB). */
