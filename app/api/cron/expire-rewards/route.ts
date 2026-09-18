@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { expireStaleRewards, REWARD_CLAIM_WINDOW_HOURS } from "@/lib/reward-expiry";
+import { autoValidateSocialActions } from "@/lib/micro-rewards-auto";
 
 // ADR 0011 — le job horaire qui fait expirer les cadeaux non récupérés.
 // Prévu par l'ADR, jamais construit : un cadeau restait donc `available`
@@ -17,5 +18,15 @@ export async function GET(request: Request) {
   }
 
   const result = await expireStaleRewards();
-  return NextResponse.json({ ok: true, window_hours: REWARD_CLAIM_WINDOW_HOURS, ...result });
+  // Même passage horaire : les actions sociales en attente depuis 4 h sont
+  // validées (lib/micro-rewards-auto.ts). Un échec ici ne masque pas
+  // l'expiration des cadeaux, déjà faite.
+  let socialActions: { validated: number } | { error: string };
+  try {
+    socialActions = await autoValidateSocialActions();
+  } catch (err) {
+    console.error("[cron] validation auto des actions sociales:", err);
+    socialActions = { error: (err as Error).message };
+  }
+  return NextResponse.json({ ok: true, window_hours: REWARD_CLAIM_WINDOW_HOURS, ...result, social_actions: socialActions });
 }

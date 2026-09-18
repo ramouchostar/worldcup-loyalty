@@ -95,7 +95,7 @@ export default function AdminMicroRewardsPage() {
       )}
       <PageHeader
         title={<>Actions sociales</>}
-        subtitle={<>Chaque action validée = 1 jeton social. 4 jetons (social + parrainage) = le cadeau jetons configuré (voir Menu &amp; cadeaux).</>}
+        subtitle={<>Chaque action validée = 1 jeton social. 4 jetons (social + parrainage) = le cadeau jetons configuré (voir Menu &amp; cadeaux). Une action que vous ne refusez pas est validée automatiquement 4 h après la demande.</>}
       />
 
       {/* Churros eligible */}
