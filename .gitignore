@@ -36,3 +36,6 @@ scripts/tmp-*
 !.claude/skills/new-adr/
 .claude/skills/run-worldcup-loyalty/node_modules/
 .claude/skills/run-worldcup-loyalty/sessions/
+
+# Aperçu local des gabarits e-mail (scripts/email-preview.ts)
+.email-preview/

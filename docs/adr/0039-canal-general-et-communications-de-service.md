@@ -1,6 +1,6 @@
 # ADR 0039 — Canal général, et deux régimes de message
 
-**Statut** : Accepté (2026-08-21). Amende l'**ADR 0014 §broadcast** (ciblage par équipe) et précise l'**ADR 0025 §3** (bases légales). Complète l'**ADR 0034** — même défaut, côté sortant. Ne change rien à l'**ADR 0009** (notifications automatiques) ni à leur enveloppe anti-spam.
+**Statut** : Accepté (2026-08-21). Amende l'**ADR 0014 §broadcast** (ciblage par équipe) et précise l'**ADR 0025 §3** (bases légales). Complète l'**ADR 0034** — même défaut, côté sortant. Ne change rien à l'**ADR 0009** (notifications automatiques) ni à leur enveloppe anti-spam. **§2 précisé par l'[ADR 0063](0063-sequences-de-messages-pilotees-par-la-plateforme.md)** (2026-09-18) : les relances d'usage du programme (premier ticket, équipe, parrainage, installation) sont des messages du programme, avec un arrêt par séquence.
 
 ## Contexte
 

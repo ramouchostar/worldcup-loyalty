@@ -1,42 +1,61 @@
-import { emailShell, emailHeading, emailParagraph, emailButton, emailCallout, emailDivider, emailFootNote } from "./layout";
+import {
+  appLink, button, esc, eyebrow, goodCard, heading, memberShell, paragraph, small, softCard, strong,
+  type MemberTheme, type RenderedEmail,
+} from "./kit";
 
-// Client — rappel avant expiration d'une récompense en attente (48h,
-// ADR 0011). Envoyé quand elle approche de l'expiration sans avoir été
-// récupérée ni mise en réserve. Aucun euro, aucune mention du double
-// verrou ou du budget — uniquement le cadeau concret (ADR 0007).
+// Membre — rappel avant expiration d'un cadeau qui attend (fenêtres :
+// lib/reward-window.ts, ADR 0011 amendé). Le cadeau est nommé ; la
+// commande minimum de 10 € est écrite, seule valeur en euros admise côté
+// membre (ADR 0007, amendement du 2026-09-18). Un cadeau payé en points
+// rend ses points s'il expire (ADR 0061) : on le dit, c'est rassurant et vrai.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+export type RewardReadyData = {
+  theme: MemberTheme;
+  restaurantId: string;
+  firstName: string | null;
+  gift: { name: string; imageUrl: string | null } | null;
+  hoursRemaining: number;
+  paidWithPoints: boolean;
+};
 
-export function rewardReadyEmail(
-  firstName: string,
-  restaurantId: string,
-  restaurantName: string,
-  hoursRemaining: number,
-  logoUrl?: string | null
-): { subject: string; html: string; text: string } {
-  const rewardsUrl = `${APP_URL}/r/${restaurantId}/my-rewards`;
-  const subject = `${firstName}, ton cadeau chez ${restaurantName} expire bientôt`;
+export function rewardReadyEmail(d: RewardReadyData): RenderedEmail {
+  const r = d.theme.restaurantName;
+  const hours = Math.max(1, Math.round(d.hoursRemaining));
+  const name = d.gift?.name ?? null;
+  const lead = d.firstName ? `${d.firstName}, ton` : "Ton";
+  const subject = `${lead} ${name ?? "cadeau"} chez ${r} expire bientôt`;
+  const preheader = `Encore environ ${hours} h pour le récupérer au comptoir.`;
+  const url = appLink(`/r/${d.restaurantId}/my-rewards`);
 
-  const html = emailShell(subject, [
-    emailHeading("Ton cadeau t'attend !"),
-    emailParagraph(
-      `Tu as un cadeau prêt à récupérer chez <strong>${restaurantName}</strong>. Passe le chercher, ` +
-      "avec une commande d'au moins 10 €."
-    ),
-    emailCallout(`Il expire dans environ ${Math.max(1, Math.round(hoursRemaining))}h.`),
-    emailButton("Voir mon cadeau →", rewardsUrl),
-    emailDivider(),
-    emailFootNote("Passé ce délai, le cadeau n'est plus disponible — une nouvelle commande en génère un autre."),
-  ].join("\n"), logoUrl);
+  const body = [
+    eyebrow("Cadeau à récupérer"),
+    heading(name ? `Ton ${name} t'attend encore` : "Ton cadeau t'attend encore"),
+    paragraph(`Passe le chercher chez ${strong(r)}, avec une commande d'au moins 10 €.`),
+    name
+      ? goodCard({ imageUrl: d.gift?.imageUrl, imageAlt: name, kicker: "À récupérer au comptoir", title: name, note: `Il expire dans environ ${hours} h.` })
+      : softCard(esc(`Il expire dans environ ${hours} h.`)),
+    button("Voir mon cadeau", url, d.theme.primary),
+    small(esc(d.paidWithPoints ? "S'il n'est pas récupéré à temps, tes points te sont rendus." : "Passé ce délai, il n'est plus récupérable.")),
+  ];
 
-  const text = `Ton cadeau t'attend !
+  const html = memberShell({
+    theme: d.theme,
+    subject,
+    preheader,
+    body: body.join("\n"),
+    footer: {
+      reason: `Tu reçois cet e-mail parce qu'un cadeau t'attend chez ${r}.`,
+      manageUrl: appLink("/compte"),
+      manageLabel: "Mon compte",
+    },
+  });
 
-Tu as un cadeau prêt à récupérer chez ${restaurantName}. Passe le chercher,
-avec une commande d'au moins 10 €.
+  const text = `${name ? `Ton ${name} t'attend encore` : "Ton cadeau t'attend encore"}
 
-Il expire dans environ ${Math.max(1, Math.round(hoursRemaining))}h.
+Passe le chercher chez ${r}, avec une commande d'au moins 10 €. Il expire dans environ ${hours} h.
+${d.paidWithPoints ? "S'il n'est pas récupéré à temps, tes points te sont rendus." : "Passé ce délai, il n'est plus récupérable."}
 
-Voir mon cadeau : ${rewardsUrl}`;
+Voir mon cadeau : ${url}`;
 
-  return { subject, html, text };
+  return { subject, preheader, html, text };
 }

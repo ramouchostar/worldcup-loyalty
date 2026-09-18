@@ -337,6 +337,14 @@ _Avoid_ : un total de points qui ne s'échange contre rien ; une pastille qui ne
 Message proactif envoyé à un membre montrant l'état de sa communauté et le cadeau concret qu'il obtiendrait en commandant maintenant. Toujours spécifique (« Plus que 120 points d'équipe avant Churros (6) pour chaque membre ») — jamais générique. Trois déclencheurs : cadeau d'équipe offert (palier franchi, annoncé une fois par cadeau — ADR 0061 §7), membre inactif 72h+ avec +500 pts absolus depuis sa dernière commande, proximité du prochain seuil (< 10%). Anti-spam : 48h minimum, max 3/semaine. Canal : PWA push (gratuit) → WhatsApp (~€0,05/conversation) en fallback. Voir ADR 0009.
 _Avoid_ : rappel, relance, marketing push (toujours ancré dans le score réel).
 
+**Séquence de messages** *(ADR 0063)* :
+Suite de messages déclenchée par l'état d'un membre ou d'un établissement, écrite une fois et jouée par la plateforme : « Ton premier ticket », « Rejoins ton équipe », « Invite tes amis », « Installe l'app » côté membres ; « Cap franchi », « Ta semaine », « L'idée de la semaine » côté restaurateurs. Chaque séquence a un plafond, un arrêt propre (« Ne plus recevoir ces rappels ») et un seul critère de réussite mesuré sur 7 jours. **Éteinte par défaut**, allumée par établissement depuis `/platform`. Distincte du broadcast (composé à la main) et des notifications d'incitation (ADR 0009, déclenchées par le score d'équipe).
+_Avoid_ : campagne (réservé au message ponctuel composé sur la plateforme), newsletter, drip, automation, relance marketing.
+
+**Groupe témoin** *(ADR 0063)* :
+Les 10 % de membres éligibles à une séquence, tirés au sort, qui ne la reçoivent pas. L'**effet** d'une séquence est l'écart entre le taux de réussite de ceux qui l'ont reçue et celui du groupe témoin — un taux seul ne dit pas si le message a fait revenir quelqu'un qui serait revenu de toute façon.
+_Avoid_ : A/B test (il n'y a pas deux versions), taux d'ouverture (non mesuré — pas de pixel).
+
 **Broadcast admin** :
 Notification composée et envoyée par le restaurateur à **tous les membres de l'établissement** (canal général, avec ou sans équipe — ADR 0039), à une équipe, plusieurs équipes, ou tout un type d'équipe (ex. « menu étudiant » → type `ecole` ; « service de nuit » → type `taxis`). Distincte des notifications d'incitation automatiques (ADR 0009) : enveloppe anti-spam dédiée (≈ 2/semaine/membre). Canal PWA push → WhatsApp en fallback → in-app.
 

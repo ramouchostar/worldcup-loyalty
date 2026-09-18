@@ -1,42 +1,46 @@
-import { emailShell, emailHeading, emailParagraph, emailButton, emailDivider, emailFootNote } from "./layout";
+import { appLink, button, esc, eyebrow, heading, paragraph, proShell, small, strong, type RenderedEmail } from "./kit";
 
-// Restaurateur — confirmation immédiate à la soumission de l'étape 1/3
-// (/become-a-partner). Rassure sur la suite, pousse à finir l'onboarding
-// tout de suite (l'action réelle se passe au clic, cet email est un filet
-// de sécurité si l'onglet a été fermé entre-temps).
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+// Restaurateur — candidature self-service reçue (ADR 0015 §6). Il reste la
+// carte puis un ticket exemple (ADR 0019) avant la validation plateforme.
 
 export function partnerApplicationReceivedEmail(
   restaurantName: string,
   restaurantId: string,
   logoUrl?: string | null
-): { subject: string; html: string; text: string } {
-  const menuUrl = `${APP_URL}/become-a-partner/${restaurantId}/menu`;
+): RenderedEmail {
+  const menuUrl = appLink(`/become-a-partner/${restaurantId}/menu`);
   const subject = `${restaurantName} — ta candidature est bien reçue`;
+  const preheader = "Deux étapes rapides avant la mise en ligne : ta carte, puis un ticket exemple.";
 
-  const html = emailShell(subject, [
-    emailHeading("C'est parti !"),
-    emailParagraph(
-      `<strong>${restaurantName}</strong> est enregistré. Il reste deux étapes rapides avant la ` +
-      "mise en ligne : ta carte (pour calibrer les récompenses) puis un ticket exemple."
+  const body = [
+    eyebrow("Candidature reçue"),
+    heading("C'est parti !"),
+    paragraph(
+      `${strong(restaurantName)} est enregistré. Il reste deux étapes rapides avant la mise en ligne : ` +
+      "ta carte (pour calibrer les cadeaux), puis un ticket exemple."
     ),
-    emailButton("Continuer l'inscription →", menuUrl),
-    emailDivider(),
-    emailFootNote(
-      "Ton établissement restera invisible aux clients jusqu'à validation par notre équipe — un " +
-      "contrôle qualité rapide, pas un long processus commercial."
-    ),
-  ].join("\n"), logoUrl);
+    button("Continuer l'inscription", menuUrl, "#0C1509"),
+    small(esc("Ton établissement reste invisible aux clients jusqu'à validation par notre équipe — un contrôle qualité rapide, pas un long processus commercial.")),
+  ];
+
+  const html = proShell({
+    restaurantName,
+    logoUrl: logoUrl ?? null,
+    kicker: "Inscription",
+    subject,
+    preheader,
+    body: body.join("\n"),
+    footer: { reason: `Tu reçois cet e-mail parce que tu viens d'inscrire ${restaurantName} sur Boosteats.` },
+  });
 
   const text = `C'est parti !
 
 ${restaurantName} est enregistré. Il reste deux étapes rapides avant la mise en ligne :
-ta carte (pour calibrer les récompenses) puis un ticket exemple.
+ta carte (pour calibrer les cadeaux), puis un ticket exemple.
 
 Continuer l'inscription : ${menuUrl}
 
-Ton établissement restera invisible aux clients jusqu'à validation par notre équipe.`;
+Ton établissement reste invisible aux clients jusqu'à validation par notre équipe.`;
 
-  return { subject, html, text };
+  return { subject, preheader, html, text };
 }
