@@ -76,3 +76,29 @@ test("solde négatif ou catalogue vide : rien ne casse", () => {
   assert.deepEqual(catalogueView(-10, []), { reachable: null, next: null, missing: 0, pct: 100 });
   assert.equal(catalogueView(-10, CATALOGUE).next?.id, "Frites");
 });
+
+test("objectif après un ticket : les points en attente comptent, mais « déjà » seulement avec le disponible", async () => {
+  const { pointsGoalFrom } = await import("./catalogue");
+  // 400 disponibles + 184 en attente = 584 → Wings (16) à 545, mais pas encore
+  const g = pointsGoalFrom(400, 184, CATALOGUE);
+  assert.equal(g.total, 584);
+  assert.equal(g.reachable?.name, "Wings (16)");
+  assert.equal(g.reachableNow, false);
+  assert.equal(g.next?.name, "Tenders (16)");
+  assert.equal(g.next?.missing, 516);
+  // assez de points disponibles : « tu peux déjà l'avoir »
+  assert.equal(pointsGoalFrom(600, 184, CATALOGUE).reachableNow, true);
+  // rien à portée
+  const empty = pointsGoalFrom(0, 25, CATALOGUE);
+  assert.equal(empty.reachable, null);
+  assert.equal(empty.next?.name, "Frites");
+  assert.equal(empty.next?.missing, 10);
+});
+
+test("liste courte de l'écran d'attente : autour de l'objectif", async () => {
+  const { goalShortlist } = await import("./catalogue");
+  assert.deepEqual(goalShortlist(300, CATALOGUE).map((i) => i.id), ["Nuggets (16)", "Wings (16)", "Tenders (16)"]);
+  assert.deepEqual(goalShortlist(0, CATALOGUE).map((i) => i.id), ["Frites", "Nuggets (16)", "Wings (16)"]);
+  assert.deepEqual(goalShortlist(9999, CATALOGUE).map((i) => i.id), ["Nuggets (16)", "Wings (16)", "Tenders (16)"]);
+  assert.deepEqual(goalShortlist(100, []), []);
+});

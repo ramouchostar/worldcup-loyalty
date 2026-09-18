@@ -1,4 +1,4 @@
-import { pointsForOrder } from "./points-model";
+import { personalPointsForOrder } from "./catalogue";
 
 // Le message envoyé au membre quand son ticket est validé — et sa variante
 // « rattrapé ».
@@ -47,7 +47,8 @@ export function orderValidatedMessage({
   reward = null,
   rescued = false,
 }: OrderValidatedNotice): string {
-  const points = pointsForOrder(amountEur);
+  // ADR 0061 — points personnels (10 par euro), ceux qui paient le catalogue.
+  const points = personalPointsForOrder(amountEur);
   const gain = `+${points} points`;
   // Le nom d'un article, rien d'autre — jamais son coût ni son prix (ADR 0017).
   const cadeau = reward ? `, et ton ${reward} t'attend au comptoir` : "";

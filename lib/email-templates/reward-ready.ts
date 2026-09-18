@@ -21,7 +21,7 @@ export function rewardReadyEmail(
     emailHeading("Ton cadeau t'attend !"),
     emailParagraph(
       `Tu as un cadeau prêt à récupérer chez <strong>${restaurantName}</strong>. Passe le chercher, ` +
-      "ou mets-le de côté dans ta réserve si tu préfères attendre."
+      "avec une commande d'au moins 10 €."
     ),
     emailCallout(`Il expire dans environ ${Math.max(1, Math.round(hoursRemaining))}h.`),
     emailButton("Voir mon cadeau →", rewardsUrl),
@@ -31,8 +31,8 @@ export function rewardReadyEmail(
 
   const text = `Ton cadeau t'attend !
 
-Tu as un cadeau prêt à récupérer chez ${restaurantName}. Passe le chercher, ou mets-le de côté
-dans ta réserve si tu préfères attendre.
+Tu as un cadeau prêt à récupérer chez ${restaurantName}. Passe le chercher,
+avec une commande d'au moins 10 €.
 
 Il expire dans environ ${Math.max(1, Math.round(hoursRemaining))}h.
 

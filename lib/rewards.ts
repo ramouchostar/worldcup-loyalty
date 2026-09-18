@@ -169,6 +169,14 @@ export function resolveSoloReward(grid: RewardGrid, amount: number): RewardItem 
   return pickTier(grid.solo, amount);
 }
 
+// ADR 0061 §4 — le cadeau d'accueil du premier ticket : le premier cadeau de
+// la grille solo (le plus petit palier), quel que soit le montant. Grille vide
+// = pas de cadeau d'accueil (le ticket rapporte quand même ses points).
+export function welcomeReward(grid: RewardGrid): RewardItem {
+  const first = [...grid.solo].sort((a, b) => a.min - b.min)[0];
+  return first ? { item: first.item, cost: first.cost } : { item: null, cost: 0 };
+}
+
 export type NextSoloTier = { item: string; pct: number };
 
 // Prochain palier solo au-dessus du panier habituel (dashboard, hero card) —
@@ -262,10 +270,19 @@ export async function createPendingReward(
     budgetPct: budget.budgetPct,
   };
 
-  // Articles + coûts pilotés par le catalogue (ADR 0013), fallback grille
-  // héritée. Plafond budget atteint (ADR 0012) : couches 2 et 3 désactivées,
-  // la couche 1 (palier solo) reste intouchable.
-  const solo = resolveSoloReward(grid, amount);
+  // ADR 0061 §4 — plus de cadeau imposé par ticket : les points du ticket
+  // sont crédités par la base (déclencheur on_order_validated_points). Seul
+  // le PREMIER ticket validé d'un membre dans l'établissement reçoit, en plus,
+  // un cadeau d'accueil : le premier cadeau de la grille solo. Les couches
+  // d'équipe (2 et 3) restent inchangées jusqu'à la PR « équipes ».
+  const { count: validatedCount } = await adminClient
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("restaurant_id", restaurantId)
+    .eq("status", "validated");
+  const solo = (validatedCount ?? 0) <= 1 ? welcomeReward(grid) : { item: null, cost: 0 };
+  void amount; // le montant ne choisit plus le cadeau ; il fait les points (SQL)
   const community = resolveCommunityBonus(
     grid,
     teamScore,

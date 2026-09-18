@@ -33,7 +33,9 @@ export type ExpiryResult = { expired: number };
  * Deux échéances, miroir de lib/reward-window.ts :
  *   - cadeau de ticket (ou sans source, valeur historique) : ouvert 4 h après
  *     le ticket, puis 48 h ;
- *   - anniversaire et gros cadeau de la réserve : ouverts tout de suite, 48 h.
+ *   - anniversaire, gros cadeau de la réserve et cadeau du catalogue (ADR
+ *     0061) : ouverts tout de suite, 48 h — ces deux derniers rendent leurs
+ *     points s'ils expirent (`refund_catalog_reward`).
  *
  * Ne touche QUE `available` :
  *   - `redeemed` est posé dès l'ouverture du coupon (compare-and-swap
@@ -64,13 +66,25 @@ export async function expireStaleRewards(now: Date = new Date()): Promise<Expiry
       .from("pending_rewards")
       .update({ status: "expired" })
       .eq("status", "available")
-      .in("source", ["saver", "birthday"])
+      .in("source", ["saver", "birthday", "catalog"])
       .lt("created_at", otherCutoff)
-      .select("id"),
+      .select("id, source"),
   ]);
 
   for (const result of [tickets, others]) {
     if (result.error) throw new Error(`pending_rewards(expire): ${result.error.message}`);
   }
+
+  // ADR 0061 — un cadeau payé avec des points et jamais récupéré REND ses
+  // points (et son coût au budget) : le client ne perd rien à avoir oublié.
+  // Best-effort par cadeau, idempotent côté SQL (un remboursement au plus).
+  const paidWithPoints = ((others.data ?? []) as { id: string; source: string }[]).filter(
+    (r) => r.source === "catalog" || r.source === "saver"
+  );
+  for (const reward of paidWithPoints) {
+    const { error } = await admin.rpc("refund_catalog_reward", { p_reward_id: reward.id });
+    if (error) console.error("[reward-expiry] remboursement impossible:", reward.id, error.message);
+  }
+
   return { expired: (tickets.data ?? []).length + (others.data ?? []).length };
 }

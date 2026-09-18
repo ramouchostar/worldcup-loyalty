@@ -36,9 +36,10 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - Score d'équipe = **somme de points courbés** (non-linéaires), plus `membres × euros` (ADR 0028) → `score ÷ membres` ne redonne pas d'euros ; points **non-convertibles** en euros
 - Double verrou → invisible côté client, message neutre si palier verrouillé
 
-### ADR 0006 — Système de récompenses en 3 couches
-- Chaque commande validée génère une entrée dans `pending_rewards` avec 3 items séparés
-- Couche 1 (palier solo) : toujours présente, non soumise au double verrou
+### ADR 0006 — Système de récompenses en 3 couches (couche 1 REMPLACÉE par l'ADR 0061)
+- **ADR 0061 (bascule du 2026-09-18)** : chaque ticket validé rapporte des **points personnels** (10 par euro, crédités par le déclencheur SQL `on_order_validated_points`, disponibles 4 h après) ; le client **choisit** son cadeau au catalogue « Mes points ». Plus de cadeau imposé par ticket : seul le **premier ticket** d'un membre reçoit un **cadeau d'accueil** (`welcomeReward` = premier cadeau de la grille solo). « Mettre de côté » retiré. Un cadeau payé en points qui expire **rend ses points** (`refund_catalog_reward`)
+- Couches 2 et 3 (équipe) : inchangées jusqu'à la PR « équipes » de l'ADR 0061
+- Historique : chaque commande validée générait une entrée `pending_rewards` avec 3 items séparés ; couche 1 (palier solo) toujours présente, non soumise au double verrou
 - Couche 2 (bonus communautaire) : soumise au double verrou
 - Couche 3 (récompense d'avancement) : non soumise au double verrou
 
@@ -75,7 +76,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 
 ### ADR 0059 — Accueil membre : trois questions, sans défiler (remplace l'ordre ADR 0010)
 - **Qu'est-ce que j'ai** : le cadeau qui attend en grand, avec « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique (ADR 0011)
-- **Qu'est-ce que je peux viser** : sans cadeau, « Ton prochain ticket peut te rapporter » + plats de la grille solo — jamais de seuil (ADR 0028) ; le cadeau de base ne se cumule pas, pas de barre de « progression » vers lui
+- **Qu'est-ce que je peux viser** (ADR 0061) : sans cadeau, la carte « Mes points » — ce que les points permettent déjà (« tu peux déjà avoir X ») ou ce qui manque (« plus que N points pour Y ») ; jamais de seuil en euros ni de prix de revient
 - **Qu'est-ce que je fais** : grand bouton photo ; puis Ma réserve (le seul solde affiché), jetons en une ligne, installation, équipe, tuiles, Mes tickets
 - **`teams_hidden` masque la compétition, jamais les équipes** (ADR 0059 §4) : Top 5 vitrine, tuile Classement et comparaison au classement cachés ; bloc équipe, tuile Cadeaux d'équipe et question de reconnaissance (ADR 0031) restent — l'appartenance sert la diffusion ciblée
 - Pas de compteur de points courbés sur l'accueil, pas de projection du panier habituel, jamais une demande (installation, parrainage) avant le cadeau

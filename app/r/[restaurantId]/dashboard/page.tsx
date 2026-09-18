@@ -11,17 +11,14 @@ import { recordFunnelStep } from "@/lib/funnel";
 import { getPointsSummary, listCatalogue } from "@/lib/points";
 import { catalogueView, personalPointsForOrder } from "@/lib/catalogue";
 import { menuImageUrl } from "@/lib/menu-images";
-import { pointsForOrder } from "@/lib/points-model";
 import { getTeamsHidden } from "@/lib/teams";
 import { FEEDBACK_ELIGIBILITY_MIN } from "@/lib/feedback";
-import { ticketPromiseItems } from "@/lib/home-view";
 import { ScoreCard } from "@/components/member/ScoreCard";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { TokensLine } from "@/components/member/TokensLine";
 import { foodIconUrl } from "@/lib/food-icon";
 import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
-import { BankButton } from "@/app/r/[restaurantId]/my-rewards/BankButton";
 import { ChooseButton } from "@/app/r/[restaurantId]/points/ChooseButton";
 import { claimDeadline, claimOpensAt, isClaimNotYetOpen, redemptionRule } from "@/lib/reward-window";
 
@@ -133,12 +130,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const giftLocked = gift ? isClaimNotYetOpen(gift.created_at, gift.source) : false;
   const giftExpiresAt = gift ? claimDeadline(gift.created_at, gift.source) : null;
   const giftHoursLeft = giftExpiresAt ? Math.max(0, Math.floor((giftExpiresAt.getTime() - Date.now()) / 3_600_000)) : 0;
-  // Seuls les cadeaux issus d'un ticket se mettent de côté (ADR 0021), crédités
-  // en points proportionnels, même échelle que le catalogue (ADR 0061).
-  const giftBankPoints = gift?.order_id && gift.orders ? personalPointsForOrder(Number(gift.orders.amount)) : null;
 
   // ── Ce que je peux viser : le prochain ticket, la réserve ───────────────────
-  const promiseItems = ticketPromiseItems(grid.solo);
   // ADR 0061 §5 — ce que les points permettent déjà, ou ce qui manque.
   const pointsGoal = catalogueView(pointsSummary.available, catalogue);
   const showPoints = catalogue.length > 0 || pointsSummary.available + pointsSummary.pending > 0;
@@ -180,6 +173,69 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         budgetPct: budget.budgetPct,
       })
     : { item: null };
+
+  // ADR 0061 §5 — la carte « Mes points » : en haut quand aucun cadeau
+  // n'attend (« qu'est-ce que je peux viser », ADR 0059), sous la photo sinon.
+  const pointsCard = showPoints ? (
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex items-center gap-2 font-bold text-gray-900">
+            <Coins className="w-5 h-5 shrink-0 text-gray-700" aria-hidden="true" />
+            Mes points
+          </p>
+          <p className="text-2xl font-black text-gray-900 tabular-nums">{pointsSummary.available.toLocaleString("fr-BE")}</p>
+        </div>
+        {pointsSummary.pending > 0 && (
+          <p className="text-xs text-gray-500 text-right">+{pointsSummary.pending.toLocaleString("fr-BE")} en attente</p>
+        )}
+
+        {pointsGoal.reachable && !gift && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-green-50 border border-green-200 p-3">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={menuImageUrl(pointsGoal.reachable.imagePath) ?? foodIconUrl(pointsGoal.reachable.name)}
+                alt=""
+                aria-hidden="true"
+                className={pointsGoal.reachable.imagePath ? "w-10 h-10 shrink-0 rounded-lg object-cover" : "w-8 h-8 shrink-0"}
+              />
+              <div className="min-w-0">
+                <p className="text-xs text-green-800">Tu peux déjà avoir</p>
+                <p className="font-bold text-gray-900 text-sm truncate">{pointsGoal.reachable.name}</p>
+              </div>
+            </div>
+            <div className="w-24 shrink-0">
+              <ChooseButton itemId={pointsGoal.reachable.id} itemName={pointsGoal.reachable.name} price={pointsGoal.reachable.pricePoints} />
+            </div>
+          </div>
+        )}
+
+        {pointsGoal.next && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between gap-2 text-xs text-gray-500 mb-1.5">
+              <span className="inline-flex items-center gap-1.5 min-w-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={foodIconUrl(pointsGoal.next.name)} alt="" aria-hidden="true" className="w-5 h-5 shrink-0" />
+                <span className="truncate">
+                  Plus que <span className="font-semibold text-gray-700">{pointsGoal.missing.toLocaleString("fr-BE")} points</span> pour{" "}
+                  <span className="font-semibold text-gray-700">{pointsGoal.next.name}</span>
+                </span>
+              </span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-2">
+              <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${Math.max(pointsGoal.pct, 3)}%` }} />
+            </div>
+          </div>
+        )}
+
+        <p className="text-xs text-gray-500 mt-3">
+          Chaque ticket te rapporte des points.{" "}
+          <Link href={r("/points")} className="font-semibold text-gray-700 underline">
+            Voir le catalogue
+          </Link>
+        </p>
+      </section>
+  ) : null;
 
   return (
     <div className="space-y-4 pb-4">
@@ -234,10 +290,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           </p>
           {/* ADR 0011 amendé — la règle de retrait, écrite (exception ADR 0007). */}
           <p className="text-center text-xs text-gray-700 mt-1">{redemptionRule(gift.source)}</p>
-          {/* ADR 0021 — le choix se fait ICI, pas seulement dans Mes cadeaux. */}
           <div className="mt-4 space-y-2">
             <RedeemButton size="lg" opensAt={giftOpensAt!.toISOString()} />
-            {giftBankPoints !== null && <BankButton points={giftBankPoints} size="lg" />}
           </div>
           {/* ADR 0011 — un seul cadeau actif : sans cette phrase, le membre
               enchaîne des tickets en croyant cumuler des cadeaux. */}
@@ -251,24 +305,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           )}
         </section>
       ) : (
-        // ── Ce que je peux viser — le prochain ticket ───────────────────────
-        // Noms des cadeaux de la grille solo, jamais de seuil (ADR 0028 §6).
-        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-sm font-semibold text-gray-500 text-center">Ton prochain ticket peut te rapporter</p>
-          {promiseItems.length > 0 ? (
-            <div className="flex justify-center gap-3 mt-3">
-              {promiseItems.map((item) => (
-                <div key={item} className="flex flex-col items-center w-24">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={foodIconUrl(item)} alt="" aria-hidden="true" className="w-12 h-12" />
-                  <p className="text-sm font-bold text-gray-900 text-center leading-tight mt-1">{item}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-lg font-black text-gray-900 text-center mt-2">Un cadeau au comptoir</p>
-          )}
-        </section>
+        // ── Ce que je peux viser — mes points (ADR 0061 §5) ─────────────────
+        // Plus de cadeau imposé par ticket : ce que les points permettent déjà,
+        // ou ce qui manque, au catalogue. Jamais de seuil ni d'euro.
+        pointsCard ?? (
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <p className="text-sm font-semibold text-gray-500 text-center">Chaque ticket te rapporte des points</p>
+            <p className="text-lg font-black text-gray-900 text-center mt-2">Choisis ton cadeau au catalogue</p>
+          </section>
+        )
       )}
 
       {/* ── Ce que je fais — la photo, l'action la plus rentable ──────────── */}
@@ -280,67 +325,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         Prendre mon ticket en photo
       </Link>
 
-      {/* ── Mes points (ADR 0061) — le solde, et ce qu’il permet ─────────── */}
-      {showPoints && (
-        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="flex items-center gap-2 font-bold text-gray-900">
-              <Coins className="w-5 h-5 shrink-0 text-gray-700" aria-hidden="true" />
-              Mes points
-            </p>
-            <p className="text-2xl font-black text-gray-900 tabular-nums">{pointsSummary.available.toLocaleString("fr-BE")}</p>
-          </div>
-          {pointsSummary.pending > 0 && (
-            <p className="text-xs text-gray-500 text-right">+{pointsSummary.pending.toLocaleString("fr-BE")} en attente</p>
-          )}
-
-          {pointsGoal.reachable && !gift && (
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-green-50 border border-green-200 p-3">
-              <div className="flex items-center gap-2 min-w-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={menuImageUrl(pointsGoal.reachable.imagePath) ?? foodIconUrl(pointsGoal.reachable.name)}
-                  alt=""
-                  aria-hidden="true"
-                  className={pointsGoal.reachable.imagePath ? "w-10 h-10 shrink-0 rounded-lg object-cover" : "w-8 h-8 shrink-0"}
-                />
-                <div className="min-w-0">
-                  <p className="text-xs text-green-800">Tu peux déjà avoir</p>
-                  <p className="font-bold text-gray-900 text-sm truncate">{pointsGoal.reachable.name}</p>
-                </div>
-              </div>
-              <div className="w-24 shrink-0">
-                <ChooseButton itemId={pointsGoal.reachable.id} itemName={pointsGoal.reachable.name} price={pointsGoal.reachable.pricePoints} />
-              </div>
-            </div>
-          )}
-
-          {pointsGoal.next && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between gap-2 text-xs text-gray-500 mb-1.5">
-                <span className="inline-flex items-center gap-1.5 min-w-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={foodIconUrl(pointsGoal.next.name)} alt="" aria-hidden="true" className="w-5 h-5 shrink-0" />
-                  <span className="truncate">
-                    Plus que <span className="font-semibold text-gray-700">{pointsGoal.missing.toLocaleString("fr-BE")} points</span> pour{" "}
-                    <span className="font-semibold text-gray-700">{pointsGoal.next.name}</span>
-                  </span>
-                </span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${Math.max(pointsGoal.pct, 3)}%` }} />
-              </div>
-            </div>
-          )}
-
-          <p className="text-xs text-gray-500 mt-3">
-            Chaque ticket te rapporte des points.{" "}
-            <Link href={r("/points")} className="font-semibold text-gray-700 underline">
-              Voir le catalogue
-            </Link>
-          </p>
-        </section>
-      )}
+      {/* ── Mes points (ADR 0061) — sous la photo quand un cadeau occupe le haut ── */}
+      {gift && pointsCard}
 
       {/* ── Un cadeau en plus : les jetons, en une ligne ─────────────────── */}
       <TokensLine />
@@ -531,7 +517,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 <div>
                   <p className={`font-medium text-sm ${order.status === "validated" ? "text-gray-900" : "text-gray-400"}`}>
                     {order.status === "validated"
-                      ? `+${pointsForOrder(Number(order.amount))} pts`
+                      ? `+${personalPointsForOrder(Number(order.amount))} points`
                       : order.status === "pending" ? "En vérification…" : "Non validé"}
                   </p>
                   <p className="text-xs text-gray-500">

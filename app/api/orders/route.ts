@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderDate } from "@/lib/orders";
 import { getReceiptConfig, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
-import { createPendingReward, loadRewardGrid, nextSoloTier, LEGACY_RESTAURANT_ID, type NextSoloTier } from "@/lib/rewards";
+import { createPendingReward, LEGACY_RESTAURANT_ID } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
@@ -17,7 +17,8 @@ import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-er
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
 import { judgeReceipt, notAReceiptMessage } from "@/lib/receipt-proof";
 import { missingReceiptParts } from "@/lib/ticket-auto-send";
-import { pointsForOrder } from "@/lib/points-model";
+import { personalPointsForOrder, type PointsGoal } from "@/lib/catalogue";
+import { getPointsGoal } from "@/lib/points";
 import { amountBand } from "@/lib/analytics";
 
 export const maxDuration = 30;
@@ -402,11 +403,11 @@ export async function POST(request: NextRequest) {
   // Create 3-layer pending reward for validated orders — awaited pour
   // garantir la création dans la même requête. Un échec est loggé mais
   // ne fait pas échouer la soumission (la commande est déjà validée).
-  // Étape 07 (backlog onboarding) : l'écran de succès titre sur le cadeau
-  // réellement obtenu et montre le palier suivant. Noms + proportion de barre
-  // uniquement — jamais de seuil ni d'euro (ADR 0007/0028 §6).
+  // ADR 0061 — l'écran de succès annonce les points du ticket, ce qu'ils
+  // permettent (catalogue), et le cadeau d'accueil s'il s'agit du premier
+  // ticket. Noms + proportion de barre — jamais de seuil ni d'euro (ADR 0007).
   let rewardName: string | null = null;
-  let nextTier: NextSoloTier | null = null;
+  let pointsGoal: PointsGoal | null = null;
   // A distinguer de `rewardName` : un cadeau peut déjà être disponible
   // (ADR 0011, créé par une commande précédente) sans que CETTE commande en
   // ait créé un nouveau — l'écran de succès a besoin des deux pour savoir
@@ -426,10 +427,15 @@ export async function POST(request: NextRequest) {
         parsedAmount
       );
       if (rewardResult.created) rewardName = rewardResult.soloItem;
-      const grid = await loadRewardGrid(restaurantId);
-      nextTier = nextSoloTier(grid, parsedAmount);
     } catch (err) {
       console.error("[orders] createPendingReward failed:", err);
+    }
+    // Les points du ticket viennent d'être crédités par la base (déclencheur
+    // on_order_validated_points, en attente 4 h) : l'objectif les inclut.
+    try {
+      pointsGoal = await getPointsGoal(user.id, restaurantId);
+    } catch (err) {
+      console.error("[orders] objectif de points indisponible:", err);
     }
     const { data: activeReward } = await supabase
       .from("pending_rewards")
@@ -455,12 +461,12 @@ export async function POST(request: NextRequest) {
       status,
       has_team: teamId !== null,
       reward: rewardName,
-      next_tier: nextTier,
       has_reward: hasReward,
-      // ADR 0058 §4 — les points de l'écran de succès viennent de CETTE
-      // lecture (points courbés, ADR 0028) ; la mesure reçoit une tranche,
-      // jamais le montant.
-      points: pointsForOrder(parsedAmount),
+      // ADR 0058 §4 / 0061 — les points de l'écran de succès viennent de
+      // CETTE lecture (points personnels, 10 par euro) ; la mesure reçoit une
+      // tranche, jamais le montant.
+      points: personalPointsForOrder(parsedAmount),
+      points_goal: pointsGoal,
       amount_band: amountBand(parsedAmount),
     },
     { status: 201 }

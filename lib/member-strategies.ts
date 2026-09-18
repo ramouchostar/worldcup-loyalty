@@ -239,28 +239,17 @@ export async function runMemberStrategies(
       if (lapsed) {
         const recent = await countRecentByTrigger(admin, member.id, "winback", WINBACK_COOLDOWN_DAYS, now);
         if (recent === 0) {
-          const usual = resolveSoloReward(grid, memberAvg);
+          // ADR 0061 — plus de cadeau imposé par montant : chaque ticket
+          // rapporte des points vers le cadeau de son choix.
           trigger = "winback";
-          message = usual.item
-            ? `👋 Ça fait ${lapsed.daysSince} jours qu'on ne t'a pas vu chez ${restaurantName} ! Ta commande habituelle te donne droit à « ${usual.item} » — il t'attend.`
-            : `👋 Ça fait ${lapsed.daysSince} jours qu'on ne t'a pas vu chez ${restaurantName} ! Reviens vite — ton prochain cadeau t'attend.`;
+          message = `👋 Ça fait ${lapsed.daysSince} jours qu'on ne t'a pas vu chez ${restaurantName} ! Reviens vite — chaque ticket te rapporte des points vers le cadeau de ton choix.`;
         }
       }
     }
 
-    // 3. Nudge de palier — quelques euros de plus, un cadeau nettement mieux
-    if (!trigger && orders.length >= NUDGE_MIN_ORDERS) {
-      const nudge = findTierNudge(memberAvg, grid.solo);
-      if (nudge) {
-        const recent = await countRecentByTrigger(admin, member.id, "tier_nudge", NUDGE_COOLDOWN_DAYS, now);
-        if (recent === 0) {
-          trigger = "tier_nudge";
-          // ADR 0028 — zéro euro côté membre : on garde l'incitation (« commande
-          // un peu plus → meilleur cadeau ») sans jamais chiffrer en euros.
-          message = `🎁 Le savais-tu ? En commandant un peu plus chez ${restaurantName}, ton prochain cadeau passe à « ${nudge.target.item} » — tu y es presque !`;
-        }
-      }
-    }
+    // 3. (Nudge de palier retiré — ADR 0061 : plus de palier de montant à
+    // viser, les points sont proportionnels. `findTierNudge` reste exporté
+    // pour ses tests jusqu'au nettoyage.)
 
     // 4. Rappel de mission Carte Actions reportée — le membre a cliqué
     // « plus tard » et, une semaine après, n'a toujours rien soumis.

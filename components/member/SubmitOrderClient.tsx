@@ -25,6 +25,8 @@ import {
 import { memoriserCadeauAReclamer } from "@/lib/claim-reward";
 import { PostTicketSheet } from "@/components/member/PostTicketSheet";
 import TicketGainCard from "@/components/member/TicketGainCard";
+import PointsGoalLine from "@/components/member/PointsGoalLine";
+import type { PointsGoal } from "@/lib/catalogue";
 import { TeamRecognitionPrompt, type PromptSuggestion } from "@/components/member/TeamRecognitionPrompt";
 import { rememberPendingTicket } from "@/app/r/[restaurantId]/submit-order/actions";
 import { createClient } from "@/lib/supabase-browser";
@@ -45,7 +47,7 @@ type ParsedReceipt = {
   has_reliable_key?: boolean;
   scan_id?: string | null;
   reward?: string | null;
-  next_tier?: { item: string; pct: number } | null;
+  points_goal?: PointsGoal | null;
 };
 
 // Repris de la landing (ADR 0042) — même repère 1-2-3 tout au long du
@@ -130,7 +132,8 @@ export default function SubmitOrderClient({
   // distance jusqu'au premier palier. Noms d'articles et proportion de barre
   // uniquement — jamais un seuil, jamais un euro (ADR 0007/0028).
   const [gainReward, setGainReward] = useState<string | null>(null);
-  const [gainNextTier, setGainNextTier] = useState<{ item: string; pct: number } | null>(null);
+  // ADR 0061 — ce que les points de ce ticket permettent au catalogue.
+  const [gainGoal, setGainGoal] = useState<PointsGoal | null>(null);
   // Dernière photo envoyée : « Réessayer l'envoi » la renvoie telle quelle
   // après une coupure, sans nouvelle photo.
   const lastSendRef = useRef<File | null>(null);
@@ -156,7 +159,8 @@ export default function SubmitOrderClient({
   // côté serveur) et prochain palier : nom + proportion de barre uniquement,
   // jamais de seuil ni d'euro (ADR 0007/0028 §6).
   const [reward, setReward] = useState<string | null>(null);
-  const [nextTier, setNextTier] = useState<{ item: string; pct: number } | null>(null);
+  // ADR 0061 §5 — ce que les points du membre permettent après ce ticket.
+  const [pointsGoal, setPointsGoal] = useState<PointsGoal | null>(null);
   // Distinct de `reward` (créé par CE ticket) : un cadeau peut déjà être
   // disponible depuis une commande précédente (ADR 0011) — c'est cette
   // valeur qui décide si "Voir mes cadeaux" a un sens sur l'écran de succès.
@@ -277,7 +281,7 @@ export default function SubmitOrderClient({
     setSubmitStatus("idle");
     setErrorMsg("");
     setGainReward(null);
-    setGainNextTier(null);
+    setGainGoal(null);
     setFramingIssue(null);
     setResumeMissing(false);
     setPreparing(true);
@@ -480,7 +484,7 @@ export default function SubmitOrderClient({
         setOcrAmount(null);
       }
       setGainReward(data.reward ?? null);
-      setGainNextTier(data.next_tier ?? null);
+      setGainGoal(data.points_goal ?? null);
       return data;
     } catch (err) {
       setParseStatus("error");
@@ -533,7 +537,7 @@ export default function SubmitOrderClient({
         error?: string;
         has_team?: boolean;
         reward?: string | null;
-        next_tier?: { item: string; pct: number } | null;
+        points_goal?: PointsGoal | null;
         has_reward?: boolean;
         missing?: MissingParts;
         points?: number;
@@ -560,7 +564,7 @@ export default function SubmitOrderClient({
         }
         setHasTeam(data.has_team !== false);
         setReward(data.reward ?? null);
-        setNextTier(data.next_tier ?? null);
+        setPointsGoal(data.points_goal ?? null);
         setHasReward(data.has_reward === true);
         track("order_result", {
           restaurant_id: restaurantId,
@@ -610,12 +614,12 @@ export default function SubmitOrderClient({
     setParseError("");
     lastSendRef.current = null;
     setGainReward(null);
-    setGainNextTier(null);
+    setGainGoal(null);
     setSubmitStatus("idle");
     setFramingIssue(null);
     setFramingFailures(0);
     setReward(null);
-    setNextTier(null);
+    setPointsGoal(null);
     setErrorMsg("");
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -748,26 +752,12 @@ export default function SubmitOrderClient({
           </div>
           <p className="text-sm font-bold uppercase tracking-wide mt-1">{pointsLabel}</p>
 
-          {/* Barre vers le palier suivant — proportion visuelle + nom du
-              cadeau, aucun chiffre lisible (ADR 0028 §6, comme le hero).
-              Pas de carte blanche : le montant/l'heure du ticket répétaient
-              une info déjà donnée par le gros nombre au-dessus. */}
-          {nextTier && (
-            <div className="bg-white/15 text-left rounded-2xl p-4 max-w-xs mx-auto mt-5">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-white/80">Prochain cadeau</span>
-                <span className="font-bold inline-flex items-center gap-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={foodIconUrl(nextTier.item)} alt="" className="w-4 h-4" />
-                  {nextTier.item}
-                </span>
-              </div>
-              <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-white rounded-full transition-all"
-                  style={{ width: `${Math.max(nextTier.pct, 4)}%` }}
-                />
-              </div>
+          {/* ADR 0061 §5 — ce que les points permettent désormais : l'article à
+              portée (tout de suite ou à la prochaine visite), sinon les points
+              qui manquent. Noms et barre, jamais de coût ni d'euro. */}
+          {pointsGoal && (
+            <div className="mt-5">
+              <PointsGoalLine goal={pointsGoal} tone="dark" />
             </div>
           )}
         </div>
@@ -790,6 +780,13 @@ export default function SubmitOrderClient({
               className="block text-center bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
             >
               {reward ? `Voir mon ${reward} →` : "Voir mes cadeaux →"}
+            </Link>
+          ) : pointsGoal?.reachable ? (
+            <Link
+              href={`/r/${restaurantId}/points`}
+              className="block text-center bg-brand-red text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-red/85 transition-colors"
+            >
+              Voir le catalogue →
             </Link>
           ) : !hasTeam ? (
             <div>
@@ -1168,7 +1165,7 @@ export default function SubmitOrderClient({
       {visitor && preview && !preparing && (parseStatus === "parsing" || parseStatus === "done") && (
         <div className="bg-white border-2 border-brand-red/40 rounded-2xl p-5 text-center mb-4">
           {parseStatus === "done" && ocrAmount !== null ? (
-            <TicketGainCard amount={ocrAmount} reward={gainReward} nextTier={gainNextTier} />
+            <TicketGainCard amount={ocrAmount} reward={gainReward} goal={gainGoal} />
           ) : (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1254,7 +1251,7 @@ export default function SubmitOrderClient({
             </div>
           ) : waitPromise.length > 0 ? (
             <div className="mt-4 border-t border-gray-100 pt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Ce ticket peut te rapporter</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Avec tes points, vise</p>
               <div className="flex justify-center gap-4">
                 {waitPromise.map((item) => (
                   <div key={item} className="w-20">
