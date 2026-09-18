@@ -56,7 +56,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - Gros cadeaux : `reward_tiers` layer `saver`, seuils en points courbés (≈ 4 / 8 / 12 tickets moyens), plafond ADR 0017 par les tickets moyens : `cost_price ≤ seuil ÷ points_for_order(panier moyen) × panier moyen × 8%` (`saverCostCap` / SQL `saver_cost_cap`, ADR 0060)
 - Échange via RPC transactionnel → `pending_rewards` standard (cycle coupon inchangé) ; un cadeau `saver` n'est pas re-bankable
 - Budget ADR 0012 : coût re-crédité au bank, débité à l'échange
-- UI : « Ma réserve » — jamais « points » seuls (réservés au score communautaire), jamais de coûts sur `/api/saver-tiers`
+- **Remplacé par l'ADR 0061 (en cours de mise en œuvre)** : « Ma réserve » devient **« Mes points »** (`/r/[id]/points`, `/reserve` redirige), les gros cadeaux `saver` cèdent la place au **catalogue** (`catalog_items`, prix en points calculé `catalog_price_points`, échange `exchange_points_for_item`), points personnels **proportionnels** (10 par euro) ; « points d'équipe » = le score collectif. Jamais de prix de revient côté membre
 
 ### ADR 0034 — Un ticket ne dépend jamais d'une équipe
 - `orders.team_id` est **nullable** (m57) : un membre sans équipe envoie ses tickets comme les autres, seule l'adhésion à l'établissement est exigée

@@ -30,7 +30,7 @@ export function BankButton({ points, size = "sm" }: { points: number | null; siz
         // Le nombre de points n'est pas envoyé : même courbés (ADR 0060), ils
         // restent tirés du montant du ticket (ADR 0028).
         track("reward_banked", { restaurant_id: restaurantId });
-        router.push(`/r/${restaurantId}/reserve`);
+        router.push(`/r/${restaurantId}/points`);
         router.refresh();
         return;
       }
@@ -47,7 +47,7 @@ export function BankButton({ points, size = "sm" }: { points: number | null; siz
     return (
       <span className="flex flex-col gap-1.5 w-full rounded-xl bg-gray-100 p-3">
         <span className="text-sm text-gray-700 text-center">
-          {points !== null ? `+${points} dans ta réserve, et ce cadeau disparaît ?` : "Mettre ce cadeau dans ta réserve ?"}
+          {points !== null ? `+${points} points, et ce cadeau disparaît ?` : "Échanger ce cadeau contre des points ?"}
         </span>
         <span className="flex gap-2">
           <button
@@ -87,7 +87,7 @@ export function BankButton({ points, size = "sm" }: { points: number | null; siz
       <span className="inline-flex flex-col items-end gap-1">
         <span className="flex items-center gap-1.5">
           <span className="text-xs text-gray-500">
-            {points !== null ? `+${points} dans ta réserve ?` : "Convertir en réserve ?"}
+            {points !== null ? `+${points} points ?` : "Contre des points ?"}
           </span>
           <button
             onClick={handleBank}

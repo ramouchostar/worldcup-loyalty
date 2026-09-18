@@ -57,14 +57,18 @@ export function reserveView(balance: number, tiers: SaverTier[]): ReserveView {
  * rien à échanger, un solde n'appelle aucune action. `null` : rien à
  * signaler, seule la pastille des jetons reste.
  */
-export type HeaderStatus = { kind: "gift" } | { kind: "reserve"; balance: number } | null;
+//
+// ADR 0061 — la pastille de solde devient « Mes points » : visible là où le
+// catalogue propose au moins un article (sinon un solde n'appelle aucune
+// action).
+export type HeaderStatus = { kind: "gift" } | { kind: "points"; balance: number } | null;
 
 export function headerStatus(input: {
   hasGift: boolean;
-  reserveBalance: number;
-  activeSaverTiers: number;
+  pointsBalance: number;
+  catalogueSize: number;
 }): HeaderStatus {
   if (input.hasGift) return { kind: "gift" };
-  if (input.activeSaverTiers > 0) return { kind: "reserve", balance: Math.max(0, input.reserveBalance) };
+  if (input.catalogueSize > 0) return { kind: "points", balance: Math.max(0, input.pointsBalance) };
   return null;
 }

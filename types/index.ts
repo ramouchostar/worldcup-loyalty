@@ -208,7 +208,8 @@ export type PendingReward = {
 export type PointTransaction = {
   id: string;
   delta: number;
-  reason: "bank_reward" | "exchange_gift" | "admin_adjust";
+  // 'order_points' : points d'un ticket, disponibles 4 h après (ADR 0061).
+  reason: "bank_reward" | "exchange_gift" | "admin_adjust" | "order_points";
   created_at: string;
 };
 
