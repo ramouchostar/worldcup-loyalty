@@ -89,6 +89,8 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `receipt_torch_used` | `restaurant_id` | Lampe allumée dans la caméra intégrée (ADR 0056 §6) — une fois par ouverture ; Chrome Android seulement |
 | `order_submitted` | `restaurant_id`, `amount_band`, `has_receipt_photo` | Ticket accepté par le serveur — envoyé automatiquement, photo seule, lue une seule fois ; `amount_band` calculée par le serveur (ADR 0058 §4) |
 | `order_result` | `restaurant_id`, `result` | Verdict rendu au membre |
+| `reward_redeem_confirm_shown` | `restaurant_id` | « Récupérer » touché : fenêtre de confirmation ouverte, aucun coupon |
+| `reward_redeem_dismissed` | `restaurant_id` | « Pas maintenant » : confirmation refermée sans coupon |
 | `reward_redeem_started` | `restaurant_id` | Coupon 10 min généré (ADR 0011) |
 | `points_gift_chosen` | `restaurant_id` | Cadeau choisi au catalogue « Mes points » (ADR 0061) — ni l'article ni le prix en points |
 | `micro_reward_claimed` | `channel` | Action sociale réclamée |

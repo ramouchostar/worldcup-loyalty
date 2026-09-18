@@ -288,7 +288,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           {/* ADR 0011 amendé — la règle de retrait, écrite (exception ADR 0007). */}
           <p className="text-center text-xs text-gray-700 mt-1">{redemptionRule(gift.source)}</p>
           <div className="mt-4 space-y-2">
-            <RedeemButton size="lg" opensAt={giftOpensAt!.toISOString()} rewardId={gift.id} />
+            <RedeemButton size="lg" opensAt={giftOpensAt!.toISOString()} rewardId={gift.id} itemName={giftItem} />
           </div>
           {/* ADR 0011 — un seul cadeau personnel actif : sans cette phrase, le
               membre croit pouvoir en choisir un deuxième avec ses points. */}

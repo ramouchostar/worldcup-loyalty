@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, Gift } from "lucide-react";
+import { Clock, Gift, ShoppingBag, Store, Timer } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { track } from "@/lib/analytics";
-import { formatOpensAt } from "@/lib/reward-window";
+import { REDEMPTION_MIN_ORDER_EUR, formatOpensAt } from "@/lib/reward-window";
 
 // `size="lg"` : version pleine largeur de l'accueil (ADR 0059), où le choix
 // récupérer / mettre de côté est le geste principal de l'écran.
@@ -15,11 +15,19 @@ import { formatOpensAt } from "@/lib/reward-window";
 // refuse de toute façon (425) — l'écran ne fait que le dire avant.
 // `rewardId` (ADR 0061 §7) : un cadeau d'équipe peut attendre à côté du cadeau
 // personnel — le bouton dit lequel il récupère.
+//
+// Confirmation avant le minuteur (terrain Houba, 2026-09-18) : une cliente a
+// touché « Récupérer » sans le vouloir, le coupon de 10 minutes s'est ouvert
+// et son cadeau était consommé. Le bouton ouvre d'abord une fenêtre qui dit
+// quoi faire (au comptoir, 10 € minimum, 10 minutes) ; seul « Je suis au
+// comptoir » génère le coupon. « Pas maintenant » ne consomme rien.
 export function RedeemButton({
   size = "sm",
   opensAt = null,
   rewardId = null,
-}: { size?: "sm" | "lg"; opensAt?: string | null; rewardId?: string | null } = {}) {
+  itemName = null,
+}: { size?: "sm" | "lg"; opensAt?: string | null; rewardId?: string | null; itemName?: string | null } = {}) {
+  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -36,6 +44,27 @@ export function RedeemButton({
     const id = window.setTimeout(() => setNow(Date.now()), Math.max(wait, 0));
     return () => window.clearTimeout(id);
   }, [locked, opensMs]);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirming]);
+
+  function openConfirmation() {
+    setError(null);
+    setConfirming(true);
+    track("reward_redeem_confirm_shown", { restaurant_id: restaurantId });
+  }
+
+  function dismiss() {
+    setConfirming(false);
+    track("reward_redeem_dismissed", { restaurant_id: restaurantId });
+  }
 
   async function handleClick() {
     setBusy(true);
@@ -86,7 +115,7 @@ export function RedeemButton({
   return (
     <span className={size === "lg" ? "flex flex-col gap-1 w-full" : "inline-flex flex-col items-end gap-1"}>
       <button
-        onClick={handleClick}
+        onClick={openConfirmation}
         disabled={busy}
         className={
           size === "lg"
@@ -104,6 +133,62 @@ export function RedeemButton({
         )}
       </button>
       {error && <span className="text-xs text-red-600">{error}</span>}
+
+      {confirming && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+          onClick={dismiss}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="redeem-confirm-title"
+            className="w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-6 pb-8 shadow-2xl text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center">
+              <span className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
+                <Gift className="w-7 h-7 text-green-700" aria-hidden="true" />
+              </span>
+              <h2 id="redeem-confirm-title" className="text-xl font-black text-gray-900 mt-3">
+                {itemName ? `Récupérer ${itemName} ?` : "Récupérer ton cadeau ?"}
+              </h2>
+            </div>
+            <ul className="mt-5 space-y-3 text-sm text-gray-800">
+              <li className="flex items-start gap-3">
+                <Store className="w-5 h-5 shrink-0 text-gray-500 mt-0.5" aria-hidden="true" />
+                <span>À faire <span className="font-semibold">au comptoir</span>, devant le caissier.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <ShoppingBag className="w-5 h-5 shrink-0 text-gray-500 mt-0.5" aria-hidden="true" />
+                <span>Avec une commande d&apos;au moins <span className="font-semibold">{REDEMPTION_MIN_ORDER_EUR} €</span>.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Timer className="w-5 h-5 shrink-0 text-gray-500 mt-0.5" aria-hidden="true" />
+                <span>Ton coupon s&apos;affiche pour <span className="font-semibold">10 minutes</span> : montre-le tout de suite.</span>
+              </li>
+            </ul>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => {
+                setConfirming(false);
+                void handleClick();
+              }}
+              className="mt-6 w-full bg-brand-red text-white font-bold text-base py-3.5 rounded-xl hover:bg-brand-red/85 transition-colors"
+            >
+              Je suis au comptoir — afficher mon coupon
+            </button>
+            <button
+              type="button"
+              onClick={dismiss}
+              className="mt-2 w-full text-sm font-semibold text-gray-600 py-2.5 rounded-xl hover:bg-gray-50"
+            >
+              Pas maintenant
+            </button>
+          </div>
+        </div>
+      )}
     </span>
   );
 }

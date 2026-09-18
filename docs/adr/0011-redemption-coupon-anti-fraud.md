@@ -2,6 +2,8 @@
 
 **Statut** : Accepté
 
+> **Amendé le 2026-09-18 (terrain Houba)** : « Récupérer » n'ouvre plus directement le coupon de 10 minutes. Une fenêtre de confirmation dit d'abord quoi faire — au comptoir, commande d'au moins 10 €, coupon valable 10 minutes une fois affiché — et seul « Je suis au comptoir — afficher mon coupon » le génère ; « Pas maintenant » ne consomme rien. Raison : une cliente a ouvert son coupon sans le vouloir, et le cadeau est consommé dès l'ouverture (les caissiers n'appuient pas sur « Cadeau remis » : 13 coupons sur 13 récents), ce qui interdit de le rendre après coup.
+
 ## Contexte
 
 Les récompenses en attente (`pending_rewards`) doivent être récupérées physiquement au comptoir. Sans mécanisme de vérification, un client peut présenter une capture d'écran d'un coupon déjà utilisé ou partagé avec quelqu'un d'autre. La solution doit être à coût zéro et vérifiable visuellement par le cashier en 1 seconde.

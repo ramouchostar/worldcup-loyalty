@@ -229,7 +229,11 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
         </p>
         {isAvailable ? (
           <span className="flex items-center gap-2">
-            <RedeemButton opensAt={opensAt.toISOString()} rewardId={reward.id} />
+            <RedeemButton
+              opensAt={opensAt.toISOString()}
+              rewardId={reward.id}
+              itemName={reward.solo_item ?? reward.community_item}
+            />
           </span>
         ) : isRedeemed ? (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
