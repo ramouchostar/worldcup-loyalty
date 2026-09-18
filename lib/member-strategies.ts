@@ -1,6 +1,5 @@
 import { createAdminClient } from "./supabase";
 import { sendPush, sendWhatsApp, logNotification, type Channel, type TriggerType } from "./notifications";
-import { loadRewardGrid, resolveSoloReward, type GridTier } from "./rewards";
 import { getMenuItems } from "./menu";
 import { getAverageBasket } from "./avg-basket";
 import { getBudgetStatus, incrementRewardsCost } from "./budget";
@@ -18,12 +17,9 @@ import type { MicroRewardType } from "@/types";
 // 2. winback                — le membre dont la fréquence décroche (silence
 //                              ≥ 2× son rythme habituel) reçoit un rappel
 //                              personnalisé.
-// 3. tier_nudge              — le membre dont le panier habituel est juste
-//                              sous un palier solo apprend ce qu'il
-//                              gagnerait pour quelques euros de plus. Zéro
-//                              remise : la valeur perçue du cadeau fait le
-//                              travail, le coût est déjà plafonné par l'ADR
-//                              0017.
+// 3. tier_nudge              — RETIRÉ (ADR 0061) : plus de palier de
+//                              montant à viser, les points sont
+//                              proportionnels au ticket.
 // 4. action_postpone_reminder — une mission de la Carte Actions (dashboard)
 //                              reportée par le membre et toujours pas
 //                              soumise 7 jours après.
@@ -31,15 +27,8 @@ import type { MicroRewardType } from "@/types";
 // AUCUN euro dans les messages, y compris les dépenses propres du membre :
 // l'ADR 0024 les autorisait (« ton panier habituel ~22 € »), l'ADR 0028 §5 a
 // annulé cette exception le 2026-07-27 — un message push est une surface
-// client. Les nudges de palier disent donc « commande un peu plus » et
-// nomment le cadeau visé, jamais l'écart en euros. Le panier habituel reste
-// lu côté serveur pour DÉCIDER, il ne sort pas dans le texte.
-
-// Bord de palier : l'effort demandé doit rester ≤ 20 % du seuil visé —
-// au-delà, ce n'est plus un arrondi mais un changement de comportement.
-export const NUDGE_MAX_GAP_RATIO = 0.2;
-export const NUDGE_MIN_ORDERS = 2;
-export const NUDGE_COOLDOWN_DAYS = 30;
+// client. Le panier habituel reste lu côté serveur pour DÉCIDER, il ne sort
+// pas dans le texte.
 
 // Décrochage : silence ≥ 2× l'intervalle médian du membre, et jamais moins
 // de 14 jours (un rythme hebdo ne « décroche » pas au bout de 10 jours).
@@ -58,21 +47,6 @@ export const ACTION_REMINDER_DELAY_DAYS = 7;
 export const ACTION_REMINDER_COOLDOWN_DAYS = 90;
 
 // ─── Décisions pures ─────────────────────────────────────────────────────────
-
-export type TierNudge = { target: GridTier; gap: number };
-
-// Prochain palier solo au-dessus du panier habituel du membre, si l'écart
-// est un simple arrondi (≤ 20 % du seuil) et que le cadeau y est réellement
-// meilleur que celui de son panier actuel.
-export function findTierNudge(memberAvg: number, soloTiers: GridTier[]): TierNudge | null {
-  if (memberAvg <= 0) return null;
-  const target = soloTiers.find((t) => t.min > memberAvg && t.item);
-  if (!target) return null;
-  const current = soloTiers.filter((t) => t.min <= memberAvg).pop();
-  if (current && current.item === target.item) return null;
-  const gap = target.min - memberAvg;
-  return gap <= target.min * NUDGE_MAX_GAP_RATIO ? { target, gap } : null;
-}
 
 export type LapsedStatus = { daysSince: number; medianGapDays: number };
 
@@ -142,8 +116,7 @@ export async function runMemberStrategies(
   }));
   if (members.length === 0) return { sent: 0, evaluated: 0 };
 
-  const [grid, avgBasket, budget, menuItems, { data: restaurantSocial }] = await Promise.all([
-    loadRewardGrid(restaurantId),
+  const [avgBasket, budget, menuItems, { data: restaurantSocial }] = await Promise.all([
     getAverageBasket(restaurantId),
     getBudgetStatus(restaurantId),
     getMenuItems(restaurantId),
@@ -246,10 +219,6 @@ export async function runMemberStrategies(
         }
       }
     }
-
-    // 3. (Nudge de palier retiré — ADR 0061 : plus de palier de montant à
-    // viser, les points sont proportionnels. `findTierNudge` reste exporté
-    // pour ses tests jusqu'au nettoyage.)
 
     // 4. Rappel de mission Carte Actions reportée — le membre a cliqué
     // « plus tard » et, une semaine après, n'a toujours rien soumis.

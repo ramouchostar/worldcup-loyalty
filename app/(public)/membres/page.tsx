@@ -44,7 +44,7 @@ const COIN_POSITIONS = [
 export const metadata = {
   title: "Transforme tes tickets de caisse en cadeaux",
   description:
-    "Rejoins le programme de fidélité de ton restaurant et gagne des cadeaux à chaque commande directe. Gratuit à vie, aucune carte à garder.",
+    "Rejoins le programme de fidélité de ton restaurant et gagne des points à chaque commande directe, à échanger contre le cadeau de ton choix. Gratuit à vie, aucune carte à garder.",
 };
 
 export default async function LandingPage() {

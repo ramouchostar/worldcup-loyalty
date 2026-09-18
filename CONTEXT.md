@@ -75,48 +75,55 @@ _Avoid_ : bot WhatsApp (pas de bot de soumission), Twilio (non utilisé), chatbo
 
 ### Score & Récompenses
 
-**Points** :
-Unité d'affichage du score communautaire côté client. Le calcul backend reste `membres × euros validés` mais le score s'affiche toujours en points — jamais en euros, jamais en relation avec le CA restaurant. Exemple : score brut 4 750 → affiché "4 750 pts". Distinction importante : les dépenses personnelles du membre ("€200 dépensés" dans ses stats) peuvent s'afficher en euros — ce sont ses propres données, pas le score collectif. Seuls le score communautaire et le seuil CA restaurant sont masqués en euros (voir ADR 0007).
-_Avoid_ : euros pour le score communautaire, chiffre d'affaires, score (dans les textes UI de classement — utiliser "points").
+**Mes points** *(ADR 0061)* :
+Solde personnel du membre, tenu par le registre `point_transactions` (jamais de colonne solde, corrections en `admin_adjust`). Chaque ticket validé rapporte **10 points par euro** (raison `order_points`, crédité par le déclencheur `on_order_validated_points`), utilisables **4 h après** le ticket. Se dépensent au **catalogue « Mes points »** contre l'article de son choix. Jamais convertibles en euros, jamais affichés en euros (ADR 0007).
+_Avoid_ : réserve, cagnotte, crédit, épargne.
+
+**Points d'équipe** :
+Unité d'affichage du score communautaire côté client : somme des **points courbés** des tickets validés de l'équipe (ADR 0028) — jamais en euros, jamais en relation avec le CA restaurant. Exemple : « 4 750 points d'équipe ». Ne s'échangent pas : ils font franchir les paliers d'équipe.
+_Avoid_ : euros pour le score communautaire, chiffre d'affaires, « points » seul quand il y a ambiguïté avec « Mes points ».
 
 **Score communautaire** :
-Valeur numérique d'une équipe = `nombre de membres × total euros dépensés (commandes validées)`. Détermine quels paliers sont atteints. Jamais calculé sur les commandes en attente. Affiché en points côté client.
-_Avoid_ : points (en interne/base de données), score d'équipe, classement.
+Valeur numérique d'une équipe = somme des points courbés de ses commandes validées (`points_for_order`, ADR 0028 — plus `membres × euros`). Détermine quels paliers d'équipe sont franchis. Jamais calculé sur les commandes en attente. Affiché en points d'équipe côté client.
+_Avoid_ : score d'équipe, classement.
 
 **Double verrou** :
 Condition nécessaire et suffisante pour débloquer les paliers collectifs et le bonus communautaire : (1) le score communautaire dépasse le seuil du palier ET (2) le seuil CA du restaurant est atteint. Les deux conditions doivent être vraies simultanément. Entièrement invisible côté client — un palier non satisfait s'affiche simplement comme verrouillé sans explication du pourquoi.
 _Avoid_ : conditions de déblocage (trop vague).
 
 **Couverture communautaire** :
-Troisième verrou (ADR 0017), qui s'ajoute au double verrou pour les cadeaux distribués à toute une équipe (couches 2 et 3) : `membres × coût du cadeau ≤ dépense cumulée de l'équipe × budget cadeaux (8 %)`. Vérifiée à chaque résolution (taille d'équipe variable). Si le palier atteint au score n'est pas couvert, cascade vers le palier couvert inférieur. Comme le double verrou, entièrement invisible côté client (ADR 0007).
+Troisième verrou (ADR 0017), qui s'ajoute au double verrou pour les cadeaux d'équipe : `membres × coût du cadeau ≤ dépense cumulée de l'équipe × budget cadeaux (8 %)`. Vérifiée au moment d'offrir le cadeau (taille d'équipe variable). Un palier franchi mais pas encore couvert **attend** : il est offert dès que l'équipe a assez dépensé, jamais perdu (ADR 0061 §7). Comme le double verrou, entièrement invisible côté client (ADR 0007).
 _Avoid_ : verrou budgétaire (réservé au plafond mensuel ADR 0012), seuil dynamique.
 
 **Plafond de palier** :
 Coût réel maximal du cadeau d'un palier solo : `seuil du palier × budget cadeaux (8 %)` (ADR 0017). Enforcé au moment de l'enregistrement des paliers — une assignation au-dessus du plafond est rejetée. Les paliers solo eux-mêmes sont dimensionnés par établissement à partir du panier moyen.
 _Avoid_ : plafond budget (réservé au plafond mensuel ADR 0012).
 
-**Palier** :
-Niveau de récompense communautaire avec un score seuil et un cadeau associé. Se débloque uniquement si le double verrou est satisfait. Configurables par l'admin.
-_Avoid_ : niveau, récompense (récompense est plus large — inclut les micro-récompenses).
+**Palier d'équipe** *(ADR 0061 §7)* :
+Seuil en points d'équipe associé à un article choisi par le restaurateur (écran Menu, `reward_tiers` layer `community`). Quand l'équipe le **franchit**, **chaque membre** reçoit ce cadeau **une fois** (`team_tier_awards`), si le double verrou, le budget du mois (ADR 0012) et la couverture communautaire le permettent. Une promotion financée parce que l'argent est déjà rentré, qui fait découvrir la carte.
+_Avoid_ : niveau, bonus communautaire (ancien cadeau ajouté à chaque ticket), récompense d'avancement.
 
-**Palier solo** :
-Couche 1 du système de récompenses. Récompense individuelle promise automatiquement à chaque commande directe validée, basée sur le montant de cette commande. Sur l'accueil membre, promise sans seuil : « Ton prochain ticket peut te rapporter » + noms des cadeaux (ADR 0059). Ne se cumule pas : chaque ticket a le sien. Non soumise au double verrou.
-Grille : < €15 → aucune récompense solo (la commande compte quand même pour le score communautaire) / €15–24 → Churros 6 pcs (coût €0,31) / €25–39 → Finest burger (coût €0,94) / €40–59 → Menu 4 Tenders (coût €1,93) / €60+ → Chef's Combo (coût €1,92).
-Depuis ADR 0013, les articles et coûts de cette grille proviennent du catalogue menu (`menu_items`) ; les valeurs ci-dessus sont les exemples Belchicken — seules les tranches de montant constituent la structure.
-_Avoid_ : récompense individuelle, fidélité solo, cagnotte.
+**Cadeau d'équipe** *(ADR 0061 §7)* :
+Le cadeau offert à chaque membre au franchissement d'un palier d'équipe : `pending_rewards.source = 'team'`, ouvert tout de suite, récupérable **7 jours**, annoncé par message. Il attend **à côté** du cadeau personnel (l'index un-seul-actif ne porte que sur les cadeaux personnels) ; rien à rendre s'il expire.
+_Avoid_ : bonus communautaire, cadeau de ticket.
 
-**Bonus communautaire** :
-Couche 2 du système de récompenses. Article supplémentaire ajouté au palier solo en fonction du score de l'équipe du membre au moment de la validation. Soumis au double verrou. Non affiché si le double verrou n'est pas satisfait.
-Grille : score < 1 000 pts → rien / 1 000–2 999 → +Frites Medium / 3 000–5 999 → +Churros 12 pcs / 6 000–9 999 → +Finest burger / 10 000+ → +Menu 4 Tenders.
-Articles et coûts issus du catalogue menu (`menu_items`, ADR 0013) — valeurs d'exemple Belchicken.
-_Avoid_ : palier communautaire, récompense d'équipe (confusionnable avec "palier").
+**Cadeau d'accueil** *(ADR 0061 §4)* :
+Le seul cadeau encore imposé par un ticket : offert au **premier ticket validé** d'un membre dans l'établissement, en plus de ses points. C'est le premier palier de la grille solo (`welcomeReward`) ; les autres paliers solo ne servent plus.
+_Avoid_ : palier solo, cadeau de base.
 
-**Palier d'équipe** :
-Couche 3 du système de récompenses (remplace la « récompense d'avancement » Coupe du Monde — ADR 0014). Seuil de **dépense cumulée de l'équipe** (`community_scores.total_spent`) défini par l'admin établissement ; quand l'équipe le franchit, **tous ses membres** débloquent une récompense : un **pourcentage borné** (prochaine commande / fenêtre limitée) ou un **article gratuit** (catalogue menu, ADR 0013). Rétro-financé par le plafond de budget cadeaux (ADR 0012). Non soumis au double verrou.
-_Avoid_ : récompense d'avancement (terme Coupe du Monde obsolète), palier (réservé au seuil de score communautaire), pari.
+**Catalogue « Mes points »** *(ADR 0061 §3)* :
+Les articles que le membre peut choisir avec ses points (`/r/[id]/points`) : actifs, « au catalogue » (`reward_eligible`), prix de revient connu. Prix en points **calculé**, jamais saisi : `arrondi au 5 supérieur (coût ÷ 8 % × 10)` (`catalog_price_points`). Choisir crée un cadeau personnel (`source = 'catalog'`, 48 h) ; s'il expire, ses points sont **rendus** (`refund_catalog_reward`). Jamais de prix de revient côté membre.
+_Avoid_ : boutique, gros cadeaux (ancienne réserve).
+
+**Palier solo** *(historique — ADR 0006, remplacé par l'ADR 0061)* :
+Ancienne couche 1 : un cadeau promis à chaque ticket selon son montant. Depuis le 2026-09-18, seul le premier palier de la grille sert, comme cadeau d'accueil.
+_Avoid_ : l'utiliser pour parler d'un cadeau actuel.
+
+**Bonus communautaire / récompense d'avancement** *(historique — ADR 0006/0014, remplacés par l'ADR 0061 §7)* :
+Anciennes couches 2 et 3 : un article ajouté au cadeau de chaque ticket selon le score de l'équipe, et des paliers sur la dépense cumulée (`team_tiers`, plus lus). Remplacés par les cadeaux d'équipe. Les colonnes `community_item` / `advancement_item` de `pending_rewards` restent pour l'historique ; un cadeau d'équipe porte son article dans `community_item`.
 
 **Récompense en attente** :
-Enregistrement unique dans `pending_rewards` par membre (un seul actif à la fois — ADR 0011). Créé à chaque validation de commande si aucune récompense active n'existe déjà. Contient les 3 couches (palier solo + bonus communautaire + récompense d'avancement). Expire automatiquement après **48h** (`status = 'expired'`). Affiché sur le dashboard avec un compte à rebours 48h. Récupéré via coupon actif au comptoir — ou **mis de côté** dans la réserve (ADR 0021, `status = 'banked'`), ce qui libère le slot.
+Une ligne `pending_rewards` au statut `available` : cadeau d'accueil (`order`), cadeau choisi au catalogue (`catalog`), anniversaire (`birthday`) ou cadeau d'équipe (`team`). **Un seul cadeau personnel actif** à la fois (ADR 0011) ; un cadeau d'équipe peut attendre à côté. Fenêtres (`lib/reward-window.ts`) : cadeau de ticket ouvert 4 h après le ticket puis 48 h ; catalogue et anniversaire 48 h tout de suite ; équipe 7 jours. Récupéré via coupon actif au comptoir (le coupon vise un cadeau précis).
 _Avoid_ : crédit, cagnotte, reward (anglicisme).
 
 **Coupon de récupération** :
@@ -127,9 +134,9 @@ _Avoid_ : QR code (non utilisé), voucher, bon de réduction.
 Action du cashier qui valide le coupon de récupération depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → `redeemed_at = NOW()`, `pending_rewards.status = 'redeemed'`. Idempotente (double-tap ignoré). Débloque la génération d'une nouvelle récompense à la prochaine commande du membre.
 _Avoid_ : remboursement, échange, validation (terme réservé à la validation des commandes).
 
-**Réserve** *(ADR 0021, amendé par ADR 0060)* :
-Solde de points personnels du membre (« Ma réserve », ledger `point_transactions`). Alimenté quand le membre choisit **« Mettre de côté »** son cadeau disponible au lieu de le récupérer : le cadeau passe `banked` et crédite les **points courbés** du ticket (`points_for_order(montant)`, ADR 0028) — jamais le montant arrondi. S'échange contre un **gros cadeau** des paliers `reward_tiers` layer `saver` (seuils en points courbés, ≈ 4 / 8 / 12 tickets moyens ; plafond ADR 0017 calculé par les tickets moyens que le seuil représente), qui redevient une récompense en attente standard (coupon 10 min). Le score communautaire n'est **jamais** affecté par ce choix — il est crédité à la validation du ticket. Ne pas confondre avec le score communautaire (« points » de l'équipe) ni avec les jetons.
-_Avoid_ : points (seul — réservé au score communautaire), cagnotte, solde, crédit, épargne.
+**Réserve** *(historique — ADR 0021/0060, remplacée par « Mes points », ADR 0061)* :
+Ancien solde alimenté par « Mettre de côté » (cadeau `banked`, points courbés) et échangé contre des gros cadeaux `saver`. Retirée le 2026-09-18 : les soldes ont été convertis en « Mes points », `/r/[id]/reserve` redirige vers `/points`. Les lignes `banked` et les raisons `bank_reward` restent lisibles dans l'historique.
+_Avoid_ : le mot dans un texte membre actuel.
 
 **Micro-récompense** :
 Action sociale unique récompensée par un jeton : avis Google, abonnement Instagram, abonnement TikTok, abonnement Facebook. Non soumise au double verrou. Une seule fois par type par membre. Maximum 4 jetons sociaux par membre.
@@ -319,15 +326,15 @@ _Avoid_ : campagne CRM, marketing automation, segment (les décisions sont par m
 ### Dashboard membre
 
 **Accueil membre** *(ADR 0059, remplace l'« aperçu prochaine commande » de l'ADR 0010)* :
-L'écran répond à trois questions sans défiler : **qu'est-ce que j'ai** (le cadeau qui attend, avec le choix « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique), **qu'est-ce que je peux viser** (sans cadeau : « Ton prochain ticket peut te rapporter » + plats de la grille solo, jamais de seuil), **qu'est-ce que je fais** (grand bouton photo). Ensuite, en compact : Ma réserve (solde qui s'échange, gros cadeau atteignable, suivant), jetons en une ligne, installation, équipe si l'établissement l'utilise, tuiles, Mes tickets.
-_Avoid_ : un compteur de points qui ne s'échange contre rien ; projeter le cadeau du « panier habituel » ; demander (installation, parrainage) avant de montrer le cadeau ; afficher bloc ou tuiles d'équipe quand l'établissement a masqué les équipes.
+L'écran répond à trois questions sans défiler : **qu'est-ce que j'ai** (le cadeau qui attend — le personnel d'abord, un cadeau d'équipe signalé à côté —, « Récupérer au comptoir » et la règle du cadeau unique), **qu'est-ce que je peux viser** (la carte « Mes points » : « tu peux déjà avoir X » ou « plus que N points pour Y », jamais de seuil en euros — ADR 0061 §5), **qu'est-ce que je fais** (grand bouton photo). Ensuite, en compact : Mes points (si un cadeau occupe le haut), jetons en une ligne, installation, équipe, tuiles, Mes tickets.
+_Avoid_ : un compteur de points qui ne s'échange contre rien ; projeter le cadeau du « panier habituel » ; demander (installation, parrainage) avant de montrer le cadeau ; masquer le bloc équipe quand l'établissement a seulement masqué la compétition (ADR 0059 §4).
 
 **Bandeau membre** *(ADR 0059 §3)* :
-En-tête de chaque écran membre : logo, menu, et deux pastilles cliquables — l'état (« 🎁 Cadeau prêt » → Mes cadeaux ; sinon « Réserve N » là où un gros cadeau est actif → Ma réserve ; sinon rien) et les jetons X/4 → Actions.
+En-tête de chaque écran membre : logo, menu, et deux pastilles cliquables — l'état (« 🎁 Cadeau prêt » → Mes cadeaux ; sinon « N points » là où le catalogue propose un article → Mes points ; sinon rien) et les jetons X/4 → Actions.
 _Avoid_ : un total de points qui ne s'échange contre rien ; une pastille qui ne mène nulle part.
 
 **Notification d'incitation** :
-Message proactif envoyé à un membre montrant l'état de sa communauté et le cadeau concret qu'il obtiendrait en commandant maintenant. Toujours spécifique ("ton cadeau passe à Finest burger + Churros 12 pcs") — jamais générique. Trois déclencheurs : franchissement de palier, membre inactif 72h+ avec +500 pts absolus depuis sa dernière commande, proximité du prochain seuil (< 10%). Anti-spam : 48h minimum, max 3/semaine. Canal : PWA push (gratuit) → WhatsApp (~€0,05/conversation) en fallback. Voir ADR 0009.
+Message proactif envoyé à un membre montrant l'état de sa communauté et le cadeau concret qu'il obtiendrait en commandant maintenant. Toujours spécifique (« Plus que 120 points d'équipe avant Churros (6) pour chaque membre ») — jamais générique. Trois déclencheurs : cadeau d'équipe offert (palier franchi, annoncé une fois par cadeau — ADR 0061 §7), membre inactif 72h+ avec +500 pts absolus depuis sa dernière commande, proximité du prochain seuil (< 10%). Anti-spam : 48h minimum, max 3/semaine. Canal : PWA push (gratuit) → WhatsApp (~€0,05/conversation) en fallback. Voir ADR 0009.
 _Avoid_ : rappel, relance, marketing push (toujours ancré dans le score réel).
 
 **Broadcast admin** :
@@ -346,11 +353,11 @@ Toute page qui n'est pas un onglet de la BottomNav (membre) ou une entrée de la
 _Avoid_ : breadcrumb, fil d'Ariane.
 
 **Hub membre** :
-Le dashboard membre comme point d'accès permanent à toutes les fonctionnalités. Principe : **on ne cache jamais une fonctionnalité, on montre ce qui manque pour l'utiliser** — un lien conditionnel devient une entrée permanente à état progressif (« Encore 2 commandes pour donner ton avis »). Ordre des sections (ADR 0059) : carte gérant → cadeau qui attend ou promesse du prochain ticket → photo → Ma réserve → jetons → installation → équipe (si active) → tuiles d'accès → Mes tickets.
+Le dashboard membre comme point d'accès permanent à toutes les fonctionnalités. Principe : **on ne cache jamais une fonctionnalité, on montre ce qui manque pour l'utiliser** — un lien conditionnel devient une entrée permanente à état progressif (« Encore 2 commandes pour donner ton avis »). Ordre des sections (ADR 0059) : carte gérant → cadeau qui attend ou carte « Mes points » → photo → Mes points (si un cadeau occupe le haut) → jetons → installation → équipe (si active) → tuiles d'accès → Mes tickets.
 _Avoid_ : page d'accueil (vague), menu (réservé au catalogue).
 
 **Tuile d'accès** :
-Petite tuile permanente du hub membre (grille compacte 2×2) : icône + label + **micro-état** (« 2 paliers atteints », « 3ᵉ/12 », solde réserve). Jamais de grande carte empilée. Tuiles (ADR 0059) : Cadeaux d'équipe · Classement (si les équipes sont actives) · Mon resto. La réserve est une carte à part entière au-dessus.
+Petite tuile permanente du hub membre (grille compacte 2×2) : icône + label + **micro-état** (« 2 paliers atteints », « 3ᵉ/12 »). Jamais de grande carte empilée. Tuiles (ADR 0059) : Cadeaux d'équipe · Classement (si la compétition n'est pas masquée) · Mon resto. « Mes points » est une carte à part entière au-dessus.
 _Avoid_ : carte (réservé aux grandes sections du dashboard), widget.
 
 **Carte gérant** :

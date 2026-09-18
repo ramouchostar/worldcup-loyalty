@@ -260,10 +260,11 @@ Pour **chaque doublon certain** de la section 3 :
    validées — repasser la commande en \`rejected\` retire mécaniquement sa
    dépense du score de l'équipe. À vérifier après coup plutôt qu'à recalculer
    à la main.
-3. **Réserve de points** (ADR 0021) : si le cadeau de la commande en double a
-   été **mis de côté**, \`point_transactions\` porte un crédit des points
-   courbés du ticket (ADR 0060). Le ledger est append-only : la correction est une
-   **écriture de compensation**, jamais une suppression.
+3. **Points personnels** (ADR 0061) : chaque ticket validé a crédité ses points
+   (\`point_transactions\`, raison \`order_points\`, 10 par euro) — et, avant le
+   2026-09-18, un cadeau **mis de côté** créditait des points courbés (ADR 0060).
+   Le registre est append-only : la correction est une **écriture de
+   compensation** (\`admin_adjust\` négatif), jamais une suppression.
 4. **Cadeau déjà récupéré au comptoir** (\`pending_rewards.status = 'redeemed'\`) :
    **ne rien reprendre**. Le client a le produit en main ; le lui retirer coûte
    plus cher que le cadeau. À constater, pas à corriger.

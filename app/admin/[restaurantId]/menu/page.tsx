@@ -5,7 +5,6 @@ import { Camera, Gem, Lightbulb, TriangleAlert } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
-import { fitsSaverCap } from "@/lib/reserve-tiers-view";
 import { CATALOGUE_BUDGET_PCT, catalogPricePoints } from "@/lib/catalogue";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import { CatalogGapsSection } from "@/components/admin/CatalogGapsSection";
@@ -46,9 +45,7 @@ export default function AdminMenuPage() {
   const [suggesting, setSuggesting] = useState(false);
   const [savingTiers, setSavingTiers] = useState(false);
   const [tierMsg, setTierMsg] = useState<Msg | null>(null);
-  // ADR 0060 — gros cadeaux de la réserve : seuils actifs enregistrés, sinon
-  // calculés sur le panier moyen ; seul l'article se choisit.
-  const [saverBands, setSaverBands] = useState<number[]>([]);
+  // Budget cadeaux de l'établissement : il fixe le prix en points du catalogue.
   const [reserveInfo, setReserveInfo] = useState<ReserveInfo | null>(null);
 
   const loadAll = useCallback(async () => {
@@ -63,10 +60,6 @@ export default function AdminMenuPage() {
     const tiersData = allTiers.filter((t) => t.is_active);
     setItems(itemsData);
     setReserveInfo(reserve);
-
-    // ADR 0061 — les gros cadeaux de la réserve cèdent la place au catalogue
-    // « Mes points » : plus aucun palier `saver` n'est proposé ni enregistré.
-    setSaverBands([]);
 
     const savedSolo = tiersData
       .filter((t) => t.layer === "solo")
@@ -261,10 +254,7 @@ export default function AdminMenuPage() {
     await loadAll();
   }
 
-  // `costCap` : gros cadeaux de la réserve seulement (ADR 0060) — le plafond
-  // s'affiche et les articles au-dessus ne se choisissent pas (le serveur les
-  // refuserait à l'enregistrement).
-  function bandRow(layer: "solo" | "community" | "saver", threshold: number, label: string, costCap?: number) {
+  function bandRow(layer: "solo" | "community", threshold: number, label: string) {
     const key = tierKey(layer, threshold);
     const rationale = rationales[key];
     return (
@@ -283,23 +273,10 @@ export default function AdminMenuPage() {
             className="flex-1 min-w-0 border border-paper-border rounded-lg px-3 py-2 text-sm bg-white"
           >
             <option value="">— aucun cadeau —</option>
-            {giftItems.map((it) => {
-              const blocked = costCap !== undefined && !fitsSaverCap(it, costCap);
-              return (
-                // Un article déjà assigné reste sélectionnable même au-dessus
-                // du plafond (plafond qui bouge avec le panier moyen) : le
-                // restaurateur le voit, et l'enregistrement dira pourquoi.
-                <option key={it.id} value={it.id} disabled={blocked && tiers[key] !== it.id}>
-                  {it.name}{blocked ? " — au-dessus du plafond" : ""}
-                </option>
-              );
-            })}
+            {giftItems.map((it) => (
+              <option key={it.id} value={it.id}>{it.name}</option>
+            ))}
           </select>
-          {costCap !== undefined && (
-            <span className="text-xs text-ink-faint shrink-0 whitespace-nowrap tabular-nums">
-              plafond {euro(costCap)}
-            </span>
-          )}
         </div>
         {rationale && <p className="text-xs text-brand-gold mt-1 ml-[11.75rem]"><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />{rationale}</p>}
       </div>
@@ -575,7 +552,10 @@ export default function AdminMenuPage() {
 
           <div className="grid md:grid-cols-2 gap-5">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Récompense solo (montant de commande)</p>
+              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Cadeau d&apos;accueil (grille solo)</p>
+              {/* ADR 0061 §4 — plus de cadeau par montant : seul le premier
+                  palier sert, offert au premier ticket d'un nouveau membre. */}
+              <p className="text-xs text-ink-muted mb-1">Seul le premier palier sert : il est offert au premier ticket de chaque nouveau membre.</p>
               <div className="divide-y divide-paper-border">
                 {soloBands.map((b) => bandRow("solo", b, `Commande ≥ ${b} €`))}
               </div>

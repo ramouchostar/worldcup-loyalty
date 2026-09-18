@@ -79,7 +79,7 @@ export function MemberAppMockup() {
             <div className="grid grid-cols-2 gap-2">
               <MiniCard title="Récompenses" sub="2 paliers atteints" />
               <MiniCard title="Classement" sub="3ᵉ / 12" />
-              <MiniCard title="Ma réserve" sub="48 points" />
+              <MiniCard title="Mes points" sub="480 points" />
               <MiniCard title="Mon avis" sub="Donne ton retour" />
             </div>
           </div>

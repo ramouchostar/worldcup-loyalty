@@ -51,13 +51,11 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - **ADR 0058 — le ticket ne se corrige pas** : `/api/orders` n'accepte qu'une photo et n'utilise **que la lecture OCR serveur** pour le montant et la clé ; tout `amount` / `order_number` venu du client est ignoré. Lecture incomplète (total, clé, année réparée) → 422 « reprends la photo », rien n'est créé. Ne jamais réintroduire de saisie ou de correction côté membre, ni de route acceptant des valeurs sans photo
 - **ADR 0058 §4 — une seule lecture** : le membre n'a pas d'aperçu OCR, sa photo part directement ; `/api/orders` refuse l'affiche et la photo sans ticket (`judgeReceipt`), plafonne l'OCR (20/h), conserve la lecture (`receipt_scans`), la compte (`recordScan`) et renvoie les points. Ne jamais réintroduire un aperçu ou un précheck avant l'envoi du membre
 
-### ADR 0021 — Réserve de points personnelle
-- « Mettre de côté » (onglet récompenses et accueil) : cadeau `available` → `banked`, crédit `points_for_order(montant)` — **points courbés, jamais `floor(montant)`** (ADR 0060) — dans le ledger `point_transactions` (jamais de colonne solde, corrections en `admin_adjust`)
-- Le score communautaire n'est **jamais** affecté par ce choix (crédité à la validation du ticket)
-- Gros cadeaux : `reward_tiers` layer `saver`, seuils en points courbés (≈ 4 / 8 / 12 tickets moyens), plafond ADR 0017 par les tickets moyens : `cost_price ≤ seuil ÷ points_for_order(panier moyen) × panier moyen × 8%` (`saverCostCap` / SQL `saver_cost_cap`, ADR 0060)
-- Échange via RPC transactionnel → `pending_rewards` standard (cycle coupon inchangé) ; un cadeau `saver` n'est pas re-bankable
-- Budget ADR 0012 : coût re-crédité au bank, débité à l'échange
-- **Remplacé par l'ADR 0061 (en cours de mise en œuvre)** : « Ma réserve » devient **« Mes points »** (`/r/[id]/points`, `/reserve` redirige), les gros cadeaux `saver` cèdent la place au **catalogue** (`catalog_items`, prix en points calculé `catalog_price_points`, échange `exchange_points_for_item`), points personnels **proportionnels** (10 par euro) ; « points d'équipe » = le score collectif. Jamais de prix de revient côté membre
+### ADR 0061 — « Mes points » (remplace la réserve des ADR 0021/0060)
+- Solde personnel = registre `point_transactions` (jamais de colonne solde, corrections en `admin_adjust`) ; 10 points par euro par ticket validé (`order_points`, déclencheur SQL, disponibles 4 h après)
+- Catalogue (`/r/[id]/points`, `/reserve` redirige) : `catalog_items`, prix calculé `catalog_price_points` (arrondi 5 sup de coût ÷ 8 % × 10), échange `exchange_points_for_item`. Jamais de prix de revient côté membre
+- Un cadeau payé en points qui expire **rend ses points** (`refund_catalog_reward`, idempotent) : le balayage horaire rattrape tout cadeau payé en points expiré depuis 14 jours, et la génération du coupon rembourse elle-même un cadeau qu'elle clôt
+- « Mettre de côté », gros cadeaux `saver` et `/api/points/bank` **retirés** (PR 6) ; les lignes `banked` et raisons `bank_reward` restent lisibles dans l'historique
 
 ### ADR 0034 — Un ticket ne dépend jamais d'une équipe
 - `orders.team_id` est **nullable** (m57) : un membre sans équipe envoie ses tickets comme les autres, seule l'adhésion à l'établissement est exigée

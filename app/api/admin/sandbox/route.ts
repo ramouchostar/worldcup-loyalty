@@ -56,25 +56,10 @@ export async function POST(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // The pending_rewards DB trigger (m12) fires on INSERT with status=validated automatically.
-    // But update_community_score only fires on UPDATE, so we increment total_spent manually.
-    const { data: cs } = await admin
-      .from("community_scores")
-      .select("total_spent")
-      .eq("team_id", order.team_id)
-      .eq("restaurant_id", restaurantId)
-      .single();
-
-    if (cs) {
-      await admin
-        .from("community_scores")
-        .update({
-          total_spent:  Number(cs.total_spent) + Number(order.amount),
-          last_updated: now,
-        })
-        .eq("team_id", order.team_id)
-        .eq("restaurant_id", restaurantId);
-    }
+    // Rien à ajouter à la main : depuis m35 (m59), le déclencheur de score
+    // on_order_validated tourne AUSSI à l'insertion d'une commande validée, et
+    // on_order_validated_points (ADR 0061) crédite ses points. L'ancien ajout
+    // manuel de total_spent comptait la dépense deux fois dans l'équipe.
 
     return NextResponse.json({ ok: true, order_id: order.id, amount: order.amount });
   }
