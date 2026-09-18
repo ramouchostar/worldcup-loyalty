@@ -48,7 +48,10 @@ export const REJECTION_LABELS: Record<RejectionReason, string> = {
   qr_detected: "Photo du QR ou de l'affiche",
   unreadable: "Ni clé ni montant lisibles",
   duplicate: "Ticket déjà envoyé",
-  header_rejected: "Ticket non reconnu",
+  // Nom interne historique (l'en-tête a compté un temps) : depuis PR #143 ce
+  // motif veut dire « total lu, clé de commande non lue » — l'en-tête ne
+  // bloque plus rien (audit 2026-09-18). La valeur stockée ne change pas.
+  header_rejected: "Total lu, numéro de commande non lu",
 };
 
 /**

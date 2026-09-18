@@ -42,7 +42,31 @@ export type ReceiptAnalysis = {
   // OCR manifestement fausse, cf. lib/receipt-key-sanity.ts) — le client
   // invite alors le membre à vérifier le numéro.
   key_corrected: boolean;
+  // La clé telle que le modèle l'a lue, AVANT le contrôle de format — gardée
+  // même quand elle est refusée : c'est elle qui dit si un format inconnu
+  // (ex. « 2026-09-17/223/036 ») revient souvent (audit 2026-09-18).
+  raw_order_number: string | null;
+  // true si la clé vient de la seconde lecture (modèle plus précis, relancé
+  // seulement quand le total est lu mais pas la clé).
+  key_second_read: boolean;
 };
+
+/**
+ * Seconde lecture de la clé (audit des refus du 2026-09-18) : sur les photos
+ * refusées de Kraainem, la moitié montraient une clé LISIBLE (petite, ticket
+ * tourné ou froissé) que la lecture rapide n'avait pas trouvée. On relance un
+ * modèle plus précis, sur la clé seule, uniquement dans ce cas : un ticket est
+ * bien là (total lu), l'établissement a une clé fiable, et elle manque.
+ */
+export const SECOND_READ_MODEL = "claude-sonnet-5";
+
+export function shouldRetryKey(input: {
+  orderNumber: string | null;
+  amount: number | null;
+  hasKeyPattern: boolean;
+}): boolean {
+  return input.hasKeyPattern && input.orderNumber === null && input.amount !== null;
+}
 
 // Date du jour côté établissements (les tickets sont datés en heure belge).
 function todayInBrussels(): string {
@@ -145,27 +169,36 @@ Return ONLY valid JSON, no markdown, no explanation:
   // Validate la clé extraite contre le pattern de l'établissement
   // (ADR 0019), sinon contre le Bestelnummer legacy.
   const keyPattern = config ? compileKeyPattern(config) : BESTELNUMMER_RE;
-  const rawOrderNumber =
-    keyPattern && typeof parsed.order_number === "string" && keyPattern.test(parsed.order_number.trim())
-      ? parsed.order_number.trim()
-      : null;
+  const firstRawKey = typeof parsed.order_number === "string" && parsed.order_number.trim() ? parsed.order_number.trim() : null;
+  const rawOrderNumber = keyPattern && firstRawKey && keyPattern.test(firstRawKey) ? firstRawKey : null;
   // Incident Kasia (2026-08-22) : l'OCR lisait l'année 2025 sur un ticket du
   // jour → numéro en lecture seule → date refusée à la soumission → 6 essais.
   // On répare une année manifestement fausse, on invalide une date future ou
   // trop vieille. Une clé réparée ou invalidée se reprend en photo : le
   // membre ne saisit plus rien (ADR 0058).
-  const sanity = sanitizeKeyDate(
-    rawOrderNumber,
-    keyPattern,
-    config ? config.date_group : 1, // legacy Bestelnummer : la date est le groupe 1
-    todayInBrussels()
-  );
-  const orderNumber = sanity.order_number;
+  const dateGroup = config ? config.date_group : 1; // legacy Bestelnummer : la date est le groupe 1
+  let sanity = sanitizeKeyDate(rawOrderNumber, keyPattern, dateGroup, todayInBrussels());
+  let orderNumber = sanity.order_number;
+  let rawKeySeen = firstRawKey;
+  let keySecondRead = false;
 
   const amount =
     typeof parsed.amount === "number" && parsed.amount >= 1 && parsed.amount <= 500
       ? Math.round(parsed.amount * 100) / 100
       : null;
+
+  if (keyPattern && shouldRetryKey({ orderNumber, amount, hasKeyPattern: true })) {
+    const secondRaw = await readKeyOnly(client, file.type as AllowedReceiptType, base64, config);
+    if (secondRaw) {
+      rawKeySeen = secondRaw;
+      const secondSanity = sanitizeKeyDate(keyPattern.test(secondRaw) ? secondRaw : null, keyPattern, dateGroup, todayInBrussels());
+      if (secondSanity.order_number) {
+        sanity = secondSanity;
+        orderNumber = secondSanity.order_number;
+        keySecondRead = true;
+      }
+    }
+  }
 
   // La confidence reste basée uniquement sur clé + montant : les articles
   // et l'heure (ADR 0020) ne participent jamais au flagging.
@@ -185,5 +218,45 @@ Return ONLY valid JSON, no markdown, no explanation:
     order_time: orderTime,
     items: sanitizeLineItems(parsed.items),
     key_corrected: sanity.corrected,
+    raw_order_number: rawKeySeen ? rawKeySeen.slice(0, 80) : null,
+    key_second_read: keySecondRead,
   };
+}
+
+// Lecture de la clé seule, par le modèle plus précis. Best-effort : un échec
+// (réseau, JSON) laisse la première lecture décider — jamais d'exception.
+async function readKeyOnly(
+  client: Anthropic,
+  mediaType: AllowedReceiptType,
+  base64: string,
+  config: ReceiptKeyConfig | null | undefined
+): Promise<string | null> {
+  try {
+    const keySection = buildKeyPromptSection(config).replace(/^1\. /, "").trim();
+    const msg = await client.messages.create({
+      model: SECOND_READ_MODEL,
+      max_tokens: 200,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+            {
+              type: "text",
+              text: `This is a photo of a till receipt. It may be small in the frame, rotated, upside down or crumpled — read it carefully, zooming mentally on the payment block. Today is ${todayInBrussels()} (Europe/Brussels); read the date digits exactly as printed.
+Find ONLY this code: ${keySection}
+Copy it character for character, exactly as printed (do not pad, shorten or reformat it).
+Return ONLY valid JSON, no markdown: {"order_number": "..." or null}`,
+            },
+          ],
+        },
+      ],
+    });
+    const text = msg.content[0]?.type === "text" ? msg.content[0].text.trim() : "";
+    const json = JSON.parse(text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim()) as { order_number?: unknown };
+    return typeof json.order_number === "string" && json.order_number.trim() ? json.order_number.trim() : null;
+  } catch (err) {
+    console.error("[receipt-ocr] seconde lecture impossible:", (err as Error).message);
+    return null;
+  }
 }

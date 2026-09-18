@@ -87,22 +87,32 @@ export async function storeScan(params: {
       if (uploadError) throw uploadError;
     }
 
-    const { data, error } = await admin
+    const row = {
+      restaurant_id: restaurantId,
+      user_id: userId,
+      storage_path: storagePath,
+      ocr_order_number: analysis.order_number,
+      ocr_amount: analysis.amount,
+      ocr_confidence: analysis.confidence,
+      ocr_order_time: analysis.order_time,
+      ocr_has_restaurant_header: analysis.has_restaurant_header,
+      ocr_items: analysis.items,
+      outcome,
+    };
+    // Clé brute et seconde lecture (migration 20260918-0800) : si les colonnes
+    // n'existent pas encore, la lecture est rangée sans elles plutôt que perdue.
+    let { data, error } = await admin
       .from("receipt_scans")
       .insert({
-        restaurant_id: restaurantId,
-        user_id: userId,
-        storage_path: storagePath,
-        ocr_order_number: analysis.order_number,
-        ocr_amount: analysis.amount,
-        ocr_confidence: analysis.confidence,
-        ocr_order_time: analysis.order_time,
-        ocr_has_restaurant_header: analysis.has_restaurant_header,
-        ocr_items: analysis.items,
-        outcome,
+        ...row,
+        ocr_order_number_raw: analysis.raw_order_number,
+        ocr_key_second_read: analysis.key_second_read,
       })
       .select("id")
       .single();
+    if (error && /ocr_order_number_raw|ocr_key_second_read/.test(error.message)) {
+      ({ data, error } = await admin.from("receipt_scans").insert(row).select("id").single());
+    }
     if (error) {
       // La ligne n'a pas pu être écrite (migration pas encore appliquée ?) :
       // on ne laisse pas un fichier orphelin que la purge ne saurait pas
