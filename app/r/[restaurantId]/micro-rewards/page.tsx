@@ -226,7 +226,7 @@ function ActionCard({
         {status === "pending" && (
           <div className="mt-3 flex items-center gap-1.5 bg-amber-50 px-3 py-2 rounded-lg text-xs font-medium text-amber-800">
             <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-            En attente de validation par notre équipe
+            Vérification en cours — ton jeton arrive dans quelques heures
           </div>
         )}
         {status === "rejected" && (

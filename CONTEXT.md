@@ -139,7 +139,7 @@ Ancien solde alimenté par « Mettre de côté » (cadeau `banked`, points courb
 _Avoid_ : le mot dans un texte membre actuel.
 
 **Micro-récompense** :
-Action sociale unique récompensée par un jeton : avis Google, abonnement Instagram, abonnement TikTok, abonnement Facebook. Non soumise au double verrou. Une seule fois par type par membre. Maximum 4 jetons sociaux par membre.
+Action sociale unique récompensée par un jeton : avis Google, abonnement Instagram, abonnement TikTok, abonnement Facebook. Non soumise au double verrou. Une seule fois par type par membre. Maximum 4 jetons sociaux par membre. **Validée automatiquement 4 h après la demande** si le restaurateur ne l'a pas refusée (décision du porteur, 2026-09-18 — la vérification réelle est quasi impossible) ; le client voit « vérification en cours » (`lib/micro-rewards-auto.ts`, passage horaire).
 _Avoid_ : petite récompense, bonus, action marketing.
 
 **Parrainage** :
