@@ -17,16 +17,23 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const restaurantId = typeof body?.restaurantId === "string" ? body.restaurantId : "";
   if (!restaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
+  const rewardId = typeof body?.rewardId === "string" ? body.rewardId : "";
 
   const admin = createAdminClient();
 
-  const { data: reward } = await admin
+  // ADR 0061 §7 — un cadeau d'équipe peut attendre À CÔTÉ du cadeau personnel
+  // (l'index un-seul-actif ne porte que sur les cadeaux personnels) : on vise
+  // le cadeau demandé, sinon le personnel d'abord. Jamais `.single()` ici.
+  let query = admin
     .from("pending_rewards")
     .select("id, created_at, source")
     .eq("user_id", user.id)
     .eq("restaurant_id", restaurantId)
-    .eq("status", "available")
-    .single();
+    .eq("status", "available");
+  if (rewardId) query = query.eq("id", rewardId);
+  const { data: candidates } = await query.order("created_at", { ascending: true });
+  const reward =
+    (candidates ?? []).find((r) => r.source !== "team") ?? (candidates ?? [])[0] ?? null;
 
   if (!reward) {
     return NextResponse.json({ error: "Aucune récompense à récupérer" }, { status: 404 });

@@ -16,21 +16,12 @@ import {
 } from "@/lib/email";
 import { getCatalogGaps } from "@/lib/catalog-gaps";
 import { claimDeadline } from "@/lib/reward-window";
+import { awardCrossedTeamTiers } from "@/lib/team-gifts";
 
 // Paliers communautaires : catalogue de l'établissement (ADR 0013), fallback
 // grille héritée — même source de vérité que la résolution des récompenses.
 // Un palier n'est annoncé que s'il est réellement délivrable : double verrou,
 // plafond budget (ADR 0012) et couverture d'équipe (ADR 0017).
-
-// Palier le plus élevé atteint au score ET couvert pour cette équipe
-function reachedCoveredTier(tiers: GridTier[], score: number, coverage: TeamCoverage): GridTier | null {
-  let best: GridTier | null = null;
-  for (const t of tiers) {
-    if (score < t.min) break;
-    if (coverageSatisfied(coverage, t.cost)) best = t;
-  }
-  return best;
-}
 
 // Prochain palier au-dessus du score, couvert pour cette équipe
 function nextCoveredTier(tiers: GridTier[], score: number, coverage: TeamCoverage): GridTier | null {
@@ -133,6 +124,23 @@ export async function GET(request: Request) {
   const communityTiers = grid.community;
   const bonusDeliverable = restaurantUnlocked && budget.communityBonusActive;
 
+  // ADR 0061 §7 — filet de sécurité : les paliers franchis sont attribués dès
+  // la validation du ticket (createPendingReward) ; ce passage rattrape un
+  // échec ou un palier devenu finançable depuis. Puis l'annonce : chaque
+  // cadeau d'équipe qui attend un membre lui est dit une fois.
+  await awardCrossedTeamTiers(restaurantId);
+  const { data: teamGiftsRaw } = await admin
+    .from("pending_rewards")
+    .select("user_id, community_item, created_at")
+    .eq("restaurant_id", restaurantId)
+    .eq("status", "available")
+    .eq("source", "team")
+    .order("created_at", { ascending: true });
+  const teamGiftByUser = new Map<string, { item: string; createdAt: string }>();
+  for (const g of (teamGiftsRaw ?? []) as { user_id: string; community_item: string | null; created_at: string }[]) {
+    if (g.community_item) teamGiftByUser.set(g.user_id, { item: g.community_item, createdAt: g.created_at });
+  }
+
   type ScoreRow = { team_id: string; score: number; total_spent: number; member_count: number };
   const scoreMap = new Map<string, ScoreRow>(
     ((scores ?? []) as ScoreRow[]).map((s) => [s.team_id, s])
@@ -167,37 +175,39 @@ export async function GET(request: Request) {
       .gte("sent_at", weekAgo);
     if ((weeklyCount ?? 0) >= MAX_PER_WEEK) continue;
 
-    // Skip si commande validée dans les 6h
-    const sixHoursAgo = new Date(now.getTime() - 6 * 3_600_000).toISOString();
-    const { count: recentOrders } = await admin
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", member.id)
-      .eq("status", "validated")
-      .gte("submitted_at", sixHoursAgo);
-    if ((recentOrders ?? 0) > 0) continue;
-
     let trigger: TriggerType | null = null;
     let message: string | null = null;
     let tierUnlockedReward: string | null = null;
 
-    // 1. Palier franchi (haute priorité) — uniquement si le bonus serait
-    // réellement délivré (double verrou + budget + couverture ADR 0017)
-    if (!trigger && bonusDeliverable) {
-      const reachedTier = reachedCoveredTier(communityTiers, teamScore, coverage);
-      if (reachedTier) {
-        const { count: prevUpgrade } = await admin
-          .from("notification_log")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", member.id)
-          .eq("trigger_type", "tier_upgrade")
-          .gte("community_score_at_send", reachedTier.min);
-        if ((prevUpgrade ?? 0) === 0) {
-          trigger = "tier_upgrade";
-          message = buildMessage("tier_upgrade", team.name, team.flag_emoji, restaurant.name, { newReward: reachedTier.item });
-          tierUnlockedReward = reachedTier.item;
-        }
+    // 1. Cadeau d'équipe à annoncer (haute priorité, ADR 0061 §7) — le
+    // cadeau existe déjà : on ne promet rien, on dit ce qui attend. Une seule
+    // annonce par cadeau (aucun tier_upgrade envoyé depuis sa création).
+    const teamGift = teamGiftByUser.get(member.id);
+    if (teamGift) {
+      const { count: announced } = await admin
+        .from("notification_log")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", member.id)
+        .eq("trigger_type", "tier_upgrade")
+        .gte("sent_at", teamGift.createdAt);
+      if ((announced ?? 0) === 0) {
+        trigger = "tier_upgrade";
+        message = buildMessage("tier_upgrade", team.name, team.flag_emoji, restaurant.name, { newReward: teamGift.item });
+        tierUnlockedReward = teamGift.item;
       }
+    }
+
+    // Skip si commande validée dans les 6h — sauf l'annonce d'un cadeau
+    // d'équipe, qui n'est pas une relance.
+    if (!trigger) {
+      const sixHoursAgo = new Date(now.getTime() - 6 * 3_600_000).toISOString();
+      const { count: recentOrders } = await admin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", member.id)
+        .eq("status", "validated")
+        .gte("submitted_at", sixHoursAgo);
+      if ((recentOrders ?? 0) > 0) continue;
     }
 
     // 3. Palier approchant (priorité moyenne) — même règle de délivrabilité

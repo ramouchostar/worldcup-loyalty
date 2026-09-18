@@ -34,7 +34,7 @@ export default async function CouponPage({
   if (reward?.solo_item)
     items.push({ icon: foodIconUrl(reward.solo_item), label: reward.solo_item, sublabel: "cadeau de base" });
   if (reward?.community_item)
-    items.push({ icon: foodIconUrl(reward.community_item), label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
+    items.push({ icon: foodIconUrl(reward.community_item), label: reward.solo_item ? `+ ${reward.community_item}` : reward.community_item, sublabel: "cadeau d'équipe" });
   if (reward?.advancement_item)
     items.push({ icon: foodIconUrl(reward.advancement_item), label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
 

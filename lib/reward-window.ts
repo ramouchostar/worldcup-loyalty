@@ -31,7 +31,14 @@ export const REWARD_UNLOCK_DELAY_HOURS = 4;
  */
 export const REDEMPTION_MIN_ORDER_EUR = 10;
 
-export type RewardSource = "order" | "saver" | "birthday" | "catalog";
+/**
+ * Cadeau d'équipe (ADR 0061 §7) : offert une fois à chaque membre quand
+ * l'équipe franchit un palier. Il tombe sans que le membre soit venu — il a
+ * besoin d'une semaine pour passer, pas de 48 h.
+ */
+export const TEAM_GIFT_CLAIM_WINDOW_HOURS = 7 * 24;
+
+export type RewardSource = "order" | "saver" | "birthday" | "catalog" | "team";
 
 const HOUR_MS = 3_600_000;
 
@@ -43,7 +50,14 @@ function unlockDelayHours(source: RewardSource | string | null | undefined): num
   // Une ligne sans source est un cadeau de ticket (valeur historique par défaut).
   // Un cadeau choisi au catalogue (ADR 0061) s'ouvre tout de suite : ses points
   // étaient déjà disponibles — ceux d'un ticket restent en attente 4 h.
-  return source === "saver" || source === "birthday" || source === "catalog" ? 0 : REWARD_UNLOCK_DELAY_HOURS;
+  // Un cadeau d'équipe ne suit pas une commande du membre : ouvert tout de suite.
+  return source === "saver" || source === "birthday" || source === "catalog" || source === "team"
+    ? 0
+    : REWARD_UNLOCK_DELAY_HOURS;
+}
+
+function claimWindowHours(source: RewardSource | string | null | undefined): number {
+  return source === "team" ? TEAM_GIFT_CLAIM_WINDOW_HOURS : REWARD_CLAIM_WINDOW_HOURS;
 }
 
 /** Instant à partir duquel le coupon peut s'ouvrir. */
@@ -51,9 +65,9 @@ export function claimOpensAt(createdAt: string | Date, source: RewardSource | st
   return new Date(toDate(createdAt).getTime() + unlockDelayHours(source) * HOUR_MS);
 }
 
-/** Instant où le cadeau cesse d'être récupérable : 48 h après son ouverture. */
+/** Instant où le cadeau cesse d'être récupérable : 48 h après son ouverture (7 jours pour un cadeau d'équipe). */
 export function claimDeadline(createdAt: string | Date, source: RewardSource | string | null | undefined): Date {
-  return new Date(claimOpensAt(createdAt, source).getTime() + REWARD_CLAIM_WINDOW_HOURS * HOUR_MS);
+  return new Date(claimOpensAt(createdAt, source).getTime() + claimWindowHours(source) * HOUR_MS);
 }
 
 /**

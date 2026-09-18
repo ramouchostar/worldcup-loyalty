@@ -38,10 +38,10 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 
 ### ADR 0006 — Système de récompenses en 3 couches (couche 1 REMPLACÉE par l'ADR 0061)
 - **ADR 0061 (bascule du 2026-09-18)** : chaque ticket validé rapporte des **points personnels** (10 par euro, crédités par le déclencheur SQL `on_order_validated_points`, disponibles 4 h après) ; le client **choisit** son cadeau au catalogue « Mes points ». Plus de cadeau imposé par ticket : seul le **premier ticket** d'un membre reçoit un **cadeau d'accueil** (`welcomeReward` = premier cadeau de la grille solo). « Mettre de côté » retiré. Un cadeau payé en points qui expire **rend ses points** (`refund_catalog_reward`)
-- Couches 2 et 3 (équipe) : inchangées jusqu'à la PR « équipes » de l'ADR 0061
+- **Couches 2 et 3 remplacées (ADR 0061 §7, PR 5)** : plus de cadeau d'équipe ajouté à chaque ticket. Quand une équipe **franchit** un palier (points d'équipe ≥ seuil, écran Menu), **chaque membre reçoit une fois** le cadeau (`pending_rewards.source = 'team'`, 7 jours), si double verrou, budget et couverture ADR 0017 le permettent (`lib/team-gifts.ts`, unicité `team_tier_awards`). Le cadeau d'équipe attend **à côté** du cadeau personnel : l'index un-seul-actif exclut `source = 'team'` — ne jamais lire « le » cadeau actif avec `.single()`/`.maybeSingle()`, la récupération vise un `rewardId`
 - Historique : chaque commande validée générait une entrée `pending_rewards` avec 3 items séparés ; couche 1 (palier solo) toujours présente, non soumise au double verrou
-- Couche 2 (bonus communautaire) : soumise au double verrou
-- Couche 3 (récompense d'avancement) : non soumise au double verrou
+- Couche 2 (bonus communautaire) : soumise au double verrou — historique
+- Couche 3 (récompense d'avancement) : non soumise au double verrou — historique, `team_tiers` plus lus
 
 ### ADR 0008 + 0019 — Validation automatique des tickets
 - `duplicate_key` = **`restaurant_id:clé de commande`** — la clé est définie par `restaurant_receipt_config` (découverte à l'onboarding, ADR 0019), fallback Bestelnummer legacy si aucune config
@@ -149,7 +149,7 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun
 - **10 € minimum** sur la commande de récupération — vérifié par le caissier, **écrit côté membre** partout où un cadeau attend (`redemptionRule`)
 - **Cashier valide** depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → idempotent
 - Table `redemption_tokens` : `token TEXT UNIQUE`, `expires_at = NOW() + 10 min`, `redeemed_at`
-- Index `UNIQUE` sur `pending_rewards (user_id, restaurant_id) WHERE status = 'available'`
+- Index `UNIQUE` sur `pending_rewards (user_id, restaurant_id) WHERE status = 'available' AND source <> 'team'` (cadeaux personnels ; un cadeau d'équipe attend à côté, ADR 0061 §7)
 
 ### ADR 0017 — Dimensionnement des récompenses par les coûts de revient
 - Principe : coût réel d'un cadeau ≤ `REWARD_BUDGET_PCT` (8 %) × dépenses qui l'ont déclenché — calculs dans `lib/reward-sizing.ts`

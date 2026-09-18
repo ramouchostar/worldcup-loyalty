@@ -1,15 +1,8 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
-import { isRestaurantThresholdUnlocked } from "./thresholds";
-import { getBudgetStatus, incrementRewardsCost } from "./budget";
+import { incrementRewardsCost } from "./budget";
 import type { Reward } from "@/types";
-import { loadTeamTiers, resolveTeamTier } from "./team-tiers";
 import { coverageSatisfied, type TeamCoverage } from "./reward-sizing";
-
-type TeamScoreRow = {
-  score: number;
-  total_spent: number;
-  member_count: number;
-};
+import { awardCrossedTeamTiers } from "./team-gifts";
 
 // Double lock: rewards only unlock if BOTH conditions are met:
 // 1. Community score exceeds the tier threshold
@@ -205,18 +198,18 @@ export function resolveCommunityBonus(
   return pickCoveredTier(grid.community, score, coverage);
 }
 
-// Creates the 3-layer pending_reward for a validated order.
-// Single source of truth for reward writes since m20 dropped the SQL
-// trigger — articles & coûts viennent du catalogue (reward_tiers) avec
-// fallback sur les grilles héritées ci-dessus (ADR 0013).
+// Cadeau créé à la validation d'un ticket (ADR 0061).
+// Plus de cadeau imposé par ticket : les points du ticket sont crédités par la
+// base (déclencheur on_order_validated_points). Seul le PREMIER ticket validé
+// d'un membre dans l'établissement reçoit un cadeau d'accueil : le premier
+// cadeau de la grille solo. Les cadeaux d'équipe ne s'ajoutent plus à chaque
+// ticket : un palier franchi offre un cadeau à chaque membre, une fois
+// (ADR 0061 §7, lib/team-gifts.ts) — vérifié ici, à chaque validation.
 // Idempotent: upsert ON CONFLICT (order_id) DO NOTHING; a 23505 on the
-// partial index (one 'available' reward per member — ADR 0011) is also
-// an expected no-op.
+// partial index (one personal 'available' reward per member — ADR 0011) is
+// also an expected no-op.
 // ADR 0034 — `teamId` peut être null : un membre sans équipe envoie ses
-// tickets comme les autres. Il n'a alors que la couche 1 (palier solo) — les
-// couches 2 et 3 sont des cadeaux d'équipe, il n'y a pas d'équipe à financer
-// ni de score à comparer. Elles reprennent au premier « oui » sur une
-// communauté, sans rien de spécial à faire ici.
+// tickets comme les autres.
 export async function createPendingReward(
   orderId: string,
   userId: string,
@@ -228,6 +221,7 @@ export async function createPendingReward(
   // no-op (cadeau déjà actif, ADR 0011, ou rien d'atteint).
 ): Promise<{ soloItem: string | null; created: boolean }> {
   const adminClient = createAdminClient();
+  void amount; // le montant ne choisit plus le cadeau ; il fait les points (SQL)
 
   // Commande envoyée sans équipe puis validée après que le membre en a
   // rejoint une (file admin) : elle relève de cette équipe — même règle que
@@ -243,59 +237,21 @@ export async function createPendingReward(
     effectiveTeamId = (membership as { team_id: string | null } | null)?.team_id ?? null;
   }
 
-  const [{ data: scoreData }, restaurantUnlocked, budget, grid, teamTiers] = await Promise.all([
-    effectiveTeamId
-      ? adminClient
-          .from("community_scores")
-          .select("score, total_spent, member_count")
-          .eq("team_id", effectiveTeamId)
-          .eq("restaurant_id", restaurantId)
-          .single()
-      : Promise.resolve({ data: null }),
-    isRestaurantThresholdUnlocked(restaurantId),
-    getBudgetStatus(restaurantId),
+  // Le score de l'équipe vient d'augmenter (déclencheur SQL) : palier franchi ?
+  // Best-effort, ne bloque jamais la validation (le cron de 18 h rattrape).
+  if (effectiveTeamId) await awardCrossedTeamTiers(restaurantId, effectiveTeamId);
+
+  const [grid, { count: validatedCount }] = await Promise.all([
     loadRewardGrid(restaurantId),
-    loadTeamTiers(restaurantId),
+    adminClient
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "validated"),
   ]);
-
-  const row = scoreData as unknown as TeamScoreRow | null;
-  const teamScore = row?.score ?? 0;
-  const teamTotalSpent = Number(row?.total_spent ?? 0);
-
-  // Couverture d'équipe (ADR 0017) : un cadeau distribué à toute l'équipe
-  // doit être financé par la marge budget sur sa dépense cumulée.
-  const coverage: TeamCoverage = {
-    memberCount: row?.member_count ?? 0,
-    teamTotalSpent,
-    budgetPct: budget.budgetPct,
-  };
-
-  // ADR 0061 §4 — plus de cadeau imposé par ticket : les points du ticket
-  // sont crédités par la base (déclencheur on_order_validated_points). Seul
-  // le PREMIER ticket validé d'un membre dans l'établissement reçoit, en plus,
-  // un cadeau d'accueil : le premier cadeau de la grille solo. Les couches
-  // d'équipe (2 et 3) restent inchangées jusqu'à la PR « équipes ».
-  const { count: validatedCount } = await adminClient
-    .from("orders")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("restaurant_id", restaurantId)
-    .eq("status", "validated");
   const solo = (validatedCount ?? 0) <= 1 ? welcomeReward(grid) : { item: null, cost: 0 };
-  void amount; // le montant ne choisit plus le cadeau ; il fait les points (SQL)
-  const community = resolveCommunityBonus(
-    grid,
-    teamScore,
-    effectiveTeamId !== null && restaurantUnlocked && budget.communityBonusActive,
-    coverage
-  );
-  // Couche 3 — palier d'équipe sur la dépense cumulée (ADR 0014), remplace
-  // l'ancienne récompense d'avancement Coupe du Monde.
-  const advancement = effectiveTeamId !== null && budget.communityBonusActive
-    ? resolveTeamTier(teamTiers, teamTotalSpent, coverage)
-    : { item: null, cost: 0 };
-
-  if (!solo.item && !community.item && !advancement.item) return { soloItem: null, created: false };
+  if (!solo.item) return { soloItem: null, created: false };
 
   const { data: inserted, error } = await adminClient.from("pending_rewards").upsert(
     {
@@ -304,17 +260,13 @@ export async function createPendingReward(
       order_id: orderId,
       solo_item: solo.item,
       solo_cost: solo.cost > 0 ? solo.cost : null,
-      community_item: community.item,
-      community_cost: community.cost > 0 ? community.cost : null,
-      advancement_item: advancement.item,
-      advancement_cost: advancement.cost > 0 ? advancement.cost : null,
       status: "available",
     },
     { onConflict: "order_id", ignoreDuplicates: true }
   ).select("id");
 
   if (error) {
-    // 23505 hors order_id = index partiel ADR 0011 (un seul cadeau
+    // 23505 hors order_id = index partiel ADR 0011 (un seul cadeau personnel
     // 'available' par membre) — no-op attendu, pas une erreur
     if (error.code === "23505") return { soloItem: solo.item, created: false };
     throw new Error(`pending_rewards insert failed: ${error.message}`);
@@ -323,9 +275,6 @@ export async function createPendingReward(
   // Compteur budget : uniquement si une récompense a réellement été créée
   // (liste vide = conflit ignoré, rien distribué)
   const created = !!(inserted && inserted.length > 0);
-  if (created) {
-    const totalCost = solo.cost + community.cost + advancement.cost;
-    await incrementRewardsCost(restaurantId, totalCost);
-  }
+  if (created) await incrementRewardsCost(restaurantId, solo.cost);
   return { soloItem: solo.item, created };
 }

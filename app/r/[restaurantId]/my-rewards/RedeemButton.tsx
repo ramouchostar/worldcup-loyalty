@@ -13,7 +13,13 @@ import { formatOpensAt } from "@/lib/reward-window";
 // ticket ne se récupère pas pendant la même visite. Avant cette heure, le
 // bouton dit quand revenir ; il s'active tout seul à l'heure dite. Le serveur
 // refuse de toute façon (425) — l'écran ne fait que le dire avant.
-export function RedeemButton({ size = "sm", opensAt = null }: { size?: "sm" | "lg"; opensAt?: string | null } = {}) {
+// `rewardId` (ADR 0061 §7) : un cadeau d'équipe peut attendre à côté du cadeau
+// personnel — le bouton dit lequel il récupère.
+export function RedeemButton({
+  size = "sm",
+  opensAt = null,
+  rewardId = null,
+}: { size?: "sm" | "lg"; opensAt?: string | null; rewardId?: string | null } = {}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -38,7 +44,7 @@ export function RedeemButton({ size = "sm", opensAt = null }: { size?: "sm" | "l
       const res = await fetch("/api/redemption/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId }),
+        body: JSON.stringify({ restaurantId, rewardId }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok && body.token) {

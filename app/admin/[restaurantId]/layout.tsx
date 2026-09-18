@@ -99,7 +99,6 @@ export default async function AdminLayout({
         { href: `${base}/broadcast`,     label: "Broadcasts",       icon: "broadcasts" },
         { href: `${base}/micro-rewards`, label: "Actions",          icon: "actions" },
         { href: `${base}/referrals`,     label: "Parrainages",      icon: "referrals" },
-        ...(canManage ? [{ href: `${base}/team-tiers`, label: "Paliers d'équipe", icon: "team-tiers" }] : []),
       ],
     },
     {

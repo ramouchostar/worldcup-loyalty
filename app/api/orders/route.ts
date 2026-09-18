@@ -437,14 +437,15 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error("[orders] objectif de points indisponible:", err);
     }
-    const { data: activeReward } = await supabase
+    // Compte, pas `.maybeSingle()` : un cadeau d'équipe peut attendre à côté
+    // du cadeau personnel (ADR 0061 §7).
+    const { count: activeRewards } = await supabase
       .from("pending_rewards")
-      .select("id")
+      .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
-      .eq("status", "available")
-      .maybeSingle();
-    hasReward = !!activeReward;
+      .eq("status", "available");
+    hasReward = (activeRewards ?? 0) > 0;
   }
 
   // Lignes d'articles lues par l'OCR (ADR 0020) — best effort, après le

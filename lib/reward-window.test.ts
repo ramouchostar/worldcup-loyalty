@@ -65,3 +65,10 @@ test("la règle dite au membre nomme la prochaine visite et le minimum de 10 €
   assert.doesNotMatch(redemptionRule("birthday"), /prochaine visite/);
   assert.match(redemptionRule("saver"), /10 €/);
 });
+
+test("cadeau d'équipe (ADR 0061 §7) : ouvert tout de suite, récupérable 7 jours", () => {
+  assert.equal(claimOpensAt(CREATED, "team").toISOString(), CREATED);
+  assert.equal(claimDeadline(CREATED, "team").toISOString(), "2026-09-14T10:00:00.000Z");
+  assert.equal(isClaimWindowOver(CREATED, "team", new Date("2026-09-10T10:00:00.000Z")), false);
+  assert.match(redemptionRule("team"), /au comptoir.*10 €/);
+});

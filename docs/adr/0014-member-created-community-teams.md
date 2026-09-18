@@ -2,6 +2,8 @@
 
 **Statut** : Accepté (2026-06-24) — les quatre mécaniques ouvertes ont été confirmées (§ Décisions). Cet ADR **supersede l'ADR 0004** et **amende les ADR 0006 et 0009**.
 
+> **Amendé par l'[ADR 0061](0061-les-cadeaux-se-choisissent-avec-ses-points.md) §7 (2026-09-18)** : les équipes restent créées par les membres, mais leurs cadeaux changent. Un seul type de palier (points d'équipe → article choisi par le restaurateur, réglé dans l'écran Menu) ; au franchissement, **chaque membre reçoit ce cadeau une fois**, s'il est financé. Plus de cadeau d'équipe ajouté à chaque ticket, et les paliers « d'avancement » sur la dépense cumulée (`team_tiers`) ne sont plus utilisés.
+
 ## Contexte
 
 Le programme est construit autour de la Coupe du Monde 2026 : les communautés sont des équipes nationales (`teams.country_code`, `flag_emoji`), les récompenses progressent au fil des tours (`round_reached`), et l'élimination structure le transfert (ADR 0004) ainsi que le bonus de tour ×1.5.
