@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   CATALOGUE_BUDGET_PCT,
   PERSONAL_POINTS_PER_EURO,
+  landingShowcase,
   catalogPricePoints,
   catalogueView,
   personalPointsForOrder,
@@ -101,4 +102,19 @@ test("liste courte de l'écran d'attente : autour de l'objectif", async () => {
   assert.deepEqual(goalShortlist(0, CATALOGUE).map((i) => i.id), ["Frites", "Nuggets (16)", "Wings (16)"]);
   assert.deepEqual(goalShortlist(9999, CATALOGUE).map((i) => i.id), ["Nuggets (16)", "Wings (16)", "Tenders (16)"]);
   assert.deepEqual(goalShortlist(100, []), []);
+});
+
+test("vitrine : le plus beau cadeau à ~1, ~3 et ~6 tickets moyens, photos d'abord", () => {
+  const item = (name: string, pricePoints: number, photo = true) => ({ id: name, name, imagePath: photo ? `${name}.jpg` : null, pricePoints });
+  const items = [
+    item("Sauce", 20, false), item("Frites", 60), item("Churros", 150), item("Burger", 300),
+    item("Wings (8)", 500), item("Tenders (16)", 1100), item("Bucket", 2500),
+  ];
+  // Ticket moyen Kraainem ≈ 184 points
+  assert.deepEqual(landingShowcase(items, 184).map((i) => i.name), ["Churros", "Wings (8)", "Tenders (16)"]);
+  // Sans panier moyen : éventail
+  assert.deepEqual(landingShowcase(items, 0).map((i) => i.name), ["Frites", "Burger", "Bucket"]);
+  // Petit catalogue : tout, trié
+  assert.deepEqual(landingShowcase(items.slice(0, 2), 184).map((i) => i.name), ["Sauce", "Frites"]);
+  assert.deepEqual(landingShowcase([], 184), []);
 });

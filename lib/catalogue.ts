@@ -116,3 +116,36 @@ export function goalShortlist(total: number, items: CatalogueItem[], max = 3): C
   const start = nextIdx === -1 ? Math.max(0, sorted.length - max) : Math.max(0, nextIdx - 1);
   return sorted.slice(start, start + max);
 }
+
+/** Repères de la vitrine : ce que valent ~1, ~3 et ~6 tickets moyens (ADR 0062). */
+export const SHOWCASE_TICKET_MULTIPLES = [1, 3, 6] as const;
+
+/**
+ * Vitrine publique (ADR 0062) : trois articles du catalogue qui donnent une
+ * idée juste de ce que rapportent les tickets — le plus beau cadeau à portée
+ * d'environ 1, 3 puis 6 tickets moyens. Les articles avec photo passent
+ * devant ; jamais deux fois le même. Sans panier moyen connu, un éventail
+ * (le moins cher, le milieu, le plus cher). Rien n'est affiché en euros.
+ */
+export function landingShowcase(items: CatalogueItem[], avgTicketPoints: number, max = 3): CatalogueItem[] {
+  const priced = items.filter((i) => i.pricePoints > 0);
+  const pool = priced.filter((i) => i.imagePath).length >= max ? priced.filter((i) => i.imagePath) : priced;
+  const sorted = [...pool].sort((a, b) => a.pricePoints - b.pricePoints || a.name.localeCompare(b.name));
+  if (sorted.length <= max) return sorted;
+
+  const picks: CatalogueItem[] = [];
+  const take = (item: CatalogueItem | undefined) => {
+    if (item && !picks.includes(item) && picks.length < max) picks.push(item);
+  };
+  if (avgTicketPoints > 0) {
+    for (const multiple of SHOWCASE_TICKET_MULTIPLES) {
+      const budget = avgTicketPoints * multiple;
+      const within = sorted.filter((i) => i.pricePoints <= budget && !picks.includes(i));
+      take(within[within.length - 1]);
+    }
+  }
+  // Complète (ou remplace sans panier moyen) par un éventail régulier.
+  for (const idx of [0, Math.floor((sorted.length - 1) / 2), sorted.length - 1]) take(sorted[idx]);
+  for (const item of sorted) take(item);
+  return picks.sort((a, b) => a.pricePoints - b.pricePoints);
+}

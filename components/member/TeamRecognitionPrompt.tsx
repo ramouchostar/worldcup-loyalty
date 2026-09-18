@@ -157,11 +157,13 @@ export function TeamRecognitionPrompt({
         <div className="text-center mb-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={GIFT_EMOJI} alt="" className="w-14 h-14 mx-auto mb-2" />
-          <h2 className="text-xl font-black text-gray-900">Ton cadeau peut doubler</h2>
+          <h2 className="text-xl font-black text-gray-900">Des cadeaux en plus, en équipe</h2>
+          {/* ADR 0061 §7 — un palier franchi offre un cadeau à chaque membre,
+              en plus de ses points : plus rien ne « double » ticket par ticket. */}
           <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-            En équipe, chaque commande des tiens débloque des cadeaux{" "}
-            <span className="font-bold text-gray-800">en plus</span> de tes cadeaux
-            perso. Tu te reconnais ?
+            Quand ton équipe franchit un palier, chaque membre reçoit un cadeau{" "}
+            <span className="font-bold text-gray-800">en plus</span> de ses points.
+            Tu te reconnais ?
           </p>
         </div>
 

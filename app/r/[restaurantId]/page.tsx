@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { CLOCK_EMOJI } from "@/lib/fluent-emoji";
 import Link from "next/link";
-import { getLandingTierPreview, type TierPreviewRow } from "@/lib/reward-tier-preview";
+import { getLandingOffer } from "@/lib/landing-offer";
+import { menuImageUrl } from "@/lib/menu-images";
 import { getTeamsHidden } from "@/lib/teams";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
@@ -13,26 +14,11 @@ import { ScanTicketCta } from "@/components/member/ScanTicketCta";
 import { foodIconUrl } from "@/lib/food-icon";
 import { recordStaffLanding } from "@/lib/staff-codes";
 import { recordLanding } from "@/lib/qr-funnel";
-import { COIN_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
+import { COIN_EMOJI, PEOPLE_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
 
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
-};
-
-// ADR 0042, amendé par ADR 0043 — jamais d'euro sur cette carte ; le nom
-// d'article, lui, est désormais affiché (tiré au hasard dans la bonne
-// tranche de prix, cf. lib/reward-tier-preview.ts). L'icône par couche a cédé
-// la place à l'illustration du PLAT (lib/food-icon) — seul le sous-texte
-// distingue encore les couches.
-const TIER_COPY: Record<TierPreviewRow["layer"], { hint: string }> = {
-  // ADR 0061 — plus de cadeau imposé par commande : le premier ticket offre
-  // un cadeau d'accueil, les suivants rapportent des points.
-  solo: { hint: "Avec les points de tes tickets" },
-  community: { hint: "En cumulant avec ta communauté" },
-  // "réserve", pas "points" seul — le mot est réservé au score communautaire
-  // (glossaire CONTEXT.md, ADR 0021).
-  saver: { hint: "Avec les points de tes tickets" },
 };
 
 export default async function RestaurantLandingPage({
@@ -117,9 +103,9 @@ export default async function RestaurantLandingPage({
   // il pilote aussi la question d'équipe (getTeamPrompt).
   const teamsHidden = await getTeamsHidden(restaurantId);
   const logo = logoPublicUrl(branding.logo_url);
-  // ADR 0042, amendé par ADR 0043 — aperçu par nom d'article (jamais de
-  // seuil ni d'euro) sur la carte hero.
-  const tierPreview = await getLandingTierPreview(restaurantId);
+  // ADR 0062 — ce que le ticket rapporte VRAIMENT : cadeau d'accueil,
+  // points et catalogue, cadeaux d'équipe. Jamais d'euro ni de taux.
+  const offer = await getLandingOffer(restaurantId);
 
   return (
     <div className="min-h-screen bg-white">
@@ -199,25 +185,66 @@ export default async function RestaurantLandingPage({
             </form>
           )}
 
-          {tierPreview.length > 0 && (
+          {(offer.welcome || offer.showcase.length > 0) && (
             <>
               <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">
-                Ce que ce ticket peut débloquer
+                Ce que ton ticket te rapporte
               </p>
               <div className="space-y-3">
-                {tierPreview.map((row) => (
-                  <div key={row.layer} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
-                    {/* Illustration du PLAT nommé (lib/food-icon) plutôt que
-                        l'icône de couche : le produit donne envie, la couche
-                        est dite par le sous-texte. */}
+                {offer.welcome && (
+                  <div className="flex items-center gap-3 rounded-xl bg-green-50 border border-green-200 px-4 py-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={foodIconUrl(row.productName)} alt="" className="w-9 h-9 shrink-0" />
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm">{row.productName}</p>
-                      <p className="text-gray-400 text-xs">{TIER_COPY[row.layer].hint}</p>
+                    <img
+                      src={menuImageUrl(offer.welcome.imagePath) ?? foodIconUrl(offer.welcome.name)}
+                      alt=""
+                      className={offer.welcome.imagePath ? "w-12 h-12 shrink-0 rounded-lg object-cover" : "w-10 h-10 shrink-0"}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 text-sm">{offer.welcome.name} offert</p>
+                      <p className="text-green-800 text-xs">Pour ton premier ticket</p>
                     </div>
                   </div>
-                ))}
+                )}
+
+                {offer.showcase.length > 0 && (
+                  <div className="rounded-xl bg-gray-50 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={COIN_EMOJI} alt="" className="w-9 h-9 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 text-sm">Des points à chaque ticket</p>
+                        <p className="text-gray-500 text-xs">Tu choisis ton cadeau au catalogue</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 mt-3">
+                      {offer.showcase.map((item) => (
+                        <div key={item.id} className="rounded-lg bg-white border border-gray-100 p-1.5 text-center min-w-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={menuImageUrl(item.imagePath) ?? foodIconUrl(item.name)}
+                            alt=""
+                            className={item.imagePath ? "w-full aspect-square rounded-md object-cover" : "w-10 h-10 mx-auto"}
+                          />
+                          <p lang="fr" className="text-[11px] font-semibold text-gray-900 mt-1.5 leading-tight line-clamp-2 hyphens-auto">{item.name}</p>
+                          <p className="text-[11px] text-gray-500 tabular-nums">{item.pricePoints.toLocaleString("fr-BE")} points</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Les équipes servent la diffusion ciblée : leurs cadeaux restent
+                    annoncés même quand la compétition est masquée (ADR 0059 §4). */}
+                {offer.hasTeamGifts && (
+                  <div className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={PEOPLE_EMOJI} alt="" className="w-9 h-9 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 text-sm">Des cadeaux d&apos;équipe</p>
+                      <p className="text-gray-500 text-xs">À chaque palier franchi, chaque membre reçoit un cadeau</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -286,7 +313,9 @@ export default async function RestaurantLandingPage({
         <div className="max-w-lg mx-auto px-5 text-center">
           <h2 className="text-3xl font-black mb-3">Pas encore de ticket ?</h2>
           <p className="text-red-100 mb-8 leading-relaxed">
-            Installe déjà l&apos;application, il y a déjà des points à gagner.
+            {offer.welcome
+              ? <>Inscris-toi déjà : ton premier ticket t&apos;offrira {offer.welcome.name}.</>
+              : <>Inscris-toi déjà : ton premier ticket te rapportera des points.</>}
           </p>
           {!user ? (
             <form action={redirectToLogin.bind(null, restaurantId)}>
