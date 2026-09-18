@@ -20,6 +20,7 @@ function sourceLabel(source: string | null | undefined): string | null {
   if (source === "saver") return "Gros cadeau · réserve";
   if (source === "birthday") return "Anniversaire";
   if (source === "catalog") return "Choisi avec ses points";
+  if (source === "team") return "Cadeau d'équipe";
   return null;
 }
 
@@ -27,6 +28,7 @@ function sourceNote(source: string | null | undefined): string | null {
   if (source === "saver") return "Échangé contre des points de réserve";
   if (source === "birthday") return "Offert pour l'anniversaire";
   if (source === "catalog") return "Choisi au catalogue avec ses points (ADR 0061)";
+  if (source === "team") return "Offert à chaque membre quand l'équipe a franchi un palier (ADR 0061)";
   return null;
 }
 
@@ -193,8 +195,8 @@ export default function AdminPendingRewardsPage() {
                     {r.community_item && (
                       <div className="flex items-center gap-1.5 text-sm">
                         <span className="text-ink-faint" aria-hidden="true"><Users size={14} strokeWidth={1.7} /></span>
-                        <span className="font-medium text-ink">+ {r.community_item}</span>
-                        <span className="text-xs text-ink-faint">— bonus communautaire</span>
+                        <span className="font-medium text-ink">{r.solo_item ? "+ " : ""}{r.community_item}</span>
+                        <span className="text-xs text-ink-faint">— cadeau d&apos;équipe</span>
                       </div>
                     )}
                     {r.advancement_item && (

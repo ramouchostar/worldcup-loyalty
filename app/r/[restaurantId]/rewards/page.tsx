@@ -55,8 +55,9 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
           <img src={PEOPLE_EMOJI} alt="" className="w-14 h-14 mx-auto mb-3" />
           <p className="font-bold text-gray-900 mb-1">Rejoins une équipe pour débloquer les paliers</p>
           <p className="text-sm text-gray-500 mb-4">
-            Ton cadeau de base reste garanti à chaque commande — mais les bonus
-            collectifs se gagnent ensemble, avec ta zone, ton école ou tes collègues.
+            Tes points restent garantis à chaque ticket. Les cadeaux d&apos;équipe se
+            gagnent ensemble, avec ta zone, ton école ou tes collègues : à chaque
+            palier franchi, chaque membre reçoit un cadeau.
           </p>
           <Link
             href={`/r/${restaurantId}/my-team`}
@@ -90,7 +91,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
   const currentScore = score?.score ?? 0;
   const memberCount = score?.member_count ?? 0;
 
-  const [{ data: spentRaw }, budget] = await Promise.all([
+  const [{ data: spentRaw }, budget, { data: awardsRaw }] = await Promise.all([
     admin
       .from("community_scores")
       .select("total_spent")
@@ -98,7 +99,19 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
       .eq("restaurant_id", restaurantId)
       .single(),
     getBudgetStatus(restaurantId),
+    // ADR 0061 §7 — ce qui a vraiment été offert à l'équipe (palier par seuil).
+    // Une ligne à 0 membre = palier franchi avant la bascule, sans cadeau.
+    admin
+      .from("team_tier_awards")
+      .select("members_awarded, reward_tiers(min_threshold)")
+      .eq("team_id", membership.team_id),
   ]);
+  type AwardRow = { members_awarded: number; reward_tiers: { min_threshold: number } | null };
+  const awardedAt = new Map<number, number>(
+    ((awardsRaw ?? []) as unknown as AwardRow[])
+      .filter((a) => a.reward_tiers)
+      .map((a) => [Number(a.reward_tiers!.min_threshold), a.members_awarded])
+  );
   const coverage = {
     memberCount,
     teamTotalSpent: Number((spentRaw as { total_spent: number } | null)?.total_spent ?? 0),
@@ -139,7 +152,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
             <Lock className="w-5 h-5 mx-auto mb-1 text-amber-700" aria-hidden="true" />
           )}
           <p className={`text-xs font-semibold ${restaurantUnlocked ? "text-green-800" : "text-amber-800"}`}>
-            Bonus communautaire
+            Cadeaux d&apos;équipe
           </p>
           <p className={`text-xs mt-0.5 ${restaurantUnlocked ? "text-green-600" : "text-amber-600"}`}>
             {restaurantUnlocked ? "Actif" : "Verrouillé"}
@@ -163,10 +176,10 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
       {!restaurantUnlocked && (
         // Message neutre (ADR 0007) — jamais de promesse d'échéance.
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-          <p className="font-semibold mb-1">Bonus communautaire en pause</p>
+          <p className="font-semibold mb-1">Cadeaux d&apos;équipe en pause</p>
           <p className="text-xs">
-            Ton cadeau de base reste garanti à chaque commande — et chaque commande
-            validée fait progresser ta communauté.
+            Tes points restent garantis à chaque ticket, et chaque ticket validé
+            fait progresser ton équipe.
           </p>
         </div>
       )}
@@ -184,7 +197,10 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
             // Couverture ADR 0017 dans le verrou — jamais expliquée côté client.
             const isCovered = coverageSatisfied(coverage, tier.cost);
             const isUnlocked = isScoreReached && restaurantUnlocked && isCovered;
-            const isClaimable = isUnlocked && memberActive;
+            // Offert une fois à chaque membre au franchissement (ADR 0061 §7).
+            const membersAwarded = awardedAt.get(Number(tier.min));
+            const isOffered = (membersAwarded ?? 0) > 0;
+            const isWaiting = isScoreReached && membersAwarded === undefined;
             const pct = tier.min > 0 ? Math.min(100, Math.round((currentScore / tier.min) * 100)) : 100;
 
             return (
@@ -196,14 +212,14 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    {isUnlocked ? (
+                    {isOffered || isUnlocked ? (
                       <Gift className="w-6 h-6 shrink-0 text-brand-red" aria-hidden="true" />
                     ) : (
                       <Lock className="w-6 h-6 shrink-0 text-gray-400" aria-hidden="true" />
                     )}
                     <div>
                       <p className="font-bold text-gray-900">{tier.item}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Palier communautaire</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Offert une fois à chaque membre</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -223,19 +239,21 @@ export default async function RewardsPage({ params }: { params: Promise<{ restau
                   </div>
                 )}
 
-                {isClaimable && (
+                {isOffered && (
                   <div className="mt-4 bg-green-50 rounded-lg p-3 text-center">
                     <p className="flex items-center justify-center gap-1.5 text-green-800 text-sm font-semibold">
                       <PartyPopper className="w-4 h-4 shrink-0" aria-hidden="true" />
-                      Récompense disponible — présente-toi au comptoir {restaurant?.name ?? "du restaurant"} !
+                      Palier franchi : offert à chaque membre. Retrouve-le dans Mes cadeaux, au comptoir {restaurant?.name ?? "du restaurant"}.
                     </p>
                   </div>
                 )}
 
-                {isUnlocked && !memberActive && (
+                {/* Franchi mais pas encore offert (verrou, budget ou couverture,
+                    ADR 0012/0017) — message neutre, jamais la raison (ADR 0007). */}
+                {isWaiting && (
                   <div className="mt-4 bg-amber-50 rounded-lg p-3 text-center">
                     <p className="text-amber-800 text-xs">
-                      Soumets et fais valider une commande pour récupérer cette récompense.
+                      Palier atteint : le cadeau arrive, continuez à commander ensemble.
                     </p>
                   </div>
                 )}

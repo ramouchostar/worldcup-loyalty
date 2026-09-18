@@ -17,6 +17,14 @@ type RewardWithOrder = Omit<PendingReward, "user_id" | "restaurant_id" | "solo_c
   orders: { amount: number } | null;
 };
 
+// Sous-libellé du cadeau personnel, selon son origine (ADR 0061).
+function soloLabel(source: RewardWithOrder["source"]): string {
+  if (source === "catalog") return "choisi avec tes points";
+  if (source === "birthday") return "anniversaire";
+  if (source === "saver") return "gros cadeau";
+  return "cadeau de ticket";
+}
+
 export default async function MyRewardsPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
   const supabase = await createServerSupabaseClient();
@@ -175,15 +183,15 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={foodIconUrl(reward.solo_item)} alt="" className="w-6 h-6" />
             <span className="font-bold text-gray-900 text-sm">{reward.solo_item}</span>
-            <span className="text-xs text-gray-400 ml-auto">cadeau de base</span>
+            <span className="text-xs text-gray-400 ml-auto">{soloLabel(reward.source)}</span>
           </div>
         )}
         {reward.community_item && (
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={foodIconUrl(reward.community_item)} alt="" className="w-6 h-6" />
-            <span className="font-bold text-gray-900 text-sm">+ {reward.community_item}</span>
-            <span className="text-xs text-gray-400 ml-auto">bonus communautaire</span>
+            <span className="font-bold text-gray-900 text-sm">{reward.solo_item ? "+ " : ""}{reward.community_item}</span>
+            <span className="text-xs text-gray-400 ml-auto">cadeau d&apos;équipe</span>
           </div>
         )}
         {reward.advancement_item && (
@@ -221,7 +229,7 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
         </p>
         {isAvailable ? (
           <span className="flex items-center gap-2">
-            <RedeemButton opensAt={opensAt.toISOString()} />
+            <RedeemButton opensAt={opensAt.toISOString()} rewardId={reward.id} />
           </span>
         ) : isRedeemed ? (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">

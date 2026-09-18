@@ -1,12 +1,12 @@
 # ADR 0061 — Les cadeaux se choisissent avec ses points
 
 **Statut** : Accepté — **en service depuis la bascule du 2026-09-18** (PR 2 fondations,
-PR 3 catalogue, PR 4 bascule livrées ; restent la PR 5 équipes et la PR 6 nettoyage).
+PR 3 catalogue, PR 4 bascule, PR 5 équipes livrées ; reste la PR 6 nettoyage).
 Décisions du porteur prises le 2026-09-18. Remplace désormais :
 l'[ADR 0006](0006-three-layer-reward-system.md) (plus de cadeau par ticket en trois
 couches), l'[ADR 0021](0021-personal-points-reserve.md) et
 l'[ADR 0060](0060-la-reserve-en-points-courbes.md) (la réserve et « Mettre de côté »
-deviennent « Mes points »). Amendera l'[ADR 0014](0014-member-created-community-teams.md) (un seul
+deviennent « Mes points »). Amende l'[ADR 0014](0014-member-created-community-teams.md) (un seul
 type de palier d'équipe, cadeau unique par palier), l'[ADR 0028](0028-points-decoupled-from-euros.md)
 (points personnels proportionnels, points d'équipe toujours courbés) et
 l'[ADR 0059](0059-l-accueil-repond-a-trois-questions.md) (ce que l'accueil promet). Garde
@@ -171,3 +171,28 @@ ramène l'ancien modèle.
 - **Ordre d'application** : le déclencheur de crédit (`20260918-0600`) s'applique juste
   après la fusion de la bascule, sinon les tickets validés entre les deux ne
   rapporteraient ni cadeau ni points.
+
+## Notes de mise en œuvre (équipes, PR 5, 2026-09-18)
+
+- **Attribution** : `lib/team-gifts.ts` (`awardCrossedTeamTiers`) appelé à chaque
+  validation de ticket (`createPendingReward`, donc tous les chemins de validation), et
+  par le passage quotidien de 18 h en filet de sécurité. La règle pure
+  (`lib/team-gift-rules.ts`, testée) : palier franchi, pas encore attribué, couverture
+  ADR 0017 satisfaite. S'y ajoutent le double verrou et le budget du mois (ADR 0012).
+  Un palier franchi mais pas encore finançable **attend** : il est attribué quand
+  l'équipe a assez dépensé, jamais perdu.
+- **Une seule fois par équipe** : table `team_tier_awards` (unicité équipe × palier),
+  fonction `award_team_tier` qui crée le cadeau de chaque membre et compte le coût au
+  budget dans la même transaction (migration `20260918-0700`). Garde-fou : les paliers
+  déjà franchis au moment de la migration sont notés sans cadeau (aucun palier d'un
+  établissement réel n'était franchi ; seuls des établissements de test l'étaient).
+- **Le cadeau d'équipe attend à côté du cadeau personnel** : source `team`, ouvert tout
+  de suite, **récupérable 7 jours** (il tombe sans que le membre soit venu), rien à rendre
+  à l'expiration. L'index un-seul-actif ne porte plus que sur les cadeaux personnels ; la
+  récupération vise un cadeau précis (`rewardId`), jamais « le » cadeau actif.
+- **Annonce** : le passage de 18 h envoie « chaque membre reçoit X : le tien t'attend au
+  comptoir cette semaine » (push ou WhatsApp, et courriel), une fois par cadeau, dans les
+  limites anti-spam.
+- **Paliers « d'avancement »** (`team_tiers`, ADR 0014) : plus lus. Le lien de la
+  console est retiré ; les paliers d'équipe se règlent dans l'écran Menu. Le code mort
+  part avec la PR 6.

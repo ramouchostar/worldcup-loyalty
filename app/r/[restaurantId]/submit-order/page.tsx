@@ -71,6 +71,7 @@ export default async function SubmitOrderPage({
         .eq("user_id", user.id)
         .eq("restaurant_id", restaurantId)
         .eq("status", "available")
+        .or("source.is.null,source.neq.team")
         .limit(1)
         .maybeSingle(),
     ]);

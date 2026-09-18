@@ -2,10 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Camera, Coins, Gift, Lightbulb, MessageCircle, Share2, Trophy, UtensilsCrossed } from "lucide-react";
 import { PEOPLE_EMOJI } from "@/lib/fluent-emoji";
-import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
-import { loadRewardGrid, resolveCommunityBonus } from "@/lib/rewards";
-import { isRestaurantThresholdUnlocked } from "@/lib/thresholds";
+import { loadRewardGrid } from "@/lib/rewards";
 import { getBudgetStatus } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
 import { getPointsSummary, listCatalogue } from "@/lib/points";
@@ -52,7 +51,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // coupée à la fin du rendu.
   await recordFunnelStep(restaurantId, "home_viewed");
 
-  const admin = createAdminClient();
   const [
     { data: membershipRaw },
     { data: orders },
@@ -121,9 +119,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   const validCount = validatedOrderCount ?? 0;
   const orderList = (orders as Order[] | null) ?? [];
 
-  // ── Ce que j'ai : le cadeau qui attend (un seul actif, ADR 0011) ────────────
+  // ── Ce que j'ai : le cadeau qui attend (un seul personnel, ADR 0011) ────────
+  // Un cadeau d'équipe (ADR 0061 §7) peut attendre à côté : le personnel
+  // d'abord, l'autre est signalé en dessous (« 1 autre cadeau »).
   const available = (availableRaw as unknown as AvailableReward[] | null) ?? [];
-  const gift = available[0] ?? null;
+  const hasPersonalGift = available.some((r) => r.source !== "team");
+  const gift = available.find((r) => r.source !== "team") ?? available[0] ?? null;
+  const isTeamGift = gift?.source === "team";
+  const giftItem = gift ? (gift.solo_item ?? gift.community_item) : null;
   // ADR 0011 amendé — un cadeau de ticket s'ouvre 4 h après le ticket (jamais
   // pendant la même visite), puis reste 48 h (lib/reward-window).
   const giftOpensAt = gift ? claimOpensAt(gift.created_at, gift.source) : null;
@@ -141,19 +144,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // (euros, service role) ne sert qu'à résoudre le palier réellement
   // finançable (ADR 0017) — jamais rendue (ADR 0007).
   type RankRow = { team_id: string; score: number; teams: { name: string; flag_emoji: string; is_active: boolean } | null };
-  const [scoreResult, spentResult, rankResult, restaurantUnlocked, budget] = hasTeam
+  const [scoreResult, rankResult, budget] = hasTeam
     ? await Promise.all([
         supabase.from("community_scores").select("member_count, score").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single(),
-        admin.from("community_scores").select("total_spent").eq("team_id", membership!.team_id!).eq("restaurant_id", restaurantId).single(),
         supabase.from("community_scores").select("team_id, score, teams(name, flag_emoji, is_active)").eq("restaurant_id", restaurantId).order("score", { ascending: false }),
-        isRestaurantThresholdUnlocked(restaurantId),
         getBudgetStatus(restaurantId),
       ])
-    : [null, null, null, false, null];
+    : [null, null, null];
 
   const score = (scoreResult?.data as { score: number } | null)?.score ?? 0;
   const memberCount = (scoreResult?.data as { member_count: number } | null)?.member_count ?? 0;
-  const teamTotalSpent = Number((spentResult?.data as { total_spent: number } | null)?.total_spent ?? 0);
   const rankRows = ((rankResult?.data as unknown as RankRow[] | null) ?? []).filter((row) => row.teams?.is_active);
   const teamRank = hasTeam ? rankRows.findIndex((row) => row.team_id === membership!.team_id) + 1 : 0;
   const teamCount = rankRows.length;
@@ -166,13 +166,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     ? Math.min(100, Math.round(((score - prevTierScore) / (nextTier.score - prevTierScore)) * 100))
     : 100;
   const isWeakCommunity = communityTiers.length > 0 && score < communityTiers[0].score;
-  const financedCommunity = hasTeam && budget
-    ? resolveCommunityBonus(grid, score, restaurantUnlocked && communityBonusActive, {
-        memberCount,
-        teamTotalSpent,
-        budgetPct: budget.budgetPct,
-      })
-    : { item: null };
 
   // ADR 0061 §5 — la carte « Mes points » : en haut quand aucun cadeau
   // n'attend (« qu'est-ce que je peux viser », ADR 0059), sous la photo sinon.
@@ -189,7 +182,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           <p className="text-xs text-gray-500 text-right">+{pointsSummary.pending.toLocaleString("fr-BE")} en attente</p>
         )}
 
-        {pointsGoal.reachable && !gift && (
+        {pointsGoal.reachable && !hasPersonalGift && (
           <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-green-50 border border-green-200 p-3">
             <div className="flex items-center gap-2 min-w-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -262,16 +255,20 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         // rouge chez Kraainem, lu comme une alerte sur une bonne nouvelle.
         <section className="rounded-2xl border-2 border-green-200 bg-green-50 p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-green-800 text-center">
-            {giftLocked ? "Ton cadeau t'attend à ta prochaine visite" : "Ton cadeau t'attend au comptoir"}
+            {isTeamGift
+              ? "Le cadeau de ton équipe t'attend au comptoir"
+              : giftLocked
+                ? "Ton cadeau t'attend à ta prochaine visite"
+                : "Ton cadeau t'attend au comptoir"}
           </p>
-          {gift.solo_item && (
+          {giftItem && (
             <div className="flex flex-col items-center mt-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={foodIconUrl(gift.solo_item)} alt="" aria-hidden="true" className="w-20 h-20 drop-shadow" />
-              <p className="text-2xl font-black text-gray-900 text-center mt-1">{gift.solo_item}</p>
+              <img src={foodIconUrl(giftItem)} alt="" aria-hidden="true" className="w-20 h-20 drop-shadow" />
+              <p className="text-2xl font-black text-gray-900 text-center mt-1">{giftItem}</p>
             </div>
           )}
-          {(gift.community_item || gift.advancement_item) && (
+          {gift.solo_item && (gift.community_item || gift.advancement_item) && (
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
               {[gift.community_item, gift.advancement_item].filter(Boolean).map((item) => (
                 <span key={item} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-800">
@@ -291,12 +288,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
           {/* ADR 0011 amendé — la règle de retrait, écrite (exception ADR 0007). */}
           <p className="text-center text-xs text-gray-700 mt-1">{redemptionRule(gift.source)}</p>
           <div className="mt-4 space-y-2">
-            <RedeemButton size="lg" opensAt={giftOpensAt!.toISOString()} />
+            <RedeemButton size="lg" opensAt={giftOpensAt!.toISOString()} rewardId={gift.id} />
           </div>
-          {/* ADR 0011 — un seul cadeau actif : sans cette phrase, le membre
-              enchaîne des tickets en croyant cumuler des cadeaux. */}
+          {/* ADR 0011 — un seul cadeau personnel actif : sans cette phrase, le
+              membre croit pouvoir en choisir un deuxième avec ses points. */}
           <p className="text-xs text-gray-600 text-center mt-3">
-            Tant qu&apos;il t&apos;attend, tes prochains tickets ne créent pas de nouveau cadeau.
+            {isTeamGift
+              ? "Offert une fois à chaque membre, quand l'équipe franchit un palier."
+              : "Tant qu'il t'attend, tu ne peux pas en choisir un autre : tes points continuent de monter."}
           </p>
           {available.length > 1 && (
             <Link href={r("/my-rewards")} className="block text-center text-xs font-semibold text-green-800 underline mt-2">
@@ -345,7 +344,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
             <img src={PEOPLE_EMOJI} alt="" className="w-12 h-12 mx-auto mb-2" />
             <p className="font-bold text-gray-900 mb-1">Pas encore d&apos;équipe</p>
             <p className="text-sm text-gray-500 mb-4">
-              Rejoins une équipe : chaque ticket de l&apos;équipe peut ajouter un cadeau au tien.
+              Rejoins une équipe : à chaque palier franchi ensemble, chaque membre reçoit un cadeau.
             </p>
             <Link
               href={r("/my-team")}
@@ -372,7 +371,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 <div className="mb-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                   <span className="text-sm">⏸️</span>
                   <p className="text-xs font-medium text-gray-600">
-                    Le cadeau d&apos;équipe est en pause — ton cadeau à chaque ticket reste garanti.
+                    Les cadeaux d&apos;équipe sont en pause — tes points à chaque ticket restent garantis.
                   </p>
                 </div>
               )}
@@ -395,7 +394,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                     <img src={foodIconUrl(nextTier.item)} alt="" aria-hidden="true" className="w-7 h-7" />
                     <div>
                       <p className="text-xs text-gray-500">Quand ton équipe l&apos;atteint</p>
-                      <p className="font-bold text-gray-900 text-sm">+ {nextTier.item} sur chaque ticket</p>
+                      <p className="font-bold text-gray-900 text-sm">{nextTier.item} pour chaque membre</p>
                     </div>
                   </div>
                   {isWeakCommunity ? (
@@ -416,9 +415,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
                 <div className="text-center py-1">
                   <Trophy className="w-6 h-6 mx-auto mb-1 text-green-700" aria-hidden="true" />
                   <p className="font-bold text-green-800 text-sm">Meilleur cadeau d&apos;équipe atteint !</p>
-                  {/* Palier réellement finançable (couverture ADR 0017), message neutre (ADR 0007) */}
                   <p className="text-xs text-gray-500">
-                    + {financedCommunity.item ?? communityTiers[communityTiers.length - 1].item} sur chaque ticket
+                    Tous les paliers sont franchis. Bravo à toute l&apos;équipe !
                   </p>
                 </div>
               )}

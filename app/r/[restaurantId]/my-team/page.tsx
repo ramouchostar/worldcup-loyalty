@@ -118,9 +118,9 @@ export default async function MyTeamPage({ params }: { params: Promise<{ restaur
         <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
           <p className="text-sm text-gray-600 leading-relaxed">
             <span className="font-semibold text-gray-800">Pas obligé d&apos;avoir une équipe.</span>{" "}
-            Tes cadeaux personnels tombent à chaque commande, équipe ou pas. Une
-            équipe ajoute simplement des cadeaux en plus quand vous commandez à
-            plusieurs.
+            Tes points tombent à chaque ticket, équipe ou pas. Une équipe ajoute
+            des cadeaux en plus : à chaque palier franchi ensemble, chaque membre
+            en reçoit un.
           </p>
         </div>
         {/* ADR 0047 — les zones ne sont plus demandées à l'inscription : c'est

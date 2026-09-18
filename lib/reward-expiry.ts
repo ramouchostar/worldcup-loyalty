@@ -1,5 +1,5 @@
 import { createAdminClient } from "./supabase";
-import { REWARD_CLAIM_WINDOW_HOURS, REWARD_UNLOCK_DELAY_HOURS } from "./reward-window";
+import { REWARD_CLAIM_WINDOW_HOURS, REWARD_UNLOCK_DELAY_HOURS, TEAM_GIFT_CLAIM_WINDOW_HOURS } from "./reward-window";
 
 // ADR 0011 — la fenêtre de 48 h du cadeau, enfin tenue côté serveur.
 //
@@ -53,8 +53,9 @@ export async function expireStaleRewards(now: Date = new Date()): Promise<Expiry
     now.getTime() - (REWARD_UNLOCK_DELAY_HOURS + REWARD_CLAIM_WINDOW_HOURS) * HOUR_MS
   ).toISOString();
   const otherCutoff = new Date(now.getTime() - REWARD_CLAIM_WINDOW_HOURS * HOUR_MS).toISOString();
+  const teamCutoff = new Date(now.getTime() - TEAM_GIFT_CLAIM_WINDOW_HOURS * HOUR_MS).toISOString();
 
-  const [tickets, others] = await Promise.all([
+  const [tickets, others, team] = await Promise.all([
     admin
       .from("pending_rewards")
       .update({ status: "expired" })
@@ -69,9 +70,17 @@ export async function expireStaleRewards(now: Date = new Date()): Promise<Expiry
       .in("source", ["saver", "birthday", "catalog"])
       .lt("created_at", otherCutoff)
       .select("id, source"),
+    // Cadeau d'équipe (ADR 0061 §7) : 7 jours, rien à rendre (offert).
+    admin
+      .from("pending_rewards")
+      .update({ status: "expired" })
+      .eq("status", "available")
+      .eq("source", "team")
+      .lt("created_at", teamCutoff)
+      .select("id"),
   ]);
 
-  for (const result of [tickets, others]) {
+  for (const result of [tickets, others, team]) {
     if (result.error) throw new Error(`pending_rewards(expire): ${result.error.message}`);
   }
 
@@ -86,5 +95,5 @@ export async function expireStaleRewards(now: Date = new Date()): Promise<Expiry
     if (error) console.error("[reward-expiry] remboursement impossible:", reward.id, error.message);
   }
 
-  return { expired: (tickets.data ?? []).length + (others.data ?? []).length };
+  return { expired: (tickets.data ?? []).length + (others.data ?? []).length + (team.data ?? []).length };
 }

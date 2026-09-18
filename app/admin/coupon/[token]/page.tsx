@@ -83,7 +83,12 @@ export default async function AdminCouponPage({
             : "cadeau de base"),
     });
   if (reward?.community_item)
-    items.push({ icon: foodIconUrl(reward.community_item), label: `+ ${reward.community_item}`, sublabel: "bonus communautaire" });
+    items.push({
+      icon: foodIconUrl(reward.community_item),
+      label: reward.solo_item ? `+ ${reward.community_item}` : reward.community_item,
+      // ADR 0061 §7 — offert à chaque membre quand l'équipe franchit un palier.
+      sublabel: reward.source === "team" ? "cadeau d'équipe · palier franchi" : "cadeau d'équipe",
+    });
   if (reward?.advancement_item)
     items.push({ icon: foodIconUrl(reward.advancement_item), label: `+ ${reward.advancement_item}`, sublabel: "bonus d'équipe" });
 

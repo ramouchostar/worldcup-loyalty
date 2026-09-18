@@ -24,11 +24,11 @@ export function buildMessage(
 ): string {
   switch (trigger) {
     case "tier_upgrade":
-      return `${teamFlag} Ta communauté ${teamName} vient de franchir un palier ! Tu as débloqué : ${details?.newReward ?? "une récompense"} sur chaque commande directe.`;
+      return `${teamFlag} Ta communauté ${teamName} vient de franchir un palier ! Chaque membre reçoit ${details?.newReward ?? "un cadeau"} : le tien t'attend au comptoir cette semaine.`;
     case "member_inactive":
       return `${teamFlag} ${teamName} a besoin de toi ! Reviens passer une commande chez ${restaurantName} pour faire progresser ta communauté.`;
     case "tier_approaching":
-      return `${teamFlag} Plus que ${details?.ptsNeeded?.toLocaleString("fr-BE")} pts pour débloquer ${details?.nextReward ?? "le prochain bonus"} avec ${teamName} ! Une commande ce soir peut tout changer.`;
+      return `${teamFlag} Plus que ${details?.ptsNeeded?.toLocaleString("fr-BE")} points d'équipe avant ${details?.nextReward ?? "le prochain cadeau"} pour chaque membre de ${teamName} ! Une commande ce soir peut tout changer.`;
     case "advancement":
       return `🏆 ${teamFlag} ${teamName} passe en ${details?.round ?? "tour suivant"} ! Ton bonus d'avancement est actif : présente-toi au comptoir ${restaurantName}.`;
   }

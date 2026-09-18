@@ -49,7 +49,10 @@ export default async function PointsPage({ params }: { params: Promise<{ restaur
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
-      .eq("status", "available"),
+      .eq("status", "available")
+      // Seul un cadeau PERSONNEL bloque le choix (ADR 0011) ; un cadeau
+      // d'équipe attend à côté (ADR 0061 §7).
+      .or("source.is.null,source.neq.team"),
     supabase
       .from("point_transactions")
       .select("id, delta, reason, created_at, available_at")

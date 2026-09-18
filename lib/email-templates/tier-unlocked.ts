@@ -22,17 +22,17 @@ export function tierUnlockedEmail(
     emailHeading(`${teamFlag} Palier débloqué !`),
     emailParagraph(
       `Bonne nouvelle, ${firstName} : <strong>${teamName}</strong> vient de franchir un palier chez ` +
-      `${restaurantName}. Ta prochaine commande directe inclut désormais <strong>${newReward}</strong>.`
+      `${restaurantName}. Chaque membre reçoit <strong>${newReward}</strong> : le tien t'attend au comptoir cette semaine.`
     ),
     emailButton("Voir mon tableau de bord →", dashboardUrl),
     emailDivider(),
-    emailFootNote("Plus votre équipe commande directement, plus vous débloquez de cadeaux ensemble."),
+    emailFootNote("Chaque palier franchi offre un cadeau à chaque membre de l'équipe."),
   ].join("\n"), logoUrl);
 
   const text = `Palier débloqué !
 
 Bonne nouvelle, ${firstName} : ${teamName} vient de franchir un palier chez ${restaurantName}.
-Ta prochaine commande directe inclut désormais ${newReward}.
+Chaque membre reçoit ${newReward} : le tien t'attend au comptoir cette semaine.
 
 Voir mon tableau de bord : ${dashboardUrl}`;
 

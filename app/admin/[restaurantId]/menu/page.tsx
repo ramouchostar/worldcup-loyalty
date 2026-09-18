@@ -581,9 +581,12 @@ export default function AdminMenuPage() {
               </div>
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Bonus communautaire (score d&apos;équipe)</p>
+              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Cadeaux d&apos;équipe (points d&apos;équipe)</p>
+              {/* ADR 0061 §7 — offert UNE fois à chaque membre quand l'équipe
+                  franchit le palier, si sa dépense le finance (ADR 0017). */}
+              <p className="text-xs text-ink-muted mb-1">Offert une fois à chaque membre quand l&apos;équipe franchit le palier.</p>
               <div className="divide-y divide-paper-border">
-                {COMMUNITY_BANDS.map((b) => bandRow("community", b, `Score ≥ ${b.toLocaleString("fr-BE")} pts`))}
+                {COMMUNITY_BANDS.map((b) => bandRow("community", b, `Palier ${b.toLocaleString("fr-BE")} points`))}
               </div>
             </div>
           </div>
