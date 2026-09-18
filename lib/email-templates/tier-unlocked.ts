@@ -1,40 +1,59 @@
-import { emailShell, emailHeading, emailParagraph, emailButton, emailDivider, emailFootNote } from "./layout";
+import {
+  appLink, button, eyebrow, goodCard, heading, memberShell, paragraph, strong,
+  type MemberTheme, type RenderedEmail,
+} from "./kit";
 
-// Client — palier communautaire franchi, canal email en plus du push/WhatsApp
-// existant (ADR 0009, lib/notifications.ts buildMessage). Toujours le cadeau
-// concret, jamais le score en euros ni la mécanique du double verrou (ADR 0007).
+// Membre — cadeau d'équipe (ADR 0061 §7) : l'équipe a franchi un palier,
+// chaque membre reçoit le cadeau choisi par le restaurateur, récupérable
+// 7 jours. Le cadeau existe déjà quand cet e-mail part (annonce du passage
+// de 18 h) : on ne promet rien, on dit ce qui attend. Jamais le score ni la
+// mécanique des verrous (ADR 0007).
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+export type TierUnlockedData = {
+  theme: MemberTheme;
+  restaurantId: string;
+  firstName: string | null;
+  teamName: string;
+  teamFlag: string | null;
+  gift: { name: string; imageUrl: string | null };
+};
 
-export function tierUnlockedEmail(
-  firstName: string,
-  restaurantId: string,
-  restaurantName: string,
-  teamName: string,
-  teamFlag: string,
-  newReward: string,
-  logoUrl?: string | null
-): { subject: string; html: string; text: string } {
-  const dashboardUrl = `${APP_URL}/r/${restaurantId}/dashboard`;
-  const subject = `${teamFlag} ${teamName} vient de débloquer un palier !`;
+export function tierUnlockedEmail(d: TierUnlockedData): RenderedEmail {
+  const r = d.theme.restaurantName;
+  const flag = d.teamFlag ? `${d.teamFlag} ` : "";
+  const subject = `${flag}${d.teamName} a franchi un palier : ${d.gift.name} pour chaque membre`;
+  const preheader = "Le tien t'attend au comptoir cette semaine.";
+  const url = appLink(`/r/${d.restaurantId}/my-rewards`);
 
-  const html = emailShell(subject, [
-    emailHeading(`${teamFlag} Palier débloqué !`),
-    emailParagraph(
-      `Bonne nouvelle, ${firstName} : <strong>${teamName}</strong> vient de franchir un palier chez ` +
-      `${restaurantName}. Chaque membre reçoit <strong>${newReward}</strong> : le tien t'attend au comptoir cette semaine.`
+  const body = [
+    eyebrow("Cadeau d'équipe"),
+    heading("Ton équipe a franchi un palier"),
+    paragraph(
+      `${d.firstName ? `Bonne nouvelle, ${strong(d.firstName)} : ` : "Bonne nouvelle : "}` +
+      `${strong(d.teamName)} vient de franchir un palier chez ${strong(r)}. Chaque membre reçoit un cadeau.`
     ),
-    emailButton("Voir mon tableau de bord →", dashboardUrl),
-    emailDivider(),
-    emailFootNote("Chaque palier franchi offre un cadeau à chaque membre de l'équipe."),
-  ].join("\n"), logoUrl);
+    goodCard({ imageUrl: d.gift.imageUrl, imageAlt: d.gift.name, kicker: "Le tien t'attend au comptoir", title: d.gift.name, note: "Cette semaine, avec une commande d'au moins 10 €." }),
+    button("Voir mon cadeau", url, d.theme.primary),
+  ];
 
-  const text = `Palier débloqué !
+  const html = memberShell({
+    theme: d.theme,
+    subject,
+    preheader,
+    body: body.join("\n"),
+    footer: {
+      reason: `Tu reçois cet e-mail parce que ton équipe ${d.teamName} vient de franchir un palier chez ${r}.`,
+      manageUrl: appLink("/compte"),
+      manageLabel: "Mon compte",
+    },
+  });
 
-Bonne nouvelle, ${firstName} : ${teamName} vient de franchir un palier chez ${restaurantName}.
-Chaque membre reçoit ${newReward} : le tien t'attend au comptoir cette semaine.
+  const text = `Ton équipe a franchi un palier
 
-Voir mon tableau de bord : ${dashboardUrl}`;
+${d.teamName} vient de franchir un palier chez ${r}. Chaque membre reçoit ${d.gift.name} :
+le tien t'attend au comptoir cette semaine, avec une commande d'au moins 10 €.
 
-  return { subject, html, text };
+Voir mon cadeau : ${url}`;
+
+  return { subject, preheader, html, text };
 }

@@ -1,37 +1,56 @@
-import { emailShell, emailHeading, emailParagraph, emailButton, emailDivider, emailFootNote } from "./layout";
+import {
+  appLink, button, esc, eyebrow, heading, memberShell, paragraph, progress, small, strong,
+  type MemberTheme, type RenderedEmail,
+} from "./kit";
 
-// Client — un ami s'est inscrit via le lien de parrainage (crédité à
-// l'inscription réelle, pas au partage — voir app/join/actions.ts). 5
-// inscriptions validées = 1 jeton (calculé à l'affichage, jamais stocké).
+// Membre — un ami vient de s'inscrire par son lien de parrainage (le jeton
+// ne compte qu'à l'inscription de l'ami — CONTEXT.md, Parrainage). 5 amis
+// inscrits = 1 jeton, sans limite.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+export type ReferralSuccessData = {
+  theme: MemberTheme;
+  restaurantId: string;
+  firstName: string | null;
+  conversionsCount: number;
+};
 
-export function referralSuccessEmail(
-  firstName: string,
-  restaurantId: string,
-  conversionsCount: number,
-  logoUrl?: string | null
-): { subject: string; html: string; text: string } {
-  const microRewardsUrl = `${APP_URL}/r/${restaurantId}/micro-rewards`;
-  const remainder = conversionsCount % 5;
-  const progressLabel = remainder === 0 ? "Nouveau jeton débloqué !" : `${remainder}/5 vers ton prochain jeton`;
-  const subject = "Un ami vient de rejoindre grâce à toi !";
+export function referralSuccessEmail(d: ReferralSuccessData): RenderedEmail {
+  const r = d.theme.restaurantName;
+  const remainder = d.conversionsCount % 5;
+  const earned = remainder === 0 && d.conversionsCount > 0;
+  const subject = earned ? `Tu gagnes un jeton chez ${r} !` : `Un ami vient de rejoindre ${r} grâce à toi`;
+  const preheader = earned ? "5 amis inscrits par ton lien : un jeton de plus." : `${remainder} ami${remainder > 1 ? "s" : ""} sur 5 pour ton prochain jeton.`;
+  const url = appLink(`/r/${d.restaurantId}/micro-rewards`);
 
-  const html = emailShell(subject, [
-    emailHeading("Un ami vient de te rejoindre !"),
-    emailParagraph(
-      `${firstName}, un ami s'est inscrit grâce à ton lien de parrainage. ${progressLabel}.`
+  const body = [
+    eyebrow("Parrainage"),
+    heading(earned ? "Tu gagnes un jeton !" : "Un ami vient de te rejoindre"),
+    paragraph(
+      `${d.firstName ? `${strong(d.firstName)}, un` : "Un"} ami s'est inscrit chez ${strong(r)} grâce à ton lien. ` +
+      (earned ? "C'est le cinquième : un jeton de plus pour toi." : esc("Encore quelques-uns et c'est un jeton de plus."))
     ),
-    emailButton("Voir ma progression →", microRewardsUrl),
-    emailDivider(),
-    emailFootNote("5 amis inscrits via ton lien = 1 jeton. Illimité — continue de partager pour en accumuler plusieurs."),
-  ].join("\n"), logoUrl);
+    progress(earned ? 1 : remainder / 5, earned ? "Jeton gagné" : `${remainder} ami${remainder > 1 ? "s" : ""} inscrit${remainder > 1 ? "s" : ""} sur 5 pour ton prochain jeton`),
+    button("Voir mes jetons", url, d.theme.primary),
+    small(esc("5 amis inscrits par ton lien = 1 jeton, sans limite. 4 jetons = un cadeau au comptoir.")),
+  ];
 
-  const text = `Un ami vient de te rejoindre !
+  const html = memberShell({
+    theme: d.theme,
+    subject,
+    preheader,
+    body: body.join("\n"),
+    footer: {
+      reason: `Tu reçois cet e-mail parce qu'un ami s'est inscrit chez ${r} avec ton lien.`,
+      manageUrl: appLink("/compte"),
+      manageLabel: "Mon compte",
+    },
+  });
 
-${firstName}, un ami s'est inscrit grâce à ton lien de parrainage. ${progressLabel}.
+  const text = `${earned ? "Tu gagnes un jeton !" : "Un ami vient de te rejoindre"}
 
-Voir ma progression : ${microRewardsUrl}`;
+Un ami s'est inscrit chez ${r} grâce à ton lien. ${earned ? "Un jeton de plus pour toi." : `${remainder}/5 vers ton prochain jeton.`}
 
-  return { subject, html, text };
+Voir mes jetons : ${url}`;
+
+  return { subject, preheader, html, text };
 }

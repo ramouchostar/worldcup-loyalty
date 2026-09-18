@@ -104,7 +104,9 @@ export async function GET(request: Request) {
     teams: m.teams,
   }));
 
-  if (!members?.length) continue;
+  // Pas de `continue` quand aucun membre n'a d'équipe : la suite de la
+  // boucle (rappel de cadeau, relances restaurateur) vaut pour tous les
+  // établissements — Houba et De Bue, sans équipe, n'y passaient jamais.
   evaluated += members.length;
 
   // État du programme pour l'établissement : grille catalogue + double verrou
@@ -282,7 +284,7 @@ export async function GET(request: Request) {
   // ── Cadeau prêt à récupérer avant expiration (ADR 0011, 48h) ────────────
   const { data: readyRewardsRaw } = await admin
     .from("pending_rewards")
-    .select("id, user_id, created_at, source, profiles!inner(email, display_name)")
+    .select("id, user_id, created_at, source, solo_item, community_item, profiles!inner(email, display_name)")
     .eq("restaurant_id", restaurantId)
     .eq("status", "available");
 
@@ -307,7 +309,10 @@ export async function GET(request: Request) {
       rewardFirstName,
       restaurantId,
       restaurant.name,
-      hoursRemaining
+      hoursRemaining,
+      // Même lecture que l'accueil : le cadeau d'équipe porte son article
+      // dans community_item (ADR 0061 §7).
+      { name: reward.solo_item ?? reward.community_item ?? null, source: reward.source ?? null }
     );
   }
 

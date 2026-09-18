@@ -1,38 +1,51 @@
-import { emailShell, emailHeading, emailParagraph, emailButton, emailDivider, emailFootNote } from "./layout";
+import {
+  BOOSTEATS_THEME, appLink, button, esc, eyebrow, firstNameOf, heading, memberShell, paragraph, small,
+  type RenderedEmail,
+} from "./kit";
 
-// Email de bienvenue — envoyé une seule fois, juste après que le membre a
-// complété son profil (registerProfile()), avant même qu'il ait rejoint un
-// établissement.
+// Membre — bienvenue, envoyé une seule fois, au premier consentement
+// (auth/callback ou /register, ADR 0047), avant même qu'il ait rejoint un
+// établissement : habillage Boosteats, pas celui d'un restaurant.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+export function welcomeEmail(displayName: string): RenderedEmail {
+  const first = firstNameOf(displayName === "toi" ? null : displayName);
+  const subject = first ? `Bienvenue chez Boosteats, ${first} !` : "Bienvenue chez Boosteats !";
+  const preheader = "Un ticket de caisse en photo, des points, le cadeau de ton choix.";
+  const joinUrl = appLink("/join");
 
-export function welcomeEmail(displayName: string): { subject: string; html: string; text: string } {
-  const joinUrl = `${APP_URL}/join`;
-  const firstName = displayName.trim().split(/\s+/)[0] || displayName.trim();
-
-  const subject = `Bienvenue chez Boosteats, ${firstName} !`;
-
-  const html = emailShell(subject, [
-    emailHeading(`Bienvenue, ${firstName} !`),
-    emailParagraph(
-      "Ton compte est prêt. Boosteats te permet de commander directement chez tes restaurants " +
-      "préférés — en salle ou par téléphone — et de gagner des points à chaque commande, " +
-      "à échanger contre le cadeau de ton choix, seul ou avec ton équipe."
+  const body = [
+    eyebrow("Bienvenue"),
+    heading(first ? `Bienvenue, ${first} !` : "Bienvenue !"),
+    paragraph(
+      "Ton compte est prêt. À chaque commande passée directement au restaurant — sur place, à emporter " +
+      "ou par téléphone — prends ton ticket de caisse en photo dans l'app : tu gagnes des points, à échanger " +
+      "contre le cadeau de ton choix."
     ),
-    emailParagraph("Prochaine étape : choisis ton restaurant pour rejoindre son réseau."),
-    emailButton("Choisir mon restaurant →", joinUrl),
-    emailDivider(),
-    emailFootNote("Gratuit, sans carte bancaire, sans abonnement caché — et ça ne changera jamais."),
-  ].join("\n"));
+    button("Choisir mon restaurant", joinUrl, BOOSTEATS_THEME.primary),
+    small(esc("Gratuit, sans carte bancaire, sans abonnement — et ça ne changera jamais.")),
+  ];
 
-  const text = `Bienvenue, ${firstName} !
+  const html = memberShell({
+    theme: BOOSTEATS_THEME,
+    subject,
+    preheader,
+    body: body.join("\n"),
+    footer: {
+      reason: "Tu reçois cet e-mail parce que tu viens de créer ton compte Boosteats.",
+      manageUrl: appLink("/compte"),
+      manageLabel: "Mon compte",
+    },
+    signature: "Boosteats · la fidélité des restaurants de quartier",
+  });
 
-Ton compte Boosteats est prêt. Commande directement chez tes restaurants préférés
-et gagne des points à chaque commande, à échanger contre le cadeau de ton choix.
+  const text = `${first ? `Bienvenue, ${first} !` : "Bienvenue !"}
 
-Choisis ton restaurant : ${joinUrl}
+Ton compte est prêt. À chaque commande passée directement au restaurant, prends ton ticket
+de caisse en photo dans l'app : tu gagnes des points, à échanger contre le cadeau de ton choix.
 
-Gratuit, sans carte bancaire, sans abonnement caché.`;
+Choisir mon restaurant : ${joinUrl}
 
-  return { subject, html, text };
+Gratuit, sans carte bancaire, sans abonnement.`;
+
+  return { subject, preheader, html, text };
 }

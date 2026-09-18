@@ -1,12 +1,8 @@
-import { emailShell, emailHeading, emailParagraph, emailButton, emailCallout, emailDivider, emailFootNote } from "./layout";
+import { appLink, button, esc, eyebrow, heading, paragraph, proShell, small, softCard, type RenderedEmail } from "./kit";
 
-// Restaurateur — rappel de validation des demandes clients en attente
-// (commandes suspectes + actions sociales, ADR 0008/0019). Envoyé
-// uniquement quand ça vaut le coup de déranger : une demande bloquée depuis
-// plus de 48h, ou plus de 15 en attente en même temps (cf. logique de
-// déclenchement dans le cron, pas ici — ce template ne fait que le rendu).
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+// Restaurateur — demandes clients en attente (tickets en file, actions
+// sociales). Envoyé seulement quand ça vaut le coup de déranger : plus de
+// 15 demandes, ou une bloquée depuis plus de 48 h (règle dans le cron).
 
 export function pendingRequestsReminderEmail(
   restaurantName: string,
@@ -14,42 +10,41 @@ export function pendingRequestsReminderEmail(
   totalPending: number,
   oldestPendingHours: number,
   logoUrl?: string | null
-): { subject: string; html: string; text: string } {
-  const dashboardUrl = `${APP_URL}/admin/${restaurantId}`;
-  const subject = `${restaurantName} — ${totalPending} demande${totalPending > 1 ? "s" : ""} en attente`;
+): RenderedEmail {
+  const url = appLink(`/admin/${restaurantId}/orders`);
+  const plural = totalPending > 1;
+  const days = Math.floor(oldestPendingHours / 24);
+  const oldest = oldestPendingHours >= 48 ? `${days} jour${days > 1 ? "s" : ""}` : `${Math.round(oldestPendingHours)} h`;
+  const subject = `${restaurantName} — ${totalPending} demande${plural ? "s" : ""} en attente`;
+  const preheader = `La plus ancienne attend depuis ${oldest}.`;
 
-  const oldestLabel =
-    oldestPendingHours >= 48
-      ? `${Math.floor(oldestPendingHours / 24)} jour${Math.floor(oldestPendingHours / 24) > 1 ? "s" : ""}`
-      : `${Math.round(oldestPendingHours)}h`;
+  const body = [
+    eyebrow("À traiter"),
+    heading("Quelques demandes t'attendent"),
+    paragraph(
+      `${totalPending} demande${plural ? "s" : ""} de clients (tickets à vérifier ou actions sociales) ` +
+      `attende${plural ? "nt" : ""} ta décision — la plus ancienne depuis ${esc(oldest)}.`
+    ),
+    softCard(esc("Moins de 2 minutes en général : chaque demande s'affiche avec la photo du ticket ou l'action à vérifier, un bouton pour accepter, un pour refuser.")),
+    button("Traiter les demandes", url, "#0C1509"),
+    small(esc("Tu ne reçois cet e-mail que quand ça s'accumule (plus de 15 demandes, ou une bloquée depuis plus de 48 h) — jamais pour une demande isolée.")),
+  ];
 
-  const html = emailShell(subject, [
-    emailHeading("Quelques demandes t'attendent"),
-    emailParagraph(
-      `${totalPending} demande${totalPending > 1 ? "s" : ""} client${totalPending > 1 ? "s" : ""} ` +
-      `(commandes à vérifier ou actions sociales) attende${totalPending > 1 ? "nt" : ""} ta validation ` +
-      `— la plus ancienne depuis ${oldestLabel}.`
-    ),
-    emailCallout(
-      "Ça prend en général moins de 2 minutes : chaque demande s'affiche avec la photo du ticket ou " +
-      "l'action à vérifier, un seul bouton pour valider ou rejeter."
-    ),
-    emailButton("Traiter les demandes →", dashboardUrl),
-    emailDivider(),
-    emailFootNote(
-      "Tu ne reçois cet email que lorsque ça s'accumule (plus de 15 demandes, ou une bloquée depuis " +
-      "plus de 48h) — jamais pour une simple demande isolée."
-    ),
-  ].join("\n"), logoUrl);
+  const html = proShell({
+    restaurantName,
+    logoUrl: logoUrl ?? null,
+    kicker: "Demandes en attente",
+    subject,
+    preheader,
+    body: body.join("\n"),
+    footer: { reason: `Tu reçois cet e-mail parce que tu gères ${restaurantName} sur Boosteats.`, manageUrl: appLink(`/admin/${restaurantId}`), manageLabel: "Ma console" },
+  });
 
   const text = `Quelques demandes t'attendent
 
-${totalPending} demande(s) client(s) (commandes à vérifier ou actions sociales) attendent ta
-validation — la plus ancienne depuis ${oldestLabel}.
+${totalPending} demande(s) de clients attendent ta décision — la plus ancienne depuis ${oldest}.
 
-Ça prend en général moins de 2 minutes par demande.
+Traiter les demandes : ${url}`;
 
-Traiter les demandes : ${dashboardUrl}`;
-
-  return { subject, html, text };
+  return { subject, preheader, html, text };
 }

@@ -119,7 +119,9 @@ AUTO_VALIDATE=false                 # true en dev uniquement
 ADMIN_EMAILS=                       # emails bootstrappés comme admin établissement (is_admin)
 SUPER_ADMIN_EMAILS=                 # emails bootstrappés comme super-admin plateforme (is_super_admin, ADR 0015 §7)
 RESEND_API_KEY=                     # emailing (lib/email.ts) — non configuré = envoi désactivé silencieusement
-EMAIL_FROM=                         # ex. "Boosteats <onboarding@resend.dev>"
+EMAIL_FROM=                         # repli tant que EMAIL_DOMAIN est vide — ex. "Boosteats <onboarding@resend.dev>"
+EMAIL_DOMAIN=                       # ADR 0063 — sous-domaine d'envoi vérifié chez Resend, ex. mail.boosteats.tech
+EMAIL_REPLY_TO=                     # ADR 0063 — boîte réelle qui reçoit les réponses, ex. contact@boosteats.tech (jamais celle d'un restaurant)
 NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://worldcup-loyalty.vercel.app
 ANTHROPIC_API_KEY=                  # vision : OCR ticket, découverte clé ticket, suggestions menu, détection de design (m48)
 NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun script Google, aucune bannière cookies, CSP fermée
@@ -140,6 +142,13 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun
 - `/platform` est un espace à quatre onglets (Réseau · Chiffres · Backlog · Membres), navigation portée par `app/platform/layout.tsx` ; chaque page garde son propre contrôle `is_super_admin`
 - Le CA réseau ne figure QUE sur `/platform/stats` — jamais côté membre (ADR 0007), jamais chez un restaurateur pour un autre établissement (ADR 0015 §7)
 - Backlog (`platform_backlog`) : priorité **calculée** (`impact ÷ effort`), jamais saisie
+
+### ADR 0063 — Messages du programme pilotés depuis la plateforme
+- Tout e-mail part du kit **`lib/email-templates/kit.ts`** (`memberShell` / `proShell`) : textes venus de la base échappés (`esc`), texte d'aperçu, version texte, pied de page qui dit pourquoi on le reçoit. `layout.ts` n'existe plus
+- **Membre** : aux couleurs de SON établissement, bonne nouvelle en vert fixe (jamais `brand_accent`), zéro euro sauf les 10 € du retrait, jamais « scanner » pour le ticket — vérifié par `lib/email-templates/fixtures.test.ts` sur le rendu de chaque gabarit : tout nouveau gabarit membre y ajoute sa fixture
+- **Expéditeur** (`lib/email-sender.ts`) : nom de l'établissement pour un membre, Boosteats pour un restaurateur ; **réponses vers la plateforme (`EMAIL_REPLY_TO`), jamais vers le restaurant** (fuite d'adresse, ADR 0025), jamais de « no-reply »
+- Séquences **éteintes par défaut**, allumées par séquence × établissement depuis `/platform` ; un e-mail de séquence par membre et par semaine ; arrêt par séquence ; **pas de pixel d'ouverture** — l'effet se mesure contre un groupe témoin de 10 %
+- Relances d'usage du programme = messages du programme (ADR 0039 précisé) ; une **promo par e-mail** exige une case de consentement distincte (la case actuelle dit « push et WhatsApp »)
 
 ### ADR 0011 — Coupon de récupération anti-fraude
 - **Un seul cadeau actif** par membre à la fois — Option B : si une récompense est `available`, aucune nouvelle n'est créée jusqu'à ce qu'elle soit `redeemed` ou `expired`

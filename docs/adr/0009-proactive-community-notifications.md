@@ -1,6 +1,6 @@
 # ADR 0009 — Notifications d'incitation à commander basées sur le score communautaire
 
-**Statut** : Accepté
+**Statut** : Accepté — complété par l'[ADR 0063](0063-sequences-de-messages-pilotees-par-la-plateforme.md) (2026-09-18) : séquences e-mail pilotées depuis la plateforme, carte in-app durable, mesure de l'effet par groupe témoin.
 
 ## Contexte
 
