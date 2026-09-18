@@ -21,6 +21,9 @@ export function describeUploadFailure(
     return "La photo est trop lourde pour être envoyée. Reprends-la directement depuis l'app (elle sera allégée automatiquement), ou choisis une photo plus légère.";
   }
   if (status === 429) {
+    // Notre serveur dit pourquoi (limite de 2 tickets par jour, plafond de
+    // lectures) ; un 429 sans message vient de la plateforme.
+    if (serverMessage && serverMessage.trim()) return serverMessage.trim();
     return "Trop d'essais en peu de temps. Attends quelques minutes avant de réessayer.";
   }
   if (status === 401) {

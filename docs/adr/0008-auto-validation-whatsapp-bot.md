@@ -2,6 +2,8 @@
 
 **Statut** : Accepté — amendé par l'ADR 0052 (le numéro de commande n'est plus le seul verrou anti-doublon : empreinte de contenu + photo en signaux complémentaires) et par l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (l'OCR serveur est la source des VALEURS — montant et numéro —, plus seulement du flagging ; aucune saisie côté membre)
 
+> **Amendé le 2026-09-18 (décision du porteur — les restaurateurs n'ont pas le temps de valider)** : un ticket est validé automatiquement dès que le numéro de commande et le total sont lus et que rien n'est suspect ; l'en-tête ne compte plus (depuis #143) et **le plancher de 8 € est supprimé** (la moitié des validations manuelles de Kraainem en septembre étaient des tickets parfaits sous 8 €). **Deux tickets par client et par jour** au plus (heure de Bruxelles) : le troisième est refusé avant la lecture, le client l'envoie le lendemain. La règle « 3+ le même jour → file » est remplacée par **« 6 tickets ou plus sur 7 jours → file »** (motif `frequent_submitter` : employé qui enregistre à son nom les tickets oubliés). Restent en file : montant > 200 €, lecture incomplète, doublon possible (ADR 0052). Règles dans `lib/ticket-limits.ts`.
+
 ## Contexte
 
 La validation humaine de chaque ticket de caisse crée deux problèmes :

@@ -46,6 +46,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 ### ADR 0008 + 0019 — Validation automatique des tickets
 - `duplicate_key` = **`restaurant_id:clé de commande`** — la clé est définie par `restaurant_receipt_config` (découverte à l'onboarding, ADR 0019), fallback Bestelnummer legacy si aucune config
 - Le Bestelnummer `YYYY-MM-DD/NNN/NNNNN` n'est plus codé en dur — ne jamais le réintroduire dans le prompt OCR ou la validation
+- **Validation automatique (ADR 0008 amendé 2026-09-18)** : numéro + total lus et rien de suspect → `validated`, quel que soit le montant (plus de plancher 8 €). **2 tickets par client et par jour** max (refus avant lecture, `lib/ticket-limits.ts`) ; **6+ tickets sur 7 jours → file** (`frequent_submitter`). En file : > 200 €, lecture incomplète, doublon possible
 - Délai artificiel 3–5s côté client avec message "Vérification en cours..."
 - Jamais les mots "automatique" ou "instantané" côté client
 - **ADR 0058 — le ticket ne se corrige pas** : `/api/orders` n'accepte qu'une photo et n'utilise **que la lecture OCR serveur** pour le montant et la clé ; tout `amount` / `order_number` venu du client est ignoré. Lecture incomplète (total, clé, année réparée) → 422 « reprends la photo », rien n'est créé. Ne jamais réintroduire de saisie ou de correction côté membre, ni de route acceptant des valeurs sans photo
