@@ -1,6 +1,6 @@
 # ADR 0043 — Landing publique : nommer un article réel, tiré au hasard par tranche de prix
 
-**Statut** : Accepté — amende [ADR 0042](0042-landing-price-category-preview.md)
+**Statut** : Remplacé par l'[ADR 0062](0062-la-vitrine-dit-ce-que-le-ticket-rapporte.md) (2026-09-18) — Accepté — amende [ADR 0042](0042-landing-price-category-preview.md)
 
 ## Contexte
 
