@@ -8,6 +8,7 @@ import { RedeemButton } from "./RedeemButton";
 import { foodIconUrl } from "@/lib/food-icon";
 import { pointsForOrder } from "@/lib/points-model";
 import { BankButton } from "./BankButton";
+import { claimDeadline, claimOpensAt, redemptionRule } from "@/lib/reward-window";
 
 // Montant de la commande d'origine (jointure RLS own-read) — sert à
 // afficher les points de réserve avant le choix « Mettre de côté »
@@ -157,7 +158,10 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
   // deviner les euros.
   const bankPoints  = reward.orders ? pointsForOrder(Number(reward.orders.amount)) : null;
 
-  const expiresAt = new Date(new Date(reward.created_at).getTime() + 48 * 60 * 60 * 1000);
+  // ADR 0011 amendé — un cadeau de ticket s'ouvre 4 h après le ticket, puis
+  // reste 48 h (lib/reward-window, même règle que le serveur).
+  const opensAt = claimOpensAt(reward.created_at, reward.source);
+  const expiresAt = claimDeadline(reward.created_at, reward.source);
   const hoursLeft = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)));
   const isUrgent  = isAvailable && hoursLeft <= 6;
 
@@ -205,10 +209,11 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
             ? "Expire très bientôt !"
             : isUrgent
             ? `Plus que ${hoursLeft}h pour récupérer !`
-            : `Expire le ${expiresAt.toLocaleDateString("fr-BE", { day: "numeric", month: "short" })} à ${expiresAt.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}`
+            : `Expire le ${expiresAt.toLocaleDateString("fr-BE", { day: "numeric", month: "short", timeZone: "Europe/Brussels" })} à ${expiresAt.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels" })}`
           }
         </div>
       )}
+      {isAvailable && <p className="text-xs text-gray-600 mb-2">{redemptionRule(reward.source)}</p>}
 
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
         <p className="text-xs text-gray-400">
@@ -221,7 +226,7 @@ function RewardCard({ reward }: { reward: RewardWithOrder }) {
         {isAvailable ? (
           <span className="flex items-center gap-2">
             {canBank && <BankButton points={bankPoints} />}
-            <RedeemButton />
+            <RedeemButton opensAt={opensAt.toISOString()} />
           </span>
         ) : isRedeemed ? (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">

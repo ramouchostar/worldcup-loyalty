@@ -14,6 +14,7 @@ import { prepareReceiptImage } from "@/lib/receipt-image-client";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
 import type { MissingParts } from "@/lib/ticket-auto-send";
+import { redemptionRule } from "@/lib/reward-window";
 import { OPEN_RECEIPT_CAMERA_EVENT } from "@/lib/open-camera-event";
 import ReceiptCamera, { inAppCameraAvailable, type CameraFailure } from "@/components/member/ReceiptCamera";
 import {
@@ -734,9 +735,12 @@ export default function SubmitOrderClient({
               className="w-28 h-28 mx-auto mb-3 drop-shadow-lg"
             />
           )}
-          <h2 className="text-2xl font-black mb-5">
+          <h2 className={`text-2xl font-black ${reward ? "mb-1" : "mb-5"}`}>
             {reward ? `${reward} débloqué !` : "Belle photo !"}
           </h2>
+          {/* ADR 0011 amendé (terrain Houba) — le cadeau paie la PROCHAINE
+              visite, pas la commande qui vient d'avoir lieu. */}
+          {reward && <p className="text-sm text-white/85 mb-5">{redemptionRule("order")}</p>}
           <div className="flex items-center justify-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={COIN_EMOJI} alt="" className="w-10 h-10" />

@@ -245,7 +245,8 @@ export function PostTicketSheet({
   // jamais un euro (ADR 0028).
   const cadeau = reward ? `ton ${reward}` : "ton cadeau";
   const titre = reward
-    ? `${reward} — à récupérer au comptoir`
+    ? // ADR 0011 amendé — jamais pendant la même visite.
+      `${reward} — à ta prochaine visite`
     : pending
       ? "On te tient au courant"
       : "Et maintenant ?";

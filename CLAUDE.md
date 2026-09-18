@@ -32,7 +32,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 ### ADR 0007 — Le client ne voit jamais d'euros ni de seuil CA
 - Score communautaire → toujours en **points** (jamais `€`, jamais `CA`, jamais `chiffre d'affaires`)
 - "CA total", "objectif restaurant", "chiffre d'affaires" → **jamais visibles côté client**
-- Dépenses personnelles du membre → **en points aussi** (plus AUCUN euro côté client, même perso) — **amendé par ADR 0028**. Seule exception : le montant du ticket à la soumission — sa **saisie**, et sa **relecture** à l'aperçu OCR (« Lu sur ton ticket : 36,10 € », petit, sous les points, jamais un seuil ni un écart — ADR 0048 §3)
+- Dépenses personnelles du membre → **en points aussi** (plus AUCUN euro côté client, même perso) — **amendé par ADR 0028**. Seule exception : le montant du ticket à la soumission — sa **saisie**, et sa **relecture** à l'aperçu OCR (« Lu sur ton ticket : 36,10 € », petit, sous les points, jamais un seuil ni un écart — ADR 0048 §3) ; et la **commande minimum de 10 € pour récupérer un cadeau** (condition de retrait, `REDEMPTION_MIN_ORDER_EUR`, ADR 0007/0011 amendés le 2026-09-18)
 - Score d'équipe = **somme de points courbés** (non-linéaires), plus `membres × euros` (ADR 0028) → `score ÷ membres` ne redonne pas d'euros ; points **non-convertibles** en euros
 - Double verrou → invisible côté client, message neutre si palier verrouillé
 
@@ -143,9 +143,9 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun
 
 ### ADR 0011 — Coupon de récupération anti-fraude
 - **Un seul cadeau actif** par membre à la fois — Option B : si une récompense est `available`, aucune nouvelle n'est créée jusqu'à ce qu'elle soit `redeemed` ou `expired`
-- **48h** pour récupérer avant expiration automatique
+- **Jamais pendant la même visite** (amendé 2026-09-18) : un cadeau de ticket s'ouvre **4 h après le ticket**, puis reste **48 h** ; anniversaire et réserve : 48 h tout de suite. Règles dans `lib/reward-window.ts`, partagées par `/api/redemption/generate` (425 avant l'ouverture), le cron d'expiration, les rappels et les écrans
 - **Coupon 10 minutes** avec timer actif (countdown + horloge live mise à jour chaque seconde) — anti-capture d'écran
-- **€10 minimum** sur la commande de récupération — règle opérationnelle cashier, non technique
+- **10 € minimum** sur la commande de récupération — vérifié par le caissier, **écrit côté membre** partout où un cadeau attend (`redemptionRule`)
 - **Cashier valide** depuis `/admin/coupon/[token]` → bouton "Cadeau remis" → idempotent
 - Table `redemption_tokens` : `token TEXT UNIQUE`, `expires_at = NOW() + 10 min`, `redeemed_at`
 - Index `UNIQUE` sur `pending_rewards (user_id, restaurant_id) WHERE status = 'available'`

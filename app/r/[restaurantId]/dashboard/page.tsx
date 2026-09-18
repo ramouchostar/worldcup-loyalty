@@ -21,6 +21,7 @@ import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
 import { BankButton } from "@/app/r/[restaurantId]/my-rewards/BankButton";
 import { ExchangeButton } from "@/app/r/[restaurantId]/reserve/ExchangeButton";
+import { claimDeadline, claimOpensAt, isClaimNotYetOpen, redemptionRule } from "@/lib/reward-window";
 
 // ADR 0059 — l'accueil membre répond à trois questions, dans l'ordre, sans
 // faire défiler : qu'est-ce que j'ai (un cadeau qui attend, et le choix
@@ -36,7 +37,7 @@ type MembershipWithTeam = {
 
 // Cadeau disponible, colonnes explicites : jamais les *_cost (ADR 0007).
 // `orders.amount` sert au crédit de réserve affiché avant « Mettre de côté ».
-type AvailableReward = Pick<PendingReward, "id" | "order_id" | "solo_item" | "community_item" | "advancement_item" | "created_at"> & {
+type AvailableReward = Pick<PendingReward, "id" | "order_id" | "solo_item" | "community_item" | "advancement_item" | "created_at" | "source"> & {
   orders: { amount: number } | null;
 };
 
@@ -81,7 +82,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
       .limit(10),
     supabase
       .from("pending_rewards")
-      .select("id, order_id, solo_item, community_item, advancement_item, created_at, orders(amount)")
+      .select("id, order_id, solo_item, community_item, advancement_item, created_at, source, orders(amount)")
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
       .eq("status", "available")
@@ -130,7 +131,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
   // ── Ce que j'ai : le cadeau qui attend (un seul actif, ADR 0011) ────────────
   const available = (availableRaw as unknown as AvailableReward[] | null) ?? [];
   const gift = available[0] ?? null;
-  const giftExpiresAt = gift ? new Date(new Date(gift.created_at).getTime() + 48 * 60 * 60 * 1000) : null;
+  // ADR 0011 amendé — un cadeau de ticket s'ouvre 4 h après le ticket (jamais
+  // pendant la même visite), puis reste 48 h (lib/reward-window).
+  const giftOpensAt = gift ? claimOpensAt(gift.created_at, gift.source) : null;
+  const giftLocked = gift ? isClaimNotYetOpen(gift.created_at, gift.source) : false;
+  const giftExpiresAt = gift ? claimDeadline(gift.created_at, gift.source) : null;
   const giftHoursLeft = giftExpiresAt ? Math.max(0, Math.floor((giftExpiresAt.getTime() - Date.now()) / 3_600_000)) : 0;
   // Seuls les cadeaux issus d'un ticket se mettent de côté (ADR 0021), crédités
   // en points courbés du ticket (ADR 0060).
@@ -212,7 +217,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         // rouge chez Kraainem, lu comme une alerte sur une bonne nouvelle.
         <section className="rounded-2xl border-2 border-green-200 bg-green-50 p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-green-800 text-center">
-            Ton cadeau t&apos;attend au comptoir
+            {giftLocked ? "Ton cadeau t'attend à ta prochaine visite" : "Ton cadeau t'attend au comptoir"}
           </p>
           {gift.solo_item && (
             <div className="flex flex-col items-center mt-3">
@@ -236,11 +241,13 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
               ? "Expire très bientôt !"
               : giftHoursLeft <= 6
                 ? `Plus que ${giftHoursLeft} h pour le récupérer`
-                : `À récupérer avant le ${giftExpiresAt!.toLocaleDateString("fr-BE", { day: "numeric", month: "long" })} à ${giftExpiresAt!.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}`}
+                : `À récupérer avant le ${giftExpiresAt!.toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" })} à ${giftExpiresAt!.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels" })}`}
           </p>
+          {/* ADR 0011 amendé — la règle de retrait, écrite (exception ADR 0007). */}
+          <p className="text-center text-xs text-gray-700 mt-1">{redemptionRule(gift.source)}</p>
           {/* ADR 0021 — le choix se fait ICI, pas seulement dans Mes cadeaux. */}
           <div className="mt-4 space-y-2">
-            <RedeemButton size="lg" />
+            <RedeemButton size="lg" opensAt={giftOpensAt!.toISOString()} />
             {giftBankPoints !== null && <BankButton points={giftBankPoints} size="lg" />}
           </div>
           {/* ADR 0011 — un seul cadeau actif : sans cette phrase, le membre
