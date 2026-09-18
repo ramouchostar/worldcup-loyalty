@@ -1,7 +1,7 @@
 import { Lock } from "lucide-react";
 import { Card } from "./Card";
 
-// Page réservée à un rôle — le bloc que /settings, /thresholds et /team-tiers
+// Page réservée à un rôle — le bloc que /settings et /thresholds
 // recopiaient mot pour mot (ADR 0041 §6 : les trois surfaces financières sont
 // réservées aux gérants et managers).
 //

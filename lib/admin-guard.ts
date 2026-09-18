@@ -101,7 +101,7 @@ export async function requireAdmin(restaurantId: string): Promise<GuardResult> {
 }
 
 // ADR 0041 §6 — variante de requireAdmin pour les trois routes API des pages
-// restreintes (thresholds, team-tiers, settings) : un siège équipe est bien
+// restreintes (thresholds, settings) : un siège équipe est bien
 // admin de l'établissement (isEstablishmentAdmin), mais pas autorisé sur ces
 // surfaces précises. Défense en profondeur derrière la garde déjà posée
 // côté page (canManageEstablishment) — un appel direct à l'API doit être

@@ -135,8 +135,6 @@ export type AnalyticsEventMap = {
   };
   /** Le membre déclenche son coupon de récupération 10 min (ADR 0011). */
   reward_redeem_started: { restaurant_id: string };
-  /** Le membre met son cadeau de côté dans sa réserve (ADR 0021). */
-  reward_banked: { restaurant_id: string };
   /** Cadeau choisi au catalogue avec ses points (ADR 0061) — ni l'article ni le prix. */
   points_gift_chosen: { restaurant_id: string };
   /** Une micro-récompense sociale est réclamée (ADR : avis Google, IG, TikTok, FB). */

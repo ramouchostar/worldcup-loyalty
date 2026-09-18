@@ -25,8 +25,7 @@ En conséquence :
   les paliers solo : `lt_15`, `15_24`, `25_39`, `40_59`, `60_plus` ;
 - aucun paramètre `value`, `currency`, `total_revenue`, `target_revenue`,
   `community_score`, `cost_price` n'est jamais émis ;
-- `reward_banked` n'envoie pas le nombre de points crédités — ce sont les
-  points courbés du ticket (ADR 0060), tirés du montant.
+- `points_gift_chosen` n'envoie ni l'article ni son prix en points.
 
 > Corollaire : les rapports « e-commerce » et « revenu » de GA4 resteront vides,
 > et c'est voulu. Le chiffre d'affaires se lit dans la console restaurateur, qui
@@ -91,7 +90,6 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `order_submitted` | `restaurant_id`, `amount_band`, `has_receipt_photo` | Ticket accepté par le serveur — envoyé automatiquement, photo seule, lue une seule fois ; `amount_band` calculée par le serveur (ADR 0058 §4) |
 | `order_result` | `restaurant_id`, `result` | Verdict rendu au membre |
 | `reward_redeem_started` | `restaurant_id` | Coupon 10 min généré (ADR 0011) |
-| `reward_banked` | `restaurant_id` | Cadeau mis en réserve (ADR 0021) |
 | `points_gift_chosen` | `restaurant_id` | Cadeau choisi au catalogue « Mes points » (ADR 0061) — ni l'article ni le prix en points |
 | `micro_reward_claimed` | `channel` | Action sociale réclamée |
 | `referral_shared` | `channel` | Partage du lien de parrainage |

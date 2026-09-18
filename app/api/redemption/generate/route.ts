@@ -65,8 +65,22 @@ export async function POST(request: Request) {
       .update({ status: "expired" })
       .eq("id", reward.id)
       .eq("status", "available");
+    // ADR 0061 — un cadeau payé avec des points rend ses points en expirant.
+    // Le balayage horaire ne rembourse que ce qu'il fait expirer lui-même :
+    // sans cet appel, un cadeau clos ICI gardait les points du membre.
+    // Idempotent côté SQL (un remboursement au plus) ; le balayage rattrape
+    // un échec.
+    const paidWithPoints = reward.source === "catalog" || reward.source === "saver";
+    if (paidWithPoints) {
+      const { error: refundError } = await admin.rpc("refund_catalog_reward", { p_reward_id: reward.id });
+      if (refundError) console.error("[redemption] remboursement impossible:", reward.id, refundError.message);
+    }
     return NextResponse.json(
-      { error: "Ce cadeau n'est plus récupérable. Ta prochaine commande t'en ouvre un nouveau." },
+      {
+        error: paidWithPoints
+          ? "Ce cadeau n'est plus récupérable : tes points te sont rendus, tu peux en choisir un autre."
+          : "Ce cadeau n'est plus récupérable.",
+      },
       { status: 410 }
     );
   }

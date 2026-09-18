@@ -1,7 +1,7 @@
 # ADR 0061 — Les cadeaux se choisissent avec ses points
 
 **Statut** : Accepté — **en service depuis la bascule du 2026-09-18** (PR 2 fondations,
-PR 3 catalogue, PR 4 bascule, PR 5 équipes livrées ; reste la PR 6 nettoyage).
+PR 3 catalogue, PR 4 bascule, PR 5 équipes, PR 6 nettoyage livrées — mise en œuvre terminée).
 Décisions du porteur prises le 2026-09-18. Remplace désormais :
 l'[ADR 0006](0006-three-layer-reward-system.md) (plus de cadeau par ticket en trois
 couches), l'[ADR 0021](0021-personal-points-reserve.md) et
@@ -196,3 +196,23 @@ ramène l'ancien modèle.
 - **Paliers « d'avancement »** (`team_tiers`, ADR 0014) : plus lus. Le lien de la
   console est retiré ; les paliers d'équipe se règlent dans l'écran Menu. Le code mort
   part avec la PR 6.
+
+## Notes de mise en œuvre (nettoyage, PR 6, 2026-09-18)
+
+- Retirés : « Mettre de côté » (`/api/points/bank`, bouton), l'échange de gros cadeaux
+  `saver`, la page et l'API des paliers d'avancement (`team_tiers`), la relance « commande
+  un peu plus » (`findTierNudge`), les anciennes résolutions de couches et leurs tests.
+  Les fonctions SQL devenues inutiles restent en base, verrouillées au rôle serveur.
+- **Remboursement fiabilisé** : un cadeau payé en points que la génération du coupon
+  déclare expiré n'était pas remboursé (seul le balayage horaire remboursait, et seulement
+  ce qu'il faisait expirer lui-même). Désormais la génération rembourse, et le balayage
+  repasse sur tout cadeau payé en points expiré depuis 14 jours (remboursement
+  idempotent). Aucun client n'était touché au 2026-09-18.
+- **Console** : une commande ne se valide ou ne se rejette plus qu'**en attente**.
+  Revalider une commande validée recomptait son chiffre au budget ; la rejeter après
+  validation lui laissait ses points.
+- **Sandbox** : la commande test comptait deux fois sa dépense dans l'équipe (le
+  déclencheur de score tourne aussi à l'insertion depuis m35).
+- Glossaire `CONTEXT.md` : « Mes points », « Points d'équipe », « Palier d'équipe »,
+  « Cadeau d'équipe », « Cadeau d'accueil », « Catalogue » ; « Réserve », « Palier solo »,
+  « Bonus communautaire » marqués historiques.

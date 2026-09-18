@@ -1,42 +1,6 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
 import { incrementRewardsCost } from "./budget";
-import type { Reward } from "@/types";
-import { coverageSatisfied, type TeamCoverage } from "./reward-sizing";
 import { awardCrossedTeamTiers } from "./team-gifts";
-
-// Double lock: rewards only unlock if BOTH conditions are met:
-// 1. Community score exceeds the tier threshold
-// 2. Restaurant revenue threshold is unlocked (is_unlocked = true)
-// Family Bucket (level 5) adds a third condition: min_member_count.
-// Couverture d'équipe (ADR 0017) : un palier collectif distribué à toute
-// l'équipe doit être financé par la marge budget sur sa dépense cumulée.
-export async function getUnlockedRewards(
-  restaurantId: string,
-  teamScore: number,
-  memberCount: number,
-  restaurantThresholdUnlocked: boolean,
-  coverage?: TeamCoverage
-): Promise<Reward[]> {
-  if (!restaurantThresholdUnlocked) return [];
-
-  // F5 (sécurité) — cost_euros est réservé au service role (ADR 0007), et
-  // cette fonction s'en sert pour la couverture (ADR 0017). Lecture du
-  // catalogue via l'admin client (données non user-scopées).
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("rewards")
-    .select("*")
-    .eq("is_active", true)
-    .eq("restaurant_id", restaurantId)
-    .lte("score_threshold", teamScore)
-    .order("level", { ascending: true });
-
-  return (data ?? []).filter(
-    (r: Reward) =>
-      memberCount >= r.min_member_count &&
-      (!coverage || coverageSatisfied(coverage, Number(r.cost_euros ?? 0)))
-  );
-}
 
 // Active member = at least 1 validated order
 export async function isMemberActive(userId: string): Promise<boolean> {
@@ -50,7 +14,7 @@ export async function isMemberActive(userId: string): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
-// ─── 3-layer reward calculation (ADR 0006) ───────────────────────────────────
+// ─── Grilles de cadeaux (ADR 0006, remplacé par l’ADR 0061) ─────────────
 
 type RewardItem = { item: string | null; cost: number };
 
@@ -77,8 +41,8 @@ const LEGACY_COMMUNITY_TIERS: GridTier[] = [
   { min: 6000, item: "Menu 4 Tenders", cost: 1.93 },
 ];
 
-// Couche 3 (avancement Coupe du Monde) retirée — remplacée par les paliers
-// d'équipe sur la dépense cumulée (ADR 0014, voir lib/team-tiers.ts).
+// Couches 2 et 3 : un cadeau d'équipe par palier franchi, pour chaque membre
+// (ADR 0061 §7, lib/team-gifts.ts) — plus rien à résoudre ticket par ticket.
 
 // ─── Grille pilotée par le catalogue (ADR 0013) ─────────────────────────────
 // Les couches solo & communautaire lisent reward_tiers + menu_items. Le
@@ -133,69 +97,12 @@ export async function loadRewardGrid(restaurantId: string): Promise<RewardGrid> 
   return grid;
 }
 
-// Palier le plus élevé dont le seuil est atteint (tiers triés croissants)
-function pickTier(tiers: GridTier[], value: number): RewardItem {
-  let best: GridTier | null = null;
-  for (const t of tiers) {
-    if (value >= t.min) best = t;
-    else break;
-  }
-  return best ? { item: best.item, cost: best.cost } : { item: null, cost: 0 };
-}
-
-// Variante avec couverture (ADR 0017) : palier le plus élevé atteint au score
-// ET dont la distribution à toute l'équipe est couverte par la marge budget.
-// Cascade : un palier atteint mais non couvert retombe sur le palier couvert
-// inférieur — invisible côté client (ADR 0007).
-function pickCoveredTier(tiers: GridTier[], value: number, coverage?: TeamCoverage): RewardItem {
-  let best: GridTier | null = null;
-  for (const t of tiers) {
-    if (value < t.min) break;
-    if (!coverage || coverageSatisfied(coverage, t.cost)) best = t;
-  }
-  return best ? { item: best.item, cost: best.cost } : { item: null, cost: 0 };
-}
-
-// Couche 1 — pilotée par catalogue (le fallback hérité est déjà injecté par
-// loadRewardGrid pour le resto legacy). Grille vide = pas de cadeau.
-export function resolveSoloReward(grid: RewardGrid, amount: number): RewardItem {
-  return pickTier(grid.solo, amount);
-}
-
 // ADR 0061 §4 — le cadeau d'accueil du premier ticket : le premier cadeau de
 // la grille solo (le plus petit palier), quel que soit le montant. Grille vide
 // = pas de cadeau d'accueil (le ticket rapporte quand même ses points).
 export function welcomeReward(grid: RewardGrid): RewardItem {
   const first = [...grid.solo].sort((a, b) => a.min - b.min)[0];
   return first ? { item: first.item, cost: first.cost } : { item: null, cost: 0 };
-}
-
-export type NextSoloTier = { item: string; pct: number };
-
-// Prochain palier solo au-dessus du panier habituel (dashboard, hero card) —
-// nom du cadeau uniquement, jamais de seuil ni d'écart en euros/points
-// affiché : l'ADR 0028 §6 retire explicitement le « ~€25 » de cet aperçu.
-// `pct` ne sert qu'à remplir une barre visuelle (proportion entre le palier
-// actuel et le suivant), jamais rendu comme un chiffre lisible.
-export function nextSoloTier(grid: RewardGrid, amount: number): NextSoloTier | null {
-  const target = grid.solo.find((t) => t.min > amount);
-  if (!target) return null;
-  const current = grid.solo.filter((t) => t.min <= amount).pop();
-  const base = current?.min ?? 0;
-  const pct = target.min > base ? Math.max(0, Math.min(100, Math.round(((amount - base) / (target.min - base)) * 100))) : 0;
-  return { item: target.item, pct };
-}
-
-// Couche 2 — même logique. Double verrou conservé ; la couverture d'équipe
-// (ADR 0017) s'ajoute comme troisième verrou.
-export function resolveCommunityBonus(
-  grid: RewardGrid,
-  score: number,
-  restaurantUnlocked: boolean,
-  coverage?: TeamCoverage
-): RewardItem {
-  if (!restaurantUnlocked) return { item: null, cost: 0 };
-  return pickCoveredTier(grid.community, score, coverage);
 }
 
 // Cadeau créé à la validation d'un ticket (ADR 0061).

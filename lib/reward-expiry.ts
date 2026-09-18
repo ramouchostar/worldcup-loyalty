@@ -23,6 +23,8 @@ import { REWARD_CLAIM_WINDOW_HOURS, REWARD_UNLOCK_DELAY_HOURS, TEAM_GIFT_CLAIM_W
 export { REWARD_CLAIM_WINDOW_HOURS };
 
 const HOUR_MS = 3_600_000;
+/** Rattrapage des remboursements : cadeaux payés en points expirés depuis au plus N jours. */
+const REFUND_CATCH_UP_DAYS = 14;
 
 export type ExpiryResult = { expired: number };
 
@@ -86,11 +88,19 @@ export async function expireStaleRewards(now: Date = new Date()): Promise<Expiry
 
   // ADR 0061 — un cadeau payé avec des points et jamais récupéré REND ses
   // points (et son coût au budget) : le client ne perd rien à avoir oublié.
-  // Best-effort par cadeau, idempotent côté SQL (un remboursement au plus).
-  const paidWithPoints = ((others.data ?? []) as { id: string; source: string }[]).filter(
-    (r) => r.source === "catalog" || r.source === "saver"
-  );
-  for (const reward of paidWithPoints) {
+  // Idempotent côté SQL (un remboursement au plus) : on repasse donc sur
+  // TOUS les cadeaux payés en points expirés récemment, pas seulement ceux
+  // de ce passage — un échec d'appel, ou un cadeau clos par la génération du
+  // coupon, est rattrapé à l'heure suivante.
+  const refundSince = new Date(now.getTime() - REFUND_CATCH_UP_DAYS * 24 * HOUR_MS).toISOString();
+  const { data: expiredPaid, error: paidError } = await admin
+    .from("pending_rewards")
+    .select("id")
+    .eq("status", "expired")
+    .in("source", ["catalog", "saver"])
+    .gte("created_at", refundSince);
+  if (paidError) console.error("[reward-expiry] cadeaux à rembourser illisibles:", paidError.message);
+  for (const reward of (expiredPaid ?? []) as { id: string }[]) {
     const { error } = await admin.rpc("refund_catalog_reward", { p_reward_id: reward.id });
     if (error) console.error("[reward-expiry] remboursement impossible:", reward.id, error.message);
   }

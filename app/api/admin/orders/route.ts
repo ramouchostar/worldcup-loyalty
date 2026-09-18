@@ -147,15 +147,23 @@ export async function PATCH(request: NextRequest) {
       ? { status: "validated", validated_at: now, rejection_reason: null }
       : { status: "rejected", rejection_reason: rejection_reason.trim(), validated_at: null };
 
+  // Seule une commande EN ATTENTE se tranche (comme le lot, et comme l'écran) :
+  // revalider une commande validée recomptait son chiffre au budget (ADR 0012)
+  // et renvoyait le push ; rejeter une commande validée lui laissait ses
+  // points personnels et ses points d'équipe (ADR 0061).
   const { data: updated, error } = await admin
     .from("orders")
     .update(update)
     .eq("id", id)
     .eq("restaurant_id", restaurantId) // ADR sécurité F1 — la commande doit appartenir à CET établissement
+    .eq("status", "pending")
     .select("user_id, amount, team_id")
-    .single();
+    .maybeSingle();
 
   if (error) return NextResponse.json({ error: "Erreur lors de la mise à jour." }, { status: 500 });
+  if (!updated) {
+    return NextResponse.json({ error: "Cette commande a déjà été traitée — la liste est mise à jour." }, { status: 409 });
+  }
 
   if (updated) {
     if (action === "validate") {
