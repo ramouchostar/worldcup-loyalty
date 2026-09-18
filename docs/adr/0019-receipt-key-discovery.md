@@ -56,3 +56,14 @@ Format `"<restaurant_id>:<clé>"` (clé synthétique incluse : `"<restaurant_id>
 ### Opérationnel
 - m32 à exécuter au moment du déploiement du code qui préfixe `duplicate_key` (fenêtre courte acceptable, UPDATE idempotent).
 - Un resto peut refaire l'étape en revisitant `/become-a-partner/<id>/receipt` (changement de caisse).
+
+## Amendement 2026-09-18 — la consigne de position compte
+
+La consigne `position_hint` est lue par l'OCR (« usually … »). La valeur par défaut du
+Bestelnummer disait « near the top of the receipt » : faux, il est **en bas**, dans le
+bloc de paiement. Houba et De Bue, créés avec ce défaut le 2026-08-18, voyaient leurs
+petits tickets de borne refusés (Houba, 17/09 : 14 refus pour 7 acceptés) — ces tickets
+n'impriment pas le nom du resto en haut, la clé est leur seule preuve. Défaut du code
+corrigé (`LEGACY_BESTELNUMMER_CONFIG`) et lignes existantes réalignées sur Kraainem
+(migration `20260918-0250-bestelnummer-en-bas-du-ticket.sql`). Une consigne de position
+se vérifie sur une vraie photo de ticket avant l'ouverture d'un établissement.
