@@ -1,9 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getRestaurantBudgetPct } from "./budget";
 import { getMenuItems } from "./menu";
 import { COMMUNITY_BANDS } from "./reward-bands";
 import { getAverageBasket } from "./avg-basket";
 import {
-  DEFAULT_BUDGET_PCT,
   pickBestGift,
   soloCostCap,
   suggestSoloBands,
@@ -18,7 +18,6 @@ import {
 // modèle, re-validation après.
 // Données euros : service role uniquement, jamais côté membre (ADR 0007).
 
-const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
 
 export type TierSuggestion = {
   layer: "solo" | "community";
@@ -34,9 +33,11 @@ export async function suggestRewardGrid(restaurantId: string): Promise<{
   soloBands: number[];
   note: string;
 }> {
-  const [allItems, avgBasket] = await Promise.all([
+  // Taux cadeaux de l'établissement (Kraainem 4 % depuis le 2026-09-19).
+  const [allItems, avgBasket, BUDGET_PCT] = await Promise.all([
     getMenuItems(restaurantId),
     getAverageBasket(restaurantId),
+    getRestaurantBudgetPct(restaurantId),
   ]);
   const items = allItems.filter((i) => i.is_active && i.reward_eligible);
   if (items.length === 0) {

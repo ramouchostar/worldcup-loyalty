@@ -1,9 +1,9 @@
 import { createAdminClient } from "./supabase";
+import { getRestaurantBudgetPct } from "./budget";
 import { getMenuItems } from "./menu";
 import { getAverageBasket } from "./avg-basket";
 import { COMMUNITY_BANDS } from "./reward-bands";
 import {
-  DEFAULT_BUDGET_PCT,
   jetonsGiftCostCap,
   pickBestGift,
   pickGenerousGift,
@@ -21,7 +21,6 @@ import {
 // non-destructif : ne touche jamais une configuration existante — le
 // restaurateur révise et ajuste ensuite depuis /admin/menu.
 
-const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
 
 export type DefaultConfigResult = {
   soloConfigured: boolean;
@@ -52,6 +51,8 @@ export async function applyDefaultRewardConfig(restaurantId: string): Promise<De
   const cheapestCost = costs.length > 0 ? Math.min(...costs) : 0;
 
   const avgBasket = await getAverageBasket(restaurantId);
+  // Taux cadeaux de l'établissement (Kraainem 4 % depuis le 2026-09-19).
+  const BUDGET_PCT = await getRestaurantBudgetPct(restaurantId);
   const soloBands = suggestSoloBands(avgBasket, cheapestCost, BUDGET_PCT);
 
   const admin = createAdminClient();

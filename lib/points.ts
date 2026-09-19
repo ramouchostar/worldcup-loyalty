@@ -1,5 +1,5 @@
 import { createAdminClient } from "./supabase";
-import { CATALOGUE_BUDGET_PCT, pointsGoalFrom, type CatalogueItem, type PointsGoal } from "./catalogue";
+import { pointsGoalFrom, type CatalogueItem, type PointsGoal } from "./catalogue";
 
 // ADR 0061 — « Mes points » : le solde personnel, dérivé du registre
 // point_transactions (jamais de colonne solde). Toutes les écritures passent
@@ -89,32 +89,6 @@ export async function getPointsBalance(userId: string, restaurantId: string): Pr
     return 0;
   }
   return Number(data ?? 0);
-}
-
-/**
- * Taux du catalogue de l'établissement (même ordre que la fonction SQL
- * `catalog_price_points`, qui fait foi) : réglage durable
- * `restaurant_reward_settings`, sinon budget du dernier mois, sinon 8 %.
- * Kraainem est à 4 % depuis le 2026-09-19 (cadeaux deux fois plus chers).
- */
-export async function getCataloguePct(restaurantId: string): Promise<number> {
-  const admin = createAdminClient();
-  const { data: settings } = await admin
-    .from("restaurant_reward_settings")
-    .select("catalogue_budget_pct")
-    .eq("restaurant_id", restaurantId)
-    .maybeSingle();
-  const own = Number((settings as { catalogue_budget_pct: number | null } | null)?.catalogue_budget_pct);
-  if (own > 0) return own;
-  const { data: month } = await admin
-    .from("reward_budget_tracking")
-    .select("budget_pct")
-    .eq("restaurant_id", restaurantId)
-    .order("period_month", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const monthly = Number((month as { budget_pct: number | null } | null)?.budget_pct);
-  return monthly > 0 ? monthly : CATALOGUE_BUDGET_PCT;
 }
 
 /** Ce que les points d'un membre permettent (ADR 0061 §5) — écran de succès, accueil. */

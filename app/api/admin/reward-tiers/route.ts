@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { saverCostCap, soloCostCap, DEFAULT_BUDGET_PCT } from "@/lib/reward-sizing";
+import { saverCostCap, soloCostCap } from "@/lib/reward-sizing";
+import { getRestaurantBudgetPct } from "@/lib/budget";
 import { getAverageBasket } from "@/lib/avg-basket";
 
-const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
 
 type TierInput = { layer: unknown; min_threshold: unknown; menu_item_id: unknown };
 
@@ -79,6 +79,7 @@ export async function PUT(req: Request) {
   // courbés (ADR 0060), converti en dépense estimée via le panier moyen —
   // même calcul que la re-vérification SQL `saver_cost_cap` à l'échange.
   const avgBasket = rows.some((r) => r.layer === "saver") ? await getAverageBasket(restaurantId) : 0;
+  const BUDGET_PCT = await getRestaurantBudgetPct(restaurantId);
   const capFor = (row: { layer: string; min_threshold: number }) =>
     row.layer === "saver"
       ? saverCostCap(row.min_threshold, avgBasket, BUDGET_PCT)

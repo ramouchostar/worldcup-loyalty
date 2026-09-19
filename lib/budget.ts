@@ -18,16 +18,52 @@ export function currentPeriodMonth(): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
+// Taux cadeaux propre à l'établissement (`restaurant_reward_settings`,
+// 2026-09-19 — Kraainem à 4 %) : il pilote TOUTE la logique de dimensionnement
+// de cet établissement (plafond mensuel, catalogue, paliers, jetons,
+// anniversaire, couverture d'équipe). null = pas de réglage propre.
+async function ownBudgetPct(restaurantId: string): Promise<number | null> {
+  const { data, error } = await createAdminClient()
+    .from("restaurant_reward_settings")
+    .select("budget_pct")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (error) return null; // migration 20260919-0900 pas encore appliquée
+  const pct = Number((data as { budget_pct: number | null } | null)?.budget_pct);
+  return pct > 0 ? pct : null;
+}
+
+/**
+ * Le taux cadeaux d'un établissement — seule source pour tout calcul de
+ * plafond ou de prix : réglage propre, sinon budget du mois, sinon 8 %.
+ */
+export async function getRestaurantBudgetPct(restaurantId: string): Promise<number> {
+  const own = await ownBudgetPct(restaurantId);
+  if (own) return own;
+  const { data } = await createAdminClient()
+    .from("reward_budget_tracking")
+    .select("budget_pct")
+    .eq("restaurant_id", restaurantId)
+    .order("period_month", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const monthly = Number((data as { budget_pct: number | null } | null)?.budget_pct);
+  return monthly > 0 ? monthly : DEFAULT_BUDGET_PCT;
+}
+
 export async function getBudgetStatus(restaurantId: string): Promise<BudgetStatus> {
   const admin = createAdminClient();
   const period = currentPeriodMonth();
 
-  const { data, error } = await admin
-    .from("reward_budget_tracking")
-    .select("program_revenue, rewards_cost, budget_pct")
-    .eq("restaurant_id", restaurantId)
-    .eq("period_month", period)
-    .maybeSingle();
+  const [{ data, error }, own] = await Promise.all([
+    admin
+      .from("reward_budget_tracking")
+      .select("program_revenue, rewards_cost, budget_pct")
+      .eq("restaurant_id", restaurantId)
+      .eq("period_month", period)
+      .maybeSingle(),
+    ownBudgetPct(restaurantId),
+  ]);
 
   // Fail-open si la table n'existe pas encore (m21 non appliquée) :
   // comportement pré-ADR-0012, le bonus reste actif
@@ -36,7 +72,7 @@ export async function getBudgetStatus(restaurantId: string): Promise<BudgetStatu
     return {
       programRevenue: 0,
       rewardsCost: 0,
-      budgetPct: DEFAULT_BUDGET_PCT,
+      budgetPct: own ?? DEFAULT_BUDGET_PCT,
       communityBonusActive: true,
     };
   }
@@ -51,7 +87,7 @@ export async function getBudgetStatus(restaurantId: string): Promise<BudgetStatu
 
   const programRevenue = Number(data?.program_revenue ?? 0);
   const rewardsCost = Number(data?.rewards_cost ?? 0);
-  const budgetPct = Number(data?.budget_pct ?? DEFAULT_BUDGET_PCT);
+  const budgetPct = own ?? Number(data?.budget_pct ?? DEFAULT_BUDGET_PCT);
 
   return {
     programRevenue,
