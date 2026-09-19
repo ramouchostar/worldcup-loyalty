@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { getAverageBasket } from "@/lib/avg-basket";
 import { DEFAULT_BUDGET_PCT } from "@/lib/reward-sizing";
+import { getCataloguePct } from "@/lib/points";
 
 const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
 
@@ -20,5 +21,9 @@ export async function GET(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const avgBasket = await getAverageBasket(restaurantId);
-  return NextResponse.json({ avgBasket, budgetPct: BUDGET_PCT });
+  // `cataloguePct` : le taux qui fixe réellement les prix en points (réglage
+  // par établissement, ADR 0061) — l'écran Menu affiche les mêmes prix que
+  // le membre.
+  const cataloguePct = await getCataloguePct(restaurantId).catch(() => BUDGET_PCT);
+  return NextResponse.json({ avgBasket, budgetPct: BUDGET_PCT, cataloguePct });
 }

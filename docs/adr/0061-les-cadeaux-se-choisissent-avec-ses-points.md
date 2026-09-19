@@ -216,3 +216,17 @@ ramène l'ancien modèle.
 - Glossaire `CONTEXT.md` : « Mes points », « Points d'équipe », « Palier d'équipe »,
   « Cadeau d'équipe », « Cadeau d'accueil », « Catalogue » ; « Réserve », « Palier solo »,
   « Bonus communautaire » marqués historiques.
+
+## Amendement — taux du catalogue par établissement (2026-09-19)
+
+- Le propriétaire de Kraainem trouvait le catalogue trop généreux (Magnifique Beef Menu
+  pour 51 € de tickets) et voulait que ses clients dépensent **deux fois plus** pour le
+  même cadeau. Prix = coût ÷ taux × 10 : doubler la dépense, c'est **diviser le taux par
+  deux** → **4 %** à Kraainem (Beef Menu : 1 020 points ≈ 102 € de tickets).
+- Le taux vit dans `restaurant_reward_settings.catalogue_budget_pct` (durable ; le
+  `budget_pct` mensuel repartait à 8 % chaque 1er du mois). Il ne règle **que** les prix
+  du catalogue : le plafond mensuel (ADR 0012) et la couverture des cadeaux d'équipe
+  (ADR 0017) restent à 8 %. Sans réglage : 8 %.
+- Les soldes existants de Kraainem ont été **doublés une fois** au changement (choix du
+  porteur) : personne ne perd ce qu'il avait gagné (9 membres, 2 392 → 4 784 points).
+- Le taux n'est jamais affiché au membre ; il ne voit que les prix en points.

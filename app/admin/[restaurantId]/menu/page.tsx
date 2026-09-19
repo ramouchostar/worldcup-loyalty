@@ -24,7 +24,7 @@ type Msg = { kind: "ok" | "err"; text: string; details?: string[] };
 type TierRow = { layer: string; min_threshold: number; menu_item_id: string | null; is_active: boolean };
 type Suggestion = { layer: string; threshold: number; item_name: string | null; rationale: string };
 // Données serveur des gros cadeaux de la réserve (ADR 0060) — euros, console uniquement.
-type ReserveInfo = { avgBasket: number; budgetPct: number };
+type ReserveInfo = { avgBasket: number; budgetPct: number; cataloguePct?: number };
 
 const tierKey = (layer: string, threshold: number) => `${layer}:${threshold}`;
 
@@ -576,7 +576,7 @@ export default function AdminMenuPage() {
               revient connu) est proposé aux clients, à un prix en points
               calculé pour tenir le budget cadeaux. Aucun seuil à choisir. */}
           {(() => {
-            const pct = reserveInfo?.budgetPct ?? CATALOGUE_BUDGET_PCT;
+            const pct = reserveInfo?.cataloguePct ?? reserveInfo?.budgetPct ?? CATALOGUE_BUDGET_PCT;
             const rows = items
               .filter((i) => i.is_active && i.reward_eligible && Number(i.cost_price) > 0)
               .map((i) => ({ id: i.id, name: i.name, cost: Number(i.cost_price), points: catalogPricePoints(Number(i.cost_price), pct) ?? 0 }))
@@ -587,7 +587,7 @@ export default function AdminMenuPage() {
                 <p className="text-xs text-ink-faint mb-2">
                   Tes clients gagnent des points à chaque ticket et choisissent eux-mêmes leur cadeau parmi les
                   articles « au catalogue ». Le prix en points est calculé depuis le prix de revient pour tenir ton
-                  budget cadeaux ({Math.round(pct * 100)} %). Un clic sur « au catalogue » dans la liste ci-dessus
+                  taux cadeaux du catalogue ({Math.round(pct * 100)} % des dépenses). Un clic sur « au catalogue » dans la liste ci-dessus
                   retire l&apos;article, ou l&apos;y remet.
                 </p>
                 {rows.length > 0 ? (
