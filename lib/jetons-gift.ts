@@ -1,19 +1,18 @@
 import { createAdminClient } from "./supabase";
 import { getAverageBasket } from "./avg-basket";
+import { getRestaurantBudgetPct } from "./budget";
 import {
-  DEFAULT_BUDGET_PCT,
   jetonsGiftCostCap,
   pickBestGift,
   type GiftCandidate,
 } from "./reward-sizing";
 
 // ADR 0017 §2 — Cadeau des 4 jetons (actions sociales / parrainages).
-// Aucune commande en face : coût pur, plafonné à panier_moyen × BUDGET_PCT.
+// Aucune commande en face : coût pur, plafonné à panier_moyen × taux cadeaux
+// de l'établissement (getRestaurantBudgetPct).
 // L'article vient du catalogue (restaurants.jetons_gift_menu_item_id, m28) ;
 // fallback hérité tant que rien n'est configuré. Données euros : service role
 // uniquement — seule le NOM de l'article sort côté membre (ADR 0007).
-
-const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
 
 // Cadeau hérité Belchicken (pré-ADR 0017) — réservé au resto historique :
 // pour tout autre établissement sans cadeau configuré, on affiche un
@@ -70,7 +69,7 @@ export async function suggestJetonsGift(restaurantId: string): Promise<{
       .eq("reward_eligible", true),
   ]);
 
-  const costCap = jetonsGiftCostCap(avgBasket, BUDGET_PCT);
+  const costCap = jetonsGiftCostCap(avgBasket, await getRestaurantBudgetPct(restaurantId));
   // Coût inconnu (ADR 0046) : exclu des candidats cadeaux.
   const candidates: GiftCandidate[] = ((items ?? []) as GiftCandidate[])
     .filter((i) => (i.cost_price as number | null) != null)
@@ -84,7 +83,6 @@ export async function suggestJetonsGift(restaurantId: string): Promise<{
   return { suggestion: pickBestGift(candidates, costCap), costCap, avgBasket };
 }
 
-export { BUDGET_PCT as JETONS_BUDGET_PCT };
 
 // ── Comptage budget (ADR 0012 — correctif 2026-09-02) ────────────────────────
 // Le cadeau 4 jetons est un coût pur (aucune commande en face) mais n'entrait

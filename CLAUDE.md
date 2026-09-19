@@ -54,7 +54,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 
 ### ADR 0061 — « Mes points » (remplace la réserve des ADR 0021/0060)
 - Solde personnel = registre `point_transactions` (jamais de colonne solde, corrections en `admin_adjust`) ; 10 points par euro par ticket validé (`order_points`, déclencheur SQL, disponibles 4 h après)
-- Catalogue (`/r/[id]/points`, `/reserve` redirige) : `catalog_items`, prix calculé `catalog_price_points` (arrondi 5 sup de coût ÷ 8 % × 10), échange `exchange_points_for_item`. Jamais de prix de revient côté membre
+- Catalogue (`/r/[id]/points`, `/reserve` redirige) : `catalog_items`, prix calculé `catalog_price_points` (arrondi 5 sup de coût ÷ taux × 10 ; taux cadeaux par établissement `restaurant_reward_settings.budget_pct`, 8 % par défaut, Kraainem 4 % — baisser le taux RENCHÉRIT les cadeaux), échange `exchange_points_for_item`. Jamais de prix de revient côté membre
 - Un cadeau payé en points qui expire **rend ses points** (`refund_catalog_reward`, idempotent) : le balayage horaire rattrape tout cadeau payé en points expiré depuis 14 jours, et la génération du coupon rembourse elle-même un cadeau qu'elle clôt
 - « Mettre de côté », gros cadeaux `saver` et `/api/points/bank` **retirés** (PR 6) ; les lignes `banked` et raisons `bank_reward` restent lisibles dans l'historique
 
@@ -166,7 +166,7 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun
 - **Couverture communautaire** (3e verrou, couches 2 et 3) : `membres × coût ≤ dépense cumulée équipe × pct`, cascade vers le palier couvert — invisible côté client (ADR 0007)
 
 ### ADR 0012 — Protection financière (CRITIQUE pour la rentabilité)
-- **Plafond budget cadeaux** : coût mensuel des récompenses ≤ `CA_programme_mois × 8%` (`REWARD_BUDGET_PCT`)
+- **Plafond budget cadeaux** : coût mensuel des récompenses ≤ `CA_programme_mois × 8%` (`REWARD_BUDGET_PCT`) — **taux par établissement** : `restaurant_reward_settings.budget_pct` (Kraainem 4 % depuis le 2026-09-19) pilote TOUT (plafond, catalogue, paliers, jetons, anniversaire, couverture) ; côté code, toujours `getRestaurantBudgetPct(restaurantId)`, jamais la constante
 - Plafond atteint → couche 1 (solo) reste, couches 2 et 3 désactivées jusqu'au mois suivant
 - **Double verrou basé sur la croissance** : le seuil CA n'est PAS un montant fixe mais `baseline_4_semaines × (1 + 10%)` (`GROWTH_TARGET_PCT`)
 - Le restaurant ne débloque les bonus que s'il vend PLUS qu'avant le programme

@@ -587,7 +587,7 @@ export default function AdminMenuPage() {
                 <p className="text-xs text-ink-faint mb-2">
                   Tes clients gagnent des points à chaque ticket et choisissent eux-mêmes leur cadeau parmi les
                   articles « au catalogue ». Le prix en points est calculé depuis le prix de revient pour tenir ton
-                  budget cadeaux ({Math.round(pct * 100)} %). Un clic sur « au catalogue » dans la liste ci-dessus
+                  budget cadeaux ({Math.round(pct * 100)} % des dépenses). Un clic sur « au catalogue » dans la liste ci-dessus
                   retire l&apos;article, ou l&apos;y remet.
                 </p>
                 {rows.length > 0 ? (

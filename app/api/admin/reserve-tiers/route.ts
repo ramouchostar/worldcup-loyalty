@@ -1,9 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { getAverageBasket } from "@/lib/avg-basket";
-import { DEFAULT_BUDGET_PCT } from "@/lib/reward-sizing";
-
-const BUDGET_PCT = parseFloat(process.env.REWARD_BUDGET_PCT ?? String(DEFAULT_BUDGET_PCT));
+import { getRestaurantBudgetPct } from "@/lib/budget";
 
 // ADR 0060 — ce dont l'écran Menu a besoin pour les gros cadeaux de la
 // réserve : le panier moyen (seuils calculés, tickets moyens, plafonds) et le
@@ -20,5 +18,8 @@ export async function GET(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const avgBasket = await getAverageBasket(restaurantId);
-  return NextResponse.json({ avgBasket, budgetPct: BUDGET_PCT });
+  // Taux cadeaux de l'établissement (réglage propre, Kraainem 4 %) : l'écran
+  // Menu affiche les mêmes prix en points que le membre.
+  const budgetPct = await getRestaurantBudgetPct(restaurantId);
+  return NextResponse.json({ avgBasket, budgetPct });
 }

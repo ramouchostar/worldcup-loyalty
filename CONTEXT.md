@@ -112,7 +112,7 @@ Le seul cadeau encore imposé par un ticket : offert au **premier ticket validé
 _Avoid_ : palier solo, cadeau de base.
 
 **Catalogue « Mes points »** *(ADR 0061 §3)* :
-Les articles que le membre peut choisir avec ses points (`/r/[id]/points`) : actifs, « au catalogue » (`reward_eligible`), prix de revient connu. Prix en points **calculé**, jamais saisi : `arrondi au 5 supérieur (coût ÷ 8 % × 10)` (`catalog_price_points`). Choisir crée un cadeau personnel (`source = 'catalog'`, 48 h) ; s'il expire, ses points sont **rendus** (`refund_catalog_reward`). Jamais de prix de revient côté membre.
+Les articles que le membre peut choisir avec ses points (`/r/[id]/points`) : actifs, « au catalogue » (`reward_eligible`), prix de revient connu. Prix en points **calculé**, jamais saisi : `arrondi au 5 supérieur (coût ÷ taux du catalogue × 10)` (`catalog_price_points`) ; taux cadeaux par établissement (`restaurant_reward_settings.budget_pct`, qui pilote aussi plafond mensuel, paliers, jetons et cadeaux d'équipe), 8 % par défaut, **4 % à Kraainem** depuis le 2026-09-19 (cadeaux deux fois plus chers en points). Choisir crée un cadeau personnel (`source = 'catalog'`, 48 h) ; s'il expire, ses points sont **rendus** (`refund_catalog_reward`). Jamais de prix de revient côté membre.
 _Avoid_ : boutique, gros cadeaux (ancienne réserve).
 
 **Palier solo** *(historique — ADR 0006, remplacé par l'ADR 0061)* :
