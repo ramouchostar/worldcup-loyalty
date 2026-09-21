@@ -11,6 +11,9 @@ import { getProgramValue } from "@/lib/program-value";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { PageHeader, Card, SectionLabel, StatTile, StatusBadge } from "@/components/admin/ui";
+import { cookies } from "next/headers";
+import { CONSOLE_VIEW_COOKIE, parseConsoleView } from "@/lib/admin-nav";
+import { SimpleHomePage } from "./SimpleHomePage";
 
 // Dashboard admin (redesign m54) — priorise ce qui demande une action
 // aujourd'hui avant les chiffres. Un restaurateur débordé doit comprendre en
@@ -32,6 +35,12 @@ export default async function AdminDashboardPage({
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // ADR 0064 — la vue simple est l'accueil par défaut ; ce tableau de bord
+  // complet reste celui de la vue pro, inchangé.
+  if (parseConsoleView((await cookies()).get(CONSOLE_VIEW_COOKIE)?.value) === "simple") {
+    return <SimpleHomePage restaurantId={restaurantId} userId={user.id} bienvenue={!!bienvenue} seat={seat} />;
+  }
 
   const admin = createAdminClient();
   const r = (path: string) => `/admin/${restaurantId}${path}`;

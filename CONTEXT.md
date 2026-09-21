@@ -404,6 +404,22 @@ _Avoid_ : CRM, fichier client, annuaire.
 Liste d'activité **pseudonymisée** des membres d'un établissement pour son restaurateur : prénom/pseudo, équipe, points, nb commandes, dernière visite. **Jamais** email/téléphone, **jamais** d'export (ADR 0025 : le resto ne reçoit pas de coordonnées ; il agit via le ciblage broadcast). Entrée dédiée en sidebar, section Fidélisation.
 _Avoid_ : fichier client, export clients, contacts.
 
+**Vue simple / vue pro** *(ADR 0064)* :
+Les deux affichages de la console restaurateur, sur les **mêmes pages et les mêmes droits**. La **vue simple**, par défaut, a quatre onglets — Accueil · Tickets · Annonces · Plus — en bas de l'écran sur téléphone, en colonne sur ordinateur ; « Plus » liste tout le reste, en mots de restaurateur. La **vue pro** est la console complète (quatre sections, tableau de bord détaillé du mois). Préférence d'affichage par appareil (cookie `console_vue`), jamais un droit.
+_Avoid_ : mode simple/expert, console allégée (rien n'est retiré, tout est dans « Plus »), « Broadcasts » (on dit « Annonces »).
+
+**Étape du parcours** *(ADR 0064)* :
+Où en est un établissement, **déduit de ses tickets**, jamais saisi : **Lancer** (moins de 10 tickets validés), **Prendre le rythme** (moins de 100 tickets validés sur 90 jours — la fenêtre de la page Opportunités), **Faire grandir** (les idées ont de quoi se calculer). L'accueil de la vue simple pousse une seule prochaine étape, propre à l'étape.
+_Avoid_ : niveau (réservé aux paliers de l'objectif), statut (réservé au statut établissement `pending`/`active`), onboarding (l'inscription partenaire est un autre parcours).
+
+**Objectif du jour** *(ADR 0064)* :
+Nombre de tickets **reçus** (validés ou en attente) à atteindre dans la journée belge. Règle : le premier palier (3, 4, 5, 6, 8, 10, 12, 15, 20…) pas encore tenu **5 jours sur les 7 derniers** ; le tenir 5 jours sur 7 fait passer au suivant, une mauvaise semaine le fait redescendre. Pas de série de jours d'affilée : un objectif qui monte la casserait à qui garde son rythme.
+_Avoid_ : quota (subi), série/streak, objectif CA (le chiffre d'affaires ne se pilote pas à la journée ; le « Seuil CA restaurant » est une autre notion).
+
+**Liste de lancement** *(ADR 0064)* :
+Les cinq gestes de l'étape « Lancer » — logo, menu et coûts, QR affiché, un QR par personne en salle, 10 premiers tickets — **cochés par les données** (logo en base, articles avec prix de revient, arrivées anonymes sur la vitrine, code salle actif, tickets validés), jamais à la main.
+_Avoid_ : checklist d'onboarding (l'inscription partenaire `become-a-partner` est antérieure), tutoriel.
+
 ---
 
 ### Qualité & retours *(ADR 0023 — proposé)*
