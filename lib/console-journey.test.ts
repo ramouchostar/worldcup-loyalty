@@ -13,6 +13,8 @@ import {
   milestoneView,
   monthView,
   pickMilestone,
+  staffTodo,
+  STAFF_CODES_TARGET,
   recentDays,
   stageOf,
   stageStates,
@@ -94,7 +96,7 @@ test("délai : environ, jamais une promesse sur un rythme nul", () => {
 });
 
 test("liste de lancement : un siège équipe ne reçoit pas une tâche qu'il ne peut pas faire", () => {
-  const base = { base: "/admin/x", catalogItemsWithCost: 0, landings14d: 0, staffCodes: 0, validatedTotal: 0, budgetPct: 0.08 };
+  const base = { base: "/admin/x", catalogItemsWithCost: 0, landings14d: 0, validatedTotal: 0, budgetPct: 0.08 };
   const equipe = launchChecklist({ ...base, hasLogo: false, canManage: false });
   assert.equal(equipe.some((i) => i.key === "logo"), false);
   const gerant = launchChecklist({ ...base, hasLogo: false, canManage: true });
@@ -102,10 +104,32 @@ test("liste de lancement : un siège équipe ne reçoit pas une tâche qu'il ne 
   assert.equal(gerant.every((i) => !i.done), true);
   assert.match(gerant.find((i) => i.key === "menu")!.hint, /8 %/);
 
-  const avance = launchChecklist({ ...base, hasLogo: true, canManage: true, catalogItemsWithCost: 40, landings14d: 12, staffCodes: 2, validatedTotal: 7, budgetPct: 0.04 });
-  assert.deepEqual(avance.map((i) => i.done), [true, true, true, true, false]);
+  const avance = launchChecklist({ ...base, hasLogo: true, canManage: true, catalogItemsWithCost: 40, landings14d: 12, validatedTotal: 7, budgetPct: 0.04 });
+  // Quatre gestes : le QR de l'équipe vit dans « À faire », pas ici
+  assert.deepEqual(avance.map((i) => i.key), ["logo", "menu", "qr", "tickets"]);
+  assert.deepEqual(avance.map((i) => i.done), [true, true, true, false]);
   assert.deepEqual(avance.find((i) => i.key === "tickets")!.progress, { value: 7, target: 10 });
   assert.match(avance.find((i) => i.key === "menu")!.hint, /4 %/);
+});
+
+test("QR de l'équipe : on insiste tant qu'il y en a moins de trois, avec un lien vers la création", () => {
+  const zero = staffTodo("/admin/x", []);
+  assert.equal(zero?.title, "Crée le QR de chaque personne en salle");
+  assert.equal(zero?.cta, "Créer les QR de mon équipe");
+  assert.equal(zero?.href, "/admin/x/qr?creer=1#equipe");
+
+  const deux = staffTodo("/admin/x", [
+    { label: "Sarah", isActive: true },
+    { label: "Yanis", isActive: true },
+    { label: "Ancien", isActive: false },
+  ]);
+  assert.equal(deux?.cta, "Ajouter un QR");
+  assert.match(deux!.hint, /2 QR créés \(Sarah, Yanis\)/);
+
+  const equipee = Array.from({ length: STAFF_CODES_TARGET }, (_, i) => ({ label: `P${i}`, isActive: true }));
+  assert.equal(staffTodo("/admin/x", equipee), null);
+  // Migration absente : on ne réclame pas un outil qui n'existe pas encore
+  assert.equal(staffTodo("/admin/x", null), null);
 });
 
 test("caps : la fête d'abord, sinon le cap le plus avancé", () => {
@@ -174,15 +198,18 @@ test("accueil : Kraainem au 21 septembre — étape rythme, objectif 4, palier 5
   assert.deepEqual(v.staffTop.map((s) => s.label), ["Sarah", "Yanis"]);
   // Le cap franchi cette semaine (50 tickets) passe avant le suivant
   assert.equal(v.milestone?.crossed, 50);
-  // Un ticket suspect n'est pas compté deux fois (en attente ET à vérifier)
-  assert.deepEqual(v.todo.map((t) => [t.key, t.count]), [["flagged", 1], ["pending", 1], ["catalog", 3]]);
+  // Deux QR d'équipe actifs sur trois : la tâche passe en tête ; un ticket
+  // suspect n'est pas compté deux fois (en attente ET à vérifier)
+  assert.deepEqual(v.todo.map((t) => [t.key, t.count]), [["staff", 2], ["flagged", 1], ["pending", 1], ["catalog", 3]]);
 });
 
-test("accueil : sans QR d'équipe, l'étape rythme pousse d'abord les codes salle", () => {
+test("accueil : sans QR d'équipe, la tâche est en tête de « À faire », pas en double dans la prochaine étape", () => {
   const v = buildSimpleHomeView(raw({ staff: [] }));
-  assert.equal(v.next.kind, "staff");
-  // Migration absente (null) : on ne réclame pas un outil qui n'existe pas encore
-  assert.equal(buildSimpleHomeView(raw({ staff: null })).next.kind, "growth");
+  assert.equal(v.todo[0].key, "staff");
+  assert.equal(v.todo[0].cta, "Créer les QR de mon équipe");
+  assert.equal(v.next.kind, "growth");
+  // Migration absente (null) : aucune tâche QR
+  assert.equal(buildSimpleHomeView(raw({ staff: null })).todo.some((t) => t.key === "staff"), false);
 });
 
 test("accueil : un établissement tout neuf commence par la liste de lancement", () => {

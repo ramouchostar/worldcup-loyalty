@@ -277,7 +277,9 @@ function LaunchCard({ view }: { view: SimpleHomeView }) {
             {done} / {total}
           </span>
         </div>
-        <p className="text-[13px] text-ink-muted mt-1">Cinq gestes, et tes clients commencent à photographier leurs tickets.</p>
+        <p className="text-[13px] text-ink-muted mt-1">
+          {GESTURE_COUNT[total] ?? `${total} gestes`}, et tes clients commencent à photographier leurs tickets.
+        </p>
         <ProgressBar className="mt-3" value={done} max={total} tone={done === total ? "good" : "neutral"} label="Étapes de lancement faites" />
       </div>
       {items.map((it) => {
@@ -321,7 +323,9 @@ function LaunchCard({ view }: { view: SimpleHomeView }) {
 
 // ── Question 2 : qu'est-ce que je dois faire ? ─────────────────────────────
 
-const TODO_ICONS: Record<string, LucideIcon> = { flagged: Receipt, pending: Receipt, claims: Star, catalog: ListPlus };
+const GESTURE_COUNT: Record<number, string> = { 3: "Trois gestes", 4: "Quatre gestes" };
+
+const TODO_ICONS: Record<string, LucideIcon> = { staff: Users, flagged: Receipt, pending: Receipt, claims: Star, catalog: ListPlus };
 
 function TodoCard({ view }: { view: SimpleHomeView }) {
   if (view.todo.length === 0) {
@@ -343,6 +347,31 @@ function TodoCard({ view }: { view: SimpleHomeView }) {
       </div>
       {view.todo.map((t) => {
         const Icon = TODO_ICONS[t.key] ?? Receipt;
+        // La tâche sur laquelle on insiste (le QR de l'équipe en salle) : un
+        // vrai bouton dans la ligne, qui ouvre directement le formulaire de
+        // création — pas une ligne de plus qu'on survole.
+        if (t.cta) {
+          return (
+            <div key={t.key} className="px-5 py-4 border-t border-paper-border bg-warn/5">
+              <div className="flex items-start gap-3.5">
+                <span className="w-9 h-9 rounded-[9px] bg-warn/10 text-warn flex items-center justify-center shrink-0" aria-hidden="true">
+                  <Icon size={18} strokeWidth={1.7} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14.5px] font-semibold text-ink">{t.title}</p>
+                  <p className="text-[12.5px] text-ink-muted mt-0.5">{t.hint}</p>
+                  <Link
+                    href={t.href}
+                    className="mt-3 inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[44px] px-4 rounded-lg bg-ink text-white text-[13.5px] font-semibold hover:bg-ink-body transition-colors"
+                  >
+                    {t.cta}
+                    <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          );
+        }
         return (
           <Link key={t.key} href={t.href} className="flex items-center gap-3.5 px-5 py-3.5 border-t border-paper-border hover:bg-paper transition-colors">
             <span className="w-9 h-9 rounded-[9px] bg-warn/10 text-warn flex items-center justify-center shrink-0" aria-hidden="true">
@@ -366,27 +395,6 @@ function TodoCard({ view }: { view: SimpleHomeView }) {
 function NextStepCard({ view }: { view: SimpleHomeView }) {
   const n = view.next;
   if (n.kind === "checklist") return null;
-
-  if (n.kind === "staff") {
-    return (
-      <Card>
-        <SectionLabel tone="muted">Ta prochaine étape</SectionLabel>
-        <div className="flex items-start gap-3.5 mt-3">
-          <span className="w-10 h-10 rounded-xl bg-paper-subtle text-ink flex items-center justify-center shrink-0" aria-hidden="true">
-            <Users size={20} strokeWidth={1.7} />
-          </span>
-          <div className="min-w-0">
-            <p className="font-display text-[17px] font-bold text-ink">Donne un QR à chaque personne en salle</p>
-            <p className="text-[13px] text-ink-muted mt-1">
-              C&apos;est la première source d&apos;inscriptions qu&apos;on observe : chacun montre son badge depuis son
-              téléphone, et tu vois qui fait inscrire le plus de clients.
-            </p>
-          </div>
-        </div>
-        <PrimaryLink href={n.href}>Créer les QR de l&apos;équipe</PrimaryLink>
-      </Card>
-    );
-  }
 
   if (n.kind === "growth") {
     return (

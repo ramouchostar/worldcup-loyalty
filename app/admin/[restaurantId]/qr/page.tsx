@@ -15,8 +15,17 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.ver
 // QR code de l'établissement — pointe vers sa landing publique /r/[slug].
 // Généré côté serveur aux couleurs de la charte (ADR 0015) : PNG haute
 // résolution + SVG vectoriel, et trois supports imprimables prêts à l'emploi.
-export default async function AdminQrPage({ params }: { params: Promise<{ restaurantId: string }> }) {
+export default async function AdminQrPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ restaurantId: string }>;
+  // `?creer=1#equipe` : lien de la tâche « QR de l'équipe » de l'accueil
+  // (ADR 0064) — on arrive sur le formulaire, curseur dans le champ prénom.
+  searchParams: Promise<{ creer?: string }>;
+}) {
   const { restaurantId } = await params;
+  const { creer } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -98,6 +107,7 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
           restaurantId={restaurantId}
           initialStats={staffStats ?? []}
           migrationMissing={staffStats === null}
+          autoFocus={creer === "1"}
         />
       </div>
 

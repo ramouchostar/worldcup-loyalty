@@ -12,10 +12,14 @@ export function StaffCodesSection({
   restaurantId,
   initialStats,
   migrationMissing,
+  autoFocus = false,
 }: {
   restaurantId: string;
   initialStats: StaffStats[];
   migrationMissing: boolean;
+  /** Arrivée depuis la tâche « Crée le QR de chaque personne en salle » de
+   *  l'accueil (ADR 0064) : le curseur est déjà dans le champ prénom. */
+  autoFocus?: boolean;
 }) {
   const [stats, setStats] = useState<StaffStats[]>(initialStats);
   const [label, setLabel] = useState("");
@@ -141,6 +145,8 @@ export function StaffCodesSection({
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Prénom (ex. Sofia)"
+          aria-label="Prénom de la personne"
+          autoFocus={autoFocus}
           maxLength={40}
           className="flex-1 border border-paper-border rounded-xl px-3 py-2 text-sm focus:border-ink"
         />

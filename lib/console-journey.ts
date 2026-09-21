@@ -162,7 +162,7 @@ export const QR_SCANNED_MIN = 5;
 export const CATALOG_READY_MIN = 5;
 
 export type ChecklistItem = {
-  key: "logo" | "menu" | "qr" | "staff" | "tickets";
+  key: "logo" | "menu" | "qr" | "tickets";
   title: string;
   hint: string;
   done: boolean;
@@ -176,7 +176,6 @@ export function launchChecklist(i: {
   canManage: boolean;
   catalogItemsWithCost: number;
   landings14d: number;
-  staffCodes: number;
   validatedTotal: number;
   budgetPct: number;
 }): ChecklistItem[] {
@@ -206,13 +205,8 @@ export function launchChecklist(i: {
     done: i.landings14d >= QR_SCANNED_MIN,
     href: `${i.base}/qr`,
   });
-  items.push({
-    key: "staff",
-    title: i.staffCodes > 0 ? "Ton équipe en salle a son QR" : "Donne un QR à chaque personne en salle",
-    hint: "Chacun montre son badge depuis son téléphone, et tu vois qui fait inscrire le plus de clients.",
-    done: i.staffCodes > 0,
-    href: `${i.base}/qr#equipe`,
-  });
+  // Le QR de l'équipe en salle n'est pas ici : c'est une tâche « À faire »
+  // à toutes les étapes, tant que l'équipe n'est pas équipée (staffTodo).
   items.push({
     key: "tickets",
     title: i.validatedTotal >= LAUNCH_TARGET ? "Tes 10 premiers tickets sont là" : "Tes 10 premiers tickets",
@@ -287,6 +281,49 @@ export function tipOfTheDay(today: string): string {
   return COUNTER_TIPS[((dayNumber % COUNTER_TIPS.length) + COUNTER_TIPS.length) % COUNTER_TIPS.length];
 }
 
+// ── Le QR de l'équipe en salle : la tâche sur laquelle on insiste ──────────
+//
+// Première source d'inscriptions constatée à Kraainem (ADR 0053) : le
+// personnel qui propose le programme, badge en main. Tant que l'équipe n'est
+// pas équipée, c'est la PREMIÈRE ligne de « À faire », avec un bouton qui
+// ouvre directement le formulaire de création (choix du porteur, 2026-09-21).
+//
+// « Équipée » = au moins STAFF_CODES_TARGET QR actifs : une équipe de salle
+// compte rarement moins de trois personnes (caisse, salle, service du soir).
+// On ne connaît pas l'effectif réel : trois est le seuil sous lequel il manque
+// presque sûrement quelqu'un, et la tâche disparaît d'elle-même au-delà.
+
+export const STAFF_CODES_TARGET = 3;
+
+export function staffTodo(base: string, staff: { label: string; isActive: boolean }[] | null): TodoItem | null {
+  // Migration des codes salle absente : on ne réclame pas un outil qui n'existe pas.
+  if (staff === null) return null;
+  const active = staff.filter((s) => s.isActive);
+  if (active.length >= STAFF_CODES_TARGET) return null;
+  const href = `${base}/qr?creer=1#equipe`;
+  if (active.length === 0) {
+    return {
+      key: "staff",
+      title: "Crée le QR de chaque personne en salle",
+      hint: "C'est la première source d'inscriptions : chacun montre son badge au client qui paie, et tu vois qui en fait inscrire le plus.",
+      href,
+      count: 0,
+      tone: "warn",
+      cta: "Créer les QR de mon équipe",
+    };
+  }
+  const names = active.map((s) => s.label).join(", ");
+  return {
+    key: "staff",
+    title: "Tout ton personnel en salle a son QR ?",
+    hint: `${active.length} QR ${active.length > 1 ? "créés" : "créé"} (${names}). Un QR par prénom : ajoute ceux qui manquent, chacun verra les clients qu'il fait inscrire.`,
+    href,
+    count: active.length,
+    tone: "warn",
+    cta: "Ajouter un QR",
+  };
+}
+
 // ── Assemblage de l'accueil ─────────────────────────────────────────────────
 
 export type SimpleHomeRaw = {
@@ -310,11 +347,19 @@ export type SimpleHomeRaw = {
   budgetPct: number;
 };
 
-export type TodoItem = { key: string; title: string; hint: string; href: string; count: number; tone: "danger" | "warn" };
+export type TodoItem = {
+  key: string;
+  title: string;
+  hint: string;
+  href: string;
+  count: number;
+  tone: "danger" | "warn";
+  /** Bouton d'action affiché dans la ligne — la tâche sur laquelle on insiste. */
+  cta?: string;
+};
 
 export type NextStep =
   | { kind: "checklist"; item: ChecklistItem }
-  | { kind: "staff"; href: string }
   | { kind: "growth"; value: number; target: number; eta: number | null; tip: string }
   | { kind: "ideas"; href: string };
 
@@ -357,7 +402,6 @@ export function buildSimpleHomeView(raw: SimpleHomeRaw): SimpleHomeView {
     canManage: raw.canManage,
     catalogItemsWithCost: raw.catalogItemsWithCost,
     landings14d: raw.landings14d,
-    staffCodes: activeStaff.length,
     validatedTotal: raw.validatedTotal,
     budgetPct: raw.budgetPct,
   });
@@ -366,25 +410,23 @@ export function buildSimpleHomeView(raw: SimpleHomeRaw): SimpleHomeView {
   if (stage === "lancer") {
     next = { kind: "checklist", item: items.find((it) => !it.done) ?? items[items.length - 1] };
   } else if (stage === "rythme") {
-    // Le levier n° 1 constaté à Kraainem (ADR 0053) passe avant tout conseil :
-    // sans QR nominatif, l'équipe en salle n'a ni outil ni mesure.
-    if (raw.staff !== null && activeStaff.length === 0) {
-      next = { kind: "staff", href: `${raw.base}/qr#equipe` };
-    } else {
-      const remaining = Math.max(0, GROWTH_TARGET - raw.validatedWindow);
-      next = {
-        kind: "growth",
-        value: Math.min(raw.validatedWindow, GROWTH_TARGET),
-        target: GROWTH_TARGET,
-        eta: daysToReach(remaining, pacePerDay(counts, raw.today)),
-        tip: tipOfTheDay(raw.today),
-      };
-    }
+    // Le QR de l'équipe n'est plus une « prochaine étape » : il est en tête de
+    // « À faire » (une action, un seul endroit — ADR 0054 §5).
+    const remaining = Math.max(0, GROWTH_TARGET - raw.validatedWindow);
+    next = {
+      kind: "growth",
+      value: Math.min(raw.validatedWindow, GROWTH_TARGET),
+      target: GROWTH_TARGET,
+      eta: daysToReach(remaining, pacePerDay(counts, raw.today)),
+      tip: tipOfTheDay(raw.today),
+    };
   } else {
     next = { kind: "ideas", href: `${raw.base}/insights` };
   }
 
   const todo: TodoItem[] = [];
+  const staffItem = staffTodo(raw.base, raw.staff);
+  if (staffItem) todo.push(staffItem);
   const t = raw.todo;
   if (t.flagged > 0) {
     todo.push({
