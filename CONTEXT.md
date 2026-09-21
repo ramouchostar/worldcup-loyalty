@@ -421,7 +421,7 @@ Nombre de tickets **reçus** (validés ou en attente) à atteindre dans la journ
 _Avoid_ : quota (subi), série/streak, objectif CA (le chiffre d'affaires ne se pilote pas à la journée ; le « Seuil CA restaurant » est une autre notion).
 
 **Liste de lancement** *(ADR 0064)* :
-Les cinq gestes de l'étape « Lancer » — logo, menu et coûts, QR affiché, un QR par personne en salle, 10 premiers tickets — **cochés par les données** (logo en base, articles avec prix de revient, arrivées anonymes sur la vitrine, code salle actif, tickets validés), jamais à la main.
+Les quatre gestes de l'étape « Lancer » — logo, menu et coûts, QR affiché, 10 premiers tickets — **cochés par les données** (logo en base, articles avec prix de revient, arrivées anonymes sur la vitrine, tickets validés), jamais à la main. Le QR de l'équipe en salle n'en fait pas partie : c'est la **première tâche « À faire »** de l'accueil, à toutes les étapes, tant que moins de 3 QR sont actifs (ADR 0064, amendement).
 _Avoid_ : checklist d'onboarding (l'inscription partenaire `become-a-partner` est antérieure), tutoriel.
 
 ---

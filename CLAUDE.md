@@ -76,6 +76,7 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 ### ADR 0064 — Console : vue simple par défaut, vue pro intacte
 - Deux vues, **mêmes pages, mêmes droits** ; cookie `console_vue` (préférence d'affichage). Vue simple = quatre onglets (Accueil · Tickets · Annonces · Plus), un seul badge (tickets en attente) ; « Plus » liste TOUT le reste — ne jamais retirer une page de la vue simple
 - L'accueil simple répond à trois questions : ça tourne aujourd'hui (objectif du jour) · quoi faire (à faire + UNE prochaine étape) · ça vaut le coup (le mois + la mission). Logique pure et testée dans `lib/console-journey.ts`, navigation dans `lib/admin-nav.ts`
+- Le **QR de l'équipe en salle** est la première tâche « À faire » (bouton vers `/qr?creer=1#equipe`) tant que moins de 3 QR sont actifs (`STAFF_CODES_TARGET`) — un seul endroit, plus dans la liste de lancement
 - Étapes et liste de lancement **déduites des données**, jamais saisies ; objectif en tickets reçus, règle 5 jours sur 7, pas de série ; jamais « grâce à nous » (CA des clients du programme, pas un CA additionnel)
 - Couleurs Boosteats comme toute la console (ADR 0054 amendé) : bonne nouvelle en `good`, progression en `ink` ; barres et anneaux via `ProgressBar` / `ProgressRing`
 

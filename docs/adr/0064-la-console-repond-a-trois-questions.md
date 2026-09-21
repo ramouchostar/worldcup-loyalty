@@ -1,6 +1,6 @@
 # ADR 0064 — La console répond à trois questions : une vue simple par étape, la vue pro intacte
 
-**Statut** : Proposé (2026-09-21) — demande du porteur du même jour. La PR qui porte cet ADR
+**Statut** : Accepté et en service (2026-09-21, PR #220) — demande du porteur du même jour ; §6 amendé le même jour (le QR de l'équipe en salle devient la première tâche « À faire », voir en fin de document). La PR qui porte cet ADR
 livre la vue simple (§1 à §8) ; les questions au restaurateur (§9) et le message du soir (§10)
 sont décidés dans leur principe et feront chacun leur PR. Transpose côté restaurateur l'[ADR
 0059](0059-l-accueil-repond-a-trois-questions.md) (l'accueil membre répond à trois questions) ;
@@ -95,7 +95,7 @@ l'objectif et le parcours détaillé dans une colonne de côté.
 | Étape | Jusqu'à | Ce que l'accueil pousse |
 |---|---|---|
 | **Lancer** | 10 tickets validés au total | la liste de lancement |
-| **Prendre le rythme** | 100 tickets validés sur 90 jours | l'objectif du jour, le QR de l'équipe en salle s'il manque, puis le geste de comptoir du jour et l'avancée vers l'étape suivante (« environ 9 jours à ton rythme actuel ») |
+| **Prendre le rythme** | 100 tickets validés sur 90 jours | l'objectif du jour, puis le geste de comptoir du jour et l'avancée vers l'étape suivante (« environ 9 jours à ton rythme actuel ») |
 | **Faire grandir** | — | les idées de la page Opportunités |
 
 Aucun état stocké : l'étape se recalcule à chaque affichage, depuis `orders`. Les 90 jours sont
@@ -121,13 +121,13 @@ portée, et redescend après une mauvaise semaine plutôt que de rester un repro
 en bas : entre 3 et 6 tickets par jour, un saut de 5 à 10 serait hors de portée des semaines.
 Kraainem au 21/09 : objectif 4, tenu 4 jours sur 5 — un jour de plus et il passe à 5.
 
-### 6. La liste de lancement : cinq gestes, cochés par les données
+### 6. La liste de lancement : quatre gestes, cochés par les données
 
-Logo · menu et coûts · QR affiché · un QR par personne en salle · 10 premiers tickets. Chaque
+Logo · menu et coûts · QR affiché · 10 premiers tickets (le QR de l'équipe en salle, d'abord
+cinquième geste, est devenu une tâche « À faire » — amendement en fin de document). Chaque
 case se coche **toute seule**, sur une trace réelle : un logo en base, 5 articles avec un prix de
 revient, 5 arrivées **anonymes** sur la vitrine en 14 jours (`qr_landings` — un inconnu qui
-arrive prouve que le QR est au mur, un membre qui revient ne prouve rien), un code salle actif,
-10 tickets validés. Pas de case à cocher à la main : elle dirait ce que le restaurateur croit
+arrive prouve que le QR est au mur, un membre qui revient ne prouve rien), 10 tickets validés. Pas de case à cocher à la main : elle dirait ce que le restaurateur croit
 avoir fait, pas ce qui marche. Un siège équipe ne reçoit pas la tâche du logo, qu'il ne peut
 pas faire (ADR 0041 §6).
 
@@ -225,3 +225,20 @@ message à la main à Kraainem pendant deux semaines et regarder si la console s
 - **Cacher les pages pro dans la vue simple** : contraire à l'ADR 0030 §4 ; tout reste dans
   « Plus ».
 - **Un objectif en inscriptions ou en chiffre d'affaires** : voir §5.
+
+## Amendement 2026-09-21 — le QR de l'équipe en salle, première tâche « À faire »
+
+**Demande du porteur**, à la mise en service : insister, dans les tâches à faire, sur la
+création des QR du personnel, avec un bouton qui mène directement à cette création.
+
+- **Une tâche « À faire », à toutes les étapes**, en tête de liste, avec un vrai bouton dans la
+  ligne (« Créer les QR de mon équipe », puis « Ajouter un QR ») qui ouvre la page QR sur le
+  formulaire, curseur dans le champ prénom (`/qr?creer=1#equipe`). C'est la première source
+  d'inscriptions constatée (ADR 0053) : elle passe avant les tickets à vérifier.
+- **Tant que l'équipe a moins de 3 QR actifs** (`STAFF_CODES_TARGET`). On ne connaît pas
+  l'effectif réel ; une équipe de salle compte rarement moins de trois personnes (caisse, salle,
+  service du soir), et la tâche disparaît d'elle-même au-delà. Avec un ou deux QR, elle nomme
+  ceux qui existent et demande d'ajouter ceux qui manquent.
+- **Une action, un seul endroit** (ADR 0054 §5) : le QR de l'équipe quitte la liste de lancement
+  (qui passe à quatre gestes) et la carte « prochaine étape » de l'étape « Prendre le rythme ».
+- Migration des codes salle absente : aucune tâche — on ne réclame pas un outil qui n'existe pas.
