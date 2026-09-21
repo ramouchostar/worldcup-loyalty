@@ -39,6 +39,12 @@ test("les liens vers notre domaine passent par /c, les autres non", () => {
   assert.ok(out.text.includes("https://wa.me/?text=hi"));
 });
 
+test("le lien d'arrêt n'est jamais compté comme un clic", () => {
+  const out = trackLinks({ subject: "s", preheader: "p", html: `<a href="${APP}/e/stop/${ID}">Stop</a>`, text: `${APP}/e/stop/${ID}` }, APP, ID);
+  assert.ok(out.html.includes(`href="${APP}/e/stop/${ID}"`));
+  assert.equal(out.text, `${APP}/e/stop/${ID}`);
+});
+
 test("les robots de messagerie ne comptent pas comme un clic", () => {
   assert.equal(looksLikeBot(null), true);
   assert.equal(looksLikeBot("Mozilla/5.0 (compatible; Googlebot/2.1)"), true);
