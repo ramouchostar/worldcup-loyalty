@@ -6,7 +6,8 @@ des maquettes rendues par le code des gabarits. **Précise l'[ADR 0039](0039-can
 **complète l'[ADR 0009](0009-proactive-community-notifications.md)** (canal e-mail, séquences
 datées, carte in-app durable) et l'**[ADR 0025](0025-gdpr-data-governance.md) §8** (Resend,
 sous-traitant d'envoi). Ne change rien aux enveloppes anti-spam des notifications
-automatiques ni des broadcasts. Livré en cinq PR ; la première (gabarits) accompagne cet ADR.
+automatiques ni des broadcasts. Livré en cinq PR ; la première (gabarits) accompagne cet ADR,
+la deuxième (journal, onglet Messages) est décrite en fin de document.
 
 ## Contexte
 
@@ -178,3 +179,36 @@ brancher le SMTP Resend dans Supabase, renseigner `EMAIL_DOMAIN` et `EMAIL_REPLY
 - **Un seul e-mail restaurateur par semaine** : le porteur garde l'idée du jeudi, utile pour
   une promo de week-end annoncée à J-1/J-2 (ADR 0023), à condition qu'elle tienne.
 - **Pixel d'ouverture** et **suivi de clics du prestataire** : voir §6.
+
+## Notes de mise en œuvre — PR 2 (2026-09-21) : le journal et l'onglet Messages
+
+- **Le domaine vérifié chez Resend est `boosteats.tech` lui-même**, pas `mail.boosteats.tech`
+  (DKIM `resend._domainkey`, SPF sur `send.boosteats.tech`, région `eu-west-1`, DMARC
+  `p=none` chez IONOS). `EMAIL_DOMAIN=boosteats.tech` : expéditeurs
+  `bonjour@boosteats.tech` (membres) et `equipe@boosteats.tech` (restaurateurs). La
+  réputation d'envoi est partagée avec les boîtes IONOS du domaine — c'est le réglage fait
+  par le porteur, on le garde ; passer sur un sous-domaine reste possible sans code.
+- **Constat du jour** : le projet Vercel de production n'avait ni `RESEND_API_KEY`, ni
+  `EMAIL_DOMAIN`, ni `EMAIL_REPLY_TO` — et 8 inscriptions depuis le 19/09 sans aucun e-mail
+  de bienvenue, sans aucune trace. D'où la règle : **toute tentative d'envoi est journalisée,
+  réussie ou non** (`message_sends`, statut `failed` et la raison), et la configuration se lit
+  en tête de `/platform/messages`, avec un bouton « M'envoyer un e-mail de test ».
+- **Journal** (`docs/migrations/20260921-1615-journal-des-messages.sql`) : `message_sends`
+  (une ligne par tentative, sans adresse) et `message_settings` (interrupteur séquence ×
+  établissement, aucune ligne = éteint). Service role uniquement ; export et effacement RGPD
+  couverts (`lib/gdpr.ts`).
+- **Tout e-mail passe par `dispatch`** (`lib/email.ts`), tout push transactionnel par
+  `sendTransactionalPush` (`lib/notifications.ts`) : c'est ce qui les journalise. Un push sans
+  appareil abonné est noté « non joignable » au lieu de se taire.
+- **Clics** : les liens d'un e-mail vers notre domaine passent par `/c/<envoi>?to=<chemin>`
+  (`lib/message-links.ts`) — chemin relatif obligatoire (jamais une redirection ouverte),
+  robots de messagerie ignorés, un compteur et jamais une décision.
+- **Délivrance** : `/api/webhooks/resend`, signature Svix vérifiée sans dépendance
+  (`lib/resend-webhook.ts`, `RESEND_WEBHOOK_SECRET`) ; délivré, rebond et plainte mettent le
+  journal à jour, rien d'autre (ni ouverture, ni clic chez Resend).
+- **Onglet Messages** (`/platform/messages`) : configuration d'envoi, e-mail de test, chiffres
+  sur 30 jours, interrupteurs des sept séquences par établissement réel, transactionnels,
+  notifications du réseau réel, journal des 40 derniers envois. Les interrupteurs existent
+  avant le moteur (PR 3) : une séquence allumée ne part pas encore, la page le dit.
+- Politique de confidentialité et registre des traitements : le journal (sans pixel) et Resend
+  y sont ajoutés.

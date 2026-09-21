@@ -35,6 +35,7 @@ Contact vie privée : **[email de contact]**.
 
 **Données techniques :**
 - identifiant d'appareil pour l'envoi des notifications ;
+- le **journal des messages** que nous vous envoyons : lequel, par quel canal, s'il a été délivré, et si vous avez ouvert un de ses liens — jamais d'image invisible pour savoir si vous avez lu un e-mail. Il ne contient pas votre adresse ;
 - journaux de connexion (sécurité).
 
 ## 3. Pourquoi nous utilisons vos données, et sur quelle base légale
@@ -67,7 +68,8 @@ Ce que les restaurateurs peuvent faire, uniquement via la plateforme :
 
 Nous faisons appel à des prestataires techniques qui agissent **pour notre compte**, sous contrat (accords de sous-traitance) :
 - **hébergement** de la base de données et de l'application (serveurs situés dans l'**Union européenne**) ;
-- **envoi des notifications** (service de notifications push ; WhatsApp / Meta uniquement si vous avez accepté ce canal).
+- **envoi des notifications** (service de notifications push ; WhatsApp / Meta uniquement si vous avez accepté ce canal) ;
+- **envoi des e-mails** (Resend, envoi depuis l'Union européenne).
 
 Ces prestataires n'utilisent vos données que pour nous fournir leur service. Lorsqu'un transfert hors de l'UE est inévitable, il est encadré par des **garanties appropriées** (clauses contractuelles types).
 

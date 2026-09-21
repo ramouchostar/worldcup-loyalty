@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
+import { recordSend } from "@/lib/message-log";
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -78,6 +79,31 @@ export async function sendPush(
 
   return results.some(r => r.status === "fulfilled");
 }
+
+// Push d'un message transactionnel (ticket validé, refusé…) — envoyé ET
+// journalisé (ADR 0063 §6). Sans appareil abonné, rien ne part : la ligne
+// le dit (« non joignable ») au lieu de se taire.
+export async function sendTransactionalPush(
+  userId: string,
+  restaurantId: string,
+  message: string,
+  messageKey: string
+): Promise<boolean> {
+  const pushed = await sendPush(userId, restaurantId, message).catch(() => false);
+  await recordSend({
+    restaurantId,
+    audience: "member",
+    userId,
+    messageKey,
+    channel: pushed ? "push" : "none",
+    status: pushed ? "sent" : "failed",
+    error: pushed ? null : NO_PUSH_DEVICE,
+    subject: message,
+  });
+  return pushed;
+}
+
+export const NO_PUSH_DEVICE = "Aucun appareil abonné aux notifications";
 
 // Fallback WhatsApp — proactive template messages via Meta Business API
 // Requiert un template pré-approuvé Meta (WHATSAPP_TEMPLATE_NAME)

@@ -35,6 +35,15 @@
 - **Conservation :** jusqu'au retrait du consentement ou clôture du compte ; journaux d'envoi [12] mois.
 - **Sécurité :** idem T1 ; envoi exécuté par la plateforme (l'établissement ne reçoit aucune coordonnée).
 
+## T3 bis — Messages du programme et journal des envois (ADR 0063)
+- **Personnes concernées :** membres ; restaurateurs (gérants, managers).
+- **Données :** adresse e-mail (pour l'envoi, jamais recopiée dans le journal), identifiant de compte, message envoyé, canal, statut de délivrance, premier clic sur un lien (redirection par notre domaine — **aucun pixel d'ouverture**).
+- **Base légale :** exécution du contrat (messages du programme, arrêt possible séquence par séquence) ; les offres commerciales par e-mail relèveront du consentement (case distincte, non encore ouverte).
+- **Destinataires / sous-traitants :** Resend (envoi des e-mails, région UE) ; hébergeur (UE).
+- **Transferts hors UE :** Resend est une société américaine — envoi en région UE, DPA et clauses contractuelles types à signer.
+- **Conservation :** journal d'envoi [12] mois ; supprimé avec le compte.
+- **Sécurité :** journal en service-role uniquement (RLS sans policy), webhook de délivrance signé.
+
 ## T4 — Statistiques agrégées & anonymisées (insights commerciaux)
 - **Personnes concernées :** membres **ayant donné leur consentement** (avant anonymisation).
 - **Données :** données de fréquentation/dépense **agrégées** par type d'équipe, zone, période. **Seuil d'agrégation : ≥ 20 membres** (anti-ré-identification).

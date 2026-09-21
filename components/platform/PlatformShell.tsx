@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
+  Mail,
   Sun,
   Users,
   X,
@@ -33,6 +34,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/platform/backlog", label: "Backlog", icon: ListTodo },
   { href: "/platform/members", label: "Membres", icon: Users },
   { href: "/platform/scans", label: "Tickets", icon: Receipt },
+  { href: "/platform/messages", label: "Messages", icon: Mail },
 ];
 
 const COLLAPSE_KEY = "platform-sidebar-collapsed";

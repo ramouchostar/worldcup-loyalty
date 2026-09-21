@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
               .select("display_name")
               .eq("id", user.id)
               .maybeSingle();
-            if (user.email) await sendWelcomeEmail(user.email, (prof?.display_name ?? "").trim() || "toi");
+            if (user.email) await sendWelcomeEmail(user.email, (prof?.display_name ?? "").trim() || "toi", user.id);
           } catch (err) {
             console.error("[auth/callback] enregistrement du consentement échoué:", err);
           }

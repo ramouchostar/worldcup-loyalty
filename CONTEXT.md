@@ -341,6 +341,10 @@ _Avoid_ : rappel, relance, marketing push (toujours ancré dans le score réel).
 Suite de messages déclenchée par l'état d'un membre ou d'un établissement, écrite une fois et jouée par la plateforme : « Ton premier ticket », « Rejoins ton équipe », « Invite tes amis », « Installe l'app » côté membres ; « Cap franchi », « Ta semaine », « L'idée de la semaine » côté restaurateurs. Chaque séquence a un plafond, un arrêt propre (« Ne plus recevoir ces rappels ») et un seul critère de réussite mesuré sur 7 jours. **Éteinte par défaut**, allumée par établissement depuis `/platform`. Distincte du broadcast (composé à la main) et des notifications d'incitation (ADR 0009, déclenchées par le score d'équipe).
 _Avoid_ : campagne (réservé au message ponctuel composé sur la plateforme), newsletter, drip, automation, relance marketing.
 
+**Journal des messages** *(ADR 0063, PR 2)* :
+Une ligne par tentative d'envoi d'un message du programme (`message_sends`) — e-mail ou push, séquence ou transactionnel —, **réussie ou non** : message, canal, statut (parti, pas parti et pourquoi, délivré, rebond, plainte, témoin, non joignable), premier clic. Jamais l'adresse du destinataire. Se lit sur `/platform/messages`.
+_Avoid_ : logs (technique), historique des notifications (c'est `notification_log`, l'ancien journal des notifications automatiques).
+
 **Groupe témoin** *(ADR 0063)* :
 Les 10 % de membres éligibles à une séquence, tirés au sort, qui ne la reçoivent pas. L'**effet** d'une séquence est l'écart entre le taux de réussite de ceux qui l'ont reçue et celui du groupe témoin — un taux seul ne dit pas si le message a fait revenir quelqu'un qui serait revenu de toute façon.
 _Avoid_ : A/B test (il n'y a pas deux versions), taux d'ouverture (non mesuré — pas de pixel).

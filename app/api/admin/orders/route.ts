@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
-import { sendPush } from "@/lib/notifications";
+import { sendTransactionalPush } from "@/lib/notifications";
 import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
@@ -124,7 +124,7 @@ export async function PATCH(request: NextRequest) {
         await incrementProgramRevenue(restaurantId, Number(o.amount));
         const created = await createPendingReward(o.id, o.user_id, o.team_id, restaurantId, Number(o.amount))
           .catch(() => null);
-        await sendPush(
+        await sendTransactionalPush(
           o.user_id,
           restaurantId,
           orderValidatedMessage({
@@ -133,7 +133,8 @@ export async function PATCH(request: NextRequest) {
             // Validé depuis la file d'arbitrage : ce ticket n'est pas passé
             // du premier coup, et le membre le sait (ADR 0039 §2).
             rescued: true,
-          })
+          }),
+          "order_validated"
         );
       })
     );
@@ -174,20 +175,21 @@ export async function PATCH(request: NextRequest) {
         .then(() => createPendingReward(id, updated.user_id, updated.team_id, restaurantId, Number(updated.amount)))
         .catch(() => null)
         .then((created) =>
-          sendPush(
+          sendTransactionalPush(
             updated.user_id,
             restaurantId,
             orderValidatedMessage({
               amountEur: Number(updated.amount),
               reward: created?.created ? created.soloItem : null,
               rescued: true,
-            })
+            }),
+            "order_validated"
           )
         )
         .catch(() => {});
     } else {
       // Rejet : le motif est le texte du restaurateur, aucun euro à en tirer.
-      void sendPush(updated.user_id, restaurantId, `Ton ticket n'a pas pu être retenu : ${rejection_reason.trim()}`);
+      void sendTransactionalPush(updated.user_id, restaurantId, `Ton ticket n'a pas pu être retenu : ${rejection_reason.trim()}`, "order_rejected");
       // Rejet manuel : le motif du restaurateur est du texte libre, on ne le
       // range donc dans aucune des cases fermées de l'entonnoir — mais le
       // refus, lui, doit compter. Sans motif, plutôt qu'un motif inventé.

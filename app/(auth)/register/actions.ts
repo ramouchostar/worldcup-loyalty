@@ -62,7 +62,7 @@ export async function acceptProgramme(
   // fire-and-forget) : une Server Action se termine à l'appel de redirect().
   // Best-effort : un échec d'envoi ne bloque jamais l'inscription.
   const { data: prof } = await admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
-  if (user.email) await sendWelcomeEmail(user.email, (prof?.display_name ?? "").trim() || "toi");
+  if (user.email) await sendWelcomeEmail(user.email, (prof?.display_name ?? "").trim() || "toi", user.id);
 
   // ADR 0032 — inscription déclenchée par un lien d'invitation restaurateur : on
   // ramène le restaurateur sur son invitation, où il active son accès.
