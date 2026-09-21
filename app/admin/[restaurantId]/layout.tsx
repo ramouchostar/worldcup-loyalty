@@ -1,13 +1,16 @@
 import { notFound, redirect } from "next/navigation";
-import { Users, Wrench } from "lucide-react";
+import { cookies } from "next/headers";
+import { SlidersHorizontal, Users, Wrench } from "lucide-react";
 import Link from "next/link";
 import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { RestaurantMark } from "@/components/admin/RestaurantMark";
-import { createServerSupabaseClient } from "@/lib/supabase";
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 import { AdminDesktopNav } from "@/components/admin/AdminDesktopNav";
+import { SimpleNav } from "@/components/admin/simple/SimpleNav";
+import { CONSOLE_VIEW_COOKIE, consoleSections, parseConsoleView, simpleTabs } from "@/lib/admin-nav";
 import { getPlan } from "@/lib/entitlements";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 
@@ -70,56 +73,28 @@ export default async function AdminLayout({
   // lien disparaît de la nav (chaque page se re-garde aussi côté serveur —
   // ce filtrage n'est qu'un confort d'UI, pas la garde elle-même).
   const canManage = canManageEstablishment(access);
-  // ADR 0030 §9 — nav en 4 sections thématiques (15+ entrées à plat ne
-  // passaient plus à l'échelle) : Au quotidien = le comptoir, Fidélisation =
-  // faire revenir, Pilotage = comprendre, Configuration = réglé une fois.
-  // Le sandbox (outil de dev) reste volontairement hors nav — accessible par
-  // URL, gardé par le middleware comme le reste.
-  // Icônes (clé → components/admin/AdminNavIcons.tsx) au lieu d'émojis
-  // (redesign m54) — rendu console pro plutôt que grand public.
-  const navSections = [
-    {
-      title: "Au quotidien",
-      links: [
-        { href: base,                      label: "Dashboard", icon: "dashboard" },
-        // ADR 0052 — la file des doublons ambigus est un ONGLET de Commandes,
-        // plus une entrée de nav : c'est le même geste de comptoir, et le même
-        // ticket apparaissait dans les deux.
-        { href: `${base}/orders`,          label: "Commandes", icon: "orders" },
-        { href: `${base}/pending-rewards`, label: "Cadeaux",   icon: "gifts" },
-      ],
-    },
-    {
-      title: "Fidélisation",
-      links: [
-        { href: `${base}/clients`,       label: "Mes clients",      icon: "clients" },
-        { href: `${base}/teams`,         label: "Équipes",          icon: "teams" },
-        { href: `${base}/broadcast`,     label: "Broadcasts",       icon: "broadcasts" },
-        { href: `${base}/micro-rewards`, label: "Actions",          icon: "actions" },
-        { href: `${base}/referrals`,     label: "Parrainages",      icon: "referrals" },
-      ],
-    },
-    {
-      title: "Pilotage",
-      links: [
-        { href: `${base}/sales`,      label: "Ventes",          icon: "sales" },
-        { href: `${base}/forecast`,   label: "Prévisions",      icon: "forecast" },
-        { href: `${base}/insights`,   label: "Opportunités",    icon: "insights" },
-        { href: `${base}/quality`,    label: "Baromètre",       icon: "quality" },
-        { href: `${base}/benchmarks`, label: "Repères secteur", icon: "benchmarks" },
-      ],
-    },
-    {
-      title: "Configuration",
-      links: [
-        { href: `${base}/menu`, label: "Menu & coûts", icon: "menu" },
-        ...(canManage ? [{ href: `${base}/thresholds`, label: "Seuils CA", icon: "thresholds" }] : []),
-        { href: `${base}/qr`, label: "QR code", icon: "qr" },
-        ...(canManage ? [{ href: `${base}/settings`, label: "Réglages", icon: "settings" }] : []),
-        { href: `${base}/access`, label: "Accès console", icon: "access" },
-      ],
-    },
-  ];
+  // ADR 0030 §9 — nav pro en 4 sections thématiques ; ADR 0064 — vue simple
+  // à quatre onglets, par défaut. Les deux listes vivent dans lib/admin-nav.ts
+  // (la page « Plus » affiche la liste complète). Le sandbox (outil de dev)
+  // reste volontairement hors nav — accessible par URL, gardé comme le reste.
+  const navSections = consoleSections(base, canManage);
+  const vue = parseConsoleView((await cookies()).get(CONSOLE_VIEW_COOKIE)?.value);
+  // Le seul badge de la barre d'onglets : les tickets qui attendent une
+  // décision (ADR 0064). Compté ici parce que la barre est sur chaque page.
+  let pendingTickets = 0;
+  if (vue === "simple") {
+    try {
+      const { count } = await createAdminClient()
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "pending");
+      pendingTickets = count ?? 0;
+    } catch {
+      // Un badge manquant ne casse pas la console.
+    }
+  }
+  const switchHref = `${base}/vue?mode=${vue === "simple" ? "pro" : "simple"}`;
 
   return (
     // ADR 0054 §2 (amendé le 2026-09-21) — la console porte les couleurs
@@ -155,7 +130,14 @@ export default async function AdminLayout({
               (Plateforme) qui ne rentre plus à côté du bloc de marque sur
               mobile — ce groupe bascule alors sur sa propre ligne plutôt que
               de se superposer au reste. */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className={`${vue === "simple" ? "hidden md:flex" : "flex"} items-center gap-3 flex-wrap`}>
+            {/* ADR 0064 — bascule d'affichage. En vue simple sur téléphone,
+                ces liens vivent dans l'onglet « Plus » : l'en-tête tient sur
+                une ligne et la page commence tout de suite. */}
+            <Link href={switchHref} className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
+              <SlidersHorizontal size={12} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+              {vue === "simple" ? "Vue pro" : "Vue simple"}
+            </Link>
             {/* Invitation à déposer le logo — visible tant qu'il n'y en a pas,
                 et seulement pour qui peut l'ajouter (ADR 0041 §6 : la page
                 réglages est réservée aux gérants/managers). Disparaît d'elle
@@ -209,12 +191,23 @@ export default async function AdminLayout({
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-0 md:gap-8">
-        {/* Sidebar desktop — état actif + icônes (redesign m54) */}
-        <AdminDesktopNav sections={navSections} />
+      <div
+        className={`max-w-5xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-0 md:gap-8 ${
+          vue === "simple" ? "pb-28 md:pb-6" : ""
+        }`}
+      >
+        {vue === "simple" ? (
+          // ADR 0064 — quatre onglets : en bas sur téléphone, en colonne sur ordinateur.
+          <SimpleNav tabs={simpleTabs(base)} ticketsBadge={pendingTickets} proHref={switchHref} />
+        ) : (
+          <>
+            {/* Sidebar desktop — état actif + icônes (redesign m54) */}
+            <AdminDesktopNav sections={navSections} />
 
-        {/* Mobile — menu hamburger par sections (ADR 0030 §9) */}
-        <AdminMobileNav sections={navSections} />
+            {/* Mobile — menu hamburger par sections (ADR 0030 §9) */}
+            <AdminMobileNav sections={navSections} />
+          </>
+        )}
 
         {/* Content */}
         <main className="flex-1 min-w-0">{children}</main>

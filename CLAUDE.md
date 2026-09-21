@@ -65,13 +65,19 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 - Ne jamais réintroduire de préalable social à la soumission : une config absente côté restaurateur ne doit pas couper le parcours client
 
 ### ADR 0054 — Console restaurateur : un seul jeu de primitives
-- Toute page de `/admin/[restaurantId]/**` part de **`components/admin/ui/`** (`PageHeader`, `Card`, `FilterTabs`, `EmptyState`, `StatTile`, `StatusBadge`, `Restricted`) — une primitive qui manque s'y ajoute, elle ne se réinvente pas sur place
+- Toute page de `/admin/[restaurantId]/**` part de **`components/admin/ui/`** (`PageHeader`, `Card`, `FilterTabs`, `EmptyState`, `StatTile`, `StatusBadge`, `Restricted`, `ProgressBar`, `ProgressRing`) — une primitive qui manque s'y ajoute, elle ne se réinvente pas sur place
 - **Aucune couleur Tailwind brute** : neutres `ink-*`/`paper-*`, statuts `danger`/`warn`/`good` (AA mesuré). **Couleurs Boosteats, jamais la charte de l'établissement** (amendé 2026-09-21) : le layout ne pose pas `brandStyle`, aucun `brand-*` dans un composant de console. Pas de bleu ; le **rouge ne sert qu'à ce qui est cassé ou refusé** (un libellé descriptif est neutre)
 - Surfaces sombres (`bg-ink`) : blancs transparents, jamais `ink-faint` — illisible
 - Emojis : icône d'interface → `lucide-react` ; état vide → icône lucide sur pastille (PAS Fluent 3D, contrairement au membre) ; donnée et **textes sortants** (messages WhatsApp/push) → inchangés
 - En tête de console : le **logo ET le nom** de l'établissement (amendé 2026-09-21), le logo sur pastille blanche — c'est tout ce que la console prend à sa charte
 - Une décision se prend à **un seul endroit** : l'arbitrage des doublons est un onglet de Commandes (ADR 0052), pas une page ; une destination déjà dans la nav n'est pas relistée au dashboard
 - Exceptions documentées : supports imprimables (`qr/print/**`, qui posent la charte de l'établissement) et `/platform` (autre console)
+
+### ADR 0064 — Console : vue simple par défaut, vue pro intacte
+- Deux vues, **mêmes pages, mêmes droits** ; cookie `console_vue` (préférence d'affichage). Vue simple = quatre onglets (Accueil · Tickets · Annonces · Plus), un seul badge (tickets en attente) ; « Plus » liste TOUT le reste — ne jamais retirer une page de la vue simple
+- L'accueil simple répond à trois questions : ça tourne aujourd'hui (objectif du jour) · quoi faire (à faire + UNE prochaine étape) · ça vaut le coup (le mois + la mission). Logique pure et testée dans `lib/console-journey.ts`, navigation dans `lib/admin-nav.ts`
+- Étapes et liste de lancement **déduites des données**, jamais saisies ; objectif en tickets reçus, règle 5 jours sur 7, pas de série ; jamais « grâce à nous » (CA des clients du programme, pas un CA additionnel)
+- Couleurs Boosteats comme toute la console (ADR 0054 amendé) : bonne nouvelle en `good`, progression en `ink` ; barres et anneaux via `ProgressBar` / `ProgressRing`
 
 ### ADR 0059 — Accueil membre : trois questions, sans défiler (remplace l'ordre ADR 0010)
 - **Qu'est-ce que j'ai** : le cadeau qui attend en grand, avec « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique (ADR 0011)

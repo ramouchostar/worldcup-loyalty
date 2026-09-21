@@ -4,7 +4,7 @@
 Space Grotesk + JetBrains Mono, jetons `ink-*`/`paper-*`, icônes au lieu d'émojis) et le
 socle de design system du 2026-09-12 (`design-system/boosteats/MASTER.md`), qui avait
 explicitement laissé la console de côté. Amende la **surface** de l'**ADR 0052**
-(l'arbitrage des doublons n'a plus de page dédiée). Aucune migration. **Amendé le 2026-09-21** (voir en fin de document) : la console porte les couleurs Boosteats, plus celles de l'établissement ; le logo et le nom s'affichent ensemble.
+(l'arbitrage des doublons n'a plus de page dédiée). Aucune migration. **Amendé le 2026-09-21** (voir en fin de document) : la console porte les couleurs Boosteats, plus celles de l'établissement ; le logo et le nom s'affichent ensemble. **Complété par l'[ADR 0064](0064-la-console-repond-a-trois-questions.md)** (2026-09-21) : `ProgressBar` et `ProgressRing` rejoignent la liste fermée.
 
 ## Contexte
 
@@ -38,7 +38,7 @@ Le coût n'était pas seulement esthétique :
 ### 1. Une liste fermée de primitives — `components/admin/ui/`
 
 `PageHeader` · `Card` / `CardRow` / `SectionLabel` · `FilterTabs` · `EmptyState` ·
-`StatTile` · `StatusBadge` · `Restricted`.
+`StatTile` · `StatusBadge` · `Restricted` · `ProgressBar` · `ProgressRing` (ADR 0064).
 
 C'est **la** liste de ce dont une page de la console a besoin. Une page qui repose à la
 main un titre, une carte ou un onglet recrée la divergence que ce socle referme : si une

@@ -15,5 +15,7 @@ export { Card, CardRow, SectionLabel } from "./Card";
 export { FilterTabs, type FilterTab } from "./FilterTabs";
 export { EmptyState } from "./EmptyState";
 export { StatTile } from "./StatTile";
+export { ProgressBar } from "./ProgressBar";
+export { ProgressRing } from "./ProgressRing";
 export { StatusBadge, type BadgeTone } from "./StatusBadge";
 export { Restricted } from "./Restricted";

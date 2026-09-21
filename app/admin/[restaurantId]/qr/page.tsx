@@ -86,8 +86,9 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
       )}
 
       {/* ADR 0053 — Équipe en salle : un QR par prénom, la mesure de qui
-          apporte des clients. Aucune distinction de poste. */}
-      <div className="space-y-3">
+          apporte des clients. Aucune distinction de poste. Ancre `#equipe` :
+          la vue simple (ADR 0064) y envoie directement. */}
+      <div id="equipe" className="space-y-3 scroll-mt-20">
         <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Équipe en salle</p>
         <p className="text-xs text-ink-muted -mt-1">
           Un QR personnel par prénom : tu vois qui amène des clients, et chacun

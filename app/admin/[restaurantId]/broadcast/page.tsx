@@ -141,9 +141,9 @@ export default function AdminBroadcastPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title={<>Broadcasts</>}
-        subtitle={<>Envoie une notification à tes équipes — par exemple un menu étudiant aux écoles, ou un service
-          de nuit aux taxis. Push gratuit, WhatsApp en secours.</>}
+        title={<>Annonces</>}
+        subtitle={<>Envoie un message à tous tes clients, ou à une équipe — par exemple un menu étudiant aux écoles,
+          ou un service de nuit aux taxis. Push gratuit, WhatsApp en secours.</>}
       />
 
       {/* Message */}
