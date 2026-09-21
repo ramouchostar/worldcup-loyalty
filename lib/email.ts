@@ -4,7 +4,10 @@ import { getRestaurantBranding, logoPublicUrl } from "./restaurant";
 import { BRAND_DEFAULTS } from "./branding";
 import { foodIconUrl } from "./food-icon";
 import { replyToAddress, senderAddress, senderConfigFromEnv, type SenderKind } from "./email-sender";
-import type { MemberTheme, RenderedEmail } from "./email-templates/kit";
+import { APP_URL, type MemberTheme, type RenderedEmail } from "./email-templates/kit";
+import { randomUUID } from "node:crypto";
+import { recordSend } from "./message-log";
+import { trackLinks } from "./message-links";
 import { welcomeEmail } from "./email-templates/welcome";
 import { partnerApplicationReceivedEmail } from "./email-templates/partner-application-received";
 import { restaurantActivatedEmail } from "./email-templates/restaurant-activated";
@@ -48,34 +51,99 @@ function getClient(): Resend | null {
   return client;
 }
 
-async function dispatch(
-  to: string,
-  content: RenderedEmail,
-  sender: { kind: SenderKind; restaurantName?: string | null }
-): Promise<boolean> {
+// Ce que le journal doit savoir d'un envoi (ADR 0063 §6).
+export type DispatchMeta = {
+  key: string; // clé du catalogue (lib/message-catalog.ts)
+  audience: SenderKind; // « member » | « restaurant » — décide aussi de l'expéditeur
+  restaurantName?: string | null; // nom affiché de l'expéditeur côté membre
+  restaurantId?: string | null;
+  userId?: string | null;
+  step?: number | null;
+};
+
+// Envoie un e-mail et le journalise, qu'il parte ou non : une panne de
+// configuration (clé absente, domaine refusé) laissait jusqu'ici zéro trace —
+// ni succès, ni échec (constat du 2026-09-21 : 8 inscriptions, 0 bienvenue).
+// Les liens vers notre domaine passent par /c/<envoi> pour compter les clics.
+async function dispatch(to: string, content: RenderedEmail, meta: DispatchMeta): Promise<boolean> {
+  const sendId = randomUUID();
+  const tracked = trackLinks(content, APP_URL, sendId);
+  const journal = (status: "sent" | "failed", extra: { providerId?: string | null; error?: string | null }) =>
+    recordSend({
+      id: sendId,
+      restaurantId: meta.restaurantId ?? null,
+      audience: meta.audience,
+      userId: meta.userId ?? null,
+      messageKey: meta.key,
+      step: meta.step ?? null,
+      channel: "email",
+      status,
+      subject: content.subject,
+      ...extra,
+    });
+
   const resend = getClient();
-  if (!resend) return false;
+  if (!resend) {
+    await journal("failed", { error: "RESEND_API_KEY absente : aucun e-mail ne peut partir." });
+    return false;
+  }
 
   const config = senderConfigFromEnv();
   const replyTo = replyToAddress(config);
   try {
-    const { error } = await resend.emails.send({
-      from: senderAddress(sender.kind, sender.restaurantName ?? null, config),
+    const { data, error } = await resend.emails.send({
+      from: senderAddress(meta.audience, meta.restaurantName ?? null, config),
       to,
-      subject: content.subject,
-      html: content.html,
-      text: content.text,
+      subject: tracked.subject,
+      html: tracked.html,
+      text: tracked.text,
       ...(replyTo ? { replyTo } : {}),
     });
     if (error) {
       console.error("email dispatch failed:", error);
+      await journal("failed", { error: `${error.name ?? "erreur"} : ${error.message ?? ""}`.trim() });
       return false;
     }
+    await journal("sent", { providerId: data?.id ?? null });
     return true;
   } catch (err) {
     console.error("email dispatch threw:", err);
+    await journal("failed", { error: err instanceof Error ? err.message : String(err) });
     return false;
   }
+}
+
+// État de la configuration d'envoi, pour la console plateforme — des
+// booléens et des adresses publiques, jamais une clé.
+export function getEmailSetup(): {
+  hasApiKey: boolean;
+  domain: string | null;
+  replyTo: string | null;
+  memberFrom: string;
+  restaurantFrom: string;
+  hasWebhookSecret: boolean;
+  appUrl: string;
+} {
+  const config = senderConfigFromEnv();
+  return {
+    hasApiKey: !!process.env.RESEND_API_KEY,
+    domain: config.domain?.trim() || null,
+    replyTo: replyToAddress(config) ?? null,
+    memberFrom: senderAddress("member", "Nom de l'établissement", config),
+    restaurantFrom: senderAddress("restaurant", null, config),
+    hasWebhookSecret: !!process.env.RESEND_WEBHOOK_SECRET,
+    appUrl: APP_URL,
+  };
+}
+
+// E-mail de test depuis /platform/messages : un gabarit rendu sur ses données
+// d'exemple, envoyé à l'adresse du super-admin qui clique. Objet préfixé.
+export async function sendTestEmail(to: string, userId: string, email: RenderedEmail, audience: SenderKind): Promise<boolean> {
+  return dispatch(
+    to,
+    { ...email, subject: `[Test] ${email.subject}` },
+    { key: "test", audience, restaurantName: "Poulet Doré Ixelles (test)", userId }
+  );
 }
 
 // Anti-spam : a-t-on déjà envoyé ce type d'email à ce destinataire dans les
@@ -164,8 +232,8 @@ async function logEmailSent(
   }
 }
 
-export async function sendWelcomeEmail(to: string, displayName: string): Promise<boolean> {
-  const sent = await dispatch(to, welcomeEmail(displayName), { kind: "member", restaurantName: "Boosteats" });
+export async function sendWelcomeEmail(to: string, displayName: string, userId?: string): Promise<boolean> {
+  const sent = await dispatch(to, welcomeEmail(displayName), { key: "welcome", audience: "member", restaurantName: "Boosteats", userId });
   if (sent) await logEmailSent("member", to, "welcome");
   return sent;
 }
@@ -176,7 +244,7 @@ export async function sendPartnerApplicationReceivedEmail(
   restaurantId: string
 ): Promise<boolean> {
   const logoUrl = await getRestaurantLogoUrl(restaurantId);
-  const sent = await dispatch(to, partnerApplicationReceivedEmail(restaurantName, restaurantId, logoUrl), { kind: "restaurant" });
+  const sent = await dispatch(to, partnerApplicationReceivedEmail(restaurantName, restaurantId, logoUrl), { key: "partner_application_received", audience: "restaurant", restaurantId });
   if (sent) await logEmailSent("restaurant", restaurantId, "partner_application_received", restaurantId);
   return sent;
 }
@@ -187,7 +255,7 @@ export async function sendRestaurantActivatedEmail(
   restaurantId: string
 ): Promise<boolean> {
   const logoUrl = await getRestaurantLogoUrl(restaurantId);
-  const sent = await dispatch(to, restaurantActivatedEmail(restaurantName, restaurantId, logoUrl), { kind: "restaurant" });
+  const sent = await dispatch(to, restaurantActivatedEmail(restaurantName, restaurantId, logoUrl), { key: "restaurant_activated", audience: "restaurant", restaurantId });
   if (sent) await logEmailSent("restaurant", restaurantId, "restaurant_activated", restaurantId);
   return sent;
 }
@@ -203,7 +271,7 @@ export async function sendOwnerInviteEmail(
   expiresAt: string
 ): Promise<boolean> {
   const logoUrl = await getRestaurantLogoUrl(restaurantId);
-  const sent = await dispatch(to, ownerInviteEmail(restaurantName, inviteUrl, expiresAt, logoUrl), { kind: "restaurant" });
+  const sent = await dispatch(to, ownerInviteEmail(restaurantName, inviteUrl, expiresAt, logoUrl), { key: "owner_invite", audience: "restaurant", restaurantId });
   if (sent) await logEmailSent("restaurant", restaurantId, "owner_invite", restaurantId);
   return sent;
 }
@@ -215,7 +283,7 @@ export async function sendOnboardingReminderEmail(
   stuckAtStep: 2 | 3
 ): Promise<boolean> {
   const logoUrl = await getRestaurantLogoUrl(restaurantId);
-  const sent = await dispatch(to, onboardingReminderEmail(restaurantName, restaurantId, stuckAtStep, logoUrl), { kind: "restaurant" });
+  const sent = await dispatch(to, onboardingReminderEmail(restaurantName, restaurantId, stuckAtStep, logoUrl), { key: "onboarding_reminder", audience: "restaurant", restaurantId });
   if (sent) await logEmailSent("restaurant", restaurantId, "onboarding_reminder", restaurantId);
   return sent;
 }
@@ -231,7 +299,7 @@ export async function sendPendingRequestsReminderEmail(
   const sent = await dispatch(
     to,
     pendingRequestsReminderEmail(restaurantName, restaurantId, totalPending, oldestPendingHours, logoUrl),
-    { kind: "restaurant" }
+    { key: "pending_requests_reminder", audience: "restaurant", restaurantId }
   );
   if (sent) await logEmailSent("restaurant", restaurantId, "pending_requests_reminder", restaurantId);
   return sent;
@@ -245,7 +313,7 @@ export async function sendCatalogGapsReminderEmail(
   gapCount: number
 ): Promise<boolean> {
   const logoUrl = await getRestaurantLogoUrl(restaurantId);
-  const sent = await dispatch(to, catalogGapsReminderEmail(restaurantName, restaurantId, gapCount, logoUrl), { kind: "restaurant" });
+  const sent = await dispatch(to, catalogGapsReminderEmail(restaurantName, restaurantId, gapCount, logoUrl), { key: "catalog_gaps_reminder", audience: "restaurant", restaurantId });
   if (sent) await logEmailSent("restaurant", restaurantId, "catalog_gaps_reminder", restaurantId);
   return sent;
 }
@@ -273,7 +341,7 @@ export async function sendRewardReadyEmail(
       hoursRemaining,
       paidWithPoints: gift?.source === "catalog",
     }),
-    { kind: "member", restaurantName: theme.restaurantName }
+    { key: "reward_ready", audience: "member", restaurantName: theme.restaurantName, restaurantId, userId }
   );
   if (sent) await logEmailSent("member", userId, "reward_ready", restaurantId);
   return sent;
@@ -301,7 +369,7 @@ export async function sendTierUnlockedEmail(
       teamFlag: teamFlag || null,
       gift: { name: newReward, imageUrl: foodIconUrl(newReward) },
     }),
-    { kind: "member", restaurantName: theme.restaurantName }
+    { key: "tier_unlocked", audience: "member", restaurantName: theme.restaurantName, restaurantId, userId }
   );
   if (sent) await logEmailSent("member", userId, "tier_unlocked", restaurantId);
   return sent;
@@ -318,7 +386,7 @@ export async function sendReferralSuccessEmail(
   const sent = await dispatch(
     to,
     referralSuccessEmail({ theme, restaurantId, firstName: realFirstName(firstName), conversionsCount }),
-    { kind: "member", restaurantName: theme.restaurantName }
+    { key: "referral_success", audience: "member", restaurantName: theme.restaurantName, restaurantId, userId }
   );
   if (sent) await logEmailSent("member", userId, "referral_success", restaurantId);
   return sent;

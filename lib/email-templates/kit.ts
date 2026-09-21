@@ -45,7 +45,7 @@ export type MemberTheme = {
 };
 
 // Même défaut que app/layout.tsx : le domaine de production.
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.boosteats.tech";
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.boosteats.tech";
 export const appLink: LinkFn = (path) => `${APP_URL}${path}`;
 
 // Habillage d'un e-mail membre sans établissement (bienvenue) : l'identité

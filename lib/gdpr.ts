@@ -56,6 +56,9 @@ export async function exportUserData(userId: string) {
     return safe;
   });
 
+  // ADR 0063 — journal des messages envoyés (sans adresse : il n'en stocke pas).
+  const messageSends = await grab(admin, "message_sends", "user_id", userId);
+
   // Complément ADR 0038 — mesure d'installation de l'app (plateforme, dates,
   // nb d'ouvertures, user-agent tronqué) : données le concernant, exportées.
   const appInstalls = await grab(admin, "member_app_installs", "user_id", userId);
@@ -90,6 +93,7 @@ export async function exportUserData(userId: string) {
     push_subscriptions: push,
     member_app_installs: appInstalls,
     notification_log: notif,
+    message_sends: messageSends,
     consents,
     micro_reward_claims: claims,
     transfers,
@@ -128,6 +132,7 @@ export async function deleteUserData(userId: string): Promise<void> {
     admin.from("memberships").delete().eq("user_id", userId),
     admin.from("pending_rewards").delete().eq("user_id", userId),
     admin.from("notification_log").delete().eq("user_id", userId),
+    admin.from("message_sends").delete().eq("user_id", userId), // journal des messages (ADR 0063)
     admin.from("referral_links").delete().eq("user_id", userId),
   ]);
 

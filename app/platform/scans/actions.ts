@@ -8,7 +8,7 @@ import { createPendingReward } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { insertOrderItems } from "@/lib/order-items";
 import { linkScanToOrder } from "@/lib/receipt-scans";
-import { sendPush } from "@/lib/notifications";
+import { sendTransactionalPush } from "@/lib/notifications";
 import { orderValidatedMessage } from "@/lib/order-notification";
 import type { ReceiptLineItem } from "@/lib/receipt-ocr";
 
@@ -110,10 +110,11 @@ async function creditOrder(params: {
   // service (ADR 0039 §2). Zéro euro : une notification est une surface
   // client (ADR 0028). Le `euros()` ci-dessus reste, il n'alimente que le
   // retour affiché au super-admin, qui a le droit aux euros.
-  void sendPush(
+  void sendTransactionalPush(
     userId,
     restaurantId,
-    orderValidatedMessage({ amountEur: amount, reward: soloItem, rescued: true })
+    orderValidatedMessage({ amountEur: amount, reward: soloItem, rescued: true }),
+    "order_validated"
   ).catch(() => {});
   return reward;
 }
