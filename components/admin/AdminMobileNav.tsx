@@ -53,7 +53,7 @@ export function AdminMobileNav({ sections }: { sections: AdminNavSection[] }) {
                       onClick={() => setOpen(false)}
                       className={`flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium transition-colors ${
                         active
-                          ? "bg-brand-red/10 text-brand-red"
+                          ? "bg-paper-subtle text-ink"
                           : "text-ink-body hover:bg-paper-subtle"
                       }`}
                     >

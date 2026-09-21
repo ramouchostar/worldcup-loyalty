@@ -155,7 +155,7 @@ function SwipeCard({
   return (
     <div
       ref={cardRef}
-      className={`bg-white rounded-xl border-2 p-4 select-none ${borderColor} ${selected ? "ring-2 ring-brand-red/40" : ""}`}
+      className={`bg-white rounded-xl border-2 p-4 select-none ${borderColor} ${selected ? "ring-2 ring-ink/30" : ""}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -169,7 +169,7 @@ function SwipeCard({
               type="checkbox"
               checked={selected}
               onChange={onToggleSelect}
-              className="mt-0.5 shrink-0 h-4 w-4 accent-brand-red"
+              className="mt-0.5 shrink-0 h-4 w-4 accent-ink"
             />
           )}
           <div className="min-w-0">

@@ -191,7 +191,7 @@ export default function AdminMicroRewardsPage() {
                             href={claim.proof_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-brand-red underline"
+                            className="text-ink underline"
                           >
                             {claim.proof_url}
                           </a>

@@ -16,7 +16,6 @@ import type { LucideIcon } from "lucide-react";
 const TONES = {
   neutral: "bg-paper-subtle text-ink-muted",
   good: "bg-good/10 text-good",
-  accent: "bg-brand-red/10 text-brand-red",
 } as const;
 
 export function EmptyState({

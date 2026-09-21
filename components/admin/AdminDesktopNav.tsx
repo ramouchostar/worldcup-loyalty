@@ -28,7 +28,7 @@ export function AdminDesktopNav({ sections }: { sections: AdminNavSection[] }) {
                   href={link.href}
                   className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13.5px] transition-colors ${
                     active
-                      ? "bg-brand-red/10 text-brand-red font-semibold"
+                      ? "bg-paper-subtle text-ink font-semibold"
                       : "text-ink-body font-medium hover:bg-paper-subtle"
                   }`}
                 >

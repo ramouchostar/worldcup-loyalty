@@ -168,7 +168,7 @@ export function CatalogGapsSection({
                   onClick={() =>
                     act(gap, { action: "add", name: d.name, menu_price: d.price, cost_price: d.cost === "" ? null : d.cost }, `« ${d.name} » ajouté au catalogue`)
                   }
-                  className="px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-brand-red/85 disabled:opacity-60"
+                  className="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:bg-ink/85 disabled:opacity-60"
                 >
                   Ajouter
                 </button>

@@ -66,12 +66,12 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 
 ### ADR 0054 — Console restaurateur : un seul jeu de primitives
 - Toute page de `/admin/[restaurantId]/**` part de **`components/admin/ui/`** (`PageHeader`, `Card`, `FilterTabs`, `EmptyState`, `StatTile`, `StatusBadge`, `Restricted`) — une primitive qui manque s'y ajoute, elle ne se réinvente pas sur place
-- **Aucune couleur Tailwind brute** : neutres `ink-*`/`paper-*`, statuts `danger`/`warn`/`good` (AA mesuré), accent d'établissement `brand-*`. Pas de bleu ; le **rouge ne sert qu'à ce qui est cassé ou refusé** (un libellé descriptif est neutre)
-- Surfaces sombres (`brand-dark`) : blancs transparents, jamais `ink-faint` — illisible
+- **Aucune couleur Tailwind brute** : neutres `ink-*`/`paper-*`, statuts `danger`/`warn`/`good` (AA mesuré). **Couleurs Boosteats, jamais la charte de l'établissement** (amendé 2026-09-21) : le layout ne pose pas `brandStyle`, aucun `brand-*` dans un composant de console. Pas de bleu ; le **rouge ne sert qu'à ce qui est cassé ou refusé** (un libellé descriptif est neutre)
+- Surfaces sombres (`bg-ink`) : blancs transparents, jamais `ink-faint` — illisible
 - Emojis : icône d'interface → `lucide-react` ; état vide → icône lucide sur pastille (PAS Fluent 3D, contrairement au membre) ; donnée et **textes sortants** (messages WhatsApp/push) → inchangés
-- Le **logo** de l'établissement remplace son nom en tête de console, sur pastille blanche (un logo sombre disparaîtrait sur `brand_dark`)
+- En tête de console : le **logo ET le nom** de l'établissement (amendé 2026-09-21), le logo sur pastille blanche — c'est tout ce que la console prend à sa charte
 - Une décision se prend à **un seul endroit** : l'arbitrage des doublons est un onglet de Commandes (ADR 0052), pas une page ; une destination déjà dans la nav n'est pas relistée au dashboard
-- Exceptions documentées : supports imprimables (`qr/print/**`) et `/platform` (autre console)
+- Exceptions documentées : supports imprimables (`qr/print/**`, qui posent la charte de l'établissement) et `/platform` (autre console)
 
 ### ADR 0059 — Accueil membre : trois questions, sans défiler (remplace l'ordre ADR 0010)
 - **Qu'est-ce que j'ai** : le cadeau qui attend en grand, avec « Récupérer au comptoir » / « Mettre de côté » et la règle du cadeau unique (ADR 0011)

@@ -108,7 +108,7 @@ export function SeatInviteForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-danger disabled:opacity-50 transition-colors"
+        className="w-full bg-ink text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-danger disabled:opacity-50 transition-colors"
       >
         {loading ? "Génération..." : "Générer le lien d'invitation"}
       </button>

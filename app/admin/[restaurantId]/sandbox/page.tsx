@@ -196,7 +196,7 @@ export default function SandboxPage() {
               <select
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                className="border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                className="border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
               >
                 <option value="">— Sélectionner un membre —</option>
                 {members.map((m) => (
@@ -234,7 +234,7 @@ export default function SandboxPage() {
             <button
               onClick={createOrder}
               disabled={!userId || orderBusy}
-              className="w-full bg-brand-red text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+              className="w-full bg-ink text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
             >
               {orderBusy ? "Création..." : "Créer commande validée"}
             </button>
@@ -256,7 +256,7 @@ export default function SandboxPage() {
           <select
             value={scoreTeamId}
             onChange={(e) => setScoreTeamId(e.target.value)}
-            className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+            className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
           >
             <option value="__all__">Toutes les équipes</option>
             {scores.map((s) => (
@@ -275,7 +275,7 @@ export default function SandboxPage() {
                 min="0"
                 value={memberCount}
                 onChange={(e) => setMemberCount(e.target.value)}
-                className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
               />
             </div>
             <div>
@@ -286,14 +286,14 @@ export default function SandboxPage() {
                 step="0.01"
                 value={totalSpent}
                 onChange={(e) => setTotalSpent(e.target.value)}
-                className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                className="w-full border border-paper-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
               />
             </div>
           </div>
 
           <div className="bg-paper rounded-lg px-3 py-2 text-sm text-ink-body">
             Score résultant :{" "}
-            <strong className="text-brand-dark">
+            <strong className="text-ink">
               {previewScore.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} pts
             </strong>
             {scoreTeamId === "__all__" && (

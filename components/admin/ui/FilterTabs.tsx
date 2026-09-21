@@ -47,7 +47,7 @@ export function FilterTabs<K extends string>({
               active
                 ? alerting
                   ? "bg-danger text-white"
-                  : "bg-brand-dark text-white"
+                  : "bg-ink text-white"
                 : alerting
                   ? "bg-danger/10 text-danger border border-danger/30 hover:border-danger"
                   : "bg-white text-ink-body border border-paper-border hover:border-ink-faint"

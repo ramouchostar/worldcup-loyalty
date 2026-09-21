@@ -100,10 +100,18 @@ export function InstallAppCard({
     // l'écran d'accueil » — plus jamais un clic muet ni un bouton gelé.
   }
 
+  // La console restaurateur n'emprunte aucune couleur à la charte de
+  // l'établissement (ADR 0054) : `brand-*` y résout sur ses couleurs — du
+  // rouge vif chez Kraainem. Côté MEMBRE, la carte reste à sa charte, c'est
+  // sa page.
+  const console_ = audience === "restaurateur";
   const cadre =
     ton === "accueil"
-      ? "border-brand-gold/50 bg-brand-gold/10"
+      ? console_
+        ? "border-paper-border bg-paper-subtle"
+        : "border-brand-gold/50 bg-brand-gold/10"
       : "border-gray-200 bg-white";
+  const boutonFond = console_ ? "bg-ink" : "bg-brand-dark";
 
   return (
     <section className={`rounded-2xl border p-4 ${cadre}`}>
@@ -120,7 +128,7 @@ export function InstallAppCard({
             <button
               onClick={installer}
               disabled={enCours}
-              className="mt-3 bg-brand-dark text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60"
+              className={`mt-3 ${boutonFond} text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60`}
             >
               {enCours ? "Installation…" : "Installer l'app"}
             </button>
@@ -142,7 +150,7 @@ export function InstallAppCard({
                   }
                   setGuideOuvert((g) => !g);
                 }}
-                className="mt-3 bg-brand-dark text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+                className={`mt-3 ${boutonFond} text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity`}
               >
                 Installer l&apos;app
               </button>

@@ -86,7 +86,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                     <button
                       onClick={() => act(team.id, "rename", { name: draftName })}
                       disabled={busy}
-                      className="bg-brand-red text-white px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-50"
+                      className="bg-ink text-white px-3 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-50"
                     >
                       Enregistrer
                     </button>
@@ -123,7 +123,7 @@ export function TeamsManager({ restaurantId, teams }: { restaurantId: string; te
                 <div className="flex gap-3 mt-2 text-xs font-semibold">
                   <button
                     onClick={() => setOpenId(open ? null : team.id)}
-                    className="text-brand-red hover:underline"
+                    className="text-ink hover:underline"
                   >
                     {open ? "Masquer les membres" : "Voir les membres"}
                   </button>

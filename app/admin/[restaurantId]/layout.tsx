@@ -2,7 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { Users, Wrench } from "lucide-react";
 import Link from "next/link";
 import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
-import { brandStyle } from "@/lib/branding";
 import { RestaurantMark } from "@/components/admin/RestaurantMark";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
@@ -53,18 +52,17 @@ export default async function AdminLayout({
   ]);
   const showEstablishmentSwitcher = adminRestaurantIds.length > 1;
   const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
-    gratuit: { label: "Gratuit", cls: "bg-white/10 text-white/75" },
-    croissance: { label: "Croissance", cls: "bg-brand-gold/20 text-brand-gold" },
-    pro: { label: "Pro", cls: "bg-brand-gold text-brand-dark" },
+    gratuit: { label: "Gratuit", cls: "bg-white/10 text-white/70" },
+    croissance: { label: "Croissance", cls: "bg-white/20 text-white" },
+    pro: { label: "Pro", cls: "bg-white text-ink" },
   };
   const planBadge = PLAN_BADGE[plan] ?? PLAN_BADGE.gratuit;
 
   const branding = await getRestaurantBranding(restaurantId);
-  // ADR 0015 — le logo prend la place du nom en tête de console : le
-  // restaurateur reconnaît sa maison avant de lire. La console était la
-  // dernière surface à ne pas l'afficher, alors que le formulaire de charte
-  // le promet déjà ("ton logo s'applique à ta page membre, à ta console et à
-  // tes QR codes"). Sans logo, on garde la pastille à initiale + le nom.
+  // ADR 0054 §4 (amendé le 2026-09-21) — le logo ET le nom de l'établissement
+  // en tête de console : le restaurateur reconnaît sa maison avant de lire.
+  // C'est tout ce que la console prend à sa charte : ses couleurs et sa
+  // police restent celles de la page membre (voir le conteneur ci-dessous).
   const logo = logoPublicUrl(branding.logo_url);
   const base = `/admin/${restaurantId}`;
   // ADR 0041 §6 — un siège équipe n'a pas accès aux trois pages financières
@@ -124,25 +122,28 @@ export default async function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-paper font-brand" style={brandStyle(branding)}>
+    // ADR 0054 §2 (amendé le 2026-09-21) — la console porte les couleurs
+    // Boosteats, pas celles de l'établissement : aucun `brandStyle` ici, donc
+    // les jetons `brand-*` résolvent sur les défauts Boosteats (app/globals.css)
+    // et la police sur Inter. Chez Kraainem, la charte rouge faisait lire la
+    // moindre bonne nouvelle comme une alerte. Les supports imprimables
+    // (qr/print) posent eux-mêmes la charte de l'établissement.
+    <div className="min-h-screen bg-paper font-brand">
       {/* La console n'est pas instrumentée (hors périmètre GA4), mais c'est la
           destination de la dernière étape d'onboarding : sans ce flush,
           `partner_onboarding_completed` ne serait jamais émis. */}
       <AnalyticsIdentity status="restaurateur" />
-      <header className="bg-brand-dark text-white sticky top-0 z-10 pt-safe">
+      <header className="bg-ink text-white sticky top-0 z-10 pt-safe">
         <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex items-center gap-3 min-w-0">
             <RestaurantMark name={restaurant.name} logoUrl={logo} />
             <div className="flex flex-col leading-tight min-w-0">
-              {/* Avec un logo, le nom passe en lecture d'écran seulement : le
-                  logo EST le nom. Sans logo, il reste écrit — la pastille à
-                  initiale ne suffit pas à identifier l'établissement. */}
-              {logo ? (
-                <span className="sr-only">{restaurant.name}</span>
-              ) : (
-                <span className="text-white font-semibold text-sm truncate">{restaurant.name}</span>
-              )}
-              <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-brand-gold whitespace-nowrap">
+              {/* Le nom reste écrit à côté du logo (choix du porteur,
+                  2026-09-21) : un logo seul se lit mal en 36 px, et un
+                  restaurateur qui gère plusieurs établissements doit savoir
+                  d'un coup d'œil dans lequel il est. */}
+              <span className="text-white font-semibold text-sm truncate">{restaurant.name}</span>
+              <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-white/60 whitespace-nowrap">
                 Console restaurateur
               </span>
             </div>
@@ -168,7 +169,7 @@ export default async function AdminLayout({
               </Link>
             )}
             {access.isSuperAdmin && (
-              <Link href="/platform" className="text-xs text-brand-gold hover:text-white transition-colors whitespace-nowrap">
+              <Link href="/platform" className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
                 Plateforme
               </Link>
             )}
@@ -186,7 +187,7 @@ export default async function AdminLayout({
 
       {/* Bandeau Mode plateforme (ADR 0030 §3) */}
       {isPlatformMode && (
-        <div className="bg-brand-gold/15 border-b border-brand-gold/30">
+        <div className="bg-warn/10 border-b border-warn/30">
           <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs">
             <span className="text-warn font-semibold truncate">
               <Wrench size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />

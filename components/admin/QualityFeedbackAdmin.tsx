@@ -77,7 +77,7 @@ export function QualityFeedbackAdmin({
                   restaurantId={restaurantId}
                   feature="barometer_advanced"
                   requiredPlan="croissance"
-                  className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-ink transition-colors shrink-0"
+                  className="bg-ink text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-ink transition-colors shrink-0"
                 />
               </div>
             ) : (
@@ -180,9 +180,9 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
           {item.messages.map((m) => (
             <div
               key={m.id}
-              className={`rounded-xl px-3 py-2 text-sm ${m.sender === "establishment" ? "bg-brand-red/5 text-ink" : "bg-paper-subtle text-ink-body"}`}
+              className={`rounded-xl px-3 py-2 text-sm ${m.sender === "establishment" ? "bg-ink text-white" : "bg-paper-subtle text-ink-body"}`}
             >
-              <span className="block text-xs text-ink-faint mb-0.5">{m.sender === "establishment" ? "Toi" : "Le membre"}</span>
+              <span className={`block text-xs mb-0.5 ${m.sender === "establishment" ? "text-white/60" : "text-ink-faint"}`}>{m.sender === "establishment" ? "Toi" : "Le membre"}</span>
               {m.body}
             </div>
           ))}
@@ -200,7 +200,7 @@ function AdminCard({ restaurantId, item }: { restaurantId: string; item: AdminFe
           type="button"
           onClick={() => act({ body: text })}
           disabled={busy || !text.trim()}
-          className="rounded-xl bg-brand-red text-white px-4 text-sm disabled:opacity-40"
+          className="rounded-xl bg-ink text-white px-4 text-sm disabled:opacity-40"
         >
           Envoyer
         </button>

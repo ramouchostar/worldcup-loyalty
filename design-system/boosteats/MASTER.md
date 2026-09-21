@@ -58,8 +58,9 @@ proposition de palette :
 - **aucun accent rouge sur l'écran de gain** (ADR 0048 §7).
 
 **Console restaurateur — ADR 0054.** Aucune couleur Tailwind brute : neutres en
-`ink-*`/`paper-*`, statuts en `danger`/`warn`/`good`, accent d'établissement en
-`brand-*`. Le **bleu n'existe pas** (les encarts d'information sont neutres), et
+`ink-*`/`paper-*`, statuts en `danger`/`warn`/`good` — les couleurs Boosteats,
+jamais la charte de l'établissement (amendé le 2026-09-21 : seuls son logo et son
+nom s'affichent en tête). Le **bleu n'existe pas** (les encarts d'information sont neutres), et
 le **rouge ne sert qu'à ce qui est cassé ou refusé** — un libellé descriptif
 (« > €200 », « OCR < 70 % ») prend le ton neutre. Une page de la console part
 toujours de `components/admin/ui/`.

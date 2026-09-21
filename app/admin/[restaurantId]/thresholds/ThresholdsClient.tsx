@@ -112,7 +112,7 @@ export function ThresholdsClient() {
         />
         <button
           onClick={() => setShowNew(!showNew)}
-          className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:bg-ink transition-colors"
+          className="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:bg-ink transition-colors"
         >
           + Nouveau seuil
         </button>
@@ -127,7 +127,7 @@ export function ThresholdsClient() {
             placeholder="Label (ex : Phase de groupes — Semaine 2)"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            className="w-full px-3 py-2 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+            className="w-full px-3 py-2 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
           />
           <input
             type="number"
@@ -135,13 +135,13 @@ export function ThresholdsClient() {
             value={newTarget}
             onChange={(e) => setNewTarget(e.target.value)}
             min="1"
-            className="w-full px-3 py-2 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+            className="w-full px-3 py-2 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
           />
           <div className="flex gap-2">
             <button
               onClick={createThreshold}
               disabled={creating || !newLabel.trim() || !newTarget}
-              className="px-4 py-2 bg-brand-red text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-brand-red/85"
+              className="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-ink/85"
             >
               {creating ? "Création..." : "Créer"}
             </button>
@@ -255,7 +255,7 @@ export function ThresholdsClient() {
                   </div>
                   <div className="w-full bg-paper-subtle rounded-full h-3">
                     <div
-                      className={`h-3 rounded-full transition-all ${t.is_unlocked ? "bg-good" : "bg-brand-red"}`}
+                      className={`h-3 rounded-full transition-all ${t.is_unlocked ? "bg-good" : "bg-ink"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -272,7 +272,7 @@ export function ThresholdsClient() {
                         onChange={(e) => setEditBaseline(e.target.value)}
                         placeholder="Baseline hebdo (€)"
                         min="0"
-                        className="flex-1 px-3 py-1.5 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                        className="flex-1 px-3 py-1.5 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
                       />
                       <button
                         onClick={() => updateBaseline(t.id)}
@@ -313,7 +313,7 @@ export function ThresholdsClient() {
                           setEditingBaselineId(t.id);
                           setEditBaseline(t.baseline_weekly_revenue != null ? String(t.baseline_weekly_revenue) : "");
                         }}
-                        className="text-xs text-brand-red font-semibold hover:underline shrink-0"
+                        className="text-xs text-ink font-semibold hover:underline shrink-0"
                       >
                         Modifier
                       </button>
@@ -331,7 +331,7 @@ export function ThresholdsClient() {
                         onChange={(e) => setEditRevenue(e.target.value)}
                         placeholder="Nouveau CA (€)"
                         min="0"
-                        className="flex-1 px-3 py-1.5 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                        className="flex-1 px-3 py-1.5 border border-paper-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ink/25"
                       />
                       <button
                         onClick={() => updateRevenue(t.id)}

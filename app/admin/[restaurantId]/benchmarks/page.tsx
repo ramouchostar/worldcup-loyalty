@@ -77,7 +77,7 @@ export default async function BenchmarksPage({ params }: { params: Promise<{ res
               )}
             </div>
             <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
-              <p className="text-2xl font-black text-brand-red">{euro(bench.median.avgBasket)}</p>
+              <p className="text-2xl font-black text-ink">{euro(bench.median.avgBasket)}</p>
               <p className="text-xs text-ink-muted mt-1">
                 médiane {bench.scope === "secteur" ? "du secteur" : "du réseau"}
               </p>
@@ -104,12 +104,12 @@ export default async function BenchmarksPage({ params }: { params: Promise<{ res
                     <span className="w-8 text-ink-muted shrink-0">{label}</span>
                     <div className="flex-1 space-y-0.5">
                       <div className="flex items-center gap-1.5">
-                        <div className="h-2 rounded-full bg-brand-red/80" style={{ width: `${Math.min(100, med * 50)}%` }} />
+                        <div className="h-2 rounded-full bg-ink/30" style={{ width: `${Math.min(100, med * 50)}%` }} />
                         <span className="text-ink-faint tabular-nums">{Math.round(med * 100)}%</span>
                       </div>
                       {mine !== null && (
                         <div className="flex items-center gap-1.5">
-                          <div className="h-2 rounded-full bg-brand-dark/70" style={{ width: `${Math.min(100, mine * 50)}%` }} />
+                          <div className="h-2 rounded-full bg-ink" style={{ width: `${Math.min(100, mine * 50)}%` }} />
                           <span className="text-ink-faint tabular-nums">{Math.round(mine * 100)}%</span>
                         </div>
                       )}
@@ -120,12 +120,12 @@ export default async function BenchmarksPage({ params }: { params: Promise<{ res
             </div>
             <div className="flex gap-4 mt-3 text-[11px] text-ink-faint">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-2 rounded-full bg-brand-red/80" /> médiane{" "}
+                <span className="inline-block w-3 h-2 rounded-full bg-ink/30" /> médiane{" "}
                 {bench.scope === "secteur" ? "secteur" : "réseau"}
               </span>
               {bench.mine && (
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-2 rounded-full bg-brand-dark/70" /> toi
+                  <span className="inline-block w-3 h-2 rounded-full bg-ink" /> toi
                 </span>
               )}
             </div>
