@@ -156,7 +156,7 @@ export default function LocalEventManager({
       <button
         onClick={add}
         disabled={busy || !label.trim() || !startsOn}
-        className="mt-3 bg-brand-dark text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/80 transition-colors"
+        className="mt-3 bg-ink text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/80 transition-colors"
       >
         {busy ? "…" : "Ajouter l'événement"}
       </button>

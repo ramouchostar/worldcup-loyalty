@@ -27,7 +27,7 @@ export default async function TeamsPage({ params }: { params: Promise<{ restaura
       <p className="text-sm text-ink-muted">
         Tu ne crées pas les équipes : c&apos;est le premier « oui » d&apos;un client qui en fait
         naître une.{" "}
-        <Link href={`/admin/${restaurantId}/settings`} className="font-semibold text-brand-red hover:underline">
+        <Link href={`/admin/${restaurantId}/settings`} className="font-semibold text-ink hover:underline">
           Gérer les communautés proposées
         </Link>
       </p>

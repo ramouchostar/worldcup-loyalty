@@ -175,7 +175,7 @@ export default function SalesImport({
           type="file"
           accept=".csv,text/csv,.txt,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={onFile}
-          className="block w-full text-sm text-ink-body file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-dark file:text-white hover:file:bg-black/80 cursor-pointer"
+          className="block w-full text-sm text-ink-body file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-ink file:text-white hover:file:bg-black/80 cursor-pointer"
         />
       </div>
 
@@ -262,7 +262,7 @@ export default function SalesImport({
             <button
               onClick={submit}
               disabled={busy || dateCol === null || amountCol === null || !preview || preview.rows.length === 0}
-              className="bg-brand-red text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-red/90 transition-colors"
+              className="bg-ink text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-ink/90 transition-colors"
             >
               {busy ? "Import en cours…" : "C'est bon, importer"}
             </button>

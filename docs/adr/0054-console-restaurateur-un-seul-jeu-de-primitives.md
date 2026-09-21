@@ -4,7 +4,7 @@
 Space Grotesk + JetBrains Mono, jetons `ink-*`/`paper-*`, icônes au lieu d'émojis) et le
 socle de design system du 2026-09-12 (`design-system/boosteats/MASTER.md`), qui avait
 explicitement laissé la console de côté. Amende la **surface** de l'**ADR 0052**
-(l'arbitrage des doublons n'a plus de page dédiée). Aucune migration.
+(l'arbitrage des doublons n'a plus de page dédiée). Aucune migration. **Amendé le 2026-09-21** (voir en fin de document) : la console porte les couleurs Boosteats, plus celles de l'établissement ; le logo et le nom s'affichent ensemble.
 
 ## Contexte
 
@@ -122,3 +122,25 @@ relistée en bas du dashboard.
 - `components/admin/DuplicateReviews.tsx` + `app/api/admin/duplicate-reviews/route.ts`
 - `design-system/boosteats/MASTER.md` — la ligne « console et `/platform` à faire » ne
   vaut plus que pour `/platform`
+
+## Amendement 2026-09-21 — les couleurs Boosteats, le logo et le nom
+
+**Décision du porteur**, sur la revue des maquettes de la vue simple (ADR 0064) : la console
+garde les couleurs Boosteats, avec le logo et le nom de l'établissement en tête.
+
+- **§2 — plus aucune couleur prise à la charte de l'établissement.** Le layout de la console ne
+  pose plus `brandStyle` : les jetons `brand-*` y résolvent sur les défauts Boosteats
+  (`app/globals.css`) et la police sur Inter. Les composants de la console n'utilisent de toute
+  façon plus `brand-*` : neutres `ink-*` / `paper-*`, statuts `danger` / `warn` / `good`, et c'est
+  tout. Raison : la charte de Kraainem est rouge, et une console où la bonne nouvelle et le lien
+  actif sont rouges se lit comme une alarme permanente. La console est l'outil Boosteats du
+  restaurateur, pas sa vitrine — même partage que les e-mails (ADR 0063 §4 : le membre reçoit
+  l'e-mail de son établissement, le restaurateur celui de l'outil).
+- **Surfaces sombres** : `bg-ink` (en-tête, encarts sombres) au lieu de `brand-dark` ; la règle
+  des blancs transparents s'y applique pareil.
+- **§4 — le logo ne remplace plus le nom** : les deux s'affichent côte à côte, le logo toujours
+  sur sa pastille blanche. Un logo seul se lit mal en 36 px, et qui gère plusieurs
+  établissements doit savoir d'un coup d'œil dans lequel il est.
+- **Inchangé** : les supports imprimables (`qr/print/**`) posent eux-mêmes la charte de
+  l'établissement — ce sont ses affiches ; l'aperçu du formulaire de charte montre ses couleurs ;
+  `/platform` reste une autre console ; côté membre, la charte s'applique comme avant.

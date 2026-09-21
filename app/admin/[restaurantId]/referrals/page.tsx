@@ -83,7 +83,7 @@ export default function AdminReferralsPage() {
                     </div>
                     <div className="shrink-0 text-right">
                       {tokens > 0 ? (
-                        <span className="inline-flex items-center gap-1 bg-brand-red text-white text-sm font-bold px-3 py-1.5 rounded-full">
+                        <span className="inline-flex items-center gap-1 bg-ink text-white text-sm font-bold px-3 py-1.5 rounded-full">
                           {tokens} jeton{tokens > 1 ? "s" : ""}
                         </span>
                       ) : (

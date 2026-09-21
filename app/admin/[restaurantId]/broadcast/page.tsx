@@ -171,7 +171,7 @@ export default function AdminBroadcastPage() {
                 key={value}
                 onClick={() => setNature(value)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                  nature === value ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-ink-body border-paper-border hover:bg-paper"
+                  nature === value ? "bg-ink text-white border-ink" : "bg-white text-ink-body border-paper-border hover:bg-paper"
                 }`}
               >
                 {label}
@@ -194,7 +194,7 @@ export default function AdminBroadcastPage() {
                 key={value}
                 onClick={() => setKind(value)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                  kind === value ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-ink-body border-paper-border hover:bg-paper"
+                  kind === value ? "bg-ink text-white border-ink" : "bg-white text-ink-body border-paper-border hover:bg-paper"
                 }`}
               >
                 {label}
@@ -210,7 +210,7 @@ export default function AdminBroadcastPage() {
                 key={o.value}
                 onClick={() => setTypes((prev) => toggle(prev, o.value))}
                 className={`px-3 py-1.5 rounded-full text-sm border ${
-                  types.includes(o.value) ? "bg-brand-gold/20 border-brand-gold/50 text-warn" : "bg-white border-paper-border text-ink-body"
+                  types.includes(o.value) ? "bg-ink text-white border-ink" : "bg-white border-paper-border text-ink-body"
                 }`}
               >
                 {o.label}
@@ -284,7 +284,7 @@ export default function AdminBroadcastPage() {
       <button
         onClick={send}
         disabled={sending || message.trim().length < 3}
-        className="px-5 py-2.5 bg-brand-red text-white rounded-lg text-sm font-semibold hover:bg-brand-red/85 disabled:opacity-50"
+        className="px-5 py-2.5 bg-ink text-white rounded-lg text-sm font-semibold hover:bg-ink/85 disabled:opacity-50"
       >
         {sending ? "Envoi en cours…" : sendOn ? "Programmer le broadcast" : "Envoyer le broadcast"}
       </button>

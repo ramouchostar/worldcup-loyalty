@@ -109,7 +109,7 @@ export function StaffCodesSection({
                       href={`/badge/${c.code}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-brand-red font-semibold text-xs hover:underline"
+                      className="text-ink font-semibold text-xs hover:underline"
                     >
                       Voir
                     </a>
@@ -142,12 +142,12 @@ export function StaffCodesSection({
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Prénom (ex. Sofia)"
           maxLength={40}
-          className="flex-1 border border-paper-border rounded-xl px-3 py-2 text-sm focus:border-brand-red"
+          className="flex-1 border border-paper-border rounded-xl px-3 py-2 text-sm focus:border-ink"
         />
         <button
           type="submit"
           disabled={busy || !label.trim()}
-          className="bg-brand-dark text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="bg-ink text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {busy ? "…" : "Créer son QR"}
         </button>

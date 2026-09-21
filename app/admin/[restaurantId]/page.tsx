@@ -285,7 +285,7 @@ export default async function AdminDashboardPage({
           ))
         ) : (
           <div className="flex items-center gap-3.5 px-5 py-5 border-t border-paper-border">
-            <span className="w-9 h-9 rounded-[9px] bg-brand-red/10 text-brand-red flex items-center justify-center shrink-0">
+            <span className="w-9 h-9 rounded-[9px] bg-good/10 text-good flex items-center justify-center shrink-0">
               <CircleCheck size={18} strokeWidth={1.7} />
             </span>
             <div>
@@ -301,9 +301,9 @@ export default async function AdminDashboardPage({
           la page dédiée fait déjà tout le travail d'agrégation. */}
       <Link
         href={r("/insights")}
-        className="flex items-center gap-3.5 bg-white border-[1.5px] border-brand-gold/40 rounded-xl px-5 py-4 hover:border-brand-gold transition-colors"
+        className="flex items-center gap-3.5 bg-white border border-paper-border rounded-xl px-5 py-4 hover:border-ink-faint transition-colors"
       >
-        <span className="w-9 h-9 rounded-[9px] bg-brand-red/10 text-brand-red flex items-center justify-center shrink-0">
+        <span className="w-9 h-9 rounded-[9px] bg-paper-subtle text-ink-muted flex items-center justify-center shrink-0">
           <Lightbulb size={18} strokeWidth={1.7} />
         </span>
         <div className="flex-1 min-w-0">
@@ -312,7 +312,7 @@ export default async function AdminDashboardPage({
             Promos, combos et créneaux à fort potentiel identifiés à partir de tes ventes
           </p>
         </div>
-        <span className="text-brand-red text-[12.5px] font-bold shrink-0">Découvrir →</span>
+        <span className="text-ink text-[12.5px] font-bold shrink-0">Découvrir →</span>
       </Link>
 
       {/* ── Valeur générée par le programme (issue #22) ─────────────────────
@@ -323,10 +323,10 @@ export default async function AdminDashboardPage({
           (hook data-ready, ADR 0029). Gratuit pour tous les plans : c'est
           cette section qui donne envie des surfaces payantes. */}
       <section className="space-y-3">
-        <div className="bg-brand-dark text-white rounded-xl p-5">
+        <div className="bg-ink text-white rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <SectionLabel tone="gold">Ce que le programme t&apos;a rapporté</SectionLabel>
-            <Link href={r("/sales")} className="text-xs font-semibold text-brand-gold hover:text-white transition-colors">Détail par plat →</Link>
+            <SectionLabel tone="onDark">Ce que le programme t&apos;a rapporté</SectionLabel>
+            <Link href={r("/sales")} className="text-xs font-semibold text-white/70 hover:text-white transition-colors">Détail par plat →</Link>
           </div>
 
           {value.totals.orders === 0 ? (
@@ -358,7 +358,6 @@ export default async function AdminDashboardPage({
                 />
                 <StatTile
                   surface="dark"
-                  accent
                   value={curMonth.activeMembers}
                   label={`client${curMonth.activeMembers > 1 ? "s" : ""} ce mois-ci${
                     curMonth.returningMembers > 0
@@ -385,7 +384,7 @@ export default async function AdminDashboardPage({
                       <span className="w-16 shrink-0 text-white/60">{monthShort(m.month)}</span>
                       <div className="flex-1 bg-white/10 rounded-full h-2">
                         <div
-                          className="bg-brand-gold h-2 rounded-full"
+                          className="bg-white/80 h-2 rounded-full"
                           style={{ width: `${Math.max(2, Math.round((m.revenue / maxMonthRevenue) * 100))}%` }}
                         />
                       </div>
@@ -411,7 +410,6 @@ export default async function AdminDashboardPage({
                 <StatTile
                   surface="dark"
                   size="sm"
-                  accent
                   value={eur(value.totals.margin)}
                   label="marge sur articles à coût connu"
                 />
@@ -462,13 +460,13 @@ export default async function AdminDashboardPage({
           <Card>
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Ton CA total — {monthTitle(latestSales.month)}</SectionLabel>
-              <Link href={r("/forecast")} className="text-xs font-semibold text-brand-red hover:underline">Ventes &amp; prévisions →</Link>
+              <Link href={r("/forecast")} className="text-xs font-semibold text-ink hover:underline">Ventes &amp; prévisions →</Link>
             </div>
             <p className="font-display text-[22px] font-bold text-ink tabular-nums">{eur(latestSales.totalSales)}</p>
             {latestSales.programSharePct !== null && (
               <>
                 <div className="w-full bg-paper-subtle rounded-full h-2 mt-3">
-                  <div className="bg-brand-red h-2 rounded-full" style={{ width: `${latestSales.programSharePct}%` }} />
+                  <div className="bg-ink h-2 rounded-full" style={{ width: `${latestSales.programSharePct}%` }} />
                 </div>
                 <p className="text-xs text-ink-muted mt-2">
                   {latestSales.programSharePct} % de ce CA vient de tes clients du programme (tickets scannés vs caisse importée).
@@ -486,7 +484,7 @@ export default async function AdminDashboardPage({
                 ? "Continue d'importer tes ventes de caisse (4 semaines minimum) pour voir la part du programme dans ton CA total."
                 : "Importe ton rapport de caisse pour voir ton CA total et la part qu'y prennent tes clients du programme."}
             </p>
-            <span className="text-brand-red text-[12.5px] font-bold shrink-0">Importer →</span>
+            <span className="text-ink text-[12.5px] font-bold shrink-0">Importer →</span>
           </Link>
         )}
 
@@ -497,7 +495,7 @@ export default async function AdminDashboardPage({
         <Card>
           <div className="flex items-center justify-between mb-1">
             <SectionLabel>Objectif CA — {th.period_label}</SectionLabel>
-            <Link href={r("/thresholds")} className="text-xs font-semibold text-brand-red hover:underline">
+            <Link href={r("/thresholds")} className="text-xs font-semibold text-ink hover:underline">
               Gérer →
             </Link>
           </div>
@@ -511,7 +509,7 @@ export default async function AdminDashboardPage({
           <div className="relative px-3.5 mb-9">
             <div className="relative w-full bg-paper-subtle rounded-full h-2.5">
               <div
-                className={`h-2.5 rounded-full transition-all ${th.is_unlocked ? "bg-good" : "bg-gradient-to-r from-brand-gold to-brand-red"}`}
+                className={`h-2.5 rounded-full transition-all ${th.is_unlocked ? "bg-good" : "bg-ink"}`}
                 style={{ width: `${revenuePct}%` }}
               />
               {/* Repères 25/50/75% — juste de la lisibilité visuelle, pas de données */}
@@ -521,8 +519,8 @@ export default async function AdminDashboardPage({
             </div>
             {/* Ligne d'arrivée — le trophée marque l'objectif à atteindre, pas la position actuelle */}
             <div
-              className="absolute -right-1 -top-[13px] w-[34px] h-[34px] rounded-full bg-brand-red flex items-center justify-center text-white"
-              style={{ boxShadow: "0 0 20px rgb(var(--brand-red) / 0.5)" }}
+              className="absolute -right-1 -top-[13px] w-[34px] h-[34px] rounded-full bg-ink flex items-center justify-center text-white"
+              style={{ boxShadow: "0 0 18px rgb(10 10 10 / 0.28)" }}
             >
               <Trophy size={17} strokeWidth={1.8} />
             </div>
@@ -537,7 +535,7 @@ export default async function AdminDashboardPage({
               <strong className="text-ink">{revenuePct}%</strong>
             </span>
             {unlockStreak >= 2 && (
-              <span className="font-mono text-[11px] tracking-[0.06em] text-brand-red font-semibold">
+              <span className="font-mono text-[11px] tracking-[0.06em] text-ink-muted font-semibold">
                 {unlockStreak} périodes d&apos;objectif atteint d&apos;affilée
               </span>
             )}

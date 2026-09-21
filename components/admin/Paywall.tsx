@@ -58,7 +58,7 @@ export function RequestPlanButton({
         disabled={state === "busy"}
         className={
           className ??
-          "bg-brand-red text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+          "bg-ink text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-ink/85 disabled:opacity-50 transition-colors"
         }
       >
         {state === "busy" ? "…" : `Demander le plan ${PLAN_LABEL[requiredPlan] ?? requiredPlan}`}
@@ -82,7 +82,7 @@ export function TrialBanner({
 }) {
   if (ent.state !== "essai") return null;
   return (
-    <div className="bg-brand-gold/15 border border-brand-gold/40 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+    <div className="bg-warn/10 border border-warn/30 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
       <p className="text-sm text-warn">
         ⏳ <strong>Essai gratuit</strong> — encore {ent.trialDaysLeft} jour
         {(ent.trialDaysLeft ?? 0) > 1 ? "s" : ""} pour profiter de cette fonction.
@@ -91,7 +91,7 @@ export function TrialBanner({
         restaurantId={restaurantId}
         feature={feature}
         requiredPlan={ent.requiredPlan}
-        className="bg-brand-dark text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-ink transition-colors shrink-0"
+        className="bg-ink text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-ink transition-colors shrink-0"
       />
     </div>
   );

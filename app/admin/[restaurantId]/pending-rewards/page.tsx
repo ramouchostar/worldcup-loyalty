@@ -109,7 +109,7 @@ export default function AdminPendingRewardsPage() {
 
       {/* Résumé distribution */}
       {distribution.length > 0 && (
-        <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-xl p-4">
+        <div className="bg-paper-subtle border border-paper-border rounded-xl p-4">
           <p className="text-xs font-semibold text-ink-body uppercase tracking-wide mb-2">
             <Receipt size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
           À préparer ({pending.length} récompense{pending.length > 1 ? "s" : ""})
@@ -120,7 +120,7 @@ export default function AdminPendingRewardsPage() {
                 key={item}
                 className="inline-flex items-center gap-1 bg-white border border-paper-border text-ink text-sm font-medium px-3 py-1 rounded-full"
               >
-                <span className="font-bold text-brand-red">{count}×</span> {item}
+                <span className="font-bold text-ink">{count}×</span> {item}
               </span>
             ))}
           </div>
@@ -144,7 +144,7 @@ export default function AdminPendingRewardsPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Rechercher par nom ou email..."
-          className="w-full px-4 py-2.5 border border-paper-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red text-ink placeholder:text-ink-faint"
+          className="w-full px-4 py-2.5 border border-paper-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ink/25 text-ink placeholder:text-ink-faint"
         />
       </div>
 
@@ -168,7 +168,7 @@ export default function AdminPendingRewardsPage() {
             <div
               key={r.id}
               className={`bg-white rounded-xl border p-4 ${
-                r.status === "available" ? "border-brand-gold/40" : "border-paper-border opacity-70"
+                r.status === "available" ? "border-ink/25" : "border-paper-border opacity-70"
               }`}
             >
               <div className="flex items-start justify-between gap-3">

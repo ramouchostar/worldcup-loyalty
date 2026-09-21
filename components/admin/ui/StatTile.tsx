@@ -9,14 +9,17 @@ import type { ReactNode } from "react";
 // tous la même largeur.
 //
 // Deux fonds : `light` sur le papier de la console, `dark` sur les encarts
-// `brand-dark` (la section « ce que le programme t'a rapporté »).
+// `ink` (la section « ce que le programme t'a rapporté »).
+//
+// Pas de prop « accent » : la console n'a pas de couleur de mise en avant
+// (ADR 0054). Trois chiffres côte à côte se valent — en teinter un
+// n'ajoutait rien, et la teinte venait de la charte de l'établissement.
 
 export function StatTile({
   value,
   label,
   hint,
   surface = "light",
-  accent = false,
   size = "md",
   className = "",
 }: {
@@ -25,13 +28,11 @@ export function StatTile({
   /** Précision sous l'étiquette (variation vs mois précédent, détail…). */
   hint?: ReactNode;
   surface?: "light" | "dark";
-  /** Met le chiffre en `brand-gold` — un seul par groupe, sinon plus rien ne ressort. */
-  accent?: boolean;
   size?: "sm" | "md";
   className?: string;
 }) {
   const dark = surface === "dark";
-  const valueColor = accent ? "text-brand-gold" : dark ? "text-white" : "text-ink";
+  const valueColor = dark ? "text-white" : "text-ink";
   return (
     <div className={className}>
       <p

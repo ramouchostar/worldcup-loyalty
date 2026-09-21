@@ -119,7 +119,7 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
                 <label
                   key={c.code}
                   className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
-                    checked ? "border-brand-red/50 bg-brand-red/8" : "border-paper-border bg-white hover:bg-paper"
+                    checked ? "border-ink/40 bg-paper-subtle" : "border-paper-border bg-white hover:bg-paper"
                   }`}
                 >
                   <input
@@ -128,7 +128,7 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
                     value={c.code}
                     checked={checked}
                     onChange={() => toggleCalendar(c.code)}
-                    className="h-4 w-4 accent-brand-red"
+                    className="h-4 w-4 accent-ink"
                   />
                   <span>
                     🇧🇪 {c.label}
@@ -180,7 +180,7 @@ export function SettingsForm({ restaurantId, initial }: { restaurantId: string; 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className="w-full bg-ink text-white py-3 rounded-xl font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Enregistrement..." : "Enregistrer"}
       </button>

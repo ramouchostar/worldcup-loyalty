@@ -139,7 +139,7 @@ export function BrandingForm({
         <div>
           <h2 className="font-bold text-ink">Charte graphique</h2>
           <p className="text-xs text-ink-faint mt-0.5">
-            Ton logo, tes couleurs et ta police s&apos;appliquent à ta page membre, à ta console et à tes QR codes.
+            Ton logo, tes couleurs et ta police s&apos;appliquent à ta page membre et à tes QR codes. Ta console garde les couleurs Boosteats, avec ton logo et ton nom en tête.
             Laisse un champ vide pour garder le style par défaut.
           </p>
         </div>
@@ -150,7 +150,7 @@ export function BrandingForm({
             type="button"
             onClick={handleDetect}
             disabled={!websiteUrl || detecting}
-            className="w-full bg-brand-dark text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-brand-dark/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-ink text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-ink/85 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {detecting ? "Analyse en cours... (jusqu'à 45 secondes)" : "Détecter mon design depuis mon site"}
           </button>
@@ -228,7 +228,7 @@ export function BrandingForm({
         <div
           ref={detectedRef}
           className={`scroll-mt-4 space-y-5 rounded-xl -m-2 p-2 transition-shadow duration-500 ${
-            highlight ? "ring-2 ring-brand-red/40" : "ring-0"
+            highlight ? "ring-2 ring-ink/30" : "ring-0"
           }`}
         >
           {/* Aperçu live */}
@@ -266,7 +266,7 @@ export function BrandingForm({
                   type="button"
                   onClick={() => setFont(font === f.key ? "" : f.key)}
                   className={`text-left border rounded-lg px-3 py-2 transition-colors ${
-                    font === f.key ? "border-brand-red bg-brand-red/5" : "border-paper-border hover:border-paper-border"
+                    font === f.key ? "border-ink bg-paper-subtle" : "border-paper-border hover:border-paper-border"
                   }`}
                   style={{ fontFamily: f.cssVar }}
                 >
@@ -319,7 +319,7 @@ export function BrandingForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className="w-full bg-ink text-white py-3 rounded-xl font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Enregistrement..." : "Enregistrer la charte"}
       </button>

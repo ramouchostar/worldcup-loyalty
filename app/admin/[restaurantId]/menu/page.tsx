@@ -278,7 +278,7 @@ export default function AdminMenuPage() {
             ))}
           </select>
         </div>
-        {rationale && <p className="text-xs text-brand-gold mt-1 ml-[11.75rem]"><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />{rationale}</p>}
+        {rationale && <p className="text-xs text-ink-muted mt-1 ml-[11.75rem]"><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />{rationale}</p>}
       </div>
     );
   }
@@ -294,7 +294,7 @@ export default function AdminMenuPage() {
       {/* ── Upload ──────────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-paper-border p-5 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:opacity-90 cursor-pointer">
+          <label className="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:opacity-90 cursor-pointer">
             {uploading ? "Import en cours…" : "Importer un CSV"}
             <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} disabled={uploading} className="hidden" />
           </label>
@@ -529,11 +529,11 @@ export default function AdminMenuPage() {
             </div>
             <div className="flex items-center gap-2">
               <button onClick={suggest} disabled={suggesting || giftItems.length === 0}
-                className="px-3 py-2 bg-brand-gold/15 text-warn border border-brand-gold/40 rounded-lg text-sm font-semibold hover:bg-brand-gold/25 disabled:opacity-50">
+                className="px-3 py-2 bg-warn/10 text-warn border border-warn/30 rounded-lg text-sm font-semibold hover:bg-warn/20 disabled:opacity-50">
                 {suggesting ? "Suggestion…" : "Suggérer avec l'IA"}
               </button>
               <button onClick={saveTiers} disabled={savingTiers}
-                className="px-3 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50">
+                className="px-3 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50">
                 {savingTiers ? "Enregistrement…" : "Enregistrer les paliers"}
               </button>
             </div>
@@ -701,7 +701,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
       </div>
 
       {info.suggestion && info.suggestion.id !== info.current.id && (
-        <div className="bg-brand-gold/10 border border-brand-gold/30 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="bg-warn/10 border border-warn/30 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-warn">
             <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Suggestion : <span className="font-semibold">{info.suggestion.name}</span> — perçu à{" "}
             {euro(info.suggestion.menu_price)} pour {euro(info.suggestion.cost_price)} de coût réel
@@ -710,7 +710,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
           <button
             onClick={() => save(info.suggestion!.id)}
             disabled={saving}
-            className="text-xs px-3 py-1.5 bg-brand-gold/20 text-warn border border-brand-gold/40 rounded-lg font-semibold hover:bg-brand-gold/30 disabled:opacity-50"
+            className="text-xs px-3 py-1.5 bg-warn/12 text-warn border border-warn/30 rounded-lg font-semibold hover:bg-warn/20 disabled:opacity-50"
           >
             Appliquer
           </button>
@@ -731,7 +731,7 @@ function JetonsGiftCard({ restaurantId, items }: { restaurantId: string; items: 
         <button
           onClick={() => save(selected)}
           disabled={saving || !selected}
-          className="px-3 py-2 bg-brand-dark text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+          className="px-3 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50"
         >
           {saving ? "Enregistrement…" : "Enregistrer"}
         </button>

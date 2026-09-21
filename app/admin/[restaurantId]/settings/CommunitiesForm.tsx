@@ -156,7 +156,7 @@ export function CommunitiesForm({
         type="button"
         onClick={save}
         disabled={loading}
-        className="w-full bg-brand-red text-white py-3 rounded-xl font-semibold hover:bg-brand-red/85 disabled:opacity-50 transition-colors"
+        className="w-full bg-ink text-white py-3 rounded-xl font-semibold hover:bg-ink/85 disabled:opacity-50 transition-colors"
       >
         {loading ? "Enregistrement..." : "Enregistrer les communautés"}
       </button>

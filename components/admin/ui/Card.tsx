@@ -46,9 +46,14 @@ export function CardRow({
 // (« ▶ À FAIRE AUJOURD'HUI », « CE QUE LE PROGRAMME T'A RAPPORTÉ »). JetBrains
 // Mono et l'interlettrage large la distinguent d'un titre : c'est un intitulé
 // de rubrique, pas une phrase.
+// Trois tons, aucun emprunté à la charte de l'établissement (ADR 0054) :
+// `brand-*` résout sur ses couleurs, donc en rouge vif chez Kraainem.
 const LABEL_TONES = {
-  accent: "text-brand-red",
-  gold: "text-brand-gold",
+  /** Sur le papier de la console. */
+  accent: "text-ink",
+  /** Sur une surface sombre (`bg-ink`). */
+  onDark: "text-white/60",
+  /** En retrait — une rubrique secondaire. */
   muted: "text-ink-faint",
 } as const;
 

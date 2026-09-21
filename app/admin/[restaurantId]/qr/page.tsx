@@ -108,7 +108,7 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
             <Link
               key={f.key}
               href={`/admin/${restaurantId}/qr/print?format=${f.key}`}
-              className="flex items-center gap-4 bg-white rounded-xl border border-paper-border p-4 hover:border-brand-gold/50 hover:shadow-sm transition-all"
+              className="flex items-center gap-4 bg-white rounded-xl border border-paper-border p-4 hover:border-ink-faint hover:shadow-sm transition-all"
             >
               <span className="w-10 h-10 rounded-xl bg-paper-subtle text-ink-muted flex items-center justify-center shrink-0">
                 <f.icon size={20} strokeWidth={1.6} aria-hidden="true" />
@@ -117,14 +117,14 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
                 <p className="font-semibold text-ink">{f.label}</p>
                 <p className="text-xs text-ink-faint">{f.desc}</p>
               </div>
-              <span className="text-brand-red font-semibold text-sm shrink-0">Imprimer →</span>
+              <span className="text-ink font-semibold text-sm shrink-0">Imprimer →</span>
             </Link>
           ))}
         </div>
         <p className="text-xs text-ink-faint">
           <Palette size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
           Les supports reprennent ton logo et tes couleurs. Configure-les dans{" "}
-          <Link href={`/admin/${restaurantId}/settings`} className="text-brand-red hover:underline">Mon établissement</Link>.
+          <Link href={`/admin/${restaurantId}/settings`} className="text-ink hover:underline">Mon établissement</Link>.
         </p>
       </div>
 
@@ -141,7 +141,7 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
         <a
           href={pngDataUrl}
           download={`qr-${restaurantId}.png`}
-          className="bg-brand-dark text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          className="bg-ink text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
         >
           <Download size={15} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
           PNG (2048 px)
@@ -149,7 +149,7 @@ export default async function AdminQrPage({ params }: { params: Promise<{ restau
         <a
           href={svgDataUrl}
           download={`qr-${restaurantId}.svg`}
-          className="bg-brand-dark text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          className="bg-ink text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
         >
           <Download size={15} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
           SVG (imprimeur)

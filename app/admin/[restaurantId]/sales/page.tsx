@@ -185,7 +185,7 @@ export default async function AdminSalesPage({
               href={r(p.days)}
               className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
                 p.days === days
-                  ? "bg-brand-dark text-white"
+                  ? "bg-ink text-white"
                   : "bg-white border border-paper-border text-ink-body hover:border-paper-border"
               }`}
             >
@@ -281,7 +281,7 @@ export default async function AdminSalesPage({
                       </div>
                       <div className="mt-1 w-full bg-paper-subtle rounded-full h-1.5 max-w-[240px]">
                         <div
-                          className="bg-brand-red h-1.5 rounded-full"
+                          className="bg-ink h-1.5 rounded-full"
                           style={{ width: `${Math.round((d.qty / maxQty) * 100)}%` }}
                         />
                       </div>
@@ -312,7 +312,7 @@ export default async function AdminSalesPage({
                 {byHour.map((v, h) => (
                   <div key={h} className="flex-1 flex flex-col items-center justify-end h-full" title={`${h}h : ${v} article${v > 1 ? "s" : ""}`}>
                     <div
-                      className={`w-full rounded-t ${v > 0 ? "bg-brand-red" : "bg-paper-subtle"}`}
+                      className={`w-full rounded-t ${v > 0 ? "bg-ink" : "bg-paper-subtle"}`}
                       style={{ height: `${Math.max(v > 0 ? 6 : 2, Math.round((v / maxHour) * 100))}%` }}
                     />
                   </div>
@@ -330,7 +330,7 @@ export default async function AdminSalesPage({
                 {byWeekday.map((v, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${WEEKDAYS[i]} : ${v} article${v > 1 ? "s" : ""}`}>
                     <div
-                      className={`w-full rounded-t ${v > 0 ? "bg-brand-dark" : "bg-paper-subtle"}`}
+                      className={`w-full rounded-t ${v > 0 ? "bg-ink" : "bg-paper-subtle"}`}
                       style={{ height: `${Math.max(v > 0 ? 6 : 2, Math.round((v / maxWeekday) * 100))}%` }}
                     />
                   </div>

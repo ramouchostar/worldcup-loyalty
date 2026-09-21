@@ -183,7 +183,7 @@ export default async function ForecastPage({
         >
         <>
           {/* Hero — total semaine */}
-          <div className="bg-brand-dark text-white rounded-xl p-5">
+          <div className="bg-ink text-white rounded-xl p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-white/70">7 prochains jours</p>

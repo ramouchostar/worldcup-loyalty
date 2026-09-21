@@ -66,7 +66,7 @@ export default async function AdminLandingPage() {
               <Link
                 key={r.id}
                 href={`/admin/${r.id}`}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-paper-border hover:border-brand-red transition-colors"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-paper-border hover:border-ink transition-colors"
               >
                 <RestaurantMark
                   name={r.name}
@@ -74,7 +74,7 @@ export default async function AdminLandingPage() {
                   className={logos[r.id] ? "border border-paper-border" : ""}
                 />
                 <span className="font-semibold text-ink flex-1 min-w-0 truncate">{r.name}</span>
-                <span className="text-sm font-semibold text-brand-red shrink-0">Gérer →</span>
+                <span className="text-sm font-semibold text-ink shrink-0">Gérer →</span>
               </Link>
             ))}
           </div>
@@ -82,7 +82,7 @@ export default async function AdminLandingPage() {
 
         <p className="text-center text-sm text-ink-muted mt-5">
           Tu veux inscrire ton propre restaurant ?{" "}
-          <Link href="/become-a-partner" className="font-semibold text-brand-red hover:underline">
+          <Link href="/become-a-partner" className="font-semibold text-ink hover:underline">
             Deviens partenaire →
           </Link>
         </p>
