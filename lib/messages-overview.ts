@@ -41,6 +41,7 @@ export type MessagesOverview = {
   restaurants: { id: string; name: string }[];
   settings: MessageSetting[];
   settingsAvailable: boolean;
+  optOuts: Record<string, number>; // arrêts demandés, par séquence
   truncated: boolean;
 };
 
@@ -80,9 +81,12 @@ export async function getMessagesOverview(now = new Date()): Promise<MessagesOve
 
   const emailRows = rows.filter((r) => r.channel === "email" && r.message_key !== "test");
   const email = emailRows.reduce(addToTotals, emptyTotals());
-  const byKeyMap = totalsByKey(rows.filter((r) => r.channel !== "none"));
+  // Canal « none » : soit un tirage témoin (compté par séquence), soit un
+  // push sans appareil abonné (compté à part, « non joignable »).
+  const isUnreachable = (r: JournalRow) => r.channel === "none" && r.status === "failed";
+  const byKeyMap = totalsByKey(rows.filter((r) => !isUnreachable(r)));
   const byKey: Record<string, SendTotals> = Object.fromEntries(byKeyMap);
-  const unreachable = rows.filter((r) => r.channel === "none").length;
+  const unreachable = rows.filter(isUnreachable).length;
 
   const failures = rows.filter((r) => r.status === "failed" && r.channel !== "none");
   const reasonCounts = new Map<string, number>();
@@ -120,6 +124,11 @@ export async function getMessagesOverview(now = new Date()): Promise<MessagesOve
     notifications = [...byTrigger.values()].sort((a, b) => b.total - a.total);
   }
 
+  // Arrêts « ne plus recevoir » par séquence (migration 20260921-2119).
+  const optOuts: Record<string, number> = {};
+  const { data: optRows } = await admin.from("message_optouts").select("message_key").limit(ROW_CAP);
+  for (const r of (optRows ?? []) as { message_key: string }[]) optOuts[r.message_key] = (optOuts[r.message_key] ?? 0) + 1;
+
   const recent: RecentSend[] = ((recentRes.data ?? []) as {
     id: string; created_at: string; restaurant_id: string | null; message_key: string; channel: string; status: string; error: string | null; clicked_at: string | null;
   }[]).map((r) => ({
@@ -147,6 +156,7 @@ export async function getMessagesOverview(now = new Date()): Promise<MessagesOve
     restaurants: live.map((r) => ({ id: r.id, name: r.name })),
     settings,
     settingsAvailable: settingsAvailable && journalAvailable,
+    optOuts,
     truncated: rows.length >= ROW_CAP,
   };
 }

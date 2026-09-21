@@ -59,14 +59,19 @@ export type DispatchMeta = {
   restaurantId?: string | null;
   userId?: string | null;
   step?: number | null;
+  // Séquences : identifiant d'envoi fixé d'avance (le lien d'arrêt du gabarit
+  // le porte) et adresse d'arrêt en un clic (RFC 8058, exigée par Gmail et
+  // Yahoo pour les envois récurrents).
+  sendId?: string;
+  unsubscribeUrl?: string;
 };
 
 // Envoie un e-mail et le journalise, qu'il parte ou non : une panne de
 // configuration (clé absente, domaine refusé) laissait jusqu'ici zéro trace —
 // ni succès, ni échec (constat du 2026-09-21 : 8 inscriptions, 0 bienvenue).
 // Les liens vers notre domaine passent par /c/<envoi> pour compter les clics.
-async function dispatch(to: string, content: RenderedEmail, meta: DispatchMeta): Promise<boolean> {
-  const sendId = randomUUID();
+export async function dispatch(to: string, content: RenderedEmail, meta: DispatchMeta): Promise<boolean> {
+  const sendId = meta.sendId ?? randomUUID();
   const tracked = trackLinks(content, APP_URL, sendId);
   const journal = (status: "sent" | "failed", extra: { providerId?: string | null; error?: string | null }) =>
     recordSend({
@@ -98,6 +103,9 @@ async function dispatch(to: string, content: RenderedEmail, meta: DispatchMeta):
       html: tracked.html,
       text: tracked.text,
       ...(replyTo ? { replyTo } : {}),
+      ...(meta.unsubscribeUrl
+        ? { headers: { "List-Unsubscribe": `<${meta.unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }
+        : {}),
     });
     if (error) {
       console.error("email dispatch failed:", error);
@@ -188,7 +196,7 @@ async function getRestaurantLogoUrl(restaurantId: string): Promise<string | null
 // Habillage d'un e-mail membre : nom, logo et couleurs de l'établissement
 // (ADR 0015), défauts Boosteats sinon. Jamais `brand_accent` : il résout en
 // rouge chez Belchicken (ADR 0048 §7).
-async function getMemberTheme(restaurantId: string, restaurantName?: string): Promise<MemberTheme> {
+export async function getMemberTheme(restaurantId: string, restaurantName?: string): Promise<MemberTheme> {
   const branding = await getRestaurantBranding(restaurantId);
   let name = restaurantName ?? null;
   if (!name) {

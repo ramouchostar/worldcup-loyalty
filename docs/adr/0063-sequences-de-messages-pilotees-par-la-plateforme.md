@@ -7,7 +7,8 @@ des maquettes rendues par le code des gabarits. **Précise l'[ADR 0039](0039-can
 datées, carte in-app durable) et l'**[ADR 0025](0025-gdpr-data-governance.md) §8** (Resend,
 sous-traitant d'envoi). Ne change rien aux enveloppes anti-spam des notifications
 automatiques ni des broadcasts. Livré en cinq PR ; la première (gabarits) accompagne cet ADR,
-la deuxième (journal, onglet Messages) est décrite en fin de document.
+les deuxième (journal, onglet Messages) et troisième (moteur des séquences membres) sont
+décrites en fin de document.
 
 ## Contexte
 
@@ -212,3 +213,32 @@ brancher le SMTP Resend dans Supabase, renseigner `EMAIL_DOMAIN` et `EMAIL_REPLY
   avant le moteur (PR 3) : une séquence allumée ne part pas encore, la page le dit.
 - Politique de confidentialité et registre des traitements : le journal (sans pixel) et Resend
   y sont ajoutés.
+
+## Notes de mise en œuvre — PR 3 (2026-09-21) : le moteur des séquences membres
+
+- **Règles pures et testées** (`lib/sequence-rules.ts`) ; le moteur (`lib/sequence-runner.ts`)
+  charge les faits et envoie. Passage quotidien `/api/cron/sequences` à 16 h UTC (18 h à
+  Bruxelles en été), séquences membres uniquement ; les séquences restaurateur suivent.
+- **Pas de rattrapage massif** : une étape datée (J+2, J+7, J+21 ; J+3, J+30) n'est due que
+  dans les **3 jours** qui suivent sa date. Allumer une séquence ne relance pas tous les
+  inscrits d'avant.
+- **Précision du §2** : le plafond « un e-mail de séquence par semaine » sépare deux
+  séquences **différentes** ; les étapes d'une même séquence gardent leur calendrier (J+2 et
+  J+7 sont à cinq jours l'une de l'autre, par dessein).
+- **Témoin stable** : le tirage (10 %) est un hachage du membre et de la séquence — le même
+  membre reste témoin pour toutes les étapes. Le tirage est noté dans le journal (statut
+  `holdout`) à la date où l'e-mail serait parti, et compte dans le plafond comme un envoi :
+  témoin et traités vivent au même rythme.
+- **Push d'accompagnement** : première étape de « Ton premier ticket », « Invite tes amis »
+  et « Rejoins ton équipe », seulement avec un appareil abonné et rien reçu depuis 48 h
+  (même respiration que l'ADR 0009).
+- **Arrêt** (`docs/migrations/20260921-2119-arret-des-sequences.sql`, `message_optouts`) :
+  lien « Ne plus recevoir ces rappels » (`/e/stop/<envoi>` — la page affiche, seul le bouton
+  arrête) et arrêt en un clic des messageries (`List-Unsubscribe` + `List-Unsubscribe-Post`,
+  RFC 8058, vers `/api/e/stop/<envoi>`). **Fail-closed** : sans la table, aucune séquence ne
+  part — on n'écrit pas à quelqu'un dont on ne peut pas lire le « stop ».
+- **Aucun envoi sans clé Resend**, et aucun tirage témoin non plus : un témoin sans groupe
+  traité ne mesure rien.
+- **Aperçu** sur `/platform/messages` : pour chaque séquence et chaque établissement réel,
+  combien de membres la recevraient aujourd'hui si elle était allumée seule (témoin compris).
+  Au 21/09 à Kraainem : premier ticket 17 (+3 témoins), app 10 (+1), amis 1, équipe 19 (+2).

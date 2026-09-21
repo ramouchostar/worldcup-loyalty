@@ -1,15 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-
-const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // pas de 0/O, 1/I/L
-
-function generateCode(): string {
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-  }
-  return code;
-}
+import { getOrCreateReferralLink } from "@/lib/referral-code";
 
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -22,36 +13,9 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient();
 
   // Récupère ou crée le lien de parrainage du membre
-  let { data: link } = await admin
-    .from("referral_links")
-    .select("code, conversions")
-    .eq("user_id", user.id)
-    .eq("restaurant_id", restaurantId)
-    .maybeSingle();
-
+  const link = await getOrCreateReferralLink(admin, user.id, restaurantId);
   if (!link) {
-    let code = generateCode();
-    let attempts = 0;
-
-    while (attempts < 5) {
-      const { data, error } = await admin
-        .from("referral_links")
-        .insert({ user_id: user.id, restaurant_id: restaurantId, code })
-        .select("code, conversions")
-        .single();
-
-      if (!error) {
-        link = data;
-        break;
-      }
-      // Collision sur le code (rare) — retenter avec un nouveau code
-      code = generateCode();
-      attempts++;
-    }
-
-    if (!link) {
-      return NextResponse.json({ error: "Erreur lors de la création du lien." }, { status: 500 });
-    }
+    return NextResponse.json({ error: "Erreur lors de la création du lien." }, { status: 500 });
   }
 
   // Parrainages validés (amis inscrits via le lien)

@@ -52,6 +52,8 @@ Contact vie privée : **[email de contact]**.
 
 **Deux sortes de messages, deux régimes.** Adhérer au programme, c'est demander qu'on vous dise quand vous avez gagné quelque chose : ces messages-là font partie du service, et vous les recevez sans avoir à cocher quoi que ce soit. Les **offres commerciales**, elles, exigent votre accord explicite — accepter cette politique ne vaut pas accord : c'est une case à part, que vous pouvez décocher à tout moment dans vos réglages sans rien perdre du programme.
 
+Chaque e-mail de rappel du programme (premier ticket, équipe, parrainage, installation de l'app) porte un lien « Ne plus recevoir ces rappels » qui arrête ce rappel-là, sans rien changer à vos points ni à vos cadeaux.
+
 Vous pouvez **retirer votre consentement à tout moment** (voir § 7), sans que cela affecte l'utilisation faite avant le retrait. Si vous ne souhaitez plus aucun message, vous pouvez couper les notifications de votre appareil ou fermer votre compte (§ 7).
 
 ## 4. Ce que nous ne faisons **pas**

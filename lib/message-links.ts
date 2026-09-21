@@ -25,6 +25,11 @@ export function trackedUrl(appUrl: string, sendId: string, path: string): string
   return `${appUrl}/c/${sendId}?to=${encodeURIComponent(path)}`;
 }
 
+// Le lien d'arrêt n'est pas un clic d'intérêt : il ne passe pas par /c.
+function isUntracked(path: string): boolean {
+  return path.startsWith("/e/");
+}
+
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -35,12 +40,13 @@ function escapeRe(s: string): string {
 export function trackLinks(content: RenderedEmail, appUrl: string, sendId: string): RenderedEmail {
   const base = appUrl.replace(/\/+$/, "");
   const hrefRe = new RegExp(`href="${escapeRe(base)}(/[^"]*)"`, "g");
-  const html = content.html.replace(hrefRe, (_m, path: string) => {
+  const html = content.html.replace(hrefRe, (match, path: string) => {
+    if (isUntracked(path)) return match;
     const decoded = path.replace(/&amp;/g, "&");
     return `href="${trackedUrl(base, sendId, decoded).replace(/&/g, "&amp;")}"`;
   });
   const textRe = new RegExp(`${escapeRe(base)}(/[^\\s)]*)`, "g");
-  const text = content.text.replace(textRe, (_m, path: string) => trackedUrl(base, sendId, path));
+  const text = content.text.replace(textRe, (match, path: string) => (isUntracked(path) ? match : trackedUrl(base, sendId, path)));
   return { ...content, html, text };
 }
 

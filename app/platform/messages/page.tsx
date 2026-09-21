@@ -6,6 +6,8 @@ import { getMessagesOverview, type MessagesOverview } from "@/lib/messages-overv
 import { MESSAGES, SEQUENCES, messageLabel, rate, emptyTotals, type SendTotals } from "@/lib/message-catalog";
 import { defaultImage, previewEntries } from "@/lib/email-templates/fixtures";
 import { NO_PUSH_DEVICE } from "@/lib/notifications";
+import { previewMemberSequences, type SequencePreview } from "@/lib/sequence-runner";
+import { MEMBER_SEQUENCE_KEYS } from "@/lib/sequence-rules";
 import { SequenceSwitch } from "./SequenceSwitch";
 import { TestEmailForm } from "./TestEmailForm";
 
@@ -91,6 +93,15 @@ export default async function PlatformMessagesPage() {
 
   const setup = getEmailSetup();
   const o = await getMessagesOverview();
+  // Qui recevrait chaque séquence membre aujourd'hui, si elle était allumée —
+  // pour décider d'allumer en connaissant le volume. Rien n'est envoyé.
+  let preview: SequencePreview = {};
+  try {
+    preview = await previewMemberSequences(o.restaurants.map((r) => r.id));
+  } catch (err) {
+    console.error("[platform/messages] aperçu des séquences indisponible:", err);
+  }
+  const memberKeys = new Set<string>(MEMBER_SEQUENCE_KEYS);
   const enabled = new Set(o.settings.filter((s) => s.enabled).map((s) => `${s.message_key}|${s.restaurant_id}`));
   const testOptions = previewEntries({ logoUrl: null, image: defaultImage }).map((e) => ({
     id: e.id,
@@ -201,7 +212,7 @@ export default async function PlatformMessagesPage() {
       <section>
         {sectionTitle(
           "Séquences",
-          "Éteintes par défaut, allumées par établissement (ADR 0063 §2). Le moteur arrive avec la PR 3 : une séquence allumée ne part pas encore."
+          "Éteintes par défaut, allumées par établissement (ADR 0063 §2). Passage chaque jour à 18 h (Bruxelles) pour les séquences membres ; « aujourd'hui » = qui la recevrait si elle était allumée seule, témoin compris. Les séquences restaurateur arrivent avec la PR suivante."
         )}
         <div className="bg-white border border-gray-200 rounded-2xl overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
@@ -212,7 +223,7 @@ export default async function PlatformMessagesPage() {
                 {o.restaurants.map((r) => (
                   <th key={r.id} className="px-4 py-3 font-semibold whitespace-nowrap">{r.name}</th>
                 ))}
-                <th className="px-4 py-3 font-semibold text-right">Envoyés</th>
+                <th className="px-4 py-3 font-semibold text-right">Envoyés · témoin · arrêts</th>
               </tr>
             </thead>
             <tbody>
@@ -223,19 +234,29 @@ export default async function PlatformMessagesPage() {
                     <p className="text-xs text-gray-500">{s.audience === "member" ? "Membres" : "Restaurateurs"} · {s.when}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.success}</td>
-                  {o.restaurants.map((r) => (
-                    <td key={r.id} className="px-4 py-3">
-                      <SequenceSwitch
-                        messageKey={s.key}
-                        restaurantId={r.id}
-                        restaurantName={r.name}
-                        sequenceLabel={s.label}
-                        enabled={enabled.has(`${s.key}|${r.id}`)}
-                        disabled={!o.settingsAvailable}
-                      />
-                    </td>
-                  ))}
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-900">{totalsFor(o, s.key).sent}</td>
+                  {o.restaurants.map((r) => {
+                    const today = memberKeys.has(s.key) ? preview[r.id]?.[s.key] : undefined;
+                    return (
+                      <td key={r.id} className="px-4 py-3">
+                        <SequenceSwitch
+                          messageKey={s.key}
+                          restaurantId={r.id}
+                          restaurantName={r.name}
+                          sequenceLabel={s.label}
+                          enabled={enabled.has(`${s.key}|${r.id}`)}
+                          disabled={!o.settingsAvailable}
+                        />
+                        {today && (
+                          <p className="text-[11px] text-gray-500 mt-1 tabular-nums">
+                            {today.send} aujourd&apos;hui{today.holdout ? ` · ${today.holdout} témoin` : ""}
+                          </p>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-900 whitespace-nowrap">
+                    {totalsFor(o, s.key).sent} · {totalsFor(o, s.key).holdout} · {o.optOuts[s.key] ?? 0}
+                  </td>
                 </tr>
               ))}
             </tbody>

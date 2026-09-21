@@ -147,3 +147,77 @@ export async function setMessageEnabled(
   }
   return { ok: true };
 }
+
+// ─── Arrêt d'une séquence par son destinataire (migration 20260921-2119) ───
+
+export type OptOutSource = "lien" | "un_clic" | "compte";
+
+// Les arrêts d'un groupe de personnes. `available: false` quand la table
+// manque : le moteur n'envoie alors RIEN (on ne relance pas quelqu'un dont on
+// ne peut pas lire le « stop »).
+export async function listOptOuts(userIds: string[]): Promise<{ byUser: Map<string, Set<string>>; available: boolean }> {
+  const byUser = new Map<string, Set<string>>();
+  if (userIds.length === 0) return { byUser, available: true };
+  try {
+    const admin = createAdminClient();
+    for (let i = 0; i < userIds.length; i += 500) {
+      const { data, error } = await admin
+        .from("message_optouts")
+        .select("user_id, message_key")
+        .in("user_id", userIds.slice(i, i + 500));
+      if (error) return { byUser, available: false };
+      for (const r of (data ?? []) as { user_id: string; message_key: string }[]) {
+        const set = byUser.get(r.user_id) ?? new Set<string>();
+        set.add(r.message_key);
+        byUser.set(r.user_id, set);
+      }
+    }
+    return { byUser, available: true };
+  } catch {
+    return { byUser, available: false };
+  }
+}
+
+// L'envoi derrière un lien d'arrêt : l'identifiant d'envoi (UUID) prouve que
+// la personne a reçu l'e-mail — pas besoin d'être connecté pour dire stop.
+export async function getSendForStop(sendId: string): Promise<{ userId: string; messageKey: string; restaurantId: string | null } | null> {
+  try {
+    const { data } = await createAdminClient()
+      .from("message_sends")
+      .select("user_id, message_key, restaurant_id")
+      .eq("id", sendId)
+      .maybeSingle();
+    const row = data as { user_id: string | null; message_key: string; restaurant_id: string | null } | null;
+    if (!row?.user_id) return null;
+    return { userId: row.user_id, messageKey: row.message_key, restaurantId: row.restaurant_id };
+  } catch {
+    return null;
+  }
+}
+
+export async function isOptedOut(userId: string, messageKey: string): Promise<boolean> {
+  try {
+    const { data } = await createAdminClient()
+      .from("message_optouts")
+      .select("user_id")
+      .eq("user_id", userId)
+      .eq("message_key", messageKey)
+      .maybeSingle();
+    return !!data;
+  } catch {
+    return false;
+  }
+}
+
+export async function recordOptOut(userId: string, messageKey: string, source: OptOutSource): Promise<boolean> {
+  try {
+    const { error } = await createAdminClient()
+      .from("message_optouts")
+      .upsert({ user_id: userId, message_key: messageKey, source }, { onConflict: "user_id,message_key", ignoreDuplicates: true });
+    if (error) console.error("recordOptOut:", error.message);
+    return !error;
+  } catch (err) {
+    console.error("recordOptOut threw:", err);
+    return false;
+  }
+}
