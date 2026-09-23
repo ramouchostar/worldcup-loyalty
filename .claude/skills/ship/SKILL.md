@@ -25,7 +25,12 @@ Ce skill encode le seul chemin valide. Ne saute aucune étape.
 5. **Fetch + rebase** : `git fetch origin` puis `git rebase origin/master`. Conflit → le résoudre en
    adoptant la structure de l'autre (il a fusionné avant), re-vérifier (étape 3), `git add`, `git rebase --continue`.
 6. **Push + PR** : `git push -u origin <branche>` puis
-   `gh pr create --base master --head <branche> --title "<titre du commit>" --body "<résumé : quoi, pourquoi, vérifié comment, migration à appliquer ?>"`.
+   `gh pr create --base master --head <branche> --title "<titre du commit>" --body "<corps>"`.
+   Le corps reprend `.github/pull_request_template.md` : quoi/pourquoi, migration à appliquer,
+   contrôles — et **les trois lignes du bouclier** (ADR 0065), remplies avec des preuves :
+   `Scène observée` (ce qu'on a vu, pas supposé), `Trace laissée` (le chiffre qui dira que
+   c'est faux), `Échos suivis` (textes, libellés, lectures de données, autres chemins, autres
+   mois, docs, mesures).
 7. **CI** : `gh pr checks <n>` jusqu'à ce que `build` soit `pass` (≈ 1–2 min). Rouge → lire le job
    (`gh run view <id> --log-failed`), corriger, pousser sur la même branche (la PR se met à jour).
 8. **Fusion** : `gh pr merge <n> --merge --delete-branch` (merge commit — style du repo, pas de squash).
@@ -38,3 +43,6 @@ Ce skill encode le seul chemin valide. Ne saute aucune étape.
 - Pousser sur `master` (le hook `guard-git.mjs` le bloque de toute façon).
 - Fusionner avec un CI rouge ou sans PR.
 - Mélanger deux chantiers dans une PR : si le diff couvre deux sujets, proposer de scinder.
+- **Ouvrir une PR sans les trois lignes du bouclier** (ADR 0065). Si l'une ne peut pas être
+  remplie honnêtement, le chantier n'est pas prêt : aller chercher la preuve, ajouter la trace,
+  ou lister les échos — puis livrer.

@@ -27,6 +27,14 @@ Ces règles s'appliquent aux humains **et** à chaque session Claude (locale, Re
 
 ---
 
+## Le bouclier — avant d'écrire quoi que ce soit (ADR 0065)
+
+Trois questions, à réponses **vérifiables**, sur tout chantier (produit, code, texte, migration,
+mesure) — détail dans `.claude/rules/bouclier.md`, trois lignes obligatoires dans chaque PR :
+1. **La scène** : qui fait le geste, avec quoi, quand, et que voit-il après ? Quelle **preuve** (vrai ticket, capture de l'écran réel, requête en lecture seule, mock-up validé) ? « Je suppose » → aller voir avant de coder. Apparence : montrer le rendu avant de construire.
+2. **La trace** : quel chiffre dira que la règle est fausse ? S'il n'existe pas, il part dans la même PR. Jamais d'échec silencieux.
+3. **Les échos** : qu'est-ce qui croyait l'ancienne règle ? Textes, libellés, lectures de données, **tous les chemins** (5 validations, crons, console, bac à sable), autres mois/établissements, ADR + CONTEXT.md + CLAUDE.md, mesures.
+
 ## Règles critiques à ne jamais violer
 
 ### ADR 0007 — Le client ne voit jamais d'euros ni de seuil CA
