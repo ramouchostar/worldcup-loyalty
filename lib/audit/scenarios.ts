@@ -21,7 +21,9 @@ import {
   type NegativeTheme,
   type PriceLevel,
   type RatingBand,
+  type Gap,
   type SocialState,
+  type Speed,
   type Trend,
 } from "./signals";
 
@@ -34,7 +36,9 @@ export type Family =
   | "canaux"
   | "reponse_avis"
   | "concurrence"
-  | "fidelisation";
+  | "fidelisation"
+  | "produit_phare"
+  | "objectif";
 
 export type Horizon = "7 jours" | "30 jours" | "90 jours";
 type Score = 1 | 2 | 3 | 4 | 5;
@@ -56,6 +60,9 @@ export interface Scenario {
    *  on ne propose pas de « récupérer les clients déçus » avant d'avoir dit
    *  comment régler ce qui les a déçus. */
   after?: Family;
+  /** Multiplicateur de priorité quand un AUTRE signal confirme celui-ci
+   *  (préparation longue + clients qui se plaignent de l'attente). */
+  boost?: (s: AuditSignals) => number;
   when: (s: AuditSignals) => boolean;
 }
 
@@ -196,6 +203,9 @@ function themeScenarios(): Scenario[] {
           impact: clamp(t.impact + r.impact + tr.impact - 0.5),
           effort: clamp(t.effort),
           horizon: tr.horizon,
+          // Le gérant confirme une préparation longue : l'attente n'est plus une
+          // impression de clients, c'est une cause mesurée.
+          boost: (s) => (theme === "attente" && s.prepSpeed === "lent" ? 1.3 : 1),
           when: (s) => s.negativeThemes[0] === theme && s.responseRate === resp && s.trend === trend,
         });
       }
@@ -393,6 +403,9 @@ function ficheScenarios(): Scenario[] {
         impact: clamp(g.impact + (covered ? 0.5 : 0)),
         effort: clamp(g.effort),
         horizon: "7 jours",
+        // Sans lien de commande directe, la fiche envoie vers les plateformes :
+        // ça pèse plus lourd quand le gérant dit qu'elles font déjà l'essentiel du CA.
+        boost: (s) => (gap === "pas_de_lien_commande" && s.channelMix === "plateformes_dominantes" ? 1.3 : 1),
         when: (s) => s.ficheGaps.includes(gap) && s.gapsCoveredByCompetitors.includes(gap) === covered,
       });
     }
@@ -699,6 +712,139 @@ function loyaltyScenarios(): Scenario[] {
   return out;
 }
 
+// ─── I. Produit phare : marge × temps de préparation (réponses du gérant) ──
+
+const MARGIN_PLAY: Record<Level, { title: string; diag: string; steps: string[]; impact: number }> = {
+  fort: {
+    title: "Mettre le produit phare partout",
+    diag: "Le produit qui se vend le mieux est aussi celui qui rapporte le plus : chaque vente en plus compte double.",
+    steps: [
+      "En faire la photo de couverture de la fiche Google et la première photo des réseaux.",
+      "Le placer en premier sur la carte, en salle comme en ligne.",
+    ],
+    impact: 4,
+  },
+  moyen: {
+    title: "Faire monter le panier autour du produit phare",
+    diag: "Le produit phare se vend bien avec une marge correcte : le levier est ce qu'on vend avec.",
+    steps: [
+      "Proposer systématiquement une boisson ou un accompagnement à forte marge avec lui (formule).",
+      "Tester une version « plus » (supplément, taille au-dessus) à quelques euros de plus.",
+    ],
+    impact: 3,
+  },
+  faible: {
+    title: "Rendre le produit phare rentable",
+    diag: "Le produit qui se vend le mieux rapporte peu : plus il se vend, moins la marge moyenne est bonne.",
+    steps: [
+      "Recalculer le coût matière au gramme près et ajuster la portion ou le fournisseur.",
+      "Le vendre en formule avec des produits à forte marge plutôt que seul.",
+      "Revoir son prix : c'est celui que les clients viennent chercher, ils acceptent souvent une petite hausse.",
+    ],
+    impact: 4,
+  },
+};
+
+const PREP_NOTE: Record<Speed, { note: string; step?: string; impact: number }> = {
+  rapide: { note: "Il se prépare vite : il peut porter les heures de pointe.", impact: 0 },
+  moyen: {
+    note: "Sa préparation prend un peu de temps : à surveiller aux heures de pointe.",
+    step: "Préparer à l'avance ce qui peut l'être avant 11 h 45 et 18 h 30.",
+    impact: 0,
+  },
+  lent: {
+    note: "Sa préparation est longue : c'est probablement une cause directe de l'attente.",
+    step: "Découper la préparation : ce qui peut être fait avant le service l'est, seule la cuisson finale se fait à la commande.",
+    impact: 1,
+  },
+};
+
+function heroProductScenarios(): Scenario[] {
+  const out: Scenario[] = [];
+  for (const margin of ["faible", "moyen", "fort"] as const) {
+    for (const speed of ["rapide", "moyen", "lent"] as const) {
+      const m = MARGIN_PLAY[margin];
+      const p = PREP_NOTE[speed];
+      out.push({
+        id: `produit_phare.${margin}.${speed}`,
+        family: "produit_phare",
+        // Préparation longue : c'est elle qui passe en tête, la marge vient après.
+        title: speed === "lent" ? "Accélérer la préparation du produit phare" : m.title,
+        diagnostic: speed === "lent" ? `${p.note} ${m.diag}` : `${m.diag} ${p.note}`,
+        steps: !p.step ? m.steps : speed === "lent" ? [p.step, ...m.steps] : [...m.steps, p.step],
+        kpi: "part du produit phare dans les ventes et marge moyenne par ticket",
+        impact: clamp(m.impact + p.impact),
+        effort: clamp(margin === "faible" ? 3 : 2),
+        horizon: speed === "lent" ? "7 jours" : "30 jours",
+        // Préparation longue ET clients qui se plaignent de l'attente : le gérant
+        // vient de confirmer la cause que les avis décrivaient.
+        boost: (s) => (speed !== "rapide" && s.negativeThemes.includes("attente") ? 1.5 : 1),
+        when: (s) => s.heroMargin === margin && s.prepSpeed === speed,
+      });
+    }
+  }
+  return out;
+}
+
+// ─── J. Objectif de chiffre d'affaires : écart × canaux × position ─────────
+
+const GAP_TEXT: Record<Gap, { title: string; diag: string; impact: number }> = {
+  petit: { title: "Sécuriser l'objectif", diag: "L'objectif est à moins de 10 % du chiffre actuel : il se joue sur la régularité.", impact: 2 },
+  moyen: { title: "Atteindre l'objectif en 12 mois", diag: "L'objectif demande 10 à 30 % de plus : atteignable sans changer de modèle.", impact: 3 },
+  grand: {
+    title: "Changer d'échelle pour atteindre l'objectif",
+    diag: "L'objectif demande plus de 30 % de chiffre en plus : il faut à la fois plus de clients et des clients qui reviennent plus souvent.",
+    impact: 4,
+  },
+};
+
+const GAP_LEVER: Record<ChannelMix, string> = {
+  plateformes_dominantes: "Le premier levier est la marge, pas le volume : chaque client rapatrié des plateformes rapproche de l'objectif sans vendre un plat de plus.",
+  equilibre: "Le levier le plus rapide est la fréquence : un client qui revient une fois de plus par mois pèse plus qu'un nouveau client.",
+  direct_dominant: "La clientèle est déjà directe : l'objectif passe par plus de nouveaux clients (fiche Google, réseaux) et un panier plus élevé.",
+};
+
+const GAP_POSITION: Record<CompetitivePosition, string> = {
+  derriere: "Tant que les voisins sont mieux notés, les nouveaux clients iront chez eux : la note passe avant la conquête.",
+  au_niveau: "À note égale avec les voisins, la fidélité fera la différence.",
+  devant: "Mieux noté que les voisins : la conquête de nouveaux clients est le levier le plus rentable.",
+};
+
+function objectiveScenarios(): Scenario[] {
+  const out: Scenario[] = [];
+  for (const gap of ["petit", "moyen", "grand"] as const) {
+    for (const mix of ["plateformes_dominantes", "equilibre", "direct_dominant"] as const) {
+      for (const pos of ["derriere", "au_niveau", "devant"] as const) {
+        const g = GAP_TEXT[gap];
+        out.push({
+          id: `objectif.${gap}.${mix}.${pos}`,
+          family: "objectif",
+          title: g.title,
+          diagnostic: `${g.diag} ${GAP_LEVER[mix]}`,
+          steps: [
+            GAP_POSITION[pos],
+            "Découper l'objectif en semaines et le suivre chaque lundi avec un seul chiffre : le chiffre d'affaires direct.",
+            gap === "grand"
+              ? "Faire les trois premières priorités de ce plan dans le mois : l'objectif ne tient pas si elles glissent."
+              : "Faire les priorités de ce plan dans l'ordre, une par semaine.",
+          ],
+          kpi: "chiffre d'affaires mensuel face à l'objectif déclaré",
+          impact: clamp(g.impact + (mix === "plateformes_dominantes" ? 1 : 0)),
+          effort: clamp(gap === "grand" ? 4 : 3),
+          horizon: "90 jours",
+          boosteats:
+            mix === "direct_dominant"
+              ? undefined
+              : "Boosteats fait revenir le client en direct et compte chaque visite : on voit semaine après semaine si l'objectif avance.",
+          after: pos === "derriere" ? "avis_theme" : undefined,
+          when: (s) => s.revenueGap === gap && s.channelMix === mix && s.position === pos,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 export const SCENARIOS: readonly Scenario[] = [
   ...themeScenarios(),
   ...reputationScenarios(),
@@ -709,4 +855,6 @@ export const SCENARIOS: readonly Scenario[] = [
   ...responseScenarios(),
   ...competitionScenarios(),
   ...loyaltyScenarios(),
+  ...heroProductScenarios(),
+  ...objectiveScenarios(),
 ];
