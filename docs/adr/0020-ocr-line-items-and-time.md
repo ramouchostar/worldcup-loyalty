@@ -3,6 +3,8 @@
 **Date** : 2026-07-06
 **Statut** : Accepté
 
+> **Complété par l'[ADR 0067](0067-les-tailles-ne-sont-pas-des-plats.md) (2026-09-23)** : une ligne de ticket se compare en séparant le plat de sa taille (« Nuggets (4PC.) » = « Nugget (4) »).
+
 ## Contexte
 
 Le scan du ticket (ADR 0008) n'extrait que trois champs : le Bestelnummer, le montant total et la présence du nom du restaurant. La commande ne stocke que le montant global — aucun détail de ce que le membre a réellement commandé, et `orders.order_time` (nullable depuis m13) n'est jamais rempli. Le restaurant n'a donc aucune visibilité sur les articles qui font venir les membres du programme, ni sur les créneaux horaires de ces commandes.

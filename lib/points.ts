@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase";
 import { pointsGoalFrom, type CatalogueItem, type PointsGoal } from "./catalogue";
+import { displayItemName } from "./menu-quantity";
 
 // ADR 0061 — « Mes points » : le solde personnel, dérivé du registre
 // point_transactions (jamais de colonne solde). Toutes les écritures passent
@@ -49,7 +50,8 @@ export async function listCatalogue(restaurantId: string): Promise<CatalogueItem
   }
   return ((data ?? []) as { item_id: string; item_name: string; image_path: string | null; price_points: number | null }[])
     .filter((r) => r.price_points != null && r.price_points > 0)
-    .map((r) => ({ id: r.item_id, name: r.item_name, imagePath: r.image_path, pricePoints: Number(r.price_points) }));
+    // ADR 0067 — côté client, la taille passe devant : « 6 Churros ».
+    .map((r) => ({ id: r.item_id, name: displayItemName(r.item_name), imagePath: r.image_path, pricePoints: Number(r.price_points) }));
 }
 
 export type CatalogueExchangeError = "invalid_item" | "insufficient_points" | "active_reward_exists";

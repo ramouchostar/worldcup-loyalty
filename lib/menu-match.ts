@@ -15,6 +15,8 @@
 //      (« (Burger) » oui ; « (16) » non — ce sont les tailles du catalogue) ;
 //      puis alias et catalogue sur cette forme.
 
+import { mainTicketLabel, sizedKey } from "./menu-quantity";
+
 export type TicketAlias = { alias: string; menu_item_id: string | null };
 export type TicketLineMatch = { menuItemId: string | null; ignored: boolean };
 
@@ -72,6 +74,16 @@ export function buildTicketMatcher(
     const key = normalizeItemName(item.name);
     if (key !== "" && !catalog.has(key)) catalog.set(key, item.id);
   }
+  // 5. Plat + TAILLE (ADR 0067) : la caisse écrit « Nuggets (4PC.) » là où la
+  // carte dit « Nugget (4) » — même plat, même taille, autre écriture. On
+  // compare donc le plat sans sa taille, pluriel et espaces ignorés, puis la
+  // taille exacte. Deux tailles différentes restent deux articles différents.
+  const bySize = new Map<string, string>();
+  for (const item of items) {
+    const key = sizedKey(item.name);
+    if (key !== "" && !bySize.has(key)) bySize.set(key, item.id);
+  }
+
   const aliasMap = new Map<string, string | null>();
   for (const a of aliases) {
     const key = normalizeItemName(a.alias);
@@ -99,6 +111,10 @@ export function buildTicketMatcher(
       if (viaCanon) return viaCanon;
       if (isTechnicalLine(canon)) return { menuItemId: null, ignored: true };
     }
+    // Le libellé du ticket porte options et catégorie : on ne garde que
+    // l'article principal (avant « + ») avant de comparer plat + taille.
+    const viaSize = bySize.get(sizedKey(mainTicketLabel(rawName)));
+    if (viaSize) return { menuItemId: viaSize, ignored: false };
     return { menuItemId: null, ignored: false };
   };
 }

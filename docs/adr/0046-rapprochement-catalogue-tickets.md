@@ -1,6 +1,8 @@
 # ADR 0046 — Rapprochement catalogue ↔ tickets & boucle de complétion du catalogue
 
 **Statut** : Accepté (2026-08-31) — lots 1-3 implémentés (moteur) ; lots 4-6 (boucle de
+
+> **Complété par l'[ADR 0067](0067-les-tailles-ne-sont-pas-des-plats.md) (2026-09-23)** : une taille absente de la carte n'est plus proposée comme un nouveau plat, et les variantes d'écriture d'un même plat ne font plus deux suggestions (Kraainem : 6 → 3).
 complétion, verrous d'affichage, cycle de vie) en cours, même chantier backlog.
 
 ## Contexte

@@ -15,6 +15,9 @@ import { normalizeItemName } from "@/lib/menu-match";
 type Gap = {
   label: string;
   rawSample: string;
+  // ADR 0067 — « size » : plat connu, taille absente de la carte.
+  kind?: "dish" | "size";
+  family?: string[];
   normalized: string;
   orders: number;
   suggestedPrice: number | null;
@@ -133,6 +136,15 @@ export function CatalogGapsSection({
                   vu sur {gap.orders} ticket{gap.orders > 1 ? "s" : ""}
                 </p>
               </div>
+
+              {/* ADR 0067 — une taille absente n'est pas un nouveau plat : on le
+                  dit, et on rappelle les tailles déjà au catalogue. */}
+              {gap.kind === "size" && (gap.family?.length ?? 0) > 0 && (
+                <p className="text-xs text-ink-muted bg-paper-subtle rounded-lg px-3 py-2">
+                  Ce n&apos;est pas un nouveau plat : c&apos;est une <strong>taille</strong> absente de la carte.
+                  Déjà au catalogue : {gap.family!.join(", ")}.
+                </p>
+              )}
 
               <div className="grid sm:grid-cols-[1fr_110px_110px_auto] gap-2 items-end">
                 <label className="text-xs text-ink-muted">

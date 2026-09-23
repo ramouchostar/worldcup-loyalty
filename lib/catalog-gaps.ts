@@ -10,8 +10,18 @@
 import { createAdminClient } from "./supabase";
 import { getMenuAliases } from "./menu-aliases";
 import { buildTicketMatcher, canonicalizeTicketLabel } from "./menu-match";
+import { baseKey, mainTicketLabel, parseSizedName, sizedKey } from "./menu-quantity";
 
 export const GAP_MIN_ORDERS = 2;
+
+/**
+ * De quoi il s'agit vraiment (ADR 0067) :
+ *  - `dish` : un plat que la carte ne connaît pas du tout ;
+ *  - `size` : un plat CONNU dans une taille absente de la carte (« Nuggets
+ *    (3PC) » alors qu'elle a 1, 4, 8 et 16) — on ne propose pas un nouveau
+ *    plat, on propose une taille de plus.
+ */
+export type CatalogGapKind = "dish" | "size";
 
 export type CatalogGap = {
   /** Libellé proposé pour le catalogue (brut le plus fréquent, nettoyé, casse conservée). */
@@ -24,6 +34,9 @@ export type CatalogGap = {
   occurrences: number;
   suggestedPrice: number | null;
   oldestOrderDate: string | null;
+  kind: CatalogGapKind;
+  /** Pour une taille manquante : les articles de la carte du même plat. */
+  family: string[];
 };
 
 export type GapLine = {
@@ -34,7 +47,19 @@ export type GapLine = {
 };
 
 /** Agrégation pure (testable) des lignes non rattachées → trous récurrents. */
-export function aggregateGaps(lines: GapLine[], minOrders = GAP_MIN_ORDERS): CatalogGap[] {
+export function aggregateGaps(
+  lines: GapLine[],
+  minOrders = GAP_MIN_ORDERS,
+  menuNames: string[] = []
+): CatalogGap[] {
+  // Plats connus de la carte, par nom sans taille : « Nugget (4) »,
+  // « Nugget (8) »… forment la famille « nugget ».
+  const familiesByBase = new Map<string, string[]>();
+  for (const name of menuNames) {
+    const key = baseKey(name);
+    if (key === "") continue;
+    familiesByBase.set(key, [...(familiesByBase.get(key) ?? []), name]);
+  }
   type Acc = {
     raws: Map<string, number>;
     orders: Set<string>;
@@ -44,7 +69,10 @@ export function aggregateGaps(lines: GapLine[], minOrders = GAP_MIN_ORDERS): Cat
   };
   const byKey = new Map<string, Acc>();
   for (const l of lines) {
-    const key = canonicalizeTicketLabel(l.raw_name);
+    // Regroupement par plat + taille (ADR 0067) : « BelTacos Nuggets » et
+    // « Bel Tacos Nuggets » ne font plus deux suggestions ; « Nuggets (4PC.) »
+    // rejoint la taille 4.
+    const key = sizedKey(mainTicketLabel(l.raw_name)) || canonicalizeTicketLabel(l.raw_name);
     if (key === "") continue;
     const g: Acc = byKey.get(key) ?? { raws: new Map(), orders: new Set(), prices: [], occurrences: 0, oldest: null };
     g.occurrences++;
@@ -60,15 +88,17 @@ export function aggregateGaps(lines: GapLine[], minOrders = GAP_MIN_ORDERS): Cat
   for (const [normalized, g] of byKey) {
     if (g.orders.size < minOrders) continue;
     const rawSample = [...g.raws.entries()].sort((a, b) => b[1] - a[1])[0][0];
-    // Libellé proposé = partie principale du brut (avant « + », sans le
-    // suffixe de catégorie sans chiffre), en gardant la casse d'origine.
-    const label = rawSample
-      .split(/\s\+\s/)[0]
-      .replace(/\s*\(([^()]*)\)\s*$/, (m, inner: string) => (/\d/.test(inner) ? m : ""))
-      .trim();
+    // Libellé proposé = l'article principal du brut, casse d'origine gardée
+    // (ADR 0067 : même extraction que le rattachement, crochets compris).
+    const label = mainTicketLabel(rawSample);
     const prices = [...g.prices].sort((a, b) => a - b);
     const suggestedPrice = prices.length > 0 ? prices[Math.floor(prices.length / 2)] : null;
+    // Plat connu dans une taille inconnue ? Alors ce n'est pas un nouveau plat.
+    const parsed = parseSizedName(label || rawSample);
+    const family = parsed.size != null ? (familiesByBase.get(baseKey(label || rawSample)) ?? []) : [];
     out.push({
+      kind: family.length > 0 ? "size" : "dish",
+      family,
       label: label || rawSample,
       rawSample,
       normalized,
@@ -124,7 +154,8 @@ export async function getCatalogGaps(restaurantId: string, minOrders = GAP_MIN_O
         lines.push({ order_id: r.order_id, raw_name: r.raw_name, unit_price: r.unit_price, order_date: dateById.get(r.order_id) });
       }
     }
-    return aggregateGaps(lines, minOrders);
+    const menuNames = ((menu ?? []) as { name: string }[]).map((m) => m.name);
+    return aggregateGaps(lines, minOrders, menuNames);
   } catch {
     return [];
   }
