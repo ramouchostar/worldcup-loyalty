@@ -42,7 +42,7 @@ Arrivée sur la page publique d'un établissement (`/r/[id]`), comptée côté s
 _Avoid_ : visite, visiteur unique, session (rien n'est identifié) ; « scan du QR » (le QR n'est pas mesurable, seule l'arrivée l'est).
 
 **Taille d'un plat** *(ADR 0067)* :
-Le nombre de pièces d'un article de la carte — « Nugget (4) », « Churros (6) ». La caisse l'écrit autrement (« Nuggets (4PC.) », « 3pc Mozzarella Sticks ») : `lib/menu-quantity.ts` sépare le **plat** (casse, accents, espaces et pluriel ignorés) de sa **taille** (exacte) avant toute comparaison. Une taille absente de la carte est une **taille manquante**, jamais un nouveau plat (suggestion `kind: "size"`). Côté client, la taille se lit devant : « **6 Churros** » (`displayItemName`, affichage seulement — la carte du restaurateur et l'historique des cadeaux gardent leurs libellés).
+Le nombre de pièces d'un article de la carte — « Nugget (4) », « Churros (6) ». La caisse l'écrit autrement (« Nuggets (4PC.) », « 3pc Mozzarella Sticks ») : `lib/menu-quantity.ts` sépare le **plat** (casse, accents, espaces et pluriel ignorés) de sa **taille** (exacte) avant toute comparaison. Une taille absente de la carte n'est **jamais suggérée** au restaurateur : c'est **n fois l'unité** (ligne rattachée à l'article « (1) » du même plat, quantité multipliée, prix ramené à l'unité). Côté client, la taille se lit devant : « **6 Churros** » (`displayItemName`, affichage seulement — la carte du restaurateur et l'historique des cadeaux gardent leurs libellés).
 _Avoid_ : « variante » (ambigu avec les options), renommer les articles en base pour l'affichage.
 
 **Carte d'identité du ticket** *(ADR 0066)* :

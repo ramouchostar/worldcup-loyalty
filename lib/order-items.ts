@@ -22,12 +22,20 @@ export async function insertOrderItems(
 
     const rows = items.map((item, index) => {
       const m = matchLine(item.name);
+      // ADR 0067 — une taille absente de la carte compte en unités : 1 ligne
+      // « Nuggets (3PC) » devient 3 × « Nugget (1) », prix à l'unité, pour
+      // que les ventes du restaurateur restent justes.
+      const quantity = item.quantity * m.quantityMultiplier;
+      const unitPrice =
+        item.unit_price != null && m.quantityMultiplier > 1
+          ? Math.round((item.unit_price / m.quantityMultiplier) * 100) / 100
+          : item.unit_price;
       return {
         order_id: orderId,
         line_index: index,
         raw_name: item.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
+        quantity,
+        unit_price: unitPrice,
         menu_item_id: m.menuItemId,
         is_ignored: m.ignored,
       };

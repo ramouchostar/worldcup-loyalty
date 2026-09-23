@@ -34,11 +34,21 @@ casse, les accents, les espaces et le pluriel ; la comparaison de la **taille** 
 Cette lecture sert partout : rattachement des lignes de ticket (`lib/menu-match.ts`),
 suggestions de catalogue (`lib/catalog-gaps.ts`), et regroupement des variantes d'écriture.
 
-### 2. Une taille absente n'est pas un nouveau plat
+### 2. Une taille absente n'est pas un article : c'est n fois l'unité
 
-Quand le plat est connu mais pas la taille (`Nuggets (3PC)` alors que la carte a 1, 4, 8 et
-16), la suggestion le dit : « ce n'est pas un nouveau plat, c'est une taille absente — déjà au
-catalogue : Nugget (1), Nugget (4)… ». Le restaurateur décide en connaissance de cause.
+Précision du porteur (2026-09-23) : « 3 nuggets, ce n'est pas un article, c'est 3 fois un seul
+nugget — on garde les tailles qui sont dans le menu ».
+
+Donc, quand le plat est connu mais pas la taille (`Nuggets (3PC)` alors que la carte a 1, 4, 8
+et 16) :
+
+- **rien n'est suggéré au restaurateur** : sa carte garde ses tailles, il n'a pas à trancher ;
+- la ligne est **rattachée à l'article à l'unité** du même plat (`Nugget (1)`), avec la
+  quantité multipliée par la taille et le prix ramené à l'unité — ses ventes comptent 3
+  nuggets, au bon montant, au lieu de perdre la ligne.
+
+Sans article à l'unité au catalogue, la ligne reste simplement non rattachée : on n'invente
+jamais un article.
 
 ### 3. Côté client, la taille se lit devant
 
@@ -50,9 +60,9 @@ messages et au coupon que lit le caissier.
 
 ## Conséquences
 
-- Kraainem passe de **6 suggestions à 3**, toutes vraies : un plat manquant (Bel Tacos
-  Nuggets, 6 tickets — les deux écritures fusionnées), une taille manquante (Nuggets 3), un
-  menu manquant (Spicy Legend Burger Menu).
+- Kraainem passe de **6 suggestions à 2**, toutes de vrais plats : Bel Tacos Nuggets (6
+  tickets, les deux écritures fusionnées) et Spicy Legend Burger Menu. « Nuggets (3PC) » ne
+  dérange plus personne : la ligne compte 3 × Nugget (1).
 - Les lignes `Nuggets (4PC.)` et `Wings (4PC.)` rejoignent enfin les ventes du bon article :
   les statistiques du restaurateur gagnent ces tickets.
 - Pas de migration : aucune donnée n'est réécrite.

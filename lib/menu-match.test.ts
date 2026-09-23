@@ -51,8 +51,8 @@ test("compositions « + » → l'article principal", () => {
 });
 
 test("lignes techniques → ignorées, jamais un plat", () => {
-  assert.deepEqual(match("DrinkVATAdjustment"), { menuItemId: null, ignored: true });
-  assert.deepEqual(match("DrinkVATAdjustment (Drink)"), { menuItemId: null, ignored: true });
+  assert.deepEqual(match("DrinkVATAdjustment"), { menuItemId: null, ignored: true, quantityMultiplier: 1 });
+  assert.deepEqual(match("DrinkVATAdjustment (Drink)"), { menuItemId: null, ignored: true, quantityMultiplier: 1 });
   // même sans alias : le motif technique suffit
   const noAlias = buildTicketMatcher(CATALOG, []);
   assert.equal(noAlias("DrinkVATAdjustment").ignored, true);
@@ -60,9 +60,9 @@ test("lignes techniques → ignorées, jamais un plat", () => {
 });
 
 test("produits réellement absents → NULL non ignoré (boucle de complétion)", () => {
-  assert.deepEqual(match("BelTacos Nuggets (Tacos) + Andalouse"), { menuItemId: null, ignored: false });
-  assert.deepEqual(match("Minion Burger Menu (Medium Fries) + Oasis Tropical + Andalouse"), { menuItemId: null, ignored: false });
-  assert.deepEqual(match("Kebab Wrap (Wrap)"), { menuItemId: null, ignored: false });
+  assert.deepEqual(match("BelTacos Nuggets (Tacos) + Andalouse"), { menuItemId: null, ignored: false, quantityMultiplier: 1 });
+  assert.deepEqual(match("Minion Burger Menu (Medium Fries) + Oasis Tropical + Andalouse"), { menuItemId: null, ignored: false, quantityMultiplier: 1 });
+  assert.deepEqual(match("Kebab Wrap (Wrap)"), { menuItemId: null, ignored: false, quantityMultiplier: 1 });
 });
 
 test("les parenthèses AVEC chiffre (tailles du catalogue) sont conservées", () => {
@@ -73,4 +73,26 @@ test("les parenthèses AVEC chiffre (tailles du catalogue) sont conservées", ()
 test("équivalence de graphie chilli/chili, symétrique", () => {
   assert.equal(normalizeItemName("Sweet Chilli"), normalizeItemName("Sweet Chili"));
   assert.equal(match("Sweet Chilli (Sauce)").menuItemId, "sweet-chili");
+});
+
+test("la taille du ticket rejoint celle de la carte (ADR 0067)", () => {
+  // La caisse écrit « (4PC.) », la carte dit « (4) » : même article
+  assert.equal(match("Nuggets (16PC.)").menuItemId, "nugget-16");
+  assert.equal(match("Nugget (16)").quantityMultiplier, 1);
+});
+
+test("une taille absente de la carte compte en unités, jamais en nouvel article", () => {
+  const catalogue = [
+    { id: "nugget-1", name: "Nugget (1)" },
+    { id: "nugget-4", name: "Nugget (4)" },
+    { id: "finest", name: "Finest" },
+  ];
+  const m = buildTicketMatcher(catalogue, []);
+  // « 3 nuggets », ce n'est pas un article : c'est 3 fois l'unité
+  assert.deepEqual(m("Nuggets (3PC)"), { menuItemId: "nugget-1", ignored: false, quantityMultiplier: 3 });
+  // Une taille qui EXISTE reste elle-même, sans multiplication
+  assert.deepEqual(m("Nuggets (4PC.)"), { menuItemId: "nugget-4", ignored: false, quantityMultiplier: 1 });
+  // Sans article à l'unité au catalogue, la ligne reste non rattachée
+  const sansUnite = buildTicketMatcher([{ id: "wings-8", name: "Wings (8)" }], []);
+  assert.deepEqual(sansUnite("Wings (6PC)"), { menuItemId: null, ignored: false, quantityMultiplier: 1 });
 });

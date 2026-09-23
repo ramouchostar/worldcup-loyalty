@@ -18,8 +18,9 @@ export const GAP_MIN_ORDERS = 2;
  * De quoi il s'agit vraiment (ADR 0067) :
  *  - `dish` : un plat que la carte ne connaît pas du tout ;
  *  - `size` : un plat CONNU dans une taille absente de la carte (« Nuggets
- *    (3PC) » alors qu'elle a 1, 4, 8 et 16) — on ne propose pas un nouveau
- *    plat, on propose une taille de plus.
+ *    (3PC) » alors qu'elle a 1, 4, 8 et 16). Ce n'est PAS un article :
+ *    c'est n fois l'unité (décision du porteur, 2026-09-23). Jamais suggéré
+ *    au restaurateur — la carte garde ses tailles, la ligne compte en unités.
  */
 export type CatalogGapKind = "dish" | "size";
 
@@ -108,7 +109,11 @@ export function aggregateGaps(
       oldestOrderDate: g.oldest,
     });
   }
-  return out.sort((a, b) => b.orders - a.orders || b.occurrences - a.occurrences);
+  // Une déclinaison de quantité n'est jamais proposée : « 3 nuggets », ce
+  // n'est pas un article (ADR 0067).
+  return out
+    .filter((gap) => gap.kind === "dish")
+    .sort((a, b) => b.orders - a.orders || b.occurrences - a.occurrences);
 }
 
 /** Trous récurrents d'un resto. Fail-open : toute erreur → liste vide. */
