@@ -3,6 +3,8 @@
 **Date** : 2026-07-06
 **Statut** : Accepté — complété par l'ADR 0052 (dédoublonnage par empreinte de contenu quand la clé est mal lue ou absente) ; amendé par l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (la clé est celle que lit l'OCR serveur, jamais saisie ; pour un établissement à clé fiable, une clé illisible se reprend en photo — plus de chemin « numéro illisible » en file admin)
 
+> **Complété par l'[ADR 0066](0066-la-carte-identite-du-ticket.md) (2026-09-23)** : la découverte relève aussi la structure du ticket au-delà de la clé (heure, canal, numéro du jour, totaux, langue) dans `restaurant_receipt_config.receipt_profile`.
+
 ## Contexte
 
 L'anti-doublon des commandes (ADR 0008) repose sur le Bestelnummer au format `YYYY-MM-DD/NNN/NNNNN`, codé en dur dans le regex d'extraction (`lib/receipt-ocr.ts`), la validation (`lib/orders.ts`) et la construction du `duplicate_key`. C'est le format d'une seule caisse — celle de Belchicken. Depuis le pivot plateforme (ADR 0015), n'importe quel restaurateur peut s'inscrire : ses tickets ont un autre format, et le pipeline actuel ne détecterait jamais leur numéro de commande — toutes leurs commandes partiraient en file admin avec une clé synthétique, sans protection anti-doublon réelle.

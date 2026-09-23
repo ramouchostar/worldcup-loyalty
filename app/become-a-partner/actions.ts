@@ -180,7 +180,7 @@ export async function analyzeReceiptSamples(
   }
 
   const admin = createAdminClient();
-  const { error } = await admin.from("restaurant_receipt_config").upsert({
+  const configRow = {
     restaurant_id: restaurantId,
     has_reliable_key: proposal.has_reliable_key,
     key_label: proposal.key_label || null,
@@ -192,7 +192,16 @@ export async function analyzeReceiptSamples(
     confirmed_at: null,
     confirmed_by: null,
     updated_at: new Date().toISOString(),
-  });
+  };
+  // Ce que la découverte a compris du ticket au-delà de la clé (ADR 0066,
+  // migration 20260923-1000) : tant qu'elle n'est pas appliquée, on
+  // enregistre sans ce champ plutôt que de casser l'onboarding.
+  let { error } = await admin
+    .from("restaurant_receipt_config")
+    .upsert({ ...configRow, receipt_profile: proposal.profile });
+  if (error && /receipt_profile/.test(error.message)) {
+    ({ error } = await admin.from("restaurant_receipt_config").upsert(configRow));
+  }
   if (error) return { error: "Erreur lors de l'enregistrement de la proposition. Réessaie." };
 
   return { proposal };

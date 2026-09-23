@@ -6,6 +6,31 @@ import { isAllowedReceiptType, type AllowedReceiptType } from "./receipt-ocr";
 // vision (modèle fort, coût accepté car unique par établissement) propose
 // la clé candidate. L'app propose, le restaurateur décide (ADR 0013).
 
+/**
+ * Ce que la découverte comprend du ticket AU-DELÀ de la clé (ADR 0066) :
+ * l'heure de commande, le canal, le numéro de séquence du jour, le bloc des
+ * totaux. Sert ensuite à juger chaque lecture (est-ce que ça tient debout ?)
+ * et à reconnaître deux photos du même ticket. Conservé tel quel dans
+ * `restaurant_receipt_config.receipt_profile`.
+ */
+export type ReceiptProfile = {
+  /** L'heure de commande est-elle imprimée, et où ? */
+  has_order_time: boolean;
+  order_time_hint: string;
+  /** Le canal (« Self-order kiosk », « Eat in »…) et les valeurs vues. */
+  channel_values: string[];
+  /** Le petit numéro du jour en tête (« Take away - 179 ») — jamais unique seul. */
+  has_daily_sequence: boolean;
+  /** Le ticket imprime-t-il un sous-total, une remise, une TVA ? */
+  has_subtotal: boolean;
+  has_discount_line: boolean;
+  /** Le moyen de paiement (jamais le numéro de carte). */
+  has_payment_method: boolean;
+  /** Langue principale du ticket (nl, fr, en…) — aide la lecture des libellés. */
+  language: string;
+  notes: string;
+};
+
 export type ReceiptKeyProposal = {
   has_reliable_key: boolean;
   key_label: string;
@@ -15,9 +40,31 @@ export type ReceiptKeyProposal = {
   position_hint: string;
   date_group: number | null;
   notes: string;
+  profile: ReceiptProfile | null;
 };
 
 const MAX_PATTERN_LENGTH = 200;
+
+// Le profil vient du modèle : on ne garde que des champs de forme connue,
+// bornés — jamais de texte libre long ni de donnée bancaire (ADR 0025).
+function sanitizeProfile(raw: unknown): ReceiptProfile | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const p = raw as Record<string, unknown>;
+  const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+  return {
+    has_order_time: p.has_order_time === true,
+    order_time_hint: text(p.order_time_hint, 150),
+    channel_values: Array.isArray(p.channel_values)
+      ? p.channel_values.filter((c): c is string => typeof c === "string").map((c) => c.trim().slice(0, 40)).slice(0, 8)
+      : [],
+    has_daily_sequence: p.has_daily_sequence === true,
+    has_subtotal: p.has_subtotal === true,
+    has_discount_line: p.has_discount_line === true,
+    has_payment_method: p.has_payment_method === true,
+    language: text(p.language, 8),
+    notes: text(p.notes, 300),
+  };
+}
 
 // Garde serveur contre une regex proposée par le modèle : doit compiler,
 // être ancrée, rester courte (anti-ReDoS) et matcher tous les exemples
@@ -82,11 +129,18 @@ export async function discoverReceiptKey(
 6. position_hint: where the field appears on the receipt (short English phrase).
 7. date_group: if one capture group of the regex contains a date in YYYY-MM-DD form, its group number (1-based), else null.
 8. notes: anything ambiguous (French, one short sentence, empty string if none).
+9. profile: what ELSE identifies an order on these receipts — a loyalty program uses it to tell two photos of the SAME ticket apart from two different orders, and to notice a misread:
+   - has_order_time / order_time_hint: is the order time printed, and where (short English phrase)?
+   - channel_values: the printed order channels seen across the samples (e.g. ["Self-order kiosk", "Intake module"]), empty if none
+   - has_daily_sequence: is a short per-day counter printed in the header (e.g. "179" in "Take away - 179")?
+   - has_subtotal / has_discount_line / has_payment_method: are those lines printed?
+   - language: main language of the receipt ("nl", "fr", "en"…)
+   NEVER report card numbers, authorisation codes or any banking identifier.
 
 If NO reliable unique field exists on all receipts, return has_reliable_key false and empty strings for the other fields.
 
 Return ONLY valid JSON, no markdown:
-{"has_reliable_key": true, "key_label": "...", "key_description": "...", "key_pattern": "^...$", "key_examples": ["..."], "position_hint": "...", "date_group": 1 or null, "notes": ""}`,
+{"has_reliable_key": true, "key_label": "...", "key_description": "...", "key_pattern": "^...$", "key_examples": ["..."], "position_hint": "...", "date_group": 1 or null, "notes": "", "profile": {"has_order_time": true, "order_time_hint": "...", "channel_values": ["..."], "has_daily_sequence": true, "has_subtotal": true, "has_discount_line": false, "has_payment_method": true, "language": "nl", "notes": ""}}`,
           },
         ],
       },
@@ -124,6 +178,7 @@ Return ONLY valid JSON, no markdown:
         ? parsed.date_group
         : null,
     notes: typeof parsed.notes === "string" ? parsed.notes.slice(0, 300) : "",
+    profile: sanitizeProfile(parsed.profile),
   };
 
   // Une proposition dont le pattern ne tient pas la garde serveur est

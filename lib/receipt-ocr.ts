@@ -19,6 +19,12 @@ type VisionResult = {
   looks_like_qr_or_poster?: unknown;
   order_time?: unknown;
   items?: unknown;
+  printed_date?: unknown;
+  channel?: unknown;
+  daily_sequence?: unknown;
+  subtotal?: unknown;
+  discount_total?: unknown;
+  payment_method?: unknown;
 };
 
 export type ReceiptLineItem = {
@@ -42,6 +48,20 @@ export type ReceiptAnalysis = {
   // OCR manifestement fausse, cf. lib/receipt-key-sanity.ts) — le client
   // invite alors le membre à vérifier le numéro.
   key_corrected: boolean;
+
+  // Carte d’identité du ticket (ADR 0066) — ce qui permet de vérifier que la
+  // lecture tient debout, et de reconnaître deux photos du même ticket.
+  /** Date imprimée en tête du ticket (YYYY-MM-DD) — sert à contrôler la clé. */
+  printed_date: string | null;
+  /** Canal imprimé : « Self-order kiosk », « Intake module », « Eat in »… */
+  channel: string | null;
+  /** Numéro de séquence du jour (« Take away - 179 ») — jamais unique seul. */
+  daily_sequence: string | null;
+  /** Sous-total et remise imprimés : une remise explique qu'une somme ne tombe pas juste. */
+  subtotal: number | null;
+  discount_total: number | null;
+  /** Moyen de paiement imprimé (« Cash », « Betalen met kaart ») — jamais de numéro de carte. */
+  payment_method: string | null;
   // La clé telle que le modèle l'a lue, AVANT le contrôle de format — gardée
   // même quand elle est refusée : c'est elle qui dit si un format inconnu
   // (ex. « 2026-09-17/223/036 ») revient souvent (audit 2026-09-18).
@@ -151,10 +171,15 @@ ${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL
 3. Whether the word "${restaurantName}" appears anywhere on the receipt
 4. Order time in 24h HH:MM format if printed on the receipt — null if not visible
 5. Line items ordered: for each clearly readable line, the item name as printed, the quantity (default 1) and the unit price in euros (null if unreadable). Maximum ${MAX_LINE_ITEMS} items, skip totals/taxes/payment lines.
-6. Whether the photo shows a PROMOTIONAL POSTER, flyer, sticker, table sign or QR-code display (marketing material inviting to scan a code) rather than a printed till receipt — true only if it is clearly marketing material, false for any actual receipt even partial or blurry.
+6. printed_date: the date printed at the top of the receipt, as YYYY-MM-DD (null if not visible)
+7. channel: the printed order channel if any ("Self-order kiosk", "Intake module", "Eat in", "Take away"…) — null if not visible
+8. daily_sequence: the short daily order number printed in the header, e.g. "179" in "Take away - 179 | ZSM" — null if not visible
+9. subtotal and discount_total: the printed subtotal and the printed discount/coupon amount as numbers (null if not printed)
+10. payment_method: the printed payment method ("Cash", "Betalen met kaart"…) — null if not visible. NEVER read card numbers, authorisation codes or any banking identifier: ignore that block entirely.
+11. Whether the photo shows a PROMOTIONAL POSTER, flyer, sticker, table sign or QR-code display (marketing material inviting to scan a code) rather than a printed till receipt — true only if it is clearly marketing material, false for any actual receipt even partial or blurry.
 
 Return ONLY valid JSON, no markdown, no explanation:
-{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false}`,
+{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false, "printed_date": "2026-06-01" or null, "channel": "Self-order kiosk" or null, "daily_sequence": "179" or null, "subtotal": 15.00 or null, "discount_total": 7.10 or null, "payment_method": "Cash" or null}`,
           },
         ],
       },
@@ -209,8 +234,21 @@ Return ONLY valid JSON, no markdown, no explanation:
       ? parsed.order_time
       : null;
 
+  const money = (raw: unknown): number | null =>
+    typeof raw === "number" && raw >= 0 && raw <= 1000 ? Math.round(raw * 100) / 100 : null;
+  const shortText = (raw: unknown, max: number): string | null =>
+    typeof raw === "string" && raw.trim() ? raw.trim().slice(0, max) : null;
+
   return {
     order_number: orderNumber,
+    printed_date: typeof parsed.printed_date === "string" && /^d{4}-d{2}-d{2}$/.test(parsed.printed_date.trim())
+      ? parsed.printed_date.trim()
+      : null,
+    channel: shortText(parsed.channel, 40),
+    daily_sequence: shortText(parsed.daily_sequence, 12),
+    subtotal: money(parsed.subtotal),
+    discount_total: money(parsed.discount_total),
+    payment_method: shortText(parsed.payment_method, 40),
     amount,
     confidence,
     has_restaurant_header: parsed.has_restaurant_header === true,

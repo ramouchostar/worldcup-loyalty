@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "./supabase";
 import type { ReceiptAnalysis } from "./receipt-ocr";
+import { checkCoherence } from "./receipt-coherence";
 
 // ADR 0036 — Conservation des tickets scannés.
 //
@@ -66,6 +67,34 @@ function extensionFor(type: string): string {
  * archivée). Nécessite la migration 20260907-1930 (user_id nullable) ; sans
  * elle, l'insert échoue en silence, comme avant.
  */
+// Contrôles de cohérence (ADR 0066) — CALCULÉS et conservés à chaque lecture,
+// mais ils ne refusent rien pour l'instant : on mesure d'abord lesquels sont
+// fiables sur de vrais tickets (bouclier ADR 0065, la trace avant la règle).
+// Best-effort : un catalogue illisible ne bloque jamais la conservation.
+async function evaluateCoherence(restaurantId: string, analysis: ReceiptAnalysis) {
+  try {
+    const { data } = await createAdminClient()
+      .from("menu_items")
+      .select("name")
+      .eq("restaurant_id", restaurantId)
+      .eq("is_active", true);
+    const menuNames = ((data ?? []) as { name: string }[]).map((m) => m.name);
+    return checkCoherence({
+      amount: analysis.amount,
+      orderNumber: analysis.order_number,
+      orderTime: analysis.order_time,
+      printedDate: analysis.printed_date,
+      keyDate: analysis.order_number?.match(/d{4}-d{2}-d{2}/)?.[0] ?? null,
+      items: analysis.items,
+      menuNames,
+      hasDiscount: (analysis.discount_total ?? 0) > 0,
+    });
+  } catch (e) {
+    console.error("[receipt-scans] contrôles de cohérence impossibles:", (e as Error).message);
+    return null;
+  }
+}
+
 export async function storeScan(params: {
   restaurantId: string;
   userId: string | null;
@@ -87,6 +116,7 @@ export async function storeScan(params: {
       if (uploadError) throw uploadError;
     }
 
+    const coherence = await evaluateCoherence(restaurantId, analysis);
     const row = {
       restaurant_id: restaurantId,
       user_id: userId,
@@ -107,10 +137,19 @@ export async function storeScan(params: {
         ...row,
         ocr_order_number_raw: analysis.raw_order_number,
         ocr_key_second_read: analysis.key_second_read,
+        // Carte d'identité du ticket + contrôles (migration 20260923-1000)
+        ocr_printed_date: analysis.printed_date,
+        ocr_channel: analysis.channel,
+        ocr_daily_sequence: analysis.daily_sequence,
+        ocr_subtotal: analysis.subtotal,
+        ocr_discount_total: analysis.discount_total,
+        ocr_payment_method: analysis.payment_method,
+        ocr_checks: coherence?.checks ?? null,
+        ocr_checks_failed: coherence?.failed ?? null,
       })
       .select("id")
       .single();
-    if (error && /ocr_order_number_raw|ocr_key_second_read/.test(error.message)) {
+    if (error && /ocr_order_number_raw|ocr_key_second_read|ocr_printed_date|ocr_channel|ocr_daily_sequence|ocr_subtotal|ocr_discount_total|ocr_payment_method|ocr_checks/.test(error.message)) {
       ({ data, error } = await admin.from("receipt_scans").insert(row).select("id").single());
     }
     if (error) {

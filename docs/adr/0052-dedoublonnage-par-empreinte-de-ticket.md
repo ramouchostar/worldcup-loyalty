@@ -1,6 +1,8 @@
 # ADR 0052 — Dédoublonnage par empreinte de ticket, le numéro en signal secondaire
 
 **Statut** : Accepté (2026-09-10) — décidé le 2026-09-04 (phase C du chantier
+
+> **Complété par l'[ADR 0066](0066-la-carte-identite-du-ticket.md) (2026-09-23)** : comparer des valeurs ne suffit pas quand la lecture les invente (terrain Kraainem du 2026-09-20, deux commandes validées pour un seul ticket). On juge d'abord la cohérence de la lecture, puis on compare.
 d'activation), implémentation annulée le 2026-09-05 avec toute la passation (revert
 `804f5ce`, retour à master demandé par le porteur pour relivrer en chantiers
 séparés), **reprise et fusionnée le 2026-09-10** sur ordre du porteur. Renuméroté

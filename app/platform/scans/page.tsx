@@ -41,6 +41,19 @@ type ScanRow = {
   // Migration 20260918-0800 — absents tant qu'elle n'est pas appliquée.
   ocr_order_number_raw?: string | null;
   ocr_key_second_read?: boolean;
+  // Carte d'identité du ticket (ADR 0066, migration 20260923-1000).
+  ocr_printed_date?: string | null;
+  ocr_channel?: string | null;
+  ocr_daily_sequence?: string | null;
+  ocr_checks_failed?: string[] | null;
+};
+
+// Contrôles de cohérence (ADR 0066) — phase 1 : mesurés, jamais bloquants.
+const CHECK_LABELS: Record<string, string> = {
+  time_read: "heure non lue",
+  items_match_menu: "articles hors menu",
+  items_sum_matches_total: "somme ≠ total",
+  key_date_matches_printed: "date du n° ≠ date du ticket",
 };
 
 type OrderRow = {
@@ -369,6 +382,22 @@ export default async function PlatformScansPage({
                         n° {scan.ocr_order_number ?? "—"}
                         {scan.ocr_key_second_read && " · seconde lecture"}
                       </div>
+                      {/* Ce qui identifie le ticket (ADR 0066) : deux photos du
+                          même ticket partagent date + heure + total. */}
+                      <div className="whitespace-nowrap text-xs text-gray-500">
+                        {scan.ocr_printed_date ?? "—"}
+                        {scan.ocr_daily_sequence ? ` · n° du jour ${scan.ocr_daily_sequence}` : ""}
+                        {scan.ocr_channel ? ` · ${scan.ocr_channel}` : ""}
+                      </div>
+                      {(scan.ocr_checks_failed?.length ?? 0) > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {scan.ocr_checks_failed!.map((check) => (
+                            <span key={check} className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                              {CHECK_LABELS[check] ?? check}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {/* Clé lue mais refusée par le format : c'est elle qui dit
                           si un format inconnu revient (audit 2026-09-18). */}
                       {!scan.ocr_order_number && scan.ocr_order_number_raw && (
