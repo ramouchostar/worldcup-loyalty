@@ -127,7 +127,7 @@ C 20 %, D 30 %), puis les cinq priorités et le plan à 90 jours.
 Chaque volet réduit ses mesures à des **signaux discrets** (`lib/audit/signals.ts` : tranche de
 note, tendance, volume d'avis face aux voisins, taux de réponse, thèmes négatifs, manques de la
 fiche, état de chaque réseau, répartition des canaux, gamme de prix, position face aux voisins).
-La bibliothèque `lib/audit/scenarios.ts` contient **258 scénarios**, calculés par combinaison de
+La bibliothèque `lib/audit/scenarios.ts` contient **294 scénarios**, calculés par combinaison de
 familles × contextes (par exemple : thème « attente » × réponses faibles × note en baisse) ;
 chacun a son constat, ses gestes, son chiffre à suivre, son effet et son effort, et le levier
 Boosteats **seulement quand il est réel**. `lib/audit/recommend.ts` retient les scénarios qui
@@ -136,6 +136,11 @@ un sujet par famille dans les cinq priorités, et ne propose jamais « récupér
 déçus » avant « régler ce qui les a déçus ». Un signal non vérifié ne déclenche aucun scénario.
 Les tests vérifient : plus de 250 scénarios, tous atteignables, cinq priorités distinctes pour
 tout audit complet, aucune recommandation sans signal lu.
+
+Ce que le gérant déclare (volet E) pèse plus que ce qu'on déduit : produit phare 1,5, canaux
+1,6. Et un signal **confirmé par un autre** monte (`boost`) : préparation longue + clients qui
+se plaignent de l'attente, lien de commande absent + plateformes majoritaires. L'objectif de
+chiffre d'affaires ne concourt pas avec les priorités : c'est le cadre du plan, affiché à part.
 
 Claude rédige le texte d'accroche et les citations ; il ne choisit **pas** les solutions.
 Deux audits dans la même situation reçoivent les mêmes recommandations, et on peut dire
@@ -166,19 +171,44 @@ jours » est un **objectif** et le dit ; la note visée se calcule en supposant 
 priorités faites, jamais présentée comme une promesse. Couleurs et polices de Boosteats (olive
 `#6B7C3F`, nuit `#0C1509`, accent `#A2C523`, Manrope et Inter).
 
-Consultable à `/platform/audit/[id]`, gardé en historique par établissement (on peut refaire
-l'audit trois mois plus tard et comparer), et exportable en **PDF** par une version imprimable
-(`/platform/audit/[id]/print` avec une feuille de style d'impression, sans dépendance
-ajoutée).
+Consultable à `/platform/audit/[id]`, gardé en historique par établissement : on peut refaire
+l'audit trois mois plus tard et comparer.
 
-### 6. Livraison en cinq PR
+### 6. Révision, version finale et diffusion
+
+Un audit passe par trois états : **mesuré** (volets A à D terminés), **révisé** (réponses du
+gérant saisies), **final** (figé, prêt à partir).
+
+- **Révision** (`lib/audit/revise.ts`) : les réponses deviennent des signaux (`withAnswers`),
+  les recommandations sont recalculées, et le rapport final dit **ce que les réponses ont
+  changé** (priorité ajoutée, montée, descendue, actions ajoutées au calendrier). Il s'y ajoute
+  le bloc **objectif** (CA actuel → objectif, premier levier, condition, rythme). Les notes A à D
+  ne bougent pas : elles restent mesurées.
+- **Version finale** : un instantané figé (`restaurant_audit_versions` : numéro, contenu JSON,
+  date). Modifier une réponse après coup crée la version suivante, jamais une réécriture : le
+  gérant qui a reçu la v1 garde un lien qui montre la v1.
+- **Télécharger** : le PDF est imprimé depuis la même page que le lien partagé (Chromium headless
+  sur Vercel), pour qu'il n'existe qu'une mise en page. Généré une fois par version et gardé
+  dans le stockage privé.
+- **Partager le lien** : `/audit/[jeton]`, page publique en lecture seule, jeton aléatoire de
+  128 bits (stocké haché), `noindex`, valable **90 jours**, révocable depuis la console. Le
+  rapport contient les chiffres donnés par le gérant (CA, marges) : c'est pour ça que le lien
+  expire et se révoque. Les ouvertures de la page sont comptées côté serveur (pas de pixel,
+  ADR 0063) : on sait si le gérant l'a regardé.
+- **Envoyer par e-mail** : depuis la console, un e-mail un à un, adresse saisie par nous après
+  l'échange avec le gérant. Il part du kit `proShell` (ADR 0063) : expéditeur Boosteats,
+  réponses vers `EMAIL_REPLY_TO`, lien vers la version finale et PDF en pièce jointe. Chaque envoi
+  est écrit dans le journal des messages (`lib/message-log.ts`, audience restaurateur). Ce n'est
+  ni une séquence ni une campagne : aucune relance automatique.
+
+### 7. Livraison en cinq PR
 
 1. Cet ADR, les tables, la recherche limitée à Bruxelles, le volet A (Places), le volet E, la page
    du rapport.
 2. Volet D (avis datés, tendance, thèmes) et moteur de scénarios branché sur le rapport.
 3. Volet C (concurrents).
 4. Volet B (réseaux sociaux).
-5. Synthèse, export PDF.
+5. Révision, version finale, PDF, lien partagé et envoi par e-mail.
 
 ## Conséquences
 
