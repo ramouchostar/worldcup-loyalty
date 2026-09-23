@@ -15,8 +15,19 @@
 //      (« (Burger) » oui ; « (16) » non — ce sont les tailles du catalogue) ;
 //      puis alias et catalogue sur cette forme.
 
+import { baseKey, mainTicketLabel, parseSizedName, sizedKey } from "./menu-quantity";
+
 export type TicketAlias = { alias: string; menu_item_id: string | null };
-export type TicketLineMatch = { menuItemId: string | null; ignored: boolean };
+export type TicketLineMatch = {
+  menuItemId: string | null;
+  ignored: boolean;
+  /**
+   * Quantité à multiplier (ADR 0067) : une taille absente de la carte n'est
+   * pas un article, c'est n fois l'unité — « Nuggets (3PC) » rattaché à
+   * « Nugget (1) » compte 3 unités. Vaut 1 partout ailleurs.
+   */
+  quantityMultiplier: number;
+};
 
 export function normalizeItemName(s: string): string {
   return s
@@ -72,6 +83,24 @@ export function buildTicketMatcher(
     const key = normalizeItemName(item.name);
     if (key !== "" && !catalog.has(key)) catalog.set(key, item.id);
   }
+  // 5. Plat + TAILLE (ADR 0067) : la caisse écrit « Nuggets (4PC.) » là où la
+  // carte dit « Nugget (4) » — même plat, même taille, autre écriture. On
+  // compare donc le plat sans sa taille, pluriel et espaces ignorés, puis la
+  // taille exacte. Deux tailles différentes restent deux articles différents.
+  const bySize = new Map<string, string>();
+  // L'article « à l'unité » de chaque plat (« Nugget (1) ») : c'est lui qui
+  // absorbe les tailles absentes de la carte (ADR 0067).
+  const unitByBase = new Map<string, string>();
+  for (const item of items) {
+    const key = sizedKey(item.name);
+    if (key !== "" && !bySize.has(key)) bySize.set(key, item.id);
+    const parsed = parseSizedName(item.name);
+    if (parsed.size === 1) {
+      const base = baseKey(item.name);
+      if (base !== "" && !unitByBase.has(base)) unitByBase.set(base, item.id);
+    }
+  }
+
   const aliasMap = new Map<string, string | null>();
   for (const a of aliases) {
     const key = normalizeItemName(a.alias);
@@ -82,24 +111,37 @@ export function buildTicketMatcher(
     if (key === "") return null;
     if (aliasMap.has(key)) {
       const id = aliasMap.get(key) ?? null;
-      return { menuItemId: id, ignored: id === null };
+      return { menuItemId: id, ignored: id === null, quantityMultiplier: 1 };
     }
     const id = catalog.get(key);
-    return id ? { menuItemId: id, ignored: false } : null;
+    return id ? { menuItemId: id, ignored: false, quantityMultiplier: 1 } : null;
   };
 
   return (rawName: string) => {
     const norm = normalizeItemName(rawName);
     const direct = resolve(norm);
     if (direct) return direct;
-    if (isTechnicalLine(norm)) return { menuItemId: null, ignored: true };
+    if (isTechnicalLine(norm)) return { menuItemId: null, ignored: true, quantityMultiplier: 1 };
     const canon = canonicalizeTicketLabel(rawName);
     if (canon !== norm) {
       const viaCanon = resolve(canon);
       if (viaCanon) return viaCanon;
-      if (isTechnicalLine(canon)) return { menuItemId: null, ignored: true };
+      if (isTechnicalLine(canon)) return { menuItemId: null, ignored: true, quantityMultiplier: 1 };
     }
-    return { menuItemId: null, ignored: false };
+    // Le libellé du ticket porte options et catégorie : on ne garde que
+    // l'article principal (avant « + ») avant de comparer plat + taille.
+    const main = mainTicketLabel(rawName);
+    const viaSize = bySize.get(sizedKey(main));
+    if (viaSize) return { menuItemId: viaSize, ignored: false, quantityMultiplier: 1 };
+    // Taille absente de la carte : « Nuggets (3PC) » = 3 × « Nugget (1) »
+    // (décision du porteur, 2026-09-23). On ne crée pas d'article, on compte
+    // des unités — et rien n'est suggéré au restaurateur.
+    const parsed = parseSizedName(main);
+    if (parsed.size && parsed.size > 1) {
+      const unit = unitByBase.get(baseKey(main));
+      if (unit) return { menuItemId: unit, ignored: false, quantityMultiplier: parsed.size };
+    }
+    return { menuItemId: null, ignored: false, quantityMultiplier: 1 };
   };
 }
 

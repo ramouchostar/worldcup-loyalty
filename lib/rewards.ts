@@ -1,6 +1,7 @@
 import { createServerSupabaseClient, createAdminClient } from "./supabase";
 import { incrementRewardsCost } from "./budget";
 import { awardCrossedTeamTiers } from "./team-gifts";
+import { displayItemName } from "./menu-quantity";
 
 // Active member = at least 1 validated order
 export async function isMemberActive(userId: string): Promise<boolean> {
@@ -84,7 +85,8 @@ export async function loadRewardGrid(restaurantId: string): Promise<RewardGrid> 
     // POINTS de réserve) ne doivent jamais fuir dans la grille communautaire
     // (seuils en score d'équipe).
     if (r.layer !== "solo" && r.layer !== "community") continue;
-    const tier: GridTier = { min: Number(r.min_threshold), item: mi.name, cost: Number(mi.cost_price) };
+    // ADR 0067 — le nom montré au membre (et figé dans son cadeau) : « 6 Churros ».
+    const tier: GridTier = { min: Number(r.min_threshold), item: displayItemName(mi.name), cost: Number(mi.cost_price) };
     (r.layer === "solo" ? grid.solo : grid.community).push(tier);
   }
 

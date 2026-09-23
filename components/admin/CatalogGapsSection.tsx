@@ -15,6 +15,9 @@ import { normalizeItemName } from "@/lib/menu-match";
 type Gap = {
   label: string;
   rawSample: string;
+  // ADR 0067 — « size » : plat connu, taille absente de la carte.
+  kind?: "dish" | "size";
+  family?: string[];
   normalized: string;
   orders: number;
   suggestedPrice: number | null;
