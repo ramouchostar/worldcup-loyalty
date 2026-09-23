@@ -63,6 +63,8 @@ export function consoleSections(base: string, canManage: boolean): AdminNavSecti
       title: "Configuration",
       links: [
         { href: `${base}/menu`, label: "Menu & coûts", icon: "menu", hint: "Ta carte, tes prix de revient, tes cadeaux" },
+        // ADR 0068 — le taux cadeaux : décision d’argent, donc gérant/manager.
+        ...(canManage ? [{ href: `${base}/cadeaux`, label: "Taux cadeaux", icon: "gifts", hint: "Ce que tu rends à tes clients, et ce que ça te coûte" }] : []),
         // ADR 0041 §6 — un siège équipe n'a pas accès aux pages financières
         // et aux réglages : leur lien disparaît (la page se re-garde aussi).
         ...(canManage ? [{ href: `${base}/thresholds`, label: "Seuils CA", icon: "thresholds", hint: "L'objectif de chiffre qui ouvre les cadeaux d'équipe" }] : []),

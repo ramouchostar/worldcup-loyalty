@@ -64,7 +64,7 @@ mesure) — détail dans `.claude/rules/bouclier.md`, trois lignes obligatoires 
 
 ### ADR 0061 — « Mes points » (remplace la réserve des ADR 0021/0060)
 - Solde personnel = registre `point_transactions` (jamais de colonne solde, corrections en `admin_adjust`) ; 10 points par euro par ticket validé (`order_points`, déclencheur SQL, disponibles 4 h après)
-- Catalogue (`/r/[id]/points`, `/reserve` redirige) : `catalog_items`, prix calculé `catalog_price_points` (arrondi 5 sup de coût ÷ taux × 10 ; taux cadeaux par établissement `restaurant_reward_settings.budget_pct`, 8 % par défaut, Kraainem 4 % — baisser le taux RENCHÉRIT les cadeaux), échange `exchange_points_for_item`. Jamais de prix de revient côté membre
+- Catalogue (`/r/[id]/points`, `/reserve` redirige) : `catalog_items`, prix calculé `catalog_price_points` (arrondi 5 sup de coût ÷ taux × 10 ; taux cadeaux par établissement `restaurant_reward_settings.budget_pct`, réglé par le gérant entre 4 et 12 % — ADR 0068, page console « Taux cadeaux » ; baisser le taux RENCHÉRIT les cadeaux, et `set_reward_pct` ajuste les soldes des clients dans la même transaction), échange `exchange_points_for_item`. Jamais de prix de revient côté membre
 - Un cadeau payé en points qui expire **rend ses points** (`refund_catalog_reward`, idempotent) : le balayage horaire rattrape tout cadeau payé en points expiré depuis 14 jours, et la génération du coupon rembourse elle-même un cadeau qu'elle clôt
 - « Mettre de côté », gros cadeaux `saver` et `/api/points/bank` **retirés** (PR 6) ; les lignes `banked` et raisons `bank_reward` restent lisibles dans l'historique
 

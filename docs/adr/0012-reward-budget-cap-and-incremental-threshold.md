@@ -2,6 +2,8 @@
 
 **Statut** : Accepté
 
+> **Amendé par l'[ADR 0068](0068-le-restaurateur-choisit-son-taux-cadeaux.md) (2026-09-23)** : le plafond n'est plus 8 % partout — chaque établissement a son taux (4 à 12 %), réglé par son gérant depuis la console.
+
 ## Contexte
 
 Le score communautaire = `membres × euros totaux`. Cette formule explose avec le volume : un restaurant comme Kraainem (€127k/mois) atteint des scores de plusieurs centaines de milliers de points dès les premiers jours. Avec des seuils fixes (10 000 pts max dans la grille initiale), toutes les couches de récompenses se débloquent immédiatement et restent débloquées en permanence.
