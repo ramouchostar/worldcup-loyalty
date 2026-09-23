@@ -41,6 +41,10 @@ _Avoid_ : reçu, preuve, justificatif.
 Arrivée sur la page publique d'un établissement (`/r/[id]`), comptée côté serveur dans `qr_landings` par jour, provenance (`qr_code` = QR imprimé, `direct` = lien partagé ou saisie) et visiteur (`anonyme` / `membre`). Premier étage de l'**entonnoir** — atterrissage → inscription → scan → commande — visible sur `/platform/scans`. Compte des **chargements de page**, pas des personnes : dédupliquer exigerait un cookie, donc du consentement, donc l'angle mort qu'on cherchait à sortir.
 _Avoid_ : visite, visiteur unique, session (rien n'est identifié) ; « scan du QR » (le QR n'est pas mesurable, seule l'arrivée l'est).
 
+**Carte d'identité du ticket** *(ADR 0066)* :
+Ce qui identifie une commande sur un ticket, au-delà du numéro : date imprimée, **heure de commande** (lue dans 85–90 % des cas), canal (« Self-order kiosk »…), numéro de séquence du jour, sous-total, remise, moyen de paiement, articles et prix. Relevée par la découverte à l'onboarding (`restaurant_receipt_config.receipt_profile`) et conservée à chaque lecture (`receipt_scans`). Sert à juger une lecture (contrôles nommés `ocr_checks` : heure lue, articles reconnus au menu, somme ≈ total, date du numéro = date imprimée) et à reconnaître deux photos du même ticket. **Jamais de donnée bancaire** (ADR 0025). Phase 1 : mesuré, ne refuse rien.
+_Avoid_ : « empreinte » (réservé à l'ADR 0052), utiliser le numéro du jour seul comme identifiant.
+
 **Scan** *(ADR 0036)* :
 Un passage d'image dans Claude Vision, qu'il aboutisse ou non à une commande. Table `receipt_scans` : l'image, la lecture du modèle, et ce qu'elle est devenue (`parsed` = jamais soumis, `header_rejected` = ticket non reconnu, `submitted` = devenue commande). C'est l'unité de mesure du coût OCR (ADR 0029 §6) et la matière de `/platform/scans`, où l'on compare image ↔ lecture ↔ encodage. **Terme interne/plateforme uniquement** : depuis le 2026-09-07, le mot « scanner » (et l'icône viseur) est BANNI des surfaces client pour l'action ticket — voir **Photo du ticket**.
 _Avoid_ : upload (le scan existe même sans soumission) ; « scanner » côté client pour l'action ticket.
