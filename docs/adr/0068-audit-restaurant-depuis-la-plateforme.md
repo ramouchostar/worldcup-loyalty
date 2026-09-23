@@ -1,6 +1,6 @@
 # ADR 0068 — L'audit d'un restaurant se lance depuis la plateforme
 
-**Statut** : Proposé (2026-09-23). Demande du porteur du même jour. Étend l'[ADR
+**Statut** : Proposé (2026-09-23 ; sources revues le même jour : Apify écarté, bibliothèque de scénarios ajoutée). Demande du porteur du même jour. Étend l'[ADR
 0033](0033-console-plateforme-demo-chiffres-backlog.md) §4 (un onglet de plus dans `/platform`).
 Reprend l'item de backlog « audit fiche Google My Business » (m57, PR #51), jamais implémenté.
 N'amende **ni l'ADR 0007** (aucune donnée d'audit ne descend vers un membre) **ni l'ADR 0029** :
@@ -21,7 +21,11 @@ Ce que les sources permettent vraiment (vérifié le 2026-09-23) :
   de trouver le moment où la note a basculé.
 - **Le dépôt `cporter202/social-media-scraping-apis`** n'est pas une bibliothèque : c'est une liste
   de liens d'affiliation vers des **scrapers Apify** hébergés et payants. Il n'y a rien à
-  installer. Ce qu'il faut, c'est un compte Apify et une poignée d'actors choisis.
+  installer. **Apify est écarté** (2 à 4 € par audit, jugé trop cher par le porteur le 2026-09-23).
+- **Lecture directe, testée le 2026-09-23** : la page publique d'un profil TikTok renvoie abonnés,
+  likes et nombre de vidéos sans compte (réponse 200). L'API web d'Instagram exige désormais une
+  connexion (401). L'API interne des avis Google Maps refuse un appel sans session de navigateur
+  (403) : il faut un vrai navigateur (headless), fragile et lent sur Vercel.
 
 ## Décision
 
@@ -47,7 +51,18 @@ Chaque critère vaut `ok`, `partiel`, `manquant` ou **`non vérifié`**. Un crit
 **sort du dénominateur** : on ne pénalise jamais une information qu'on n'a pas pu lire, et le
 rapport indique « note sur N critères vérifiés ».
 
-**A. Fiche Google** (Places, puis Apify quand il est branché) :
+**Sources retenues** (coût visé : moins de 0,50 € par audit) :
+
+| Donnée | Source | Coût indicatif |
+|---|---|---|
+| Recherche, liste des concurrents | Google Places API (New) | quelques centimes |
+| Fiche complète (description, attributs, photos, liens) et avis datés | DataForSEO Business Data (paiement à l'usage) — ou, à défaut, notre propre lecteur headless | ≈ 0,003 $ par fiche, ≈ 0,075 $ pour 500 avis |
+| Instagram | API Graph d'Instagram, « Business Discovery » (gratuite, lit tout compte professionnel public depuis notre propre compte pro) | 0 € |
+| TikTok | page publique du profil, lue par nous | 0 € |
+| Facebook | best-effort, sinon « non vérifié » | 0 € |
+| Thèmes des avis, cible, rédaction | Claude | ≈ 0,30 € |
+
+**A. Fiche Google** :
 
 | Bloc | Pts | Critères |
 |---|---|---|
@@ -59,7 +74,7 @@ rapport indique « note sur N critères vérifiés ».
 | Liens d'action | 10 | menu · commande en ligne · réservation |
 | Avis | 20 | note · volume par rapport aux concurrents · taux de réponse du propriétaire · délai de réponse |
 
-**B. Réseaux sociaux** (Instagram, TikTok, Facebook via Apify). Comptes repérés sur le site web et
+**B. Réseaux sociaux** (Instagram, TikTok, Facebook). Comptes repérés sur le site web et
 la fiche, **confirmés à la main** avant de lancer le scraping (un homonyme fausserait tout) :
 
 | Bloc | Pts | Critères |
@@ -80,7 +95,7 @@ gamme de prix, horaires, services, et la note de sa fiche calculée avec la gril
 déduit la **cible** (à partir du quartier, du prix et du contenu des avis) et écrit ce que les
 concurrents font mieux, avec chaque affirmation liée à une donnée du tableau.
 
-**D. Avis** (Apify, jusqu'aux **500 avis les plus récents** avec leur date) :
+**D. Avis** (jusqu'aux **500 avis les plus récents** avec leur date) :
 
 - courbe de la note moyenne par mois, avec la moyenne glissante sur 3 mois ;
 - **point de bascule** : le mois où la note moyenne avant et après diffère le plus, avec au
@@ -98,7 +113,26 @@ Uber Eats, Deliveroo, commandes directes par téléphone ou WhatsApp) en pourcen
 mesurées.
 
 **Synthèse** : une note globale (moyenne pondérée des volets disponibles : A 30 %, B 20 %,
-C 20 %, D 30 %), puis les cinq priorités classées par effet attendu et effort.
+C 20 %, D 30 %), puis les cinq priorités et le plan à 90 jours.
+
+### 3 bis. Les solutions viennent d'une bibliothèque de scénarios, pas d'une improvisation
+
+Chaque volet réduit ses mesures à des **signaux discrets** (`lib/audit/signals.ts` : tranche de
+note, tendance, volume d'avis face aux voisins, taux de réponse, thèmes négatifs, manques de la
+fiche, état de chaque réseau, répartition des canaux, gamme de prix, position face aux voisins).
+La bibliothèque `lib/audit/scenarios.ts` contient **258 scénarios**, calculés par combinaison de
+familles × contextes (par exemple : thème « attente » × réponses faibles × note en baisse) ;
+chacun a son constat, ses gestes, son chiffre à suivre, son effet et son effort, et le levier
+Boosteats **seulement quand il est réel**. `lib/audit/recommend.ts` retient les scénarios qui
+correspondent, les classe (effet² ÷ effort, les thèmes cités par les clients pèsent 1,6), garde
+un sujet par famille dans les cinq priorités, et ne propose jamais « récupérer les clients
+déçus » avant « régler ce qui les a déçus ». Un signal non vérifié ne déclenche aucun scénario.
+Les tests vérifient : plus de 250 scénarios, tous atteignables, cinq priorités distinctes pour
+tout audit complet, aucune recommandation sans signal lu.
+
+Claude rédige le texte d'accroche et les citations ; il ne choisit **pas** les solutions.
+Deux audits dans la même situation reçoivent les mêmes recommandations, et on peut dire
+pourquoi.
 
 ### 4. Exécution et stockage
 
@@ -109,11 +143,21 @@ C 20 %, D 30 %), puis les cinq priorités classées par effet attendu et effort.
   se rafraîchit toutes les 5 secondes jusqu'à ce que tous les volets soient terminés.
 - Un volet échoué affiche son **motif** à l'écran et le garde en base, avec un bouton
   « Relancer ce volet ».
-- Clés : `GOOGLE_PLACES_API_KEY` (serveur uniquement, jamais `NEXT_PUBLIC_`), `APIFY_TOKEN`,
-  `ANTHROPIC_API_KEY` (déjà présent). Sans `APIFY_TOKEN`, les volets B et D affichent « source non
-  branchée » et la grille A se limite à ce que Places renvoie : on ne fait pas semblant.
+- Clés : `GOOGLE_PLACES_API_KEY` (serveur uniquement, jamais `NEXT_PUBLIC_`),
+  `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD`, `INSTAGRAM_GRAPH_TOKEN` + `INSTAGRAM_BUSINESS_ID`,
+  `ANTHROPIC_API_KEY` (déjà présent). Une source sans clé affiche « source non branchée » et ses
+  critères passent en « non vérifié » : on ne fait pas semblant.
 
 ### 5. Le rapport
+
+Le rapport est fait pour être **montré au gérant** : il commence par ce qu'il peut devenir (la
+note visée, sa fiche aujourd'hui à côté de sa fiche dans 90 jours), puis montre les fiches de ses
+trois voisins directs telles qu'un client les voit, avec sous chacune ce qu'ils font mieux. Les
+fiches sont **illustrées**, pas copiées : seuls le nom, la note, le nombre d'avis, la catégorie,
+les photos et les boutons d'action (dont ceux qui manquent) sont repris. La fiche « dans 90
+jours » est un **objectif** et le dit ; la note visée se calcule en supposant les cinq
+priorités faites, jamais présentée comme une promesse. Couleurs et polices de Boosteats (olive
+`#6B7C3F`, nuit `#0C1509`, accent `#A2C523`, Manrope et Inter).
 
 Consultable à `/platform/audit/[id]`, gardé en historique par établissement (on peut refaire
 l'audit trois mois plus tard et comparer), et exportable en **PDF** par une version imprimable
@@ -124,18 +168,18 @@ ajoutée).
 
 1. Cet ADR, les tables, la recherche limitée à Bruxelles, le volet A (Places), le volet E, la page
    du rapport.
-2. Volet D (avis Apify, tendance, thèmes).
+2. Volet D (avis datés, tendance, thèmes) et moteur de scénarios branché sur le rapport.
 3. Volet C (concurrents).
 4. Volet B (réseaux sociaux).
-5. Synthèse, export PDF, volet A complété par Apify.
+5. Synthèse, export PDF.
 
 ## Conséquences
 
-- **Coût par audit** estimé entre 2 et 4 € (Places environ 0,50 €, Apify de 1 à 3 € selon le
-  volume d'avis et de publications, Claude environ 0,30 €). Chaque audit enregistre le nombre
+- **Coût par audit** visé sous 0,50 € (tableau des sources ci-dessus). Chaque audit enregistre le nombre
   d'appels par source pour qu'on mesure le coût réel au lieu de le supposer.
-- Le scraping de réseaux sociaux passe par un tiers (Apify), soumis aux conditions des
-  plateformes. On ne lit que des données **publiques** d'un **établissement**, jamais de profils
+- La lecture de pages publiques (TikTok, et le lecteur headless s'il remplace DataForSEO) reste
+  soumise aux conditions des plateformes et peut casser sans prévenir : chaque lecture échouée
+  laisse son motif, et le volet passe en « non vérifié ». On ne lit que des données **publiques** d'un **établissement**, jamais de profils
   de particuliers au-delà du texte public des avis et commentaires. Les noms des auteurs d'avis
   ne sont ni stockés dans le rapport ni exportés (ADR 0025).
 - L'onglet Audit ne touche à aucune donnée du programme de fidélité.
@@ -144,6 +188,9 @@ ajoutée).
 
 - **Places API seule** : pas assez d'avis pour trouver une bascule et aucune réponse du
   propriétaire.
+- **Apify** : le plus complet, mais 2 à 4 € par audit.
+- **Solutions rédigées par Claude à chaque audit** : impossible à vérifier, différentes d'un
+  audit à l'autre pour la même situation.
 - **Scraper maison (Playwright)** : cassé à chaque changement de Google ou Meta, et c'est à nous
   de le maintenir. Apify porte ce risque.
 - **Note globale sans « non vérifié »** : une fiche paraîtrait mauvaise uniquement parce qu'une
