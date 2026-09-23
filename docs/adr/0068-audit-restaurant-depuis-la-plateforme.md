@@ -106,11 +106,18 @@ concurrents font mieux, avec chaque affirmation liée à une donnée du tableau.
 - taux et délai de réponse du propriétaire ;
 - conclusion : trois à cinq actions, chacune reliée à un thème chiffré.
 
-**E. Questions à l'établissement** (approfondissement, saisies par nous pendant ou après
-l'échange) : répartition du chiffre d'affaires par canal (sur place, à emporter, Takeaway.com,
-Uber Eats, Deliveroo, commandes directes par téléphone ou WhatsApp) en pourcentages qui font
-100 %. Les réponses enrichissent la synthèse ; elles ne changent pas les notes A à D, qui restent
-mesurées.
+**E. Questions à l'établissement** : un simple bouton « Approfondir l'audit » en bas du rapport ;
+les réponses se saisissent après l'échange avec le gérant :
+
+- répartition du chiffre d'affaires par canal (sur place, à emporter, Takeaway.com, Uber Eats,
+  Deliveroo, téléphone ou WhatsApp), en pourcentages qui font 100 % ;
+- produit ou catégorie phare (celui qui se vend le mieux) et sa marge ;
+- temps de préparation moyen de ce produit ;
+- chiffre d'affaires mensuel actuel et objectif de chiffre d'affaires.
+
+Les réponses affinent le plan (canaux de vente, attente, effort à fournir pour l'objectif) ;
+elles ne changent pas les notes A à D, qui restent mesurées. Ces chiffres du gérant restent dans
+la console plateforme et dans le rapport qui lui est remis, jamais ailleurs.
 
 **Synthèse** : une note globale (moyenne pondérée des volets disponibles : A 30 %, B 20 %,
 C 20 %, D 30 %), puis les cinq priorités et le plan à 90 jours.
