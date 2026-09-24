@@ -12,14 +12,14 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 // ADR 0069 — l'onglet Audit : lancer un audit, retrouver tous les audits déjà faits.
-export default async function PlatformAuditPage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
+export default async function PlatformAuditPage({ searchParams }: { searchParams: Promise<{ erreur?: string; motif?: string }> }) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
   if (!profile?.is_super_admin) redirect("/join?reason=platform-required");
 
-  const { erreur } = await searchParams;
+  const { erreur, motif } = await searchParams;
   const listing = await listAudits();
 
   return (
@@ -38,23 +38,32 @@ export default async function PlatformAuditPage({ searchParams }: { searchParams
         </div>
       )}
 
-      <form action={startAudit} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] items-end">
-        <label className="text-sm">
-          <span className="block text-xs font-semibold text-gray-500 mb-1">Établissement</span>
-          <input name="name" placeholder="Krusty Smash Burgers" className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2" />
+      <form action={startAudit} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 space-y-3">
+        <label className="block text-sm">
+          <span className="block text-xs font-semibold text-gray-500 mb-1">Lien Google Maps</span>
+          <input
+            name="lien"
+            type="url"
+            placeholder="https://maps.app.goo.gl/… ou https://share.google/…"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2"
+          />
         </label>
-        <label className="text-sm">
-          <span className="block text-xs font-semibold text-gray-500 mb-1">Commune</span>
-          <input name="commune" placeholder="Ixelles" className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2" />
-        </label>
-        <label className="text-sm">
-          <span className="block text-xs font-semibold text-gray-500 mb-1">ou CID Google</span>
-          <input name="cid" inputMode="numeric" placeholder="facultatif" className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2" />
-        </label>
-        <button type="submit" className="rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold text-sm px-4 py-2.5">
-          Lancer l&apos;audit
-        </button>
-        {erreur === "nom" && <p className="text-xs text-gray-600 sm:col-span-4">Indique un nom d&apos;établissement ou un CID.</p>}
+        <p className="text-xs text-gray-500">Ou, sans lien, le nom et la commune :</p>
+        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] items-end">
+          <label className="text-sm">
+            <span className="block text-xs font-semibold text-gray-500 mb-1">Établissement</span>
+            <input name="name" placeholder="Krusty Smash Burgers" className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2" />
+          </label>
+          <label className="text-sm">
+            <span className="block text-xs font-semibold text-gray-500 mb-1">Commune</span>
+            <input name="commune" placeholder="Ixelles" className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2" />
+          </label>
+          <button type="submit" className="rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold text-sm px-4 py-2.5">
+            Lancer l&apos;audit
+          </button>
+        </div>
+        {erreur === "nom" && <p className="text-xs text-gray-600">Colle un lien Google Maps ou indique le nom de l&apos;établissement.</p>}
+        {erreur === "lien" && <p className="text-xs text-gray-600">Lien non reconnu : {motif ?? "aucun établissement lisible"}. Essaie le lien « Partager » de la fiche dans Google Maps.</p>}
       </form>
 
       {listing.missing ? (

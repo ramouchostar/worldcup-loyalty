@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { createAudit } from "@/lib/audit/store";
 import { runAudit } from "@/lib/audit/run";
+import { resolveMapsLink } from "@/lib/audit/maps-link";
 
 // Même garde locale que app/platform/backlog/actions.ts : une Server Action
 // n'est pas protégée par le layout, elle revérifie le super-admin elle-même.
@@ -24,9 +25,18 @@ export async function startAudit(formData: FormData) {
   const user = await requireSuperAdmin();
   if (!user) redirect("/join?reason=platform-required");
 
-  const name = String(formData.get("name") ?? "").trim().slice(0, 120);
+  const link = String(formData.get("lien") ?? "").trim().slice(0, 2000);
+  let name = String(formData.get("name") ?? "").trim().slice(0, 120);
   const commune = String(formData.get("commune") ?? "").trim().slice(0, 60);
-  const cid = String(formData.get("cid") ?? "").trim().replace(/\D/g, "") || null;
+  let cid: string | null = null;
+
+  // Un lien Google Maps collé prime sur le nom saisi (lib/audit/maps-link.ts).
+  if (link) {
+    const resolved = await resolveMapsLink(link);
+    if (!resolved.ok) redirect(`/platform/audit?erreur=lien&motif=${encodeURIComponent(resolved.error)}`);
+    cid = resolved.target.cid;
+    name = resolved.target.name ?? name;
+  }
   if (!name && !cid) redirect("/platform/audit?erreur=nom");
 
   const audit = await createAudit({ name: name || `CID ${cid}`, cid, createdBy: user.id });
