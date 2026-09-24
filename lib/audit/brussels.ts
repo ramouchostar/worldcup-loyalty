@@ -1,4 +1,4 @@
-// ADR 0068 §2 — l'audit est limité aux 19 communes de la Région de Bruxelles-Capitale.
+// ADR 0069 §2 — l'audit est limité aux 19 communes de la Région de Bruxelles-Capitale.
 // Contrôlé côté serveur sur le code postal renvoyé par la source, jamais
 // seulement dans le navigateur.
 

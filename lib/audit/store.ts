@@ -1,4 +1,4 @@
-// ADR 0068 §4 — tous les audits sont gardés en base. SERVEUR UNIQUEMENT
+// ADR 0069 §4 — tous les audits sont gardés en base. SERVEUR UNIQUEMENT
 // (service role) : les tables sont en RLS sans policy.
 //
 // Fail-open : tant que la migration 20260923-2039 n'est pas appliquée, les

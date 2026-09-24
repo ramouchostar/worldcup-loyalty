@@ -1,4 +1,4 @@
-// ADR 0068 — mesurer un établissement : fiche (volet A) et avis (volet D).
+// ADR 0069 — mesurer un établissement : fiche (volet A) et avis (volet D).
 //
 // Aucune écriture en base ici : `measure()` renvoie tout ce qu'il faut
 // enregistrer (volets, notes, signaux, recommandations, coût), l'appelant le

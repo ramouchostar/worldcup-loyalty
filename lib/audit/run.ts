@@ -1,4 +1,4 @@
-// ADR 0068 §4 — exécuter un audit déjà créé et en enregistrer chaque volet.
+// ADR 0069 §4 — exécuter un audit déjà créé et en enregistrer chaque volet.
 // Appelé en tâche de fond (`after()`) depuis la console ; ne lève jamais :
 // un échec se lit dans la ligne de l'audit et de ses volets.
 
@@ -36,8 +36,8 @@ export async function runAudit(auditId: string, target: Target): Promise<void> {
       ? { status: "ok", source: m.avis.source, raw: m.avis.raw, result: m.avis.result, cost_usd: m.avis.cost }
       : { status: m.avis.status, source: m.avis.source, error: m.avis.error });
     // Volets C et B : PR 3 et 4.
-    await saveSection(auditId, "concurrents", { status: "non_branche", error: "Volet pas encore livré (ADR 0068 §7, PR 3)." });
-    await saveSection(auditId, "reseaux", { status: "non_branche", error: "Volet pas encore livré (ADR 0068 §7, PR 4)." });
+    await saveSection(auditId, "concurrents", { status: "non_branche", error: "Volet pas encore livré (ADR 0069 §7, PR 3)." });
+    await saveSection(auditId, "reseaux", { status: "non_branche", error: "Volet pas encore livré (ADR 0069 §7, PR 4)." });
 
     const allFailed = m.fiche.status !== "ok" && m.avis.status !== "ok";
     await updateAudit(auditId, {

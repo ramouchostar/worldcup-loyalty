@@ -10,7 +10,7 @@ import { AutoRefresh } from "./AutoRefresh";
 export const metadata = { title: "Audit — Plateforme" };
 export const dynamic = "force-dynamic";
 
-// ADR 0068 — un audit enregistré : état de chaque volet (avec son motif
+// ADR 0069 — un audit enregistré : état de chaque volet (avec son motif
 // d'échec), la grille de la fiche, la lecture des avis, les priorités.
 // Version interne (console) ; le rapport client mis en page vient en PR 5.
 export default async function AuditDetailPage({ params }: { params: Promise<{ id: string }> }) {

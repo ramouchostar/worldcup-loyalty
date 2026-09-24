@@ -1,4 +1,4 @@
-// ADR 0068 — les signaux d'un audit, réduits à des niveaux discrets.
+// ADR 0069 — les signaux d'un audit, réduits à des niveaux discrets.
 //
 // Le moteur de recommandations (lib/audit/scenarios.ts) ne lit jamais les
 // données brutes : il lit ces niveaux, calculés une fois par volet. `null`
@@ -74,7 +74,7 @@ export interface AuditSignals {
 }
 
 // Seuils de découpage, en un seul endroit pour être recalibrés sur les vingt
-// premiers audits (ADR 0068 §3).
+// premiers audits (ADR 0069 §3).
 export function ratingBand(rating: number | null): RatingBand | null {
   if (rating == null) return null;
   if (rating < 3.8) return "fragile";

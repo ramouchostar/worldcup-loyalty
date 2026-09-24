@@ -1,4 +1,4 @@
-// ADR 0068 — client DataForSEO (Business Data, Google). SERVEUR UNIQUEMENT.
+// ADR 0069 — client DataForSEO (Business Data, Google). SERVEUR UNIQUEMENT.
 //
 // Deux appels : la fiche complète (`my_business_info/live`, ≈ 0,003 $) et les
 // avis datés (`reviews/task_post` puis `task_get`, file prioritaire ≈ 1 min,

@@ -1,11 +1,11 @@
--- ADR 0068 — Audit d'un restaurant depuis la plateforme : chaque audit est gardé.
+-- ADR 0069 — Audit d'un restaurant depuis la plateforme : chaque audit est gardé.
 --
 -- Quoi :
 --   restaurant_audits          un audit (l'établissement Google audité, son état, ses notes,
 --                              ses signaux, les réponses du gérant, ses recommandations, son coût)
 --   restaurant_audit_sections  un volet d'un audit (fiche, avis, concurrents, réseaux) : données
 --                              brutes, résultat, source, coût, motif d'échec
---   restaurant_audit_versions  les versions finales figées (ADR 0068 §6), une ligne par version
+--   restaurant_audit_versions  les versions finales figées (ADR 0069 §6), une ligne par version
 --   restaurant_audit_shares    les liens publics d'une version (jeton haché, expiration, révocation,
 --                              nombre d'ouvertures)
 --

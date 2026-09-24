@@ -1,4 +1,4 @@
-// ADR 0068 §3 A — la grille de la fiche Google, sur 100.
+// ADR 0069 §3 A — la grille de la fiche Google, sur 100.
 //
 // Chaque critère vaut ok / partiel / manquant / non_verifie. Un critère non
 // vérifié SORT du dénominateur : la note est « sur N critères vérifiés ».

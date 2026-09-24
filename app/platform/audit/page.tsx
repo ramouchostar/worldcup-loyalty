@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // redirection : elle hérite de la durée maximale de cette route.
 export const maxDuration = 300;
 
-// ADR 0068 — l'onglet Audit : lancer un audit, retrouver tous les audits déjà faits.
+// ADR 0069 — l'onglet Audit : lancer un audit, retrouver tous les audits déjà faits.
 export default async function PlatformAuditPage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

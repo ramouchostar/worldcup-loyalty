@@ -1,4 +1,4 @@
-// ADR 0068 §3 — choisir, parmi les scénarios qui correspondent à l'audit,
+// ADR 0069 §3 — choisir, parmi les scénarios qui correspondent à l'audit,
 // ceux qui méritent d'être dits au gérant, et dans quel ordre.
 //
 // Priorité = impact² ÷ effort × poids de famille × confirmation. Impact au

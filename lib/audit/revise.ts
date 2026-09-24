@@ -1,4 +1,4 @@
-// ADR 0068 §6 — la révision de l'audit après les réponses du gérant.
+// ADR 0069 §6 — la révision de l'audit après les réponses du gérant.
 //
 // On recalcule les recommandations avec les signaux enrichis des réponses
 // (`withAnswers`), puis on dit ce qui a changé entre la première lecture et la

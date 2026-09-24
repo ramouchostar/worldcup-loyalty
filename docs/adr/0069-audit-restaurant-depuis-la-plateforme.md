@@ -1,4 +1,4 @@
-# ADR 0068 — L'audit d'un restaurant se lance depuis la plateforme
+# ADR 0069 — L'audit d'un restaurant se lance depuis la plateforme
 
 **Statut** : Proposé (2026-09-23 ; sources revues le même jour : Apify écarté, bibliothèque de scénarios ajoutée). Demande du porteur du même jour. Étend l'[ADR
 0033](0033-console-plateforme-demo-chiffres-backlog.md) §4 (un onglet de plus dans `/platform`).

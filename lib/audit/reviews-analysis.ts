@@ -1,4 +1,4 @@
-// ADR 0068 §3 D — lecture chiffrée des avis : courbe mensuelle, point de
+// ADR 0069 §3 D — lecture chiffrée des avis : courbe mensuelle, point de
 // bascule, réponses du propriétaire. Fonctions pures (testées), la lecture des
 // thèmes par Claude vit ailleurs.
 

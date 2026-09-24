@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// ADR 0068 §4 — tant qu'un audit tourne, la page se relit toutes les 5 secondes.
+// ADR 0069 §4 — tant qu'un audit tourne, la page se relit toutes les 5 secondes.
 export function AutoRefresh({ active }: { active: boolean }) {
   const router = useRouter();
   useEffect(() => {
