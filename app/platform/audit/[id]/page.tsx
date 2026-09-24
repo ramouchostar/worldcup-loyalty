@@ -41,6 +41,15 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
         </p>
       </div>
 
+      {fiche?.approximate && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
+          <p className="font-semibold">Fiche trouvée avec le libellé raccourci « {fiche.approximate} »</p>
+          <p className="text-amber-700 text-xs mt-0.5">
+            Vérifie l&apos;adresse ci-dessus : une enseigne à plusieurs adresses peut renvoyer la mauvaise. Pour viser juste, relance avec le lien Google Maps de la fiche.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-4">
         {(["fiche", "avis", "concurrents", "reseaux"] as const).map((k) => (
           <SectionTile key={k} label={SECTION_LABEL[k]} section={byKey[k]} score={(audit.scores as Record<string, number | null>)?.[k] ?? null} />

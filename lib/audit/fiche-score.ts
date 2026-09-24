@@ -26,6 +26,8 @@ export interface FicheScore {
   total: number;
   criteria: Criterion[];
   gaps: FicheGap[];
+  /** Libellé raccourci qui a trouvé la fiche (recherche par nom) : à vérifier. */
+  approximate?: string | null;
 }
 
 const WEIGHT: Record<CriterionStatus, number> = { ok: 1, partiel: 0.5, manquant: 0, non_verifie: 0 };
