@@ -50,13 +50,13 @@ const reason = (e: unknown) => (e instanceof DataForSeoError ? `DataForSEO ${e.c
 
 async function readReviews(target: Target, calls: Record<string, number>): Promise<{ reviews: StoredReview[]; total: number | null; cost: number }> {
   calls.dataforseo += 1;
-  const id = await postReviewsTask(target);
+  const { id, cost: postCost } = await postReviewsTask(target);
   const start = Date.now();
   while (Date.now() - start < REVIEWS_MAX_WAIT_MS) {
     await new Promise((r) => setTimeout(r, REVIEWS_POLL_MS));
     calls.dataforseo += 1;
     const res = await getReviews(id);
-    if (res.ready) return res;
+    if (res.ready) return { ...res, cost: res.cost + postCost };
   }
   throw new Error(`Avis toujours en attente après ${REVIEWS_MAX_WAIT_MS / 60_000} min (tâche ${id}).`);
 }
@@ -81,8 +81,17 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
     return { fiche: off, avis: off, signals, recommendations: recommend(signals), scores: { fiche: null, avis: null }, costUsd: 0, calls };
   }
 
-  const [infoRes, reviewsRes] = await Promise.allSettled([fetchBusinessInfo(target), readReviews(target, calls)]);
-  calls.dataforseo += 1; // la fiche
+  // La fiche d'abord : elle donne le CID, cible exacte des avis (un libellé
+  // raccourci par keywordVariants pourrait sinon viser une autre fiche).
+  const [infoRes] = await Promise.allSettled([fetchBusinessInfo(target)]);
+  if (infoRes.status === "fulfilled") calls.dataforseo += infoRes.value.tries;
+  const cid = infoRes.status === "fulfilled" ? infoRes.value.info?.cid : null;
+  // Sans fiche, on tente quand même les avis avec la cible d'origine : le volet
+  // Avis a sa propre recherche et peut réussir là où la fiche échoue.
+  const reviewsTarget: Target | null = cid ? { cid } : "keyword" in target ? target : "placeId" in target ? target : null;
+  const [reviewsRes] = await Promise.allSettled([
+    reviewsTarget ? readReviews(reviewsTarget, calls) : Promise.reject(new Error("Fiche introuvable : avis non demandés.")),
+  ]);
 
   const info = infoRes.status === "fulfilled" ? infoRes.value.info : null;
   const reviews = reviewsRes.status === "fulfilled" ? reviewsRes.value : null;
@@ -104,7 +113,7 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
         total: reviews.total,
         read: reviews.reviews.length,
         monthly: monthlySeries(reviews.reviews),
-        breakpoint: findBreakpoint(reviews.reviews),
+        breakpoint: findBreakpoint(reviews.reviews, now),
         responses,
         distribution,
       },
@@ -124,7 +133,7 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
       responseShare: responses?.share ?? null,
       medianDelayDays: responses?.medianDelayDays ?? null,
     });
-    fiche = { status: "ok", source: "dataforseo", raw: info, result: { info, score }, cost: infoRes.status === "fulfilled" ? infoRes.value.cost : 0 };
+    fiche = { status: "ok", source: "dataforseo", raw: info, result: { info, score: { ...score, approximate: infoRes.status === "fulfilled" ? infoRes.value.approximate : null } }, cost: infoRes.status === "fulfilled" ? infoRes.value.cost : 0 };
   } else {
     fiche = {
       status: "echec",
@@ -134,7 +143,12 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
     };
   }
 
-  const rating = info?.rating?.value ?? null;
+  // Note affichée par Google ; à défaut (fiche non lue), la moyenne des avis lus
+  // — sinon le volet Avis restait sans note alors que 500 avis étaient là (2026-09-24).
+  const readRatings = reviews?.reviews.map((r) => r.rating).filter((r): r is number => r != null) ?? [];
+  const rating =
+    info?.rating?.value ??
+    (readRatings.length ? Math.round((readRatings.reduce((a, b) => a + b, 0) / readRatings.length) * 100) / 100 : null);
   const signals: AuditSignals = {
     ...emptySignals(),
     rating: ratingBand(rating),

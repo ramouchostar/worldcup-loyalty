@@ -43,6 +43,17 @@ test("résolution : suit share.google jusqu'au nom, s'arrête avant le consentem
   if (r.ok) assert.deepEqual(r.target, { cid: null, name: "Krusty Smash Burgers" });
 });
 
+test("résolution : le kgmid d'un lien share.google donne le CID exact", async () => {
+  const fake = (async (u: string) => {
+    if (u === "https://share.google/x") return new Response(null, { status: 302, headers: { location: "https://www.google.com/search?kgmid=/g/11rq79crjp&q=Krusty+Smash+Burgers" } });
+    if (u.includes("tbm=map")) return new Response('[["0x47c3c508094fb38f:0x68ea9bd15c2e7de0"]]', { status: 200 });
+    return new Response(null, { status: 200 });
+  }) as typeof fetch;
+  const r = await resolveMapsLink("https://share.google/x", fake);
+  assert.ok(r.ok);
+  if (r.ok) assert.deepEqual(r.target, { cid: "7560026247991819744", name: "Krusty Smash Burgers" });
+});
+
 test("résolution : refuse une redirection hors Google", async () => {
   const fake = (async () => new Response(null, { status: 302, headers: { location: "https://evil.example/" } })) as typeof fetch;
   const r = await resolveMapsLink("https://maps.app.goo.gl/x", fake);

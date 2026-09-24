@@ -66,6 +66,30 @@ export function parseMapsUrl(raw: string): MapsTarget | null {
   return null;
 }
 
+// Cookie de consentement Google (sinon redirection vers consent.google.com).
+const CONSENT_COOKIE = "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAmZyIAEaBgiA_LyaBg";
+
+/**
+ * Un lien share.google ne donne que le nom et un `kgmid` (identifiant Knowledge
+ * Graph). Le nom seul est ambigu : « Krusty Smash Burgers » a plusieurs
+ * adresses à Bruxelles et la recherche par nom a trouvé la mauvaise
+ * (constaté le 2026-09-24). La recherche Maps par kgmid renvoie l'identifiant
+ * de la bonne fiche, d'où le CID exact.
+ */
+export async function cidFromKgmid(kgmid: string, fetcher: typeof fetch = fetch): Promise<string | null> {
+  if (!/^\/[gm]\/[0-9a-z_]+$/i.test(kgmid)) return null;
+  try {
+    const res = await fetcher(`https://www.google.com/search?tbm=map&hl=fr&gl=be&kgmid=${encodeURIComponent(kgmid)}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36", Cookie: CONSENT_COOKIE },
+    });
+    const body = await res.text();
+    const feature = body.match(/0x[0-9a-f]{6,}:0x[0-9a-f]{6,}/i)?.[0];
+    return feature ? cidFromFeatureId(feature) : null;
+  } catch {
+    return null;
+  }
+}
+
 export type ResolveResult = { ok: true; target: MapsTarget; hops: string[] } | { ok: false; error: string; hops: string[] };
 
 export async function resolveMapsLink(raw: string, fetcher: typeof fetch = fetch): Promise<ResolveResult> {
@@ -82,6 +106,11 @@ export async function resolveMapsLink(raw: string, fetcher: typeof fetch = fetch
     const parsed = parseMapsUrl(url);
     if (parsed?.cid) return { ok: true, target: parsed, hops };
     if (parsed) best = parsed;
+    const kgmid = new URL(url).searchParams.get("kgmid");
+    if (kgmid) {
+      const cid = await cidFromKgmid(kgmid, fetcher);
+      if (cid) return { ok: true, target: { cid, name: parsed?.name ?? null }, hops };
+    }
     if (new URL(url).hostname.startsWith("consent.")) return done("Aucun établissement lisible dans ce lien.");
     let res: Response;
     try {

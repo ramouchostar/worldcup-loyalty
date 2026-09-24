@@ -51,9 +51,15 @@ export const BREAKPOINT_MIN_DELTA = 0.3;
  * moins 20 avis de chaque côté. Sous 0,3 étoile d'écart : null (« pas de
  * bascule nette ») — on n'en invente pas.
  */
-export function findBreakpoint(reviews: StoredReview[]): Breakpoint | null {
+// Fenêtre de recherche de la bascule. Sur tout l'historique, le premier audit
+// réel (2026-09-24) a sorti « juillet 2022 » : l'euphorie de l'ouverture, pas
+// un problème que le gérant peut régler aujourd'hui.
+export const BREAKPOINT_WINDOW_MONTHS = 24;
+
+export function findBreakpoint(reviews: StoredReview[], now = new Date()): Breakpoint | null {
+  const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - BREAKPOINT_WINDOW_MONTHS, 1)).toISOString();
   const dated = reviews
-    .filter((r): r is StoredReview & { date: string; rating: number } => !!r.date && r.rating != null)
+    .filter((r): r is StoredReview & { date: string; rating: number } => !!r.date && r.rating != null && r.date >= since)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (dated.length < BREAKPOINT_MIN_REVIEWS * 2) return null;
 
