@@ -31,7 +31,9 @@ const ContentSecurityPolicy = [
   "object-src 'none'",
   `script-src 'self' 'unsafe-inline'${gaScriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://*.supabase.co https://cdn.jsdelivr.net${gaImgSrc}`,
+  // *.googleusercontent.com : photos des fiches Google dans le rapport d'audit
+  // (ADR 0069, /platform/audit) — images seulement, aucun script.
+  `img-src 'self' data: blob: https://*.supabase.co https://cdn.jsdelivr.net https://*.googleusercontent.com${gaImgSrc}`,
   "font-src 'self' data:",
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co${gaConnectSrc}`,
   "worker-src 'self' blob:",

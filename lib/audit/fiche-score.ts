@@ -114,12 +114,25 @@ export function scoreFiche(info: BusinessInfo, reviews: ReviewFacts): FicheScore
     gap: "pas_de_description",
   });
 
-  // Liens d'action (10)
+  // Liens d'action (10). `local_business_links` absent = DataForSEO ne les a pas
+  // lus, PAS « la fiche n'en a pas » : non vérifié. Premier audit réel
+  // (Krusty, 2026-09-24) : liens absents de la réponse, et le rapport affirmait
+  // « pas de carte, pas de commande » alors que la fiche a un bouton Commander.
+  const linksRead = Array.isArray(info.local_business_links);
   const links = (info.local_business_links ?? []).map((l) => l.type.toLowerCase());
   const hasLink = (t: string) => links.some((l) => l.includes(t));
-  add({ key: "lien_menu", block: "liens", label: "Carte / menu", points: 3, status: hasLink("menu") ? "ok" : "manquant", gap: "pas_de_menu" });
-  add({ key: "lien_commande", block: "liens", label: "Commande en ligne", points: 5, status: hasLink("order") ? "ok" : "manquant", gap: "pas_de_lien_commande" });
-  add({ key: "lien_reservation", block: "liens", label: "Réservation", points: 2, status: hasLink("reserv") ? "ok" : "manquant", gap: "pas_de_reservation" });
+  const linkStatus = (t: string): CriterionStatus => (hasLink(t) ? "ok" : linksRead ? "manquant" : "non_verifie");
+  add({ key: "lien_menu", block: "liens", label: "Carte / menu", points: 3, status: linkStatus("menu"), gap: "pas_de_menu" });
+  // Bouton « Commander » de Google (book_online_url) : présent, mais rien ne dit
+  // s'il mène à la commande directe ou seulement aux plateformes.
+  const bookOnline = !!(info as BusinessInfo & { book_online_url?: string | null }).book_online_url;
+  add({
+    key: "lien_commande", block: "liens", label: "Commande en ligne", points: 5,
+    status: hasLink("order") ? "ok" : bookOnline ? "non_verifie" : linksRead ? "manquant" : "non_verifie",
+    detail: bookOnline && !hasLink("order") ? "Bouton « Commander » présent ; commande directe ou plateformes, non vérifiable" : undefined,
+    gap: "pas_de_lien_commande",
+  });
+  add({ key: "lien_reservation", block: "liens", label: "Réservation", points: 2, status: linkStatus("reserv"), gap: "pas_de_reservation" });
 
   // Avis (20)
   const r = reviews.rating ?? info.rating?.value ?? null;

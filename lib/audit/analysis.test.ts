@@ -87,6 +87,13 @@ test("grille de la fiche : non vérifié hors dénominateur, manques remontés a
   assert.ok(!s.gaps.includes("horaires_exceptionnels")); // non vérifié ≠ manquant
 });
 
+test("liens d'action non lus par la source : non vérifiés, jamais « manquants »", () => {
+  const s = scoreFiche({ ...INFO, local_business_links: null, book_online_url: "https://www.google.com/searchviewer/42" } as BusinessInfo, { rating: null, reviewsCount: null, competitorMedianReviews: null, responseShare: null, medianDelayDays: null });
+  for (const k of ["lien_menu", "lien_commande", "lien_reservation"]) assert.equal(s.criteria.find((c) => c.key === k)?.status, "non_verifie", k);
+  assert.ok(!s.gaps.includes("pas_de_lien_commande"));
+  assert.ok(!s.gaps.includes("pas_de_menu"));
+});
+
 test("un site Facebook compte à moitié et devient le manque « site_facebook »", () => {
   const s = scoreFiche({ ...INFO, url: "https://facebook.com/krusty" }, { rating: null, reviewsCount: null, competitorMedianReviews: null, responseShare: null, medianDelayDays: null });
   assert.equal(s.criteria.find((c) => c.key === "site")?.status, "partiel");
