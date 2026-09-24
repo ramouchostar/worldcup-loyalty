@@ -36,8 +36,9 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
         <Link href="/platform/audit" className="text-xs text-gray-500 hover:underline">← Tous les audits</Link>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{audit.name}</h1>
         <p className="text-gray-500 text-sm mt-1">
-          {audit.address ?? "Adresse en cours de lecture"} · lancé le {new Date(audit.created_at).toLocaleString("fr-BE")} ·{" "}
-          {audit.status === "en_cours" ? "mesure en cours (1 à 4 minutes)…" : `coût ${Number(audit.cost_usd).toFixed(3)} $`}
+          {audit.address ?? (audit.status === "en_cours" ? "Adresse en cours de lecture" : "Adresse non lue (fiche introuvable)")} · lancé le{" "}
+          {new Date(audit.created_at).toLocaleString("fr-BE")} ·{" "}
+          {audit.status === "en_cours" ? "mesure en cours (1 à 4 minutes)…" : `coût ${fmt(Number(audit.cost_usd), 3)} $`}
         </p>
       </div>
 
@@ -92,15 +93,25 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
             <Stat label="Réponses aux 1–2★" value={avis.responses.negativeShare != null ? `${Math.round(avis.responses.negativeShare * 100)} %` : "—"} />
             <Stat
               label="Bascule"
-              value={avis.breakpoint ? `${avis.breakpoint.month} : ${avis.breakpoint.before}★ → ${avis.breakpoint.after}★` : "pas de bascule nette"}
+              value={
+                avis.breakpoint
+                  ? `depuis ${monthLabel(avis.breakpoint.month)} : ${fmt(avis.breakpoint.before)}★ → ${fmt(avis.breakpoint.after)}★`
+                  : "pas de bascule nette"
+              }
             />
           </dl>
-          <div className="overflow-x-auto mt-4">
+          <div className="overflow-auto max-h-96 mt-4">
             <table className="text-xs tabular-nums min-w-[480px]">
               <thead><tr className="text-gray-400"><th className="pr-4 text-left">Mois</th><th className="pr-4 text-right">Avis</th><th className="pr-4 text-right">Moyenne</th><th className="text-right">Glissante 3 mois</th></tr></thead>
               <tbody>
-                {avis.monthly.slice(-18).map((m) => (
-                  <tr key={m.month}><td className="pr-4">{m.month}</td><td className="pr-4 text-right">{m.count}</td><td className="pr-4 text-right">{m.avg}</td><td className="text-right">{m.rolling3}</td></tr>
+                {/* Tous les mois, du plus récent au plus ancien : le mois de bascule doit rester visible. */}
+                {[...avis.monthly].reverse().map((m) => (
+                  <tr key={m.month} className={avis.breakpoint?.month === m.month ? "font-bold text-gray-900 dark:text-white" : ""}>
+                    <td className="pr-4">{monthLabel(m.month)}{avis.breakpoint?.month === m.month ? " · bascule" : ""}</td>
+                    <td className="pr-4 text-right">{m.count}</td>
+                    <td className="pr-4 text-right">{fmt(m.avg)}</td>
+                    <td className="text-right">{fmt(m.rolling3)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -109,6 +120,15 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
       )}
     </div>
   );
+}
+
+// Chiffres et mois à la française : « 4,68 », « juil. 2022 ».
+function fmt(n: number, digits = 2): string {
+  return n.toLocaleString("fr-BE", { maximumFractionDigits: digits });
+}
+function monthLabel(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("fr-BE", { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 const SECTION_LABEL = { fiche: "Fiche Google", avis: "Avis", concurrents: "Concurrents", reseaux: "Réseaux sociaux" } as const;

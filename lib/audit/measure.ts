@@ -86,8 +86,11 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
   const [infoRes] = await Promise.allSettled([fetchBusinessInfo(target)]);
   if (infoRes.status === "fulfilled") calls.dataforseo += infoRes.value.tries;
   const cid = infoRes.status === "fulfilled" ? infoRes.value.info?.cid : null;
+  // Sans fiche, on tente quand même les avis avec la cible d'origine : le volet
+  // Avis a sa propre recherche et peut réussir là où la fiche échoue.
+  const reviewsTarget: Target | null = cid ? { cid } : "keyword" in target ? target : "placeId" in target ? target : null;
   const [reviewsRes] = await Promise.allSettled([
-    cid ? readReviews({ cid }, calls) : Promise.reject(new Error("Fiche introuvable : avis non demandés.")),
+    reviewsTarget ? readReviews(reviewsTarget, calls) : Promise.reject(new Error("Fiche introuvable : avis non demandés.")),
   ]);
 
   const info = infoRes.status === "fulfilled" ? infoRes.value.info : null;
@@ -110,7 +113,7 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
         total: reviews.total,
         read: reviews.reviews.length,
         monthly: monthlySeries(reviews.reviews),
-        breakpoint: findBreakpoint(reviews.reviews),
+        breakpoint: findBreakpoint(reviews.reviews, now),
         responses,
         distribution,
       },
@@ -140,7 +143,12 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
     };
   }
 
-  const rating = info?.rating?.value ?? null;
+  // Note affichée par Google ; à défaut (fiche non lue), la moyenne des avis lus
+  // — sinon le volet Avis restait sans note alors que 500 avis étaient là (2026-09-24).
+  const readRatings = reviews?.reviews.map((r) => r.rating).filter((r): r is number => r != null) ?? [];
+  const rating =
+    info?.rating?.value ??
+    (readRatings.length ? Math.round((readRatings.reduce((a, b) => a + b, 0) / readRatings.length) * 100) / 100 : null);
   const signals: AuditSignals = {
     ...emptySignals(),
     rating: ratingBand(rating),

@@ -35,6 +35,12 @@ test("bascule nette : trouvée au bon mois", () => {
   assert.equal(bp?.after, 3);
 });
 
+test("bascule cherchée sur 24 mois : l'euphorie de l'ouverture ne compte pas", () => {
+  // Ouverture à 5★ en 2022, puis 4★ stables depuis : pas de bascule récente.
+  const r = [...series("2022-01", 12, 5, 5), ...series("2023-01", 45, 3, 4)];
+  assert.equal(findBreakpoint(r, NOW), null);
+});
+
 test("pas de bascule inventée : note stable ou trop peu d'avis", () => {
   assert.equal(findBreakpoint(series("2025-01", 20, 4, 4)), null);
   assert.equal(findBreakpoint([...series("2026-01", 1, 10, 5), ...series("2026-02", 1, 10, 2)]), null); // < 20 de chaque côté
