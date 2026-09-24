@@ -8,6 +8,7 @@
 // tables, écrit seulement docs/../audit-<slug>.json dans le dossier courant.
 //
 // Usage : npx tsx scripts/audit-run.mjs "Krusty Smash Burgers Ixelles"
+//         npx tsx scripts/audit-run.mjs https://share.google/…
 //         npx tsx scripts/audit-run.mjs cid:1234567890
 //
 // Prérequis (.env.local) : DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD,
@@ -17,6 +18,7 @@ import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { measure } from "../lib/audit/measure.ts";
 import { isBrussels, postalCodeOf } from "../lib/audit/brussels.ts";
+import { resolveMapsLink } from "../lib/audit/maps-link.ts";
 
 if (existsSync(".env.local")) {
   for (const line of readFileSync(".env.local", "utf8").split("\n")) {
@@ -30,7 +32,17 @@ if (!arg) {
   console.error('Usage : npx tsx scripts/audit-run.mjs "Nom Commune"  |  cid:123');
   process.exit(1);
 }
-const target = arg.startsWith("cid:") ? { cid: arg.slice(4) } : { keyword: arg };
+let target = arg.startsWith("cid:") ? { cid: arg.slice(4) } : { keyword: arg };
+// Un lien Google Maps (maps.app.goo.gl, share.google, /maps/place/…) est résolu d'abord.
+if (/^https:\/\//.test(arg)) {
+  const r = await resolveMapsLink(arg);
+  if (!r.ok) {
+    console.error("Lien non reconnu :", r.error);
+    process.exit(1);
+  }
+  target = r.target.cid ? { cid: r.target.cid } : { keyword: `${r.target.name} Bruxelles` };
+  console.log("Lien résolu :", JSON.stringify(r.target));
+}
 
 const t0 = Date.now();
 console.log("Mesure de", arg, "…");
