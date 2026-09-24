@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   BarChart3,
+  ClipboardCheck,
   ListTodo,
   LogOut,
   Menu,
@@ -35,6 +36,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/platform/members", label: "Membres", icon: Users },
   { href: "/platform/scans", label: "Tickets", icon: Receipt },
   { href: "/platform/messages", label: "Messages", icon: Mail },
+  { href: "/platform/audit", label: "Audit", icon: ClipboardCheck },
 ];
 
 const COLLAPSE_KEY = "platform-sidebar-collapsed";

@@ -296,6 +296,10 @@ _Avoid_ : transfert (obsolète — lié à l'élimination), switch.
 
 ### Administration
 
+**Audit restaurant** *(ADR 0069)* :
+Diagnostic d'un restaurant **prospect** des 19 communes de Bruxelles, lancé depuis `/platform/audit` (super-admin uniquement) : fiche Google, avis, concurrents, réseaux sociaux, puis questions au gérant qui **révisent** l'audit jusqu'à une **version finale** figée (PDF, lien à jeton de 90 jours, envoi par e-mail). Tous les audits sont gardés (`restaurant_audits`). Les solutions viennent d'une bibliothèque de scénarios (`lib/audit/scenarios.ts`), jamais d'une rédaction libre ; un critère **non vérifié** ne compte ni pour ni contre. Sans lien avec le programme de fidélité : un restaurant audité n'est pas un établissement du réseau.
+_Avoid_ : « audit » pour l'audit des doublons de tickets (`npm run audit:doublons`, autre chose) ; « scraper » côté client.
+
 **Admin** :
 Utilisateur avec `is_admin = true`. Peut valider/rejeter les commandes suspectes, gérer les paliers, les équipes, les seuils CA et marquer les récompenses en attente comme récupérées. Bootstrappé via la variable d'environnement `ADMIN_EMAILS`.
 _Avoid_ : superuser ; « manager »/« gérant » seuls sans préciser le rôle établissement (ADR 0041 — voir **Rôle établissement**, un objet différent de ce pont legacy).
