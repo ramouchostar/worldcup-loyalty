@@ -3,6 +3,7 @@ import type { AuditRow, SectionRow } from "@/lib/audit/store";
 import type { BusinessInfo, StoredReview } from "@/lib/audit/dataforseo";
 import type { FicheScore } from "@/lib/audit/fiche-score";
 import type { ReviewsResultSummary } from "@/lib/audit/measure";
+import type { ReviewThemes } from "@/lib/audit/review-themes";
 import type { Recommendations } from "@/lib/audit/recommend";
 import type { Change } from "@/lib/audit/revise";
 import type { Scenario } from "@/lib/audit/scenarios";
@@ -47,7 +48,7 @@ const monthLabel = (m: string) => {
 };
 const LVL = ["", "très faible", "faible", "moyen", "fort", "très fort"];
 
-export function AuditReport({ audit, sections, saveAnswers }: { audit: AuditRow; sections: SectionRow[]; saveAnswers: (fd: FormData) => void }) {
+export function AuditReport({ audit, sections, saveAnswers, reanalyse }: { audit: AuditRow; sections: SectionRow[]; saveAnswers: (fd: FormData) => void; reanalyse: () => void }) {
   const byKey = Object.fromEntries(sections.map((x) => [x.section, x])) as Partial<Record<SectionRow["section"], SectionRow>>;
   const info = byKey.fiche?.status === "ok" ? (byKey.fiche.raw as Info) : null;
   const fiche = byKey.fiche?.status === "ok" ? (byKey.fiche.result as FicheScore) : null;
@@ -223,24 +224,17 @@ export function AuditReport({ audit, sections, saveAnswers }: { audit: AuditRow;
               </div>
             </dl>
             <ReviewsChart summary={avis} />
+            {avis.themes ? (
+              <Themes themes={avis.themes} />
+            ) : (
+              <form action={reanalyse} className={s.notice} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <span>{avis.themesError ? `Thèmes des avis non analysés : ${avis.themesError}` : "Les thèmes positifs et négatifs de ces avis n'ont pas encore été analysés."}</span>
+                <button type="submit" className={s.cta}>Analyser les thèmes des avis</button>
+              </form>
+            )}
             <div className={s.two}>
               <Distribution dist={info?.rating_distribution ?? avis.distribution} />
-              {info?.place_topics && Object.keys(info.place_topics).length > 0 && (
-                <div className={s.col}>
-                  <b>Ce que les clients citent le plus</b>
-                  <div className={s.topics}>
-                    {Object.entries(info.place_topics)
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 12)
-                      .map(([k, v]) => (
-                        <span key={k} className={s.chip}>
-                          {k} · {v}
-                        </span>
-                      ))}
-                  </div>
-                  <span className={s.sum} style={{ fontWeight: 500 }}>Mots repérés par Google dans les avis. L&apos;analyse des thèmes positifs et négatifs arrive dans une prochaine version.</span>
-                </div>
-              )}
+              <Topics themes={avis.themes ?? null} topics={info?.place_topics ?? null} />
             </div>
           </section>
         )}
@@ -448,6 +442,89 @@ function ReviewsChart({ summary }: { summary: ReviewsResultSummary }) {
         </text>
       ))}
     </svg>
+  );
+}
+
+const pct = (x: number) => `${Math.round(x * 100)} %`;
+
+function Themes({ themes }: { themes: ReviewThemes }) {
+  if (!themes.negatives.length && !themes.positives.length) return null;
+  return (
+    <div className={s.two}>
+      <div className={s.themeCol}>
+        <span className={s.themeHead}>
+          <span className={s.dotNeg} aria-hidden="true" /> À améliorer
+        </span>
+        {themes.negatives.length === 0 && <p className={s.d}>Aucun reproche ne revient dans les avis lus.</p>}
+        {themes.negatives.map((t) => (
+          <div key={t.key} className={`${s.theme} ${s.themeNeg}`}>
+            <div className={s.themeTitle}>
+              <b>{t.label}</b>
+              <span>
+                {t.count} avis · {pct(t.share)} des 1–3★{t.recent ? ` · ${t.recent} ces 6 mois` : ""}
+              </span>
+            </div>
+            {t.example && <p className={s.quote}>« {t.example} »</p>}
+            <div className={s.advice}>{t.advice ? <><b>Comment le régler :</b> {t.advice}</> : <b>La solution est évidente : la faire, et le dire dans les réponses aux avis.</b>}</div>
+          </div>
+        ))}
+      </div>
+      <div className={s.themeCol}>
+        <span className={s.themeHead}>
+          <span className={s.dotPos} aria-hidden="true" /> Vos points forts
+        </span>
+        {themes.positives.map((t) => (
+          <div key={t.key} className={`${s.theme} ${s.themePos}`}>
+            <div className={s.themeTitle}>
+              <b>{t.label}</b>
+              <span>
+                {t.count} avis · {pct(t.share)} des 4–5★
+              </span>
+            </div>
+            {t.example && <p className={s.quote}>« {t.example} »</p>}
+            {t.advice && (
+              <div className={s.advice}>
+                <b>Comment capitaliser :</b> {t.advice}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Topics({ themes, topics }: { themes: ReviewThemes | null; topics: Record<string, number> | null }) {
+  const list = themes?.topics.length
+    ? themes.topics
+    : Object.entries(topics ?? {}).map(([keyword, count]) => ({ keyword, count, sentiment: "neutre" as const, detail: null }));
+  if (!list.length) return null;
+  return (
+    <div className={s.col}>
+      <b>Ce que les clients citent le plus</b>
+      <div className={s.topics}>
+        {[...list]
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 14)
+          .map((t) =>
+            t.sentiment === "negatif" && t.detail ? (
+              <details key={t.keyword} className={s.topicDetails}>
+                <summary className={`${s.chip} ${s.chipNeg}`}>
+                  {t.keyword} · {t.count} ▾
+                </summary>
+                <div className={s.topicDetail}>{t.detail}</div>
+              </details>
+            ) : (
+              <span key={t.keyword} className={`${s.chip} ${t.sentiment === "positif" ? s.chipPos : t.sentiment === "negatif" ? s.chipNeg : ""}`}>
+                {t.keyword} · {t.count}
+              </span>
+            ),
+          )}
+      </div>
+      <span className={s.sum} style={{ fontWeight: 500 }}>
+        Mots repérés par Google dans les avis{themes ? " : en vert quand les clients en parlent en bien, en rouge quand ils s'en plaignent (touchez un mot rouge pour le détail)." : "."}
+      </span>
+    </div>
   );
 }
 

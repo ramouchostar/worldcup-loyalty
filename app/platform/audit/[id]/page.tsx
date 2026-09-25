@@ -2,11 +2,13 @@ import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAudit } from "@/lib/audit/store";
 import { AuditReport } from "@/components/platform/audit/AuditReport";
-import { saveAnswers } from "../actions";
+import { reanalyseThemes, saveAnswers } from "../actions";
 import { AutoRefresh } from "./AutoRefresh";
 
 export const metadata = { title: "Audit — Plateforme" };
 export const dynamic = "force-dynamic";
+// « Analyser les thèmes » appelle Claude sur 400 avis (≈ 1 min).
+export const maxDuration = 300;
 
 // ADR 0069 §5 — un audit enregistré, affiché comme le rapport remis au gérant
 // (maquette validée), avec les détails techniques repliés en bas.
@@ -24,7 +26,7 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
   return (
     <>
       <AutoRefresh active={data.audit.status === "en_cours"} />
-      <AuditReport audit={data.audit} sections={data.sections} saveAnswers={saveAnswers.bind(null, id)} />
+      <AuditReport audit={data.audit} sections={data.sections} saveAnswers={saveAnswers.bind(null, id)} reanalyse={reanalyseThemes.bind(null, id)} />
     </>
   );
 }
