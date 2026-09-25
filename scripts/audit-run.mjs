@@ -93,7 +93,21 @@ if (error) {
   const rows = [
     { audit_id: audit.id, section: "fiche", ...section(m.fiche), finished_at: new Date().toISOString() },
     { audit_id: audit.id, section: "avis", ...section(m.avis), finished_at: new Date().toISOString() },
+    {
+      audit_id: audit.id,
+      section: "concurrents",
+      ...(m.concurrents.status === "ok"
+        ? { status: "ok", source: m.concurrents.source, raw: null, result: m.concurrents.result, cost_usd: m.concurrents.cost, error: null }
+        : { status: m.concurrents.status, source: m.concurrents.source, raw: null, result: null, cost_usd: 0, error: m.concurrents.error }),
+      finished_at: new Date().toISOString(),
+    },
   ];
+  if (m.concurrents.status === "ok") {
+    const c = m.concurrents.result;
+    console.log(`Concurrents (« ${c.keyword} ») : ${c.competitors.length} · principal : ${c.rival?.title ?? "—"} · score ${c.score.score}/100 · grille ${c.grid.map((g) => g.rank ?? "–").join(" ")}`);
+    if (c.rivalError) console.log("  avis du concurrent :", c.rivalError);
+    if (c.attackError) console.log("  plan d'attaque :", c.attackError);
+  } else console.log("Concurrents :", m.concurrents.error);
   const { error: e2 } = await db.from("restaurant_audit_sections").upsert(rows, { onConflict: "audit_id,section" });
   console.log(e2 ? `\nAudit ${audit.id} enregistré, volets en erreur : ${e2.message}` : `\nEnregistré : /platform/audit/${audit.id}`);
 }

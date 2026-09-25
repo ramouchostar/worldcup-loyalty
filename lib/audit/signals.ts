@@ -98,6 +98,14 @@ export function channelMix(platformShare: number | null, directShare: number | n
   return "equilibre";
 }
 
+/** Gamme de prix Google (price_level) → gamme du moteur. */
+export function priceSignal(priceLevel: string | null): PriceLevel | null {
+  if (priceLevel === "inexpensive") return "eco";
+  if (priceLevel === "moderate") return "moyen";
+  if (priceLevel === "expensive" || priceLevel === "very_expensive") return "premium";
+  return null;
+}
+
 /** Marge en % du prix de vente. */
 export function marginLevel(pct: number | null): Level | null {
   if (pct == null) return null;

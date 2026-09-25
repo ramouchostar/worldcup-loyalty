@@ -165,8 +165,13 @@ export function heroFor(input: {
   return { eyebrow, before, highlight, after, lead, now: input.now, potential: input.potential };
 }
 
-export function globalScores(scores: { fiche: number | null; avis: number | null }, potentials: { fiche: number | null; avis: number | null }) {
-  return { now: mean([scores.fiche, scores.avis]), potential: mean([potentials.fiche, potentials.avis]) };
+type VoletScores = { fiche: number | null; avis: number | null; concurrents?: number | null };
+/** Note globale = moyenne des volets mesurés ; le potentiel suppose les priorités faites. */
+export function globalScores(scores: VoletScores, potentials: VoletScores) {
+  return {
+    now: mean([scores.fiche, scores.avis, scores.concurrents ?? null]),
+    potential: mean([potentials.fiche, potentials.avis, potentials.concurrents ?? null]),
+  };
 }
 
 export const HORIZON_LABEL: Record<Horizon, string> = {

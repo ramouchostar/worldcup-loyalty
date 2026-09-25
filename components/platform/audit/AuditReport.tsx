@@ -4,6 +4,7 @@ import type { BusinessInfo, StoredReview } from "@/lib/audit/dataforseo";
 import type { FicheScore } from "@/lib/audit/fiche-score";
 import type { ReviewsResultSummary } from "@/lib/audit/measure";
 import type { ReviewThemes } from "@/lib/audit/review-themes";
+import { isKnownBrand, type Competitor, type CompetitorsResult } from "@/lib/audit/competitors";
 import type { Recommendations } from "@/lib/audit/recommend";
 import type { Change } from "@/lib/audit/revise";
 import type { Scenario } from "@/lib/audit/scenarios";
@@ -48,7 +49,7 @@ const monthLabel = (m: string) => {
 };
 const LVL = ["", "très faible", "faible", "moyen", "fort", "très fort"];
 
-export function AuditReport({ audit, sections, saveAnswers, reanalyse }: { audit: AuditRow; sections: SectionRow[]; saveAnswers: (fd: FormData) => void; reanalyse: () => void }) {
+export function AuditReport({ audit, sections, saveAnswers, reanalyse, analyseCompetitors }: { audit: AuditRow; sections: SectionRow[]; saveAnswers: (fd: FormData) => void; reanalyse: () => void; analyseCompetitors: () => void }) {
   const byKey = Object.fromEntries(sections.map((x) => [x.section, x])) as Partial<Record<SectionRow["section"], SectionRow>>;
   const info = byKey.fiche?.status === "ok" ? (byKey.fiche.raw as Info) : null;
   const fiche = byKey.fiche?.status === "ok" ? (byKey.fiche.result as FicheScore) : null;
@@ -57,14 +58,15 @@ export function AuditReport({ audit, sections, saveAnswers, reanalyse }: { audit
   const reco = audit.recommendations as StoredRecommendations | null;
   const signals = audit.signals as AuditSignals | null;
   const answers = audit.answers as OwnerAnswers | null;
-  const scores = (audit.scores ?? {}) as { fiche?: number | null; avis?: number | null };
+  const scores = (audit.scores ?? {}) as { fiche?: number | null; avis?: number | null; concurrents?: number | null };
+  const comp = byKey.concurrents?.status === "ok" ? (byKey.concurrents.result as CompetitorsResult) : null;
 
   const rating = info?.rating?.value ?? null;
   const potentials = {
     fiche: fiche ? fichePotential(fiche) : null,
     avis: avis ? avisPotential(rating, avis, signals?.trend ?? null) : null,
   };
-  const global = globalScores({ fiche: scores.fiche ?? null, avis: scores.avis ?? null }, potentials);
+  const global = globalScores({ fiche: scores.fiche ?? null, avis: scores.avis ?? null, concurrents: scores.concurrents ?? null }, { ...potentials, concurrents: scores.concurrents ?? null });
   const commune = communeOf(audit.postal_code);
   const top = reco?.top ?? [];
   const hero = heroFor({
@@ -152,13 +154,21 @@ export function AuditReport({ audit, sections, saveAnswers, reanalyse }: { audit
           <div className={s.scores}>
             <ScoreTile label="Fiche Google" now={scores.fiche ?? null} potential={potentials.fiche} note={fiche ? `sur ${fiche.verified} critères vérifiés` : byKey.fiche?.error ?? null} />
             <ScoreTile label="Avis" now={scores.avis ?? null} potential={potentials.avis} note={avis ? `${avis.read} avis lus sur ${avis.total ?? "?"}` : byKey.avis?.error ?? null} />
-            <ScoreTile label="Face aux voisins" now={null} potential={null} note="Bientôt dans l'audit" />
+            <ScoreTile label="Face aux voisins" now={scores.concurrents ?? null} potential={null} note={comp ? `${comp.competitors.length} voisins · « ${comp.keyword} »` : byKey.concurrents?.error ?? "Bientôt dans l'audit"} />
             <ScoreTile label="Réseaux sociaux" now={null} potential={null} note="Bientôt dans l'audit" />
           </div>
         </section>
 
-        {/* 3. Le quartier (en attendant le volet Concurrents : les fiches que Google propose à côté) */}
-        {info?.people_also_search && info.people_also_search.length > 0 && (
+        {comp && <Neighbors comp={comp} self={{ name: info?.title ?? audit.name, rating, reviews: info?.rating?.votes_count ?? null, photos: info?.total_photos ?? null, hasOrderButton: !!info?.book_online_url, hasWebsite: !!info?.url }} />}
+        {!comp && info && audit.status !== "en_cours" && (
+          <form action={analyseCompetitors} className={s.notice} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <span>{byKey.concurrents?.status === "echec" ? `Concurrents non analysés : ${byKey.concurrents.error}` : "Les concurrents autour de ce restaurant n'ont pas encore été analysés (2 à 4 minutes)."}</span>
+            <button type="submit" className={s.cta}>Analyser les concurrents</button>
+          </form>
+        )}
+
+        {/* 3 bis. Sans volet Concurrents : les fiches que Google propose à côté */}
+        {!comp && info?.people_also_search && info.people_also_search.length > 0 && (
           <section className={s.section}>
             <div>
               <span className={s.eyebrow}>Votre quartier</span>
@@ -446,6 +456,135 @@ function ReviewsChart({ summary }: { summary: ReviewsResultSummary }) {
 }
 
 const pct = (x: number) => `${Math.round(x * 100)} %`;
+
+type Self = { name: string; rating: number | null; reviews: number | null; photos: number | null; hasOrderButton: boolean; hasWebsite: boolean };
+
+function Neighbors({ comp, self }: { comp: CompetitorsResult; self: Self }) {
+  const km = (m: number | null) => (m == null ? "—" : m < 1000 ? `${Math.round(m / 10) * 10} m` : `${fmt(m / 1000, 1)} km`);
+  const cellClass = (rank: number | null) => (rank == null || rank > 10 ? s.cellBad : rank <= 3 ? s.cellGood : s.cellMid);
+  const rows: (Self & { distance: number | null; you?: boolean })[] = [
+    { ...self, distance: null, you: true },
+    ...comp.competitors.map((c: Competitor) => ({ name: c.title, rating: c.rating, reviews: c.reviews, photos: c.totalPhotos, hasOrderButton: c.hasOrderButton, hasWebsite: c.hasWebsite, distance: c.distance })),
+  ];
+  const r = comp.rival;
+  return (
+    <section className={s.section}>
+      <div>
+        <span className={s.eyebrow}>Face aux voisins</span>
+        <h2>Qui vous prend des clients autour de vous</h2>
+        <p className={s.lead}>Recherche Google Maps « {comp.keyword} » faite depuis votre adresse et depuis 8 points à 700 m autour, comme un client du quartier.</p>
+      </div>
+
+      <div className={s.two}>
+        <div className={s.card} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <b>Votre rang sur Google Maps</b>
+          <div className={s.grid} role="img" aria-label="Rang du restaurant dans Google Maps depuis 9 points autour de lui">
+            {comp.grid.map((g) => (
+              <div key={`${g.row}${g.col}`} className={`${s.cell} ${cellClass(g.rank)}`}>
+                {g.rank ?? "20+"}
+                {g.row === 0 && g.col === 0 && <small>vous</small>}
+              </div>
+            ))}
+          </div>
+          <span className={s.sum} style={{ fontWeight: 500 }}>
+            {comp.score.averageRank != null ? `Rang moyen ${fmt(comp.score.averageRank, 1)}. ` : ""}En vert : dans les 3 premiers, ceux que les clients voient sans faire défiler.
+          </span>
+        </div>
+        <div className={s.card} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <b>Votre note face aux voisins : {comp.score.score}/100</b>
+          <div className={s.th}><span>Note Google</span><div className={s.track}><i style={{ width: `${(comp.score.parts.note / 30) * 100}%` }} /></div><span>{comp.score.parts.note}/30</span></div>
+          <div className={s.th}><span>Nombre d&apos;avis</span><div className={s.track}><i style={{ width: `${(comp.score.parts.volume / 25) * 100}%` }} /></div><span>{comp.score.parts.volume}/25</span></div>
+          <div className={s.th}><span>Rang sur Maps</span><div className={s.track}><i style={{ width: `${(comp.score.parts.rang / 30) * 100}%` }} /></div><span>{comp.score.parts.rang}/30</span></div>
+          <div className={s.th}><span>Photos</span><div className={s.track}><i style={{ width: `${(comp.score.parts.photos / 15) * 100}%` }} /></div><span>{comp.score.parts.photos}/15</span></div>
+          <span className={s.sum} style={{ fontWeight: 500 }}>
+            Médiane des voisins : {comp.score.medianRating != null ? `${fmt(comp.score.medianRating, 1)}★` : "—"}, {comp.score.medianReviews != null ? `${Math.round(comp.score.medianReviews).toLocaleString("fr-BE")} avis` : "—"}, {comp.score.medianPhotos != null ? `${Math.round(comp.score.medianPhotos)} photos` : "—"}.
+          </span>
+        </div>
+      </div>
+
+      {r && (
+        <div className={s.card} style={{ display: "flex", flexDirection: "column", gap: 14, borderColor: "var(--olive-2)" }}>
+          <div className={s.bar}>
+            <div>
+              <span className={s.eyebrow}>Votre concurrent n° 1</span>
+              <h2 style={{ margin: 0, fontSize: 20 }}>
+                {r.title} {isKnownBrand(r.title) && <span className={`${s.tag} ${s.tagFlat}`}>enseigne connue</span>}
+              </h2>
+            </div>
+            <span className={s.sum}>
+              {km(r.distance)} · {r.rating != null ? `${fmt(r.rating, 1)}★` : "—"} · {(r.reviews ?? 0).toLocaleString("fr-BE")} avis
+            </span>
+          </div>
+          <p className={s.d} style={{ margin: 0 }}>Le plus proche parmi ceux qui ont le plus de clients : c&apos;est à lui qu&apos;il est le plus facile de prendre des clients.</p>
+          {comp.rivalThemes ? (
+            <div className={s.two}>
+              <div className={s.themeCol}>
+                <span className={s.themeHead}><span className={s.dotNeg} aria-hidden="true" /> Ce que ses clients lui reprochent</span>
+                {comp.rivalThemes.negatives.slice(0, 4).map((t) => (
+                  <div key={t.key} className={`${s.theme} ${s.themeNeg}`}>
+                    <div className={s.themeTitle}><b>{t.label}</b><span>{t.count} avis</span></div>
+                    {t.example && <p className={s.quote}>« {t.example} »</p>}
+                  </div>
+                ))}
+                {comp.rivalThemes.negatives.length === 0 && <p className={s.d}>Aucun reproche récurrent dans ses 100 derniers avis.</p>}
+              </div>
+              <div className={s.themeCol}>
+                <span className={s.themeHead}><span className={s.dotPos} aria-hidden="true" /> Ce qu&apos;ils aiment chez lui</span>
+                {comp.rivalThemes.positives.slice(0, 3).map((t) => (
+                  <div key={t.key} className={`${s.theme} ${s.themePos}`}>
+                    <div className={s.themeTitle}><b>{t.label}</b><span>{t.count} avis</span></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            comp.rivalError && <p className={s.notice}>Avis du concurrent non analysés : {comp.rivalError}</p>
+          )}
+          {comp.attack.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <b>Comment lui prendre des clients</b>
+              {comp.attack.map((a, i) => (
+                <article key={a.title} className={s.prio}>
+                  <span className={s.n}>{i + 1}</span>
+                  <h3>{a.title}</h3>
+                  <p className={s.d}>{a.why}</p>
+                  <div>
+                    <ul>{a.steps.map((x) => <li key={x}>{x}</li>)}</ul>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+          {comp.attackError && <p className={s.notice}>Plan d&apos;attaque non généré : {comp.attackError}</p>}
+        </div>
+      )}
+
+      <div className={s.card}>
+        <div className={s.scroll}>
+          <table className={s.table}>
+            <thead>
+              <tr><th>Établissement</th><th>Distance</th><th>Note</th><th>Avis</th><th>Photos</th><th>Commander</th><th>Site</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((x) => (
+                <tr key={x.name + (x.you ? "-vous" : "")} className={x.you ? s.rowYou : undefined}>
+                  <td>{x.you ? `${x.name} (vous)` : x.name}</td>
+                  <td>{x.you ? "—" : km(x.distance)}</td>
+                  <td>{x.rating != null ? `${fmt(x.rating, 1)}★` : "—"}</td>
+                  <td>{x.reviews != null ? x.reviews.toLocaleString("fr-BE") : "—"}</td>
+                  <td>{x.photos ?? "—"}</td>
+                  <td>{x.hasOrderButton ? "✓" : "—"}</td>
+                  <td>{x.hasWebsite ? "✓" : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 
 function Themes({ themes }: { themes: ReviewThemes }) {
   if (!themes.negatives.length && !themes.positives.length) return null;

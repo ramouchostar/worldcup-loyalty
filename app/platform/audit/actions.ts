@@ -9,7 +9,8 @@ import { reviseWithAnswers } from "@/lib/audit/revise";
 import { emptySignals, type ReviewsResultSummary } from "@/lib/audit/measure";
 import { analyseThemes, engineThemes } from "@/lib/audit/review-themes";
 import { recommend } from "@/lib/audit/recommend";
-import type { StoredReview } from "@/lib/audit/dataforseo";
+import type { BusinessInfo, StoredReview } from "@/lib/audit/dataforseo";
+import { finishCompetitors, scanNeighbors } from "@/lib/audit/competitors";
 import type { AuditSignals, OwnerAnswers } from "@/lib/audit/signals";
 import { runAudit } from "@/lib/audit/run";
 import { resolveMapsLink } from "@/lib/audit/maps-link";
@@ -106,6 +107,57 @@ export async function reanalyseThemes(auditId: string) {
       })()
     : recommend(measured);
   await updateAudit(auditId, { signals: measured, recommendations, calls });
+  revalidatePath(`/platform/audit/${auditId}`);
+  redirect(`/platform/audit/${auditId}`);
+}
+
+// ADR 0069 §3 C — lancer (ou relancer) le volet Concurrents d'un audit déjà
+// mesuré : grille Maps, concurrents, avis du concurrent principal, plan d'attaque.
+export async function reanalyseCompetitors(auditId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) redirect("/join?reason=platform-required");
+  const data = await getAudit(auditId);
+  if (!data) redirect("/platform/audit");
+  const fiche = data.sections.find((x) => x.section === "fiche");
+  const avis = data.sections.find((x) => x.section === "avis");
+  const info = (fiche?.status === "ok" ? fiche.raw : null) as (BusinessInfo & { book_online_url?: string | null }) | null;
+  if (!info || info.latitude == null || info.longitude == null) {
+    await saveSection(auditId, "concurrents", { status: "echec", source: "dataforseo", error: "Fiche non lue : coordonnées inconnues." });
+    redirect(`/platform/audit/${auditId}`);
+  }
+  const calls = { ...(data.audit.calls ?? {}) } as Record<string, number>;
+  const themes = avis?.status === "ok" ? ((avis.result as ReviewsResultSummary).themes ?? null) : null;
+  try {
+    const scan = await scanNeighbors({ cid: info.cid, name: info.title ?? "", category: info.category, additionalCategories: info.additional_categories, lat: info.latitude, lng: info.longitude, calls });
+    const result = await finishCompetitors(
+      scan,
+      { name: info.title ?? "", rating: info.rating?.value ?? null, reviews: info.rating?.votes_count ?? null, photos: info.total_photos, hasOrderButton: !!info.book_online_url, themes },
+      calls,
+    );
+    await saveSection(auditId, "concurrents", { status: "ok", source: "dataforseo", result, cost_usd: scan.cost });
+    const measured: AuditSignals = {
+      ...((data.audit.signals ?? emptySignals()) as AuditSignals),
+      position: result.position,
+      reviewVolume: result.reviewVolume,
+      gapsCoveredByCompetitors: result.gapsCovered,
+    };
+    const answers = data.audit.answers as OwnerAnswers | null;
+    const recommendations = answers
+      ? (() => {
+          const rev = reviseWithAnswers(measured, answers);
+          return { ...rev.after, revision: { changes: rev.changes.map((c) => ({ ...c, scenario: { id: c.scenario.id, title: c.scenario.title } })), newlyMatched: rev.newlyMatched } };
+        })()
+      : recommend(measured);
+    await updateAudit(auditId, {
+      signals: measured,
+      recommendations,
+      calls,
+      scores: { ...(data.audit.scores ?? {}), concurrents: result.score.score },
+      cost_usd: Math.round((Number(data.audit.cost_usd) + scan.cost) * 10000) / 10000,
+    });
+  } catch (e) {
+    await saveSection(auditId, "concurrents", { status: "echec", source: "dataforseo", error: e instanceof Error ? e.message : String(e) });
+  }
   revalidatePath(`/platform/audit/${auditId}`);
   redirect(`/platform/audit/${auditId}`);
 }
