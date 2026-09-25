@@ -102,6 +102,15 @@ if (error) {
       finished_at: new Date().toISOString(),
     },
   ];
+  const seoRow = ({
+    audit_id: audit.id,
+    section: "seo",
+    ...(m.seo.status === "ok"
+      ? { status: "ok", source: m.seo.source, raw: null, result: m.seo.result, cost_usd: m.seo.cost, error: null }
+      : { status: m.seo.status, source: m.seo.source, raw: null, result: null, cost_usd: 0, error: m.seo.error }),
+    finished_at: new Date().toISOString(),
+  });
+  console.log(m.seo.status === "ok" ? `SEO : ${m.seo.result.score}/100 · rang Google ${m.seo.result.organic?.rank ?? "absent"}` : `SEO : ${m.seo.error}`);
   if (m.concurrents.status === "ok") {
     const c = m.concurrents.result;
     console.log(`Concurrents (« ${c.keyword} ») : ${c.competitors.length} · principal : ${c.rival?.title ?? "—"} · score ${c.score.score}/100 · grille ${c.grid.map((g) => g.rank ?? "–").join(" ")}`);
@@ -109,5 +118,7 @@ if (error) {
     if (c.attackError) console.log("  plan d'attaque :", c.attackError);
   } else console.log("Concurrents :", m.concurrents.error);
   const { error: e2 } = await db.from("restaurant_audit_sections").upsert(rows, { onConflict: "audit_id,section" });
+  const { error: e3 } = await db.from("restaurant_audit_sections").upsert(seoRow, { onConflict: "audit_id,section" });
+  if (e3) console.log("Volet SEO non enregistré (migration 20260925-1530 appliquée ?) :", e3.message);
   console.log(e2 ? `\nAudit ${audit.id} enregistré, volets en erreur : ${e2.message}` : `\nEnregistré : /platform/audit/${audit.id}`);
 }

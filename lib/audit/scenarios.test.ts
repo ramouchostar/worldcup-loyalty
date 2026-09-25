@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { SCENARIOS } from "./scenarios";
 import { recommend, matchingScenarios } from "./recommend";
 import { reviseWithAnswers } from "./revise";
-import { FICHE_GAPS, NEGATIVE_THEMES, withAnswers, type AuditSignals, type OwnerAnswers } from "./signals";
+import { FICHE_GAPS, NEGATIVE_THEMES, SEO_GAPS, withAnswers, type AuditSignals, type OwnerAnswers } from "./signals";
 
 // Générateur déterministe (mulberry32) : les mêmes cas à chaque exécution.
 function rng(seed: number) {
@@ -36,6 +36,8 @@ function randomSignals(r: () => number): AuditSignals {
     revenueGap: pick(r, ["petit", "moyen", "grand"] as const),
     price: pick(r, ["eco", "moyen", "premium"] as const),
     position: pick(r, ["derriere", "au_niveau", "devant"] as const),
+    seoGaps: subset(r, SEO_GAPS, 0.3),
+    platformsOutrankUs: r() < 0.5,
   };
 }
 
@@ -99,7 +101,7 @@ test("un audit complet donne toujours cinq priorités sur des sujets distincts",
   for (let i = 0; i < 5000; i++) {
     const { top } = recommend(randomSignals(r));
     assert.equal(top.length, 5);
-    const fams = top.map((s) => s.family).filter((f) => f !== "fiche");
+    const fams = top.map((s) => s.family).filter((f) => f !== "fiche" && f !== "seo");
     assert.equal(new Set(fams).size, fams.length);
   }
 });

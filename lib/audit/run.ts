@@ -40,6 +40,11 @@ export async function runAudit(auditId: string, target: Target): Promise<void> {
       ? { status: "ok", source: m.concurrents.source, result: m.concurrents.result, cost_usd: m.concurrents.cost }
       : { status: m.concurrents.status, source: m.concurrents.source, error: m.concurrents.error });
     await saveSection(auditId, "reseaux", { status: "non_branche", error: "Volet pas encore livré (ADR 0069 §7, PR 4)." });
+    // Volet SEO : dépend de la migration 20260925-1530 (contrainte CHECK) — sans elle, on
+    // garde le reste de l'audit et le rapport dit que le volet n'a pas été enregistré.
+    await saveSection(auditId, "seo", m.seo.status === "ok"
+      ? { status: "ok", source: m.seo.source, result: m.seo.result, cost_usd: m.seo.cost }
+      : { status: m.seo.status, source: m.seo.source, error: m.seo.error }).catch((e) => console.error("[audit] volet SEO non enregistré :", e));
 
     const allFailed = m.fiche.status !== "ok" && m.avis.status !== "ok";
     await updateAudit(auditId, {

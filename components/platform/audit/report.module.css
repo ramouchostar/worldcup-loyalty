@@ -338,7 +338,7 @@
 /* NOTES */
 .scores {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
 }
 .score {
@@ -586,6 +586,10 @@
 .chipNeg {
   background: var(--danger-bg);
   color: var(--danger);
+}
+.chipWarn {
+  background: var(--warn-bg);
+  color: var(--warn);
 }
 .chipPos {
   background: var(--good-bg);

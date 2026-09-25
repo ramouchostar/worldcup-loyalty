@@ -13,6 +13,8 @@
 import {
   FICHE_GAPS,
   NEGATIVE_THEMES,
+  SEO_GAPS,
+  type SeoGap,
   type AuditSignals,
   type ChannelMix,
   type CompetitivePosition,
@@ -38,7 +40,8 @@ export type Family =
   | "concurrence"
   | "fidelisation"
   | "produit_phare"
-  | "objectif";
+  | "objectif"
+  | "seo";
 
 export type Horizon = "7 jours" | "30 jours" | "90 jours";
 type Score = 1 | 2 | 3 | 4 | 5;
@@ -851,6 +854,126 @@ function objectiveScenarios(): Scenario[] {
   return out;
 }
 
+// ─── K. SEO : un manque du site × les plateformes passent-elles devant ? ────
+
+const SEO: Record<SeoGap, { title: string; why: string; steps: string[]; impact: number; effort: number }> = {
+  seo_pas_de_site: {
+    title: "Créer un site d'une page",
+    why: "Sans site, Google n'a que la fiche pour vous classer, et les plateformes de livraison occupent les résultats à votre place.",
+    steps: [
+      "Une seule page suffit : nom, spécialité et commune dans le titre, carte avec prix, horaires, adresse, téléphone, bouton de commande directe.",
+      "La relier à la fiche Google (champ « site web ») et à la bio des réseaux.",
+    ],
+    impact: 4,
+    effort: 3,
+  },
+  seo_titre: {
+    title: "Écrire un titre de page qui dit quoi et où",
+    why: "Le titre est la ligne bleue que Google affiche : sans la spécialité et la commune, la page ne remonte pas sur « burger + commune ».",
+    steps: [
+      "Titre de 50 à 65 caractères au format « Nom – spécialité à commune » (ex. « Nom – smash burger halal à Anderlecht »).",
+      "Un titre différent par page (accueil, carte, contact).",
+    ],
+    impact: 3,
+    effort: 1,
+  },
+  seo_description: {
+    title: "Rédiger la description qui s'affiche sous le titre",
+    why: "C'est le texte qui décide du clic dans Google ; sans lui, Google prend un morceau de page au hasard.",
+    steps: ["Écrire 140 à 160 caractères : spécialité, commune, un argument (fait maison, ouvert tard, livraison), et un appel (« commandez en direct »)."],
+    impact: 2,
+    effort: 1,
+  },
+  seo_schema: {
+    title: "Ajouter le balisage « Restaurant » sur le site",
+    why: "Ce code invisible dit à Google : restaurant, adresse, horaires, carte, fourchette de prix. Il aide Google à relier le site à la fiche Maps.",
+    steps: [
+      "Ajouter un bloc JSON-LD de type Restaurant avec name, address, telephone, openingHoursSpecification, servesCuisine, menu, priceRange.",
+      "Le vérifier avec l'outil gratuit « Test des résultats enrichis » de Google.",
+    ],
+    impact: 3,
+    effort: 2,
+  },
+  seo_nap: {
+    title: "Mettre exactement la même adresse et le même numéro partout",
+    why: "Google compare le nom, l'adresse et le téléphone du site, de la fiche et des annuaires : des écarts font douter de la bonne adresse.",
+    steps: [
+      "Afficher en bas de chaque page le nom, l'adresse et le téléphone, écrits exactement comme sur la fiche Google.",
+      "Corriger les mêmes informations sur Tripadvisor, Facebook et les plateformes de livraison.",
+    ],
+    impact: 3,
+    effort: 1,
+  },
+  seo_mobile: {
+    title: "Rendre le site lisible sur téléphone",
+    why: "La plupart des recherches de restaurant se font sur mobile, et Google classe d'abord la version mobile.",
+    steps: ["Passer à un modèle de site adapté au mobile (balise viewport, textes lisibles sans zoomer, boutons assez grands)."],
+    impact: 4,
+    effort: 3,
+  },
+  seo_vitesse: {
+    title: "Accélérer le site sur mobile",
+    why: "Une page lente perd le client avant même d'afficher la carte, et Google la classe moins bien.",
+    steps: [
+      "Compresser les photos (moins de 200 Ko chacune, au format WebP).",
+      "Retirer les vidéos lancées automatiquement et les extensions inutiles.",
+    ],
+    impact: 3,
+    effort: 2,
+  },
+  seo_rang_google: {
+    title: "Remonter dans Google sur « spécialité + commune »",
+    why: "C'est la recherche des clients qui ne vous connaissent pas encore : hors des 3 premiers résultats, ils cliquent ailleurs.",
+    steps: [
+      "Créer une page par spécialité phare (« smash burger à Anderlecht ») avec photos, prix et avis.",
+      "Obtenir des liens depuis les sites du quartier (commune, associations, blogs food bruxellois).",
+      "Demander aux clients contents de citer le plat dans leur avis Google.",
+    ],
+    impact: 4,
+    effort: 3,
+  },
+  seo_commande_plateformes: {
+    title: "Mettre la commande directe sur le site",
+    why: "Le site envoie les clients vers les plateformes : chaque commande repart avec une commission, même pour un client qui vous cherchait.",
+    steps: [
+      "Remplacer le bouton « Commander » par une commande directe (téléphone, WhatsApp, ou module de commande en propre).",
+      "Garder les liens plateformes en second, plus bas.",
+    ],
+    impact: 4,
+    effort: 2,
+  },
+  seo_menu: {
+    title: "Publier la carte en texte, pas en PDF ni en image",
+    why: "Google ne lit pas bien une carte en PDF ou en photo : les noms de plats ne comptent pas pour la recherche.",
+    steps: ["Écrire la carte dans une page du site : nom du plat, description courte, prix."],
+    impact: 2,
+    effort: 1,
+  },
+};
+
+function seoScenarios(): Scenario[] {
+  const out: Scenario[] = [];
+  for (const gap of SEO_GAPS) {
+    const g = SEO[gap];
+    for (const outranked of [true, false]) {
+      out.push({
+        id: `seo.${gap}.${outranked ? "plateformes_devant" : "normal"}`,
+        family: "seo",
+        title: g.title,
+        diagnostic: outranked ? `${g.why} Aujourd'hui, une plateforme de livraison passe devant votre site dans Google.` : g.why,
+        steps: g.steps,
+        kpi: "rang du site dans Google sur « spécialité + commune », mois par mois",
+        impact: clamp(g.impact + (outranked && (gap === "seo_rang_google" || gap === "seo_commande_plateformes" || gap === "seo_pas_de_site") ? 1 : 0)),
+        effort: clamp(g.effort),
+        horizon: g.effort >= 3 ? "30 jours" : "7 jours",
+        boosteats: gap === "seo_commande_plateformes" ? "Boosteats récompense chaque commande directe : une raison pour le client de ne pas repasser par la plateforme." : undefined,
+        when: (s) => !!s.seoGaps?.includes(gap) && (s.platformsOutrankUs ?? false) === outranked,
+      });
+    }
+  }
+  return out;
+}
+
 export const SCENARIOS: readonly Scenario[] = [
   ...themeScenarios(),
   ...reputationScenarios(),
@@ -863,4 +986,5 @@ export const SCENARIOS: readonly Scenario[] = [
   ...loyaltyScenarios(),
   ...heroProductScenarios(),
   ...objectiveScenarios(),
+  ...seoScenarios(),
 ];
