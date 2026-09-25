@@ -606,10 +606,16 @@ function responseScenarios(): Scenario[] {
       impact: 2,
     },
     fort: {
-      title: "Faire de vos réponses une vitrine",
-      diag: "L'établissement répond déjà à presque tous les avis.",
-      steps: ["Personnaliser chaque réponse (le plat commandé, le prénom de l'équipier) : un copier-coller se voit."],
-      impact: 1,
+      // Retour du porteur (2026-09-25) : « faire de vos réponses une vitrine » était flou.
+      title: "Faire travailler vos réponses aux avis pour Google",
+      diag: "L'établissement répond déjà à presque tous les avis : ces réponses sont lues par les clients qui hésitent, et leur texte s'ajoute à celui de la fiche.",
+      steps: [
+        "Répondre en moins de 48 h : une réponse vieille de deux semaines n'aide plus le client qui compare les fiches ce soir-là.",
+        "Dans chaque réponse positive, citer le plat que le client a aimé et le quartier (« Merci pour votre avis sur notre [plat], à bientôt à [quartier] ! ») : ce sont les mots que les clients tapent dans Google Maps.",
+        "Varier les formules : écrire 5 débuts et 5 fins de réponse et les faire tourner, jamais la même phrase deux fois de suite.",
+        "Sur un avis négatif : remercier, nommer le problème, dire ce qui a changé et proposer de revenir, en 3 phrases au plus.",
+      ],
+      impact: 2,
     },
   };
   for (const level of ["faible", "moyen", "fort"] as const) {

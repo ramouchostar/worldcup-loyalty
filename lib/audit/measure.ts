@@ -19,6 +19,7 @@ import { scoreFiche, type FicheScore } from "./fiche-score";
 import { recommend, type Recommendations } from "./recommend";
 import { findBreakpoint, monthlySeries, ownerResponses, trendOf, type Breakpoint, type MonthPoint, type OwnerResponses } from "./reviews-analysis";
 import { ratingBand, type AuditSignals } from "./signals";
+import { analyseThemes, engineThemes, isThemesConfigured, type ReviewThemes } from "./review-themes";
 
 export type SectionOutcome<T> =
   | { status: "ok"; source: string; raw: unknown; result: T; cost: number }
@@ -31,6 +32,9 @@ export interface ReviewsResultSummary {
   breakpoint: Breakpoint | null;
   responses: OwnerResponses;
   distribution: Record<string, number>;
+  /** Thèmes positifs et négatifs (Claude) ; null si l'analyse a échoué — motif dans themesError. */
+  themes?: ReviewThemes | null;
+  themesError?: string | null;
 }
 
 export interface Measured {
@@ -123,6 +127,24 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
     avis = { status: "echec", source: "dataforseo", error: reason((reviewsRes as PromiseRejectedResult).reason), cost: 0 };
   }
 
+  // Thèmes des avis (Claude). Un échec ne casse pas le volet : il est nommé.
+  if (avis.status === "ok" && reviews) {
+    if (!isThemesConfigured()) {
+      avis.result.themes = null;
+      avis.result.themesError = "ANTHROPIC_API_KEY absente : thèmes non analysés.";
+    } else {
+      try {
+        const themes = await analyseThemes({ name: info?.title ?? "ce restaurant", category: info?.category ?? null, reviews: reviews.reviews, topics: info?.place_topics ?? null });
+        avis.result.themes = themes;
+        calls.claude_tokens_in = themes.tokens.input;
+        calls.claude_tokens_out = themes.tokens.output;
+      } catch (e) {
+        avis.result.themes = null;
+        avis.result.themesError = reason(e);
+      }
+    }
+  }
+
   // Volet A
   let fiche: Measured["fiche"];
   if (info) {
@@ -154,6 +176,7 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
     rating: ratingBand(rating),
     trend,
     responseRate: responses?.level ?? null,
+    negativeThemes: avis.status === "ok" && avis.result.themes ? engineThemes(avis.result.themes.negatives) : [],
     ficheGaps: fiche.status === "ok" ? fiche.result.score.gaps : [],
   };
   const scores = {

@@ -4,9 +4,12 @@ import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { createAudit, getAudit, updateAudit } from "@/lib/audit/store";
+import { createAudit, getAudit, saveSection, updateAudit } from "@/lib/audit/store";
 import { reviseWithAnswers } from "@/lib/audit/revise";
-import { emptySignals } from "@/lib/audit/measure";
+import { emptySignals, type ReviewsResultSummary } from "@/lib/audit/measure";
+import { analyseThemes, engineThemes } from "@/lib/audit/review-themes";
+import { recommend } from "@/lib/audit/recommend";
+import type { StoredReview } from "@/lib/audit/dataforseo";
 import type { AuditSignals, OwnerAnswers } from "@/lib/audit/signals";
 import { runAudit } from "@/lib/audit/run";
 import { resolveMapsLink } from "@/lib/audit/maps-link";
@@ -63,6 +66,48 @@ export async function saveAnswers(auditId: string, formData: FormData) {
   });
   revalidatePath(`/platform/audit/${auditId}`);
   redirect(`/platform/audit/${auditId}#revision`);
+}
+
+// ADR 0069 §4 — relancer seulement l'analyse des thèmes, sur les avis déjà
+// enregistrés (pas de nouvel appel DataForSEO). Sert après un échec, ou pour
+// les audits faits avant que l'analyse existe.
+export async function reanalyseThemes(auditId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) redirect("/join?reason=platform-required");
+  const data = await getAudit(auditId);
+  if (!data) redirect("/platform/audit");
+  const fiche = data.sections.find((x) => x.section === "fiche");
+  const avis = data.sections.find((x) => x.section === "avis");
+  if (avis?.status !== "ok") redirect(`/platform/audit/${auditId}`);
+
+  const info = (fiche?.status === "ok" ? fiche.raw : null) as { title?: string; category?: string | null; place_topics?: Record<string, number> | null } | null;
+  const reviews = ((avis.raw as { reviews?: StoredReview[] } | null)?.reviews ?? []) as StoredReview[];
+  const result = { ...(avis.result as ReviewsResultSummary) };
+  const calls = { ...(data.audit.calls ?? {}) };
+  try {
+    const themes = await analyseThemes({ name: info?.title ?? data.audit.name, category: info?.category ?? null, reviews, topics: info?.place_topics ?? null });
+    result.themes = themes;
+    result.themesError = null;
+    calls.claude_tokens_in = themes.tokens.input;
+    calls.claude_tokens_out = themes.tokens.output;
+  } catch (e) {
+    result.themes = null;
+    result.themesError = e instanceof Error ? e.message : String(e);
+  }
+  await saveSection(auditId, "avis", { status: "ok", source: avis.source, raw: avis.raw, result, cost_usd: Number(avis.cost_usd) });
+
+  // Les thèmes nourrissent le moteur : on recalcule les priorités (et la révision si le gérant a répondu).
+  const measured: AuditSignals = { ...((data.audit.signals ?? emptySignals()) as AuditSignals), negativeThemes: result.themes ? engineThemes(result.themes.negatives) : [] };
+  const answers = data.audit.answers as OwnerAnswers | null;
+  const recommendations = answers
+    ? (() => {
+        const rev = reviseWithAnswers(measured, answers);
+        return { ...rev.after, revision: { changes: rev.changes.map((c) => ({ ...c, scenario: { id: c.scenario.id, title: c.scenario.title } })), newlyMatched: rev.newlyMatched } };
+      })()
+    : recommend(measured);
+  await updateAudit(auditId, { signals: measured, recommendations, calls });
+  revalidatePath(`/platform/audit/${auditId}`);
+  redirect(`/platform/audit/${auditId}`);
 }
 
 // ADR 0069 — lance un audit. La recherche Places (PR 1 complète) fournira un

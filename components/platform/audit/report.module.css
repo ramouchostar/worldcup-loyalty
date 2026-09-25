@@ -20,6 +20,8 @@
   --good-bg: #e6f0e1;
   --warn: #9e6612;
   --warn-bg: #f7ebd6;
+  --danger: #b8443a;
+  --danger-bg: #f8e6e3;
   --display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --body: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   background: #fff;
@@ -506,6 +508,110 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+/* Thèmes des avis : négatifs en rouge (demande du porteur, 2026-09-25), positifs en vert. */
+.themeCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.themeHead {
+  font: 700 15px var(--display);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dotNeg,
+.dotPos {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dotNeg {
+  background: var(--danger);
+}
+.dotPos {
+  background: var(--good);
+}
+.theme {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.themeNeg {
+  border-left: 4px solid var(--danger);
+}
+.themePos {
+  border-left: 4px solid var(--good);
+}
+.themeTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+  font-weight: 700;
+}
+.themeNeg .themeTitle b {
+  color: var(--danger);
+}
+.themePos .themeTitle b {
+  color: var(--good);
+}
+.themeTitle span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-4);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.quote {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border-left: 3px solid var(--line);
+  padding-left: 10px;
+  font-style: italic;
+}
+.advice {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.advice b {
+  color: var(--ink);
+}
+.chipNeg {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.chipPos {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.topicDetails {
+  display: inline-block;
+}
+.topicDetails summary {
+  list-style: none;
+  cursor: pointer;
+}
+.topicDetails summary::-webkit-details-marker {
+  display: none;
+}
+.topicDetails[open] {
+  display: block;
+  width: 100%;
+}
+.topicDetail {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: var(--danger-bg);
+  border-radius: 10px;
+  padding: 8px 10px;
 }
 .chart text {
   fill: var(--ink-4);
