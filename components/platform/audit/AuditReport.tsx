@@ -9,6 +9,7 @@ import type { Recommendations } from "@/lib/audit/recommend";
 import type { Change } from "@/lib/audit/revise";
 import type { Scenario } from "@/lib/audit/scenarios";
 import type { AuditSignals, OwnerAnswers } from "@/lib/audit/signals";
+import type { SeoResult, SeoStatus } from "@/lib/audit/seo";
 import {
   ACTION_LABEL,
   HORIZON_LABEL,
@@ -20,6 +21,7 @@ import {
   globalScores,
   heroFor,
   latestNegative,
+  seoPotential,
   type ActionKey,
   type CardModel,
 } from "@/lib/audit/report-model";
@@ -49,7 +51,7 @@ const monthLabel = (m: string) => {
 };
 const LVL = ["", "très faible", "faible", "moyen", "fort", "très fort"];
 
-export function AuditReport({ audit, sections, saveAnswers, reanalyse, analyseCompetitors }: { audit: AuditRow; sections: SectionRow[]; saveAnswers: (fd: FormData) => void; reanalyse: () => void; analyseCompetitors: () => void }) {
+export function AuditReport({ audit, sections, saveAnswers, reanalyse, analyseCompetitors, analyseSeo }: { audit: AuditRow; sections: SectionRow[]; saveAnswers: (fd: FormData) => void; reanalyse: () => void; analyseCompetitors: () => void; analyseSeo: () => void }) {
   const byKey = Object.fromEntries(sections.map((x) => [x.section, x])) as Partial<Record<SectionRow["section"], SectionRow>>;
   const info = byKey.fiche?.status === "ok" ? (byKey.fiche.raw as Info) : null;
   const fiche = byKey.fiche?.status === "ok" ? (byKey.fiche.result as FicheScore) : null;
@@ -58,7 +60,8 @@ export function AuditReport({ audit, sections, saveAnswers, reanalyse, analyseCo
   const reco = audit.recommendations as StoredRecommendations | null;
   const signals = audit.signals as AuditSignals | null;
   const answers = audit.answers as OwnerAnswers | null;
-  const scores = (audit.scores ?? {}) as { fiche?: number | null; avis?: number | null; concurrents?: number | null };
+  const scores = (audit.scores ?? {}) as { fiche?: number | null; avis?: number | null; concurrents?: number | null; seo?: number | null };
+  const seo = byKey.seo?.status === "ok" ? (byKey.seo.result as SeoResult) : null;
   const comp = byKey.concurrents?.status === "ok" ? (byKey.concurrents.result as CompetitorsResult) : null;
 
   const rating = info?.rating?.value ?? null;
@@ -66,7 +69,10 @@ export function AuditReport({ audit, sections, saveAnswers, reanalyse, analyseCo
     fiche: fiche ? fichePotential(fiche) : null,
     avis: avis ? avisPotential(rating, avis, signals?.trend ?? null) : null,
   };
-  const global = globalScores({ fiche: scores.fiche ?? null, avis: scores.avis ?? null, concurrents: scores.concurrents ?? null }, { ...potentials, concurrents: scores.concurrents ?? null });
+  const global = globalScores(
+    { fiche: scores.fiche ?? null, avis: scores.avis ?? null, concurrents: scores.concurrents ?? null, seo: scores.seo ?? null },
+    { ...potentials, concurrents: scores.concurrents ?? null, seo: seo ? seoPotential(seo) : null },
+  );
   const commune = communeOf(audit.postal_code);
   const top = reco?.top ?? [];
   const hero = heroFor({
@@ -155,6 +161,7 @@ export function AuditReport({ audit, sections, saveAnswers, reanalyse, analyseCo
             <ScoreTile label="Fiche Google" now={scores.fiche ?? null} potential={potentials.fiche} note={fiche ? `sur ${fiche.verified} critères vérifiés` : byKey.fiche?.error ?? null} />
             <ScoreTile label="Avis" now={scores.avis ?? null} potential={potentials.avis} note={avis ? `${avis.read} avis lus sur ${avis.total ?? "?"}` : byKey.avis?.error ?? null} />
             <ScoreTile label="Face aux voisins" now={scores.concurrents ?? null} potential={null} note={comp ? `${comp.competitors.length} voisins · « ${comp.keyword} »` : byKey.concurrents?.error ?? "Bientôt dans l'audit"} />
+            <ScoreTile label="Site et Google (SEO)" now={scores.seo ?? null} potential={seo ? seoPotential(seo) : null} note={seo ? (seo.organic ? (seo.organic.rank ? `${seo.organic.rank}e sur « ${seo.organic.keyword} »` : `absent du top 20 sur « ${seo.organic.keyword} »`) : "rang Google non vérifié") : byKey.seo?.error ?? "Pas encore analysé"} />
             <ScoreTile label="Réseaux sociaux" now={null} potential={null} note="Bientôt dans l'audit" />
           </div>
         </section>
@@ -165,6 +172,17 @@ export function AuditReport({ audit, sections, saveAnswers, reanalyse, analyseCo
             <span>{byKey.concurrents?.status === "echec" ? `Concurrents non analysés : ${byKey.concurrents.error}` : "Les concurrents autour de ce restaurant n'ont pas encore été analysés (2 à 4 minutes)."}</span>
             <button type="submit" className={s.cta}>Analyser les concurrents</button>
           </form>
+        )}
+
+        {seo ? (
+          <SeoSection seo={seo} />
+        ) : (
+          info && audit.status !== "en_cours" && (
+            <form action={analyseSeo} className={s.notice} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span>{byKey.seo?.status === "echec" ? `Site et Google non analysés : ${byKey.seo.error}` : "Le site du restaurant et sa place dans Google n'ont pas encore été analysés."}</span>
+              <button type="submit" className={s.cta}>Analyser le site et Google</button>
+            </form>
+          )
         )}
 
         {/* 3 bis. Sans volet Concurrents : les fiches que Google propose à côté */}
@@ -456,6 +474,53 @@ function ReviewsChart({ summary }: { summary: ReviewsResultSummary }) {
 }
 
 const pct = (x: number) => `${Math.round(x * 100)} %`;
+
+const SEO_PILL: Record<SeoStatus, string> = { ok: "OK", partiel: "À améliorer", manquant: "Manquant", non_verifie: "Non vérifié" };
+
+function SeoSection({ seo }: { seo: SeoResult }) {
+  const cls = (st: SeoStatus) => (st === "ok" ? s.chipPos : st === "manquant" ? s.chipNeg : st === "partiel" ? s.chipWarn : "");
+  return (
+    <section className={s.section}>
+      <div>
+        <span className={s.eyebrow}>Site et Google</span>
+        <h2>Ce que Google voit de vous en dehors de Maps</h2>
+        <p className={s.lead}>
+          {seo.site ? <>Site lu : {seo.site.finalUrl ?? seo.site.url}.</> : seo.siteError} {seo.organic ? <>Recherche Google « {seo.organic.keyword} » faite depuis Bruxelles.</> : null}
+        </p>
+      </div>
+      <div className={s.two}>
+        <div className={s.card} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <b>Votre site : {seo.score ?? "—"}/100</b>
+          {seo.checks.map((c) => (
+            <div key={c.key} className={s.bar} style={{ alignItems: "baseline" }}>
+              <span style={{ fontSize: 13 }}>
+                {c.label}
+                {c.detail && <span className={s.sum} style={{ display: "block", fontWeight: 500 }}>{c.detail}</span>}
+              </span>
+              <span className={`${s.chip} ${cls(c.status)}`}>{SEO_PILL[c.status]}</span>
+            </div>
+          ))}
+        </div>
+        {seo.organic && (
+          <div className={s.card} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <b>Qui apparaît dans Google sur « {seo.organic.keyword} »</b>
+            <ol style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6, fontSize: 13 }}>
+              {seo.organic.top.map((t) => (
+                <li key={t.rank + t.domain} style={{ fontWeight: seo.organic?.rank === t.rank ? 700 : 400 }}>
+                  {t.domain}
+                  {seo.organic?.rank === t.rank ? " (vous)" : /ubereats|deliveroo|takeaway|just-eat/i.test(t.domain) ? " · plateforme de livraison" : ""}
+                </li>
+              ))}
+            </ol>
+            <span className={s.sum} style={{ fontWeight: 500 }}>
+              {seo.organic.rank == null ? "Votre site n'apparaît pas dans les 20 premiers résultats." : seo.organic.rank <= 3 ? "Vous êtes dans le trio de tête." : `Vous êtes ${seo.organic.rank}e : hors du trio que la plupart des gens regardent.`}
+            </span>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 type Self = { name: string; rating: number | null; reviews: number | null; photos: number | null; hasOrderButton: boolean; hasWebsite: boolean };
 

@@ -17,7 +17,7 @@
 import { SCENARIOS, type Family, type Horizon, type Scenario } from "./scenarios";
 import type { AuditSignals } from "./signals";
 
-const PER_FAMILY_CAP: Partial<Record<Family, number>> = { fiche: 2 };
+const PER_FAMILY_CAP: Partial<Record<Family, number>> = { fiche: 2, seo: 2 };
 const FAMILY_WEIGHT: Partial<Record<Family, number>> = { avis_theme: 1.6, produit_phare: 1.5, canaux: 1.6 };
 const FRAME_FAMILY: Family = "objectif";
 

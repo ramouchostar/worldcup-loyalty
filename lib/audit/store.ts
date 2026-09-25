@@ -7,7 +7,7 @@
 import { createAdminClient } from "@/lib/supabase";
 
 export type AuditStatus = "en_cours" | "mesure" | "revise" | "final" | "echec";
-export type SectionKey = "fiche" | "avis" | "concurrents" | "reseaux";
+export type SectionKey = "fiche" | "avis" | "concurrents" | "reseaux" | "seo";
 export type SectionStatus = "en_cours" | "ok" | "echec" | "non_branche";
 
 export interface AuditRow {

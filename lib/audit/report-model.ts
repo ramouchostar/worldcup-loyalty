@@ -165,13 +165,23 @@ export function heroFor(input: {
   return { eyebrow, before, highlight, after, lead, now: input.now, potential: input.potential };
 }
 
-type VoletScores = { fiche: number | null; avis: number | null; concurrents?: number | null };
+type VoletScores = { fiche: number | null; avis: number | null; concurrents?: number | null; seo?: number | null };
 /** Note globale = moyenne des volets mesurés ; le potentiel suppose les priorités faites. */
 export function globalScores(scores: VoletScores, potentials: VoletScores) {
   return {
-    now: mean([scores.fiche, scores.avis, scores.concurrents ?? null]),
-    potential: mean([potentials.fiche, potentials.avis, potentials.concurrents ?? null]),
+    now: mean([scores.fiche, scores.avis, scores.concurrents ?? null, scores.seo ?? null]),
+    potential: mean([potentials.fiche, potentials.avis, potentials.concurrents ?? null, potentials.seo ?? null]),
   };
+}
+
+/** Potentiel SEO : tout ce qui se corrige sur le site est fait ; le rang Google, lui, se gagne dans le temps. */
+export function seoPotential(seo: { checks: { key: string; points: number; status: string }[] }): number | null {
+  const verified = seo.checks.filter((c) => c.status !== "non_verifie");
+  const max = verified.reduce((a, c) => a + c.points, 0);
+  if (!max) return null;
+  const w: Record<string, number> = { ok: 1, partiel: 0.5, manquant: 0 };
+  const got = verified.reduce((a, c) => a + c.points * (c.key === "google" ? w[c.status] ?? 0 : 1), 0);
+  return Math.round((got / max) * 100);
 }
 
 export const HORIZON_LABEL: Record<Horizon, string> = {

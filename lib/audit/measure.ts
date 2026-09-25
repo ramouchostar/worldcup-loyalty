@@ -20,7 +20,9 @@ import { recommend, type Recommendations } from "./recommend";
 import { findBreakpoint, monthlySeries, ownerResponses, trendOf, type Breakpoint, type MonthPoint, type OwnerResponses } from "./reviews-analysis";
 import { priceSignal, ratingBand, type AuditSignals } from "./signals";
 import { analyseThemes, engineThemes, isThemesConfigured, type ReviewThemes } from "./review-themes";
-import { finishCompetitors, scanNeighbors, type CompetitorsResult } from "./competitors";
+import { finishCompetitors, scanNeighbors, searchKeyword, type CompetitorsResult } from "./competitors";
+import { measureSeo, platformsOutrank, seoGaps, type SeoResult } from "./seo";
+import { BRUSSELS_POSTAL_CODES, postalCodeOf } from "./brussels";
 
 export type SectionOutcome<T> =
   | { status: "ok"; source: string; raw: unknown; result: T; cost: number }
@@ -42,9 +44,10 @@ export interface Measured {
   fiche: SectionOutcome<{ info: BusinessInfo; score: FicheScore }>;
   avis: SectionOutcome<ReviewsResultSummary>;
   concurrents: SectionOutcome<CompetitorsResult>;
+  seo: SectionOutcome<SeoResult>;
   signals: AuditSignals;
   recommendations: Recommendations;
-  scores: { fiche: number | null; avis: number | null; concurrents: number | null };
+  scores: { fiche: number | null; avis: number | null; concurrents: number | null; seo: number | null };
   costUsd: number;
   calls: Record<string, number>;
 }
@@ -84,7 +87,7 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
   if (!isConfigured()) {
     const off = { status: "non_branche" as const, source: "dataforseo", error: "DATAFORSEO_LOGIN / DATAFORSEO_PASSWORD absents.", cost: 0 };
     const signals = emptySignals();
-    return { fiche: off, avis: off, concurrents: off, signals, recommendations: recommend(signals), scores: { fiche: null, avis: null, concurrents: null }, costUsd: 0, calls };
+    return { fiche: off, avis: off, concurrents: off, seo: off, signals, recommendations: recommend(signals), scores: { fiche: null, avis: null, concurrents: null, seo: null }, costUsd: 0, calls };
   }
 
   // La fiche d'abord : elle donne le CID, cible exacte des avis (un libellé
@@ -97,12 +100,20 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
   const reviewsTarget: Target | null = cid ? { cid } : "keyword" in target ? target : "placeId" in target ? target : null;
   const info = infoRes.status === "fulfilled" ? infoRes.value.info : null;
   // Volet C en même temps que nos avis : les deux attendent DataForSEO.
-  const [reviewsRes, scanRes] = await Promise.allSettled([
+  const postal = info ? info.address_info?.postal_code ?? postalCodeOf(info.address) : null;
+  const [reviewsRes, scanRes, seoRes] = await Promise.allSettled([
     reviewsTarget ? readReviews(reviewsTarget, calls) : Promise.reject(new Error("Fiche introuvable : avis non demandés.")),
     info?.latitude != null && info.longitude != null
       ? scanNeighbors({ cid: info.cid, name: info.title ?? "", category: info.category, additionalCategories: info.additional_categories, lat: info.latitude, lng: info.longitude, calls })
       : Promise.reject(new Error("Coordonnées de la fiche inconnues : concurrents non recherchés.")),
+    info
+      ? measureSeo({ url: info.url, phone: info.phone, postalCode: postal, keyword: searchKeyword(info.category, info.additional_categories, info.title), commune: postal ? BRUSSELS_POSTAL_CODES[postal] ?? null : null, calls })
+      : Promise.reject(new Error("Fiche introuvable : site non analysé.")),
   ]);
+  const seo: Measured["seo"] =
+    seoRes.status === "fulfilled"
+      ? { status: "ok", source: "site+pagespeed+dataforseo", raw: null, result: seoRes.value.result, cost: seoRes.value.cost }
+      : { status: "echec", source: "site", error: reason(seoRes.reason), cost: 0 };
   const reviews = reviewsRes.status === "fulfilled" ? reviewsRes.value : null;
 
   // Volet D
@@ -207,20 +218,24 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
     position: concurrents.status === "ok" ? concurrents.result.position : null,
     reviewVolume: concurrents.status === "ok" ? concurrents.result.reviewVolume : null,
     price: priceSignal(info?.price_level ?? null),
+    seoGaps: seo.status === "ok" ? seoGaps(seo.result.checks) : [],
+    platformsOutrankUs: seo.status === "ok" ? platformsOutrank(seo.result.organic) : null,
   };
   const scores = {
     fiche: fiche.status === "ok" ? fiche.result.score.score : null,
     avis: avis.status === "ok" ? scoreReviews(rating, avis.result, trend) : null,
     concurrents: concurrents.status === "ok" ? concurrents.result.score.score : null,
+    seo: seo.status === "ok" ? seo.result.score : null,
   };
   return {
     fiche,
     concurrents,
+    seo,
     avis,
     signals,
     recommendations: recommend(signals),
     scores,
-    costUsd: Math.round((fiche.cost + avis.cost + concurrents.cost) * 10000) / 10000,
+    costUsd: Math.round((fiche.cost + avis.cost + concurrents.cost + seo.cost) * 10000) / 10000,
     calls,
   };
 }

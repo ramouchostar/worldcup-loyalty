@@ -47,7 +47,25 @@ export const FICHE_GAPS = [
 ] as const;
 export type FicheGap = (typeof FICHE_GAPS)[number];
 
+export const SEO_GAPS = [
+  "seo_pas_de_site",
+  "seo_titre",
+  "seo_description",
+  "seo_schema",
+  "seo_nap",
+  "seo_mobile",
+  "seo_vitesse",
+  "seo_rang_google",
+  "seo_commande_plateformes",
+  "seo_menu",
+] as const;
+export type SeoGap = (typeof SEO_GAPS)[number];
+
 export interface AuditSignals {
+  /** Volet SEO — ce qui manque au site et à sa place dans Google. */
+  seoGaps?: SeoGap[];
+  /** Volet SEO — Uber Eats, Deliveroo ou Takeaway.com passent devant le site dans Google. */
+  platformsOutrankUs?: boolean | null;
   rating: RatingBand | null;
   trend: Trend | null;
   /** Volume d'avis comparé à la médiane des concurrents à moins de 600 m. */

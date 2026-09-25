@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAudit } from "@/lib/audit/store";
 import { AuditReport } from "@/components/platform/audit/AuditReport";
-import { reanalyseCompetitors, reanalyseThemes, saveAnswers } from "../actions";
+import { reanalyseCompetitors, reanalyseSeo, reanalyseThemes, saveAnswers } from "../actions";
 import { AutoRefresh } from "./AutoRefresh";
 
 export const metadata = { title: "Audit — Plateforme" };
@@ -26,7 +26,7 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
   return (
     <>
       <AutoRefresh active={data.audit.status === "en_cours"} />
-      <AuditReport audit={data.audit} sections={data.sections} saveAnswers={saveAnswers.bind(null, id)} reanalyse={reanalyseThemes.bind(null, id)} analyseCompetitors={reanalyseCompetitors.bind(null, id)} />
+      <AuditReport audit={data.audit} sections={data.sections} saveAnswers={saveAnswers.bind(null, id)} reanalyse={reanalyseThemes.bind(null, id)} analyseCompetitors={reanalyseCompetitors.bind(null, id)} analyseSeo={reanalyseSeo.bind(null, id)} />
     </>
   );
 }

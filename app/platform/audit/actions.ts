@@ -10,7 +10,9 @@ import { emptySignals, type ReviewsResultSummary } from "@/lib/audit/measure";
 import { analyseThemes, engineThemes } from "@/lib/audit/review-themes";
 import { recommend } from "@/lib/audit/recommend";
 import type { BusinessInfo, StoredReview } from "@/lib/audit/dataforseo";
-import { finishCompetitors, scanNeighbors } from "@/lib/audit/competitors";
+import { finishCompetitors, scanNeighbors, searchKeyword } from "@/lib/audit/competitors";
+import { measureSeo, platformsOutrank, seoGaps } from "@/lib/audit/seo";
+import { BRUSSELS_POSTAL_CODES } from "@/lib/audit/brussels";
 import type { AuditSignals, OwnerAnswers } from "@/lib/audit/signals";
 import { runAudit } from "@/lib/audit/run";
 import { resolveMapsLink } from "@/lib/audit/maps-link";
@@ -157,6 +159,49 @@ export async function reanalyseCompetitors(auditId: string) {
     });
   } catch (e) {
     await saveSection(auditId, "concurrents", { status: "echec", source: "dataforseo", error: e instanceof Error ? e.message : String(e) });
+  }
+  revalidatePath(`/platform/audit/${auditId}`);
+  redirect(`/platform/audit/${auditId}`);
+}
+
+// ADR 0069 — lancer (ou relancer) le volet SEO : site, vitesse mobile, rang Google.
+export async function reanalyseSeo(auditId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) redirect("/join?reason=platform-required");
+  const data = await getAudit(auditId);
+  if (!data) redirect("/platform/audit");
+  const fiche = data.sections.find((x) => x.section === "fiche");
+  const info = (fiche?.status === "ok" ? fiche.raw : null) as BusinessInfo | null;
+  if (!info) redirect(`/platform/audit/${auditId}`);
+  const calls = { ...(data.audit.calls ?? {}) } as Record<string, number>;
+  const postal = data.audit.postal_code;
+  try {
+    const { result, cost } = await measureSeo({
+      url: info.url,
+      phone: info.phone,
+      postalCode: postal,
+      keyword: searchKeyword(info.category, info.additional_categories, info.title),
+      commune: postal ? BRUSSELS_POSTAL_CODES[postal] ?? null : null,
+      calls,
+    });
+    await saveSection(auditId, "seo", { status: "ok", source: "site+pagespeed+dataforseo", result, cost_usd: cost });
+    const measured: AuditSignals = { ...((data.audit.signals ?? emptySignals()) as AuditSignals), seoGaps: seoGaps(result.checks), platformsOutrankUs: platformsOutrank(result.organic) };
+    const answers = data.audit.answers as OwnerAnswers | null;
+    const recommendations = answers
+      ? (() => {
+          const rev = reviseWithAnswers(measured, answers);
+          return { ...rev.after, revision: { changes: rev.changes.map((c) => ({ ...c, scenario: { id: c.scenario.id, title: c.scenario.title } })), newlyMatched: rev.newlyMatched } };
+        })()
+      : recommend(measured);
+    await updateAudit(auditId, {
+      signals: measured,
+      recommendations,
+      calls,
+      scores: { ...(data.audit.scores ?? {}), seo: result.score },
+      cost_usd: Math.round((Number(data.audit.cost_usd) + cost) * 10000) / 10000,
+    });
+  } catch (e) {
+    await saveSection(auditId, "seo", { status: "echec", source: "site", error: e instanceof Error ? e.message : String(e) }).catch(() => {});
   }
   revalidatePath(`/platform/audit/${auditId}`);
   redirect(`/platform/audit/${auditId}`);

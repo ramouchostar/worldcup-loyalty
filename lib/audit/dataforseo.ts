@@ -189,6 +189,19 @@ export async function getReviews(taskId: string): Promise<ReviewsResult> {
   };
 }
 
+/** Résultats Google classiques (hors carte) pour une recherche faite depuis Bruxelles. */
+export async function organicSearch(keyword: string, depth = 20): Promise<{ items: { rank: number; url: string; title: string }[]; cost: number }> {
+  const task = await call<{ items: { type?: string; rank_group?: number; url?: string; title?: string }[] | null }>("serp/google/organic/live/regular", [
+    { keyword, location_code: LOCATION_CODE, language_code: "fr", depth },
+  ]);
+  if (task.status_code === NO_RESULTS) return { items: [], cost: task.cost ?? 0 };
+  if (task.status_code !== 20000) throw new DataForSeoError(task.status_message, task.status_code);
+  const items = (task.result?.[0]?.items ?? [])
+    .filter((i) => i.type === "organic" && i.url)
+    .map((i) => ({ rank: i.rank_group ?? 0, url: i.url!, title: i.title ?? "" }));
+  return { items, cost: task.cost ?? 0 };
+}
+
 /** Un établissement tel que Google Maps le classe pour une recherche, à un endroit. */
 export interface MapsResult {
   rank: number;
