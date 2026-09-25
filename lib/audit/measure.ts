@@ -18,8 +18,9 @@ import {
 import { scoreFiche, type FicheScore } from "./fiche-score";
 import { recommend, type Recommendations } from "./recommend";
 import { findBreakpoint, monthlySeries, ownerResponses, trendOf, type Breakpoint, type MonthPoint, type OwnerResponses } from "./reviews-analysis";
-import { ratingBand, type AuditSignals } from "./signals";
+import { priceSignal, ratingBand, type AuditSignals } from "./signals";
 import { analyseThemes, engineThemes, isThemesConfigured, type ReviewThemes } from "./review-themes";
+import { finishCompetitors, scanNeighbors, type CompetitorsResult } from "./competitors";
 
 export type SectionOutcome<T> =
   | { status: "ok"; source: string; raw: unknown; result: T; cost: number }
@@ -40,14 +41,15 @@ export interface ReviewsResultSummary {
 export interface Measured {
   fiche: SectionOutcome<{ info: BusinessInfo; score: FicheScore }>;
   avis: SectionOutcome<ReviewsResultSummary>;
+  concurrents: SectionOutcome<CompetitorsResult>;
   signals: AuditSignals;
   recommendations: Recommendations;
-  scores: { fiche: number | null; avis: number | null };
+  scores: { fiche: number | null; avis: number | null; concurrents: number | null };
   costUsd: number;
   calls: Record<string, number>;
 }
 
-const REVIEWS_POLL_MS = 10_000;
+const REVIEWS_POLL_MS = 5_000;
 const REVIEWS_MAX_WAIT_MS = 4 * 60_000;
 
 const reason = (e: unknown) => (e instanceof DataForSeoError ? `DataForSEO ${e.code ?? ""} : ${e.message}` : e instanceof Error ? e.message : String(e));
@@ -82,7 +84,7 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
   if (!isConfigured()) {
     const off = { status: "non_branche" as const, source: "dataforseo", error: "DATAFORSEO_LOGIN / DATAFORSEO_PASSWORD absents.", cost: 0 };
     const signals = emptySignals();
-    return { fiche: off, avis: off, signals, recommendations: recommend(signals), scores: { fiche: null, avis: null }, costUsd: 0, calls };
+    return { fiche: off, avis: off, concurrents: off, signals, recommendations: recommend(signals), scores: { fiche: null, avis: null, concurrents: null }, costUsd: 0, calls };
   }
 
   // La fiche d'abord : elle donne le CID, cible exacte des avis (un libellé
@@ -93,11 +95,14 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
   // Sans fiche, on tente quand même les avis avec la cible d'origine : le volet
   // Avis a sa propre recherche et peut réussir là où la fiche échoue.
   const reviewsTarget: Target | null = cid ? { cid } : "keyword" in target ? target : "placeId" in target ? target : null;
-  const [reviewsRes] = await Promise.allSettled([
-    reviewsTarget ? readReviews(reviewsTarget, calls) : Promise.reject(new Error("Fiche introuvable : avis non demandés.")),
-  ]);
-
   const info = infoRes.status === "fulfilled" ? infoRes.value.info : null;
+  // Volet C en même temps que nos avis : les deux attendent DataForSEO.
+  const [reviewsRes, scanRes] = await Promise.allSettled([
+    reviewsTarget ? readReviews(reviewsTarget, calls) : Promise.reject(new Error("Fiche introuvable : avis non demandés.")),
+    info?.latitude != null && info.longitude != null
+      ? scanNeighbors({ cid: info.cid, name: info.title ?? "", category: info.category, additionalCategories: info.additional_categories, lat: info.latitude, lng: info.longitude, calls })
+      : Promise.reject(new Error("Coordonnées de la fiche inconnues : concurrents non recherchés.")),
+  ]);
   const reviews = reviewsRes.status === "fulfilled" ? reviewsRes.value : null;
 
   // Volet D
@@ -136,13 +141,33 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
       try {
         const themes = await analyseThemes({ name: info?.title ?? "ce restaurant", category: info?.category ?? null, reviews: reviews.reviews, topics: info?.place_topics ?? null });
         avis.result.themes = themes;
-        calls.claude_tokens_in = themes.tokens.input;
-        calls.claude_tokens_out = themes.tokens.output;
+        calls.claude_tokens_in = (calls.claude_tokens_in ?? 0) + themes.tokens.input;
+        calls.claude_tokens_out = (calls.claude_tokens_out ?? 0) + themes.tokens.output;
       } catch (e) {
         avis.result.themes = null;
         avis.result.themesError = reason(e);
       }
     }
+  }
+
+  // Volet C : plan d'attaque une fois nos thèmes connus.
+  let concurrents: Measured["concurrents"];
+  if (scanRes.status === "fulfilled" && info) {
+    const res = await finishCompetitors(
+      scanRes.value,
+      {
+        name: info.title ?? "",
+        rating: info.rating?.value ?? null,
+        reviews: info.rating?.votes_count ?? null,
+        photos: info.total_photos,
+        hasOrderButton: !!(info as BusinessInfo & { book_online_url?: string | null }).book_online_url,
+        themes: avis.status === "ok" ? avis.result.themes ?? null : null,
+      },
+      calls,
+    );
+    concurrents = { status: "ok", source: "dataforseo", raw: null, result: res, cost: scanRes.value.cost };
+  } else {
+    concurrents = { status: "echec", source: "dataforseo", error: reason((scanRes as PromiseRejectedResult).reason ?? "Fiche introuvable."), cost: 0 };
   }
 
   // Volet A
@@ -178,18 +203,24 @@ export async function measure(target: Target, now = new Date()): Promise<Measure
     responseRate: responses?.level ?? null,
     negativeThemes: avis.status === "ok" && avis.result.themes ? engineThemes(avis.result.themes.negatives) : [],
     ficheGaps: fiche.status === "ok" ? fiche.result.score.gaps : [],
+    gapsCoveredByCompetitors: concurrents.status === "ok" ? concurrents.result.gapsCovered : [],
+    position: concurrents.status === "ok" ? concurrents.result.position : null,
+    reviewVolume: concurrents.status === "ok" ? concurrents.result.reviewVolume : null,
+    price: priceSignal(info?.price_level ?? null),
   };
   const scores = {
     fiche: fiche.status === "ok" ? fiche.result.score.score : null,
     avis: avis.status === "ok" ? scoreReviews(rating, avis.result, trend) : null,
+    concurrents: concurrents.status === "ok" ? concurrents.result.score.score : null,
   };
   return {
     fiche,
+    concurrents,
     avis,
     signals,
     recommendations: recommend(signals),
     scores,
-    costUsd: Math.round((fiche.cost + avis.cost) * 10000) / 10000,
+    costUsd: Math.round((fiche.cost + avis.cost + concurrents.cost) * 10000) / 10000,
     calls,
   };
 }

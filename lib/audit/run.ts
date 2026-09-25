@@ -36,7 +36,9 @@ export async function runAudit(auditId: string, target: Target): Promise<void> {
       ? { status: "ok", source: m.avis.source, raw: m.avis.raw, result: m.avis.result, cost_usd: m.avis.cost }
       : { status: m.avis.status, source: m.avis.source, error: m.avis.error });
     // Volets C et B : PR 3 et 4.
-    await saveSection(auditId, "concurrents", { status: "non_branche", error: "Volet pas encore livré (ADR 0069 §7, PR 3)." });
+    await saveSection(auditId, "concurrents", m.concurrents.status === "ok"
+      ? { status: "ok", source: m.concurrents.source, result: m.concurrents.result, cost_usd: m.concurrents.cost }
+      : { status: m.concurrents.status, source: m.concurrents.source, error: m.concurrents.error });
     await saveSection(auditId, "reseaux", { status: "non_branche", error: "Volet pas encore livré (ADR 0069 §7, PR 4)." });
 
     const allFailed = m.fiche.status !== "ok" && m.avis.status !== "ok";

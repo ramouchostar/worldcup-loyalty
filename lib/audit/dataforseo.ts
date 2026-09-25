@@ -188,3 +188,67 @@ export async function getReviews(taskId: string): Promise<ReviewsResult> {
     cost: task.cost ?? 0,
   };
 }
+
+/** Un établissement tel que Google Maps le classe pour une recherche, à un endroit. */
+export interface MapsResult {
+  rank: number;
+  cid: string | null;
+  title: string;
+  category: string | null;
+  rating: number | null;
+  reviews: number | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  totalPhotos: number | null;
+  isClaimed: boolean | null;
+  hasWebsite: boolean;
+  hasOrderButton: boolean;
+  priceLevel: string | null;
+}
+
+type RawMapsItem = {
+  rank_group?: number;
+  cid?: string | null;
+  title?: string;
+  category?: string | null;
+  rating?: { value?: number | null; votes_count?: number | null } | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  total_photos?: number | null;
+  is_claimed?: boolean | null;
+  url?: string | null;
+  book_online_url?: string | null;
+  price_level?: string | null;
+};
+
+/**
+ * Recherche Google Maps « comme un client posté à ces coordonnées »
+ * (serp/google/maps/live/advanced, ≈ 0,002 $ — vérifié le 2026-09-25). Sert au
+ * volet Concurrents et à la grille de positionnement local.
+ */
+export async function mapsSearch(keyword: string, lat: number, lng: number, zoom = 15, depth = 20): Promise<{ items: MapsResult[]; cost: number }> {
+  const task = await call<{ items: RawMapsItem[] | null }>("serp/google/maps/live/advanced", [
+    { keyword, location_coordinate: `${lat},${lng},${zoom}z`, language_code: "fr", depth },
+  ]);
+  if (task.status_code === NO_RESULTS) return { items: [], cost: task.cost ?? 0 };
+  if (task.status_code !== 20000) throw new DataForSeoError(task.status_message, task.status_code);
+  const items = (task.result?.[0]?.items ?? []).map((i) => ({
+    rank: i.rank_group ?? 0,
+    cid: i.cid ?? null,
+    title: i.title ?? "",
+    category: i.category ?? null,
+    rating: i.rating?.value ?? null,
+    reviews: i.rating?.votes_count ?? null,
+    address: i.address ?? null,
+    latitude: i.latitude ?? null,
+    longitude: i.longitude ?? null,
+    totalPhotos: i.total_photos ?? null,
+    isClaimed: i.is_claimed ?? null,
+    hasWebsite: !!i.url,
+    hasOrderButton: !!i.book_online_url,
+    priceLevel: i.price_level ?? null,
+  }));
+  return { items, cost: task.cost ?? 0 };
+}
