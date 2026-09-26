@@ -37,8 +37,9 @@ const DESCRIPTION =
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
-  openGraph: { title: `Boosteats — ${TITLE}`, description: DESCRIPTION, url: "https://boosteats.tech", siteName: "Boosteats", locale: "fr_BE", type: "website" },
-  twitter: { card: "summary_large_image", title: `Boosteats — ${TITLE}`, description: DESCRIPTION },
+  // `images` est redonné : un openGraph de page remplace celui du layout, image comprise.
+  openGraph: { title: `Boosteats — ${TITLE}`, description: DESCRIPTION, url: "https://boosteats.tech", siteName: "Boosteats", locale: "fr_BE", type: "website", images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: `Boosteats — ${TITLE}`, description: DESCRIPTION, images: ["/opengraph-image"] },
 };
 
 export default function RestaurateursLandingPage() {
