@@ -9,11 +9,15 @@ import { RestaurantSearchBar } from "@/components/audit-gratuit/RestaurantSearch
 // phrase, puis la console dans un iPhone posé sur un panneau vert. Le bouton
 // principal flotte sur le bas du téléphone, comme la barre de recherche
 // d'Owner — il reste le premier geste de la page.
-const BOOSTED_BENEFITS = [
-  "la fidélité des clients",
-  "les ventes directes",
-  "la place sur Google",
-  "le bouche-à-oreille",
+//
+// Titre (2026-09-26, demande du porteur) : on ne vend plus des fonctions
+// (fidélité, commande…) mais la fin d'un problème que le restaurateur vit
+// déjà. Chaque mot tournant est une douleur concrète, dite comme il la dit.
+const PROBLEMS = [
+  "la salle vide.",
+  "le jeudi soir creux.",
+  "le chiffre d'affaires qui baisse.",
+  "les clients qui ne reviennent pas.",
 ];
 
 export function Hero() {
@@ -30,16 +34,16 @@ export function Hero() {
       <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-14 sm:pt-20 pb-16 sm:pb-20">
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
-            <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
-              L&apos;assistant qui booste
-              <br />
-              <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-dark" />
-            </h1>
-          </Reveal>
-          <Reveal delay={100}>
-            <p className="font-landing text-base sm:text-lg leading-[1.6] text-ink-muted mt-5 max-w-[560px] mx-auto">
-              Fidélité, commande en ligne et acquisition : tout ce qui remplit un restaurant, dans une seule app.
+            <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
+              ▶ L&apos;assistant marketing des restaurateurs
             </p>
+          </Reveal>
+          <Reveal delay={80}>
+            <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
+              Fini
+              <br />
+              <RotatingWords words={PROBLEMS} className="text-moss-dark" />
+            </h1>
           </Reveal>
           {/* ADR 0071 — premier geste de la page : chercher son établissement, puis l'audit gratuit. */}
           <Reveal delay={150}>
