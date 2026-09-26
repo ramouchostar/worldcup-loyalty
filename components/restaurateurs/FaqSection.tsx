@@ -4,28 +4,28 @@ import { Reveal } from "./motion";
 
 const QUESTIONS = [
   {
-    q: "Est-ce que ça ralentit mon comptoir ?",
-    a: "Non. Ton client photographie son ticket après avoir payé, sur place ou une fois assis. Ta caisse et ton service ne changent pas d'un pouce, et ton équipe n'a rien à manipuler.",
+    q: "Le programme ralentit-il le comptoir ?",
+    a: "Non. Le client photographie son ticket après avoir payé, sur place ou une fois assis. La caisse et le service ne changent pas d'un pouce, et l'équipe n'a rien à manipuler.",
   },
   {
-    q: "Mes clients peuvent-ils dépenser leurs points ailleurs ?",
-    a: "Non. Les points qu'un client cumule chez toi sont valables uniquement chez toi. Boosteats ne mutualise pas les clients entre établissements — tu ne finances jamais la fidélité du resto d'en face.",
+    q: "Les clients peuvent-ils dépenser leurs points ailleurs ?",
+    a: "Non. Les points cumulés dans un établissement n'y sont valables que là. Boosteats ne mutualise pas les clients entre établissements — personne ne finance la fidélité du restaurant d'en face.",
   },
   {
-    q: "Dois-je valider des tickets tous les jours ?",
-    a: "Non. La lecture des tickets est automatique. Seuls les cas ambigus remontent, et ils se valident tout seuls après un délai si tu n'y touches pas. Le programme ne se bloque jamais, même si tu pars deux semaines.",
+    q: "Faut-il valider des tickets tous les jours ?",
+    a: "Non. La lecture des tickets est automatique. Seuls les cas ambigus remontent, et ils se valident tout seuls après un délai sans intervention. Le programme ne se bloque jamais, même pendant deux semaines d'absence.",
   },
   {
-    q: "Dois-je vous donner mes prix d'achat ?",
-    a: "Non, ils sont optionnels. Le programme démarre avec des marges estimées. Si tu nous donnes tes prix de revient, les cadeaux se calibrent au centime près sur tes vrais coûts — c'est un gain de précision, pas une condition d'accès. Ces données ne sont visibles que par toi.",
+    q: "Faut-il communiquer ses prix d'achat ?",
+    a: "Non, ils sont optionnels. Le programme démarre avec des marges estimées. Une fois les prix de revient renseignés, les cadeaux se calibrent au centime près sur les coûts réels — un gain de précision, pas une condition d'accès. Ces données ne sont visibles que par l'établissement.",
   },
   {
-    q: "Comment vous gagnez de l'argent ?",
-    a: "Par abonnement, sur nos plans payants uniquement. Zéro commission sur ton chiffre d'affaires, zéro marge prise sur tes ventes, et nous ne revendons aucune donnée. Le plan gratuit est financé par les plans supérieurs.",
+    q: "Comment Boosteats gagne-t-il de l'argent ?",
+    a: "Par abonnement, sur nos plans payants uniquement. Zéro commission sur le chiffre d'affaires, zéro marge prise sur les ventes, et aucune donnée revendue. Le plan gratuit est financé par les plans supérieurs.",
   },
   {
-    q: "Et si j'arrête ?",
-    a: "Aucun engagement, aucune durée minimum. Tu récupères ta base client complète en export, et tu arrêtes quand tu veux.",
+    q: "Et en cas d'arrêt ?",
+    a: "Aucun engagement, aucune durée minimum. La base client complète est récupérable en export, et l'arrêt est possible à tout moment.",
   },
 ];
 
@@ -35,7 +35,7 @@ export function FaqSection() {
       <Reveal>
         <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Objections</p>
         <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[640px] text-pretty">
-          Ce que tu veux savoir avant de signer.
+          Les questions à se poser avant de signer.
         </h2>
       </Reveal>
 

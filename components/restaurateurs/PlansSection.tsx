@@ -4,12 +4,12 @@ import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal } from "./motion";
 
 const FREE_FEATURES = [
-  "Récompenses à marge protégée, calculées sur ta carte",
+  "Récompenses à marge protégée, calculées sur la carte",
   "Parrainage et équipes, sans limite",
   "Lecture automatique des tickets",
   "Tableau de bord complet : CA généré, marge, gain net",
-  "Supports imprimables à ta charte",
-  "Visibilité sur la page réseau de ton secteur",
+  "Supports imprimables à la charte de l'enseigne",
+  "Visibilité sur la page réseau du secteur",
 ];
 
 const GROWTH_FEATURES = [
@@ -20,8 +20,8 @@ const GROWTH_FEATURES = [
 ];
 
 const PRO_FEATURES = [
-  "Vue consolidée sur l'ensemble de tes points de vente",
-  "Repères anonymisés de ton secteur et de ta zone",
+  "Vue consolidée sur l'ensemble des points de vente",
+  "Repères anonymisés du secteur et de la zone",
   "Accompagnement dédié",
 ];
 
@@ -67,7 +67,7 @@ export function PlansSection() {
                 199 €<span className="text-sm font-normal text-ink-muted">/mois par établissement</span>
               </p>
               <p className="text-sm text-ink-muted mt-2 mb-5">
-                Tout le plan gratuit, plus l&apos;analytique qui pilote tes ventes.
+                Tout le plan gratuit, plus l&apos;analytique qui pilote les ventes.
               </p>
               <div className="flex flex-col gap-3">
                 {GROWTH_FEATURES.map((f) => (

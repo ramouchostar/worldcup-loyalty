@@ -5,31 +5,31 @@ import { MemberAppMockup } from "./MemberAppMockup";
 
 const FIDELITY_POINTS = [
   "Le cadeau ne peut jamais coûter plus que le CA qu'il a généré",
-  "Les points sont valables uniquement chez toi — tes clients ne partent pas les dépenser ailleurs",
-  "Le client photographie son ticket après avoir payé : ton comptoir ne ralentit jamais",
-  "L'app porte ton nom, tes couleurs, ton logo",
+  "Les points ne sont valables que dans l'établissement — les clients ne partent pas les dépenser ailleurs",
+  "Le client photographie son ticket après avoir payé : le comptoir ne ralentit jamais",
+  "L'app porte le nom, les couleurs et le logo de l'établissement",
 ];
 
 const CLIENT_STEPS = [
   {
     n: "01",
     title: "Il paie normalement",
-    desc: "Aucun changement à ta caisse, aucun matériel à installer.",
+    desc: "Aucun changement en caisse, aucun matériel à installer.",
   },
   {
     n: "02",
-    title: "Il scanne ton QR, puis photographie son ticket",
-    desc: "Après paiement, tranquillement. Aucune saisie de ta part.",
+    title: "Il scanne le QR code, puis photographie son ticket",
+    desc: "Après paiement, tranquillement. Aucune saisie pour l'équipe.",
   },
   {
     n: "03",
-    title: "Il cumule chez toi",
-    desc: "Ses points ne sont valables que dans ton établissement.",
+    title: "Il cumule des points",
+    desc: "Valables uniquement dans l'établissement.",
   },
   {
     n: "04",
     title: "Il revient chercher son cadeau",
-    desc: "Tu connais son coût exact à l'avance.",
+    desc: "Son coût exact est connu à l'avance.",
   },
 ];
 
@@ -44,10 +44,10 @@ export function FidelitySection() {
               Le cadeau n&apos;est pas une remise. C&apos;est un rendez-vous.
             </h2>
             <p className="font-landing text-base leading-[1.7] text-ink-muted mt-5">
-              Une remise coûte de l&apos;argent sur une vente que tu allais faire de toute façon. Un cadeau
+              Une remise coûte de l&apos;argent sur une vente qui aurait eu lieu de toute façon. Un cadeau
               Boosteats se débloque après un chiffre d&apos;affaires déjà encaissé, et son coût est calculé sur
-              ton propre prix de revient. C&apos;est ce qui fait revenir un client une fois de plus dans le mois
-              sans jamais entamer ta marge.
+              le prix de revient réel de l&apos;établissement. C&apos;est ce qui fait revenir un client une fois
+              de plus dans le mois, sans jamais entamer la marge.
             </p>
 
             <div className="bg-white border-[1.5px] border-moss-tint2 rounded-xl px-5 py-[18px] mt-6">
@@ -77,8 +77,8 @@ export function FidelitySection() {
             </div>
 
             <p className="text-xs text-ink-faint mt-5">
-              Le programme fonctionne aujourd&apos;hui sur tes commandes sur place et à emporter. La prise de
-              commande en direct arrive prochainement.
+              Le programme couvre aujourd&apos;hui les commandes sur place et à emporter. La prise de commande
+              en direct arrive prochainement.
             </p>
           </div>
         </Reveal>
@@ -93,7 +93,7 @@ export function FidelitySection() {
       <Reveal delay={80}>
         <div className="mt-16 lg:mt-20">
           <h3 className="font-display text-xl font-bold text-ink text-center mb-8">
-            Comment ça se passe pour ton client
+            Comment cela se passe pour le client
           </h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {CLIENT_STEPS.map((s) => (

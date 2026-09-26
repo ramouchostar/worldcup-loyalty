@@ -6,9 +6,9 @@ import { BrowserWindow } from "./BrowserWindow";
 import { DashboardMockup } from "./DashboardMockup";
 
 const BOOSTED_BENEFITS = [
-  "ton volume de commandes",
-  "la fidélité de tes clients",
-  "ton revenu net",
+  "le volume de commandes",
+  "la fidélité des clients",
+  "le revenu net",
   "le bouche-à-oreille",
 ];
 
@@ -32,16 +32,16 @@ export function Hero() {
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
-              Ton assistant qui booste
+              L&apos;assistant qui booste
               <br />
               <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-dark" />
             </h1>
           </Reveal>
           <Reveal delay={160}>
             <p className="font-landing text-base sm:text-lg leading-[1.7] text-ink-muted mt-6 max-w-[640px] mx-auto">
-              Reprends la main sur les clients que les plateformes de livraison te prennent. Chaque cadeau est
-              calculé sur ton propre prix de revient et plafonné par le CA qu&apos;il a généré. Côté client,
-              l&apos;app porte ton nom, tes couleurs et ton logo.
+              Reprendre la main sur les clients que captent les plateformes de livraison. Chaque cadeau est
+              calculé sur le prix de revient réel de l&apos;établissement et plafonné par le CA qu&apos;il a
+              généré. Côté client, l&apos;app porte le nom, les couleurs et le logo de l&apos;enseigne.
             </p>
           </Reveal>
           <Reveal delay={240}>

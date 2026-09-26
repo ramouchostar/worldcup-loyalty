@@ -29,9 +29,9 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 export const revalidate = 300;
 
 export const metadata = {
-  title: "Fidélité qui protège ta marge, gratuite à vie",
+  title: "Fidélité qui protège la marge, gratuite à vie",
   description:
-    "Un programme de fidélité qui ne peut jamais coûter plus qu'il ne rapporte — cadeaux calculés sur ta marge, parrainage, tableau de bord. Gratuit à vie, 0% de commission.",
+    "Un programme de fidélité qui ne peut jamais coûter plus qu'il ne rapporte — cadeaux calculés sur la marge, parrainage, tableau de bord. Gratuit à vie, 0% de commission.",
 };
 
 export default function RestaurateursLandingPage() {

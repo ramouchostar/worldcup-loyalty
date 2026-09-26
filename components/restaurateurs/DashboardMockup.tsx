@@ -73,14 +73,14 @@ export function DashboardMockup() {
 
           <div className="bg-white border-[1.5px] border-moss-tint2 rounded-xl overflow-hidden">
             <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark m-0 px-5 pt-[15px] pb-[11px]">
-              ▶ Opportunités pour toi
+              ▶ Opportunités de la semaine
             </p>
             <div className="flex items-center gap-[14px] px-5 py-[13px] border-t border-paper-border">
               <div className="w-9 h-9 rounded-[9px] bg-moss-tint text-moss-dark flex items-center justify-center shrink-0">
                 <BulbIcon />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold m-0">Mardi soir est ton creux de la semaine</p>
+                <p className="text-sm font-semibold m-0">Mardi soir est le creux de la semaine</p>
                 <p className="text-xs text-ink-muted mt-0.5 mb-0">-34% de CA vs les autres soirs</p>
               </div>
               <span className="shrink-0 bg-moss text-white text-xs font-bold rounded-lg px-3.5 py-[7px]">
@@ -92,7 +92,7 @@ export function DashboardMockup() {
           <div className="bg-ink rounded-xl px-5 py-[18px]">
             <div className="flex items-center justify-between mb-3.5">
               <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-light m-0">
-                Ce que le programme t&apos;a rapporté
+                Ce que le programme a rapporté
               </p>
               <span className="text-xs font-semibold text-moss-light">Détail par plat →</span>
             </div>

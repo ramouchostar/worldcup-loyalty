@@ -17,7 +17,7 @@ export function InsightsMockupMobile() {
         <div ref={contentRef} className="flex flex-col gap-3 font-landing p-4">
           <div>
             <h3 className="font-display text-lg font-bold tracking-tight text-ink m-0">Opportunités</h3>
-            <p className="text-ink-muted text-xs mt-0.5 mb-0">4 suggestions calculées sur tes 30 derniers jours</p>
+            <p className="text-ink-muted text-xs mt-0.5 mb-0">4 suggestions calculées sur les 30 derniers jours</p>
           </div>
 
           <div className="bg-white border-[1.5px] border-moss-tint2 rounded-xl p-4">
@@ -31,7 +31,7 @@ export function InsightsMockupMobile() {
               Promo « 2 menus achetés, 1 dessert offert » le mardi
             </p>
             <p className="text-xs text-ink-muted mt-1.5 mb-3">
-              Le mardi fait 34% de CA en moins que ta moyenne. Le dessert te coûte 0,42 € et remonte le panier moyen
+              Le mardi fait 34% de CA en moins que la moyenne. Le dessert coûte 0,42 € et remonte le panier moyen
               de 3,80 €.
             </p>
             <div className="flex gap-4 pb-3 mb-3 border-b border-paper-border">

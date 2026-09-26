@@ -18,7 +18,7 @@ const BAR_COLOR: Record<(typeof DAYS)[number]["tone"], string> = {
   best: "bg-moss",
 };
 
-// Mockup "ce que le programme t'a rapporté" (bloc Console/Pilotage) — distinct
+// Mockup "ce que le programme a rapporté" (bloc Console/Pilotage) — distinct
 // de DashboardMockup (réservé au Hero, inchangé) : ici uniquement les chiffres
 // d'impact + la prévision, sans sidebar ni file de tâches. Basé sur les
 // tickets scannés (jamais "ventes caisse" — aucune intégration caisse
@@ -34,7 +34,7 @@ export function ConsoleImpactMockup() {
       <div className="bg-ink rounded-xl px-6 py-[22px]">
         <div className="flex items-center justify-between mb-3.5">
           <p className="font-mono text-[10.5px] tracking-[0.12em] uppercase text-moss-light m-0">
-            Ce que le programme t&apos;a rapporté — 30 derniers jours
+            Ce que le programme a rapporté — 30 derniers jours
           </p>
           <span className="text-xs font-semibold text-moss-light">Détail par plat →</span>
         </div>
@@ -75,7 +75,7 @@ export function ConsoleImpactMockup() {
           ))}
         </div>
         <p className="text-[12.5px] text-ink-muted mt-4 mb-0 pt-3.5 border-t border-paper-border">
-          Vendredi reste ton meilleur soir. Mardi décroche depuis 3 semaines — une promo ciblée t&apos;attend dans
+          Vendredi reste le meilleur soir. Mardi décroche depuis 3 semaines — une promo ciblée attend dans
           Opportunités.
         </p>
       </div>
