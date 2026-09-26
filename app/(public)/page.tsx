@@ -27,10 +27,18 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 
 export const revalidate = 300;
 
+const TITLE = "Fidélité, commande en ligne et Google pour les restaurants";
+const DESCRIPTION =
+  "Faire revenir les clients avec une fidélité gratuite à vie, vendre en direct sur son propre site sans laisser 30 % à une plateforme, et être trouvé sur Google. Chaque mois, ce que cela a rapporté.";
+
+// L'aperçu de partage (WhatsApp, LinkedIn) reprenait sinon celui du layout
+// racine, écrit pour les membres (« Rejoins ton équipe… ») : la landing
+// prospects a le sien, en impersonnel (CONTEXT.md, registre de la landing).
 export const metadata = {
-  title: "Fidélité, commande en ligne et Google pour les restaurants",
-  description:
-    "Faire revenir les clients avec une fidélité gratuite à vie, vendre en direct sur son propre site sans laisser 30 % à une plateforme, et être trouvé sur Google. Chaque mois, ce que cela a rapporté.",
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: { title: `Boosteats — ${TITLE}`, description: DESCRIPTION, url: "https://boosteats.tech", siteName: "Boosteats", locale: "fr_BE", type: "website" },
+  twitter: { card: "summary_large_image", title: `Boosteats — ${TITLE}`, description: DESCRIPTION },
 };
 
 export default function RestaurateursLandingPage() {
