@@ -9,10 +9,9 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 // a déménagé vers /membres (voir app/(public)/membres/page.tsx) — /restaurateurs
 // redirige ici en 308 (next.config.mjs) pour ne pas casser les liens existants.
 //
-// Redesign m55 (2026-08-08) : remplace l'ancienne page par le design Claude
-// "Landing Restaurateurs" (import via claude_design MCP), reconstruit en
-// composants React sous components/restaurateurs/ avec mise en scène
-// dynamique au scroll (cf. motion.tsx).
+// Redesign m55 (2026-08-08), refondu le 2026-09-26 sur le modèle
+// d'owner.com : peu de texte, un iPhone qui montre chaque fonctionnalité
+// (visite guidée au défilement, components/restaurateurs/FeatureTour.tsx).
 // - Refonte de copie 2026-08-29, offre clarifiée 2026-09-26 (ADR 0070) :
 //   Gratuit (≤ 500 tickets/mois), Croissance 299 €/mois + 5 % des commandes
 //   passées sur le site de commande, Pro 500 €/mois sans commission (3 mois

@@ -10,7 +10,7 @@ import { HeroPhoneMockup } from "./HeroPhoneMockup";
 // d'Owner — il reste le premier geste de la page.
 const BOOSTED_BENEFITS = [
   "tes clients fidèles",
-  "tes commandes en direct",
+  "tes ventes directes",
   "ta place sur Google",
   "le bouche-à-oreille",
 ];
@@ -37,7 +37,7 @@ export function Hero() {
           </Reveal>
           <Reveal delay={100}>
             <p className="font-landing text-base sm:text-lg leading-[1.6] text-ink-muted mt-5 max-w-[560px] mx-auto">
-              Fidélité, commande en ligne et Google : tout ce qui remplit ton resto, dans une seule app.
+              Fidélité, commande en ligne et acquisition : tout ce qui remplit ton resto, dans une seule app.
             </p>
           </Reveal>
         </div>

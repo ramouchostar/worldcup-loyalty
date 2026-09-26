@@ -4,27 +4,10 @@ import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, useParallaxOffset } from "./motion";
 
 const STEPS = [
-  {
-    n: "01",
-    title: "Présente ton établissement",
-    desc: "Nom, ville, quartier, réseaux sociaux. Deux minutes.",
-  },
-  {
-    n: "02",
-    title: "Envoie ta carte, comme tu l'as",
-    desc: "Une photo, un PDF, un fichier Excel : on prend ce que tu as et on s'occupe de la mise en forme. Tu n'as rien à préparer.",
-  },
-  {
-    n: "03",
-    title: "Complète tes coûts, si tu veux",
-    desc: "Une page simple, produit par produit, que tu remplis à ton rythme. Tu peux la laisser vide : le programme tourne avec des marges estimées et se précisera quand tu la compléteras.",
-    optional: true,
-  },
-  {
-    n: "04",
-    title: "Lance-toi",
-    desc: "On valide ton établissement, ton QR code et tes supports imprimables sont prêts à présenter à tes clients.",
-  },
+  { n: "01", title: "Présente ton resto", desc: "Nom, adresse, réseaux. Deux minutes." },
+  { n: "02", title: "Envoie ta carte", desc: "Photo, PDF ou Excel : on s'occupe du reste." },
+  { n: "03", title: "Tes coûts, si tu veux", desc: "Sinon, on part sur des marges estimées.", optional: true },
+  { n: "04", title: "Lance-toi", desc: "Ton QR code et tes affiches sont prêts." },
 ];
 
 export function StepsSection() {
@@ -42,7 +25,7 @@ export function StepsSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-light mb-3.5">▶ Démarrer</p>
           <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-white max-w-[620px] text-pretty">
-            Ton programme est prêt en quatre étapes.
+            Prêt en quatre étapes.
           </h2>
         </Reveal>
 

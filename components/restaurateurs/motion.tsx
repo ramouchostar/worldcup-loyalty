@@ -266,9 +266,24 @@ export function RotatingWords({
     };
   }, [words.length, interval, reduced]);
 
+  // Tous les mots sont empilés dans la même case (grille) : la hauteur est
+  // celle du plus long, la mise en page ne saute plus quand un mot passe
+  // sur deux lignes (mobile). Seul le mot actif est visible et lu.
   return (
-    <span className={className} style={{ opacity: visible ? 1 : 0, transition: "opacity 250ms ease" }}>
-      {words[index]}
+    <span className={`inline-grid ${className ?? ""}`}>
+      {words.map((w, i) => (
+        <span
+          key={w}
+          className="col-start-1 row-start-1"
+          aria-hidden={i !== index}
+          style={{
+            opacity: i === index && visible ? 1 : 0,
+            transition: "opacity 250ms ease",
+          }}
+        >
+          {w}
+        </span>
+      ))}
     </span>
   );
 }

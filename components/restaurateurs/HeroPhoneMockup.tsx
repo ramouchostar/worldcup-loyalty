@@ -2,6 +2,7 @@
 
 import { Gift, MapPin, Megaphone, Repeat, ShoppingBag } from "lucide-react";
 import { FillBar } from "./motion";
+import { PhoneFrame } from "./PhoneFrame";
 
 // Héros (2026-09-26, inspiré d'owner.com) : la console restaurateur en vue
 // simple (ADR 0064 — accueil, objectif du jour, à faire, onglets Accueil ·
@@ -22,19 +23,8 @@ const TABS = ["Accueil", "Tickets", "Annonces", "Plus"];
 
 export function HeroPhoneMockup() {
   return (
-    <div className="w-[280px] sm:w-[310px] rounded-[46px] bg-ink p-[10px] shadow-[0_30px_80px_rgba(10,10,10,0.35)]">
-      <div className="relative bg-paper rounded-[37px] overflow-hidden font-landing">
-        {/* Barre d'état + îlot */}
-        <div className="flex items-center justify-between px-6 pt-3 pb-1">
-          <span className="text-[12px] font-semibold text-ink">9:41</span>
-          <span className="absolute left-1/2 -translate-x-1/2 top-2.5 w-[86px] h-[24px] rounded-full bg-ink" />
-          <span className="flex items-center gap-1" aria-hidden>
-            <span className="w-[14px] h-[8px] rounded-[2px] bg-ink/80" />
-            <span className="w-[20px] h-[9px] rounded-[3px] border border-ink/70 p-[1px]">
-              <span className="block h-full w-3/4 rounded-[1px] bg-ink/80" />
-            </span>
-          </span>
-        </div>
+    <PhoneFrame>
+        <div className="h-9" />
 
         <div className="px-4 pt-3 pb-4 flex flex-col gap-2.5">
           {/* En-tête établissement */}
@@ -108,7 +98,6 @@ export function HeroPhoneMockup() {
             </span>
           ))}
         </div>
-      </div>
-    </div>
+    </PhoneFrame>
   );
 }
