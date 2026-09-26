@@ -79,8 +79,8 @@ export function SharePanel({
           <div className={s.shareRow}>
             <span className={s.shareLink} title={origin + latest.path}>{origin.replace(/^https?:\/\//, "") + latest.path}</span>
             <CopyButton url={origin + latest.path} />
-            <a className={s.btnGhost} href={latest.path} target="_blank" rel="noreferrer">Ouvrir</a>
-            <a className={s.btnGhost} href={`${latest.path}?pdf=1`} target="_blank" rel="noreferrer">Télécharger en PDF</a>
+            <a className={s.btnGhost} href={origin + latest.path} target="_blank" rel="noreferrer">Ouvrir</a>
+            <a className={s.btnGhost} href={`${origin}${latest.path}?pdf=1`} target="_blank" rel="noreferrer">Télécharger en PDF</a>
           </div>
           <span className={s.sum} style={{ fontWeight: 500 }}>
             Version {latest.version} du {day(latest.createdAt)} · {latest.views === 0 ? "pas encore ouvert" : `ouvert ${latest.views} fois, dernière fois le ${day(latest.lastViewedAt!)}`} · valable jusqu&apos;au {day(latest.expiresAt)}. Les modifications faites après ne changent pas ce lien : fige une nouvelle version.
@@ -96,7 +96,7 @@ export function SharePanel({
             {older.map((x) => (
               <li key={x.shareId}>
                 v{x.version} du {day(x.createdAt)} · {x.views} ouverture{x.views > 1 ? "s" : ""} ·{" "}
-                {x.revokedAt ? `révoqué le ${day(x.revokedAt)}` : new Date(x.expiresAt).getTime() < Date.now() ? "expiré" : <a href={x.path} target="_blank" rel="noreferrer">ouvrir</a>}
+                {x.revokedAt ? `révoqué le ${day(x.revokedAt)}` : new Date(x.expiresAt).getTime() < Date.now() ? "expiré" : <a href={origin + x.path} target="_blank" rel="noreferrer">ouvrir</a>}
                 {!x.revokedAt && new Date(x.expiresAt).getTime() > Date.now() && (
                   <form action={revoke.bind(null, x.shareId)} style={{ display: "inline" }}>
                     {" · "}
