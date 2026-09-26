@@ -18,6 +18,7 @@ export function Header() {
           BOOST<span className="text-moss">EATS</span>
         </span>
         <nav className="hidden md:flex items-center gap-7">
+          <NavLink href="/audit-gratuit">Audit gratuit</NavLink>
           <NavLink href="#fonctionnalites">Fonctionnalités</NavLink>
           <NavLink href="#plans">Plans</NavLink>
           <NavLink href="#questions">Questions</NavLink>
