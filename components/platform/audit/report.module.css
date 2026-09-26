@@ -1254,3 +1254,29 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.heroCta {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 16px;
+  background: var(--olive);
+  color: #fff;
+  border-radius: 12px;
+  padding: 11px 18px;
+  font: 800 14px var(--display);
+  text-decoration: none;
+}
+.heroCta:hover {
+  filter: brightness(0.95);
+}
+.heroCta:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: 2px;
+}
+.leversLine {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.report {
+  scroll-behavior: smooth;
+}

@@ -229,12 +229,12 @@ const RATING_TEXT: Record<RatingBand, { label: string; goal: string; impact: num
 const VOLUME_TEXT: Record<Level, { label: string; step: string; impact: number }> = {
   faible: {
     label: "avec moins d'avis que les voisins",
-    step: "Demander un avis à chaque client content, au moment où il le dit : QR code sur le comptoir et sur le ticket, lien direct vers la fiche.",
+    step: "Demander un avis à chaque client content, au bon moment : avec Boosteats, vos habitués sont invités à laisser leur avis Google depuis leur espace, après leur visite.",
     impact: 1,
   },
   moyen: {
     label: "avec autant d'avis que les voisins",
-    step: "Viser 10 avis de plus par mois avec un QR code au comptoir : la fraîcheur des avis compte autant que leur nombre.",
+    step: "Viser 10 avis de plus par mois : la fraîcheur des avis compte autant que leur nombre. Boosteats invite chaque habitué à laisser le sien.",
     impact: 0,
   },
   fort: {
@@ -249,6 +249,10 @@ const REP_TREND: Record<Trend, string> = {
   stable: "La note est stable depuis un an.",
   hausse: "Les derniers mois sont meilleurs que la moyenne affichée.",
 };
+
+/** La récolte d'avis Google par Boosteats (jamais contre des points : ADR 0070 §5). */
+export const REVIEWS_LEVER =
+  "Boosteats invite chaque client fidèle à laisser son avis Google depuis son espace, après sa visite : les avis positifs arrivent sans que vous ayez à les demander. Un client déçu peut aussi vous écrire en privé.";
 
 function reputationScenarios(): Scenario[] {
   const out: Scenario[] = [];
@@ -270,7 +274,7 @@ function reputationScenarios(): Scenario[] {
           impact: clamp(r.impact + v.impact + (trend === "baisse" ? 1 : 0) - 1),
           effort: clamp(vol === "faible" ? 2 : 1),
           horizon: trend === "baisse" ? "7 jours" : "90 jours",
-          boosteats: vol === "faible" ? "Le QR code Boosteats au comptoir sert aussi à demander l'avis au bon moment : après le cadeau." : undefined,
+          boosteats: vol !== "fort" ? REVIEWS_LEVER : undefined,
           when: (s) => s.rating === rating && s.reviewVolume === vol && s.trend === trend,
         });
       }
@@ -927,7 +931,7 @@ const SEO: Record<SeoGap, { title: string; why: string; steps: string[]; impact:
     steps: [
       "Créer une page par spécialité phare (« smash burger à Anderlecht ») avec photos, prix et avis.",
       "Obtenir des liens depuis les sites du quartier (commune, associations, blogs food bruxellois).",
-      "Demander aux clients contents de citer le plat dans leur avis Google.",
+      "Demander aux clients contents de citer le plat dans leur avis Google (Boosteats invite vos habitués à laisser leur avis).",
     ],
     impact: 4,
     effort: 3,
@@ -988,3 +992,17 @@ export const SCENARIOS: readonly Scenario[] = [
   ...objectiveScenarios(),
   ...seoScenarios(),
 ];
+
+const BY_ID = new Map(SCENARIOS.map((x) => [x.id, x]));
+
+/**
+ * Un audit garde ses scénarios tels qu'au jour du calcul. À l'affichage, on
+ * reprend les textes actuels de la bibliothèque (même identifiant = même
+ * situation) : une formulation corrigée profite aussi aux audits déjà faits
+ * et aux liens déjà envoyés. Les notes et le classement ne bougent pas.
+ */
+export function withCurrentText<T extends Pick<Scenario, "id">>(stored: T): T {
+  const cur = BY_ID.get(stored.id);
+  if (!cur) return stored;
+  return { ...stored, title: cur.title, diagnostic: cur.diagnostic, steps: cur.steps, kpi: cur.kpi, boosteats: cur.boosteats };
+}
