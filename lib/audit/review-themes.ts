@@ -11,11 +11,11 @@
 // Les mots-clés de Google (place_topics) reçoivent un sens (positif / négatif /
 // neutre) et, pour les négatifs, une explication.
 
-import Anthropic from "@anthropic-ai/sdk";
+import { AUDIT_MODEL, claudeJson, nullable } from "./claude-json";
 import type { StoredReview } from "./dataforseo";
 import { NEGATIVE_THEMES, type NegativeTheme } from "./signals";
 
-export const THEMES_MODEL = "claude-sonnet-5";
+export const THEMES_MODEL = AUDIT_MODEL;
 const MAX_REVIEWS = 400;
 const MAX_CHARS = 320;
 /** Un thème négatif compte pour le moteur s'il touche au moins 8 % des avis 1–3★. */
@@ -79,9 +79,46 @@ Travail demandé, en français :
 3. topics : pour CHAQUE mot-clé de Google ci-dessus, sentiment "positif", "negatif" ou "neutre" tel que les clients l'emploient ; pour les négatifs, detail = ce que les clients reprochent, en une phrase.
 4. audience : la clientèle qui ressort des avis, en une phrase (âge, occasion, moment).
 
-N'invente rien : un thème doit s'appuyer sur les avis cités. Réponds UNIQUEMENT en JSON :
-{"negatives":[{"key":"","label":"","engine_theme":null,"reviews":[1,2],"advice":null}],"positives":[{"key":"","label":"","reviews":[3],"advice":""}],"topics":[{"keyword":"","sentiment":"positif","detail":null}],"audience":""}`;
+N'invente rien : un thème doit s'appuyer sur les avis cités.`;
 }
+
+const THEME_SCHEMA = (withEngine: boolean) => ({
+  type: "object",
+  additionalProperties: false,
+  required: withEngine ? ["key", "label", "engine_theme", "reviews", "advice"] : ["key", "label", "reviews", "advice"],
+  properties: {
+    key: { type: "string" },
+    label: { type: "string" },
+    ...(withEngine ? { engine_theme: nullable({ type: "string", enum: [...NEGATIVE_THEMES] }) } : {}),
+    reviews: { type: "array", items: { type: "integer" } },
+    advice: nullable({ type: "string" }),
+  },
+});
+
+/** Le schéma de la réponse : la sortie structurée garantit un JSON complet et valide. */
+export const THEMES_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["negatives", "positives", "topics", "audience"],
+  properties: {
+    negatives: { type: "array", items: THEME_SCHEMA(true) },
+    positives: { type: "array", items: THEME_SCHEMA(false) },
+    topics: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["keyword", "sentiment", "detail"],
+        properties: {
+          keyword: { type: "string" },
+          sentiment: { type: "string", enum: ["positif", "negatif", "neutre"] },
+          detail: nullable({ type: "string" }),
+        },
+      },
+    },
+    audience: nullable({ type: "string" }),
+  },
+};
 
 /** Extrait de l'avis réel, autour de la première phrase utile. */
 export function excerpt(text: string, max = 140): string {
@@ -147,20 +184,10 @@ export async function analyseThemes(input: {
   const lines = numbered.map((r, i) => `${i + 1}. [${r.rating ?? "?"}★] ${r.text!.replace(/\s+/g, " ").slice(0, MAX_CHARS)}`).join("\n");
   const topicWords = Object.keys(input.topics ?? {});
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const msg = await client.messages.create({
-    model: THEMES_MODEL,
-    max_tokens: 8000,
-    messages: [{ role: "user", content: prompt(input.name, input.category, lines, topicWords) }],
+  const { data: parsed, tokens } = await claudeJson<ModelOut>({
+    prompt: prompt(input.name, input.category, lines, topicWords),
+    schema: THEMES_SCHEMA,
   });
-  const raw = msg.content
-    .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
-    .map((b) => b.text)
-    .join("");
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end <= start) throw new Error(`Thèmes : pas de JSON dans la réponse (${raw.slice(0, 120)})`);
-  const parsed = JSON.parse(raw.slice(start, end + 1)) as ModelOut;
 
   const sentiments = new Map((parsed.topics ?? []).map((t) => [t.keyword.toLowerCase(), t]));
   const topics: TopicSentiment[] = Object.entries(input.topics ?? {})
@@ -177,6 +204,6 @@ export async function analyseThemes(input: {
     topics,
     audience: parsed.audience ? String(parsed.audience).slice(0, 240) : null,
     analysed: numbered.length,
-    tokens: { input: msg.usage.input_tokens, output: msg.usage.output_tokens },
+    tokens,
   };
 }
