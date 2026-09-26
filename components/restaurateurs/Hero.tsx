@@ -35,7 +35,7 @@ export function Hero() {
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
-              ▶ L&apos;assistant marketing des restaurateurs
+              ▶ L&apos;assistant IA des restaurateurs
             </p>
           </Reveal>
           <Reveal delay={80}>
