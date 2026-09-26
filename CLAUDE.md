@@ -143,6 +143,10 @@ EMAIL_REPLY_TO=                     # ADR 0063 — boîte réelle qui reçoit le
 NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://worldcup-loyalty.vercel.app
 ANTHROPIC_API_KEY=                  # vision : OCR ticket, découverte clé ticket, suggestions menu, détection de design (m48)
 NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun script Google, aucune bannière cookies, CSP fermée
+GOOGLE_PLACES_API_KEY=              # ADR 0071 — serveur uniquement : Places API (New) + PageSpeed Insights (audit gratuit). Vide = /audit-gratuit « indisponible »
+PAGESPEED_API_KEY=                  # ADR 0069 — vitesse mobile (peut être la même clé que GOOGLE_PLACES_API_KEY)
+AUDIT_PUBLIC_DAILY_MAX=             # ADR 0071 — analyses gratuites par jour pour tout le site (150 par défaut)
+AUDIT_IP_SALT=                      # ADR 0071 — sel de l'empreinte IP des demandes d'audit (jamais l'IP en clair)
 ```
 
 ### Mesure d'audience — voir `docs/tracking-plan.md`
