@@ -9,7 +9,7 @@ import { gridPoints, isKnownBrand, type Competitor, type CompetitorsResult } fro
 import { neighborsMap, whoOutranks } from "@/lib/audit/neighbors-map";
 import type { Recommendations } from "@/lib/audit/recommend";
 import type { Change } from "@/lib/audit/revise";
-import { REVIEWS_LEVER, withCurrentText, type Scenario } from "@/lib/audit/scenarios";
+import { REVIEWS_LEVER, REVIEWS_PHRASE, withCurrentText, type Scenario } from "@/lib/audit/scenarios";
 import type { AuditSignals, OwnerAnswers } from "@/lib/audit/signals";
 import type { SeoResult, SeoStatus } from "@/lib/audit/seo";
 import {
@@ -923,7 +923,7 @@ function BoosteatsPlan({ name, top, answers }: { name: string; top: Scenario[]; 
         <div className={s.term}>
           <span className={s.termKey}>B</span>
           <h3>Vos avis Google montent</h3>
-          <p>Vos habitués sont invités à laisser leur avis après leur visite. Les déçus vous écrivent d&apos;abord en privé.</p>
+          <p>{REVIEWS_PHRASE}, juste après leur visite. Les déçus vous écrivent d&apos;abord en privé.</p>
         </div>
         <span className={s.op} aria-hidden="true">=</span>
         <div className={`${s.term} ${s.termResult}`}>

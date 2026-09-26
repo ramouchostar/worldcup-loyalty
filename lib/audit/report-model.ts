@@ -209,7 +209,7 @@ export function isReviewCollection(a: { title: string; why: string; steps: strin
   return /\bavis\b/i.test(a.title) && /(collect|récolt|demand|QR|obten|nouveaux avis|plus d'avis|volume)/i.test(all);
 }
 
-const REVIEW_STEP = "Activer la demande d'avis Boosteats : chaque habitué est invité à laisser son avis Google depuis son espace, après sa visite.";
+const REVIEW_STEP = "Encourager vos clients à laisser un avis avec Boosteats.";
 
 /**
  * Le plan d'attaque est rédigé par Claude : quand il propose de récolter des

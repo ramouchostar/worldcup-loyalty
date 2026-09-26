@@ -243,7 +243,7 @@ Propose 3 à 5 actions concrètes, en français, pour attirer les clients de ce 
 - why : le fait qui justifie l'action, avec le chiffre (une phrase)
 - steps : 2 ou 3 gestes précis que le gérant peut faire cette semaine
 
-Pour récolter des avis Google, ne propose pas de QR code ni de carte à fabriquer : c'est Boosteats, l'outil que nous lui présentons, qui invite ses clients fidèles à laisser leur avis. Jamais d'avis contre une récompense.`,
+Pour récolter des avis Google, ne propose pas de QR code ni de carte à fabriquer : c'est Boosteats, l'outil que nous lui présentons, qui s'en charge. Écris ce geste exactement ainsi : « Encourager vos clients à laisser un avis avec Boosteats ».`,
     schema: ATTACK_SCHEMA,
     maxTokens: 16000,
   });
