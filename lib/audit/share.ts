@@ -17,6 +17,13 @@ import { isMissingTable, type AuditRow, type SectionRow } from "./store";
 
 export const SHARE_DAYS = 90;
 
+/**
+ * Le lien envoyé au gérant est toujours sur boosteats.tech, quel que soit
+ * NEXT_PUBLIC_APP_URL (encore l'adresse vercel.app en production le
+ * 2026-09-26) : c'est notre marque qu'il doit reconnaître dans WhatsApp.
+ */
+export const SHARE_ORIGIN = "https://boosteats.tech";
+
 export interface Snapshot {
   v: 1;
   audit: Omit<AuditRow, "cost_usd" | "calls" | "created_by">;

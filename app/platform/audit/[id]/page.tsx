@@ -1,8 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAudit } from "@/lib/audit/store";
-import { listShares } from "@/lib/audit/share";
-import { APP_URL } from "@/lib/email-templates/kit";
+import { listShares, SHARE_ORIGIN } from "@/lib/audit/share";
 import { AuditReport } from "@/components/platform/audit/AuditReport";
 import { SharePanel } from "@/components/platform/audit/SharePanel";
 import { reanalyseCompetitors, reanalyseSeo, reanalyseThemes, revokeAuditShare, saveAnswers, shareAudit } from "../actions";
@@ -46,7 +45,7 @@ export default async function AuditDetailPage({ params, searchParams }: { params
         analyseSeo={reanalyseSeo.bind(null, id)}
         sharePanel={
           <SharePanel
-            origin={APP_URL}
+            origin={SHARE_ORIGIN}
             shares={shares}
             freeze={shareAudit.bind(null, id)}
             revoke={revokeAuditShare.bind(null, id)}
