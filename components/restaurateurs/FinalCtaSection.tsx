@@ -11,8 +11,7 @@ export function FinalCtaSection() {
           Un programme opérationnel dès ce soir.
         </h2>
         <p className="font-landing text-base leading-[1.7] text-ink-muted mt-4 max-w-[520px] mx-auto">
-          Compte créé instantanément, QR code prêt après validation de l&apos;établissement. Sans carte bancaire, sans
-          engagement, sans commission.
+          Gratuit, sans carte bancaire, sans engagement.
         </p>
         <TrackedLink
           ctaId="devenir_partenaire"
@@ -21,8 +20,19 @@ export function FinalCtaSection() {
           href="/become-a-partner"
           className="inline-block bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg mt-7 hover:bg-moss-dark transition-colors"
         >
-          Commencer le plan gratuit →
+          Commencer gratuitement →
         </TrackedLink>
+        <div className="mt-4">
+          <TrackedLink
+            ctaId="audit_gratuit"
+            ctaLocation="cta_final"
+            audience="restaurateur"
+            href="mailto:contact@boosteats.tech?subject=Audit%20gratuit%20de%20ma%20fiche%20Google"
+            className="text-[15px] font-semibold text-moss-dark hover:underline"
+          >
+            Ou recevoir l&apos;audit gratuit de la fiche Google →
+          </TrackedLink>
+        </div>
         <p className="text-sm text-ink-faint mt-5">
           Une question avant de démarrer ? L&apos;équipe répond à{" "}
           <a href="mailto:contact@boosteats.tech" className="text-moss-dark hover:underline">

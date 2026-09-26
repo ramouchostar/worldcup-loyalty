@@ -10,9 +10,10 @@ import type { Plan } from "./entitlements";
 // fidèle du coût (la ré-analyse serveur à la soumission est ~1:1).
 // Best-effort/fail-open partout (même philosophie que lib/rate-limit.ts).
 
-// ⚠️ À CALER avant lancement (ADR 0029 §6) : plafond mensuel du plan Gratuit,
-// calibré sur le coût OCR réel — généreux, jamais atteint par un petit resto.
-export const SCAN_CAP_GRATUIT = 400;
+// Plafond mensuel du plan Gratuit (ADR 0070 §3) : 500 tickets. Au-delà, le
+// passage en Croissance est demandé après deux mois consécutifs — le membre
+// n'est jamais bloqué. Coût OCR ≈ 0,01 € par ticket, soit ≈ 5 € au plafond.
+export const SCAN_CAP_GRATUIT = 500;
 
 export type ScanUsage = {
   month: string; // 'YYYY-MM'

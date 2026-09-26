@@ -1,5 +1,7 @@
 # ADR 0029 — Modèle de monétisation (freemium piloté par la donnée)
 
+> **Amendé par l'[ADR 0070](0070-plans-croissance-pro-commande-en-ligne-et-referencement.md) (2026-09-26)** : montants fixés (Croissance 299 €/mois + 5 % des commandes en ligne, Pro 500 €/mois sans commission, 3 mois minimum), contenu des plans redéfini (site de commande, origine des commandes, référencement Google), plafond Gratuit à 500 tickets/mois.
+
 **Statut** : Accepté (2026-07-27) — **Phases 1 et 2 implémentées** (2026-08-08) : entitlements m48 + `lib/entitlements.ts` (Phase 1) ; gating des 5 surfaces Croissance avec essais 30 j au data-ready/1ʳᵉ utilisation, paywall doux (contenu flouté + CTA), badge de plan console, demandes de plan m51 + section /platform, flip manuel super-admin (Phase 2). Métering scans (Phase 3) et repères secteur (Phase 4) implémentés (2026-08). **Clause CGU rédigée** (2026-09-01) : `docs/legal/conditions-abonnement-restaurateur.md` — plans, essai 30 j, facturation, résiliation, sort des données en fin de contrat (croisé ADR 0025 : aucune remise des données membres au partenaire sortant ; export CSV des données d'exploitation 60 j ; agrégats anonymisés conservés) — **brouillon à valider par un juriste avant encaissement**. Reste : Stripe (Phase 5) + montants €. Le client payant est le **restaurateur** ; le **membre ne paie jamais** et son expérience est identique quel que soit le plan du resto (ADR 0007 / 0028 intacts). Montants € : à caler.
 
 ## Contexte

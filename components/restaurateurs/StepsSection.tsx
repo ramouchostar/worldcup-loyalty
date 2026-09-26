@@ -4,27 +4,10 @@ import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, useParallaxOffset } from "./motion";
 
 const STEPS = [
-  {
-    n: "01",
-    title: "Présenter l'établissement",
-    desc: "Nom, ville, quartier, réseaux sociaux. Deux minutes.",
-  },
-  {
-    n: "02",
-    title: "Envoyer la carte, telle quelle",
-    desc: "Une photo, un PDF, un fichier Excel : le format existant suffit, la mise en forme est prise en charge. Rien à préparer.",
-  },
-  {
-    n: "03",
-    title: "Compléter les coûts, en option",
-    desc: "Une page simple, produit par produit, à remplir à son rythme. Elle peut rester vide : le programme tourne avec des marges estimées et gagne en précision une fois complétée.",
-    optional: true,
-  },
-  {
-    n: "04",
-    title: "Lancer le programme",
-    desc: "Dès la validation de l'établissement, le QR code et les supports imprimables sont prêts à être présentés aux clients.",
-  },
+  { n: "01", title: "Présenter l'établissement", desc: "Nom, adresse, réseaux. Deux minutes." },
+  { n: "02", title: "Envoyer la carte", desc: "Photo, PDF ou Excel : on s'occupe du reste." },
+  { n: "03", title: "Les coûts, en option", desc: "Sinon, on part sur des marges estimées.", optional: true },
+  { n: "04", title: "Lancer le programme", desc: "Le QR code et les affiches sont prêts." },
 ];
 
 export function StepsSection() {
@@ -42,7 +25,7 @@ export function StepsSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-light mb-3.5">▶ Démarrer</p>
           <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-white max-w-[620px] text-pretty">
-            Un programme prêt en quatre étapes.
+            Prêt en quatre étapes.
           </h2>
         </Reveal>
 
@@ -74,7 +57,7 @@ export function StepsSection() {
               href="/become-a-partner"
               className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
             >
-              Commencer le plan gratuit →
+              Commencer gratuitement →
             </TrackedLink>
             <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-night-faint">
               Aucune carte bancaire · aucun engagement

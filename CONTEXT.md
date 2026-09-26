@@ -23,7 +23,7 @@ Estimation du **CA total** à venir de l'établissement, calculée **uniquement 
 _Avoid_ : prédiction (trop absolu — c'est une aide à la décision, pas une garantie), CA / chiffre d'affaires **côté client** (interdit ADR 0007).
 
 **Plan** *(ADR 0029)* :
-Niveau d'abonnement du **restaurateur** — jamais du membre (le membre ne paie jamais, expérience identique quel que soit le plan). Trois plans : **Gratuit** (programme membre complet + scan plafonné pour couvrir le coût OCR + parrainage + broadcast manuel + baromètre de base — le moteur qui génère la donnée et verrouille les membres), **Croissance** (l'**Analytique établissement**), **Pro** (Croissance + **Repères secteur**). Les fonctions payantes se débloquent *data-ready* ou à la 1ʳᵉ utilisation, 30 j d'essai, puis **paywall doux** (valeur visible mais verrouillée).
+Niveau d'abonnement du **restaurateur** — jamais du membre (le membre ne paie jamais, expérience identique quel que soit le plan). Trois plans (prix HTVA par établissement, ADR 0070) : **Gratuit** (programme membre complet + jusqu'à **500 tickets lus par mois** + parrainage + broadcast manuel + baromètre de base — le moteur qui génère la donnée et verrouille les membres), **Croissance** (**299 €/mois + 5 %** des commandes passées sur le **site de commande** à la marque du resto ; origine de chaque commande ; **Analytique établissement**), **Pro** (**500 €/mois, sans commission**, 3 mois minimum : Croissance + site sur le domaine du resto + **référencement Google** + rapport mensuel + **Repères secteur**). Jamais de points contre un avis Google (ADR 0070 §5). Les fonctions payantes se débloquent *data-ready* ou à la 1ʳᵉ utilisation, 30 j d'essai, puis **paywall doux** (valeur visible mais verrouillée).
 _Avoid_ : freemium (jargon — on dit « plan ») ; abonnement du client (le client payant EST le restaurateur).
 
 **Analytique établissement** *(ADR 0029)* :
@@ -445,7 +445,7 @@ Appel à l'action principal de la landing restaurateurs (`/audit-gratuit`) : le 
 _Avoid_ : scan (réservé au ticket côté membre, et « scanner » est banni des textes membres), grader, lead magnet (jargon interne), « score provisoire » en gros (une ligne suffit : « Score rapide, affiné dans le rapport complet »).
 
 **Registre de la landing restaurateurs** *(2026-09-26)* :
-La landing prospects (`/`, `components/restaurateurs/**`, y compris les maquettes de console qu'elle affiche) et le bandeau restaurateur de `/secteurs` s'écrivent en **impersonnel** : « le comptoir », « les clients », « l'établissement ». Le lecteur peut être le dirigeant d'un groupe de plusieurs établissements — registre professionnel pour tous. Vouvoiement seulement si une adresse directe est inévitable. Les écrans membres et la maquette de l'app membre (`MemberAppMockup`) restent tutoyés.
+La landing prospects (`/`, `components/restaurateurs/**`, y compris les maquettes de console qu'elle affiche) et le bandeau restaurateur de `/secteurs` s'écrivent en **impersonnel** : « le comptoir », « les clients », « l'établissement ». Le lecteur peut être le dirigeant d'un groupe de plusieurs établissements — registre professionnel pour tous. Vouvoiement seulement si une adresse directe est inévitable. Les écrans membres, et leurs reproductions dans la visite guidée (écrans client de `TourScreens`), restent tutoyés ; les écrans console de la visite passent en impersonnel.
 _Avoid_ : tutoiement (« ton comptoir », « tes clients », « lance-toi ») sur une page prospect.
 
 ---
