@@ -3,6 +3,7 @@
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
 import { HeroPhoneMockup } from "./HeroPhoneMockup";
+import { RestaurantSearchBar } from "@/components/audit-gratuit/RestaurantSearchBar";
 
 // Héros resserré (2026-09-26, sur le modèle d'owner.com) : le titre, une
 // phrase, puis la console dans un iPhone posé sur un panneau vert. Le bouton
@@ -40,6 +41,13 @@ export function Hero() {
               Fidélité, commande en ligne et acquisition : tout ce qui remplit un restaurant, dans une seule app.
             </p>
           </Reveal>
+          {/* ADR 0071 — premier geste de la page : chercher son établissement, puis l'audit gratuit. */}
+          <Reveal delay={150}>
+            <div className="relative z-20 mt-7 mx-auto max-w-[640px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.12)] border border-paper-border p-2">
+              <RestaurantSearchBar location="hero" />
+            </div>
+            <p className="text-[13px] text-ink-faint mt-3 mb-0">Note sur 100 en moins d&apos;une minute · gratuit, sans engagement</p>
+          </Reveal>
         </div>
 
         <Reveal delay={200} y={28}>
@@ -63,19 +71,16 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Bouton flottant sur le bas du téléphone */}
-            <div className="relative -mt-12 sm:-mt-10 mx-auto max-w-[620px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.14)] border border-paper-border p-2.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              <p className="text-[15px] text-ink-muted px-3 py-1 m-0 flex-1 text-center sm:text-left sm:whitespace-nowrap">
-                Gratuit pour démarrer, sans carte bancaire.
-              </p>
+            {/* Le plan gratuit, en second : sous le téléphone. */}
+            <div className="relative -mt-8 mx-auto w-fit bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.14)] border border-paper-border px-5 py-3 text-center">
               <TrackedLink
                 ctaId="devenir_partenaire"
                 ctaLocation="hero"
                 audience="restaurateur"
                 href="/become-a-partner"
-                className="text-center bg-moss text-white text-[15px] font-bold px-6 py-3.5 rounded-xl hover:bg-moss-dark transition-colors"
+                className="text-[15px] font-semibold text-ink hover:text-moss-dark transition-colors"
               >
-                Commencer gratuitement →
+                Pas besoin d&apos;audit ? Commencer gratuitement →
               </TrackedLink>
             </div>
           </div>

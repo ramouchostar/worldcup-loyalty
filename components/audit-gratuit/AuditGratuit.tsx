@@ -57,14 +57,24 @@ export function AuditGratuit() {
   const [lead, setLead] = useState<LeadView | null>(null);
   // Le numéro saisi, gardé pour l'écran de confirmation (le serveur ne le renvoie jamais).
   const [phoneShown, setPhoneShown] = useState("");
+  // Venue de la barre de recherche de la landing : ?place=…&nom=…&adresse=…&s=… (lancement direct) ou ?q=… (recherche pré-remplie).
+  const [entry, setEntry] = useState<{ picked: Suggestion | null; q: string; session: string | null } | null>(null);
 
   // Reprise après un rechargement : ?analyse=<id>.
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("analyse");
+    const p = new URLSearchParams(window.location.search);
+    const id = p.get("analyse");
     if (id && /^[0-9a-f-]{36}$/i.test(id)) {
       setLeadId(id);
       setPhase("scan");
+      return;
     }
+    const place = p.get("place");
+    setEntry({
+      picked: place ? { placeId: place, name: p.get("nom") ?? "", address: p.get("adresse") ?? "" } : null,
+      q: p.get("q") ?? "",
+      session: p.get("s"),
+    });
   }, []);
 
   const start = (id: string) => {
@@ -76,7 +86,7 @@ export function AuditGratuit() {
 
   return (
     <div className="font-landing">
-      {phase === "search" && <SearchStep onStarted={start} />}
+      {phase === "search" && entry && <SearchStep onStarted={start} initial={entry} />}
       {phase === "scan" && leadId && (
         <ScanStep
           leadId={leadId}
@@ -111,17 +121,17 @@ export function AuditGratuit() {
 
 // ─── 1. L'établissement ──────────────────────────────────────────────────────
 
-function SearchStep({ onStarted }: { onStarted: (id: string) => void }) {
-  const [q, setQ] = useState("");
+function SearchStep({ onStarted, initial }: { onStarted: (id: string) => void; initial: { picked: Suggestion | null; q: string; session: string | null } }) {
+  const [q, setQ] = useState(initial.q);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const [picked, setPicked] = useState<Suggestion | null>(null);
+  const [picked, setPicked] = useState<Suggestion | null>(initial.picked);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const session = useRef<string>("");
-  if (!session.current) session.current = newSession();
+  if (!session.current) session.current = initial.session && /^[\w-]{8,64}$/.test(initial.session) ? initial.session : newSession();
 
   useEffect(() => {
     if (picked || q.trim().length < 2) {
@@ -158,8 +168,8 @@ function SearchStep({ onStarted }: { onStarted: (id: string) => void }) {
     setError(null);
   };
 
-  const launch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const launch = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!picked) {
       setError("Choisissez l'établissement dans la liste.");
       return;
@@ -184,6 +194,16 @@ function SearchStep({ onStarted }: { onStarted: (id: string) => void }) {
       setBusy(false);
     }
   };
+
+  // Établissement déjà choisi dans la barre de la landing : l'analyse part tout de suite.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (initial.picked && !autoStarted.current) {
+      autoStarted.current = true;
+      launch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section className="max-w-[1200px] mx-auto px-4 sm:px-8 py-10 sm:py-16">
