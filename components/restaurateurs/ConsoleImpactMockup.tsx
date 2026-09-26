@@ -19,7 +19,7 @@ const BAR_COLOR: Record<(typeof DAYS)[number]["tone"], string> = {
 };
 
 // Mockup "ce que le programme t'a rapporté" (bloc Console/Pilotage) — distinct
-// de DashboardMockup (réservé au Hero, inchangé) : ici uniquement les chiffres
+// de l'ancien DashboardMockup du Hero (remplacé par HeroPhoneMockup) : ici uniquement les chiffres
 // d'impact + la prévision, sans sidebar ni file de tâches. Basé sur les
 // tickets scannés (jamais "ventes caisse" — aucune intégration caisse
 // n'existe aujourd'hui, cf. note d'intégration de la refonte 2026-08-29).

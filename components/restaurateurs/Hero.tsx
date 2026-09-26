@@ -2,9 +2,12 @@
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
-import { BrowserWindow } from "./BrowserWindow";
-import { DashboardMockup } from "./DashboardMockup";
+import { HeroPhoneMockup } from "./HeroPhoneMockup";
 
+// Héros resserré (2026-09-26, sur le modèle d'owner.com) : le titre, une
+// phrase, puis la console dans un iPhone posé sur un panneau vert. Le bouton
+// principal flotte sur le bas du téléphone, comme la barre de recherche
+// d'Owner — il reste le premier geste de la page.
 const BOOSTED_BENEFITS = [
   "tes clients fidèles",
   "tes commandes en direct",
@@ -23,66 +26,58 @@ export function Hero() {
         style={{ background: "radial-gradient(circle, rgba(162,197,35,0.18), transparent 60%)" }}
       />
 
-      <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 sm:pt-20 pb-0">
+      <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-14 sm:pt-20 pb-16 sm:pb-20">
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
-            <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
-              ▶ Pour les restaurateurs
-            </p>
-          </Reveal>
-          <Reveal delay={80}>
             <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
               Ton assistant qui booste
               <br />
               <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-dark" />
             </h1>
           </Reveal>
-          <Reveal delay={160}>
-            <p className="font-landing text-base sm:text-lg leading-[1.7] text-ink-muted mt-6 max-w-[640px] mx-auto">
-              Fais revenir tes clients avec une fidélité à ton nom. Vends en direct sur ton propre site, sans
-              laisser 30 % à une plateforme. Et sois le resto qu&apos;on trouve quand on cherche à manger près de
-              chez toi. Sans jargon : tu vois chaque mois ce que ça t&apos;a rapporté.
+          <Reveal delay={100}>
+            <p className="font-landing text-base sm:text-lg leading-[1.6] text-ink-muted mt-5 max-w-[560px] mx-auto">
+              Fidélité, commande en ligne et Google : tout ce qui remplit ton resto, dans une seule app.
             </p>
           </Reveal>
-          <Reveal delay={240}>
-            <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
+        </div>
+
+        <Reveal delay={200} y={28}>
+          <div className="relative mt-10 sm:mt-12 max-w-[1000px] mx-auto">
+            {/* Panneau vert : le téléphone déborde en haut, coupé en bas */}
+            <div className="relative h-[480px] sm:h-[540px] [clip-path:inset(-120px_-120px_0_-120px_round_0_0_28px_28px)]">
+              <div
+                className="absolute inset-x-0 bottom-0 top-[72px] rounded-[28px] bg-gradient-to-br from-moss-dark via-moss to-moss-light"
+                aria-hidden
+              >
+                <div
+                  className="absolute inset-0 rounded-[28px] opacity-20"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(135deg, rgba(255,255,255,0.35) 0 1px, transparent 1px 22px)",
+                  }}
+                />
+              </div>
+              <div className="relative flex justify-center">
+                <HeroPhoneMockup />
+              </div>
+            </div>
+
+            {/* Bouton flottant sur le bas du téléphone */}
+            <div className="relative -mt-12 sm:-mt-10 mx-auto max-w-[620px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.14)] border border-paper-border p-2.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <p className="text-[15px] text-ink-muted px-3 py-1 m-0 flex-1 text-center sm:text-left sm:whitespace-nowrap">
+                Gratuit pour démarrer, sans carte bancaire.
+              </p>
               <TrackedLink
                 ctaId="devenir_partenaire"
                 ctaLocation="hero"
                 audience="restaurateur"
                 href="/become-a-partner"
-                className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
+                className="text-center bg-moss text-white text-[15px] font-bold px-6 py-3.5 rounded-xl hover:bg-moss-dark transition-colors"
               >
                 Commencer gratuitement →
               </TrackedLink>
-              <TrackedLink
-                ctaId="voir_le_produit"
-                ctaLocation="hero"
-                audience="restaurateur"
-                href="#offre"
-                className="text-ink text-[15px] font-semibold py-[15px] hover:text-moss-dark transition-colors"
-              >
-                Voir ce que ça fait
-              </TrackedLink>
             </div>
-          </Reveal>
-          <Reveal delay={270}>
-            <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-faint mt-6">
-              Fidélité gratuite à vie · sans carte bancaire · sans engagement
-            </p>
-          </Reveal>
-          <Reveal delay={300}>
-            <p className="text-ink-faint text-sm mt-2">
-              Belchicken, Uccle — 128 membres inscrits en 9 semaines.
-            </p>
-          </Reveal>
-        </div>
-
-        <Reveal delay={360} y={28}>
-          <div className="mt-12 lg:mt-14 pb-16 lg:pb-20">
-            <BrowserWindow url="boosteats.app/admin/belchicken" scaleWidth={1400} chromeHeight={34}>
-              <DashboardMockup />
-            </BrowserWindow>
           </div>
         </Reveal>
       </div>

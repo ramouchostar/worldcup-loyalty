@@ -60,8 +60,9 @@ lisible.
 | `cookie_consent_granted` | `surface` | Acceptation dans la bannière |
 
 `cta_id` en production : `devenir_partenaire` (header desktop, hero, étapes,
-footer, secteurs_cta), `voir_le_produit`, `rejoindre`, `creer_compte`,
+footer, secteurs_cta), `rejoindre`, `creer_compte`,
 `place_pilote` (plans Croissance / Pro, ADR 0070), `audit_gratuit` (demande d'audit Google, landing).
+`voir_le_produit` : retiré du héros le 2026-09-26 (héros resserré), historique GA4 seulement.
 
 Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 (`/login?as=resto`), pas au tunnel partenaire — au même titre que l'entrée
