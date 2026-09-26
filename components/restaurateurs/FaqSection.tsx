@@ -20,10 +20,6 @@ const QUESTIONS = [
     a: "Non, ils sont optionnels. Le programme démarre avec des marges estimées. Une fois les prix de revient renseignés, les cadeaux se calibrent au centime près sur les coûts réels — un gain de précision, pas une condition d'accès. Ces données ne sont visibles que par l'établissement.",
   },
   {
-    q: "Comment Boosteats gagne-t-il de l'argent ?",
-    a: "Par abonnement, sur nos plans payants uniquement. Zéro commission sur le chiffre d'affaires, zéro marge prise sur les ventes, et aucune donnée revendue. Le plan gratuit est financé par les plans supérieurs.",
-  },
-  {
     q: "Et en cas d'arrêt ?",
     a: "Aucun engagement, aucune durée minimum. La base client complète est récupérable en export, et l'arrêt est possible à tout moment.",
   },
