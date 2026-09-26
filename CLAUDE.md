@@ -147,6 +147,7 @@ GOOGLE_PLACES_API_KEY=              # ADR 0071 — serveur uniquement : Places A
 PAGESPEED_API_KEY=                  # ADR 0069 — vitesse mobile (peut être la même clé que GOOGLE_PLACES_API_KEY)
 AUDIT_PUBLIC_DAILY_MAX=             # ADR 0071 — analyses gratuites par jour pour tout le site (150 par défaut)
 AUDIT_IP_SALT=                      # ADR 0071 — sel de l'empreinte IP des demandes d'audit (jamais l'IP en clair)
+AUDIT_SHARE_SECRET=                 # ADR 0069 §6 — secret HMAC des liens /audit/<nom>/v<N>-<jeton> (à défaut : clé service-role ; le changer rend les anciens liens non réaffichables en console, ils s'ouvrent toujours)
 ```
 
 ### Mesure d'audience — voir `docs/tracking-plan.md`

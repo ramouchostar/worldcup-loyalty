@@ -132,6 +132,9 @@ self.addEventListener("fetch", (event) => {
     url.pathname.startsWith("/admin") ||
     url.pathname.startsWith("/platform") ||
     url.pathname.startsWith("/coupon") ||
+    // Rapport d'audit partagé : un lien révoqué ou expiré ne doit jamais
+    // continuer à s'ouvrir depuis le cache (ADR 0069 §6).
+    url.pathname.startsWith("/audit/") ||
     url.pathname === "/login" ||
     url.pathname === "/signup" ||
     url.pathname === "/register" ||

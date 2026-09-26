@@ -297,7 +297,7 @@ _Avoid_ : transfert (obsolète — lié à l'élimination), switch.
 ### Administration
 
 **Audit restaurant** *(ADR 0069)* :
-Diagnostic d'un restaurant **prospect** des 19 communes de Bruxelles, lancé depuis `/platform/audit` (super-admin uniquement) : fiche Google, avis, concurrents, réseaux sociaux, puis questions au gérant qui **révisent** l'audit jusqu'à une **version finale** figée (PDF, lien à jeton de 90 jours, envoi par e-mail). Tous les audits sont gardés (`restaurant_audits`). Les solutions viennent d'une bibliothèque de scénarios (`lib/audit/scenarios.ts`), jamais d'une rédaction libre ; un critère **non vérifié** ne compte ni pour ni contre. Sans lien avec le programme de fidélité : un restaurant audité n'est pas un établissement du réseau.
+Diagnostic d'un restaurant **prospect** des 19 communes de Bruxelles, lancé depuis `/platform/audit` (super-admin uniquement) : fiche Google, avis, concurrents, réseaux sociaux, puis questions au gérant qui **révisent** l'audit jusqu'à une **version finale** figée (PDF imprimé depuis le lien, lien `boosteats.tech/audit/<nom>/v<N>-<jeton>` valable 90 jours, envoi par e-mail). Le rapport se termine par « Ce que Boosteats fait pour vous » (A + B = résultat) et un seul appel à l'action : le plan Gratuit. Tous les audits sont gardés (`restaurant_audits`). Les solutions viennent d'une bibliothèque de scénarios (`lib/audit/scenarios.ts`), jamais d'une rédaction libre ; un critère **non vérifié** ne compte ni pour ni contre. Sans lien avec le programme de fidélité : un restaurant audité n'est pas un établissement du réseau.
 _Avoid_ : « audit » pour l'audit des doublons de tickets (`npm run audit:doublons`, autre chose) ; « scraper » côté client.
 
 **Admin** :
