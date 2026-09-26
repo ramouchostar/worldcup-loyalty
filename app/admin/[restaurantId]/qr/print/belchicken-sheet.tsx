@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 
-// Template QR dédié à Belchicken Kraainem (maquette Claude Design, projet
-// "Redesign dashboard restaurateurs" — Templates QR Belchicken.dc.html).
+// Template QR des établissements Belchicken (maquette Claude Design, projet
+// "Redesign dashboard restaurateurs" — Templates QR Belchicken.dc.html) :
+// Kraainem, Houba, Uccle De Bue — liste dans lib/qr-template.ts.
 // Conversion px → mm à l'échelle constante de la maquette (4px = 1mm,
 // vérifiée cohérente sur les 3 formats) pour un rendu fidèle à l'impression.
 // Signature Boosteats toujours dans le vert de marque fixe (indépendant de
@@ -9,30 +10,32 @@ import type { CSSProperties } from "react";
 const BOOSTEATS_GREEN = "#7A8F3F";
 const INK = "#0A0A0A";
 
-export type KraainemFormat = "sticker" | "flyer" | "affiche";
+export type BelchickenFormat = "sticker" | "flyer" | "affiche";
 
 const mono: CSSProperties = { fontFamily: "var(--font-jetbrains-mono)" };
 const display: CSSProperties = { fontFamily: "var(--font-archivo-black)" };
 const body: CSSProperties = { fontFamily: "var(--font-archivo)" };
 
-export function KraainemPrintSheet({
+export function BelchickenPrintSheet({
   fmt,
   restaurantName,
   accent,
   logo,
   qrSvg,
   urlLabel,
+  locationLabel,
 }: {
-  fmt: KraainemFormat;
+  fmt: BelchickenFormat;
   restaurantName: string;
   accent: string;
   logo: string | null;
   qrSvg: string;
   urlLabel: string;
+  locationLabel: string;
 }) {
   if (fmt === "sticker") return <StickerSheet accent={accent} logo={logo} restaurantName={restaurantName} qrSvg={qrSvg} />;
-  if (fmt === "affiche") return <AfficheSheet accent={accent} logo={logo} restaurantName={restaurantName} qrSvg={qrSvg} />;
-  return <FlyerSheet accent={accent} logo={logo} restaurantName={restaurantName} qrSvg={qrSvg} urlLabel={urlLabel} />;
+  if (fmt === "affiche") return <AfficheSheet accent={accent} logo={logo} restaurantName={restaurantName} qrSvg={qrSvg} locationLabel={locationLabel} />;
+  return <FlyerSheet accent={accent} logo={logo} restaurantName={restaurantName} qrSvg={qrSvg} urlLabel={urlLabel} locationLabel={locationLabel} />;
 }
 
 function Logo({ logo, restaurantName, height }: { logo: string | null; restaurantName: string; height: string }) {
@@ -57,12 +60,14 @@ function FlyerSheet({
   restaurantName,
   qrSvg,
   urlLabel,
+  locationLabel,
 }: {
   accent: string;
   logo: string | null;
   restaurantName: string;
   qrSvg: string;
   urlLabel: string;
+  locationLabel: string;
 }) {
   const steps = ["Scanne le code", "Crée ton compte en 20 s", "Cumule, puis récupère"];
   return (
@@ -74,7 +79,7 @@ function FlyerSheet({
 
       <div style={{ padding: "10mm 11mm 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Logo logo={logo} restaurantName={restaurantName} height="24mm" />
-        <p style={{ ...mono, fontSize: "2.5mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82", margin: 0 }}>KRAAINEM</p>
+        <p style={{ ...mono, fontSize: "2.5mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82", margin: 0 }}>{locationLabel}</p>
       </div>
 
       <div style={{ padding: "9mm 11mm 0" }}>
@@ -170,11 +175,13 @@ function AfficheSheet({
   logo,
   restaurantName,
   qrSvg,
+  locationLabel,
 }: {
   accent: string;
   logo: string | null;
   restaurantName: string;
   qrSvg: string;
+  locationLabel: string;
 }) {
   const steps = ["Scanne le code", "Crée ton compte en 20 s", "Cumule, puis récupère"];
   return (
@@ -184,7 +191,7 @@ function AfficheSheet({
           <div style={{ background: "#fff", padding: "5mm 6mm", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Logo logo={logo} restaurantName={restaurantName} height="38mm" />
           </div>
-          <p style={{ ...mono, fontSize: "4.75mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82", margin: 0 }}>KRAAINEM</p>
+          <p style={{ ...mono, fontSize: "4.75mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82", margin: 0 }}>{locationLabel}</p>
         </div>
       </div>
 
