@@ -7,6 +7,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, getRestaurantBranding } from "@/lib/restaurant";
 import { BRAND_DEFAULTS } from "@/lib/branding";
 import { getStaffStats } from "@/lib/staff-codes";
+import { usesBelchickenQrTemplate } from "@/lib/qr-template";
 import { StaffCodesSection } from "@/components/admin/StaffCodesSection";
 import { PageHeader } from "@/components/admin/ui";
 
@@ -36,17 +37,17 @@ export default async function AdminQrPage({
   const branding = await getRestaurantBranding(restaurantId);
   // ADR 0053 — null = migration pas encore appliquée (la section l'explique).
   const staffStats = await getStaffStats(restaurantId);
-  const isKraainem = restaurantId === "kraainem";
+  const isBelchicken = usesBelchickenQrTemplate(restaurantId);
   const dark = branding.brand_dark ?? BRAND_DEFAULTS.dark;
   const targetUrl = `${APP_URL}/r/${restaurantId}`;
   // UTM sur le QR encodé uniquement — jamais sur l'URL affichée en clair
   // sous l'aperçu, pour ne pas exposer une chaîne illisible à l'écran.
   const qrTargetUrl = `${targetUrl}?utm_source=qr_code&utm_medium=print&utm_campaign=loyalty_signup`;
 
-  // Belchicken Kraainem : QR toujours noir pur sur blanc pur (règle dure du
+  // Belchicken (lib/qr-template.ts) : QR toujours noir pur sur blanc pur (règle dure du
   // design "Templates QR Belchicken"), même sur l'export brut destiné à un
   // imprimeur pro — jamais teinté à la couleur de marque.
-  const qrColor = isKraainem ? "#0A0A0A" : dark;
+  const qrColor = isBelchicken ? "#0A0A0A" : dark;
 
   const [svg, pngDataUrl] = await Promise.all([
     QRCode.toString(qrTargetUrl, {
@@ -65,7 +66,7 @@ export default async function AdminQrPage({
 
   const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
-  const formats: { key: string; icon: LucideIcon; label: string; desc: string }[] = isKraainem
+  const formats: { key: string; icon: LucideIcon; label: string; desc: string }[] = isBelchicken
     ? [
         { key: "sticker", icon: Utensils, label: "Sticker vitrine", desc: "80 × 80 mm — vitrine & caisse" },
         { key: "flyer", icon: ShoppingBag, label: "Flyer à emporter", desc: "A5 · 148 × 210 mm — à glisser dans les sacs" },

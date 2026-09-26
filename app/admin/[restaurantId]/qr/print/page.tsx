@@ -4,16 +4,16 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { BRAND_DEFAULTS, brandStyle, hexToRgbChannels } from "@/lib/branding";
 import { PrintButton } from "./PrintButton";
-import { KraainemPrintSheet, type KraainemFormat } from "./kraainem-sheet";
+import { BelchickenPrintSheet, type BelchickenFormat } from "./belchicken-sheet";
+import { qrLocationLabel, usesBelchickenQrTemplate } from "@/lib/qr-template";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
 
-// Belchicken Kraainem a sa propre identité imprimée (design Claude "Templates
-// QR Belchicken" — fond clair, cadre accent, copy bilingue FR/NL) : variante
-// spéciale à cet établissement, le template générique ci-dessous reste
-// inchangé pour tous les autres restos.
-const KRAAINEM_ID = "kraainem";
-const KRAAINEM_FORMATS = {
+// Les Belchicken (Kraainem, Houba, Uccle De Bue — lib/qr-template.ts) ont
+// leur propre identité imprimée (design Claude "Templates QR Belchicken" —
+// fond clair, cadre accent, copy bilingue FR/NL) ; le template générique
+// ci-dessous reste inchangé pour tous les autres restos.
+const BELCHICKEN_FORMATS = {
   sticker: { label: "Sticker vitrine (80×80mm)", page: "80mm 80mm" },
   flyer: { label: "Flyer à emporter (A5)", page: "148mm 210mm" },
   affiche: { label: "Affiche murale (A3)", page: "297mm 420mm" },
@@ -55,7 +55,7 @@ const FORMATS = {
 type FormatKey = keyof typeof FORMATS;
 
 // Barre d'action écran uniquement (retour, libellé du format, bouton
-// imprimer) — identique pour le template Kraainem et le template générique.
+// imprimer) — identique pour le template Belchicken et le template générique.
 function ActionBar({ restaurantId, label }: { restaurantId: string; label: string }) {
   return (
     <>
@@ -109,7 +109,7 @@ export default async function QrPrintPage({
 }) {
   const { restaurantId } = await params;
   const { format } = await searchParams;
-  const isKraainem = restaurantId === KRAAINEM_ID;
+  const isBelchicken = usesBelchickenQrTemplate(restaurantId);
 
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -123,9 +123,9 @@ export default async function QrPrintPage({
   // (urlLabel), pour ne pas imprimer une chaîne illisible sur le papier.
   const qrTargetUrl = `${targetUrl}?utm_source=qr_code&utm_medium=print&utm_campaign=loyalty_signup`;
 
-  if (isKraainem) {
-    const fmt = (format && format in KRAAINEM_FORMATS ? format : "sticker") as KraainemFormat;
-    const spec = KRAAINEM_FORMATS[fmt];
+  if (isBelchicken) {
+    const fmt = (format && format in BELCHICKEN_FORMATS ? format : "sticker") as BelchickenFormat;
+    const spec = BELCHICKEN_FORMATS[fmt];
     const accent = branding.brand_accent ?? BRAND_DEFAULTS.accent;
     const logo = logoPublicUrl(branding.logo_url);
     const urlLabel = targetUrl.replace(/^https?:\/\//, "");
@@ -145,9 +145,10 @@ export default async function QrPrintPage({
         <ActionBar restaurantId={restaurantId} label={spec.label} />
         <div className="flex justify-center py-8 px-4">
           <div className="shadow-xl">
-            <KraainemPrintSheet
+            <BelchickenPrintSheet
               fmt={fmt}
               restaurantName={restaurant.name}
+              locationLabel={qrLocationLabel(restaurant.name)}
               accent={accent}
               logo={logo}
               qrSvg={qrSvg}
