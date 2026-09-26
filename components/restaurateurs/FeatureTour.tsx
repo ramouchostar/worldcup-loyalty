@@ -14,7 +14,8 @@ import {
 // Visite guidée (2026-09-26) : un iPhone reste fixe pendant qu'on défile, et
 // l'écran + le titre changent à chaque fonctionnalité. Peu de texte : c'est
 // l'écran qui explique. Le badge dit QUI voit l'écran (ton client / ta
-// console) et dans quel plan c'est inclus (ADR 0070).
+// console), dans quel plan c'est inclus (ADR 0070), et « pilote » tant que
+// la fonctionnalité n'est pas livrée — jamais présentée comme disponible.
 //
 // Mécanique : la section fait STEPS × ~85 vh de haut ; un bloc « sticky »
 // occupe l'écran et l'étape active se déduit de la progression du défilement
@@ -30,6 +31,8 @@ type Step = {
   line: string;
   Screen: ComponentType;
   lightStatus?: boolean;
+  /** Pas encore livré (ADR 0070) : ouverture en places pilotes. */
+  pilot?: boolean;
 };
 
 const STEPS: Step[] = [
@@ -53,6 +56,7 @@ const STEPS: Step[] = [
   },
   {
     id: "commande",
+    pilot: true,
     plan: "Croissance",
     who: "Ton client",
     title: "Ton site de commande, à ton nom.",
@@ -61,6 +65,7 @@ const STEPS: Step[] = [
   },
   {
     id: "sources",
+    pilot: true,
     plan: "Croissance",
     who: "Ta console",
     title: "Tu sais ce que te rapporte ta pub.",
@@ -69,6 +74,7 @@ const STEPS: Step[] = [
   },
   {
     id: "google",
+    pilot: true,
     plan: "Pro",
     who: "Ta console",
     title: "Tu montes sur Google.",
@@ -152,6 +158,7 @@ export function FeatureTour() {
                 >
                   <span className="inline-block font-mono text-[10px] tracking-[0.1em] uppercase text-moss-dark bg-moss-tint rounded-full px-2.5 py-1">
                     {s.who} · {s.plan}
+                    {s.pilot && " · pilote"}
                   </span>
                   <h2 className="font-display text-[26px] sm:text-[34px] lg:text-[48px] leading-[1.1] tracking-[-0.02em] font-bold text-ink mt-3 mb-0 text-pretty">
                     {s.title}
