@@ -16,6 +16,7 @@ import { BRUSSELS_POSTAL_CODES } from "@/lib/audit/brussels";
 import type { AuditSignals, OwnerAnswers } from "@/lib/audit/signals";
 import { runAudit } from "@/lib/audit/run";
 import { resolveMapsLink } from "@/lib/audit/maps-link";
+import { freezeAndShare, revokeShare } from "@/lib/audit/share";
 
 // Même garde locale que app/platform/backlog/actions.ts : une Server Action
 // n'est pas protégée par le layout, elle revérifie le super-admin elle-même.
@@ -44,8 +45,10 @@ export async function saveAnswers(auditId: string, formData: FormData) {
   const data = await getAudit(auditId);
   if (!data) redirect("/platform/audit");
 
+  // « direct » (téléphone / WhatsApp) n'est plus demandé depuis le 2026-09-26 :
+  // il reste dans le type pour les réponses déjà enregistrées, toujours à 0.
   const keys = ["surPlace", "emporter", "uberEats", "deliveroo", "takeaway", "direct"] as const;
-  const values = keys.map((k) => num(formData.get(`c_${k}`)) ?? 0);
+  const values = keys.map((k) => (k === "direct" ? 0 : num(formData.get(`c_${k}`)) ?? 0));
   const total = values.reduce((a, b) => a + b, 0);
   const answers: OwnerAnswers = {
     // 0 partout = question non posée ; une autre somme que 100 n'est pas une répartition.
@@ -234,4 +237,33 @@ export async function startAudit(formData: FormData) {
 
   revalidatePath("/platform/audit");
   redirect(`/platform/audit/${audit.id}`);
+}
+
+// ADR 0069 §6 — figer la version suivante et créer son lien partagé
+// (boosteats.tech/audit/<nom>/v<N>-<jeton>). Le lien s'affiche en tête du
+// rapport, avec « Copier », « Ouvrir » et « PDF ».
+export async function shareAudit(auditId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) redirect("/join?reason=platform-required");
+  const data = await getAudit(auditId);
+  if (!data) redirect("/platform/audit");
+  if (data.audit.status === "en_cours") redirect(`/platform/audit/${auditId}?partage=en_cours#partage`);
+  try {
+    await freezeAndShare(data.audit, data.sections, user.id);
+    if (data.audit.status !== "final") await updateAudit(auditId, { status: "final" });
+  } catch (e) {
+    const motif = e instanceof Error ? e.message : String(e);
+    console.error("[audit/partage] échec :", motif);
+    redirect(`/platform/audit/${auditId}?partage=echec&motif=${encodeURIComponent(motif.slice(0, 200))}#partage`);
+  }
+  revalidatePath(`/platform/audit/${auditId}`);
+  redirect(`/platform/audit/${auditId}?partage=ok#partage`);
+}
+
+export async function revokeAuditShare(auditId: string, shareId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) redirect("/join?reason=platform-required");
+  await revokeShare(shareId);
+  revalidatePath(`/platform/audit/${auditId}`);
+  redirect(`/platform/audit/${auditId}#partage`);
 }

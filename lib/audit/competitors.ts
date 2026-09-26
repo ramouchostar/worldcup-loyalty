@@ -128,6 +128,8 @@ export interface GridCell {
   col: number;
   /** Rang du restaurant dans Google Maps depuis ce point ; null = absent du top 20. */
   rank: number | null;
+  /** Les 3 premiers que le client voit depuis ce point (audits depuis le 2026-09-26). */
+  leaders?: { cid: string | null; title: string; rank: number }[];
 }
 
 export interface NeighborsScore {
@@ -280,7 +282,11 @@ export async function scanNeighbors(input: { cid: string | null; name: string; c
   cost += searches.reduce((a, s) => a + s.cost, 0);
   const grid: GridCell[] = points.map((p, i) => {
     const hit = searches[i].items.find((it) => it.cid && it.cid === input.cid);
-    return { row: p.row, col: p.col, rank: hit ? hit.rank : null };
+    const leaders = searches[i].items
+      .filter((it) => !(it.cid && it.cid === input.cid))
+      .slice(0, 3)
+      .map((it) => ({ cid: it.cid, title: it.title, rank: it.rank }));
+    return { row: p.row, col: p.col, rank: hit ? hit.rank : null, leaders };
   });
   const center = searches[points.findIndex((p) => p.row === 0 && p.col === 0)];
   const competitors = nearbyCompetitors(center.items, { cid: input.cid, lat: input.lat, lng: input.lng, title: input.name });

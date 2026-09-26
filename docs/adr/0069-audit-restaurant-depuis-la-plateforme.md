@@ -1,6 +1,6 @@
 # ADR 0069 — L'audit d'un restaurant se lance depuis la plateforme
 
-**Statut** : Proposé (2026-09-23 ; sources revues le même jour : Apify écarté, bibliothèque de scénarios ajoutée). **§1 amendé par l'[ADR 0071](0071-audit-gratuit-public.md)** (2026-09-26) : audit gratuit public depuis la landing. Demande du porteur du même jour. Étend l'[ADR
+**Statut** : Proposé (2026-09-23 ; sources revues le même jour : Apify écarté, bibliothèque de scénarios ajoutée). **§1 amendé par l'[ADR 0071](0071-audit-gratuit-public.md)** (2026-09-26) : audit gratuit public depuis la landing. **§3 C, §3 E, §5 et §6 précisés le 2026-09-26** (carte des concurrents, canal « téléphone / WhatsApp » retiré, bloc « Ce que Boosteats fait pour vous », lien `/audit/<nom>/v<N>-<jeton>` et PDF par le navigateur). Demande du porteur du même jour. Étend l'[ADR
 0033](0033-console-plateforme-demo-chiffres-backlog.md) §4 (un onglet de plus dans `/platform`).
 Reprend l'item de backlog « audit fiche Google My Business » (m57, PR #51), jamais implémenté.
 N'amende **ni l'ADR 0007** (aucune donnée d'audit ne descend vers un membre) **ni l'ADR 0029** :
@@ -95,6 +95,16 @@ gamme de prix, horaires, services, et la note de sa fiche calculée avec la gril
 déduit la **cible** (à partir du quartier, du prix et du contenu des avis) et écrit ce que les
 concurrents font mieux, avec chaque affirmation liée à une donnée du tableau.
 
+**Carte** (2026-09-26) : le volet se montre sur une carte (fond Google Static Maps servi par
+`/api/audit/carte/[id]`, clé côté serveur, cadre borné à 3 km du restaurant ; « Maps Static
+API » à activer sur `GOOGLE_PLACES_API_KEY`). Le restaurant, chaque concurrent avec sa place
+dans Google Maps depuis la porte du restaurant et sa note, et la place du restaurant depuis
+chacun des 8 points de la grille (vert : 3 premiers, jaune : 4 à 10, gris : au-delà). Sans
+fond Google, des cercles de 500 m et 1 km le remplacent et la console en dit la raison — pas
+de tuiles OpenStreetMap (usage refusé, réponse 418). Chaque point de grille garde désormais
+le trio de tête (`leaders`) : le rapport dit qui le client voit d'abord là où le restaurant
+n'est pas dans les 3 premiers.
+
 **D. Avis** (jusqu'aux **500 avis les plus récents** avec leur date) :
 
 - courbe de la note moyenne par mois, avec la moyenne glissante sur 3 mois ;
@@ -110,7 +120,9 @@ concurrents font mieux, avec chaque affirmation liée à une donnée du tableau.
 les réponses se saisissent après l'échange avec le gérant :
 
 - répartition du chiffre d'affaires par canal (sur place, à emporter, Takeaway.com, Uber Eats,
-  Deliveroo, téléphone ou WhatsApp), en pourcentages qui font 100 % ;
+  Deliveroo), en pourcentages qui font 100 % — « téléphone ou WhatsApp » retiré le 2026-09-26
+  (ce n'est pas un canal de vente à part : la commande finit sur place ou à emporter ; une
+  ancienne réponse est reversée dans « à emporter ») ;
 - produit ou catégorie phare (celui qui se vend le mieux) et sa marge ;
 - temps de préparation moyen de ce produit ;
 - chiffre d'affaires mensuel actuel et objectif de chiffre d'affaires.
@@ -187,14 +199,25 @@ gérant saisies), **final** (figé, prêt à partir).
 - **Version finale** : un instantané figé (`restaurant_audit_versions` : numéro, contenu JSON,
   date). Modifier une réponse après coup crée la version suivante, jamais une réécriture : le
   gérant qui a reçu la v1 garde un lien qui montre la v1.
-- **Télécharger** : le PDF est imprimé depuis la même page que le lien partagé (Chromium headless
-  sur Vercel), pour qu'il n'existe qu'une mise en page. Généré une fois par version et gardé
-  dans le stockage privé.
-- **Partager le lien** : `/audit/[jeton]`, page publique en lecture seule, jeton aléatoire de
-  128 bits (stocké haché), `noindex`, valable **90 jours**, révocable depuis la console. Le
+- **Télécharger** : le PDF est la page du lien partagé, imprimée par le navigateur (bouton
+  « Télécharger en PDF », ou `?pdf=1` qui ouvre directement l'impression) — une seule mise en
+  page, sans Chromium sur Vercel ni fichier stocké (précisé le 2026-09-26).
+- **Partager le lien** : `boosteats.tech/audit/<nom-du-restaurant>/v<N>-<jeton>` (précisé le
+  2026-09-26, demande du porteur : un lien qu'on reconnaît dans WhatsApp). Le nom est
+  décoratif (un mauvais nom redirige vers le bon), seul le jeton ouvre : 128 bits, dérivé de
+  l'identifiant du lien par HMAC avec un secret serveur (`AUDIT_SHARE_SECRET`, à défaut la clé
+  service-role), **seule son empreinte sha256 est stockée** et la console peut réafficher le
+  lien. Page en lecture seule, version figée, sans boutons ni motifs d'échec ni coûts,
+  `noindex`, valable **90 jours**, révocable depuis la console. Le
   rapport contient les chiffres donnés par le gérant (CA, marges) : c'est pour ça que le lien
   expire et se révoque. Les ouvertures de la page sont comptées côté serveur (pas de pixel,
-  ADR 0063) : on sait si le gérant l'a regardé.
+  ADR 0063), sauf les nôtres (super-admin) : on sait si le gérant l'a regardé.
+- **Ce que Boosteats fait pour vous** (ajouté le 2026-09-26) : le rapport se termine par A
+  (vos clients reviennent : la fidélité) + B (ils en amènent d'autres : parrainage, messages)
+  = le résultat (l'objectif du gérant s'il l'a donné), les priorités où Boosteats agit, trois
+  étapes concrètes et **un seul** appel à l'action, le plan Gratuit (ADR 0070,
+  `/become-a-partner?source=audit`, `cta_location = rapport_audit`). Rien n'y est promis que
+  le plan Gratuit ne fasse pas.
 - **Envoyer par e-mail** : depuis la console, un e-mail un à un, adresse saisie par nous après
   l'échange avec le gérant. Il part du kit `proShell` (ADR 0063) : expéditeur Boosteats,
   réponses vers `EMAIL_REPLY_TO`, lien vers la version finale et PDF en pièce jointe. Chaque envoi

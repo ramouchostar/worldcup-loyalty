@@ -14,9 +14,18 @@ const CHANNELS = [
   ["uberEats", "Uber Eats"],
   ["deliveroo", "Deliveroo"],
   ["takeaway", "Takeaway.com"],
-  ["direct", "Téléphone / WhatsApp"],
 ] as const;
 type ChannelKey = (typeof CHANNELS)[number][0];
+
+// « Téléphone / WhatsApp » retiré le 2026-09-26 (demande du porteur : ce n'est
+// pas un canal de vente à part, une commande par téléphone finit sur place ou
+// à emporter). Une ancienne réponse qui en avait est reversée dans « À emporter »
+// pour que la répartition fasse toujours 100 %.
+function initialMix(initial: OwnerAnswers | null): Record<ChannelKey, number> {
+  const c = initial?.channels;
+  if (!c) return { surPlace: 0, emporter: 0, uberEats: 0, deliveroo: 0, takeaway: 0 };
+  return { surPlace: c.surPlace, emporter: c.emporter + (c.direct ?? 0), uberEats: c.uberEats, deliveroo: c.deliveroo, takeaway: c.takeaway };
+}
 
 function Submit({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -29,9 +38,7 @@ function Submit({ disabled }: { disabled: boolean }) {
 
 export function AnswersForm({ action, initial }: { action: (fd: FormData) => void; initial: OwnerAnswers | null }) {
   const [open, setOpen] = useState(false);
-  const [mix, setMix] = useState<Record<ChannelKey, number>>(
-    initial?.channels ?? { surPlace: 0, emporter: 0, uberEats: 0, deliveroo: 0, takeaway: 0, direct: 0 },
-  );
+  const [mix, setMix] = useState<Record<ChannelKey, number>>(() => initialMix(initial));
   const total = Object.values(mix).reduce((a, b) => a + b, 0);
 
   if (!open) {
