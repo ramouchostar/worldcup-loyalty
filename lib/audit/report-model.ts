@@ -202,3 +202,22 @@ export const ACTION_LABEL: Record<ActionKey, string> = {
   commander: "Commander",
   menu: "Menu",
 };
+
+/** Une action du plan face au concurrent qui parle de récolter des avis. */
+export function isReviewCollection(a: { title: string; why: string; steps: string[] }): boolean {
+  const all = [a.title, a.why, ...a.steps].join(" ");
+  return /\bavis\b/i.test(a.title) && /(collect|récolt|demand|QR|obten|nouveaux avis|plus d'avis|volume)/i.test(all);
+}
+
+const REVIEW_STEP = "Activer la demande d'avis Boosteats : chaque habitué est invité à laisser son avis Google depuis son espace, après sa visite.";
+
+/**
+ * Le plan d'attaque est rédigé par Claude : quand il propose de récolter des
+ * avis avec son propre QR code, c'est Boosteats qui le fait. On remplace ces
+ * gestes par celui de Boosteats (aussi pour les audits déjà rédigés).
+ */
+export function withBoosteatsReviews<T extends { title: string; why: string; steps: string[] }>(a: T): T & { boosteats: boolean } {
+  if (!isReviewCollection(a)) return { ...a, boosteats: false };
+  const kept = a.steps.filter((x) => !(/QR/i.test(x) && /avis/i.test(x)));
+  return { ...a, steps: [REVIEW_STEP, ...kept].slice(0, 3), boosteats: true };
+}

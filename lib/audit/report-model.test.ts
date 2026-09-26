@@ -51,3 +51,18 @@ test("dernier avis négatif : le plus récent, texte raccourci", () => {
   ]);
   assert.deepEqual(r, { text: "Froid à l'arrivée, frites molles et sauce oubliée", answered: true });
 });
+
+test("plan face au concurrent : la récolte d'avis passe par Boosteats", async () => {
+  const { withBoosteatsReviews } = await import("./report-model");
+  const a = withBoosteatsReviews({
+    title: "Accélérez la collecte de nouveaux avis clients",
+    why: "Le concurrent totalise 774 avis contre 142 pour nous.",
+    steps: ["Ajouter un QR code \"Laissez-nous un avis\" sur le ticket de caisse", "Former le personnel à demander un avis"],
+  });
+  assert.equal(a.boosteats, true);
+  assert.match(a.steps[0], /Boosteats/);
+  assert.equal(a.steps.some((x) => /QR code/.test(x)), false);
+  const b = withBoosteatsReviews({ title: "Misez sur la régularité de vos burgers", why: "2 avis sur la qualité.", steps: ["Afficher la recette"] });
+  assert.equal(b.boosteats, false);
+  assert.deepEqual(b.steps, ["Afficher la recette"]);
+});

@@ -212,10 +212,16 @@ gérant saisies), **final** (figé, prêt à partir).
   rapport contient les chiffres donnés par le gérant (CA, marges) : c'est pour ça que le lien
   expire et se révoque. Les ouvertures de la page sont comptées côté serveur (pas de pixel,
   ADR 0063), sauf les nôtres (super-admin) : on sait si le gérant l'a regardé.
-- **Ce que Boosteats fait pour vous** (ajouté le 2026-09-26) : le rapport se termine par A
-  (vos clients reviennent : la fidélité) + B (ils en amènent d'autres : parrainage, messages)
-  = le résultat (l'objectif du gérant s'il l'a donné), les priorités où Boosteats agit, trois
-  étapes concrètes et **un seul** appel à l'action, le plan Gratuit (ADR 0070,
+- **Ce que Boosteats fait pour vous** (ajouté le 2026-09-26, resserré le même jour) : le
+  rapport se termine, en peu de mots, par A (vos clients reviennent : la fidélité) + B (vos
+  avis Google montent : les habitués sont invités à laisser leur avis, les déçus écrivent
+  d'abord en privé — jamais d'avis contre des points, ADR 0070 §5) = le résultat (l'objectif
+  du gérant s'il l'a donné), les priorités que Boosteats prend en charge et **un seul** appel à
+  l'action ; un lien « Découvrir ce que Boosteats peut faire pour vous » y descend depuis
+  l'ouverture. Quand une recommandation parle de récolter des avis (bibliothèque ou plan
+  « Comment le surpasser » rédigé par Claude), c'est Boosteats qui est proposé, pas un QR
+  code maison ; les textes de la bibliothèque sont relus à l'affichage (`withCurrentText`),
+  donc les audits et liens déjà envoyés en profitent. Appel à l'action, le plan Gratuit (ADR 0070,
   `/become-a-partner?source=audit`, `cta_location = rapport_audit`). Rien n'y est promis que
   le plan Gratuit ne fasse pas.
 - **Envoyer par e-mail** : depuis la console, un e-mail un à un, adresse saisie par nous après

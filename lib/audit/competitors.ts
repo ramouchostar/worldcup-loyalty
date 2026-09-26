@@ -241,7 +241,9 @@ ${facts}
 Propose 3 à 5 actions concrètes, en français, pour attirer les clients de ce concurrent. Chaque action s'appuie sur UN fait ci-dessus (un reproche fait au concurrent que nous faisons mieux, un point fort à mettre en avant, un manque de notre fiche face à la sienne). Pas de conseil générique. Pour chacune :
 - title : 4 à 9 mots, à l'impératif
 - why : le fait qui justifie l'action, avec le chiffre (une phrase)
-- steps : 2 ou 3 gestes précis que le gérant peut faire cette semaine`,
+- steps : 2 ou 3 gestes précis que le gérant peut faire cette semaine
+
+Pour récolter des avis Google, ne propose pas de QR code ni de carte à fabriquer : c'est Boosteats, l'outil que nous lui présentons, qui invite ses clients fidèles à laisser leur avis. Jamais d'avis contre une récompense.`,
     schema: ATTACK_SCHEMA,
     maxTokens: 16000,
   });
