@@ -11,8 +11,8 @@ export function FinalCtaSection() {
           Ton programme tourne ce soir.
         </h2>
         <p className="font-landing text-base leading-[1.7] text-ink-muted mt-4 max-w-[520px] mx-auto">
-          Compte créé instantanément, QR code prêt après validation de ton établissement. Sans carte bancaire, sans
-          engagement, sans commission.
+          Compte créé instantanément, QR code prêt après validation de ton établissement. La fidélité est gratuite à
+          vie : sans carte bancaire, sans engagement.
         </p>
         <TrackedLink
           ctaId="devenir_partenaire"
@@ -21,7 +21,7 @@ export function FinalCtaSection() {
           href="/become-a-partner"
           className="inline-block bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg mt-7 hover:bg-moss-dark transition-colors"
         >
-          Commencer le plan gratuit →
+          Commencer gratuitement →
         </TrackedLink>
         <p className="text-sm text-ink-faint mt-5">
           Une question avant de te lancer ? Écris-nous à{" "}

@@ -13,11 +13,11 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 // "Landing Restaurateurs" (import via claude_design MCP), reconstruit en
 // composants React sous components/restaurateurs/ avec mise en scène
 // dynamique au scroll (cf. motion.tsx).
-// - Refonte de copie 2026-08-29 : les plans Croissance (199€/mois) et Pro
-//   (500€/mois) affichent désormais un vrai tarif par établissement, ancré
-//   sur un seuil de rentabilité (voir PlansSection.tsx) — ÉCART ASSUMÉ avec
-//   le statut "montants pas encore implémentés" d'ADR 0029 initial, à faire
-//   acter par un ADR dédié (/new-adr) tant que ce n'est pas encore fait.
+// - Refonte de copie 2026-08-29, offre clarifiée 2026-09-26 (ADR 0070) :
+//   Gratuit (≤ 500 tickets/mois), Croissance 299 €/mois + 5 % des commandes
+//   passées sur le site de commande, Pro 500 €/mois sans commission (3 mois
+//   minimum) — voir PlansSection.tsx. Site de commande et référencement ne
+//   sont pas encore livrés : présentés en « places pilotes ».
 // - ADR 0007 ne s'applique pas ici (page B2B, pas client) — euros et
 //   mécanique de marge peuvent être mentionnés explicitement. Les chiffres
 //   affichés dans les mockups produit sont des données d'illustration
@@ -29,9 +29,9 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 export const revalidate = 300;
 
 export const metadata = {
-  title: "Fidélité qui protège ta marge, gratuite à vie",
+  title: "Fidélité, commande en ligne et Google pour ton restaurant",
   description:
-    "Un programme de fidélité qui ne peut jamais coûter plus qu'il ne rapporte — cadeaux calculés sur ta marge, parrainage, tableau de bord. Gratuit à vie, 0% de commission.",
+    "Fais revenir tes clients avec une fidélité gratuite à vie, vends en direct sur ton propre site sans laisser 30 % à une plateforme, et sois trouvé sur Google. Tu vois chaque mois ce que ça t'a rapporté.",
 };
 
 export default function RestaurateursLandingPage() {

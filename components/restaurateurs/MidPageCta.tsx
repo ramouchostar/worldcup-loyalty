@@ -14,7 +14,7 @@ export function MidPageCta() {
           href="/become-a-partner"
           className="inline-block bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
         >
-          Commencer le plan gratuit →
+          Commencer gratuitement →
         </TrackedLink>
         <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-faint mt-4">
           Compte créé instantanément · sans carte bancaire · sans engagement

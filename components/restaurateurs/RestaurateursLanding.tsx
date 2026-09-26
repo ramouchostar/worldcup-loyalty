@@ -3,7 +3,10 @@
 import { ScrollProgressBar } from "./motion";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
+import { OfferOverview } from "./OfferOverview";
 import { FidelitySection } from "./FidelitySection";
+import { OrderingSection } from "./OrderingSection";
+import { GoogleSection } from "./GoogleSection";
 import { ProductSection } from "./ProductSection";
 import { ParrainageSection } from "./ParrainageSection";
 import { ConsoleImpactSection } from "./ConsoleImpactSection";
@@ -16,6 +19,8 @@ import { Footer } from "./Footer";
 
 // Landing publique restaurateurs (redesign m55, design Claude "Landing
 // Restaurateurs" ; copie refondue 2026-08-29 — une feature à la fois,
+// offre clarifiée 2026-09-26, ADR 0070 : l'offre en trois gestes, commande
+// en ligne et référencement Google, plans Croissance 299 € + 5 % / Pro 500 €,
 // mockup console restaurateur en principal, mockup client réservé au bloc
 // fidélité). Composant client : toute la mise en scène (révélations au
 // scroll, mockups à l'échelle, compteurs animés) est interactive ; le
@@ -27,7 +32,10 @@ export function RestaurateursLanding() {
       <ScrollProgressBar />
       <Header />
       <Hero />
+      <OfferOverview />
       <FidelitySection />
+      <OrderingSection />
+      <GoogleSection />
       <ProductSection />
       <ParrainageSection />
       <ConsoleImpactSection />

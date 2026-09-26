@@ -74,7 +74,7 @@ export function StepsSection() {
               href="/become-a-partner"
               className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
             >
-              Commencer le plan gratuit →
+              Commencer gratuitement →
             </TrackedLink>
             <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-night-faint">
               Aucune carte bancaire · aucun engagement

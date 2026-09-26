@@ -21,11 +21,23 @@ const QUESTIONS = [
   },
   {
     q: "Comment vous gagnez de l'argent ?",
-    a: "Par abonnement, sur nos plans payants uniquement. Zéro commission sur ton chiffre d'affaires, zéro marge prise sur tes ventes, et nous ne revendons aucune donnée. Le plan gratuit est financé par les plans supérieurs.",
+    a: "Par abonnement sur les plans payants, plus 5 % sur les commandes passées sur ton site en plan Croissance. Jamais rien sur tes ventes au comptoir, aucune marge prise sur tes produits, et nous ne revendons aucune donnée. En plan Pro : zéro commission. Le plan gratuit est financé par les plans payants.",
+  },
+  {
+    q: "Je suis déjà sur Uber Eats ou Deliveroo. Je dois partir ?",
+    a: "Non. Garde-les pour la livraison et pour les nouveaux clients qu'ils t'amènent. Ton site de commande sert à tes habitués : ceux qui te connaissent déjà n'ont aucune raison de te coûter un tiers de leur commande.",
+  },
+  {
+    q: "Le référencement, c'est quoi concrètement ?",
+    a: "C'est ta place quand quelqu'un cherche sur Google ou Google Maps : « snack près de moi », « poulet frit Kraainem ». On améliore ton site et ta fiche Google, on t'aide à récolter des avis, et chaque mois tu vois ta place. Si elle ne bouge pas, on te dit pourquoi.",
+  },
+  {
+    q: "Et si je dépasse 500 tickets par mois en Gratuit ?",
+    a: "Tes clients ne voient rien : leurs tickets passent toujours. On te prévient, et si ça se répète deux mois de suite, on te propose le plan Croissance. C'est plutôt une bonne nouvelle : ton programme marche.",
   },
   {
     q: "Et si j'arrête ?",
-    a: "Aucun engagement, aucune durée minimum. Tu récupères ta base client complète en export, et tu arrêtes quand tu veux.",
+    a: "Gratuit et Croissance : aucun engagement, tu arrêtes quand tu veux. Pro : 3 mois minimum, le temps que le référencement porte ses fruits, puis au mois. Dans tous les cas, tu récupères ta liste de clients en export, et ton nom de domaine reste à toi.",
   },
 ];
 

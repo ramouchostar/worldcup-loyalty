@@ -77,8 +77,8 @@ export function FidelitySection() {
             </div>
 
             <p className="text-xs text-ink-faint mt-5">
-              Le programme fonctionne aujourd&apos;hui sur tes commandes sur place et à emporter. La prise de
-              commande en direct arrive prochainement.
+              Le programme fonctionne aujourd&apos;hui sur tes commandes sur place et à emporter. La commande en
+              ligne à ton nom ouvre en places pilotes (plan Croissance).
             </p>
           </div>
         </Reveal>

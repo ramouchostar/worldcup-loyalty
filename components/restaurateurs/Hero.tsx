@@ -6,9 +6,9 @@ import { BrowserWindow } from "./BrowserWindow";
 import { DashboardMockup } from "./DashboardMockup";
 
 const BOOSTED_BENEFITS = [
-  "ton volume de commandes",
-  "la fidélité de tes clients",
-  "ton revenu net",
+  "tes clients fidèles",
+  "tes commandes en direct",
+  "ta place sur Google",
   "le bouche-à-oreille",
 ];
 
@@ -39,9 +39,9 @@ export function Hero() {
           </Reveal>
           <Reveal delay={160}>
             <p className="font-landing text-base sm:text-lg leading-[1.7] text-ink-muted mt-6 max-w-[640px] mx-auto">
-              Reprends la main sur les clients que les plateformes de livraison te prennent. Chaque cadeau est
-              calculé sur ton propre prix de revient et plafonné par le CA qu&apos;il a généré. Côté client,
-              l&apos;app porte ton nom, tes couleurs et ton logo.
+              Fais revenir tes clients avec une fidélité à ton nom. Vends en direct sur ton propre site, sans
+              laisser 30 % à une plateforme. Et sois le resto qu&apos;on trouve quand on cherche à manger près de
+              chez toi. Sans jargon : tu vois chaque mois ce que ça t&apos;a rapporté.
             </p>
           </Reveal>
           <Reveal delay={240}>
@@ -53,22 +53,22 @@ export function Hero() {
                 href="/become-a-partner"
                 className="bg-moss text-white text-[15px] font-bold px-[26px] py-[15px] rounded-lg hover:bg-moss-dark transition-colors"
               >
-                Commencer le plan gratuit →
+                Commencer gratuitement →
               </TrackedLink>
               <TrackedLink
                 ctaId="voir_le_produit"
                 ctaLocation="hero"
                 audience="restaurateur"
-                href="#produit"
+                href="#offre"
                 className="text-ink text-[15px] font-semibold py-[15px] hover:text-moss-dark transition-colors"
               >
-                Voir le produit
+                Voir ce que ça fait
               </TrackedLink>
             </div>
           </Reveal>
           <Reveal delay={270}>
             <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-faint mt-6">
-              Compte créé instantanément · sans carte bancaire · 0 % de commission
+              Fidélité gratuite à vie · sans carte bancaire · sans engagement
             </p>
           </Reveal>
           <Reveal delay={300}>
