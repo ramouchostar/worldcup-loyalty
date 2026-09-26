@@ -358,7 +358,7 @@ export default async function RestaurantLandingPage({
         <div className="max-w-lg mx-auto px-5 mt-4 pt-4 border-t border-white/10 text-center text-[11px] text-gray-500">
           Launched by{" "}
           <a
-            href="https://www.boosteats.tech"
+            href="https://boosteats.tech"
             target="_blank"
             rel="noopener noreferrer"
             className="text-brand-gold hover:underline font-semibold"
