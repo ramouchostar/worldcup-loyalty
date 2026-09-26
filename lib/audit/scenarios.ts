@@ -229,12 +229,12 @@ const RATING_TEXT: Record<RatingBand, { label: string; goal: string; impact: num
 const VOLUME_TEXT: Record<Level, { label: string; step: string; impact: number }> = {
   faible: {
     label: "avec moins d'avis que les voisins",
-    step: "Demander un avis à chaque client content, au bon moment : avec Boosteats, vos habitués sont invités à laisser leur avis Google depuis leur espace, après leur visite.",
+    step: "Encourager vos clients à laisser un avis avec Boosteats, au bon moment : juste après leur visite.",
     impact: 1,
   },
   moyen: {
     label: "avec autant d'avis que les voisins",
-    step: "Viser 10 avis de plus par mois : la fraîcheur des avis compte autant que leur nombre. Boosteats invite chaque habitué à laisser le sien.",
+    step: "Viser 10 avis de plus par mois : la fraîcheur des avis compte autant que leur nombre. Encourager vos clients à laisser un avis avec Boosteats.",
     impact: 0,
   },
   fort: {
@@ -250,9 +250,9 @@ const REP_TREND: Record<Trend, string> = {
   hausse: "Les derniers mois sont meilleurs que la moyenne affichée.",
 };
 
-/** La récolte d'avis Google par Boosteats (jamais contre des points : ADR 0070 §5). */
-export const REVIEWS_LEVER =
-  "Boosteats invite chaque client fidèle à laisser son avis Google depuis son espace, après sa visite : les avis positifs arrivent sans que vous ayez à les demander. Un client déçu peut aussi vous écrire en privé.";
+/** La récolte d'avis Google par Boosteats — formule choisie par le porteur le 2026-09-26. */
+export const REVIEWS_PHRASE = "Encourager vos clients à laisser un avis avec Boosteats";
+export const REVIEWS_LEVER = `${REVIEWS_PHRASE} : chaque client fidèle y est invité depuis son espace, après sa visite. Un client déçu peut aussi vous écrire en privé.`;
 
 function reputationScenarios(): Scenario[] {
   const out: Scenario[] = [];
@@ -931,7 +931,7 @@ const SEO: Record<SeoGap, { title: string; why: string; steps: string[]; impact:
     steps: [
       "Créer une page par spécialité phare (« smash burger à Anderlecht ») avec photos, prix et avis.",
       "Obtenir des liens depuis les sites du quartier (commune, associations, blogs food bruxellois).",
-      "Demander aux clients contents de citer le plat dans leur avis Google (Boosteats invite vos habitués à laisser leur avis).",
+      "Encourager vos clients à laisser un avis avec Boosteats, en leur proposant de citer le plat.",
     ],
     impact: 4,
     effort: 3,

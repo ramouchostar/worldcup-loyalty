@@ -60,7 +60,7 @@ test("plan face au concurrent : la récolte d'avis passe par Boosteats", async (
     steps: ["Ajouter un QR code \"Laissez-nous un avis\" sur le ticket de caisse", "Former le personnel à demander un avis"],
   });
   assert.equal(a.boosteats, true);
-  assert.match(a.steps[0], /Boosteats/);
+  assert.equal(a.steps[0], "Encourager vos clients à laisser un avis avec Boosteats.");
   assert.equal(a.steps.some((x) => /QR code/.test(x)), false);
   const b = withBoosteatsReviews({ title: "Misez sur la régularité de vos burgers", why: "2 avis sur la qualité.", steps: ["Afficher la recette"] });
   assert.equal(b.boosteats, false);

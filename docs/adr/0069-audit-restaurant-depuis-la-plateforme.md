@@ -214,8 +214,8 @@ gérant saisies), **final** (figé, prêt à partir).
   ADR 0063), sauf les nôtres (super-admin) : on sait si le gérant l'a regardé.
 - **Ce que Boosteats fait pour vous** (ajouté le 2026-09-26, resserré le même jour) : le
   rapport se termine, en peu de mots, par A (vos clients reviennent : la fidélité) + B (vos
-  avis Google montent : les habitués sont invités à laisser leur avis, les déçus écrivent
-  d'abord en privé — jamais d'avis contre des points, ADR 0070 §5) = le résultat (l'objectif
+  avis Google montent : « Encourager vos clients à laisser un avis avec Boosteats », formule
+  choisie par le porteur ; les déçus écrivent d'abord en privé) = le résultat (l'objectif
   du gérant s'il l'a donné), les priorités que Boosteats prend en charge et **un seul** appel à
   l'action ; un lien « Découvrir ce que Boosteats peut faire pour vous » y descend depuis
   l'ouverture. Quand une recommandation parle de récolter des avis (bibliothèque ou plan
