@@ -6,9 +6,9 @@
 // Fonctions pures (testées) + une orchestration qui appelle DataForSEO (Maps,
 // avis du concurrent) et Claude (thèmes du concurrent, plan d'attaque).
 
-import Anthropic from "@anthropic-ai/sdk";
+import { claudeJson } from "./claude-json";
 import { mapsSearch, getReviews, postReviewsTask, type MapsResult } from "./dataforseo";
-import { analyseThemes, THEMES_MODEL, type ReviewThemes, type ThemeOut } from "./review-themes";
+import { analyseThemes, type ReviewThemes, type ThemeOut } from "./review-themes";
 import type { CompetitivePosition, FicheGap, Level } from "./signals";
 
 // ─── Recherche : quel mot un client tape-t-il pour trouver ce restaurant ? ───
@@ -193,6 +193,23 @@ export interface AttackAction {
   steps: string[];
 }
 
+const ATTACK_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["actions"],
+  properties: {
+    actions: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "why", "steps"],
+        properties: { title: { type: "string" }, why: { type: "string" }, steps: { type: "array", items: { type: "string" } } },
+      },
+    },
+  },
+};
+
 function fmtThemes(ts: ThemeOut[]) {
   return ts.map((t) => `- ${t.label} (${t.count} avis)`).join("\n") || "- (aucun)";
 }
@@ -216,36 +233,23 @@ ${fmtThemes(input.rivalThemes?.negatives ?? [])}
 Ce que ses clients aiment :
 ${fmtThemes(input.rivalThemes?.positives ?? [])}`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const msg = await client.messages.create({
-    model: THEMES_MODEL,
-    max_tokens: 2500,
-    messages: [
-      {
-        role: "user",
-        content: `Tu conseilles un restaurant bruxellois qui veut prendre des clients à son concurrent le plus proche. Faits (ne rien inventer au-delà) :
+  const { data: parsed, tokens } = await claudeJson<{ actions?: AttackAction[] }>({
+    prompt: `Tu conseilles un restaurant bruxellois qui veut prendre des clients à son concurrent le plus proche. Faits (ne rien inventer au-delà) :
 
 ${facts}
 
 Propose 3 à 5 actions concrètes, en français, pour attirer les clients de ce concurrent. Chaque action s'appuie sur UN fait ci-dessus (un reproche fait au concurrent que nous faisons mieux, un point fort à mettre en avant, un manque de notre fiche face à la sienne). Pas de conseil générique. Pour chacune :
 - title : 4 à 9 mots, à l'impératif
 - why : le fait qui justifie l'action, avec le chiffre (une phrase)
-- steps : 2 ou 3 gestes précis que le gérant peut faire cette semaine
-
-Réponds UNIQUEMENT en JSON : {"actions":[{"title":"","why":"","steps":[""]}]}`,
-      },
-    ],
+- steps : 2 ou 3 gestes précis que le gérant peut faire cette semaine`,
+    schema: ATTACK_SCHEMA,
+    maxTokens: 16000,
   });
-  const raw = msg.content.filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text").map((b) => b.text).join("");
-  const s = raw.indexOf("{");
-  const e = raw.lastIndexOf("}");
-  if (s === -1 || e <= s) throw new Error("Plan d'attaque : pas de JSON dans la réponse.");
-  const parsed = JSON.parse(raw.slice(s, e + 1)) as { actions?: AttackAction[] };
   const actions = (parsed.actions ?? [])
     .filter((a) => a && a.title && a.why)
     .slice(0, 5)
     .map((a) => ({ title: String(a.title).slice(0, 120), why: String(a.why).slice(0, 300), steps: (a.steps ?? []).map((x) => String(x).slice(0, 300)).slice(0, 3) }));
-  return { actions, tokens: { input: msg.usage.input_tokens, output: msg.usage.output_tokens } };
+  return { actions, tokens };
 }
 
 // ─── Orchestration ──────────────────────────────────────────────────────────
