@@ -1,33 +1,77 @@
 import { Camera, ChevronRight, Gift, Plus, Send, ShoppingBag, Star, Users } from "lucide-react";
 
-// Écrans de la visite guidée (FeatureTour). Données d'illustration figées,
-// établissement fictif Belchicken, comme les autres mockups de la page.
+// Écrans de la visite guidée (FeatureTour). Données d'illustration figées.
 //
-// Côté client (fidélité, équipes, site de commande) : couleurs de
-// l'établissement (#D93A1E / #F5B32B), jamais la charte Boosteats — l'app
-// membre porte la couleur du resto. Aucun euro sur les écrans de fidélité
-// (ADR 0007/0028) : points seulement ; les prix n'apparaissent que sur la
-// carte du site de commande, et aucun ratio points/euros n'y est affiché.
+// Établissements IMAGINAIRES (jamais un vrai client), chacun avec sa charte
+// côté client, pour montrer que l'app membre et le site de commande portent
+// les couleurs de CHAQUE resto, jamais celles de Boosteats (ADR 0063) :
+//   - Nonna Ottavia (pizzeria)    → écran fidélité
+//   - Kōen Ramen                  → écran équipes
+//   - Smashly (burgers, Ixelles)  → site de commande + écrans console
 //
-// Côté console : couleurs Boosteats (ADR 0054).
+// Aucun euro sur les écrans de fidélité (ADR 0007/0028) : points seulement ;
+// les prix n'apparaissent que sur la carte du site de commande, et aucun
+// ratio points/euros n'y est affiché. Côté console : couleurs Boosteats
+// (ADR 0054).
 
-const RED = "#D93A1E";
-const GOLD = "#F5B32B";
-const DARK = "#1A0F0B";
+type Brand = { name: string; dark: string; primary: string; onPrimary: string; accent: string; soft: string };
+
+const NONNA: Brand = { name: "Nonna Ottavia", dark: "#4A1621", primary: "#B8322A", onPrimary: "#FFFFFF", accent: "#F2C879", soft: "#E9CFC4" };
+const KOEN: Brand = { name: "Kōen Ramen", dark: "#10262B", primary: "#1FA187", onPrimary: "#FFFFFF", accent: "#F4D35E", soft: "#B9D3CE" };
+const SMASHLY: Brand = { name: "Smashly", dark: "#141414", primary: "#FFCC00", onPrimary: "#141414", accent: "#FF4F1F", soft: "#BDBDBD" };
+
+function BrandTitle({ brand, italic = false }: { brand: Brand; italic?: boolean }) {
+  return (
+    <p className={`font-display font-bold text-[15px] tracking-tight m-0 ${italic ? "italic" : ""}`} style={{ color: brand.accent }}>
+      {brand.name}
+    </p>
+  );
+}
+
+// Barres d'onglets en bas d'écran, comme dans la vraie app : côté client aux
+// couleurs du resto, côté console celles de la vue simple (ADR 0064).
+function ClientTabs({ brand, active }: { brand: Brand; active: number }) {
+  return (
+    <div className="mt-auto border-t border-paper-border bg-white grid grid-cols-4 px-2 pt-2.5 pb-5">
+      {["Accueil", "Points", "Équipe", "Profil"].map((t, i) => (
+        <span
+          key={t}
+          className={`text-center text-[10px] ${i === active ? "font-bold" : "text-ink-faint"}`}
+          style={i === active ? { color: brand.primary } : undefined}
+        >
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ConsoleTabs({ active }: { active: number }) {
+  return (
+    <div className="mt-auto border-t border-paper-border bg-white grid grid-cols-4 px-2 pt-2.5 pb-5">
+      {["Accueil", "Tickets", "Annonces", "Plus"].map((t, i) => (
+        <span key={t} className={`text-center text-[10px] ${i === active ? "font-bold text-moss-dark" : "text-ink-faint"}`}>
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 /* ---------- 1. Fidélité — côté client ---------- */
 export function LoyaltyScreen() {
+  const b = NONNA;
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 pt-11 pb-5" style={{ background: DARK }}>
-        <p className="text-white font-bold text-[13px] tracking-wide m-0">BELCHICKEN</p>
-        <p className="font-mono text-[9.5px] tracking-[0.12em] uppercase mt-4 mb-1" style={{ color: GOLD }}>
+      <div className="px-4 pt-11 pb-5" style={{ background: b.dark }}>
+        <BrandTitle brand={b} italic />
+        <p className="font-mono text-[9.5px] tracking-[0.12em] uppercase mt-4 mb-1" style={{ color: b.soft }}>
           Ton cadeau t&apos;attend
         </p>
-        <p className="font-display text-[20px] font-bold text-white m-0 leading-tight">Churros offerts</p>
+        <p className="font-display text-[20px] font-bold text-white m-0 leading-tight">Tiramisu offert</p>
         <span
-          className="inline-block mt-3 text-[11.5px] font-bold text-white rounded-lg px-3 py-2"
-          style={{ background: RED }}
+          className="inline-block mt-3 text-[11.5px] font-bold rounded-lg px-3 py-2"
+          style={{ background: b.primary, color: b.onPrimary }}
         >
           Récupérer au comptoir
         </span>
@@ -36,18 +80,18 @@ export function LoyaltyScreen() {
         <div className="bg-white border border-paper-border rounded-xl p-3.5">
           <div className="flex items-baseline justify-between">
             <span className="text-[12px] font-semibold text-ink">Mes points</span>
-            <span className="font-display text-[18px] font-bold" style={{ color: RED }}>
+            <span className="font-display text-[18px] font-bold" style={{ color: b.primary }}>
               1 240
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-paper-subtle mt-2 overflow-hidden">
-            <div className="h-full rounded-full w-[88%]" style={{ background: RED }} />
+            <div className="h-full rounded-full w-[88%]" style={{ background: b.primary }} />
           </div>
-          <p className="text-[10.5px] text-ink-faint mt-1.5 mb-0">Plus que 160 points pour un Finest burger</p>
+          <p className="text-[10.5px] text-ink-faint mt-1.5 mb-0">Plus que 160 points pour une Margherita</p>
         </div>
         <div
           className="rounded-xl py-3.5 flex items-center justify-center gap-2 text-white font-bold text-[13px]"
-          style={{ background: RED }}
+          style={{ background: b.primary }}
         >
           <Camera className="w-4 h-4" strokeWidth={2.4} />
           Photographier mon ticket
@@ -60,6 +104,7 @@ export function LoyaltyScreen() {
           ))}
         </div>
       </div>
+      <ClientTabs brand={b} active={0} />
     </div>
   );
 }
@@ -74,12 +119,13 @@ const TEAMS = [
 ];
 
 export function TeamScreen() {
+  const b = KOEN;
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 pt-11 pb-4" style={{ background: DARK }}>
-        <p className="text-white font-bold text-[13px] tracking-wide m-0">BELCHICKEN</p>
+      <div className="px-4 pt-11 pb-4" style={{ background: b.dark }}>
+        <BrandTitle brand={b} />
         <p className="font-display text-[17px] font-bold text-white mt-3 mb-0 whitespace-nowrap">Classement des équipes</p>
-        <p className="text-[11px] mt-1 mb-0" style={{ color: "#D9C4B8" }}>
+        <p className="text-[11px] mt-1 mb-0" style={{ color: b.soft }}>
           Septembre · 5 équipes
         </p>
       </div>
@@ -88,11 +134,11 @@ export function TeamScreen() {
           <div
             key={t.name}
             className={`flex items-center gap-2 rounded-lg px-2.5 py-2.5 ${t.mine ? "border-[1.5px]" : "bg-white border border-paper-border"}`}
-            style={t.mine ? { borderColor: RED, background: "#FDF1EE" } : undefined}
+            style={t.mine ? { borderColor: b.primary, background: "#EAF6F3" } : undefined}
           >
             <span
               className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold"
-              style={i === 0 ? { background: GOLD, color: DARK } : { background: "#F1EFEA", color: "#555" }}
+              style={i === 0 ? { background: b.accent, color: b.dark } : { background: "#F1EFEA", color: "#555" }}
             >
               {i + 1}
             </span>
@@ -101,7 +147,7 @@ export function TeamScreen() {
               <p className="text-[10px] text-ink-faint m-0">
                 {t.members} membres
                 {t.mine && (
-                  <span className="font-bold" style={{ color: RED }}>
+                  <span className="font-bold" style={{ color: b.primary }}>
                     {" "}· toi
                   </span>
                 )}
@@ -118,40 +164,44 @@ export function TeamScreen() {
           style={{ background: "#25D366" }}
         >
           <Users className="w-4 h-4" strokeWidth={2.4} />
-          Inviter un collègue sur WhatsApp
+          Inviter sur WhatsApp
         </div>
       </div>
+      <ClientTabs brand={b} active={2} />
     </div>
   );
 }
 
 /* ---------- 3. Site de commande — côté client ---------- */
 const MENU = [
-  { name: "Finest burger", desc: "Poulet croustillant, cheddar", price: "8,90 €" },
-  { name: "Tenders (6)", desc: "Sauce au choix", price: "6,50 €" },
-  { name: "Churros (6)", desc: "Sucre cannelle", price: "3,90 €" },
+  { name: "Double smash", desc: "Deux steaks, cheddar, oignons", price: "11,90 €" },
+  { name: "Chicken smash", desc: "Poulet croustillant, sauce maison", price: "10,50 €" },
+  { name: "Frites maison", desc: "Sel fumé", price: "3,90 €" },
 ];
 
 export function OrderSiteScreen() {
+  const b = SMASHLY;
   return (
     <div className="h-full flex flex-col bg-white">
       <div className="pt-10 px-3 pb-2 bg-paper-subtle border-b border-paper-border">
         <div className="bg-white rounded-lg text-center text-[10.5px] text-ink-muted py-1.5 border border-paper-border">
-          belchicken-kraainem.be
+          commander.smashly.be
         </div>
       </div>
-      <div className="px-4 pt-4 pb-3" style={{ background: RED }}>
-        <p className="text-white font-bold text-[15px] m-0">Belchicken Kraainem</p>
-        <p className="text-[11px] m-0 mt-0.5" style={{ color: "#FFE3DC" }}>
-          À emporter · prêt en 15 min
+      <div className="px-4 pt-4 pb-3" style={{ background: b.dark }}>
+        <p className="font-display font-bold text-[18px] m-0 tracking-tight" style={{ color: b.primary }}>
+          SMASHLY
+        </p>
+        <p className="text-[11px] m-0 mt-0.5" style={{ color: b.soft }}>
+          Ixelles · à emporter · prêt en 15 min
         </p>
       </div>
       <div className="flex gap-1.5 px-4 py-2.5">
-        {["Burgers", "Tenders", "Desserts", "Boissons"].map((c, i) => (
+        {["Burgers", "Poulet", "Frites", "Boissons"].map((c, i) => (
           <span
             key={c}
-            className={`text-[10.5px] rounded-full px-2.5 py-1 ${i === 0 ? "text-white font-semibold" : "bg-paper-subtle text-ink-muted"}`}
-            style={i === 0 ? { background: DARK } : undefined}
+            className={`text-[10.5px] rounded-full px-2.5 py-1 ${i === 0 ? "font-semibold" : "bg-paper-subtle text-ink-muted"}`}
+            style={i === 0 ? { background: b.primary, color: b.onPrimary } : undefined}
           >
             {c}
           </span>
@@ -160,13 +210,13 @@ export function OrderSiteScreen() {
       <div className="px-4 flex flex-col">
         {MENU.map((m) => (
           <div key={m.name} className="flex items-center gap-3 py-2.5 border-b border-paper-border">
-            <div className="w-12 h-12 shrink-0 rounded-lg" style={{ background: "linear-gradient(135deg,#F5B32B,#D93A1E)" }} />
+            <div className="w-12 h-12 shrink-0 rounded-lg" style={{ background: `linear-gradient(135deg, ${b.primary}, ${b.accent})` }} />
             <div className="min-w-0 flex-1">
               <p className="text-[12.5px] font-semibold text-ink m-0">{m.name}</p>
-              <p className="text-[10.5px] text-ink-faint m-0">{m.desc}</p>
+              <p className="text-[10.5px] text-ink-faint m-0 truncate">{m.desc}</p>
               <p className="text-[12px] font-bold text-ink m-0 mt-0.5">{m.price}</p>
             </div>
-            <span className="w-7 h-7 rounded-full flex items-center justify-center text-white" style={{ background: RED }}>
+            <span className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center" style={{ background: b.primary, color: b.onPrimary }}>
               <Plus className="w-4 h-4" strokeWidth={2.6} />
             </span>
           </div>
@@ -175,14 +225,14 @@ export function OrderSiteScreen() {
       <div className="mt-auto px-3 pb-5 pt-3">
         <p className="text-center text-[10px] text-ink-faint mb-1.5 mt-0">Tu gagnes des points à chaque commande</p>
         <div
-          className="rounded-xl py-3 px-4 flex items-center justify-between text-white font-bold text-[12.5px]"
-          style={{ background: DARK }}
+          className="rounded-xl py-3 px-4 flex items-center justify-between font-bold text-[12.5px]"
+          style={{ background: b.primary, color: b.onPrimary }}
         >
           <span className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4" strokeWidth={2.4} />
             Commander (2)
           </span>
-          <span className="whitespace-nowrap">12,80 €</span>
+          <span className="whitespace-nowrap">15,80 €</span>
         </div>
       </div>
     </div>
@@ -200,7 +250,7 @@ const SOURCES = [
 function ConsoleHeader({ title, sub }: { title: string; sub: string }) {
   return (
     <div className="px-4 pt-11 pb-3">
-      <p className="text-[10.5px] text-ink-faint m-0">Belchicken Kraainem</p>
+      <p className="text-[10.5px] text-ink-faint m-0">Smashly · Ixelles</p>
       <p className="font-display text-[18px] font-bold text-ink m-0 leading-tight">{title}</p>
       <p className="text-[11px] text-ink-muted m-0 mt-0.5">{sub}</p>
     </div>
@@ -232,6 +282,7 @@ export function SourcesScreen() {
           ))}
         </div>
       </div>
+      <ConsoleTabs active={3} />
     </div>
   );
 }
@@ -239,9 +290,9 @@ export function SourcesScreen() {
 /* ---------- 5. Google — console ---------- */
 const RANKS = [9, 8, 8, 6, 5, 5, 4, 3];
 const KEYWORDS = [
-  { k: "poulet frit Kraainem", r: "3ᵉ" },
-  { k: "snack Kraainem", r: "5ᵉ" },
-  { k: "fast food près de moi", r: "8ᵉ" },
+  { k: "burger Ixelles", r: "3ᵉ" },
+  { k: "smash burger Bruxelles", r: "5ᵉ" },
+  { k: "burger près de moi", r: "8ᵉ" },
 ];
 
 export function GoogleScreen() {
@@ -254,7 +305,7 @@ export function GoogleScreen() {
             <span className="font-display text-[30px] font-bold text-ink leading-none">3ᵉ</span>
             <span className="text-[11px] font-bold text-moss-dark bg-moss-tint rounded-full px-2 py-0.5">+6 places</span>
           </div>
-          <p className="text-[10.5px] text-ink-faint m-0 mt-1">« poulet frit Kraainem » · 2 mois</p>
+          <p className="text-[10.5px] text-ink-faint m-0 mt-1">« burger Ixelles » · 2 mois</p>
           <div className="flex items-end gap-1.5 h-16 mt-3">
             {RANKS.map((r, i) => (
               <div
@@ -280,6 +331,7 @@ export function GoogleScreen() {
           </span>
         </div>
       </div>
+      <ConsoleTabs active={3} />
     </div>
   );
 }
@@ -300,7 +352,7 @@ export function MessageScreen() {
         <div className="bg-white border border-paper-border rounded-xl px-3.5 py-3">
           <p className="text-[10px] text-ink-faint m-0 mb-1">Message</p>
           <p className="text-[12.5px] text-ink m-0 leading-snug">
-            Ce mardi soir, les churros sont offerts dès 2 menus 🍩
+            Ce mardi soir, les frites sont offertes dès 2 menus 🍟
           </p>
         </div>
         <div className="bg-ink rounded-xl py-3 flex items-center justify-center gap-2 text-white font-bold text-[12.5px]">
@@ -311,15 +363,16 @@ export function MessageScreen() {
           Ce que tes clients reçoivent
         </p>
         <div className="rounded-2xl bg-white/90 border border-paper-border shadow-[0_8px_20px_rgba(10,10,10,0.08)] px-3 py-2.5 flex gap-2.5">
-          <span className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center" style={{ background: RED }}>
-            <Gift className="w-4 h-4 text-white" />
+          <span className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center" style={{ background: SMASHLY.primary, color: SMASHLY.onPrimary }}>
+            <Gift className="w-4 h-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold text-ink m-0">Belchicken · maintenant</p>
-            <p className="text-[11px] text-ink-muted m-0 leading-snug">Ce mardi soir, les churros sont offerts dès 2 menus 🍩</p>
+            <p className="text-[11px] font-bold text-ink m-0">Smashly · maintenant</p>
+            <p className="text-[11px] text-ink-muted m-0 leading-snug">Ce mardi soir, les frites sont offertes dès 2 menus 🍟</p>
           </div>
         </div>
       </div>
+      <ConsoleTabs active={2} />
     </div>
   );
 }

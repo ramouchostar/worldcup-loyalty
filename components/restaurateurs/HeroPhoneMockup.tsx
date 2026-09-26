@@ -8,8 +8,8 @@ import { PhoneFrame } from "./PhoneFrame";
 // simple (ADR 0064 — accueil, objectif du jour, à faire, onglets Accueil ·
 // Tickets · Annonces · Plus), dans un iPhone, avec une ligne par pilier de
 // l'offre (ADR 0070) : commandes en ligne, Google, fidélité, publicité.
-// Données d'illustration figées (établissement fictif Belchicken), comme les
-// autres mockups de la page. Jamais « grâce à nous » (ADR 0064) : on montre
+// Données d'illustration figées, établissement IMAGINAIRE (Smashly, burgers
+// à Ixelles) — jamais un vrai client, comme les autres mockups de la page. Jamais « grâce à nous » (ADR 0064) : on montre
 // une origine et un nombre, pas un chiffre d'affaires additionnel.
 
 const MONTH_ROWS = [
@@ -29,11 +29,11 @@ export function HeroPhoneMockup() {
         <div className="px-4 pt-3 pb-4 flex flex-col gap-2.5">
           {/* En-tête établissement */}
           <div className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-white border border-paper-border flex items-center justify-center font-display font-bold text-[13px] text-ink">
-              B
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center font-display font-bold text-[13px] bg-[#141414] text-[#FFCC00]">
+              S
             </span>
             <div className="min-w-0">
-              <p className="text-[13px] font-bold text-ink m-0 leading-tight">Belchicken Kraainem</p>
+              <p className="text-[13px] font-bold text-ink m-0 leading-tight">Smashly · Ixelles</p>
               <p className="text-[10.5px] text-ink-faint m-0">Samedi · ta journée</p>
             </div>
           </div>

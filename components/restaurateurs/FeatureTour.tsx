@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
+import { ChevronDown } from "lucide-react";
 import { PhoneFrame } from "./PhoneFrame";
 import {
   GoogleScreen,
@@ -91,9 +92,27 @@ const STEPS: Step[] = [
   },
 ];
 
+// Taille de conception du téléphone (proportions d'un vrai iPhone). Il est
+// réduit EN ENTIER (scale) pour tenir dans la hauteur disponible — jamais
+// écrasé en hauteur seule, sinon il ressemble à une montre.
+const PHONE_W = 290;
+const PHONE_H = 620;
+
 export function FeatureTour() {
   const sectionRef = useRef<HTMLElement>(null);
+  const phoneAreaRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = phoneAreaRef.current;
+    if (!el) return;
+    const fit = () => setScale(Math.min(1, Math.max(0.5, (el.clientHeight - 8) / PHONE_H)));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -189,27 +208,38 @@ export function FeatureTour() {
             </ol>
           </div>
 
-          {/* Téléphone fixe, écrans en fondu */}
-          <div className="flex flex-col items-center mt-5 lg:mt-0">
-            <PhoneFrame
-              className="w-[250px] sm:w-[290px]"
-              screenClassName="h-[min(560px,calc(100svh-19rem))] lg:h-[560px]"
-              statusTone={STEPS[active].lightStatus ? "light" : "dark"}
+          {/* Téléphone fixe (réduit en entier), écrans en fondu */}
+          <div ref={phoneAreaRef} className="relative w-full flex-1 min-h-0 mt-4 mb-3 lg:m-0 lg:w-[340px] lg:h-full lg:flex-none">
+            <div
+              className="absolute left-1/2 top-1/2"
+              style={{ width: PHONE_W, transform: `translate(-50%, -50%) scale(${scale})` }}
             >
-              {STEPS.map((s, i) => (
-                <div
-                  key={s.id}
-                  className="absolute inset-0 transition-opacity duration-500 motion-reduce:transition-none"
-                  style={{ opacity: i === active ? 1 : 0 }}
-                  aria-hidden={i !== active}
-                >
-                  <s.Screen />
-                </div>
-              ))}
-            </PhoneFrame>
+              <PhoneFrame
+                className="w-[290px]"
+                screenClassName="h-[600px]"
+                statusTone={STEPS[active].lightStatus ? "light" : "dark"}
+              >
+                {STEPS.map((s, i) => (
+                  <div
+                    key={s.id}
+                    className="absolute inset-0 transition-opacity duration-500 motion-reduce:transition-none"
+                    style={{ opacity: i === active ? 1 : 0 }}
+                    aria-hidden={i !== active}
+                  >
+                    <s.Screen />
+                  </div>
+                ))}
+              </PhoneFrame>
+            </div>
 
-            {/* Points — mobile */}
-            <div className="flex gap-2 mt-4 lg:hidden" role="tablist" aria-label="Fonctionnalités">
+            {/* Repères verticaux — mobile : on comprend qu'il faut défiler vers le bas */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 lg:hidden"
+              style={{ left: `calc(50% + ${(PHONE_W / 2) * scale + 14}px)` }}
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Fonctionnalités"
+            >
               {STEPS.map((s, i) => (
                 <button
                   key={s.id}
@@ -218,9 +248,13 @@ export function FeatureTour() {
                   aria-selected={i === active}
                   aria-label={s.title}
                   onClick={() => goTo(i)}
-                  className={`h-2 rounded-full transition-all duration-300 ${i === active ? "w-6 bg-moss" : "w-2 bg-paper-border"}`}
+                  className={`w-2 rounded-full transition-all duration-300 ${i === active ? "h-6 bg-moss" : "h-2 bg-ink/20"}`}
                 />
               ))}
+              <ChevronDown
+                className={`w-4 h-4 mt-1 text-moss-dark motion-safe:animate-bounce transition-opacity ${active === STEPS.length - 1 ? "opacity-0" : "opacity-100"}`}
+                aria-hidden
+              />
             </div>
           </div>
         </div>
