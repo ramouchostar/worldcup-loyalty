@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { ChartBarIncreasing, Heart, Megaphone, MessageCircle, PiggyBank, Repeat, Star, Target, Users } from "lucide-react";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
+import { boosteatsAdvantages, type AdvantageKey } from "@/lib/audit/boosteats-advantages";
 import type { AuditRow, SectionRow } from "@/lib/audit/store";
 import type { BusinessInfo, StoredReview } from "@/lib/audit/dataforseo";
 import type { FicheScore } from "@/lib/audit/fiche-score";
@@ -322,7 +324,7 @@ export function AuditReport(props: { audit: AuditRow; sections: SectionRow[] } &
         {actions && audit.status !== "en_cours" && <AnswersForm action={actions.saveAnswers} initial={answers} />}
 
         {/* 9. Ce que Boosteats fait pour lui, et UN appel à l'action */}
-        <BoosteatsPlan name={info?.title ?? audit.name} top={top} answers={answers} />
+        <BoosteatsPlan name={info?.title ?? audit.name} top={top} answers={answers} signals={signals} objective={reco?.objective ?? null} now={global.now} potential={global.potential} />
 
         {/* Console seulement : l'état de chaque volet, avec son motif (jamais d'échec silencieux). */}
         {!isPublic && <details className={s.tech}>
@@ -898,14 +900,33 @@ function Revision({ answers, reco }: { answers: OwnerAnswers; reco: StoredRecomm
   );
 }
 
-// Le rapport se termine par ce que Boosteats fait pour ce restaurant, en
-// peu de mots (demande du porteur, 2026-09-26) : A + B = résultat, les
-// priorités où Boosteats agit, et UN seul appel à l'action (plan Gratuit,
-// ADR 0070). Rien n'est promis que le plan Gratuit ne fasse pas.
-function BoosteatsPlan({ name, top, answers }: { name: string; top: Scenario[]; answers: OwnerAnswers | null }) {
+// Le rapport se termine par ce que Boosteats fait pour ce restaurant (retours
+// du porteur, 2026-09-26) : les 5 avantages les plus utiles pour CET audit,
+// en cases vertes et en peu de mots, puis l'objectif et comment on s'y tient,
+// les trois étapes concrètes et UN seul appel à l'action (plan Gratuit,
+// ADR 0070).
+const ADVANTAGE_ICON: Record<AdvantageKey, React.ReactNode> = {
+  fidelite: <Repeat aria-hidden="true" />,
+  avis: <Star aria-hidden="true" />,
+  prive: <MessageCircle aria-hidden="true" />,
+  parrainage: <Users aria-hidden="true" />,
+  annonces: <Megaphone aria-hidden="true" />,
+  reseaux: <Heart aria-hidden="true" />,
+  direct: <PiggyBank aria-hidden="true" />,
+  suivi: <ChartBarIncreasing aria-hidden="true" />,
+};
+
+function BoosteatsPlan({ name, top, answers, signals, objective, now, potential }: { name: string; top: Scenario[]; answers: OwnerAnswers | null; signals: AuditSignals | null; objective: Scenario | null; now: number | null; potential: number | null }) {
   const eur = (n: number) => `${n.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} €`;
   const goal = answers?.monthlyRevenue && answers.monthlyRevenueTarget && answers.monthlyRevenueTarget > answers.monthlyRevenue ? answers : null;
+  const advantages = boosteatsAdvantages(signals, answers);
   const levers = top.map((p, i) => ({ n: i + 1, p })).filter((x) => x.p.boosteats);
+  const obj = objective ? withCurrentText(objective) : null;
+  const target = goal
+    ? `De ${eur(goal.monthlyRevenue!)} à ${eur(goal.monthlyRevenueTarget!)} par mois`
+    : now != null && potential != null && potential > now
+      ? `De ${now} à ${potential} sur 100 en 90 jours`
+      : null;
   return (
     <section id="boosteats" className={`${s.section} ${s.plan2}`}>
       <div>
@@ -913,43 +934,55 @@ function BoosteatsPlan({ name, top, answers }: { name: string; top: Scenario[]; 
         <h2>Ce que Boosteats fait pour {name}</h2>
       </div>
 
-      <div className={s.equation}>
-        <div className={s.term}>
-          <span className={s.termKey}>A</span>
-          <h3>Vos clients reviennent</h3>
-          <p>Des points à chaque ticket, un cadeau qu&apos;ils choisissent. Votre marge est protégée.</p>
-        </div>
-        <span className={s.op} aria-hidden="true">+</span>
-        <div className={s.term}>
-          <span className={s.termKey}>B</span>
-          <h3>Vos avis Google montent</h3>
-          <p>{REVIEWS_PHRASE}, juste après leur visite. Les déçus vous écrivent d&apos;abord en privé.</p>
-        </div>
-        <span className={s.op} aria-hidden="true">=</span>
-        <div className={`${s.term} ${s.termResult}`}>
-          <span className={s.termKey}>✓</span>
-          <h3>{goal ? `Cap sur ${eur(goal.monthlyRevenueTarget!)} par mois` : "Plus de clients, sans commission"}</h3>
-          <p>Chaque mois, vous voyez combien sont revenus.</p>
-        </div>
+      <div className={s.advantages}>
+        {advantages.map((a) => (
+          <div key={a.key} className={s.advantage}>
+            <span className={s.advIcon}>{ADVANTAGE_ICON[a.key]}</span>
+            <h3>{a.title}</h3>
+            <p>{a.text}</p>
+          </div>
+        ))}
       </div>
 
-      {levers.length > 0 && (
-        <p className={s.leversLine}>
-          <b>Dans votre plan, Boosteats prend en charge :</b>{" "}
-          {levers.map(({ n, p }, i) => (
-            <span key={p.id}>
-              {i > 0 ? " · " : ""}priorité {n} ({p.title.charAt(0).toLowerCase() + p.title.slice(1)})
-            </span>
-          ))}
-          .
-        </p>
+      {target && (
+        <div className={`${s.card} ${s.goalCard}`}>
+          <span className={s.goalIcon}><Target aria-hidden="true" /></span>
+          <div>
+            <span className={s.eyebrow}>Votre objectif</span>
+            <h3>{target}</h3>
+            <p>
+              {goal && obj?.boosteats ? `${obj.boosteats} ` : ""}
+              Les priorités du plan vous amènent de nouveaux clients, Boosteats les fait revenir
+              {levers.length > 0 ? ` et prend en charge ${levers.length > 1 ? "les priorités" : "la priorité"} ${levers.map(({ n }) => n).join(" et ")}` : ""}. Chaque
+              mois, on regarde ensemble où vous en êtes : clients revenus, tickets, dépenses.
+            </p>
+          </div>
+        </div>
       )}
+
+      <div className={s.card} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <b>Concrètement, dans votre restaurant</b>
+        <ul className={s.levers}>
+          {[
+            ["On prépare tout avec vous.", "Le QR code pour le comptoir, l'affiche à imprimer, les cadeaux choisis dans votre carte."],
+            ["Vos clients prennent leur ticket en photo.", "Pas d'application à télécharger : le QR code, une photo, les points arrivent."],
+            ["Chaque mois, vous voyez ce que ça rapporte.", "Combien de clients sont revenus, combien de tickets, ce qu'ils ont dépensé chez vous."],
+          ].map(([title, text], i) => (
+            <li key={title}>
+              <span className={s.n}>{i + 1}</span>
+              <span>
+                <b>{title}</b> {text}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <div className={s.ctaBlock}>
         <TrackedLink ctaId="devenir_partenaire" ctaLocation="rapport_audit" audience="restaurateur" href="/become-a-partner?source=audit" className={s.ctaBig}>
           Démarrer gratuitement dans mon restaurant
         </TrackedLink>
-        <span className={s.sum} style={{ fontWeight: 500 }}>Gratuit jusqu&apos;à 500 tickets par mois, sans engagement. Aucune application à télécharger pour vos clients.</span>
+        <span className={s.sum} style={{ fontWeight: 500 }}>Gratuit jusqu&apos;à 500 tickets par mois, sans engagement.</span>
         <span className={`${s.sum} ${s.printOnly}`}>boosteats.tech/become-a-partner</span>
       </div>
     </section>
