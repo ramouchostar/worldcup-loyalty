@@ -8,10 +8,10 @@ export function FinalCtaSection() {
     <section className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-24 text-center">
       <Reveal>
         <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink text-pretty">
-          Ton programme tourne ce soir.
+          Un programme opérationnel dès ce soir.
         </h2>
         <p className="font-landing text-base leading-[1.7] text-ink-muted mt-4 max-w-[520px] mx-auto">
-          Compte créé instantanément, QR code prêt après validation de ton établissement. Sans carte bancaire, sans
+          Compte créé instantanément, QR code prêt après validation de l&apos;établissement. Sans carte bancaire, sans
           engagement, sans commission.
         </p>
         <TrackedLink
@@ -24,7 +24,7 @@ export function FinalCtaSection() {
           Commencer le plan gratuit →
         </TrackedLink>
         <p className="text-sm text-ink-faint mt-5">
-          Une question avant de te lancer ? Écris-nous à{" "}
+          Une question avant de démarrer ? L&apos;équipe répond à{" "}
           <a href="mailto:contact@boosteats.tech" className="text-moss-dark hover:underline">
             contact@boosteats.tech
           </a>

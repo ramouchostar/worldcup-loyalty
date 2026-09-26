@@ -4,16 +4,16 @@ import { Reveal } from "./motion";
 
 const BENEFITS = [
   {
-    title: "Une acquisition qui ne te coûte rien",
-    desc: "Chaque équipe recrute pour toi. Un salarié qui inscrit huit collègues, c'est huit clients réguliers acquis sans un euro de publicité.",
+    title: "Une acquisition qui ne coûte rien",
+    desc: "Chaque équipe recrute pour l'établissement. Un salarié qui inscrit huit collègues, c'est huit clients réguliers acquis sans un euro de publicité.",
   },
   {
     title: "Des segments enfin lisibles",
-    desc: "Tu ne vois plus « 128 clients ». Tu vois l'équipe du bureau d'en face qui déjeune du lundi au jeudi entre 12 h et 13 h, les étudiants du soir, le groupe du week-end. Trois comportements différents, trois façons de leur parler.",
+    desc: "Plus seulement « 128 clients », mais l'équipe du bureau d'en face qui déjeune du lundi au jeudi entre 12 h et 13 h, les étudiants du soir, le groupe du week-end. Trois comportements différents, trois façons de leur parler.",
   },
   {
     title: "Un ciblage qui devient possible",
-    desc: "Un mardi creux se remplit en s'adressant à l'équipe qui vient déjà en semaine — pas en arrosant toute ta base d'une remise dont tu n'as pas besoin.",
+    desc: "Un mardi creux se remplit en s'adressant à l'équipe qui vient déjà en semaine — pas en arrosant toute la base d'une remise inutile.",
   },
 ];
 
@@ -24,17 +24,17 @@ export function ParrainageSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Parrainage</p>
           <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[720px] text-pretty">
-            Tes clients ne viennent plus seuls. Et tu sais enfin qui ils sont.
+            Des clients qui ne viennent plus seuls. Et enfin identifiés.
           </h2>
           <p className="font-landing text-base leading-[1.7] text-ink-muted mt-5 max-w-[640px]">
-            Sur l&apos;app, tes clients créent des équipes — leur bureau, leur classe, leur salle de sport. Chaque
-            membre qui rejoint amène les suivants. Tu ne gagnes pas un client, tu gagnes un groupe qui déjeune
-            ensemble, au même endroit, aux mêmes horaires.
+            Sur l&apos;app, les clients créent des équipes — leur bureau, leur classe, leur salle de sport.
+            Chaque membre qui rejoint amène les suivants. Ce n&apos;est pas un client de plus, c&apos;est un
+            groupe qui déjeune ensemble, au même endroit, aux mêmes horaires.
           </p>
         </Reveal>
 
         <Reveal delay={80}>
-          <p className="font-display font-bold text-ink mt-10 mb-6">Ce que ça t&apos;apporte concrètement</p>
+          <p className="font-display font-bold text-ink mt-10 mb-6">Ce que cela apporte concrètement</p>
         </Reveal>
 
         <div className="grid sm:grid-cols-3 gap-6">

@@ -7,9 +7,9 @@ import { ConsoleImpactMockup } from "./ConsoleImpactMockup";
 import { ConsoleImpactMockupMobile } from "./ConsoleImpactMockupMobile";
 
 const POINTS = [
-  "Calculé sur tes tickets réels, pas sur des moyennes du secteur",
-  "Chaque facteur est affiché — tu peux contredire le modèle",
-  "Si la donnée manque, l'app te le dit au lieu d'inventer un chiffre",
+  "Calculé sur les tickets réels, pas sur des moyennes du secteur",
+  "Chaque facteur est affiché — le modèle peut être contredit",
+  "Si la donnée manque, l'app le signale au lieu d'inventer un chiffre",
 ];
 
 export function ConsoleImpactSection() {
@@ -19,12 +19,12 @@ export function ConsoleImpactSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Pilotage</p>
           <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[640px] text-pretty">
-            Tu vois exactement ce que le programme t&apos;a rapporté.
+            Ce que le programme rapporte, chiffré au plus juste.
           </h2>
           <p className="font-landing text-base leading-[1.7] text-ink-muted mt-5 max-w-[640px]">
             Pas un score d&apos;engagement, pas un taux de rétention. Le chiffre d&apos;affaires généré par les
-            clients du programme, la marge dessus, et ce qu&apos;il t&apos;a coûté. Détaillé par plat si tu veux
-            creuser.
+            clients du programme, la marge dessus, et ce qu&apos;il a coûté. Détaillé par plat pour aller plus
+            loin.
           </p>
         </Reveal>
 

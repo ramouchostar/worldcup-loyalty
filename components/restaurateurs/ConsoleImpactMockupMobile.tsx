@@ -30,7 +30,7 @@ export function ConsoleImpactMockupMobile() {
 
       <div className="bg-ink rounded-xl px-4 py-4">
         <p className="font-mono text-[9.5px] tracking-[0.1em] uppercase text-moss-light m-0 mb-2.5">
-          Ce que le programme t&apos;a rapporté — 30j
+          Ce que le programme a rapporté — 30j
         </p>
         <div className="grid grid-cols-2 gap-3 text-center">
           <Stat value={6100} suffix=" €" label="CA généré (412 tickets scannés)" color="text-white" />
@@ -67,7 +67,7 @@ export function ConsoleImpactMockupMobile() {
           ))}
         </div>
         <p className="text-xs text-ink-muted mt-3 mb-0 pt-3 border-t border-paper-border">
-          Vendredi reste ton meilleur soir. Mardi décroche depuis 3 semaines — une promo ciblée t&apos;attend dans
+          Vendredi reste le meilleur soir. Mardi décroche depuis 3 semaines — une promo ciblée attend dans
           Opportunités.
         </p>
       </div>

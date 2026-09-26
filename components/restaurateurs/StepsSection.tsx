@@ -6,24 +6,24 @@ import { Reveal, useParallaxOffset } from "./motion";
 const STEPS = [
   {
     n: "01",
-    title: "Présente ton établissement",
+    title: "Présenter l'établissement",
     desc: "Nom, ville, quartier, réseaux sociaux. Deux minutes.",
   },
   {
     n: "02",
-    title: "Envoie ta carte, comme tu l'as",
-    desc: "Une photo, un PDF, un fichier Excel : on prend ce que tu as et on s'occupe de la mise en forme. Tu n'as rien à préparer.",
+    title: "Envoyer la carte, telle quelle",
+    desc: "Une photo, un PDF, un fichier Excel : le format existant suffit, la mise en forme est prise en charge. Rien à préparer.",
   },
   {
     n: "03",
-    title: "Complète tes coûts, si tu veux",
-    desc: "Une page simple, produit par produit, que tu remplis à ton rythme. Tu peux la laisser vide : le programme tourne avec des marges estimées et se précisera quand tu la compléteras.",
+    title: "Compléter les coûts, en option",
+    desc: "Une page simple, produit par produit, à remplir à son rythme. Elle peut rester vide : le programme tourne avec des marges estimées et gagne en précision une fois complétée.",
     optional: true,
   },
   {
     n: "04",
-    title: "Lance-toi",
-    desc: "On valide ton établissement, ton QR code et tes supports imprimables sont prêts à présenter à tes clients.",
+    title: "Lancer le programme",
+    desc: "Dès la validation de l'établissement, le QR code et les supports imprimables sont prêts à être présentés aux clients.",
   },
 ];
 
@@ -42,7 +42,7 @@ export function StepsSection() {
         <Reveal>
           <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-light mb-3.5">▶ Démarrer</p>
           <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-white max-w-[620px] text-pretty">
-            Ton programme est prêt en quatre étapes.
+            Un programme prêt en quatre étapes.
           </h2>
         </Reveal>
 

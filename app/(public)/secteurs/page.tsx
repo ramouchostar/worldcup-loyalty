@@ -139,7 +139,7 @@ export default async function SectorsPage() {
         {sorted.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
             <p className="text-gray-400 text-sm">
-              Le réseau démarre — sois le premier restaurant de ton secteur.
+              Le réseau démarre — la première place de chaque secteur est encore libre.
             </p>
           </div>
         ) : (
@@ -170,9 +170,9 @@ export default async function SectorsPage() {
       {/* CTA restaurateur */}
       <div className="bg-brand-red text-white py-12">
         <div className="max-w-lg mx-auto px-5 text-center">
-          <h2 className="text-2xl font-black mb-3">Ton secteur mérite sa communauté</h2>
+          <h2 className="text-2xl font-black mb-3">Chaque secteur mérite sa communauté</h2>
           <p className="text-red-100 mb-6 text-sm leading-relaxed">
-            Inscris ton restaurant et transforme tes clients en équipes fidèles.
+            Un restaurant inscrit transforme ses clients en équipes fidèles.
           </p>
           <TrackedLink
             ctaId="devenir_partenaire"

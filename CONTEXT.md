@@ -440,6 +440,10 @@ _Avoid_ : quota (subi), série/streak, objectif CA (le chiffre d'affaires ne se 
 Les quatre gestes de l'étape « Lancer » — logo, menu et coûts, QR affiché, 10 premiers tickets — **cochés par les données** (logo en base, articles avec prix de revient, arrivées anonymes sur la vitrine, tickets validés), jamais à la main. Le QR de l'équipe en salle n'en fait pas partie : c'est la **première tâche « À faire »** de l'accueil, à toutes les étapes, tant que moins de 3 QR sont actifs (ADR 0064, amendement).
 _Avoid_ : checklist d'onboarding (l'inscription partenaire `become-a-partner` est antérieure), tutoriel.
 
+**Registre de la landing restaurateurs** *(2026-09-26)* :
+La landing prospects (`/`, `components/restaurateurs/**`, y compris les maquettes de console qu'elle affiche) et le bandeau restaurateur de `/secteurs` s'écrivent en **impersonnel** : « le comptoir », « les clients », « l'établissement ». Le lecteur peut être le dirigeant d'un groupe de plusieurs établissements — registre professionnel pour tous. Vouvoiement seulement si une adresse directe est inévitable. Les écrans membres et la maquette de l'app membre (`MemberAppMockup`) restent tutoyés.
+_Avoid_ : tutoiement (« ton comptoir », « tes clients », « lance-toi ») sur une page prospect.
+
 ---
 
 ### Qualité & retours *(ADR 0023 — proposé)*

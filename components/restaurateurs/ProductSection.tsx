@@ -4,8 +4,8 @@ import { Reveal } from "./motion";
 import { InsightsMockupMobile } from "./InsightsMockupMobile";
 
 const OPPORTUNITY_POINTS = [
-  "Chaque promo est chiffrée avant d'être lancée — tu vois le CA attendu et le coût matière",
-  "L'app propose, tu décides — rien n'est jamais appliqué sans toi",
+  "Chaque promo est chiffrée avant d'être lancée — CA attendu et coût matière affichés",
+  "L'app propose, le restaurateur décide — rien n'est jamais appliqué sans validation",
   "L'annonce part au bon moment, jamais trop tôt",
 ];
 
@@ -16,8 +16,8 @@ export function ProductSection() {
         <Reveal>
           <TextBlock
             eyebrow="Opportunités"
-            title="L'app te dit quoi faire mardi soir, pas juste ce qui s'est passé."
-            desc="Chaque suggestion part de tes ventes réelles et de ta carte : un jour creux à remplir, un combo que tes clients composent déjà eux-mêmes, un groupe de clients qui n'est pas revenu depuis trois semaines. Tu vois le chiffre qui justifie la proposition, tu lances en un clic, ou tu ignores."
+            title="L'app indique quoi faire mardi soir, pas seulement ce qui s'est passé."
+            desc="Chaque suggestion part des ventes réelles et de la carte : un jour creux à remplir, un combo que les clients composent déjà eux-mêmes, un groupe de clients qui n'est pas revenu depuis trois semaines. Le chiffre qui justifie la proposition est affiché : lancement en un clic, ou suggestion écartée."
             points={OPPORTUNITY_POINTS}
           />
         </Reveal>
