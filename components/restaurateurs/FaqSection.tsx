@@ -4,36 +4,32 @@ import { Reveal } from "./motion";
 
 const QUESTIONS = [
   {
-    q: "Ça ralentit mon comptoir ?",
-    a: "Non. Le client photographie son ticket après avoir payé. Ta caisse ne change pas.",
+    q: "Le programme ralentit-il le comptoir ?",
+    a: "Non. Le client photographie son ticket après avoir payé. La caisse ne change pas.",
   },
   {
-    q: "Je dois valider les tickets ?",
+    q: "Faut-il valider les tickets ?",
     a: "Non, la lecture est automatique. Seuls les cas douteux remontent.",
   },
   {
-    q: "Je suis sur Uber Eats. Je dois partir ?",
-    a: "Non. Garde-les pour la livraison. Ton site sert à tes habitués, sans commission de plateforme.",
+    q: "Faut-il quitter Uber Eats ?",
+    a: "Non. Les plateformes restent utiles pour la livraison. Le site de commande sert aux habitués, sans commission de plateforme.",
   },
   {
     q: "Le référencement, c'est quoi ?",
-    a: "Ta place quand on cherche « snack près de moi » sur Google. On la fait monter, tu la vois chaque mois.",
+    a: "La place de l'établissement quand on cherche « snack près de moi » sur Google. On la fait monter, et son évolution s'affiche chaque mois.",
   },
   {
     q: "Et au-delà de 500 tickets par mois ?",
-    a: "Tes clients ne voient rien. Si ça dure deux mois, on te propose le plan Croissance.",
+    a: "Les clients ne voient aucune différence. Si cela dure deux mois, le plan Croissance est proposé.",
   },
   {
-    q: "Comment vous gagnez de l'argent ?",
-    a: "L'abonnement, et 5 % des commandes en ligne en Croissance. Rien sur le comptoir, aucune donnée revendue.",
+    q: "Et en cas d'arrêt ?",
+    a: "Gratuit et Croissance : à tout moment. Pro : 3 mois minimum. La liste de clients et le nom de domaine restent la propriété de l'établissement.",
   },
   {
-    q: "Et si j'arrête ?",
-    a: "Gratuit et Croissance : quand tu veux. Pro : 3 mois minimum. Ta liste de clients et ton domaine restent à toi.",
-  },
-  {
-    q: "Mes clients dépensent leurs points ailleurs ?",
-    a: "Non. Les points gagnés chez toi ne valent que chez toi.",
+    q: "Les clients peuvent-ils dépenser leurs points ailleurs ?",
+    a: "Non. Les points gagnés dans un établissement ne valent que là.",
   },
 ];
 
@@ -43,7 +39,7 @@ export function FaqSection() {
       <Reveal>
         <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Questions</p>
         <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[640px] text-pretty">
-          Tes questions.
+          Les questions fréquentes.
         </h2>
       </Reveal>
 

@@ -11,31 +11,31 @@ import { Reveal } from "./motion";
 // Rentabilité : ticket moyen 14,80 € × marge brute 65 % ≈ 9,62 € par ticket.
 
 const FREE_FEATURES = [
-  "Ton programme de fidélité, à ton nom et à tes couleurs",
+  "Un programme de fidélité au nom et aux couleurs de l'établissement",
   "Jusqu'à 500 tickets par mois",
-  "Des cadeaux calculés pour protéger ta marge",
+  "Des cadeaux calculés pour protéger la marge",
   "Parrainage et équipes, sans limite",
-  "Des messages à tes clients, envoyés par toi",
+  "Des messages aux clients, envoyés par l'établissement",
   "QR codes et affiches prêts à imprimer",
 ];
 
 const GROWTH_FEATURES = [
   "Tickets illimités",
-  "Ton site de commande à emporter, à ton nom",
-  "D'où vient chaque commande, et ce que te rapporte ta pub",
+  "Un site de commande à emporter, au nom de l'établissement",
+  "D'où vient chaque commande, et ce que rapporte chaque pub",
   "Prévisions de ventes et ventes par plat",
   "Des idées de promos chiffrées, et des messages programmés",
   "Relance automatique des clients qui ne viennent plus",
 ];
 
 const PRO_FEATURES = [
-  "0 % de commission sur tes commandes",
-  "Ton site sur ton propre nom de domaine",
-  "Référencement Google : on s'occupe de ta place",
-  "Ta fiche Google tenue à jour, avec le bouton « Commander »",
+  "0 % de commission sur les commandes",
+  "Le site sur un nom de domaine propre",
+  "Référencement Google pris en charge",
+  "La fiche Google tenue à jour, avec le bouton « Commander »",
   "Un rapport clair chaque mois, et un point avec nous",
-  "Comparaison anonyme avec les restos de ton secteur",
-  "Tous tes établissements au même endroit",
+  "Comparaison anonyme avec les restaurants du secteur",
+  "Tous les établissements au même endroit",
 ];
 
 const PILOT_MAILTO = (plan: string) =>
@@ -59,7 +59,7 @@ export function PlansSection() {
               price="0 €"
               priceNote="pour toujours"
               commission="Aucune commission"
-              pitch="La fidélité complète, pour faire revenir tes clients."
+              pitch="La fidélité complète, pour faire revenir les clients."
               intro={null}
               features={FREE_FEATURES}
               highlighted
@@ -82,8 +82,8 @@ export function PlansSection() {
               name="Croissance"
               price="299 €"
               priceNote="/mois"
-              commission="+ 5 % sur les commandes passées sur ton site. Rien sur tes ventes au comptoir."
-              pitch="Pour vendre en direct et savoir ce que te rapporte ta pub."
+              commission="+ 5 % sur les commandes passées sur le site. Rien sur les ventes au comptoir."
+              pitch="Pour vendre en direct et savoir ce que rapporte chaque pub."
               intro="Tout le plan Gratuit, plus :"
               features={GROWTH_FEATURES}
               pilot
@@ -138,9 +138,9 @@ export function PlansSection() {
           <div className="bg-white border-[1.5px] border-moss-tint2 rounded-xl px-6 py-5 mt-8 max-w-[760px] mx-auto">
             <p className="font-display text-[15px] font-bold text-ink m-0 mb-1.5">Croissance ou Pro ?</p>
             <p className="text-[14.5px] leading-relaxed text-ink-body m-0">
-              Au-delà d&apos;environ <strong>4 000 € de commandes en ligne par mois</strong>, le plan Pro te coûte
-              moins cher que Croissance, et le référencement Google est inclus. On te le signale dans ton tableau de
-              bord : tu n&apos;as pas à faire le calcul.
+              Au-delà d&apos;environ <strong>4 000 € de commandes en ligne par mois</strong>, le plan Pro revient
+              moins cher que Croissance, et le référencement Google est inclus. Le tableau de bord le signale : aucun
+              calcul à faire.
             </p>
           </div>
         </Reveal>

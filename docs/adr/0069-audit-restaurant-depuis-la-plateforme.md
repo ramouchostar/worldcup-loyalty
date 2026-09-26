@@ -1,6 +1,6 @@
 # ADR 0069 — L'audit d'un restaurant se lance depuis la plateforme
 
-**Statut** : Proposé (2026-09-23 ; sources revues le même jour : Apify écarté, bibliothèque de scénarios ajoutée). Demande du porteur du même jour. Étend l'[ADR
+**Statut** : Proposé (2026-09-23 ; sources revues le même jour : Apify écarté, bibliothèque de scénarios ajoutée). **§1 amendé par l'[ADR 0071](0071-audit-gratuit-public.md)** (2026-09-26) : audit gratuit public depuis la landing. Demande du porteur du même jour. Étend l'[ADR
 0033](0033-console-plateforme-demo-chiffres-backlog.md) §4 (un onglet de plus dans `/platform`).
 Reprend l'item de backlog « audit fiche Google My Business » (m57, PR #51), jamais implémenté.
 N'amende **ni l'ADR 0007** (aucune donnée d'audit ne descend vers un membre) **ni l'ADR 0029** :

@@ -65,6 +65,12 @@ export type AnalyticsEventMap = {
   };
 
   // ─ Tunnel restaurateur ─
+  /** Audit gratuit (ADR 0071) : le visiteur lance l'analyse d'un établissement. */
+  audit_gratuit_started: Record<string, never>;
+  /** La note s'affiche (tranche seulement, jamais l'établissement ni la note exacte). */
+  audit_gratuit_scored: { score_band: "lt_50" | "50_74" | "75_plus" | "inconnu"; in_brussels: boolean };
+  /** Le numéro WhatsApp est laissé pour recevoir le rapport complet. */
+  audit_gratuit_phone_left: { score_band: "lt_50" | "50_74" | "75_plus" | "inconnu" };
   /** Le restaurateur ouvre le formulaire de création d'établissement. */
   partner_signup_started: { source: string };
   /** Une étape d'onboarding établissement est validée. */

@@ -14,7 +14,7 @@ import {
 
 // Visite guidée (2026-09-26) : un iPhone reste fixe pendant qu'on défile, et
 // l'écran + le titre changent à chaque fonctionnalité. Peu de texte : c'est
-// l'écran qui explique. Le badge dit QUI voit l'écran (ton client / ta
+// l'écran qui explique. Le badge dit QUI voit l'écran (côté client / côté
 // console), dans quel plan c'est inclus (ADR 0070), et « pilote » tant que
 // la fonctionnalité n'est pas livrée — jamais présentée comme disponible.
 //
@@ -27,7 +27,7 @@ import {
 type Step = {
   id: string;
   plan: string;
-  who: "Ton client" | "Ta console";
+  who: "Côté client" | "Côté console";
   title: string;
   line: string;
   Screen: ComponentType;
@@ -40,18 +40,18 @@ const STEPS: Step[] = [
   {
     id: "fidelite",
     plan: "Gratuit",
-    who: "Ton client",
+    who: "Côté client",
     title: "Chaque ticket rapporte des points.",
-    line: "Ton client revient chercher son cadeau. Tu en maîtrises le coût.",
+    line: "Le client revient chercher son cadeau, au coût maîtrisé.",
     Screen: LoyaltyScreen,
     lightStatus: true,
   },
   {
     id: "equipes",
     plan: "Gratuit",
-    who: "Ton client",
-    title: "Tes clients viennent en équipe.",
-    line: "Bureau, école, salle de sport : chaque équipe recrute pour toi.",
+    who: "Côté client",
+    title: "Les clients viennent en équipe.",
+    line: "Bureau, école, salle de sport : chaque équipe recrute pour l'établissement.",
     Screen: TeamScreen,
     lightStatus: true,
   },
@@ -59,17 +59,17 @@ const STEPS: Step[] = [
     id: "commande",
     pilot: true,
     plan: "Croissance",
-    who: "Ton client",
-    title: "Ton site de commande, à ton nom.",
-    line: "À emporter, payé directement sur ton compte. Sans plateforme.",
+    who: "Côté client",
+    title: "Un site de commande à son nom.",
+    line: "À emporter, payé directement sur le compte de l'établissement. Sans plateforme.",
     Screen: OrderSiteScreen,
   },
   {
     id: "sources",
     pilot: true,
     plan: "Croissance",
-    who: "Ta console",
-    title: "Tu sais ce que te rapporte ta pub.",
+    who: "Côté console",
+    title: "Ce que rapporte chaque pub, enfin chiffré.",
     line: "Chaque commande dit d'où elle vient.",
     Screen: SourcesScreen,
   },
@@ -77,17 +77,17 @@ const STEPS: Step[] = [
     id: "google",
     pilot: true,
     plan: "Pro",
-    who: "Ta console",
-    title: "Tu montes sur Google.",
-    line: "On s'occupe de ton référencement. Tu vois ta place chaque mois.",
+    who: "Côté console",
+    title: "Plus haut sur Google.",
+    line: "Le référencement est pris en charge, la place suivie chaque mois.",
     Screen: GoogleScreen,
   },
   {
     id: "annonces",
     plan: "Gratuit",
-    who: "Ta console",
+    who: "Côté console",
     title: "Un mardi creux ? Un message suffit.",
-    line: "Tu écris à la bonne équipe, au bon moment.",
+    line: "Le bon message à la bonne équipe, au bon moment.",
     Screen: MessageScreen,
   },
 ];
@@ -162,7 +162,7 @@ export function FeatureTour() {
           {/* Texte : un seul titre visible, les autres empilés dans la même case */}
           <div className="w-full text-center lg:text-left pt-4 lg:pt-0">
             <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3 hidden lg:block">
-              ▶ Ce que tu vois dans l&apos;app
+              ▶ Ce que montre l&apos;app
             </p>
             <div className="grid">
               {STEPS.map((s, i) => (

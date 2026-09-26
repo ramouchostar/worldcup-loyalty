@@ -16,7 +16,7 @@ export function CommissionBand() {
     <section className="max-w-[1100px] mx-auto px-5 sm:px-8 py-20 sm:py-24">
       <Reveal>
         <h2 className="font-display text-[30px] sm:text-[40px] lg:text-[48px] leading-[1.15] tracking-[-0.02em] font-bold text-ink text-center text-pretty m-0">
-          Sur une commande de 25 €, tu laisses :
+          Sur une commande de 25 €, ce qui part en commission :
         </h2>
       </Reveal>
       <div className="grid sm:grid-cols-3 gap-4 mt-10">

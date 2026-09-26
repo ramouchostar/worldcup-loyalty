@@ -4,10 +4,10 @@ import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal, useParallaxOffset } from "./motion";
 
 const STEPS = [
-  { n: "01", title: "Présente ton resto", desc: "Nom, adresse, réseaux. Deux minutes." },
-  { n: "02", title: "Envoie ta carte", desc: "Photo, PDF ou Excel : on s'occupe du reste." },
-  { n: "03", title: "Tes coûts, si tu veux", desc: "Sinon, on part sur des marges estimées.", optional: true },
-  { n: "04", title: "Lance-toi", desc: "Ton QR code et tes affiches sont prêts." },
+  { n: "01", title: "Présenter l'établissement", desc: "Nom, adresse, réseaux. Deux minutes." },
+  { n: "02", title: "Envoyer la carte", desc: "Photo, PDF ou Excel : on s'occupe du reste." },
+  { n: "03", title: "Les coûts, en option", desc: "Sinon, on part sur des marges estimées.", optional: true },
+  { n: "04", title: "Lancer le programme", desc: "Le QR code et les affiches sont prêts." },
 ];
 
 export function StepsSection() {

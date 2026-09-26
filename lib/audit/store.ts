@@ -106,6 +106,21 @@ export async function saveSection(
   if (error) throw error;
 }
 
+/** Dernier audit d'une fiche (identifiant Places) lancé depuis moins de `days` jours, s'il n'a pas échoué. */
+export async function recentAuditFor(placeId: string, days: number): Promise<AuditRow | null> {
+  const { data, error } = await createAdminClient()
+    .from("restaurant_audits")
+    .select("*")
+    .eq("place_id", placeId)
+    .neq("status", "echec")
+    .gte("created_at", new Date(Date.now() - days * 86_400_000).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as AuditRow | null) ?? null;
+}
+
 export type Listing<T> = { missing: true } | { missing: false; rows: T[] };
 
 export async function listAudits(limit = 100): Promise<Listing<AuditRow>> {

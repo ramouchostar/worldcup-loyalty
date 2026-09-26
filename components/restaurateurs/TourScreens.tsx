@@ -260,10 +260,10 @@ function ConsoleHeader({ title, sub }: { title: string; sub: string }) {
 export function SourcesScreen() {
   return (
     <div className="h-full flex flex-col">
-      <ConsoleHeader title="D'où viennent tes commandes" sub="Septembre · 214 commandes" />
+      <ConsoleHeader title="D'où viennent les commandes" sub="Septembre · 214 commandes" />
       <div className="px-4 flex flex-col gap-2.5">
         <div className="bg-ink rounded-xl px-3.5 py-3">
-          <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-moss-light m-0">Ta meilleure pub</p>
+          <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-moss-light m-0">Meilleure pub</p>
           <p className="text-white text-[13px] font-semibold m-0 mt-1">Instagram · 84 commandes</p>
         </div>
         <div className="bg-white border border-paper-border rounded-xl px-3.5 py-3 flex flex-col gap-3">
@@ -298,7 +298,7 @@ const KEYWORDS = [
 export function GoogleScreen() {
   return (
     <div className="h-full flex flex-col">
-      <ConsoleHeader title="Ta place sur Google" sub="Suivie chaque semaine" />
+      <ConsoleHeader title="Place sur Google" sub="Suivie chaque semaine" />
       <div className="px-4 flex flex-col gap-2.5">
         <div className="bg-white border border-paper-border rounded-xl px-3.5 py-3">
           <div className="flex items-baseline justify-between">
@@ -360,7 +360,7 @@ export function MessageScreen() {
           Envoyer mardi à 17 h
         </div>
         <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-ink-faint text-center mt-2 mb-0">
-          Ce que tes clients reçoivent
+          Ce que les clients reçoivent
         </p>
         <div className="rounded-2xl bg-white/90 border border-paper-border shadow-[0_8px_20px_rgba(10,10,10,0.08)] px-3 py-2.5 flex gap-2.5">
           <span className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center" style={{ background: SMASHLY.primary, color: SMASHLY.onPrimary }}>

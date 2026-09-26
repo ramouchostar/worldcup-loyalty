@@ -113,6 +113,17 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `partner_step_completed` | `step_name`, `step_number` | Étape validée (compte 1 → menu 2 → ticket 3 → social 4) |
 | `partner_onboarding_completed` | `steps_total` | Étape 4 franchie, y compris si les réseaux sont passés |
 
+### Audit gratuit (ADR 0071)
+
+| Événement | Paramètres | Déclencheur |
+|---|---|---|
+| `audit_gratuit_started` | — | Analyse lancée depuis `/audit-gratuit` |
+| `audit_gratuit_scored` | `score_band`, `in_brussels` | La note s'affiche (ou « hors Bruxelles ») — tranche seulement |
+| `audit_gratuit_phone_left` | `score_band` | Numéro WhatsApp laissé pour le rapport complet |
+
+Le numéro, l'établissement et la note exacte ne partent jamais vers Google : ils restent
+dans `audit_leads`, lue par `/platform/audit`.
+
 ---
 
 ## 3. Le cas des événements « à la redirection »

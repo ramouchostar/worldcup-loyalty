@@ -28,9 +28,9 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 export const revalidate = 300;
 
 export const metadata = {
-  title: "Fidélité, commande en ligne et Google pour ton restaurant",
+  title: "Fidélité, commande en ligne et Google pour les restaurants",
   description:
-    "Fais revenir tes clients avec une fidélité gratuite à vie, vends en direct sur ton propre site sans laisser 30 % à une plateforme, et sois trouvé sur Google. Tu vois chaque mois ce que ça t'a rapporté.",
+    "Faire revenir les clients avec une fidélité gratuite à vie, vendre en direct sur son propre site sans laisser 30 % à une plateforme, et être trouvé sur Google. Chaque mois, ce que cela a rapporté.",
 };
 
 export default function RestaurateursLandingPage() {

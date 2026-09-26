@@ -9,9 +9,9 @@ import { HeroPhoneMockup } from "./HeroPhoneMockup";
 // principal flotte sur le bas du téléphone, comme la barre de recherche
 // d'Owner — il reste le premier geste de la page.
 const BOOSTED_BENEFITS = [
-  "tes clients fidèles",
-  "tes ventes directes",
-  "ta place sur Google",
+  "la fidélité des clients",
+  "les ventes directes",
+  "la place sur Google",
   "le bouche-à-oreille",
 ];
 
@@ -30,14 +30,14 @@ export function Hero() {
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
             <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
-              Ton assistant qui booste
+              L&apos;assistant qui booste
               <br />
               <RotatingWords words={BOOSTED_BENEFITS} className="text-moss-dark" />
             </h1>
           </Reveal>
           <Reveal delay={100}>
             <p className="font-landing text-base sm:text-lg leading-[1.6] text-ink-muted mt-5 max-w-[560px] mx-auto">
-              Fidélité, commande en ligne et acquisition : tout ce qui remplit ton resto, dans une seule app.
+              Fidélité, commande en ligne et acquisition : tout ce qui remplit un restaurant, dans une seule app.
             </p>
           </Reveal>
         </div>

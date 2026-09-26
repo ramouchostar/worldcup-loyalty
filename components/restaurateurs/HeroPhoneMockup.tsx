@@ -14,7 +14,7 @@ import { PhoneFrame } from "./PhoneFrame";
 
 const MONTH_ROWS = [
   { icon: ShoppingBag, label: "Commandes en ligne", value: "214", note: "0 € de commission" },
-  { icon: MapPin, label: "Ta place sur Google", value: "3ᵉ", note: "+6 places", good: true },
+  { icon: MapPin, label: "Place sur Google", value: "3ᵉ", note: "+6 places", good: true },
   { icon: Repeat, label: "Clients revenus", value: "38", note: "cette semaine" },
   { icon: Megaphone, label: "Pub Instagram", value: "1 932 €", note: "de commandes" },
 ];
@@ -34,7 +34,7 @@ export function HeroPhoneMockup() {
             </span>
             <div className="min-w-0">
               <p className="text-[13px] font-bold text-ink m-0 leading-tight">Smashly · Ixelles</p>
-              <p className="text-[10.5px] text-ink-faint m-0">Samedi · ta journée</p>
+              <p className="text-[10.5px] text-ink-faint m-0">Samedi · la journée</p>
             </div>
           </div>
 

@@ -41,7 +41,7 @@ export function RestaurantMark({
 
   return (
     <span
-      className={`${s.box} ${s.radius} bg-brand-red flex items-center justify-center font-display font-bold text-brand-dark ${s.initial} shrink-0 ${className}`}
+      className={`${s.box} ${s.radius} bg-paper-subtle flex items-center justify-center font-display font-bold text-ink ${s.initial} shrink-0 ${className}`}
       aria-hidden="true"
     >
       {name.charAt(0).toUpperCase()}
