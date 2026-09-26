@@ -405,7 +405,8 @@ function ScanStep({ leadId, onLead, onDone, onLost }: { leadId: string; onLead: 
   return (
     <section className="max-w-[1200px] mx-auto px-4 sm:px-8 py-8 sm:py-12">
       <div className="grid md:grid-cols-[300px_1fr] gap-4 bg-paper-subtle rounded-2xl p-3 sm:p-4 min-h-[560px]">
-        <aside className="bg-white rounded-xl p-6 flex flex-col gap-5">
+        {/* Sur mobile, ce qu'on lit passe au-dessus de la liste : c'est ce qui convainc. */}
+        <aside className="order-2 md:order-1 bg-white rounded-xl p-6 flex flex-col gap-5">
           <h1 className="font-display text-[19px] font-bold text-ink m-0">{done ? "Analyse terminée" : "Analyse en cours…"}</h1>
           <ol className="flex flex-col gap-0 m-0 p-0 list-none" aria-live="polite">
             {STEP_ORDER.map((k, i) => {
@@ -439,7 +440,7 @@ function ScanStep({ leadId, onLead, onDone, onLost }: { leadId: string; onLead: 
           </div>
         </aside>
 
-        <div className="relative overflow-hidden rounded-xl bg-[#F6F5F0] min-h-[480px]">
+        <div className="order-1 md:order-2 relative overflow-hidden rounded-xl bg-[#F6F5F0] min-h-[400px] md:min-h-[480px]">
           <div key={current} className={`absolute inset-0 grid place-items-center p-5 sm:p-8 ${styles.enter}`}>
             <StepView step={current} lead={lead} />
           </div>
