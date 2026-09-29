@@ -87,13 +87,24 @@ annuaires (Malou), intégrations caisse maison (tous les « mastodontes »).
 
 | Plan | Pour qui | Contenu | Prix de départ |
 |---|---|---|---|
-| **Gratuit** | Tous | Capter + fiche membre + 1 annonce manuelle/mois | 0 € |
-| **Essentiel** | Le propriétaire qui veut agir | Segments, campagnes en un clic, séquences, centre des avis, résultats | 79–99 €/mois |
-| **Pro** | Celui qui veut qu'on le fasse pour lui | Essentiel + fiche Google gérée + rapport mensuel + point mensuel agence | 199–249 €/mois |
-| **Agence** (option) | Celui qui veut plus de nouveaux clients | Publicité payante gérée, mesurée dans la page résultats | Sur devis |
+| **Gratuit** | Tous | Capter + fiche membre + annonces à la main + 500 tickets/mois | 0 € |
+| **Croissance** | Le propriétaire qui veut agir lui-même | Segments, relance au rythme de chaque client, campagnes en un clic, centre des avis, page de résultats | ≈ 99 €/mois |
+| **Pro** | Celui qui veut qu'on s'en occupe | Croissance + copilote du lundi + fiche Google gérée + référencement + site de commande d'un partenaire (installation, gestion, optimisation) + rapport et point mensuels | 500 €/mois |
+| **Publicité gérée** (option) | Celui qui veut plus de nouveaux clients | Campagnes Meta et Google gérées, visites en salle mesurées | Sur devis |
 
-Logique : le Gratuit construit la base (et le verrou membres), l'Essentiel se vend sur « je
-relance en un clic », le Pro sur « on s'en occupe », l'Agence sur « je t'amène du monde ».
+Logique : le Gratuit construit la base (et le verrou membres), la Croissance se vend sur « je
+relance en un clic », le Pro sur « on pense marketing à votre place », la publicité gérée sur
+« on vous amène du monde ».
+
+### Le site de commande dans le Pro
+
+- Il existe déjà (solution de sa caisse, ou intermédiaire relié à la caisse type Deliverect) :
+  on l'**optimise** — carte, photos, bouton « Commander » sur Google et Instagram, liens
+  suivis, pixel Meta et conversions Google.
+- Il n'existe pas : on le **met en place chez un partenaire relié à la caisse**. Le partenaire
+  porte la conformité à la caisse certifiée (SCE), les paiements et la maintenance ; nous,
+  l'installation, la mesure et l'optimisation. Commission d'apport à négocier.
+- On écrit « installation, gestion et optimisation », **jamais « maintenance »**.
 
 ## 9. Aller chercher les restaurateurs
 
@@ -108,6 +119,76 @@ relance en un clic », le Pro sur « on s'en occupe », l'Agence sur « je t'am�
    QR de l'équipe, phrase à dire, prime au serveur. La capture se gagne en salle.
 5. **Pas de nouvelle mécanique de fidélité** avant 10 établissements actifs.
 
+## 10. Le copilote marketing (Pro)
+
+Principe : **un signal → une action proposée → un clic → une mesure**. Le restaurateur reçoit
+un message le lundi avec **trois actions maximum** :
+
+> **Votre semaine chez Smashly Ixelles**
+> 1. Pluie jeudi et vendredi soir → relance emporter aux 140 habitués **[Envoyer]**
+> 2. Belgique–France samedi 21 h → offre menu partagé **[Envoyer]**
+> 3. 38 clients ont dépassé leur rythme habituel → relance personnalisée **[Envoyer]**
+>
+> La semaine dernière : 61 clients revenus après les campagnes (12 dans le groupe témoin).
+
+### Signaux « quand agir »
+
+| Signal | Action type | Source |
+|---|---|---|
+| Météo | Pluie → emporter ; chaleur → frais mis en avant | Open-Meteo (gratuit) |
+| Matchs | Offre avant le coup d'envoi | API-Football, TheSportsDB |
+| Événements proches | Publicité locale, horaires | Ticketmaster Discovery, PredictHQ, agendas ouverts |
+| Vacances scolaires | Deux vagues à cibler (calendriers francophone et flamand distincts depuis 2022) | Calendriers des communautés |
+| Ramadan, Aïd (si clientèle concernée, au choix du restaurateur) | Horaires et offres de rupture du jeûne | Aladhan (gratuit) |
+| Blocus et examens | Offre tard le soir | Calendriers universitaires |
+| Travaux, fermetures de route | « Toujours ouverts, voici l'accès » | Données ouvertes régionales |
+
+### Signaux « le marché autour »
+
+| Signal | Message | Source |
+|---|---|---|
+| Nouveau concurrent à proximité | « Relancez vos habitués cette semaine » | Google Places (déjà branché) |
+| Publicités des concurrents | « X fait une promo Instagram depuis 5 jours » | Bibliothèque publicitaire Meta |
+| Tendances de recherche | « "Smash burger" +60 % à Bruxelles » | Google Trends (API en test, à vérifier) |
+| Population de la zone | Ciblage publicitaire | Statbel (données ouvertes) |
+| Audience atteignable | « 42 000 personnes de 18–34 ans à 3 km » | Estimation d'audience, API Marketing Meta |
+
+### L'arme secrète : ses tickets croisés avec les signaux
+
+- Sensibilité météo **propre à l'établissement** (« chez vous, la pluie fait +22 % d'emporter »).
+- Relance au **rythme de chaque client**, pas à 30 jours pour tous.
+- **Plats qui font revenir** (lignes de tickets déjà en base) → offre de bienvenue.
+- **Jours creux prévus** (prévision ADR 0027) → campagne proposée à l'avance.
+- Meilleure heure d'envoi par client ; thèmes des avis (« attente le vendredi soir »).
+
+### Visites en salle envoyées aux régies
+
+API de conversion Meta et conversions Google Ads alimentées par les tickets validés :
+« cette campagne Instagram a fait revenir 84 clients au comptoir ». **Case de consentement
+distincte obligatoire** (RGPD) avant tout envoi.
+
+## 11. Données de comptes à connecter (Pro)
+
+Lues avec l'autorisation du restaurateur, via les API officielles, jamais par aspiration :
+
+| API | Ce que le restaurateur découvre | Accès |
+|---|---|---|
+| Google Business Profile — statistiques | Vues, appels, itinéraires, clics site, menu et « Commander », mots-clés de recherche | Connexion Google + accès API à demander (long : à lancer tout de suite) |
+| Google Business Profile — avis et posts | Répondre aux avis et publier depuis Boosteats | Même accès |
+| Google Search Console | Recherches qui mènent à son site, positions | Connexion Google |
+| Instagram et Facebook (Meta) | Portée, abonnés, visites du profil, clics vers le site | Compte professionnel connecté |
+| Google Analytics 4 | Visites et conversions du site | Connexion Google |
+| Tripadvisor Content API | Note et rang Tripadvisor | Gratuit sous conditions |
+| PageSpeed Insights, Places, DataForSEO | Vitesse, concurrents, place sur Maps | Déjà branchés |
+
+Pas d'API exploitable : Uber Eats, Deliveroo, TheFork (données via les intermédiaires reliés
+à la caisse, ou export manuel). Alternatives à DataForSEO si besoin : Local Falcon,
+BrightLocal, SerpApi.
+
+**Ordre de construction** : météo + jours fériés + vacances → relance au rythme du client →
+message du lundi → matchs et événements → connexions Google et Meta → visites en salle vers
+les régies.
+
 ## Sources
 
 - Owner.com — [tarifs](https://www.owner.com/pricing), [revue Dupple](https://dupple.com/reviews/owner)
@@ -120,4 +201,5 @@ relance en un clic », le Pro sur « on s'en occupe », l'Agence sur « je t'am�
 - SevenRooms — [automatisation marketing](https://sevenrooms.com/platform/marketing-automation/)
 - Bloom Intelligence — [Wi-Fi marketing](https://bloomintelligence.com/what-is-wifi-marketing/)
 - Chift — [API caisse unifiée](https://www.chift.eu/categories/pos)
+- Caisse certifiée (SCE) — [Fédération Horeca Bruxelles](https://www.horecabruxelles.be/sce-2-0-en-horeca-ce-que-vous-devez-savoir-sur-la-modernisation-des-caisses-enregistreuses/), [VATupdate](https://www.vatupdate.com/2026/06/09/belgium-extends-fiscal-cash-register-compliance-deadlines-through-2029/)
 - Règles Google sur les avis 2026 — [Birdeye](https://birdeye.com/blog/google-review-policy/), [Launchcodex](https://launchcodex.com/blog/seo-geo-ai/google-business-profile-review-policy-update/)
