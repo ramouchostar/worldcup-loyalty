@@ -16,7 +16,26 @@ export type ReceiptKeyConfig = {
   position_hint: string | null;
   date_group: number | null;
   confirmed_at: string | null;
+  /**
+   * Code de l'établissement, groupe du milieu de la clé (223 Kraainem, 258 Houba — ADR 0073).
+   * Absent tant que la migration 20260929-1100 n'est pas passée, ou pour un
+   * établissement dont on ne connaît pas encore le code : pas de contrôle.
+   */
+  store_code?: string | null;
 };
+
+// La forme de la clé imprimée par les bornes Belchicken (ADR 0073), MESURÉE sur
+// 92 clés distinctes lues à l'identique par trois modèles (2026-09-29) :
+//   AAAA-MM-JJ / code de l'établissement (3 chiffres) / « 0 », un chiffre de 1 à 9, puis 1 à 3 chiffres
+// Le dernier groupe est un nombre libre de 10 à 9 999 précédé d'un 0, JAMAIS
+// complété par des zéros : 3, 4 ou 5 caractères (036, 0121, 01645) — 89 clés sur
+// 93 en ont 5, 3 en ont 4, 1 en a 3. Aucun 0 en deuxième position sur 92 clés ;
+// Haiku en produisait 5 sur 141 (zéros ajoutés à tort) : le motif les refuse.
+export const TICKET_KEY_PATTERN = "^(\\d{4}-\\d{2}-\\d{2})/\\d{3}/0[1-9]\\d{1,3}$";
+// Pas de code d'exemple dans la consigne : « 258 » (Houba) y figurait pour les
+// trois établissements et Haiku l'a recopié à Kraainem (2026-09-29, 4 commandes).
+export const TICKET_KEY_DESCRIPTION =
+  "a code printed as YYYY-MM-DD/NNN/0NNNN: the date, a 3-digit code, then a number that always starts with 0 followed by a digit from 1 to 9. That last number has 3 to 5 characters in total (for example 036, 0121 or 01645). Copy it exactly as printed: never pad it with extra zeros, never shorten it, never add or drop a digit";
 
 // Config historique Belchicken : fallback des restos sans ligne en base
 // (zéro régression même si le seed m32 n'a pas tourné).
@@ -24,9 +43,9 @@ export const LEGACY_BESTELNUMMER_CONFIG: ReceiptKeyConfig = {
   restaurant_id: "",
   has_reliable_key: true,
   key_label: "Bestelnummer",
-  key_description: "a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993)",
-  key_pattern: "^(\\d{4}-\\d{2}-\\d{2})/\\d{3}/\\d{5}$",
-  key_examples: ["2026-06-01/258/03993"],
+  key_description: TICKET_KEY_DESCRIPTION,
+  key_pattern: TICKET_KEY_PATTERN,
+  key_examples: [],
   // Terrain Houba 2026-09-17 : « near the top » était faux — le Bestelnummer
   // est EN BAS, dans le bloc de paiement. Les établissements créés avec ce
   // défaut (houba, de-bue) voyaient leurs tickets de borne refusés : le petit
@@ -48,6 +67,27 @@ export async function getReceiptConfig(restaurantId: string): Promise<ReceiptKey
     return { ...LEGACY_BESTELNUMMER_CONFIG, restaurant_id: restaurantId };
   }
   return data as ReceiptKeyConfig;
+}
+
+/**
+ * Les codes des AUTRES établissements du réseau (ADR 0073) : ils permettent de
+ * dire « ce ticket vient d'ailleurs » plutôt que « reprends la photo ». Fail-open :
+ * colonne absente (migration pas passée) ou panne → liste vide, aucun contrôle
+ * d'origine, la forme de la clé reste vérifiée.
+ */
+export async function getOtherStoreCodes(restaurantId: string): Promise<string[]> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("restaurant_receipt_config")
+      .select("store_code")
+      .neq("restaurant_id", restaurantId)
+      .not("store_code", "is", null);
+    if (error) throw error;
+    return [...new Set(((data ?? []) as { store_code: string }[]).map((r) => r.store_code))];
+  } catch {
+    return [];
+  }
 }
 
 // Compile le pattern de la config ; null si absent ou invalide (une regex

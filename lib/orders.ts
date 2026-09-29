@@ -1,11 +1,12 @@
-// Bestelnummer format: YYYY-MM-DD/NNN/NNNNN (ex: 2026-06-01/258/03993)
+// Bestelnummer format : YYYY-MM-DD/NNN/0NNNN — le dernier groupe est un « 0 », un chiffre de 1 à 9,
+// puis 1 à 3 chiffres (3 à 5 caractères : 036, 0121, 01645 — ADR 0073, lib/receipt-config.ts).
 // Legacy (ADR 0019) : la validation de la clé de commande passe désormais
 // par validateOrderKey(lib/receipt-config.ts), pilotée par la config de
 // l'établissement. Conservé pour les outils qui valident du Bestelnummer pur.
 export function validateOrderNumber(orderNumber: string): string | null {
-  const regex = /^\d{4}-\d{2}-\d{2}\/\d{3}\/\d{5}$/;
+  const regex = /^\d{4}-\d{2}-\d{2}\/\d{3}\/0[1-9]\d{1,3}$/;
   if (!regex.test(orderNumber.trim())) {
-    return "Numéro de commande invalide. Le format attendu est YYYY-MM-DD/NNN/NNNNN (visible sur le ticket).";
+    return "Numéro de commande invalide. Le format attendu est YYYY-MM-DD/NNN/0NNNN (visible sur le ticket).";
   }
   return null;
 }

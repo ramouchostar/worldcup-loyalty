@@ -35,34 +35,48 @@ const empty: Reading = {
   payment_method: null,
 };
 
-// ── Quand Fable relit (ADR 0072 §2) ─────────────────────────────────────────
+// ── Quand Fable relit (ADR 0072 §2, précisé par l'ADR 0073) ─────────────────
+
+const base = { amount: 9.8, orderNumber: "2026-09-05/223/09353", hasKeyPattern: true, looksLikePoster: false } as const;
 
 test("relecture : quand le total manque", () => {
-  assert.equal(needsRescue({ amount: null, rawKey: "2026-09-05/223/09353", orderNumber: "2026-09-05/223/09353", hasKeyPattern: true, looksLikePoster: false }), true);
+  assert.equal(needsRescue({ ...base, amount: null }), true);
 });
 
 test("relecture : quand aucune clé n'a été lue, là où l'établissement en a une", () => {
-  assert.equal(needsRescue({ amount: 9.8, rawKey: null, orderNumber: null, hasKeyPattern: true, looksLikePoster: false }), true);
+  assert.equal(needsRescue({ ...base, orderNumber: null }), true);
+});
+
+test("relecture : une clé de mauvaise forme est probablement une lecture fausse (« 00121 » pour « 0121 »)", () => {
+  assert.equal(needsRescue({ ...base, orderNumber: null, keyIssue: null }), true);
+});
+
+test("relecture : un code d'établissement que personne n'utilise (228 lu pour 223) est probablement faux", () => {
+  assert.equal(needsRescue({ ...base, orderNumber: null, keyIssue: "unknown_code" }), true);
+});
+
+test("pas de relecture : la clé est celle d'un AUTRE établissement — elle est bien lue, le ticket vient d'ailleurs", () => {
+  assert.equal(needsRescue({ ...base, orderNumber: null, keyIssue: "other_establishment" }), false);
 });
 
 test("pas de relecture : lecture complète", () => {
-  assert.equal(needsRescue({ amount: 9.8, rawKey: "2026-09-05/223/09353", orderNumber: "2026-09-05/223/09353", hasKeyPattern: true, looksLikePoster: false }), false);
+  assert.equal(needsRescue(base), false);
 });
 
-test("pas de relecture : clé lue mais refusée par le format (« …/223/036 » — 20 tickets sur 199 au 2026-09-29) : Fable la lirait pareil", () => {
-  assert.equal(needsRescue({ amount: 7.9, rawKey: "2026-09-17/223/036", orderNumber: null, hasKeyPattern: true, looksLikePoster: false }), false);
+test("pas de relecture : une clé courte valide (« …/223/036 ») est une lecture complète", () => {
+  assert.equal(needsRescue({ ...base, orderNumber: "2026-09-17/223/036", amount: 7.9 }), false);
 });
 
 test("pas de relecture : une affiche est refusée telle quelle, sans dépense", () => {
-  assert.equal(needsRescue({ amount: null, rawKey: null, orderNumber: null, hasKeyPattern: true, looksLikePoster: true }), false);
+  assert.equal(needsRescue({ ...base, amount: null, orderNumber: null, looksLikePoster: true }), false);
 });
 
 test("pas de relecture : établissement sans clé fiable et total lu", () => {
-  assert.equal(needsRescue({ amount: 9.8, rawKey: null, orderNumber: null, hasKeyPattern: false, looksLikePoster: false }), false);
+  assert.equal(needsRescue({ ...base, orderNumber: null, hasKeyPattern: false }), false);
 });
 
 test("relecture : sans clé fiable mais sans total non plus", () => {
-  assert.equal(needsRescue({ amount: null, rawKey: null, orderNumber: null, hasKeyPattern: false, looksLikePoster: false }), true);
+  assert.equal(needsRescue({ ...base, amount: null, orderNumber: null, hasKeyPattern: false }), true);
 });
 
 // ── La relecture comble, elle ne remplace pas ───────────────────────────────
@@ -75,6 +89,13 @@ test("fusion : la clé manquait, la relecture la donne", () => {
   assert.equal(merged.order_number, "2026-09-05/223/09353");
   assert.equal(merged.raw_order_number, "2026-09-05/223/09353");
   assert.equal(merged.order_time, "18:40"); // un trou secondaire est comblé aussi
+});
+
+test("fusion : la clé brute suit la clé retenue — celle de la relecture quand c'est elle qui l'a donnée", () => {
+  const first: Reading = { ...complete, order_number: null, raw_order_number: "2026-09-05/228/09353" };
+  const { merged } = mergeReadings(first, complete);
+  assert.equal(merged.order_number, "2026-09-05/223/09353");
+  assert.equal(merged.raw_order_number, "2026-09-05/223/09353");
 });
 
 test("fusion : le total manquait, la relecture le donne", () => {

@@ -123,7 +123,7 @@ export async function discoverReceiptKey(
 
 1. Is there such a field present and clearly readable on ALL receipts? If several candidates exist, pick the most specific one (longest, least likely to repeat across days).
 2. key_label: the short name of that field as a customer would find it on the receipt (e.g. "Bestelnummer", "Ticket nr").
-3. key_description: one English sentence describing the format, suitable for an OCR extraction prompt (e.g. "a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993)").
+3. key_description: one English sentence describing the format, suitable for an OCR extraction prompt (e.g. "a code in format YYYY-MM-DD/NNN/NNNNN"; never copy real digits from another restaurant into it).
 4. key_pattern: an ANCHORED JavaScript regex (^...$) matching exactly that format. Use capture groups. Keep it under 150 characters.
 5. key_examples: the exact value read from EACH receipt (one per image, in order).
 6. position_hint: where the field appears on the receipt (short English phrase).
