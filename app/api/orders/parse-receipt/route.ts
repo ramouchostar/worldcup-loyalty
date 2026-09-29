@@ -14,7 +14,7 @@ import { loadRewardGrid, welcomeReward } from "@/lib/rewards";
 import { listCatalogue } from "@/lib/points";
 import { personalPointsForOrder, pointsGoalFrom, type PointsGoal } from "@/lib/catalogue";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 // ADR 0045 — anti-abus du visiteur anonyme (pas de user_id à rate-limiter) :
 // plafond plus serré qu'authentifié, c'est un aperçu "preuve du scan" avant

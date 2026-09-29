@@ -28,7 +28,7 @@ import {
   isFrequentSubmitter,
 } from "@/lib/ticket-limits";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 

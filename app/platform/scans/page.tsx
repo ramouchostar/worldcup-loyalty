@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { RECEIPT_RETENTION_DAYS } from "@/lib/receipt-scans";
+import type { ReceiptReadTrace } from "@/lib/receipt-ocr";
 import { getFunnel, type FunnelDay } from "@/lib/qr-funnel";
 import { getFunnelReport, type FunnelReport } from "@/lib/funnel";
 import { FunnelStepsTable } from "@/components/platform/FunnelStepsTable";
@@ -46,7 +47,28 @@ type ScanRow = {
   ocr_channel?: string | null;
   ocr_daily_sequence?: string | null;
   ocr_checks_failed?: string[] | null;
+  // Trace de la lecture (ADR 0072, migration 20260929-0900) : qui a lu, en combien
+  // de temps, et ce que la relecture par Fable a comblé.
+  ocr_trace?: ReceiptReadTrace | null;
 };
+
+// « Sonnet 8,2 s » / « Sonnet → Fable : clé comblée » — la trace en une ligne.
+function traceLine(trace: ReceiptReadTrace | null | undefined): string | null {
+  if (!trace) return null;
+  const name = (model: string) => (model.includes("fable") ? "Fable" : model.includes("sonnet") ? "Sonnet" : model.includes("haiku") ? "Haiku" : model);
+  const secs = (ms: number) => `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
+  let line = `${name(trace.first.model)} ${secs(trace.first.ms)}`;
+  if (trace.first.fell_back_from) line += " (secours)";
+  if (trace.rescue) {
+    if (!trace.rescue.ok) line += ` → ${name(trace.rescue.model)} ${trace.rescue.refused ? "a refusé" : "en échec"}`;
+    else {
+      const filled = trace.rescue_filled.map((p) => (p === "key" ? "clé" : "total"));
+      line += ` → ${name(trace.rescue.model)} ${secs(trace.rescue.ms)} : ${filled.length ? `${filled.join(" + ")} comblé` : "rien comblé"}`;
+      if (trace.rescue_conflict) line += " · désaccord";
+    }
+  }
+  return line;
+}
 
 // Contrôles de cohérence (ADR 0066) — phase 1 : mesurés, jamais bloquants.
 const CHECK_LABELS: Record<string, string> = {
@@ -382,6 +404,9 @@ export default async function PlatformScansPage({
                         n° {scan.ocr_order_number ?? "—"}
                         {scan.ocr_key_second_read && " · seconde lecture"}
                       </div>
+                      {traceLine(scan.ocr_trace) && (
+                        <div className="whitespace-nowrap text-xs text-gray-500">{traceLine(scan.ocr_trace)}</div>
+                      )}
                       {/* Ce qui identifie le ticket (ADR 0066) : deux photos du
                           même ticket partagent date + heure + total. */}
                       <div className="whitespace-nowrap text-xs text-gray-500">

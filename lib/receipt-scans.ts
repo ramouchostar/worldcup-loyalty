@@ -84,7 +84,7 @@ async function evaluateCoherence(restaurantId: string, analysis: ReceiptAnalysis
       orderNumber: analysis.order_number,
       orderTime: analysis.order_time,
       printedDate: analysis.printed_date,
-      keyDate: analysis.order_number?.match(/d{4}-d{2}-d{2}/)?.[0] ?? null,
+      keyDate: analysis.order_number?.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? null,
       items: analysis.items,
       menuNames,
       hasDiscount: (analysis.discount_total ?? 0) > 0,
@@ -131,24 +131,30 @@ export async function storeScan(params: {
     };
     // Clé brute et seconde lecture (migration 20260918-0800) : si les colonnes
     // n'existent pas encore, la lecture est rangée sans elles plutôt que perdue.
+    const withIdentity = {
+      ...row,
+      ocr_order_number_raw: analysis.raw_order_number,
+      ocr_key_second_read: analysis.key_second_read,
+      // Carte d'identité du ticket + contrôles (migration 20260923-1000)
+      ocr_printed_date: analysis.printed_date,
+      ocr_channel: analysis.channel,
+      ocr_daily_sequence: analysis.daily_sequence,
+      ocr_subtotal: analysis.subtotal,
+      ocr_discount_total: analysis.discount_total,
+      ocr_payment_method: analysis.payment_method,
+      ocr_checks: coherence?.checks ?? null,
+      ocr_checks_failed: coherence?.failed ?? null,
+    };
+    // Trace de la lecture (ADR 0072, migration 20260929-0900) : sans la colonne,
+    // le reste de la lecture est rangé quand même, puis on retombe plus bas si besoin.
     let { data, error } = await admin
       .from("receipt_scans")
-      .insert({
-        ...row,
-        ocr_order_number_raw: analysis.raw_order_number,
-        ocr_key_second_read: analysis.key_second_read,
-        // Carte d'identité du ticket + contrôles (migration 20260923-1000)
-        ocr_printed_date: analysis.printed_date,
-        ocr_channel: analysis.channel,
-        ocr_daily_sequence: analysis.daily_sequence,
-        ocr_subtotal: analysis.subtotal,
-        ocr_discount_total: analysis.discount_total,
-        ocr_payment_method: analysis.payment_method,
-        ocr_checks: coherence?.checks ?? null,
-        ocr_checks_failed: coherence?.failed ?? null,
-      })
+      .insert({ ...withIdentity, ocr_trace: analysis.trace })
       .select("id")
       .single();
+    if (error && /ocr_trace/.test(error.message)) {
+      ({ data, error } = await admin.from("receipt_scans").insert(withIdentity).select("id").single());
+    }
     if (error && /ocr_order_number_raw|ocr_key_second_read|ocr_printed_date|ocr_channel|ocr_daily_sequence|ocr_subtotal|ocr_discount_total|ocr_payment_method|ocr_checks/.test(error.message)) {
       ({ data, error } = await admin.from("receipt_scans").insert(row).select("id").single());
     }

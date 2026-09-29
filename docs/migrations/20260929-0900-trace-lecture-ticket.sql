@@ -1,0 +1,61 @@
+-- ============================================================
+-- 2026-09-29 09:00 — La trace de la lecture du ticket (ADR 0072)
+--
+-- Depuis l'ADR 0072, Sonnet lit le ticket et Fable le relit quand la première
+-- lecture est incomplète. `ocr_trace` garde, pour chaque scan, qui a lu, en
+-- combien de temps, avec combien de jetons, et ce que la relecture a comblé :
+--
+--   { "first":  { "model", "ms", "input_tokens", "output_tokens",
+--                 "fell_back_from"?, "fallback_error"? },     -- Haiku si Sonnet est tombé
+--     "rescue": null | { "model", "ms", "input_tokens", "output_tokens",
+--                        "ok", "refused"?, "error"? },        -- ok:false = refus, délai, panne
+--     "rescue_filled":   ["amount" | "key", ...],
+--     "rescue_conflict": true | false }                        -- les deux lectures diffèrent
+--
+-- C'est le chiffre qui dira si la règle est fausse (bouclier ADR 0065, « la trace »).
+-- Lecture réservée à la plateforme : `receipt_scans` est service-role only (m58).
+--
+-- Sans cette migration : rien ne casse — `storeScan` (lib/receipt-scans.ts) réessaie
+-- sans la colonne, la lecture est rangée quand même, seule la trace est perdue.
+-- Idempotente.
+-- ============================================================
+
+ALTER TABLE receipt_scans ADD COLUMN IF NOT EXISTS ocr_trace JSONB;
+
+-- ── Vérification ──────────────────────────────────────────────────────────
+--   SELECT column_name FROM information_schema.columns
+--    WHERE table_name = 'receipt_scans' AND column_name = 'ocr_trace';   -- 1 ligne
+--
+-- ── Suivi (à lancer 7 jours après la mise en service, puis chaque semaine) ─
+-- 1. Part des scans relus par Fable, et ce que la relecture a apporté
+--   SELECT count(*)                                                        AS scans,
+--          count(*) FILTER (WHERE jsonb_typeof(ocr_trace->'rescue') = 'object')          AS relus,
+--          count(*) FILTER (WHERE jsonb_array_length(ocr_trace->'rescue_filled') > 0)    AS combles,
+--          count(*) FILTER (WHERE (ocr_trace->>'rescue_conflict')::boolean)              AS desaccords,
+--          count(*) FILTER (WHERE (ocr_trace->'rescue'->>'ok')::boolean = false)         AS echecs_relecture,
+--          count(*) FILTER (WHERE (ocr_trace->'rescue'->>'refused')::boolean)            AS refus_fable,
+--          count(*) FILTER (WHERE ocr_trace->'first' ? 'fell_back_from')                 AS secours_haiku
+--     FROM receipt_scans
+--    WHERE ocr_trace IS NOT NULL AND user_id IS NOT NULL;
+--   → Une relecture qui ne comble presque jamais (`combles` ≪ `relus`) = de l'argent perdu :
+--     revoir le déclencheur (`needsRescue`). Des `desaccords` fréquents = Fable et Sonnet
+--     lisent différemment : regarder les images. Des `secours_haiku` = Sonnet indisponible.
+--
+-- 2. Délais (une lecture se fait pendant que le client attend)
+--   SELECT percentile_cont(0.5)  WITHIN GROUP (ORDER BY (ocr_trace->'first'->>'ms')::int)  AS sonnet_p50_ms,
+--          percentile_cont(0.95) WITHIN GROUP (ORDER BY (ocr_trace->'first'->>'ms')::int)  AS sonnet_p95_ms,
+--          percentile_cont(0.5)  WITHIN GROUP (ORDER BY (ocr_trace->'rescue'->>'ms')::int) AS fable_p50_ms,
+--          percentile_cont(0.95) WITHIN GROUP (ORDER BY (ocr_trace->'rescue'->>'ms')::int) AS fable_p95_ms
+--     FROM receipt_scans WHERE ocr_trace IS NOT NULL;
+--
+-- 3. Jetons facturés (le coût réel, à comparer à l'estimation de l'ADR 0072)
+--   SELECT sum((ocr_trace->'first'->>'input_tokens')::int)   AS sonnet_entree,
+--          sum((ocr_trace->'first'->>'output_tokens')::int)  AS sonnet_sortie,
+--          sum((ocr_trace->'rescue'->>'input_tokens')::int)  AS fable_entree,
+--          sum((ocr_trace->'rescue'->>'output_tokens')::int) AS fable_sortie
+--     FROM receipt_scans WHERE ocr_trace IS NOT NULL;
+--   → Sonnet : 2 $ / 10 $ par million de jetons (entrée / sortie) ; Fable : 10 $ / 50 $.
+--
+-- 4. Effet sur les refus : part de « numéro non lu » avant / après le 2026-09-29
+--   SELECT scanned_at >= '2026-09-29' AS apres, outcome, count(*)
+--     FROM receipt_scans WHERE user_id IS NOT NULL GROUP BY 1, 2 ORDER BY 1, 2;

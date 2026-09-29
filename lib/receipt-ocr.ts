@@ -9,6 +9,24 @@ export function isAllowedReceiptType(type: string): type is AllowedReceiptType {
   return (ALLOWED_TYPES as readonly string[]).includes(type);
 }
 
+// ADR 0072 — qui lit le ticket. Sonnet lit toujours en premier ; Fable ne relit
+// que si la première lecture est incomplète ; Haiku n'est plus qu'un secours si
+// Sonnet est indisponible (panne, modèle non activé) — jamais la lecture normale.
+export const FIRST_READ_MODEL = "claude-sonnet-5-5";
+export const RESCUE_MODEL = "claude-fable-5-1";
+export const FALLBACK_READ_MODEL = "claude-haiku-4-5-20251001";
+
+// Effort de réflexion, réglé sans mesure : la trace (receipt_scans.ocr_trace)
+// dit les jetons et les délais réels, c'est elle qui décidera d'y toucher.
+const READ_EFFORT = "medium" as const;
+// La réflexion compte dans max_tokens : 1 024 tronquait le JSON dès qu'un modèle réfléchit.
+const MAX_OUTPUT_TOKENS = 4096;
+// Les routes ont 60 s (maxDuration) : on garde de la marge pour la suite du traitement.
+const TOTAL_BUDGET_MS = 52_000;
+const FIRST_READ_TIMEOUT_MS = 30_000;
+const RESCUE_TIMEOUT_MS = 25_000;
+const MIN_TIME_FOR_ANOTHER_READ_MS = 8_000;
+
 // Bestelnummer: YYYY-MM-DD/NNN/NNNNN
 const BESTELNUMMER_RE = /\b(\d{4}-\d{2}-\d{2}\/\d{3}\/\d{5})\b/;
 
@@ -32,6 +50,33 @@ export type ReceiptLineItem = {
   quantity: number;
   unit_price: number | null;
 };
+
+/** Ce que coûte une lecture : le modèle, le délai, les jetons facturés. */
+export type ReadTrace = {
+  model: string;
+  ms: number;
+  input_tokens: number | null;
+  output_tokens: number | null;
+};
+
+/**
+ * La trace de la lecture (ADR 0072, bouclier « trace ») : conservée dans
+ * `receipt_scans.ocr_trace`. C'est elle qui dira si la règle « Fable relit ce que
+ * Sonnet n'a pas lu » est bonne : part de relectures, part qui comble le trou,
+ * désaccords, refus, délais.
+ */
+export type ReceiptReadTrace = {
+  /** Lecture principale (Sonnet ; Haiku si `fell_back_from` est renseigné). */
+  first: ReadTrace & { fell_back_from?: string; fallback_error?: string };
+  /** Relecture par Fable, null si elle n'a pas eu lieu. `ok:false` = échec, refus ou délai dépassé. */
+  rescue: (ReadTrace & { ok: boolean; refused?: boolean; error?: string }) | null;
+  /** Ce que la relecture a comblé. */
+  rescue_filled: RescueFilled[];
+  /** Les deux lectures ont lu une valeur et elles diffèrent (la première est gardée). */
+  rescue_conflict: boolean;
+};
+
+export type RescueFilled = "amount" | "key";
 
 export type ReceiptAnalysis = {
   order_number: string | null;
@@ -66,27 +111,12 @@ export type ReceiptAnalysis = {
   // même quand elle est refusée : c'est elle qui dit si un format inconnu
   // (ex. « 2026-09-17/223/036 ») revient souvent (audit 2026-09-18).
   raw_order_number: string | null;
-  // true si la clé vient de la seconde lecture (modèle plus précis, relancé
-  // seulement quand le total est lu mais pas la clé).
+  // true si la clé vient de la relecture par Fable (ADR 0072) — avant : seconde
+  // lecture de la clé seule (2026-09-18).
   key_second_read: boolean;
+  /** Modèles, délais, jetons et effet de la relecture (ADR 0072). */
+  trace: ReceiptReadTrace;
 };
-
-/**
- * Seconde lecture de la clé (audit des refus du 2026-09-18) : sur les photos
- * refusées de Kraainem, la moitié montraient une clé LISIBLE (petite, ticket
- * tourné ou froissé) que la lecture rapide n'avait pas trouvée. On relance un
- * modèle plus précis, sur la clé seule, uniquement dans ce cas : un ticket est
- * bien là (total lu), l'établissement a une clé fiable, et elle manque.
- */
-export const SECOND_READ_MODEL = "claude-sonnet-5";
-
-export function shouldRetryKey(input: {
-  orderNumber: string | null;
-  amount: number | null;
-  hasKeyPattern: boolean;
-}): boolean {
-  return input.hasKeyPattern && input.orderNumber === null && input.amount !== null;
-}
 
 // Date du jour côté établissements (les tickets sont datés en heure belge).
 function todayInBrussels(): string {
@@ -94,6 +124,7 @@ function todayInBrussels(): string {
 }
 
 const ORDER_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const PRINTED_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_LINE_ITEMS = 30;
 
 // ADR 0020 — les articles et l'heure sont du best effort strict :
@@ -131,42 +162,17 @@ function buildKeyPromptSection(config: ReceiptKeyConfig | null | undefined): str
   return "1. Bestelnummer: a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993) — null if not visible\n";
 }
 
-/**
- * Analyse OCR d'un ticket de caisse via Claude vision.
- * Seule source de vérité anti-fraude : appelée côté serveur par la route
- * de soumission (orders) ET par la route d'aperçu UX (parse-receipt).
- * Throws si l'API vision échoue ou retourne du JSON invalide.
- * `config` (ADR 0019) pilote la clé de commande recherchée ; absent =
- * comportement Bestelnummer historique.
- */
-export async function analyzeReceipt(
-  file: File,
+// Sur une photo difficile (petite dans le cadre, tournée, froissée) : ce que la
+// seconde lecture de la clé disait déjà (2026-09-18), pour la relecture de Fable.
+const RESCUE_HINT =
+  "A first reading of this photo could not find everything, so read it carefully: the receipt may be small in the frame, rotated, upside down or crumpled — look closely at the payment block near the bottom, where the order code is printed. Never guess: null is better than an invented value.\n\n";
+
+function buildReadPrompt(
   restaurantName: string,
-  config?: ReceiptKeyConfig | null
-): Promise<ReceiptAnalysis> {
-  const bytes = await file.arrayBuffer();
-  const base64 = Buffer.from(bytes).toString("base64");
-
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  const msg = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: file.type as AllowedReceiptType,
-              data: base64,
-            },
-          },
-          {
-            type: "text",
-            text: `This is a receipt. Today is ${todayInBrussels()} (Europe/Brussels); receipts are normally from today or the last few days — read the YEAR and DATE digits exactly as printed, never assume the year from memory. Extract ONLY what you can clearly read:
+  config: ReceiptKeyConfig | null | undefined,
+  rescue: boolean
+): string {
+  return `${rescue ? RESCUE_HINT : ""}This is a receipt. Today is ${todayInBrussels()} (Europe/Brussels); receipts are normally from today or the last few days — read the YEAR and DATE digits exactly as printed, never assume the year from memory. Extract ONLY what you can clearly read:
 ${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL, "te betalen", "à payer") — return as a number, null if not visible
 3. Whether the word "${restaurantName}" appears anywhere on the receipt
 4. Order time in 24h HH:MM format if printed on the receipt — null if not visible
@@ -179,122 +185,338 @@ ${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL
 11. Whether the photo shows a PROMOTIONAL POSTER, flyer, sticker, table sign or QR-code display (marketing material inviting to scan a code) rather than a printed till receipt — true only if it is clearly marketing material, false for any actual receipt even partial or blurry.
 
 Return ONLY valid JSON, no markdown, no explanation:
-{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false, "printed_date": "2026-06-01" or null, "channel": "Self-order kiosk" or null, "daily_sequence": "179" or null, "subtotal": 15.00 or null, "discount_total": 7.10 or null, "payment_method": "Cash" or null}`,
+{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false, "printed_date": "2026-06-01" or null, "channel": "Self-order kiosk" or null, "daily_sequence": "179" or null, "subtotal": 15.00 or null, "discount_total": 7.10 or null, "payment_method": "Cash" or null}`;
+}
+
+// ---------------------------------------------------------------------------
+// Un appel de lecture
+// ---------------------------------------------------------------------------
+
+/** Échec d'une lecture : porte le délai écoulé et dit si le modèle a refusé. */
+export class ReadError extends Error {
+  constructor(message: string, readonly ms: number, readonly refused = false) {
+    super(message);
+    this.name = "ReadError";
+  }
+}
+
+/**
+ * Le JSON que le modèle a écrit. Avec la réflexion activée, `content[0]` est un
+ * bloc `thinking` : on cherche le bloc de texte, on ne suppose jamais sa place.
+ */
+export function readJsonFromContent(content: ReadonlyArray<{ type: string; text?: string }>): VisionResult {
+  const rawText = content
+    .filter((b) => b.type === "text" && typeof b.text === "string")
+    .map((b) => b.text as string)
+    .join("")
+    .trim();
+  // Strip markdown code fences if model wraps output
+  const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  return JSON.parse(jsonText) as VisionResult;
+}
+
+async function readOnce(
+  client: Anthropic,
+  opts: {
+    model: string;
+    /** Absent pour Haiku, qui n'accepte pas ce réglage. */
+    effort?: typeof READ_EFFORT;
+    mediaType: AllowedReceiptType;
+    base64: string;
+    prompt: string;
+    timeoutMs: number;
+    maxRetries: number;
+  }
+): Promise<{ parsed: VisionResult; trace: ReadTrace }> {
+  const started = Date.now();
+  try {
+    const msg = await client.messages.create(
+      {
+        model: opts.model,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        ...(opts.effort ? { output_config: { effort: opts.effort } } : {}),
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: opts.mediaType, data: opts.base64 },
+              },
+              { type: "text", text: opts.prompt },
+            ],
           },
         ],
       },
-    ],
-  });
+      { timeout: opts.timeoutMs, maxRetries: opts.maxRetries }
+    );
+    const ms = Date.now() - started;
+    if (msg.stop_reason === "refusal") throw new ReadError("refus du modèle", ms, true);
+    const parsed = readJsonFromContent(msg.content);
+    return {
+      parsed,
+      trace: {
+        model: opts.model,
+        ms,
+        input_tokens: msg.usage?.input_tokens ?? null,
+        output_tokens: msg.usage?.output_tokens ?? null,
+      },
+    };
+  } catch (err) {
+    if (err instanceof ReadError) throw err;
+    throw new ReadError((err as Error).message ?? "lecture impossible", Date.now() - started);
+  }
+}
 
-  const rawText = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
-  // Strip markdown code fences if model wraps output
-  const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-  const parsed = JSON.parse(jsonText) as VisionResult;
+// ---------------------------------------------------------------------------
+// Interpréter une lecture, décider de la relire, fusionner
+// ---------------------------------------------------------------------------
 
+/** Une lecture, après contrôle de la clé et des bornes — avant d'en faire une analyse. */
+export type Reading = {
+  order_number: string | null;
+  raw_order_number: string | null;
+  key_corrected: boolean;
+  amount: number | null;
+  has_restaurant_header: boolean;
+  looks_like_qr_or_poster: boolean;
+  order_time: string | null;
+  items: ReceiptLineItem[];
+  printed_date: string | null;
+  channel: string | null;
+  daily_sequence: string | null;
+  subtotal: number | null;
+  discount_total: number | null;
+  payment_method: string | null;
+};
+
+const money = (raw: unknown): number | null =>
+  typeof raw === "number" && raw >= 0 && raw <= 1000 ? Math.round(raw * 100) / 100 : null;
+const shortText = (raw: unknown, max: number): string | null =>
+  typeof raw === "string" && raw.trim() ? raw.trim().slice(0, max) : null;
+
+function interpretReading(
+  parsed: VisionResult,
+  keyPattern: RegExp | null,
+  dateGroup: number | null,
+  today: string
+): Reading {
   // Validate la clé extraite contre le pattern de l'établissement
   // (ADR 0019), sinon contre le Bestelnummer legacy.
-  const keyPattern = config ? compileKeyPattern(config) : BESTELNUMMER_RE;
-  const firstRawKey = typeof parsed.order_number === "string" && parsed.order_number.trim() ? parsed.order_number.trim() : null;
+  const firstRawKey =
+    typeof parsed.order_number === "string" && parsed.order_number.trim() ? parsed.order_number.trim() : null;
   const rawOrderNumber = keyPattern && firstRawKey && keyPattern.test(firstRawKey) ? firstRawKey : null;
   // Incident Kasia (2026-08-22) : l'OCR lisait l'année 2025 sur un ticket du
   // jour → numéro en lecture seule → date refusée à la soumission → 6 essais.
   // On répare une année manifestement fausse, on invalide une date future ou
   // trop vieille. Une clé réparée ou invalidée se reprend en photo : le
   // membre ne saisit plus rien (ADR 0058).
-  const dateGroup = config ? config.date_group : 1; // legacy Bestelnummer : la date est le groupe 1
-  let sanity = sanitizeKeyDate(rawOrderNumber, keyPattern, dateGroup, todayInBrussels());
-  let orderNumber = sanity.order_number;
-  let rawKeySeen = firstRawKey;
-  let keySecondRead = false;
-
-  const amount =
-    typeof parsed.amount === "number" && parsed.amount >= 1 && parsed.amount <= 500
-      ? Math.round(parsed.amount * 100) / 100
-      : null;
-
-  if (keyPattern && shouldRetryKey({ orderNumber, amount, hasKeyPattern: true })) {
-    const secondRaw = await readKeyOnly(client, file.type as AllowedReceiptType, base64, config);
-    if (secondRaw) {
-      rawKeySeen = secondRaw;
-      const secondSanity = sanitizeKeyDate(keyPattern.test(secondRaw) ? secondRaw : null, keyPattern, dateGroup, todayInBrussels());
-      if (secondSanity.order_number) {
-        sanity = secondSanity;
-        orderNumber = secondSanity.order_number;
-        keySecondRead = true;
-      }
-    }
-  }
-
-  // La confidence reste basée uniquement sur clé + montant : les articles
-  // et l'heure (ADR 0020) ne participent jamais au flagging.
-  const confidence = orderNumber && amount ? 90 : orderNumber || amount ? 65 : 35;
-
-  const orderTime =
-    typeof parsed.order_time === "string" && ORDER_TIME_RE.test(parsed.order_time)
-      ? parsed.order_time
-      : null;
-
-  const money = (raw: unknown): number | null =>
-    typeof raw === "number" && raw >= 0 && raw <= 1000 ? Math.round(raw * 100) / 100 : null;
-  const shortText = (raw: unknown, max: number): string | null =>
-    typeof raw === "string" && raw.trim() ? raw.trim().slice(0, max) : null;
+  const sanity = sanitizeKeyDate(rawOrderNumber, keyPattern, dateGroup, today);
 
   return {
-    order_number: orderNumber,
-    printed_date: typeof parsed.printed_date === "string" && /^d{4}-d{2}-d{2}$/.test(parsed.printed_date.trim())
-      ? parsed.printed_date.trim()
-      : null,
+    order_number: sanity.order_number,
+    raw_order_number: firstRawKey ? firstRawKey.slice(0, 80) : null,
+    key_corrected: sanity.corrected,
+    amount:
+      typeof parsed.amount === "number" && parsed.amount >= 1 && parsed.amount <= 500
+        ? Math.round(parsed.amount * 100) / 100
+        : null,
+    has_restaurant_header: parsed.has_restaurant_header === true,
+    looks_like_qr_or_poster: parsed.looks_like_qr_or_poster === true,
+    order_time:
+      typeof parsed.order_time === "string" && ORDER_TIME_RE.test(parsed.order_time) ? parsed.order_time : null,
+    items: sanitizeLineItems(parsed.items),
+    // Le `\d` manquait ici (ADR 0066 phase 1) : la date imprimée n'était jamais gardée.
+    printed_date:
+      typeof parsed.printed_date === "string" && PRINTED_DATE_RE.test(parsed.printed_date.trim())
+        ? parsed.printed_date.trim()
+        : null,
     channel: shortText(parsed.channel, 40),
     daily_sequence: shortText(parsed.daily_sequence, 12),
     subtotal: money(parsed.subtotal),
     discount_total: money(parsed.discount_total),
     payment_method: shortText(parsed.payment_method, 40),
-    amount,
-    confidence,
-    has_restaurant_header: parsed.has_restaurant_header === true,
-    looks_like_qr_or_poster: parsed.looks_like_qr_or_poster === true,
-    order_time: orderTime,
-    items: sanitizeLineItems(parsed.items),
-    key_corrected: sanity.corrected,
-    raw_order_number: rawKeySeen ? rawKeySeen.slice(0, 80) : null,
-    key_second_read: keySecondRead,
   };
 }
 
-// Lecture de la clé seule, par le modèle plus précis. Best-effort : un échec
-// (réseau, JSON) laisse la première lecture décider — jamais d'exception.
-async function readKeyOnly(
-  client: Anthropic,
-  mediaType: AllowedReceiptType,
-  base64: string,
-  config: ReceiptKeyConfig | null | undefined
-): Promise<string | null> {
+/**
+ * Faut-il faire relire la photo par Fable ? (ADR 0072 §2)
+ * Oui quand la lecture est INCOMPLÈTE : total absent, ou — pour un établissement
+ * à clé fiable — aucune clé lue du tout. Non dans trois cas où relire ne servirait
+ * à rien et coûterait cher :
+ *  - une affiche (elle est refusée telle quelle, `judgeReceipt`) ;
+ *  - une clé lue mais refusée par le format (ex. « …/223/036 ») : Fable la lirait pareil ;
+ *  - une année de clé réparée : la clé existe, le membre reprend la photo.
+ */
+export function needsRescue(input: {
+  amount: number | null;
+  rawKey: string | null;
+  orderNumber: string | null;
+  hasKeyPattern: boolean;
+  looksLikePoster: boolean;
+}): boolean {
+  if (input.looksLikePoster && input.orderNumber === null) return false;
+  const amountMissing = input.amount === null;
+  const keyMissing = input.hasKeyPattern && input.rawKey === null;
+  return amountMissing || keyMissing;
+}
+
+/**
+ * Fusion des deux lectures : la relecture COMBLE les trous, elle ne remplace rien.
+ * Ce que la première lecture a lu reste (le ticket de loin de l'incident du
+ * 2026-09-20 a montré qu'une lecture peut inventer : on ne laisse pas une
+ * seconde lecture réécrire des valeurs déjà lues). Un désaccord est mesuré, pas tranché.
+ */
+export function mergeReadings(
+  first: Reading,
+  rescue: Reading
+): { merged: Reading; filled: RescueFilled[]; conflict: boolean } {
+  const filled: RescueFilled[] = [];
+  const keyFromRescue = first.order_number === null && rescue.order_number !== null;
+  if (keyFromRescue) filled.push("key");
+  if (first.amount === null && rescue.amount !== null) filled.push("amount");
+
+  const conflict =
+    (first.amount !== null && rescue.amount !== null && first.amount !== rescue.amount) ||
+    (first.order_number !== null && rescue.order_number !== null && first.order_number !== rescue.order_number);
+
+  const merged: Reading = {
+    order_number: first.order_number ?? rescue.order_number,
+    raw_order_number: first.raw_order_number ?? rescue.raw_order_number,
+    key_corrected: keyFromRescue ? rescue.key_corrected : first.key_corrected,
+    amount: first.amount ?? rescue.amount,
+    has_restaurant_header: first.has_restaurant_header || rescue.has_restaurant_header,
+    // C'est le juge le plus capable qui dit « affiche » quand la première lecture n'avait rien trouvé.
+    looks_like_qr_or_poster: rescue.looks_like_qr_or_poster,
+    order_time: first.order_time ?? rescue.order_time,
+    items: first.items.length > 0 ? first.items : rescue.items,
+    printed_date: first.printed_date ?? rescue.printed_date,
+    channel: first.channel ?? rescue.channel,
+    daily_sequence: first.daily_sequence ?? rescue.daily_sequence,
+    subtotal: first.subtotal ?? rescue.subtotal,
+    discount_total: first.discount_total ?? rescue.discount_total,
+    payment_method: first.payment_method ?? rescue.payment_method,
+  };
+  return { merged, filled, conflict };
+}
+
+/**
+ * Analyse OCR d'un ticket de caisse via Claude vision.
+ * Seule source de vérité anti-fraude : appelée côté serveur par la route
+ * de soumission (orders) ET par la route d'aperçu UX (parse-receipt).
+ * Throws si aucune lecture n'aboutit (Sonnet puis, en secours, Haiku).
+ * `config` (ADR 0019) pilote la clé de commande recherchée ; absent =
+ * comportement Bestelnummer historique.
+ *
+ * ADR 0072 : Sonnet lit ; si la lecture est incomplète, Fable relit et comble
+ * les trous. Une relecture qui échoue (refus, délai, panne) ne fait jamais échouer
+ * le scan : on garde la première lecture, et l'échec est écrit dans la trace.
+ */
+export async function analyzeReceipt(
+  file: File,
+  restaurantName: string,
+  config?: ReceiptKeyConfig | null
+): Promise<ReceiptAnalysis> {
+  const startedAt = Date.now();
+  const remaining = () => TOTAL_BUDGET_MS - (Date.now() - startedAt);
+
+  const bytes = await file.arrayBuffer();
+  const base64 = Buffer.from(bytes).toString("base64");
+  const mediaType = file.type as AllowedReceiptType;
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const keyPattern = config ? compileKeyPattern(config) : BESTELNUMMER_RE;
+  const dateGroup = config ? config.date_group : 1; // legacy Bestelnummer : la date est le groupe 1
+  const today = todayInBrussels();
+
+  // 1. Lecture principale : Sonnet. En cas d'échec, secours par Haiku (comportement d'avant l'ADR 0072).
+  let firstRead: { parsed: VisionResult; trace: ReadTrace };
+  let firstTrace: ReceiptReadTrace["first"];
   try {
-    const keySection = buildKeyPromptSection(config).replace(/^1\. /, "").trim();
-    const msg = await client.messages.create({
-      model: SECOND_READ_MODEL,
-      max_tokens: 200,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            {
-              type: "text",
-              text: `This is a photo of a till receipt. It may be small in the frame, rotated, upside down or crumpled — read it carefully, zooming mentally on the payment block. Today is ${todayInBrussels()} (Europe/Brussels); read the date digits exactly as printed.
-Find ONLY this code: ${keySection}
-Copy it character for character, exactly as printed (do not pad, shorten or reformat it).
-Return ONLY valid JSON, no markdown: {"order_number": "..." or null}`,
-            },
-          ],
-        },
-      ],
+    firstRead = await readOnce(client, {
+      model: FIRST_READ_MODEL,
+      effort: READ_EFFORT,
+      mediaType,
+      base64,
+      prompt: buildReadPrompt(restaurantName, config, false),
+      timeoutMs: FIRST_READ_TIMEOUT_MS,
+      maxRetries: 1,
     });
-    const text = msg.content[0]?.type === "text" ? msg.content[0].text.trim() : "";
-    const json = JSON.parse(text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim()) as { order_number?: unknown };
-    return typeof json.order_number === "string" && json.order_number.trim() ? json.order_number.trim() : null;
-  } catch (err) {
-    console.error("[receipt-ocr] seconde lecture impossible:", (err as Error).message);
-    return null;
+    firstTrace = firstRead.trace;
+  } catch (primaryErr) {
+    if (remaining() < MIN_TIME_FOR_ANOTHER_READ_MS) throw primaryErr;
+    console.error("[receipt-ocr] lecture principale impossible, secours Haiku:", (primaryErr as Error).message);
+    firstRead = await readOnce(client, {
+      model: FALLBACK_READ_MODEL,
+      mediaType,
+      base64,
+      prompt: buildReadPrompt(restaurantName, config, false),
+      timeoutMs: Math.min(FIRST_READ_TIMEOUT_MS, remaining()),
+      maxRetries: 0,
+    });
+    firstTrace = {
+      ...firstRead.trace,
+      fell_back_from: FIRST_READ_MODEL,
+      fallback_error: (primaryErr as Error).message.slice(0, 120),
+    };
   }
+
+  let reading = interpretReading(firstRead.parsed, keyPattern, dateGroup, today);
+  const trace: ReceiptReadTrace = { first: firstTrace, rescue: null, rescue_filled: [], rescue_conflict: false };
+
+  // 2. Relecture par Fable, seulement si la lecture est incomplète et qu'il reste du temps.
+  if (
+    needsRescue({
+      amount: reading.amount,
+      rawKey: reading.raw_order_number,
+      orderNumber: reading.order_number,
+      hasKeyPattern: keyPattern !== null,
+      looksLikePoster: reading.looks_like_qr_or_poster,
+    }) &&
+    remaining() >= MIN_TIME_FOR_ANOTHER_READ_MS
+  ) {
+    const rescueStarted = Date.now();
+    try {
+      const second = await readOnce(client, {
+        model: RESCUE_MODEL,
+        effort: READ_EFFORT,
+        mediaType,
+        base64,
+        prompt: buildReadPrompt(restaurantName, config, true),
+        timeoutMs: Math.min(RESCUE_TIMEOUT_MS, remaining()),
+        maxRetries: 0,
+      });
+      const { merged, filled, conflict } = mergeReadings(
+        reading,
+        interpretReading(second.parsed, keyPattern, dateGroup, today)
+      );
+      reading = merged;
+      trace.rescue = { ...second.trace, ok: true };
+      trace.rescue_filled = filled;
+      trace.rescue_conflict = conflict;
+    } catch (err) {
+      const failure = err instanceof ReadError ? err : null;
+      console.error("[receipt-ocr] relecture impossible:", (err as Error).message);
+      trace.rescue = {
+        model: RESCUE_MODEL,
+        ms: failure?.ms ?? Date.now() - rescueStarted,
+        input_tokens: null,
+        output_tokens: null,
+        ok: false,
+        refused: failure?.refused || undefined,
+        error: (err as Error).message.slice(0, 120),
+      };
+    }
+  }
+
+  // La confidence reste basée uniquement sur clé + montant : les articles
+  // et l'heure (ADR 0020) ne participent jamais au flagging.
+  const confidence = reading.order_number && reading.amount ? 90 : reading.order_number || reading.amount ? 65 : 35;
+
+  return {
+    ...reading,
+    confidence,
+    key_second_read: trace.rescue_filled.includes("key"),
+    trace,
+  };
 }
