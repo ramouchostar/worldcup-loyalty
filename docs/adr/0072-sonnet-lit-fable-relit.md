@@ -4,7 +4,9 @@
 l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) §4 (une seule lecture, celle du serveur),
 l'[ADR 0066](0066-la-carte-identite-du-ticket.md) (une lecture peut inventer) et l'[ADR 0036](0036-receipt-scan-retention.md)
 (chaque lecture est conservée). Remplace la « seconde lecture de la clé » du 2026-09-18
-(modèle plus précis, clé seule). Appliqué avec le bouclier de l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md).
+(modèle plus précis, clé seule). **§2 précisé par l'[ADR 0073](0073-le-format-de-la-cle-du-ticket.md)** :
+une clé de mauvaise forme ou de code inconnu déclenche la relecture (les clés courtes valides ne sont plus refusées) ;
+seule une clé d'un autre établissement ne la déclenche pas. Appliqué avec le bouclier de l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md).
 
 ## Contexte
 
