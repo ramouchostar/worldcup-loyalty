@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderDate } from "@/lib/orders";
-import { getReceiptConfig, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
+import { getReceiptConfig, getOtherStoreCodes, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
 import { createPendingReward, LEGACY_RESTAURANT_ID } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
@@ -15,7 +15,13 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
-import { judgeReceipt, notAReceiptMessage } from "@/lib/receipt-proof";
+import {
+  isOtherEstablishment,
+  judgeReceipt,
+  notAReceiptMessage,
+  otherEstablishmentMessage,
+  refusalReason,
+} from "@/lib/receipt-proof";
 import { missingReceiptParts } from "@/lib/ticket-auto-send";
 import { personalPointsForOrder, type PointsGoal } from "@/lib/catalogue";
 import { getPointsGoal } from "@/lib/points";
@@ -119,14 +125,18 @@ export async function POST(request: NextRequest) {
 
   // ADR 0019 — la clé de commande est définie par l'établissement
   // (restaurant_receipt_config, fallback Bestelnummer legacy).
-  const receiptConfig = await getReceiptConfig(restaurantId);
+  // ADR 0073 — le code de l'établissement dans la clé : on lit aussi ceux des autres.
+  const [receiptConfig, otherStoreCodes] = await Promise.all([
+    getReceiptConfig(restaurantId),
+    getOtherStoreCodes(restaurantId),
+  ]);
 
   // ADR 0058 — sans lecture serveur, pas de commande (plus de repli en revue
   // sur des valeurs tapées) : on demande de réessayer.
   const restaurantName = await getRestaurantDisplayName(restaurantId);
   let serverOcr: ReceiptAnalysis;
   try {
-    serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig);
+    serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig, otherStoreCodes);
   } catch {
     return NextResponse.json(
       { error: "On n'a pas pu lire ton ticket. Réessaie dans un instant." },
@@ -151,19 +161,21 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       file: receiptFile,
       analysis: serverOcr,
-      outcome: verdict === "receipt" ? "parsed" : "header_rejected",
+      outcome: verdict === "receipt" && !serverOcr.key_issue ? "parsed" : "header_rejected",
     }));
 
+  // ADR 0073 — la clé porte le code d'un AUTRE établissement : le ticket vient
+  // d'ailleurs, refaire la photo n'y changera rien. Refus net, compté à part.
+  if (isOtherEstablishment(serverOcr)) {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "wrong_establishment");
+    return NextResponse.json({ error: otherEstablishmentMessage(restaurantName) }, { status: 422 });
+  }
   if (verdict === "poster") {
     await recordFunnelStep(restaurantId, "ticket_rejected", "qr_detected");
     return NextResponse.json({ error: POSTER_MEMBER_MESSAGE }, { status: 422 });
   }
   if (verdict === "not_a_receipt") {
-    await recordFunnelStep(
-      restaurantId,
-      "ticket_rejected",
-      serverOcr.amount === null ? "unreadable" : "header_rejected"
-    );
+    await recordFunnelStep(restaurantId, "ticket_rejected", refusalReason(serverOcr, "not_a_receipt"));
     return NextResponse.json(
       { error: notAReceiptMessage(restaurantName, receiptConfig.key_label) },
       { status: 422 }
@@ -181,7 +193,7 @@ export async function POST(request: NextRequest) {
     has_reliable_key: receiptConfig.has_reliable_key,
   });
   if (missing) {
-    await recordFunnelStep(restaurantId, "ticket_rejected", "unreadable");
+    await recordFunnelStep(restaurantId, "ticket_rejected", refusalReason(serverOcr, "incomplete"));
     return reframe(missing);
   }
 

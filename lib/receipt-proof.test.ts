@@ -29,3 +29,30 @@ test("message de refus : nom de l'établissement et libellé de sa clé", () => 
   assert.match(notAReceiptMessage("Belchicken Kraainem", "Bestelnummer"), /Belchicken Kraainem.*Bestelnummer/);
   assert.match(notAReceiptMessage("Resto", null), /numéro de commande/);
 });
+
+// ── ADR 0073 — le code de l'établissement dans la clé ───────────────────────
+import { isOtherEstablishment, otherEstablishmentMessage, refusalReason } from "./receipt-proof";
+
+test("un ticket d'un autre établissement est reconnu, pas un code inconnu", () => {
+  assert.equal(isOtherEstablishment({ key_issue: "other_establishment" }), true);
+  assert.equal(isOtherEstablishment({ key_issue: "unknown_code" }), false);
+  assert.equal(isOtherEstablishment({ key_issue: null }), false);
+  assert.equal(isOtherEstablishment({}), false);
+});
+
+test("le message ne nomme jamais l'autre établissement", () => {
+  const message = otherEstablishmentMessage("Belchicken Kraainem");
+  assert.match(message, /Belchicken Kraainem/);
+  assert.doesNotMatch(message, /Houba|De Bue|258/);
+});
+
+test("motif de refus : un code inconnu est compté à part", () => {
+  assert.equal(refusalReason({ amount: 9.8, key_issue: "unknown_code" }, "incomplete"), "key_code_unknown");
+  assert.equal(refusalReason({ amount: 9.8, key_issue: "unknown_code" }, "not_a_receipt"), "key_code_unknown");
+});
+
+test("motif de refus : sans code en cause, les motifs d'avant ne changent pas", () => {
+  assert.equal(refusalReason({ amount: null, key_issue: null }, "not_a_receipt"), "unreadable");
+  assert.equal(refusalReason({ amount: 9.8, key_issue: null }, "not_a_receipt"), "header_rejected");
+  assert.equal(refusalReason({ amount: 9.8 }, "incomplete"), "unreadable");
+});

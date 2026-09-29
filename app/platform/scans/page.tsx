@@ -67,6 +67,9 @@ function traceLine(trace: ReceiptReadTrace | null | undefined): string | null {
       if (trace.rescue_conflict) line += " · désaccord";
     }
   }
+  // ADR 0073 — la clé a été lue puis écartée à cause du code d'établissement.
+  if (trace.key_issue === "other_establishment") line += " · ticket d'un autre établissement";
+  if (trace.key_issue === "unknown_code") line += " · code d'établissement inconnu";
   return line;
 }
 

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
+import { TICKET_KEY_DESCRIPTION, TICKET_KEY_PATTERN, compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
 import { sanitizeKeyDate } from "./receipt-key-sanity";
+import { checkStoreCode, type KeyStoreVerdict } from "./receipt-key-store";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 export type AllowedReceiptType = (typeof ALLOWED_TYPES)[number];
@@ -27,8 +28,11 @@ const FIRST_READ_TIMEOUT_MS = 30_000;
 const RESCUE_TIMEOUT_MS = 25_000;
 const MIN_TIME_FOR_ANOTHER_READ_MS = 8_000;
 
-// Bestelnummer: YYYY-MM-DD/NNN/NNNNN
-const BESTELNUMMER_RE = /\b(\d{4}-\d{2}-\d{2}\/\d{3}\/\d{5})\b/;
+// Bestelnummer legacy (sans config) : la forme mesurée des clés Belchicken, ADR 0073.
+const BESTELNUMMER_RE = new RegExp(TICKET_KEY_PATTERN);
+
+/** Pourquoi une clé lue a été écartée (ADR 0073) : voir lib/receipt-key-store.ts. */
+export type KeyIssue = Exclude<KeyStoreVerdict, "ok" | "unchecked">;
 
 type VisionResult = {
   order_number: string | null;
@@ -74,12 +78,19 @@ export type ReceiptReadTrace = {
   rescue_filled: RescueFilled[];
   /** Les deux lectures ont lu une valeur et elles diffèrent (la première est gardée). */
   rescue_conflict: boolean;
+  /**
+   * La clé a été lue mais écartée (ADR 0073) : code d'un AUTRE établissement, ou
+   * code qui n'est celui d'aucun. Absent quand la clé est gardée ou n'a pas été lue.
+   */
+  key_issue?: KeyIssue;
 };
 
 export type RescueFilled = "amount" | "key";
 
 export type ReceiptAnalysis = {
   order_number: string | null;
+  /** Pourquoi la clé lue a été écartée (ADR 0073) ; null si elle est gardée ou absente. */
+  key_issue: KeyIssue | null;
   amount: number | null;
   confidence: number;
   has_restaurant_header: boolean;
@@ -159,7 +170,7 @@ function buildKeyPromptSection(config: ReceiptKeyConfig | null | undefined): str
     const position = config.position_hint ? `, usually ${config.position_hint}` : "";
     return `1. ${config.key_label}: ${config.key_description}${position}${example ? ` (e.g. ${example})` : ""} — null if not visible\n`;
   }
-  return "1. Bestelnummer: a code in format YYYY-MM-DD/NNN/NNNNN (e.g. 2026-06-01/258/03993) — null if not visible\n";
+  return `1. Bestelnummer: ${TICKET_KEY_DESCRIPTION} — null if not visible\n`;
 }
 
 // Sur une photo difficile (petite dans le cadre, tournée, froissée) : ce que la
@@ -185,7 +196,7 @@ ${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL
 11. Whether the photo shows a PROMOTIONAL POSTER, flyer, sticker, table sign or QR-code display (marketing material inviting to scan a code) rather than a printed till receipt — true only if it is clearly marketing material, false for any actual receipt even partial or blurry.
 
 Return ONLY valid JSON, no markdown, no explanation:
-{"order_number": "2026-06-01/258/03993" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false, "printed_date": "2026-06-01" or null, "channel": "Self-order kiosk" or null, "daily_sequence": "179" or null, "subtotal": 15.00 or null, "discount_total": 7.10 or null, "payment_method": "Cash" or null}`;
+{"order_number": "YYYY-MM-DD/NNN/0NNNN" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false, "printed_date": "2026-06-01" or null, "channel": "Self-order kiosk" or null, "daily_sequence": "179" or null, "subtotal": 15.00 or null, "discount_total": 7.10 or null, "payment_method": "Cash" or null}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -340,25 +351,26 @@ function interpretReading(
 }
 
 /**
- * Faut-il faire relire la photo par Fable ? (ADR 0072 §2)
+ * Faut-il faire relire la photo par Fable ? (ADR 0072 §2, précisé par l'ADR 0073)
  * Oui quand la lecture est INCOMPLÈTE : total absent, ou — pour un établissement
- * à clé fiable — aucune clé lue du tout. Non dans trois cas où relire ne servirait
- * à rien et coûterait cher :
+ * à clé fiable — aucune clé UTILISABLE (rien de lu, forme impossible, code d'établissement
+ * que personne n'utilise : dans tous ces cas la lecture est probablement fausse).
+ * Non dans trois cas où relire ne servirait à rien et coûterait cher :
  *  - une affiche (elle est refusée telle quelle, `judgeReceipt`) ;
- *  - une clé lue mais refusée par le format (ex. « …/223/036 ») : Fable la lirait pareil ;
+ *  - une clé d'un AUTRE établissement : elle est bien lue, c'est le ticket qui vient d'ailleurs ;
  *  - une année de clé réparée : la clé existe, le membre reprend la photo.
  */
 export function needsRescue(input: {
   amount: number | null;
-  rawKey: string | null;
   orderNumber: string | null;
   hasKeyPattern: boolean;
   looksLikePoster: boolean;
+  keyIssue?: KeyIssue | null;
 }): boolean {
   if (input.looksLikePoster && input.orderNumber === null) return false;
   const amountMissing = input.amount === null;
-  const keyMissing = input.hasKeyPattern && input.rawKey === null;
-  return amountMissing || keyMissing;
+  const keyUnusable = input.hasKeyPattern && input.orderNumber === null && input.keyIssue !== "other_establishment";
+  return amountMissing || keyUnusable;
 }
 
 /**
@@ -382,7 +394,10 @@ export function mergeReadings(
 
   const merged: Reading = {
     order_number: first.order_number ?? rescue.order_number,
-    raw_order_number: first.raw_order_number ?? rescue.raw_order_number,
+    // La clé brute suit la clé retenue : celle de la relecture quand c'est elle qui l'a donnée.
+    raw_order_number: keyFromRescue
+      ? rescue.raw_order_number ?? first.raw_order_number
+      : first.raw_order_number ?? rescue.raw_order_number,
     key_corrected: keyFromRescue ? rescue.key_corrected : first.key_corrected,
     amount: first.amount ?? rescue.amount,
     has_restaurant_header: first.has_restaurant_header || rescue.has_restaurant_header,
@@ -415,7 +430,9 @@ export function mergeReadings(
 export async function analyzeReceipt(
   file: File,
   restaurantName: string,
-  config?: ReceiptKeyConfig | null
+  config?: ReceiptKeyConfig | null,
+  /** Codes des AUTRES établissements (lib/receipt-config.ts getOtherStoreCodes) — ADR 0073. */
+  otherStoreCodes: readonly string[] = []
 ): Promise<ReceiptAnalysis> {
   const startedAt = Date.now();
   const remaining = () => TOTAL_BUDGET_MS - (Date.now() - startedAt);
@@ -461,17 +478,29 @@ export async function analyzeReceipt(
     };
   }
 
-  let reading = interpretReading(firstRead.parsed, keyPattern, dateGroup, today);
+  // ADR 0073 — le code de l'établissement dans la clé : une clé d'ailleurs, ou avec un code
+  // que personne n'utilise, est écartée (order_number null) ; la clé brute reste pour l'audit.
+  const ownStoreCode = config?.store_code ?? null;
+  const screened = (r: Reading): { reading: Reading; issue: KeyIssue | null } => {
+    const verdict = checkStoreCode(r.order_number, ownStoreCode, otherStoreCodes);
+    return verdict === "other_establishment" || verdict === "unknown_code"
+      ? { reading: { ...r, order_number: null }, issue: verdict }
+      : { reading: r, issue: null };
+  };
+
+  const firstScreened = screened(interpretReading(firstRead.parsed, keyPattern, dateGroup, today));
+  let reading = firstScreened.reading;
+  let keyIssue = firstScreened.issue;
   const trace: ReceiptReadTrace = { first: firstTrace, rescue: null, rescue_filled: [], rescue_conflict: false };
 
   // 2. Relecture par Fable, seulement si la lecture est incomplète et qu'il reste du temps.
   if (
     needsRescue({
       amount: reading.amount,
-      rawKey: reading.raw_order_number,
       orderNumber: reading.order_number,
       hasKeyPattern: keyPattern !== null,
       looksLikePoster: reading.looks_like_qr_or_poster,
+      keyIssue,
     }) &&
     remaining() >= MIN_TIME_FOR_ANOTHER_READ_MS
   ) {
@@ -486,11 +515,11 @@ export async function analyzeReceipt(
         timeoutMs: Math.min(RESCUE_TIMEOUT_MS, remaining()),
         maxRetries: 0,
       });
-      const { merged, filled, conflict } = mergeReadings(
-        reading,
-        interpretReading(second.parsed, keyPattern, dateGroup, today)
-      );
+      const secondScreened = screened(interpretReading(second.parsed, keyPattern, dateGroup, today));
+      const { merged, filled, conflict } = mergeReadings(reading, secondScreened.reading);
       reading = merged;
+      // Une clé bonne venue de la relecture lève l'écart ; sinon on garde le motif le plus parlant.
+      keyIssue = reading.order_number ? null : secondScreened.issue === "other_establishment" ? "other_establishment" : keyIssue ?? secondScreened.issue;
       trace.rescue = { ...second.trace, ok: true };
       trace.rescue_filled = filled;
       trace.rescue_conflict = conflict;
@@ -513,8 +542,11 @@ export async function analyzeReceipt(
   // et l'heure (ADR 0020) ne participent jamais au flagging.
   const confidence = reading.order_number && reading.amount ? 90 : reading.order_number || reading.amount ? 65 : 35;
 
+  if (keyIssue) trace.key_issue = keyIssue;
+
   return {
     ...reading,
+    key_issue: keyIssue,
     confidence,
     key_second_read: trace.rescue_filled.includes("key"),
     trace,
