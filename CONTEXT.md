@@ -54,7 +54,7 @@ Ce qui identifie une commande sur un ticket, au-delà du numéro : date imprimé
 _Avoid_ : « empreinte » (réservé à l'ADR 0052), utiliser le numéro du jour seul comme identifiant.
 
 **Scan** *(ADR 0036)* :
-Un passage d'image dans Claude Vision, qu'il aboutisse ou non à une commande. Table `receipt_scans` : l'image, la lecture du modèle, et ce qu'elle est devenue (`parsed` = jamais soumis, `header_rejected` = ticket non reconnu, `submitted` = devenue commande). C'est l'unité de mesure du coût OCR (ADR 0029 §6) et la matière de `/platform/scans`, où l'on compare image ↔ lecture ↔ encodage. **Terme interne/plateforme uniquement** : depuis le 2026-09-07, le mot « scanner » (et l'icône viseur) est BANNI des surfaces client pour l'action ticket — voir **Photo du ticket**.
+Un passage d'image dans Claude Vision, qu'il aboutisse ou non à une commande. Table `receipt_scans` : l'image, la lecture du modèle, et ce qu'elle est devenue (`parsed` = jamais soumis, `header_rejected` = ticket non reconnu, `submitted` = devenue commande). **Lecture** *(ADR 0072)* : Sonnet lit la photo ; si le total ou la clé manque, Fable la relit et comble les trous — sans jamais réécrire une valeur déjà lue (`ocr_trace` garde qui a lu, combien de temps, ce qui a été comblé). C'est l'unité de mesure du coût OCR (ADR 0029 §6) et la matière de `/platform/scans`, où l'on compare image ↔ lecture ↔ encodage. **Terme interne/plateforme uniquement** : depuis le 2026-09-07, le mot « scanner » (et l'icône viseur) est BANNI des surfaces client pour l'action ticket — voir **Photo du ticket**.
 _Avoid_ : upload (le scan existe même sans soumission) ; « scanner » côté client pour l'action ticket.
 
 **Photo du ticket** *(2026-09-07)* :
