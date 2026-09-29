@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { analyzeReceipt, isAllowedReceiptType } from "@/lib/receipt-ocr";
-import { getReceiptConfig } from "@/lib/receipt-config";
+import { getReceiptConfig, getOtherStoreCodes } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { checkRateLimit, checkIpRateLimit, hashIp } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
@@ -9,7 +9,7 @@ import { recordFunnelStep } from "@/lib/funnel";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
-import { judgeReceipt, notAReceiptMessage } from "@/lib/receipt-proof";
+import { isOtherEstablishment, judgeReceipt, notAReceiptMessage, otherEstablishmentMessage, refusalReason } from "@/lib/receipt-proof";
 import { loadRewardGrid, welcomeReward } from "@/lib/rewards";
 import { listCatalogue } from "@/lib/points";
 import { personalPointsForOrder, pointsGoalFrom, type PointsGoal } from "@/lib/catalogue";
@@ -80,14 +80,15 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
 
-  const [restaurantName, receiptConfig] = await Promise.all([
+  const [restaurantName, receiptConfig, otherStoreCodes] = await Promise.all([
     getRestaurantDisplayName(String(rawRestaurantId)),
     getReceiptConfig(String(rawRestaurantId)),
+    getOtherStoreCodes(String(rawRestaurantId)), // ADR 0073 — les codes des autres établissements
   ]);
 
   let analysis;
   try {
-    analysis = await analyzeReceipt(file, restaurantName, receiptConfig);
+    analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes);
   } catch (err) {
     console.error("[parse-receipt] Claude vision error:", err);
     return NextResponse.json(
@@ -128,8 +129,14 @@ export async function POST(request: NextRequest) {
     userId: user?.id ?? null,
     file,
     analysis,
-    outcome: verdict === "receipt" ? "parsed" : "header_rejected",
+    outcome: verdict === "receipt" && !analysis.key_issue ? "parsed" : "header_rejected",
   });
+
+  // ADR 0073 — ticket d'un AUTRE établissement : refus net, compté à part.
+  if (isOtherEstablishment(analysis)) {
+    await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "wrong_establishment");
+    return NextResponse.json({ error: otherEstablishmentMessage(restaurantName) }, { status: 422 });
+  }
 
   if (verdict === "poster") {
     await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "qr_detected");
@@ -141,11 +148,7 @@ export async function POST(request: NextRequest) {
     // « montant lu, mais rien qui rattache le ticket à cet établissement ».
     // Deux causes, deux remèdes — le cadrage d'un côté, l'affichage de la
     // consigne de l'autre — et c'est le tableau qui doit les départager.
-    await recordFunnelStep(
-      String(rawRestaurantId),
-      "ticket_rejected",
-      analysis.amount === null ? "unreadable" : "header_rejected"
-    );
+    await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", refusalReason(analysis, "not_a_receipt"));
     return NextResponse.json(
       { error: notAReceiptMessage(restaurantName, receiptConfig.key_label) },
       { status: 422 }

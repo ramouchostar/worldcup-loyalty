@@ -39,7 +39,15 @@ export const FUNNEL_STEPS = [
 export type FunnelStep = (typeof FUNNEL_STEPS)[number];
 
 /** Motifs de refus d'un ticket — le `reason` de `ticket_rejected`. */
-export const REJECTION_REASONS = ["qr_detected", "unreadable", "duplicate", "header_rejected", "daily_limit"] as const;
+export const REJECTION_REASONS = [
+  "qr_detected",
+  "unreadable",
+  "duplicate",
+  "header_rejected",
+  "daily_limit",
+  "wrong_establishment",
+  "key_code_unknown",
+] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
 
 export const REJECTION_LABELS: Record<RejectionReason, string> = {
@@ -54,6 +62,9 @@ export const REJECTION_LABELS: Record<RejectionReason, string> = {
   header_rejected: "Total lu, numéro de commande non lu",
   // Troisième ticket du jour, refusé avant lecture (lib/ticket-limits.ts).
   daily_limit: "Limite de 2 tickets par jour",
+  // ADR 0073 — le code de l'établissement dans la clé du ticket.
+  wrong_establishment: "Ticket d'un autre établissement",
+  key_code_unknown: "Clé lue avec un code d'établissement inconnu",
 };
 
 /**
