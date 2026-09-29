@@ -45,8 +45,10 @@ export function Hero() {
               <RotatingWords words={PROBLEMS} className="text-moss-dark" />
             </h1>
           </Reveal>
-          {/* ADR 0071 — premier geste de la page : chercher son établissement, puis l'audit gratuit. */}
-          <Reveal delay={150}>
+          {/* ADR 0071 — premier geste de la page : chercher son établissement, puis l'audit gratuit.
+              Le z-index se pose sur le Reveal : son transform en fait un contexte d'empilement,
+              sans quoi les suggestions passent sous le téléphone (Reveal suivant). */}
+          <Reveal delay={150} className="relative z-30">
             <div className="relative z-20 mt-7 mx-auto max-w-[640px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.12)] border border-paper-border p-2">
               <RestaurantSearchBar location="hero" />
             </div>
