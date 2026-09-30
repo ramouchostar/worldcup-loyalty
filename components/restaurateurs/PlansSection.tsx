@@ -3,36 +3,38 @@
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal } from "./motion";
 
-// ADR 0070 — trois plans, prix HTVA par établissement :
-// Gratuit (≤ 500 tickets/mois) · Croissance 299 € + 5 % des commandes en
-// ligne · Pro 500 € sans commission, 3 mois minimum. Le site de commande et
-// le référencement ne sont pas encore livrés : les plans payants se
-// réservent en « place pilote » (e-mail), pas par un paiement en ligne.
+// ADR 0074 §7 (2026-09-29, prix de départ à tester sur pilotes) — trois
+// plans, prix HTVA par établissement, plus aucune commission :
+// Gratuit (≤ 500 tickets/mois) · Croissance 99 € · Pro 500 € (copilote,
+// Google, site de commande d'un partenaire relié à la caisse), 3 mois minimum.
+// Les fonctions payantes ne sont pas encore livrées : les plans se réservent
+// en « place pilote » (e-mail), pas par un paiement en ligne.
 // Rentabilité : ticket moyen 14,80 € × marge brute 65 % ≈ 9,62 € par ticket.
 
 const FREE_FEATURES = [
   "Un programme de fidélité au nom et aux couleurs de l'établissement",
+  "La liste des clients inscrits, qui reste à l'établissement",
   "Jusqu'à 500 tickets par mois",
   "Des cadeaux calculés pour protéger la marge",
-  "Parrainage et équipes, sans limite",
+  "Parrainage par WhatsApp, sans limite",
   "Des messages aux clients, envoyés par l'établissement",
   "QR codes et affiches prêts à imprimer",
 ];
 
 const GROWTH_FEATURES = [
   "Tickets illimités",
-  "Un site de commande à emporter, au nom de l'établissement",
-  "D'où vient chaque commande, et ce que rapporte chaque pub",
-  "Prévisions de ventes et ventes par plat",
-  "Des idées de promos chiffrées, et des messages programmés",
-  "Relance automatique des clients qui ne viennent plus",
+  "Les clients rangés tout seuls : nouveaux, habitués, ceux qui décrochent",
+  "Relance automatique, au rythme de chaque client",
+  "Des campagnes prêtes à partir en un clic",
+  "Les avis Google au même endroit, avec une réponse proposée",
+  "Chaque mois, les clients revenus après une campagne, comparés à ceux qui n'ont rien reçu",
 ];
 
 const PRO_FEATURES = [
-  "0 % de commission sur les commandes",
-  "Le site sur un nom de domaine propre",
-  "Référencement Google pris en charge",
-  "La fiche Google tenue à jour, avec le bouton « Commander »",
+  "Le copilote : chaque lundi, trois actions prêtes (météo, matchs, clients qui décrochent, concurrents)",
+  "La fiche Google tenue à jour, et le référencement pris en charge",
+  "Le site de commande installé et optimisé, chez un partenaire relié à la caisse",
+  "Appels, itinéraires, abonnés : les chiffres de Google et d'Instagram réunis",
   "Un rapport clair chaque mois, et un point avec nous",
   "Comparaison anonyme avec les restaurants du secteur",
   "Tous les établissements au même endroit",
@@ -58,8 +60,8 @@ export function PlansSection() {
               name="Gratuit"
               price="0 €"
               priceNote="pour toujours"
-              commission="Aucune commission"
-              pitch="La fidélité complète, pour faire revenir les clients."
+              commission="Aucune carte bancaire"
+              pitch="Inscrire les clients et les faire revenir."
               intro={null}
               features={FREE_FEATURES}
               highlighted
@@ -80,16 +82,16 @@ export function PlansSection() {
           <Reveal delay={160}>
             <PlanCard
               name="Croissance"
-              price="299 €"
+              price="99 €"
               priceNote="/mois"
-              commission="+ 5 % sur les commandes passées sur le site. Rien sur les ventes au comptoir."
-              pitch="Pour vendre en direct et savoir ce que rapporte chaque pub."
+              commission="Sans engagement, sans commission."
+              pitch="Pour relancer les clients soi-même, en un clic."
               intro="Tout le plan Gratuit, plus :"
               features={GROWTH_FEATURES}
               pilot
               roi={{
-                title: "299 €, c'est environ 31 tickets de plus dans le mois.",
-                sub: "À peu près un client de plus par jour.",
+                title: "99 €, c'est environ 10 tickets de plus dans le mois.",
+                sub: "Un client de plus tous les trois jours.",
               }}
               cta={
                 <TrackedLink
@@ -110,8 +112,8 @@ export function PlansSection() {
               name="Pro"
               price="500 €"
               priceNote="/mois"
-              commission="0 % de commission. 3 mois minimum, puis au mois."
-              pitch="Pour être trouvé sur Google et tout piloter au même endroit."
+              commission="Sans commission. 3 mois minimum, puis au mois."
+              pitch="Pour que le marketing soit pensé et fait à la place de l'établissement."
               intro="Tout le plan Croissance, plus :"
               features={PRO_FEATURES}
               pilot
@@ -136,19 +138,19 @@ export function PlansSection() {
 
         <Reveal delay={300}>
           <div className="bg-white border-[1.5px] border-moss-tint2 rounded-xl px-6 py-5 mt-8 max-w-[760px] mx-auto">
-            <p className="font-display text-[15px] font-bold text-ink m-0 mb-1.5">Croissance ou Pro ?</p>
+            <p className="font-display text-[15px] font-bold text-ink m-0 mb-1.5">Et le site de commande ?</p>
             <p className="text-[14.5px] leading-relaxed text-ink-body m-0">
-              Au-delà d&apos;environ <strong>4 000 € de commandes en ligne par mois</strong>, le plan Pro revient
-              moins cher que Croissance, et le référencement Google est inclus. Le tableau de bord le signale : aucun
-              calcul à faire.
+              Il reste celui de l&apos;établissement, relié à sa caisse. En Pro, on l&apos;installe chez un partenaire
+              s&apos;il n&apos;existe pas, puis on le fait vendre : bouton « Commander » sur Google et Instagram, et
+              chaque commande dit d&apos;où elle vient.
             </p>
           </div>
         </Reveal>
 
         <Reveal delay={340}>
           <p className="text-[13px] text-ink-faint text-center max-w-[640px] mx-auto mt-8">
-            Prix hors TVA, par établissement. Les ventes au comptoir ne sont jamais soumises à commission. Les
-            premiers restaurants du réseau bénéficient du tarif fondateur, conservé à vie. Aucune fonctionnalité
+            Prix hors TVA, par établissement. Aucune commission, ni au comptoir ni en ligne. Les premiers
+            restaurants du réseau bénéficient du tarif fondateur, conservé à vie. Aucune fonctionnalité
             gratuite d&apos;aujourd&apos;hui ne passera jamais derrière un paywall.
           </p>
         </Reveal>

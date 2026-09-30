@@ -4,19 +4,21 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import { ChevronDown } from "lucide-react";
 import { PhoneFrame } from "./PhoneFrame";
 import {
+  CopilotScreen,
   GoogleScreen,
   LoyaltyScreen,
-  MessageScreen,
-  OrderSiteScreen,
-  SourcesScreen,
-  TeamScreen,
+  RelaunchScreen,
+  ResultsScreen,
+  ReviewsScreen,
 } from "./TourScreens";
 
 // Visite guidée (2026-09-26) : un iPhone reste fixe pendant qu'on défile, et
 // l'écran + le titre changent à chaque fonctionnalité. Peu de texte : c'est
 // l'écran qui explique. Le badge dit QUI voit l'écran (côté client / côté
-// console), dans quel plan c'est inclus (ADR 0070), et « pilote » tant que
+// console), dans quel plan c'est inclus (ADR 0074), et « pilote » tant que
 // la fonctionnalité n'est pas livrée — jamais présentée comme disponible.
+// Ordre (ADR 0074) : capter → le copilote du lundi → relancer → avis →
+// Google → la preuve. Plus de site de commande ni d'équipes.
 //
 // Mécanique : la section fait STEPS × ~85 vh de haut ; un bloc « sticky »
 // occupe l'écran et l'étape active se déduit de la progression du défilement
@@ -32,7 +34,7 @@ type Step = {
   line: string;
   Screen: ComponentType;
   lightStatus?: boolean;
-  /** Pas encore livré (ADR 0070) : ouverture en places pilotes. */
+  /** Pas encore livré (ADR 0074) : ouverture en places pilotes. */
   pilot?: boolean;
 };
 
@@ -41,37 +43,37 @@ const STEPS: Step[] = [
     id: "fidelite",
     plan: "Gratuit",
     who: "Côté client",
-    title: "Chaque ticket rapporte des points.",
-    line: "Le client revient chercher son cadeau, au coût maîtrisé.",
+    title: "Chaque ticket inscrit un client.",
+    line: "Il photographie son ticket, gagne des points, et l'établissement récupère son contact.",
     Screen: LoyaltyScreen,
     lightStatus: true,
   },
   {
-    id: "equipes",
-    plan: "Gratuit",
-    who: "Côté client",
-    title: "Les clients viennent en équipe.",
-    line: "Bureau, école, salle de sport : chaque équipe recrute pour l'établissement.",
-    Screen: TeamScreen,
-    lightStatus: true,
-  },
-  {
-    id: "commande",
+    id: "copilote",
     pilot: true,
-    plan: "Croissance",
-    who: "Côté client",
-    title: "Un site de commande à son nom.",
-    line: "À emporter, payé directement sur le compte de l'établissement. Sans plateforme.",
-    Screen: OrderSiteScreen,
+    plan: "Pro",
+    who: "Côté console",
+    title: "Chaque lundi, trois actions prêtes.",
+    line: "Météo, matchs, clients qui décrochent : le marketing de la semaine est déjà pensé.",
+    Screen: CopilotScreen,
   },
   {
-    id: "sources",
+    id: "relance",
     pilot: true,
     plan: "Croissance",
     who: "Côté console",
-    title: "Ce que rapporte chaque pub, enfin chiffré.",
-    line: "Chaque commande dit d'où elle vient.",
-    Screen: SourcesScreen,
+    title: "Un client décroche ? Il est relancé.",
+    line: "Au bon moment pour lui, avec un message déjà écrit. Un clic suffit.",
+    Screen: RelaunchScreen,
+  },
+  {
+    id: "avis",
+    pilot: true,
+    plan: "Croissance",
+    who: "Côté console",
+    title: "Chaque avis a sa réponse.",
+    line: "Une réponse proposée, à publier en un geste. Et ce qui revient dans les avis.",
+    Screen: ReviewsScreen,
   },
   {
     id: "google",
@@ -79,16 +81,17 @@ const STEPS: Step[] = [
     plan: "Pro",
     who: "Côté console",
     title: "Plus haut sur Google.",
-    line: "Le référencement est pris en charge, la place suivie chaque mois.",
+    line: "Fiche et référencement pris en charge, la place suivie chaque mois.",
     Screen: GoogleScreen,
   },
   {
-    id: "annonces",
-    plan: "Gratuit",
+    id: "resultats",
+    pilot: true,
+    plan: "Croissance",
     who: "Côté console",
-    title: "Un mardi creux ? Un message suffit.",
-    line: "Le bon message à la bonne équipe, au bon moment.",
-    Screen: MessageScreen,
+    title: "Ce que rapporte chaque campagne, enfin chiffré.",
+    line: "Clients revenus, comparés à ceux qui n'ont rien reçu.",
+    Screen: ResultsScreen,
   },
 ];
 
