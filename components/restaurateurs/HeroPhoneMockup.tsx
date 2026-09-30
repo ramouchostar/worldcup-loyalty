@@ -1,22 +1,23 @@
 "use client";
 
-import { Gift, MapPin, Megaphone, Repeat, ShoppingBag } from "lucide-react";
+import { MapPin, Megaphone, Repeat, Sparkles, Star } from "lucide-react";
 import { FillBar } from "./motion";
 import { PhoneFrame } from "./PhoneFrame";
 
 // Héros (2026-09-26, inspiré d'owner.com) : la console restaurateur en vue
 // simple (ADR 0064 — accueil, objectif du jour, à faire, onglets Accueil ·
 // Tickets · Annonces · Plus), dans un iPhone, avec une ligne par pilier de
-// l'offre (ADR 0070) : commandes en ligne, Google, fidélité, publicité.
+// l'offre (ADR 0074) : clients revenus, avis, Google, publicité — et le
+// copilote de la semaine en « À faire ».
 // Données d'illustration figées, établissement IMAGINAIRE (Smashly, burgers
 // à Ixelles) — jamais un vrai client, comme les autres mockups de la page. Jamais « grâce à nous » (ADR 0064) : on montre
 // une origine et un nombre, pas un chiffre d'affaires additionnel.
 
 const MONTH_ROWS = [
-  { icon: ShoppingBag, label: "Commandes en ligne", value: "214", note: "0 € de commission" },
+  { icon: Repeat, label: "Clients revenus", value: "61", note: "après une campagne" },
+  { icon: Star, label: "Avis Google", value: "+23", note: "100 % répondus", good: true },
   { icon: MapPin, label: "Place sur Google", value: "3ᵉ", note: "+6 places", good: true },
-  { icon: Repeat, label: "Clients revenus", value: "38", note: "cette semaine" },
-  { icon: Megaphone, label: "Pub Instagram", value: "1 932 €", note: "de commandes" },
+  { icon: Megaphone, label: "Pub Instagram", value: "84", note: "clients venus au comptoir" },
 ];
 
 const TABS = ["Accueil", "Tickets", "Annonces", "Plus"];
@@ -78,10 +79,10 @@ export function HeroPhoneMockup() {
           {/* À faire */}
           <div className="bg-white border border-paper-border rounded-xl px-3.5 py-3 flex items-center gap-2.5">
             <span className="w-7 h-7 shrink-0 rounded-lg bg-paper-subtle flex items-center justify-center">
-              <Gift className="w-3.5 h-3.5 text-ink" strokeWidth={2.2} />
+              <Sparkles className="w-3.5 h-3.5 text-ink" strokeWidth={2.2} />
             </span>
             <p className="text-[12px] text-ink m-0 flex-1 leading-tight">
-              <span className="font-semibold">2 cadeaux</span> à préparer ce midi
+              <span className="font-semibold">3 actions</span> prêtes cette semaine
             </p>
             <span className="text-[11px] font-bold text-white bg-ink rounded-md px-2.5 py-1.5">Voir</span>
           </div>

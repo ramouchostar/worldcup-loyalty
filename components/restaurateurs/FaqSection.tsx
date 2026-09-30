@@ -12,8 +12,20 @@ const QUESTIONS = [
     a: "Non, la lecture est automatique. Seuls les cas douteux remontent.",
   },
   {
+    q: "Faut-il changer de caisse ?",
+    a: "Non. Rien ne s'installe sur la caisse et rien n'y est écrit : le client photographie le ticket qu'elle a imprimé.",
+  },
+  {
+    q: "Qui écrit les messages ?",
+    a: "Ils arrivent déjà écrits, adaptés à l'établissement. Rien ne part sans un clic de sa part.",
+  },
+  {
     q: "Faut-il quitter Uber Eats ?",
-    a: "Non. Les plateformes restent utiles pour la livraison. Le site de commande sert aux habitués, sans commission de plateforme.",
+    a: "Non. Les plateformes restent utiles pour la livraison. Le programme fait revenir les clients au comptoir.",
+  },
+  {
+    q: "Les avis sont-ils récompensés ?",
+    a: "Jamais. Google l'interdit et peut sanctionner la fiche. La demande d'avis part après la visite, sans cadeau.",
   },
   {
     q: "Le référencement, c'est quoi ?",
@@ -25,7 +37,7 @@ const QUESTIONS = [
   },
   {
     q: "Et en cas d'arrêt ?",
-    a: "Gratuit et Croissance : à tout moment. Pro : 3 mois minimum. La liste de clients et le nom de domaine restent la propriété de l'établissement.",
+    a: "Gratuit et Croissance : à tout moment. Pro : 3 mois minimum. La liste de clients reste la propriété de l'établissement.",
   },
   {
     q: "Les clients peuvent-ils dépenser leurs points ailleurs ?",

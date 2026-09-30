@@ -12,11 +12,11 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 // Redesign m55 (2026-08-08), refondu le 2026-09-26 sur le modèle
 // d'owner.com : peu de texte, un iPhone qui montre chaque fonctionnalité
 // (visite guidée au défilement, components/restaurateurs/FeatureTour.tsx).
-// - Refonte de copie 2026-08-29, offre clarifiée 2026-09-26 (ADR 0070) :
-//   Gratuit (≤ 500 tickets/mois), Croissance 299 €/mois + 5 % des commandes
-//   passées sur le site de commande, Pro 500 €/mois sans commission (3 mois
-//   minimum) — voir PlansSection.tsx. Site de commande et référencement ne
-//   sont pas encore livrés : présentés en « places pilotes ».
+// - Refonte de copie 2026-08-29, offre repositionnée 2026-09-29 (ADR 0074 :
+//   outil marketing, pas d'exploitation) : Gratuit (≤ 500 tickets/mois),
+//   Croissance 99 €/mois, Pro 500 €/mois (copilote, Google, site de commande
+//   d'un partenaire), 3 mois minimum — voir PlansSection.tsx. Les fonctions
+//   payantes ne sont pas encore livrées : présentées en « places pilotes ».
 // - ADR 0007 ne s'applique pas ici (page B2B, pas client) — euros et
 //   mécanique de marge peuvent être mentionnés explicitement. Les chiffres
 //   affichés dans les mockups produit sont des données d'illustration
@@ -27,9 +27,9 @@ import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLa
 
 export const revalidate = 300;
 
-const TITLE = "Fidélité, commande en ligne et Google pour les restaurants";
+const TITLE = "Le copilote marketing des restaurants";
 const DESCRIPTION =
-  "Faire revenir les clients avec une fidélité gratuite à vie, vendre en direct sur son propre site sans laisser 30 % à une plateforme, et être trouvé sur Google. Chaque mois, ce que cela a rapporté.";
+  "Inscrire les clients avec une fidélité gratuite à vie, les faire revenir avec des campagnes prêtes en un clic, soigner ses avis et sa place sur Google. Chaque mois, ce que cela a rapporté.";
 
 // L'aperçu de partage (WhatsApp, LinkedIn) reprenait sinon celui du layout
 // racine, écrit pour les membres (« Rejoins ton équipe… ») : la landing
