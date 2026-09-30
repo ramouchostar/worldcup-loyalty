@@ -1,5 +1,7 @@
 # ADR 0070 — Plans Croissance et Pro : commande en ligne à la marque du resto et référencement Google
 
+> **Amendement proposé par l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md) (2026-09-29)** : le site de commande et la commission sortent de la feuille de route, contenu et prix des plans à reconstruire — en attente de validation par l'associé.
+
 **Statut** : Accepté (2026-09-26). Amende l'[ADR 0029](0029-monetization-freemium-data-driven.md)
 (montants fixés, contenu des plans Croissance et Pro redéfini, plafond Gratuit à 500 tickets)
 et précise l'[ADR 0015](0015-multi-restaurant-platform-pivot.md) (pas d'app client
