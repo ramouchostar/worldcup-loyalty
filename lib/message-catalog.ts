@@ -75,6 +75,9 @@ export function messageLabel(key: string): string {
 
 export const SEQUENCES = MESSAGES.filter((m) => m.kind === "sequence");
 
+/** Les séquences qu'un membre règle lui-même dans « Mes e-mails » (/compte). */
+export const MEMBER_SEQUENCE_KEYS = SEQUENCES.filter((m) => m.audience === "member").map((m) => m.key);
+
 export function isSequenceKey(key: string): boolean {
   return BY_KEY.get(key)?.kind === "sequence";
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { sendReferralSuccessEmail } from "@/lib/email";
 import { attributeStaffSignup } from "@/lib/staff-codes";
+import { reactivateIfAnonymized } from "@/lib/gdpr";
 
 // ADR 0015 §3 — adhésion à un établissement = libre, pas d'invitation requise.
 // Adhésion + attribution du parrainage, SANS redirection finale — réutilisée
@@ -16,6 +17,9 @@ export async function ensureMembership(restaurantId: string) {
   if (!user) redirect("/login");
 
   const admin = createAdminClient();
+  // Une session ouverte avant la suppression du compte peut rejoindre à
+  // nouveau : jamais sous le nom « Compte supprimé » ni sans e-mail.
+  await reactivateIfAnonymized(user.id, user.email ?? null);
   // ADR 0053 — l'attribution au personnel ne vaut que pour une adhésion
   // NOUVELLE : un membre déjà inscrit qui rescanne le QR d'un serveur ne doit
   // pas devenir sa recrue.

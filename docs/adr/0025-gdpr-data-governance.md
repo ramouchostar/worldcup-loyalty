@@ -111,3 +111,11 @@ La « vente de données » se fait **sans transférer aucune donnée personnelle
 
 - **Co-responsabilité éditeur / restaurateurs** : rejetée — complexité contractuelle et ambiguïté ; l'éditeur reste **seul responsable**.
 - **Cession de données personnelles brutes aux restaurateurs** : rejetée — risque juridique majeur et **inutile** : le ciblage-service et les insights agrégés répondent au besoin commercial sans transférer de donnée personnelle.
+
+## Amendement 2026-09-30 — suppression de compte : raison, retour, fantômes
+
+Constat : un « Compte supprimé » listé dans « Mes clients » à Kraainem, avec l'app installée.
+- **« Gérer mes e-mails » mène à « Mes e-mails »** (`/compte#emails`, réglage par séquence, ADR 0063 §2), plus à une page dont la seule action forte était la suppression. La suppression vit sur `/compte/supprimer` : ce que le membre perd (points, cadeau), une raison **facultative** (`data_requests.reason`), un seul bouton — jamais d'obstacle (art. 17).
+- **L'effacement retire les consentements** (lignes `granted = false`, source `deletion`) et **ferme toutes les sessions** (`signOut` global).
+- **Retour après suppression** : le compte de connexion survit (anonymisation). À la reconnexion ou à l'adhésion, `reactivateIfAnonymized` rend un profil neuf (e-mail repris, prénom vidé) et la case de consentement se recoche sur `/register`.
+- **Trace** : une étape d'effacement en échec passe la demande en `failed` (`failed_steps`), plus jamais avalée.

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { sanitizeZones } from "@/lib/zones";
 import { recordConsents } from "@/lib/consent";
+import { recordOptOut, removeOptOut } from "@/lib/message-log";
+import { MEMBER_SEQUENCE_KEYS } from "@/lib/message-catalog";
 
 function ageFromISO(d: string): number | null {
   const dt = new Date(d);
@@ -71,4 +73,20 @@ export async function updateMemberProfile(
 
   revalidatePath("/compte");
   return { success: "Profil enregistré." };
+}
+
+// ADR 0063 §2 — « Mes e-mails » : le membre coupe ou rallume chaque rappel du
+// programme lui-même, sans quitter le programme. Seules les séquences membres
+// se règlent ici ; les informations de service (cadeau prêt, qui expire)
+// partent toujours (ADR 0039).
+export async function setEmailSequence(messageKey: string, enabled: boolean): Promise<{ ok: boolean }> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+  if (!MEMBER_SEQUENCE_KEYS.includes(messageKey)) return { ok: false };
+  const ok = enabled
+    ? await removeOptOut(user.id, messageKey)
+    : await recordOptOut(user.id, messageKey, "compte");
+  revalidatePath("/compte");
+  return { ok };
 }

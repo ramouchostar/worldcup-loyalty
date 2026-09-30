@@ -221,3 +221,20 @@ export async function recordOptOut(userId: string, messageKey: string, source: O
     return false;
   }
 }
+
+// Réactiver une séquence depuis « Mes e-mails » (/compte) : le membre revient
+// sur un arrêt. Renvoie false si la table manque ou si l'écriture échoue.
+export async function removeOptOut(userId: string, messageKey: string): Promise<boolean> {
+  try {
+    const { error } = await createAdminClient()
+      .from("message_optouts")
+      .delete()
+      .eq("user_id", userId)
+      .eq("message_key", messageKey);
+    if (error) console.error("removeOptOut:", error.message);
+    return !error;
+  } catch (err) {
+    console.error("removeOptOut threw:", err);
+    return false;
+  }
+}
