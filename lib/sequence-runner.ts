@@ -99,7 +99,7 @@ async function render(
   stopUrl: string
 ): Promise<Rendered> {
   const admin = createAdminClient();
-  const base = { theme: ctx.theme, restaurantId: ctx.restaurantId, firstName: member.firstName, link: appLink, manageUrl: appLink("/compte") };
+  const base = { theme: ctx.theme, restaurantId: ctx.restaurantId, firstName: member.firstName, link: appLink, manageUrl: appLink("/compte#emails") };
 
   switch (decision.key) {
     case "first_ticket": {

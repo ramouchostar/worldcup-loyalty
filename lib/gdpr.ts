@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase";
 import { purgeUserReceiptImages } from "./receipt-scans";
+import { CONSENT_PURPOSES, recordConsents } from "./consent";
 
 // ADR 0022 — Droits des personnes : portabilité (export) et effacement.
 // Effacement = ANONYMISATION : on strippe les données personnelles du profil
@@ -107,11 +108,21 @@ export async function exportUserData(userId: string) {
   };
 }
 
-export async function deleteUserData(userId: string): Promise<void> {
+// Renvoie la liste des étapes en échec (vide = tout est passé). Avant, les
+// erreurs étaient avalées : une adhésion non supprimée laissait un « Compte
+// supprimé » dans « Mes clients » sans que personne le sache.
+export async function deleteUserData(userId: string): Promise<string[]> {
   const admin = createAdminClient();
+  const failures: string[] = [];
+  const check = (step: string, error: { message?: string } | null) => {
+    if (error) {
+      failures.push(step);
+      console.error(`[gdpr] effacement ${step}:`, error.message);
+    }
+  };
 
   // 1. Anonymisation du profil (row conservée → orders/compta préservés)
-  await admin
+  const { error: profileError } = await admin
     .from("profiles")
     .update({
       display_name: "Compte supprimé",
@@ -125,26 +136,43 @@ export async function deleteUserData(userId: string): Promise<void> {
       anonymized_at: new Date().toISOString(),
     })
     .eq("id", userId);
+  check("profiles", profileError);
 
   // 2. Suppression des données purement personnelles (hors conservation légale).
-  //    Les deletes ne jettent pas : une table absente renvoie une erreur ignorée.
-  await Promise.all([
-    admin.from("push_subscriptions").delete().eq("user_id", userId),
-    admin.from("member_app_installs").delete().eq("user_id", userId), // mesure d'installation (ADR 0038)
-    admin.from("memberships").delete().eq("user_id", userId),
-    admin.from("pending_rewards").delete().eq("user_id", userId),
-    admin.from("notification_log").delete().eq("user_id", userId),
-    admin.from("message_sends").delete().eq("user_id", userId), // journal des messages (ADR 0063)
-    admin.from("message_optouts").delete().eq("user_id", userId),
-    admin.from("referral_links").delete().eq("user_id", userId),
-  ]);
+  const tables: [string, string][] = [
+    ["push_subscriptions", "user_id"],
+    ["member_app_installs", "user_id"], // mesure d'installation (ADR 0038)
+    ["memberships", "user_id"],
+    ["pending_rewards", "user_id"],
+    ["notification_log", "user_id"],
+    ["message_sends", "user_id"], // journal des messages (ADR 0063)
+    ["message_optouts", "user_id"],
+    ["referral_links", "user_id"],
+  ];
+  const results = await Promise.all(tables.map(([t, c]) => admin.from(t).delete().eq(c, userId)));
+  results.forEach((r, i) => check(tables[i][0], r.error));
 
-  // 2 bis. ADR 0036 — les photos de tickets partent tout de suite, sans
+  // 2 bis. Consentements RETIRÉS (journal append-only, la preuve reste) : sans
+  //    ça, le consentement « programme » survivait à la suppression et une
+  //    reconnexion rentrait tout droit, sans repasser par la case.
+  try {
+    await recordConsents(
+      userId,
+      Object.fromEntries(CONSENT_PURPOSES.map((p) => [p, false])),
+      "deletion",
+      admin
+    );
+  } catch (err) {
+    check("consents", { message: String(err) });
+  }
+
+  // 2 ter. ADR 0036 — les photos de tickets partent tout de suite, sans
   //    attendre les 30 jours de rétention : une image de ticket est une
   //    donnée personnelle, pas une écriture comptable. Les lignes `orders`
   //    (montant, date, numéro) restent, désormais sans photo.
   await purgeUserReceiptImages(userId);
-  await admin.from("receipt_scans").delete().eq("user_id", userId);
+  const { error: scansError } = await admin.from("receipt_scans").delete().eq("user_id", userId);
+  check("receipt_scans", scansError);
 
   // 3. ADR 0023 — retours qualité : on ANONYMISE (on garde la statistique non
   //    nominative pour le baromètre), on efface le commentaire et les messages
@@ -158,4 +186,27 @@ export async function deleteUserData(userId: string): Promise<void> {
   if (fbIds.length > 0) {
     await admin.from("feedback_messages").delete().in("feedback_id", fbIds).eq("sender", "member");
   }
+
+  return failures;
+}
+
+// Retour après suppression : le compte de connexion survit à l'effacement
+// (anonymisation, pas suppression — la compta en dépend). Quelqu'un qui se
+// reconnecte retrouvait un profil « Compte supprimé » sans e-mail : visible
+// ainsi en console, exclu de tous les e-mails. On le réactive comme un compte
+// neuf (prénom redemandé dans /compte, ADR 0047). Renvoie true s'il revenait.
+export async function reactivateIfAnonymized(userId: string, email: string | null): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin.from("profiles").select("anonymized_at").eq("id", userId).maybeSingle();
+  if (!(data as { anonymized_at: string | null } | null)?.anonymized_at) return false;
+  const { error } = await admin
+    .from("profiles")
+    .update({ anonymized_at: null, display_name: null, email })
+    .eq("id", userId);
+  if (error) {
+    console.error("[gdpr] réactivation échouée:", error.message);
+    return false;
+  }
+  console.info("[gdpr] compte réactivé après suppression:", userId);
+  return true;
 }

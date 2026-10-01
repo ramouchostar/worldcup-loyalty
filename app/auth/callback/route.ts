@@ -7,6 +7,7 @@ import { getCurrentConsents, recordConsents } from "@/lib/consent";
 import { sendWelcomeEmail } from "@/lib/email";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
+import { reactivateIfAnonymized } from "@/lib/gdpr";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -84,11 +85,16 @@ export async function GET(request: NextRequest) {
       // /compte) mais le CONSENTEMENT (ADR 0022). Un inscrit e-mail l'a déjà
       // coché à l'inscription (métadonnées) : on l'acte ici, une fois. Une
       // arrivée Google OAuth n'a pas pu cocher → /register (case seule).
+      //
+      // Retour après une suppression de compte : le profil anonymisé est
+      // réactivé, et la case se recoche explicitement (/register) — la case
+      // cochée à la toute première inscription ne vaut plus.
+      const returning = await reactivateIfAnonymized(user.id, user.email ?? null);
       const adminForConsent = createAdminClient();
       const consents = await getCurrentConsents(user.id, adminForConsent);
       if (!consents.programme) {
         const meta = user.user_metadata as { accept_policy?: boolean } | null;
-        if (meta?.accept_policy === true) {
+        if (meta?.accept_policy === true && !returning) {
           try {
             await recordConsents(user.id, { programme: true }, "signup", adminForConsent);
             const { data: prof } = await adminForConsent

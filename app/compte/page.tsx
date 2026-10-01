@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase";
 import { PrivacySettings } from "@/components/member/PrivacySettings";
 import { ProfileSettings } from "@/components/member/ProfileSettings";
 import { AccountActions } from "@/components/member/AccountActions";
+import { EmailSettings } from "@/components/member/EmailSettings";
+import { listOptOuts } from "@/lib/message-log";
 
 export const metadata = { title: "Mon compte" };
 
@@ -14,7 +16,7 @@ export default async function ComptePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const consents = await getCurrentConsents(user.id);
+  const [consents, optOuts] = await Promise.all([getCurrentConsents(user.id), listOptOuts([user.id])]);
   // ADR 0047 — le profil (prénom, zones, naissance) vit ici, plus dans le
   // tunnel d'inscription. Lecture service-role (profil verrouillé RLS, m34).
   const { data: profileRaw } = await createAdminClient()
@@ -54,7 +56,7 @@ export default async function ComptePage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mon compte</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Confidentialité, consentements et données personnelles.
+            E-mails, confidentialité et données personnelles.
           </p>
         </div>
 
@@ -65,6 +67,11 @@ export default async function ComptePage() {
             birth_date: profile?.birth_date ?? "",
             parental_email: profile?.parental_email ?? "",
           }}
+        />
+
+        <EmailSettings
+          optedOut={[...(optOuts.byUser.get(user.id) ?? [])]}
+          available={optOuts.available}
         />
 
         <PrivacySettings initial={consents} />
