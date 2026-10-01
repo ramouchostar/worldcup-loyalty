@@ -2,6 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getRestaurantId } from "@/lib/restaurant";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
+import {
+  PARTNER_ATTRIBUTION_COOKIE,
+  PARTNER_ATTRIBUTION_MAX_AGE,
+  encodeAttribution,
+  readAttribution,
+} from "@/lib/partner-attribution";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -101,6 +107,43 @@ export async function middleware(request: NextRequest) {
   // console). Même hiérarchie que lib/post-login.ts, dupliquée ici car le
   // middleware n'embarque pas la clé service-role — garder les deux en phase.
   const isAuthRoute = path === "/login" || path === "/signup";
+
+  // Inscription restaurateur : d'où vient-il (rapport d'audit, landing…) ?
+  // Le premier lien porteur d'UTM gagne ; le cookie survit à la confirmation
+  // par e-mail et à Google, lu à la création de l'établissement.
+  const isPartnerEntry =
+    path.startsWith("/become-a-partner") ||
+    (isAuthRoute && request.nextUrl.searchParams.get("as") === "resto");
+  const attribution = isPartnerEntry && !request.cookies.get(PARTNER_ATTRIBUTION_COOKIE)
+    ? readAttribution(request.nextUrl.searchParams, path, new Date())
+    : null;
+  const withAttribution = (response: NextResponse) => {
+    if (attribution) {
+      response.cookies.set(PARTNER_ATTRIBUTION_COOKIE, encodeAttribution(attribution), {
+        httpOnly: true,
+        maxAge: PARTNER_ATTRIBUTION_MAX_AGE,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    }
+    return response;
+  };
+  withAttribution(supabaseResponse);
+
+  // Lien « Inscrire mon restaurant » (/signup?as=resto) ouvert directement :
+  // même intention que /become-a-partner, ramené au formulaire après le compte.
+  if (path === "/signup" && !user && request.nextUrl.searchParams.get("as") === "resto") {
+    supabaseResponse.cookies.set("pending_become_partner", "1", {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+    return supabaseResponse;
+  }
+
   if (isAuthRoute && user) {
     const [{ data: profile }, { data: owned }, { data: seats }, { data: membership }] = await Promise.all([
       supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
@@ -129,7 +172,7 @@ export async function middleware(request: NextRequest) {
     } else {
       dest = membership ? `/r/${membership.restaurant_id}/dashboard` : "/join";
     }
-    return NextResponse.redirect(new URL(dest, request.url));
+    return withAttribution(NextResponse.redirect(new URL(dest, request.url)));
   }
 
   const restaurantMatch = path.match(/^\/r\/([^/]+)\//);
@@ -156,10 +199,21 @@ export async function middleware(request: NextRequest) {
     // restaurant", et surtout passé au formulaire mot de passe → resolvePostLoginDestination
     // renvoie déjà /become-a-partner dans ce cas. Sans lui, un prospect
     // anonyme tombait sur l'habillage générique membre (constaté en usage).
-    const loginUrl = isBecomePartnerRoute
-      ? "/login?reason=login-required&as=resto"
-      : "/login?reason=login-required";
-    const response = NextResponse.redirect(new URL(loginUrl, request.url));
+    //
+    // Un prospect sur /become-a-partner n'a pas encore de compte : il arrive
+    // sur l'INSCRIPTION restaurateur, pas sur la connexion (constaté
+    // 2026-10-01, rapport d'audit Krusty Smash : « Démarrer » menait à /login,
+    // dont le lien « Inscrire mon restaurant » rebouclait sur /login). Les UTM
+    // suivent, pour que la page vue par GA porte la source.
+    let loginUrl = "/login?reason=login-required";
+    if (isBecomePartnerRoute) {
+      const q = new URLSearchParams({ as: "resto" });
+      request.nextUrl.searchParams.forEach((v, k) => {
+        if (k.startsWith("utm_") || k === "source") q.set(k, v);
+      });
+      loginUrl = `/signup?${q.toString()}`;
+    }
+    const response = withAttribution(NextResponse.redirect(new URL(loginUrl, request.url)));
     // Un prospect anonyme sur /become-a-partner n'a pas encore de compte : le
     // détour par /login (ou /register pour un tout nouveau compte) faisait
     // perdre son intention, et il retombait sur le parcours membre (/join)

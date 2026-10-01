@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChartBarIncreasing, Heart, Megaphone, MessageCircle, PiggyBank, Repeat, Star, Target, Users } from "lucide-react";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
+import { auditSignupHref } from "@/lib/partner-attribution";
 import { boosteatsAdvantages, type AdvantageKey } from "@/lib/audit/boosteats-advantages";
 import type { AuditRow, SectionRow } from "@/lib/audit/store";
 import type { BusinessInfo, StoredReview } from "@/lib/audit/dataforseo";
@@ -324,7 +325,7 @@ export function AuditReport(props: { audit: AuditRow; sections: SectionRow[] } &
         {actions && audit.status !== "en_cours" && <AnswersForm action={actions.saveAnswers} initial={answers} />}
 
         {/* 9. Ce que Boosteats fait pour lui, et UN appel à l'action */}
-        <BoosteatsPlan name={info?.title ?? audit.name} top={top} answers={answers} signals={signals} objective={reco?.objective ?? null} now={global.now} potential={global.potential} />
+        <BoosteatsPlan auditId={audit.id} name={info?.title ?? audit.name} top={top} answers={answers} signals={signals} objective={reco?.objective ?? null} now={global.now} potential={global.potential} />
 
         {/* Console seulement : l'état de chaque volet, avec son motif (jamais d'échec silencieux). */}
         {!isPublic && <details className={s.tech}>
@@ -916,7 +917,7 @@ const ADVANTAGE_ICON: Record<AdvantageKey, React.ReactNode> = {
   suivi: <ChartBarIncreasing aria-hidden="true" />,
 };
 
-function BoosteatsPlan({ name, top, answers, signals, objective, now, potential }: { name: string; top: Scenario[]; answers: OwnerAnswers | null; signals: AuditSignals | null; objective: Scenario | null; now: number | null; potential: number | null }) {
+function BoosteatsPlan({ auditId, name, top, answers, signals, objective, now, potential }: { auditId: string; name: string; top: Scenario[]; answers: OwnerAnswers | null; signals: AuditSignals | null; objective: Scenario | null; now: number | null; potential: number | null }) {
   const eur = (n: number) => `${n.toLocaleString("fr-BE", { maximumFractionDigits: 0 })} €`;
   const goal = answers?.monthlyRevenue && answers.monthlyRevenueTarget && answers.monthlyRevenueTarget > answers.monthlyRevenue ? answers : null;
   const advantages = boosteatsAdvantages(signals, answers);
@@ -979,7 +980,7 @@ function BoosteatsPlan({ name, top, answers, signals, objective, now, potential 
       </div>
 
       <div className={s.ctaBlock}>
-        <TrackedLink ctaId="devenir_partenaire" ctaLocation="rapport_audit" audience="restaurateur" href="/become-a-partner?source=audit" className={s.ctaBig}>
+        <TrackedLink ctaId="devenir_partenaire" ctaLocation="rapport_audit" audience="restaurateur" href={auditSignupHref(auditId)} className={s.ctaBig}>
           Démarrer gratuitement dans mon restaurant
         </TrackedLink>
         <span className={s.sum} style={{ fontWeight: 500 }}>Gratuit jusqu&apos;à 500 tickets par mois, sans engagement.</span>

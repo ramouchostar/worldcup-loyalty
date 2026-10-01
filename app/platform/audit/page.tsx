@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase";
+import { createAdminClient, createServerSupabaseClient } from "@/lib/supabase";
 import { listAudits, type AuditRow } from "@/lib/audit/store";
 import { isConfigured } from "@/lib/audit/dataforseo";
 import { listLeads, type LeadRow } from "@/lib/audit/leads";
@@ -13,6 +13,27 @@ export const dynamic = "force-dynamic";
 // redirection : elle hérite de la durée maximale de cette route.
 export const maxDuration = 300;
 
+type Signup = { id: string; name: string; auditId: string | null };
+
+// Établissements inscrits depuis le bouton d'un rapport (utm_source=audit,
+// utm_content = id du rapport ; les premiers liens `?source=audit` n'ont pas
+// d'id). Sans la colonne (migration 20261001-1100), on le dit.
+async function listAuditSignups(): Promise<{ missing: boolean; rows: Signup[] }> {
+  const { data, error } = await createAdminClient()
+    .from("restaurants")
+    .select("id, name, signup_attribution")
+    .eq("signup_attribution->>utm_source", "audit");
+  if (error) return { missing: true, rows: [] };
+  return {
+    missing: false,
+    rows: (data ?? []).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      auditId: ((r.signup_attribution as { utm_content?: string } | null)?.utm_content) ?? null,
+    })),
+  };
+}
+
 // ADR 0069 — l'onglet Audit : lancer un audit, retrouver tous les audits déjà faits.
 export default async function PlatformAuditPage({ searchParams }: { searchParams: Promise<{ erreur?: string; motif?: string }> }) {
   const supabase = await createServerSupabaseClient();
@@ -22,7 +43,9 @@ export default async function PlatformAuditPage({ searchParams }: { searchParams
   if (!profile?.is_super_admin) redirect("/join?reason=platform-required");
 
   const { erreur, motif } = await searchParams;
-  const [listing, leads] = await Promise.all([listAudits(), listLeads()]);
+  const [listing, leads, signups] = await Promise.all([listAudits(), listLeads(), listAuditSignups()]);
+  const signupByAudit = new Map(signups.rows.filter((x) => x.auditId).map((x) => [x.auditId!, x] as const));
+  const unattributed = signups.rows.filter((x) => !x.auditId || !listing.rows.some((a) => a.id === x.auditId));
   const auditStatus = new Map(listing.missing ? [] : listing.rows.map((a) => [a.id, a.status] as const));
 
   return (
@@ -79,8 +102,14 @@ export default async function PlatformAuditPage({ searchParams }: { searchParams
       ) : listing.rows.length === 0 ? (
         <p className="text-sm text-gray-500">Aucun audit pour l&apos;instant.</p>
       ) : (
+        <>
+        <p className="text-xs text-gray-500">
+          {signups.missing
+            ? "Inscriptions depuis un rapport : appliquer docs/migrations/20261001-1100-restaurants-signup-attribution.sql pour les compter."
+            : `Inscriptions depuis un rapport : ${signups.rows.length}${unattributed.length ? ` (dont ${unattributed.length} sans rapport identifié : ${unattributed.map((x) => x.name).join(", ")})` : ""}.`}
+        </p>
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-x-auto">
-          <table className="w-full text-sm min-w-[560px]">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-gray-400">
                 <th className="px-4 py-2">Établissement</th>
@@ -89,15 +118,17 @@ export default async function PlatformAuditPage({ searchParams }: { searchParams
                 <th className="px-4 py-2 text-right">Fiche</th>
                 <th className="px-4 py-2 text-right">Avis</th>
                 <th className="px-4 py-2 text-right">Coût</th>
+                <th className="px-4 py-2">Inscrit</th>
               </tr>
             </thead>
             <tbody>
               {listing.rows.map((a) => (
-                <AuditLine key={a.id} audit={a} />
+                <AuditLine key={a.id} audit={a} signup={signupByAudit.get(a.id) ?? null} />
               ))}
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
@@ -111,7 +142,7 @@ const STATUS_LABEL: Record<AuditRow["status"], string> = {
   echec: "Échec",
 };
 
-function AuditLine({ audit }: { audit: AuditRow }) {
+function AuditLine({ audit, signup }: { audit: AuditRow; signup: Signup | null }) {
   const s = audit.scores ?? {};
   return (
     <tr className="border-t border-gray-100 dark:border-gray-800">
@@ -124,6 +155,7 @@ function AuditLine({ audit }: { audit: AuditRow }) {
       <td className="px-4 py-2.5 text-right tabular-nums">{s.fiche ?? "—"}</td>
       <td className="px-4 py-2.5 text-right tabular-nums">{s.avis ?? "—"}</td>
       <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{Number(audit.cost_usd).toFixed(3)} $</td>
+      <td className="px-4 py-2.5 text-gray-600">{signup ? signup.name : "—"}</td>
     </tr>
   );
 }

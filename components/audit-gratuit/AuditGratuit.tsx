@@ -316,7 +316,7 @@ function SearchStep({ onStarted, initial }: { onStarted: (id: string) => void; i
           {error && <p className="text-sm text-warn m-0" role="alert">{error}</p>}
           <p className="text-center text-[13px] text-ink-muted m-0">
             Pas besoin d&apos;audit ?{" "}
-            <Link href="/become-a-partner" className="text-ink font-semibold underline underline-offset-4 decoration-paper-border">
+            <Link href="/become-a-partner?utm_source=audit_gratuit&utm_medium=page" className="text-ink font-semibold underline underline-offset-4 decoration-paper-border">
               Commencer le plan gratuit
             </Link>
           </p>

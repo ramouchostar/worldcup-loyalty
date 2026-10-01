@@ -113,6 +113,15 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 | `partner_step_completed` | `step_name`, `step_number` | Étape validée (compte 1 → menu 2 → ticket 3 → social 4) |
 | `partner_onboarding_completed` | `steps_total` | Étape 4 franchie, y compris si les réseaux sont passés |
 
+**Source d'une inscription restaurateur (côté serveur, pas GA4).** Un visiteur sans
+compte sur `/become-a-partner` arrive sur l'inscription `/signup?as=resto` (jamais
+`/login`), UTM recopiés. Le middleware garde les UTM du premier lien restaurateur
+dans le cookie `partner_attribution` (30 jours, `lib/partner-attribution.ts`) ;
+`createPartnerRestaurant` les écrit dans `restaurants.signup_attribution`. Le bouton
+d'un rapport d'audit porte `utm_source=audit&utm_medium=rapport&utm_campaign=audit_restaurant&utm_content=<id du rapport>` :
+`/platform/audit` affiche quel rapport a mené à quelle inscription. Les premiers
+liens `?source=audit` comptent comme `utm_source=audit`, sans rapport identifié.
+
 ### Audit gratuit (ADR 0071)
 
 | Événement | Paramètres | Déclencheur |
