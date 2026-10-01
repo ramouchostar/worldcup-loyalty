@@ -1,6 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { PARTNER_ATTRIBUTION_COOKIE, decodeAttribution } from "@/lib/partner-attribution";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { generateRestaurantSlug, isRestaurantOwner } from "@/lib/restaurant";
 import { sendPartnerApplicationReceivedEmail } from "@/lib/email";
@@ -49,14 +51,26 @@ export async function createPartnerRestaurant(
   // owner_id n'est plus écrit ici directement (ADR 0041) : le trigger de
   // synchro le déduit du siège gérant posé juste après — un seul
   // écrivain pour cette colonne dérivée, partout dans l'app.
-  const { error } = await admin.from("restaurants").insert({
+  const row: Record<string, unknown> = {
     id: slug,
     name,
     sector,
     address,
     cuisine_types: cuisineTypes,
     status: "pending",
-  });
+  };
+  // D'où vient-il (rapport d'audit…) — cookie posé par le middleware. Colonne
+  // absente (migration 20261001-1100 pas encore appliquée) → création sans.
+  const cookieStore = await cookies();
+  const attribution = decodeAttribution(cookieStore.get(PARTNER_ATTRIBUTION_COOKIE)?.value);
+  let { error } = await admin
+    .from("restaurants")
+    .insert(attribution ? { ...row, signup_attribution: attribution } : row);
+  if (error && attribution && /signup_attribution/.test(error.message)) {
+    console.error("[become-a-partner] signup_attribution absente — source non enregistrée:", attribution);
+    ({ error } = await admin.from("restaurants").insert(row));
+  }
+  if (!error && attribution) cookieStore.set(PARTNER_ATTRIBUTION_COOKIE, "", { maxAge: 0, path: "/" });
 
   if (error) {
     return { error: "Erreur lors de la création. Réessaie." };

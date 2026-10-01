@@ -47,13 +47,20 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  // `?as=resto` — inscription restaurateur (rapport d'audit, « Inscrire mon
+  // restaurant ») : même compte, autre habillage ; le middleware a posé le
+  // cookie qui ramène au formulaire partenaire après la création du compte.
+  const [asResto, setAsResto] = useState(false);
+  const funnel = asResto ? "restaurateur" : "membre";
 
   useEffect(() => {
     try {
       const draft = sessionStorage.getItem(K_EMAIL_DRAFT);
       if (draft) setEmail(draft);
     } catch {}
-    setCadeau(lireCadeauAReclamer());
+    const resto = new URLSearchParams(window.location.search).get("as") === "resto";
+    setAsResto(resto);
+    if (!resto) setCadeau(lireCadeauAReclamer());
   }, []);
 
   function proceedLoggedIn() {
@@ -104,7 +111,7 @@ export default function SignupPage() {
         const { data: sess } = await supabase.auth.getSession();
         if (sess.session) {
           // Le premier envoi avait réussi : on continue comme un succès.
-          queueEvent("sign_up", { method: "email", funnel: "membre" });
+          queueEvent("sign_up", { method: "email", funnel });
           proceedLoggedIn();
           return;
         }
@@ -130,7 +137,7 @@ export default function SignupPage() {
 
       // Compte créé : l'événement part en file et ne sera émis qu'une fois la
       // session prouvée côté app (cf. lib/analytics-pending.ts).
-      queueEvent("sign_up", { method: "email", funnel: "membre" });
+      queueEvent("sign_up", { method: "email", funnel });
 
       if (data.session) {
         // Email confirmation disabled → déjà connecté
@@ -144,7 +151,7 @@ export default function SignupPage() {
       try {
         const { data: sess } = await createClient().auth.getSession();
         if (sess.session) {
-          queueEvent("sign_up", { method: "email", funnel: "membre" });
+          queueEvent("sign_up", { method: "email", funnel });
           proceedLoggedIn();
           return;
         }
@@ -155,7 +162,7 @@ export default function SignupPage() {
   }
 
   async function handleOAuth(provider: "google") {
-    queueEvent("sign_up", { method: provider, funnel: "membre" });
+    queueEvent("sign_up", { method: provider, funnel });
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider,
@@ -173,7 +180,9 @@ export default function SignupPage() {
           <span className="font-semibold text-gray-900">{email}</span>.
         </p>
         <p className="text-gray-500 text-xs mt-4">
-          {cadeau
+          {asResto
+            ? "Clique le lien pour activer ton compte — tu présenteras ensuite ton restaurant (2 minutes)."
+            : cadeau
             ? `Clique le lien pour activer ton compte — ton ${cadeau} t'attend ensuite au comptoir.`
             : "Clique le lien pour activer ton compte et rejoindre ton restaurant."}
         </p>
@@ -183,11 +192,20 @@ export default function SignupPage() {
 
   return (
     <>
+      {asResto && (
+        <div className="inline-flex items-center gap-2 bg-brand-dark rounded-full px-3 py-1 mb-3">
+          <span className="text-brand-gold text-xs font-bold uppercase tracking-widest">
+            Espace restaurateur
+          </span>
+        </div>
+      )}
       <h2 className="text-xl font-bold text-gray-900 mb-1">
-        {cadeau ? "Réclame ton cadeau" : "Créer un compte"}
+        {asResto ? "Inscrire mon restaurant" : cadeau ? "Réclame ton cadeau" : "Créer un compte"}
       </h2>
       <p className="text-gray-500 text-sm mb-5">
-        {cadeau ? (
+        {asResto ? (
+          "Crée ton compte, puis présente ton établissement. Gratuit jusqu'à 500 tickets par mois, sans engagement."
+        ) : cadeau ? (
           <>
             Ton <span className="font-semibold text-gray-900">{cadeau}</span> t&apos;attend au
             comptoir. Un compte de 10 secondes, et il est à toi.
@@ -241,8 +259,15 @@ export default function SignupPage() {
             J&apos;accepte la{" "}
             <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand-red underline">politique de confidentialité</a>{" "}
             et les{" "}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-red underline">conditions d&apos;utilisation</a>,
-            et je confirme avoir au moins 13 ans (ou l&apos;accord d&apos;un parent).
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-red underline">conditions d&apos;utilisation</a>
+            {asResto ? (
+              <>
+                {" "}ainsi que les{" "}
+                <a href="/conditions-restaurateurs" target="_blank" rel="noopener noreferrer" className="text-brand-red underline">conditions restaurateurs</a>.
+              </>
+            ) : (
+              <>, et je confirme avoir au moins 13 ans (ou l&apos;accord d&apos;un parent).</>
+            )}
           </span>
         </label>
 
@@ -282,8 +307,8 @@ export default function SignupPage() {
       </div>
 
       <p className="text-center text-sm text-gray-500 mt-6">
-        Déjà inscrit ?{" "}
-        <Link href="/login" className="text-brand-red font-semibold hover:underline">
+        {asResto ? "Déjà partenaire ?" : "Déjà inscrit ?"}{" "}
+        <Link href={asResto ? "/login?as=resto" : "/login"} className="text-brand-red font-semibold hover:underline">
           Se connecter
         </Link>
       </p>

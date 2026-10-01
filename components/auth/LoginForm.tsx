@@ -156,7 +156,8 @@ export default function LoginForm() {
         {asResto ? (
           <>
             Pas encore partenaire ?{" "}
-            <Link href="/become-a-partner" className="text-brand-red font-semibold hover:underline">
+            {/* Jamais /become-a-partner : sans compte, il renvoie ici (boucle constatée 2026-10-01). */}
+            <Link href="/signup?as=resto" className="text-brand-red font-semibold hover:underline">
               Inscrire mon restaurant
             </Link>
           </>
