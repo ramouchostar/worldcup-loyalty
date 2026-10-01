@@ -4,12 +4,14 @@ import { useRef, useState } from "react";
 import { analyzeReceiptSamples, confirmReceiptConfig } from "../../actions";
 import { queueEvent } from "@/lib/analytics-pending";
 import type { ReceiptKeyProposal } from "@/lib/receipt-key-discovery";
+import { CopyToInputs, SameForAll, type Sibling } from "../../SameForAll";
 
 // Étape 3/4 onboarding (ADR 0019). Deux phases :
 // 1. upload 2-3 photos → analyse → proposition de clé unique ;
 // 2. le restaurateur confirme (ou corrige les champs, ou déclare qu'il n'a
 //    pas de numéro fiable). L'app propose, le restaurateur décide.
-export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
+export function ReceiptSetupForm({ restaurantId, siblings = [] }: { restaurantId: string; siblings?: Sibling[] }) {
+  const [same, setSame] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
@@ -49,7 +51,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
     setError(null);
     queueEvent("partner_step_completed", { step_name: "ticket", step_number: 3 });
     const result = await confirmReceiptConfig(restaurantId, null, formData);
-    // Si pas d'erreur, l'action redirige vers l'étape 4 (réseaux sociaux).
+    // Si pas d'erreur, l'action redirige vers la page d'avancement (ADR 0075).
     if (result?.error) {
       setError(result.error);
       setConfirming(false);
@@ -58,6 +60,11 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
 
   return (
     <div className="space-y-5">
+      {siblings.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-xl p-6">
+          <SameForAll siblings={siblings} same={same} onChange={setSame} what="caisse" />
+        </div>
+      )}
       {/* Phase 1 — upload + analyse */}
       <form onSubmit={handleAnalyze} className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
         <label className="block text-sm font-medium text-gray-700">
@@ -109,6 +116,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
       {/* Phase 2 — proposition + confirmation */}
       {proposal && proposal.has_reliable_key && (
         <form action={handleConfirm} className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+          <CopyToInputs siblings={siblings} same={same} />
           <div>
             <h2 className="font-bold text-gray-900">Numéro repéré sur tes tickets ✅</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -229,6 +237,7 @@ export function ReceiptSetupForm({ restaurantId }: { restaurantId: string }) {
       {/* Sortie explicite — toujours disponible */}
       <form action={handleConfirm} className="text-center">
         <input type="hidden" name="skip" value="true" />
+        <CopyToInputs siblings={siblings} same={same} />
         <button
           type="submit"
           disabled={confirming}

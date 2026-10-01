@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { loadProgress } from "@/lib/partner-progress-server";
+import { isIncomplete, missingSteps } from "@/lib/partner-progress";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { setPlan, type Plan } from "@/lib/entitlements";
 import { settlePlanRequests, markPlanRequestHandled } from "@/lib/plan-requests";
@@ -35,6 +37,17 @@ async function stampActivatedAt(admin: ReturnType<typeof createAdminClient>, res
 export async function approveRestaurant(restaurantId: string) {
   const user = await requireSuperAdmin();
   if (!user) return;
+
+  // ADR 0075 §4 — pas de validation sans carte ni ticket : sans ticket
+  // configuré, l'établissement lirait ses tickets au format Belchicken et les
+  // refuserait tous. Le bouton est déjà grisé avec le motif sur /platform ;
+  // ce contrôle couvre un appel direct.
+  const [progress] = await loadProgress([restaurantId]);
+  if (progress && isIncomplete(progress)) {
+    console.error("[platform] validation refusée, inscription incomplète :", restaurantId, missingSteps(progress).join(", "));
+    revalidatePath("/platform");
+    return;
+  }
 
   const admin = createAdminClient();
   await admin.from("restaurants").update({ status: "active" }).eq("id", restaurantId);

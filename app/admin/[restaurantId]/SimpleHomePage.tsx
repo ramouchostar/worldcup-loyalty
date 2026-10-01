@@ -51,18 +51,10 @@ export async function SimpleHomePage({
             <Hourglass size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
             Ton établissement n&apos;est pas encore visible des clients
           </p>
-          <p className="text-xs text-warn mb-3">
-            Il sera mis en ligne après validation par notre équipe. En attendant, termine ton menu et la configuration
-            de ton ticket de caisse.
+          {/* ADR 0075 §3 — en attente = inscription finie, validation en cours. */}
+          <p className="text-xs text-warn">
+            Ton inscription est complète : notre équipe le vérifie et te prévient dès qu&apos;il est en ligne.
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Link href={`${base}/menu`} className="text-xs font-semibold bg-white border border-warn/30 text-warn px-3 py-2 rounded-lg hover:bg-warn/10 transition-colors">
-              Menu &amp; coûts →
-            </Link>
-            <Link href={`/become-a-partner/${restaurantId}/receipt`} className="text-xs font-semibold bg-white border border-warn/30 text-warn px-3 py-2 rounded-lg hover:bg-warn/10 transition-colors">
-              Ticket de caisse →
-            </Link>
-          </div>
         </div>
       )}
     </>

@@ -4,6 +4,8 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { ReceiptSetupForm } from "./ReceiptSetupForm";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
+import { PARTNER_PROGRESS_PATH, siblingsMissing } from "@/lib/partner-signup";
+import { Stepper } from "../../PartnerSignup";
 
 // L'analyse des tickets d'exemple (claude-sonnet-5, 2-3 images) dépasse le
 // timeout serverless par défaut — la server action hérite de ce segment.
@@ -23,30 +25,36 @@ export default async function OnboardingReceiptPage({ params }: { params: Promis
   const owner = await isRestaurantOwner(user.id, restaurantId);
   if (!owner) notFound();
 
+  // ADR 0075 §2 — ses autres établissements encore sans ticket.
+  const siblings = await siblingsMissing(user.id, restaurantId, "ticket");
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
       {/* Page réservée au propriétaire : le montage prouve la session,
           ce qui libère l'événement d'étape mis en file (voir analytics-pending). */}
       <AnalyticsIdentity status="restaurateur" />
       <div className="w-full max-w-lg">
-        {/* ADR 0030 §5 — hors layout admin : retour explicite vers la console */}
-        <Link
-          href={`/admin/${restaurantId}`}
-          className="inline-block text-sm text-gray-400 hover:text-gray-600 mb-4"
-        >
-          ← Retour à la console
-        </Link>
+        <div className="mb-6">
+          <Stepper current={4} />
+        </div>
         <div className="text-center mb-6">
-          <p className="text-4xl mb-2">🎫</p>
-          <h1 className="text-2xl font-bold text-gray-900">Tes tickets de caisse</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Les tickets de {restaurant.name}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Étape 3/4 — envoie 2 ou 3 photos de tickets récents. On y repère le
-            numéro qui identifie chaque commande, pour reconnaître les tickets
-            de tes clients sans jamais compter deux fois la même commande.
+            Envoyez 2 ou 3 photos de tickets récents. On y repère le numéro qui identifie
+            chaque commande, pour reconnaître les tickets de vos clients sans jamais compter
+            deux fois la même commande.
           </p>
         </div>
 
-        <ReceiptSetupForm restaurantId={restaurantId} />
+        <ReceiptSetupForm restaurantId={restaurantId} siblings={siblings} />
+
+        {/* ADR 0075 §1 — « Ajouter plus tard » ; ADR 0030 §5 — le parent
+            logique est la page d'avancement. */}
+        <p className="text-center mt-4">
+          <Link href={PARTNER_PROGRESS_PATH} className="text-sm font-semibold text-gray-500 hover:text-gray-800 underline">
+            Ajouter plus tard
+          </Link>
+        </p>
       </div>
     </div>
   );

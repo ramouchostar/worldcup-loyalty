@@ -13,6 +13,9 @@ import { SimpleNav } from "@/components/admin/simple/SimpleNav";
 import { CONSOLE_VIEW_COOKIE, consoleSections, parseConsoleView, simpleTabs } from "@/lib/admin-nav";
 import { getPlan } from "@/lib/entitlements";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
+import { loadProgress } from "@/lib/partner-progress-server";
+import { isIncomplete } from "@/lib/partner-progress";
+import { PARTNER_PROGRESS_PATH } from "@/lib/partner-signup";
 
 export default async function AdminLayout({
   children,
@@ -36,6 +39,15 @@ export default async function AdminLayout({
 
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();
+
+  // ADR 0075 §3 — établissement en attente sans sa carte ou son ticket : la
+  // console n'aurait que des écrans vides (et des tickets lus au format
+  // Belchicken par défaut). Le restaurateur finit d'abord, sur la page
+  // d'avancement. Le super-admin garde l'accès complet (ADR 0030 §3).
+  if (restaurant.status === "pending" && !access.isSuperAdmin) {
+    const [progress] = await loadProgress([restaurantId]);
+    if (progress && isIncomplete(progress)) redirect(PARTNER_PROGRESS_PATH);
+  }
 
   // ADR 0030 §3 — super-admin en visite sur un resto qui n'est pas le sien :
   // même console, mais un bandeau signale le contexte (anti-erreur de resto).

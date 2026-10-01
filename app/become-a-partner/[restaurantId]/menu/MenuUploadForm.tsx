@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { submitOnboardingMenu } from "../../actions";
 import { queueEvent } from "@/lib/analytics-pending";
+import { SameForAll, type Sibling } from "../../SameForAll";
 
 const TEMPLATE_ROWS: [string, string, string, string][] = [
   ["Salade César", "Entrée", "7,50", "1,20"],
@@ -33,7 +34,8 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 
-export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
+export function MenuUploadForm({ restaurantId, siblings = [] }: { restaurantId: string; siblings?: Sibling[] }) {
+  const [same, setSame] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [csv, setCsv] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
 
     const formData = new FormData();
     formData.set("csv", csv);
+    if (same) siblings.forEach((s) => formData.append("copy_to", s.id));
 
     queueEvent("partner_step_completed", { step_name: "menu", step_number: 2 });
 
@@ -78,6 +81,11 @@ export function MenuUploadForm({ restaurantId }: { restaurantId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {siblings.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-xl p-6">
+          <SameForAll siblings={siblings} same={same} onChange={setSame} what="carte" />
+        </div>
+      )}
       {/* Bandeau confiance */}
       <div className="bg-gradient-to-br from-brand-dark to-gray-800 text-white rounded-2xl p-5">
         <p className="text-xs uppercase tracking-widest text-brand-gold font-bold mb-1">🔒 Usage interne uniquement</p>

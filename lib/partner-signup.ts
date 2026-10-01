@@ -4,6 +4,8 @@ import { upsertRestaurantAdmin } from "@/lib/restaurant-admins";
 import { sendPartnerApplicationReceivedEmail } from "@/lib/email";
 import { correctedFields, normalizeWebsite, sanitizeDraft, slugBase } from "@/lib/partner-draft";
 import type { PartnerAttribution } from "@/lib/partner-attribution";
+import { loadUserProgress } from "@/lib/partner-progress-server";
+import { missingFor, type MissingStep } from "@/lib/partner-progress";
 
 // ADR 0075 §1 — les établissements d'un brouillon deviennent de vrais
 // établissements (`pending`) au moment où le compte existe. Appelé depuis le
@@ -23,6 +25,14 @@ export type DraftResult = {
 // Colonnes ajoutées par 20261001-2321 / 20261001-1100 : sans elles, on crée
 // quand même, sans ces champs (fail-open, journalisé).
 const OPTIONAL_COLUMNS = ["google_place_id", "phone", "signup_prefill", "signup_attribution"] as const;
+
+/** Les autres établissements du restaurateur à qui cette étape manque encore. */
+export async function siblingsMissing(userId: string, currentId: string, step: MissingStep) {
+  const list = await loadUserProgress(userId);
+  return missingFor(list, step)
+    .filter((e) => e.id !== currentId)
+    .map((e) => ({ id: e.id, name: e.name, sector: e.sector }));
+}
 
 export async function createRestaurantsFromDraft(
   user: { id: string; email: string | null },
@@ -57,7 +67,9 @@ export async function createRestaurantsFromDraft(
       continue;
     }
 
-    const id = await generateRestaurantSlug(slugBase(e, establishments));
+    // `suivi` est la page d'avancement (/become-a-partner/suivi) : réservé.
+    let id = await generateRestaurantSlug(slugBase(e, establishments));
+    if (id === "suivi") id = await generateRestaurantSlug(`${e.name} restaurant`);
     const base = {
       id,
       name: e.name,
@@ -103,7 +115,10 @@ export async function createRestaurantsFromDraft(
   return result;
 }
 
-/** Où va le restaurateur une fois ses établissements créés. */
+/** La page d'avancement (ADR 0075 §3). */
+export const PARTNER_PROGRESS_PATH = "/become-a-partner/suivi";
+
+/** Où va le restaurateur une fois ses établissements créés : la carte. */
 export function partnerNextStep(restaurantIds: string[]): string {
   return `/become-a-partner/${restaurantIds[0]}/menu`;
 }
