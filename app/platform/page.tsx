@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { loadProgress } from "@/lib/partner-progress-server";
+import { MISSING_LABEL, missingSteps } from "@/lib/partner-progress";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import {
@@ -82,6 +84,8 @@ export default async function PlatformPage() {
     // ADR 0032 — liens d'invitation restaurateur encore en circulation
     getActiveInvitesByRestaurant(),
   ]);
+  // ADR 0075 §4 — carte et ticket : la validation les attend.
+  const pendingProgress = new Map((await loadProgress(pendingList.map((r) => r.id))).map((p) => [p.id, p] as const));
   const ownerEmailById = new Map(
     ((owners ?? []) as { id: string; email: string | null }[]).map((o) => [o.id, o.email])
   );
@@ -178,17 +182,33 @@ export default async function PlatformPage() {
                       {new Date(r.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
                       {" · "}
                       {menuCounts[idx].count ?? 0} article{(menuCounts[idx].count ?? 0) > 1 ? "s" : ""} au catalogue
+                      {" · "}
+                      {pendingProgress.get(r.id)?.hasTicket ? "ticket configuré" : "ticket manquant"}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <form action={approveRestaurant.bind(null, r.id)}>
-                    <button
-                      type="submit"
-                      className="bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      Approuver
-                    </button>
+                    {(() => {
+                      const p = pendingProgress.get(r.id);
+                      const missing = p ? missingSteps(p) : [];
+                      return (
+                        <span className="inline-flex items-center gap-2">
+                          <button
+                            type="submit"
+                            disabled={missing.length > 0}
+                            className="bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                          >
+                            Approuver
+                          </button>
+                          {missing.length > 0 && (
+                            <span className="text-xs text-gray-500">
+                              Inscription incomplète : {missing.map((m) => MISSING_LABEL[m]).join(", ")}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })()}
                   </form>
                   <form action={rejectRestaurant.bind(null, r.id)}>
                     <ConfirmSubmitButton

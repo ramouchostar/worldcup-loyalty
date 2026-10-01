@@ -4,6 +4,8 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { MenuUploadForm } from "./MenuUploadForm";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
+import { siblingsMissing } from "@/lib/partner-signup";
+import { Stepper } from "../../PartnerSignup";
 
 export default async function OnboardingMenuPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -17,28 +19,33 @@ export default async function OnboardingMenuPage({ params }: { params: Promise<{
   const owner = await isRestaurantOwner(user.id, restaurantId);
   if (!owner) notFound();
 
+  // ADR 0075 §2 — ses autres établissements encore sans carte.
+  const siblings = await siblingsMissing(user.id, restaurantId, "menu");
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
       {/* Page réservée au propriétaire : le montage prouve la session,
           ce qui libère l'événement d'étape mis en file (voir analytics-pending). */}
       <AnalyticsIdentity status="restaurateur" />
       <div className="w-full max-w-lg">
+        <div className="mb-6">
+          <Stepper current={3} />
+        </div>
         <div className="text-center mb-6">
-          <p className="text-4xl mb-2">🧾</p>
-          <h1 className="text-2xl font-bold text-gray-900">Le catalogue de {restaurant.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">La carte de {restaurant.name}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Étape 2/4 — soumets ton menu avec les coûts. Ces données restent internes,
-            jamais visibles des clients.
+            Elle sert à proposer des cadeaux pris dans ce que vous vendez. Prix et coûts restent
+            internes, jamais visibles des clients.
           </p>
         </div>
 
-        <MenuUploadForm restaurantId={restaurantId} />
+        <MenuUploadForm restaurantId={restaurantId} siblings={siblings} />
 
-        {/* Sortie in-app : ne pas piéger le restaurateur sans CSV prêt — il
-            pourra compléter son catalogue depuis l'admin (audit UX 2026-07). */}
+        {/* ADR 0075 §1 — « Ajouter plus tard » : on passe au ticket ; la page
+            d'avancement rappellera la carte. */}
         <p className="text-center mt-4">
-          <Link href={`/admin/${restaurantId}`} className="text-xs text-gray-400 hover:text-gray-600 underline">
-            Configurer plus tard →
+          <Link href={`/become-a-partner/${restaurantId}/receipt`} className="text-sm font-semibold text-gray-500 hover:text-gray-800 underline">
+            Ajouter plus tard
           </Link>
         </p>
       </div>

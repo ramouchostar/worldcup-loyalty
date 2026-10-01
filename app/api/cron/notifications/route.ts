@@ -400,7 +400,8 @@ export async function GET(request: Request) {
     if (!ownerEmail) continue;
 
     const [{ count: menuItemsCount }, { data: receiptConfig }] = await Promise.all([
-      admin.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", r.id),
+      // Même critère « carte faite » que la page d'avancement (lib/partner-progress.ts).
+      admin.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", r.id).eq("is_active", true),
       admin.from("restaurant_receipt_config").select("confirmed_at").eq("restaurant_id", r.id).maybeSingle(),
     ]);
 

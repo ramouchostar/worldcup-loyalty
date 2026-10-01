@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PARTNER_ATTRIBUTION_COOKIE, decodeAttribution } from "@/lib/partner-attribution";
-import { createRestaurantsFromDraft, partnerNextStep, type DraftResult } from "@/lib/partner-signup";
+import { createRestaurantsFromDraft, partnerNextStep, PARTNER_PROGRESS_PATH, type DraftResult } from "@/lib/partner-signup";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isRestaurantOwner } from "@/lib/restaurant";
 import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
@@ -48,6 +48,14 @@ export async function registerDraftEstablishments(
   return { result, next: ids.length ? partnerNextStep(ids) : null };
 }
 
+// ADR 0075 §2 — les autres établissements à qui on applique la même carte ou
+// la même caisse : seulement ceux de CE restaurateur (siège vérifié un par un).
+async function ownedCopyTargets(userId: string, currentId: string, formData: FormData): Promise<string[]> {
+  const ids = Array.from(new Set(formData.getAll("copy_to").map((v) => String(v)).filter((id) => id && id !== currentId))).slice(0, 10);
+  const checks = await Promise.all(ids.map(async (id) => ((await isRestaurantOwner(userId, id)) ? id : null)));
+  return checks.filter((id): id is string => !!id);
+}
+
 // Étape 2 — catalogue menu obligatoire (ADR 0013, réutilise lib/menu.ts tel
 // quel). Nécessaire pour les stratégies de bundling/promotion à venir —
 // chaque rôle d'un même article (ex. accompagnement gratuit vs à la carte)
@@ -71,12 +79,17 @@ export async function submitOnboardingMenu(
     return { error: "Aucun article valide trouvé dans le fichier.", warnings: errors };
   }
 
-  await upsertMenuCatalog(restaurantId, items);
-
-  // ADR 0017 §4 — dès le catalogue soumis, l'app calcule une grille protégée
-  // (paliers dimensionnés par le panier moyen, articles sous plafond, cadeau
-  // jetons) au lieu de laisser le resto sur la grille héritée. Non-destructif.
-  await applyDefaultRewardConfig(restaurantId);
+  // ADR 0075 §2 — la même carte copiée dans les établissements choisis
+  // (menu_items est par établissement, ADR 0013 : une copie par établissement,
+  // qui divergent ensuite librement).
+  const targets = [restaurantId, ...(await ownedCopyTargets(user.id, restaurantId, formData))];
+  for (const id of targets) {
+    await upsertMenuCatalog(id, items);
+    // ADR 0017 §4 — dès le catalogue soumis, l'app calcule une grille protégée
+    // (paliers dimensionnés par le panier moyen, articles sous plafond, cadeau
+    // jetons) au lieu de laisser le resto sur la grille héritée. Non-destructif.
+    await applyDefaultRewardConfig(id);
+  }
 
   // Étape 3/4 (ADR 0019) : découverte de la clé unique des tickets.
   redirect(`/become-a-partner/${restaurantId}/receipt`);
@@ -179,9 +192,24 @@ export async function confirmReceiptConfig(
 
   const skip = formData.get("skip") === "true";
   const admin = createAdminClient();
+  const copyTargets = await ownedCopyTargets(auth.userId, restaurantId, formData);
+
+  // ADR 0075 §2 — même caisse dans plusieurs établissements : le FORMAT est
+  // copié, jamais `store_code` (le code d'établissement imprimé dans la clé,
+  // ADR 0073 — le copier ferait accepter chez B les tickets de A) ni
+  // `key_examples` (de vraies clés de cet établissement). Upsert sans ces
+  // colonnes : un store_code déjà posé chez la cible n'est pas touché.
+  async function copyFormat(row: Record<string, unknown>) {
+    for (const id of copyTargets) {
+      const { error } = await admin
+        .from("restaurant_receipt_config")
+        .upsert({ ...row, restaurant_id: id, key_examples: [] });
+      if (error) console.error("[inscription] format de ticket non copié vers", id, error.message);
+    }
+  }
 
   if (skip) {
-    const { error } = await admin.from("restaurant_receipt_config").upsert({
+    const row = {
       restaurant_id: restaurantId,
       has_reliable_key: false,
       key_label: null,
@@ -193,10 +221,12 @@ export async function confirmReceiptConfig(
       confirmed_at: new Date().toISOString(),
       confirmed_by: auth.userId,
       updated_at: new Date().toISOString(),
-    });
+    };
+    const { error } = await admin.from("restaurant_receipt_config").upsert(row);
     if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
-    // Étape 4/4 (optionnelle) : liens réseaux sociaux.
-    redirect(`/become-a-partner/${restaurantId}/social`);
+    await copyFormat(row);
+    // ADR 0075 §3 — fin du tunnel : la page d'avancement dit ce qui reste.
+    redirect(PARTNER_PROGRESS_PATH);
   }
 
   const keyLabel = (formData.get("key_label") as string)?.trim();
@@ -216,7 +246,7 @@ export async function confirmReceiptConfig(
   const patternError = validateProposedPattern(keyPattern, keyExamples);
   if (patternError) return { error: patternError };
 
-  const { error } = await admin.from("restaurant_receipt_config").upsert({
+  const row = {
     restaurant_id: restaurantId,
     has_reliable_key: true,
     key_label: keyLabel,
@@ -228,11 +258,14 @@ export async function confirmReceiptConfig(
     confirmed_at: new Date().toISOString(),
     confirmed_by: auth.userId,
     updated_at: new Date().toISOString(),
-  });
+  };
+  const { error } = await admin.from("restaurant_receipt_config").upsert(row);
   if (error) return { error: "Erreur lors de l'enregistrement. Réessaie." };
+  await copyFormat(row);
 
-  // Étape 4/4 (optionnelle) : liens réseaux sociaux.
-  redirect(`/become-a-partner/${restaurantId}/social`);
+  // ADR 0075 §3 — fin du tunnel : la page d'avancement dit ce qui reste.
+  // Réseaux sociaux : dans les réglages (§5), plus une étape.
+  redirect(PARTNER_PROGRESS_PATH);
 }
 
 // ─── Étape 4 (optionnelle) — liens réseaux sociaux ───────────────────────────
