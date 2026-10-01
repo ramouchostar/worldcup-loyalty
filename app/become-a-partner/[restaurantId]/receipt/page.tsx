@@ -4,8 +4,10 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { ReceiptSetupForm } from "./ReceiptSetupForm";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
-import { PARTNER_PROGRESS_PATH, siblingsMissing } from "@/lib/partner-signup";
+import { PARTNER_PROGRESS_PATH, siblingsMissing, establishmentsWith } from "@/lib/partner-signup";
 import { Stepper } from "../../PartnerSignup";
+import { ReuseFrom } from "../../ReuseFrom";
+import { copyReceiptFormatFrom } from "../../actions";
 
 // L'analyse des tickets d'exemple (claude-sonnet-5, 2-3 images) dépasse le
 // timeout serverless par défaut — la server action hérite de ce segment.
@@ -27,6 +29,8 @@ export default async function OnboardingReceiptPage({ params }: { params: Promis
 
   // ADR 0075 §2 — ses autres établissements encore sans ticket.
   const siblings = await siblingsMissing(user.id, restaurantId, "ticket");
+  // ADR 0075 §6 — ou reprendre ce qu'un établissement existant a déjà.
+  const sources = await establishmentsWith(user.id, restaurantId, "ticket");
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
@@ -46,6 +50,7 @@ export default async function OnboardingReceiptPage({ params }: { params: Promis
           </p>
         </div>
 
+        <ReuseFrom sources={sources} action={copyReceiptFormatFrom.bind(null, restaurantId)} what="caisse" />
         <ReceiptSetupForm restaurantId={restaurantId} siblings={siblings} />
 
         {/* ADR 0075 §1 — « Ajouter plus tard » ; ADR 0030 §5 — le parent

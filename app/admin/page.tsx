@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Store } from "lucide-react";
+import { Plus, Store } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, getRestaurantLogos } from "@/lib/restaurant";
@@ -80,12 +80,14 @@ export default async function AdminLandingPage() {
           </div>
         )}
 
-        <p className="text-center text-sm text-ink-muted mt-5">
-          Tu veux inscrire ton propre restaurant ?{" "}
-          <Link href="/become-a-partner" className="font-semibold text-ink hover:underline">
-            Deviens partenaire →
-          </Link>
-        </p>
+        {/* ADR 0075 §6 — un établissement de plus : la même recherche Google. */}
+        <Link
+          href="/become-a-partner"
+          className="mt-4 flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-paper-border px-4 py-3 text-sm font-semibold text-ink hover:border-ink transition-colors"
+        >
+          <Plus size={16} strokeWidth={2} aria-hidden="true" />
+          {restaurants.length === 0 ? "Inscrire mon restaurant" : "Ajouter un établissement"}
+        </Link>
       </div>
     </div>
   );

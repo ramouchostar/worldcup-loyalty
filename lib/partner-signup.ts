@@ -34,6 +34,14 @@ export async function siblingsMissing(userId: string, currentId: string, step: M
     .map((e) => ({ id: e.id, name: e.name, sector: e.sector }));
 }
 
+/** Ses établissements qui ont déjà fait cette étape : de quoi reprendre la carte ou la caisse. */
+export async function establishmentsWith(userId: string, currentId: string, step: MissingStep) {
+  const list = await loadUserProgress(userId);
+  return list
+    .filter((e) => e.id !== currentId && (step === "menu" ? e.hasMenu : e.hasTicket))
+    .map((e) => ({ id: e.id, name: e.name, sector: e.sector }));
+}
+
 export async function createRestaurantsFromDraft(
   user: { id: string; email: string | null },
   rawDraft: unknown,

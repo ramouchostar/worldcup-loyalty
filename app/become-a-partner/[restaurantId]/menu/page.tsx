@@ -4,8 +4,10 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getRestaurant, isRestaurantOwner } from "@/lib/restaurant";
 import { MenuUploadForm } from "./MenuUploadForm";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
-import { siblingsMissing } from "@/lib/partner-signup";
+import { siblingsMissing, establishmentsWith } from "@/lib/partner-signup";
 import { Stepper } from "../../PartnerSignup";
+import { ReuseFrom } from "../../ReuseFrom";
+import { copyMenuFrom } from "../../actions";
 
 export default async function OnboardingMenuPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const { restaurantId } = await params;
@@ -21,6 +23,8 @@ export default async function OnboardingMenuPage({ params }: { params: Promise<{
 
   // ADR 0075 §2 — ses autres établissements encore sans carte.
   const siblings = await siblingsMissing(user.id, restaurantId, "menu");
+  // ADR 0075 §6 — ou reprendre ce qu'un établissement existant a déjà.
+  const sources = await establishmentsWith(user.id, restaurantId, "menu");
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
@@ -39,6 +43,7 @@ export default async function OnboardingMenuPage({ params }: { params: Promise<{
           </p>
         </div>
 
+        <ReuseFrom sources={sources} action={copyMenuFrom.bind(null, restaurantId)} what="carte" />
         <MenuUploadForm restaurantId={restaurantId} siblings={siblings} />
 
         {/* ADR 0075 §1 — « Ajouter plus tard » : on passe au ticket ; la page
