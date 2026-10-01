@@ -167,7 +167,14 @@ export default async function AdminLayout({
                 Plateforme
               </Link>
             )}
-            {showEstablishmentSwitcher && (
+            {/* ADR 0075 §6 — même recherche Google que l'inscription, sans
+                redemander de compte ; réservé à qui gère l'établissement. */}
+            {canManage && (
+              <Link href="/become-a-partner" className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
+                + Ajouter un établissement
+              </Link>
+            )}
+                        {showEstablishmentSwitcher && (
               <Link href="/admin" className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
                 Mes établissements
               </Link>

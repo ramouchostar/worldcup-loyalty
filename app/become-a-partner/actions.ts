@@ -56,6 +56,68 @@ async function ownedCopyTargets(userId: string, currentId: string, formData: For
   return checks.filter((id): id is string => !!id);
 }
 
+// ADR 0075 §6 — un établissement ajouté plus tard reprend la carte ou la
+// caisse d'un établissement existant du même restaurateur (siège vérifié sur
+// les deux). La carte est copiée article par article (prix et coûts compris,
+// jamais montrés aux clients) ; la caisse : le format seulement, jamais
+// store_code ni key_examples (ADR 0073).
+export async function copyMenuFrom(targetId: string, sourceId: string): Promise<void> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || targetId === sourceId) return;
+  if (!(await isRestaurantOwner(user.id, targetId)) || !(await isRestaurantOwner(user.id, sourceId))) return;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("menu_items")
+    .select("name, category, menu_price, cost_price")
+    .eq("restaurant_id", sourceId)
+    .eq("is_active", true);
+  if (error || !data?.length) {
+    console.error("[inscription] carte à reprendre illisible ou vide :", sourceId, error?.message);
+    redirect(`/become-a-partner/${targetId}/menu`);
+  }
+  await upsertMenuCatalog(
+    targetId,
+    data.map((r) => ({
+      name: r.name as string,
+      category: r.category as string,
+      menu_price: Number(r.menu_price),
+      cost_price: Number(r.cost_price),
+    })),
+  );
+  await applyDefaultRewardConfig(targetId);
+  redirect(`/become-a-partner/${targetId}/receipt`);
+}
+
+export async function copyReceiptFormatFrom(targetId: string, sourceId: string): Promise<void> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || targetId === sourceId) return;
+  if (!(await isRestaurantOwner(user.id, targetId)) || !(await isRestaurantOwner(user.id, sourceId))) return;
+
+  const admin = createAdminClient();
+  const { data: src } = await admin
+    .from("restaurant_receipt_config")
+    .select("has_reliable_key, key_label, key_description, key_pattern, position_hint, date_group, confirmed_at")
+    .eq("restaurant_id", sourceId)
+    .maybeSingle();
+  if (!src?.confirmed_at) redirect(`/become-a-partner/${targetId}/receipt`);
+  const { error } = await admin.from("restaurant_receipt_config").upsert({
+    ...src,
+    restaurant_id: targetId,
+    key_examples: [],
+    confirmed_at: new Date().toISOString(),
+    confirmed_by: user.id,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) {
+    console.error("[inscription] format de ticket non repris :", targetId, error.message);
+    redirect(`/become-a-partner/${targetId}/receipt`);
+  }
+  redirect(PARTNER_PROGRESS_PATH);
+}
+
 // Étape 2 — catalogue menu obligatoire (ADR 0013, réutilise lib/menu.ts tel
 // quel). Nécessaire pour les stratégies de bundling/promotion à venir —
 // chaque rôle d'un même article (ex. accompagnement gratuit vs à la carte)
