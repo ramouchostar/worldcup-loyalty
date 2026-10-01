@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 import { queueEvent } from "@/lib/analytics-pending";
 import { lireCadeauAReclamer, oublierCadeauAReclamer } from "@/lib/claim-reward";
+import { DRAFT_STORAGE_KEY, sanitizeDraft, type DraftEstablishment } from "@/lib/partner-draft";
 
 // ADR 0047 (étape 05 du backlog onboarding) — l'inscription tient en trois
 // éléments : e-mail, mot de passe, consentement. Prénom, zones et date de
@@ -51,6 +52,9 @@ export default function SignupPage() {
   // restaurant ») : même compte, autre habillage ; le middleware a posé le
   // cookie qui ramène au formulaire partenaire après la création du compte.
   const [asResto, setAsResto] = useState(false);
+  // ADR 0075 — les établissements trouvés sur Google avant le compte : ils
+  // partent avec la demande de compte (métadonnées) et sont créés au retour.
+  const [draft, setDraft] = useState<DraftEstablishment[]>([]);
   const funnel = asResto ? "restaurateur" : "membre";
 
   useEffect(() => {
@@ -61,6 +65,19 @@ export default function SignupPage() {
     const resto = new URLSearchParams(window.location.search).get("as") === "resto";
     setAsResto(resto);
     if (!resto) setCadeau(lireCadeauAReclamer());
+    if (resto) {
+      let list: DraftEstablishment[] = [];
+      try {
+        list = sanitizeDraft(JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) ?? "null")).establishments;
+      } catch {}
+      // Le compte vient APRÈS les établissements : sans brouillon, on commence
+      // par la recherche (anciens liens /signup?as=resto compris).
+      if (list.length === 0) {
+        window.location.replace("/become-a-partner");
+        return;
+      }
+      setDraft(list);
+    }
   }, []);
 
   function proceedLoggedIn() {
@@ -102,7 +119,11 @@ export default function SignupPage() {
         options: {
           // Acté côté serveur (journal consents, ADR 0022) au premier passage
           // authentifié — voir app/auth/callback/route.ts.
-          data: { accept_policy: true, accept_policy_at: new Date().toISOString() },
+          data: {
+            accept_policy: true,
+            accept_policy_at: new Date().toISOString(),
+            ...(asResto && draft.length ? { partner_draft: { establishments: draft } } : {}),
+          },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
@@ -181,7 +202,7 @@ export default function SignupPage() {
         </p>
         <p className="text-gray-500 text-xs mt-4">
           {asResto
-            ? "Clique le lien pour activer ton compte — tu présenteras ensuite ton restaurant (2 minutes)."
+            ? `Cliquez le lien pour activer votre compte : ${draft.length > 1 ? `vos ${draft.length} établissements seront enregistrés` : "votre établissement sera enregistré"}, puis on passe à la carte.`
             : cadeau
             ? `Clique le lien pour activer ton compte — ton ${cadeau} t'attend ensuite au comptoir.`
             : "Clique le lien pour activer ton compte et rejoindre ton restaurant."}
@@ -200,11 +221,15 @@ export default function SignupPage() {
         </div>
       )}
       <h2 className="text-xl font-bold text-gray-900 mb-1">
-        {asResto ? "Inscrire mon restaurant" : cadeau ? "Réclame ton cadeau" : "Créer un compte"}
+        {asResto
+          ? draft.length > 1
+            ? `Enregistrez vos ${draft.length} établissements`
+            : "Enregistrez votre établissement"
+          : cadeau ? "Réclame ton cadeau" : "Créer un compte"}
       </h2>
       <p className="text-gray-500 text-sm mb-5">
         {asResto ? (
-          "Crée ton compte, puis présente ton établissement. Gratuit jusqu'à 500 tickets par mois, sans engagement."
+          "Un compte pour les gérer tous, au même endroit. Gratuit jusqu'à 500 tickets par mois, sans engagement."
         ) : cadeau ? (
           <>
             Ton <span className="font-semibold text-gray-900">{cadeau}</span> t&apos;attend au
@@ -214,6 +239,19 @@ export default function SignupPage() {
           "10 secondes suffisent — tu compléteras ton profil plus tard, si tu veux."
         )}
       </p>
+
+      {asResto && draft.length > 0 && (
+        <div className="bg-brand-red/10 rounded-xl px-4 py-3 mb-5 text-sm text-gray-800 space-y-0.5">
+          {draft.map((e, i) => (
+            <p key={`${e.placeId ?? "manuel"}-${i}`} className="truncate">
+              <span className="font-semibold">{e.name}</span> · {e.sector}
+            </p>
+          ))}
+          <a href="/become-a-partner" className="inline-block text-xs font-semibold text-brand-red hover:underline pt-1">
+            ← Modifier les établissements
+          </a>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-4">
         <div>

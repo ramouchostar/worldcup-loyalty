@@ -8,6 +8,8 @@ import { sendWelcomeEmail } from "@/lib/email";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 import { reactivateIfAnonymized } from "@/lib/gdpr";
+import { createRestaurantsFromDraft, partnerNextStep } from "@/lib/partner-signup";
+import { PARTNER_ATTRIBUTION_COOKIE, decodeAttribution } from "@/lib/partner-attribution";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -118,6 +120,25 @@ export async function GET(request: NextRequest) {
       const pendingInvite = cookieStore.get(OWNER_INVITE_COOKIE)?.value;
       if (pendingInvite && isValidInviteToken(pendingInvite)) {
         return NextResponse.redirect(`${origin}/invite/${pendingInvite}`);
+      }
+
+      // ADR 0075 — établissements trouvés sur Google AVANT le compte : ils
+      // arrivent dans les métadonnées d'inscription (le lien de confirmation
+      // peut s'ouvrir dans une autre appli que celle du brouillon). Créés une
+      // fois : les métadonnées sont vidées, et une fiche déjà créée par ce
+      // compte n'est pas recréée (createRestaurantsFromDraft).
+      const partnerDraft = (user.user_metadata as { partner_draft?: unknown } | null)?.partner_draft;
+      if (partnerDraft) {
+        const admin = createAdminClient();
+        const attribution = decodeAttribution(cookieStore.get(PARTNER_ATTRIBUTION_COOKIE)?.value);
+        const result = await createRestaurantsFromDraft({ id: user.id, email: user.email ?? null }, partnerDraft, attribution);
+        const { error: metaErr } = await admin.auth.admin.updateUserById(user.id, { user_metadata: { partner_draft: null } });
+        if (metaErr) console.error("[auth/callback] brouillon d'inscription non vidé :", metaErr.message);
+        cookieStore.set("pending_become_partner", "", { maxAge: 0, path: "/" });
+        if (result.created.length && attribution) cookieStore.set(PARTNER_ATTRIBUTION_COOKIE, "", { maxAge: 0, path: "/" });
+        const ids = [...result.created, ...result.alreadyMine].map((r) => r.id);
+        if (ids.length) return NextResponse.redirect(`${origin}${partnerNextStep(ids)}`);
+        return NextResponse.redirect(`${origin}/become-a-partner${result.takenByOthers.length ? "?refus=deja_inscrit" : ""}`);
       }
 
       // Prospect redirigé vers /login depuis /become-a-partner (middleware) —

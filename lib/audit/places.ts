@@ -10,6 +10,13 @@
 
 const BASE = "https://places.googleapis.com/v1";
 
+// Rectangle qui couvre la Belgique : la recherche d'inscription restaurateur
+// (ADR 0075 §1) n'est pas limitée à Bruxelles, seul l'audit l'est.
+const BELGIUM_RECT = {
+  low: { latitude: 49.49, longitude: 2.54 },
+  high: { latitude: 51.51, longitude: 6.41 },
+};
+
 // Rectangle qui couvre la Région de Bruxelles-Capitale. Le filtre exact se
 // fait ensuite sur le code postal de la fiche (ADR 0069 §2).
 const BRUSSELS_RECT = {
@@ -67,7 +74,7 @@ export interface Suggestion {
   address: string;
 }
 
-export async function suggest(input: string, sessionToken: string): Promise<Suggestion[]> {
+export async function suggest(input: string, sessionToken: string, zone: "bruxelles" | "belgique" = "bruxelles"): Promise<Suggestion[]> {
   const j = await call<{ suggestions?: { placePrediction?: { placeId: string; structuredFormat?: { mainText?: { text: string }; secondaryText?: { text: string } }; text?: { text: string } } }[] }>(
     "/places:autocomplete",
     {
@@ -78,7 +85,8 @@ export async function suggest(input: string, sessionToken: string): Promise<Sugg
         sessionToken,
         languageCode: "fr",
         regionCode: "be",
-        locationRestriction: { rectangle: BRUSSELS_RECT },
+        includedRegionCodes: ["be"],
+        locationRestriction: { rectangle: zone === "belgique" ? BELGIUM_RECT : BRUSSELS_RECT },
       },
     },
   );
@@ -109,6 +117,8 @@ export interface PlaceDetails {
   name: string;
   address: string | null;
   postalCode: string | null;
+  /** Commune (« locality » Google) — le secteur d'un établissement inscrit. */
+  locality: string | null;
   lat: number | null;
   lng: number | null;
   rating: number | null;
@@ -158,11 +168,16 @@ export function initialOf(name: string | null | undefined): string {
 
 export function toDetails(p: RawPlace): PlaceDetails {
   const postal = p.addressComponents?.find((c) => c.types?.includes("postal_code"))?.longText ?? null;
+  const locality =
+    p.addressComponents?.find((c) => c.types?.includes("locality"))?.longText ??
+    p.addressComponents?.find((c) => c.types?.includes("postal_town"))?.longText ??
+    null;
   return {
     id: p.id,
     name: p.displayName?.text ?? "",
     address: p.formattedAddress?.replace(/,\s*Belgi(que|um|ë)$/i, "") ?? null,
     postalCode: postal,
+    locality,
     lat: p.location?.latitude ?? null,
     lng: p.location?.longitude ?? null,
     rating: p.rating ?? null,
@@ -199,6 +214,21 @@ export async function placeDetails(placeId: string, sessionToken?: string | null
   const qs = new URLSearchParams({ languageCode: "fr", regionCode: "be" });
   if (sessionToken) qs.set("sessionToken", sessionToken);
   const p = await call<RawPlace>(`/places/${encodeURIComponent(placeId)}?${qs}`, { fieldMask: DETAILS_FIELDS });
+  return toDetails(p);
+}
+
+// Fiche réduite pour l'inscription (ADR 0075) : pas d'avis, de photos ni
+// d'horaires — seulement ce qui pré-remplit l'établissement.
+const SIGNUP_FIELDS = [
+  "id", "displayName", "formattedAddress", "addressComponents", "location", "websiteUri",
+  "nationalPhoneNumber", "primaryType", "primaryTypeDisplayName", "types", "googleMapsUri",
+].join(",");
+
+export async function placeForSignup(placeId: string, sessionToken?: string | null): Promise<PlaceDetails> {
+  if (!/^[\w-]{10,300}$/.test(placeId)) throw new PlacesError("identifiant de fiche invalide");
+  const qs = new URLSearchParams({ languageCode: "fr", regionCode: "be" });
+  if (sessionToken) qs.set("sessionToken", sessionToken);
+  const p = await call<RawPlace>(`/places/${encodeURIComponent(placeId)}?${qs}`, { fieldMask: SIGNUP_FIELDS });
   return toDetails(p);
 }
 
