@@ -49,7 +49,7 @@ export async function updateMemberProfile(
   const { error } = await admin
     .from("profiles")
     .update({
-      display_name: displayName || null,
+      display_name: displayName, // NOT NULL DEFAULT '' (m2) : un prénom effacé reste ''
       zones,
       birth_date: birthDate || null,
       ...(isMinor !== null

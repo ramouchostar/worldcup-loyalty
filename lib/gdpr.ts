@@ -194,14 +194,15 @@ export async function deleteUserData(userId: string): Promise<string[]> {
 // (anonymisation, pas suppression — la compta en dépend). Quelqu'un qui se
 // reconnecte retrouvait un profil « Compte supprimé » sans e-mail : visible
 // ainsi en console, exclu de tous les e-mails. On le réactive comme un compte
-// neuf (prénom redemandé dans /compte, ADR 0047). Renvoie true s'il revenait.
+// neuf : nom = début de l'e-mail, comme à l'inscription (m29b — display_name
+// est NOT NULL), modifiable dans /compte (ADR 0047). Renvoie true s'il revenait.
 export async function reactivateIfAnonymized(userId: string, email: string | null): Promise<boolean> {
   const admin = createAdminClient();
   const { data } = await admin.from("profiles").select("anonymized_at").eq("id", userId).maybeSingle();
   if (!(data as { anonymized_at: string | null } | null)?.anonymized_at) return false;
   const { error } = await admin
     .from("profiles")
-    .update({ anonymized_at: null, display_name: null, email })
+    .update({ anonymized_at: null, display_name: (email ?? "").split("@")[0], email })
     .eq("id", userId);
   if (error) {
     console.error("[gdpr] réactivation échouée:", error.message);
