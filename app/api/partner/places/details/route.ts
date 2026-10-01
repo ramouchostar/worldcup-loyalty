@@ -46,6 +46,8 @@ export async function GET(req: Request) {
     website: place.website ?? "",
     mapsUrl: place.mapsUri ?? "",
     cuisine: cuisineFromCategory(place.category),
+    category: place.category ?? "",
+    types: place.types.slice(0, 12),
   };
   return NextResponse.json(
     { prefill, alreadyRegistered: !error && (taken ?? []).length > 0 },

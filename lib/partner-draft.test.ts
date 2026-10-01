@@ -18,6 +18,8 @@ const PREFILL = {
   website: "https://www.krustysmash.be/",
   mapsUrl: "https://maps.google.com/?cid=1",
   cuisine: ["Hamburgers"],
+  category: "Restaurant de hamburgers",
+  types: ["hamburger_restaurant", "restaurant"],
 };
 
 test("catégorie Google → type de cuisine", () => {
@@ -28,9 +30,11 @@ test("catégorie Google → type de cuisine", () => {
   assert.deepEqual(cuisineFromCategory(null), []);
 });
 
-test("fiche Google sans correction : aucun champ corrigé, site lisible", () => {
+test("fiche Google sans correction : aucun champ corrigé, site lisible, cuisine à choisir", () => {
   const e = fromPrefill(PREFILL);
   assert.equal(e.website, "krustysmash.be");
+  assert.deepEqual(e.cuisine, []);
+  assert.deepEqual(e.hints?.types, ["hamburger_restaurant", "restaurant"]);
   assert.deepEqual(correctedFields(e), []);
 });
 
