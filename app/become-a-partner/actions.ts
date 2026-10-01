@@ -51,7 +51,7 @@ export async function createPartnerRestaurant(
   // owner_id n'est plus écrit ici directement (ADR 0041) : le trigger de
   // synchro le déduit du siège gérant posé juste après — un seul
   // écrivain pour cette colonne dérivée, partout dans l'app.
-  const row = {
+  const row: Record<string, unknown> = {
     id: slug,
     name,
     sector,

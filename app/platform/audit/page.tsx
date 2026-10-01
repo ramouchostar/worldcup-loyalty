@@ -44,9 +44,9 @@ export default async function PlatformAuditPage({ searchParams }: { searchParams
 
   const { erreur, motif } = await searchParams;
   const [listing, leads, signups] = await Promise.all([listAudits(), listLeads(), listAuditSignups()]);
-  const signupByAudit = new Map(signups.rows.filter((x) => x.auditId).map((x) => [x.auditId!, x] as const));
-  const unattributed = signups.rows.filter((x) => !x.auditId || !listing.rows.some((a) => a.id === x.auditId));
   const auditStatus = new Map(listing.missing ? [] : listing.rows.map((a) => [a.id, a.status] as const));
+  const signupByAudit = new Map(signups.rows.filter((x) => x.auditId).map((x) => [x.auditId!, x] as const));
+  const unattributed = signups.rows.filter((x) => !x.auditId || !auditStatus.has(x.auditId));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 py-8 px-4">
