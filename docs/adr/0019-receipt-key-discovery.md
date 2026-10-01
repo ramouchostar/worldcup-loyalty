@@ -1,7 +1,7 @@
 # ADR 0019 — Découverte de la clé unique de ticket à l'onboarding
 
 **Date** : 2026-07-06
-**Statut** : Accepté — complété par l'ADR 0052 (dédoublonnage par empreinte de contenu quand la clé est mal lue ou absente) ; amendé par l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (la clé est celle que lit l'OCR serveur, jamais saisie ; pour un établissement à clé fiable, une clé illisible se reprend en photo — plus de chemin « numéro illisible » en file admin)
+**Statut** : Accepté — complété par l'ADR 0052 (dédoublonnage par empreinte de contenu quand la clé est mal lue ou absente) ; amendé par l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (la clé est celle que lit l'OCR serveur, jamais saisie ; pour un établissement à clé fiable, une clé illisible se reprend en photo — plus de chemin « numéro illisible » en file admin) — §2 amendé par l'[ADR 0075](0075-inscription-restaurateur-google-multi-etablissements.md) (2026-10-01) : une analyse de ticket peut servir plusieurs établissements (format copié, jamais `store_code` ni `key_examples`).
 
 > **Complété par l'[ADR 0066](0066-la-carte-identite-du-ticket.md) (2026-09-23)** : la découverte relève aussi la structure du ticket au-delà de la clé (heure, canal, numéro du jour, totaux, langue) dans `restaurant_receipt_config.receipt_profile`.
 
