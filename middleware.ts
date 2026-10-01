@@ -188,7 +188,10 @@ export async function middleware(request: NextRequest) {
 
   const isAdminRoute = path.startsWith("/admin");
   const isJoinRoute = path === "/join";
-  const isBecomePartnerRoute = path.startsWith("/become-a-partner");
+  // ADR 0075 — /become-a-partner (la recherche Google) est ouvert sans compte :
+  // le compte vient après les établissements. Les étapes suivantes
+  // (/become-a-partner/<id>/…) restent réservées au compte.
+  const isBecomePartnerRoute = path.startsWith("/become-a-partner/");
   const isPlatformRoute = path.startsWith("/platform");
 
   // Routes protégées : authentification requise. `reason` → bandeau clair

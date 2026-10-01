@@ -3,104 +3,49 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PARTNER_ATTRIBUTION_COOKIE, decodeAttribution } from "@/lib/partner-attribution";
+import { createRestaurantsFromDraft, partnerNextStep, type DraftResult } from "@/lib/partner-signup";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
-import { generateRestaurantSlug, isRestaurantOwner } from "@/lib/restaurant";
-import { sendPartnerApplicationReceivedEmail } from "@/lib/email";
+import { isRestaurantOwner } from "@/lib/restaurant";
 import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
 import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
 import { isAllowedReceiptType } from "@/lib/receipt-ocr";
 import { parseHttpUrl } from "@/lib/url";
-import { replaceTeamSuggestions } from "@/lib/teams";
-import { sanitizeSuggestions } from "@/lib/team-suggestions";
-import { upsertRestaurantAdmin } from "@/lib/restaurant-admins";
 import {
   discoverReceiptKey,
   validateProposedPattern,
   type ReceiptKeyProposal,
 } from "@/lib/receipt-key-discovery";
 
-// ADR 0015 §6-7 — un membre connecté crée son établissement lui-même et en
-// devient l'admin (owner_id). Reste invisible (status 'pending') jusqu'à
-// validation manuelle par le super-admin plateforme (/platform).
-export async function createPartnerRestaurant(
-  _prevState: { error: string } | null,
-  formData: FormData
-): Promise<{ error: string } | null> {
-  const name = (formData.get("name") as string)?.trim();
-  const sector = (formData.get("sector") as string)?.trim();
-  const address = (formData.get("address") as string)?.trim() || null;
-  const cuisineTypes = formData.getAll("cuisine_types").map((v) => String(v).trim()).filter(Boolean);
-
-  if (!name || name.length < 2) {
-    return { error: "Entre le nom de ton restaurant." };
-  }
-  // ADR 0016 §2 — maille d'agrégation de la page publique /secteurs
-  if (!sector || sector.length < 2) {
-    return { error: "Indique ta ville ou ton quartier." };
-  }
-  if (cuisineTypes.length > 5) {
-    return { error: "5 types de cuisine maximum." };
-  }
-
+// ADR 0075 §1 — le brouillon (établissements trouvés sur Google, corrigés)
+// devient de vrais établissements `pending` dès que le compte existe. Le
+// brouillon du navigateur arrive ici (compte Google, ou déjà connecté) ; celui
+// d'une inscription e-mail passe par auth/callback (métadonnées). Même
+// fonction des deux côtés : createRestaurantsFromDraft.
+export async function registerDraftEstablishments(
+  draftJson: string
+): Promise<{ error: string } | { result: DraftResult; next: string | null }> {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Non authentifié. Reconnecte-toi puis réessaie." };
 
-  const slug = await generateRestaurantSlug(name);
-  const admin = createAdminClient();
-  // owner_id n'est plus écrit ici directement (ADR 0041) : le trigger de
-  // synchro le déduit du siège gérant posé juste après — un seul
-  // écrivain pour cette colonne dérivée, partout dans l'app.
-  const row: Record<string, unknown> = {
-    id: slug,
-    name,
-    sector,
-    address,
-    cuisine_types: cuisineTypes,
-    status: "pending",
-  };
-  // D'où vient-il (rapport d'audit…) — cookie posé par le middleware. Colonne
-  // absente (migration 20261001-1100 pas encore appliquée) → création sans.
+  let raw: unknown = null;
+  try {
+    raw = JSON.parse(draftJson);
+  } catch {
+    return { error: "Brouillon illisible. Recommence la recherche de ton établissement." };
+  }
+
   const cookieStore = await cookies();
   const attribution = decodeAttribution(cookieStore.get(PARTNER_ATTRIBUTION_COOKIE)?.value);
-  let { error } = await admin
-    .from("restaurants")
-    .insert(attribution ? { ...row, signup_attribution: attribution } : row);
-  if (error && attribution && /signup_attribution/.test(error.message)) {
-    console.error("[become-a-partner] signup_attribution absente — source non enregistrée:", attribution);
-    ({ error } = await admin.from("restaurants").insert(row));
+  const result = await createRestaurantsFromDraft({ id: user.id, email: user.email ?? null }, raw, attribution);
+  if (result.created.length && attribution) cookieStore.set(PARTNER_ATTRIBUTION_COOKIE, "", { maxAge: 0, path: "/" });
+  cookieStore.set("pending_become_partner", "", { maxAge: 0, path: "/" });
+
+  const ids = [...result.created, ...result.alreadyMine].map((r) => r.id);
+  if (ids.length === 0 && result.takenByOthers.length === 0) {
+    return { error: "Aucun établissement n'a pu être enregistré. Réessaie dans un instant." };
   }
-  if (!error && attribution) cookieStore.set(PARTNER_ATTRIBUTION_COOKIE, "", { maxAge: 0, path: "/" });
-
-  if (error) {
-    return { error: "Erreur lors de la création. Réessaie." };
-  }
-
-  await upsertRestaurantAdmin({ restaurantId: slug, userId: user.id, role: "gerant", invitedBy: null });
-
-  // ADR 0031 — communautés d'où viennent les clients. Facultatif : un
-  // restaurateur qui ne sait pas encore les complètera depuis ses réglages.
-  // Zone par défaut = le secteur de l'établissement, pour que la proposition
-  // remonte en priorité aux membres de cette zone (ADR 0018).
-  const communities = sanitizeSuggestions(
-    formData.getAll("communities").map((raw) => {
-      try {
-        const parsed = JSON.parse(String(raw)) as { name?: unknown; type?: unknown };
-        return { name: parsed.name, type: parsed.type, zone: sector };
-      } catch {
-        return null;
-      }
-    })
-  );
-  if (communities.length > 0) {
-    await replaceTeamSuggestions(slug, communities);
-  }
-
-  if (user.email) {
-    await sendPartnerApplicationReceivedEmail(user.email, name, slug);
-  }
-
-  redirect(`/become-a-partner/${slug}/menu`);
+  return { result, next: ids.length ? partnerNextStep(ids) : null };
 }
 
 // Étape 2 — catalogue menu obligatoire (ADR 0013, réutilise lib/menu.ts tel

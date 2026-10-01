@@ -1,6 +1,6 @@
 # ADR 0075 — L'inscription restaurateur part de Google, le compte vient après, plusieurs établissements d'un coup
 
-**Statut** : Proposé (2026-10-01) — décidé par le porteur en session, maquette validée
+**Statut** : Accepté (2026-10-01) — décidé par le porteur en session, maquette validée
 (« Inscription restaurant Boosteats », cinq écrans). C'est l'« ADR de suivi » annoncé par
 l'[ADR 0015](0015-multi-restaurant-platform-pivot.md) §6 et § Évolutions (flow self-service).
 Amende l'ADR 0015 §6-7 (ordre établissement → compte, condition de validation),

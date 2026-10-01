@@ -109,13 +109,15 @@ Le bouton mobile du header n'est PAS instrumenté : il mène à la connexion
 
 | Événement | Paramètres | Déclencheur |
 |---|---|---|
-| `partner_signup_started` | `source` | Ouverture de `/become-a-partner` |
+| `partner_signup_started` | `source` | Ouverture de `/become-a-partner` (recherche Google, sans compte — ADR 0075 ; `source = recherche_google`) |
 | `partner_step_completed` | `step_name`, `step_number` | Étape validée (compte 1 → menu 2 → ticket 3 → social 4) |
 | `partner_onboarding_completed` | `steps_total` | Étape 4 franchie, y compris si les réseaux sont passés |
 
-**Source d'une inscription restaurateur (côté serveur, pas GA4).** Un visiteur sans
-compte sur `/become-a-partner` arrive sur l'inscription `/signup?as=resto` (jamais
-`/login`), UTM recopiés. Le middleware garde les UTM du premier lien restaurateur
+**Source d'une inscription restaurateur (côté serveur, pas GA4).** Depuis l'ADR 0075, un
+visiteur sans compte reste sur `/become-a-partner` (recherche Google) ; le compte
+(`/signup?as=resto`) vient ensuite. `restaurants.signup_prefill` garde, pour chaque
+établissement, `source` (`google` / `manuel`) et les champs corrigés par rapport à la
+fiche Google. Le middleware garde les UTM du premier lien restaurateur
 dans le cookie `partner_attribution` (30 jours, `lib/partner-attribution.ts`) ;
 `createPartnerRestaurant` les écrit dans `restaurants.signup_attribution`. Le bouton
 d'un rapport d'audit porte `utm_source=audit&utm_medium=rapport&utm_campaign=audit_restaurant&utm_content=<id du rapport>` :
