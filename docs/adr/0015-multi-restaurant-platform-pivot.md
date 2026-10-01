@@ -1,6 +1,6 @@
 # ADR 0015 — Pivot plateforme : un réseau de restaurants en libre-service (remplace le modèle 3-Belchicken)
 
-**Statut** : Accepté (2026-07-01) — cadré en session avec l'utilisateur (§ Décisions confirmées). Cet ADR **supersede l'ADR 0005** et **amende l'ADR 0014 §1 et §4** ainsi que `CONTEXT.md` § Établissements.
+**Statut** : Accepté (2026-07-01) — cadré en session avec l'utilisateur (§ Décisions confirmées). Cet ADR **supersede l'ADR 0005** et **amende l'ADR 0014 §1 et §4** ainsi que `CONTEXT.md` § Établissements. — §6-7 amendés par l'[ADR 0075](0075-inscription-restaurateur-google-multi-etablissements.md) (2026-10-01) : établissements trouvés sur Google avant le compte, plusieurs à la fois, validation conditionnée à la carte et au ticket.
 
 ## Contexte
 

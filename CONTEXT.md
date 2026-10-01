@@ -237,8 +237,16 @@ Lien à usage unique généré depuis `/platform` (super-admin, n'importe quel �
 _Avoid_ : magic link (réservé à la connexion Supabase), invitation membre (le parrainage, ADR 0006, est un autre objet), « évince »/« remplace » (une invitation ordinaire n'évince plus personne depuis ADR 0041 — seul un futur transfert de gérance, non construit, le ferait).
 
 **Statut établissement** *(ADR 0015)* :
-`pending` (créé en self-service, invisible aux membres, en attente de validation par le super-admin) ou `active` (visible et rejoignable). Contrôle qualité en phase de lancement — jamais de mise en ligne automatique.
-_Avoid_ : approuvé/rejeté (le rejet n'est pas encore modélisé), publié.
+`pending` (créé en self-service, invisible aux membres, en attente de validation par le super-admin) ou `active` (visible et rejoignable). Contrôle qualité en phase de lancement — jamais de mise en ligne automatique. Depuis l'ADR 0075, un établissement `pending` n'est validable qu'avec sa **carte** (au moins un article actif) et son **ticket** (`restaurant_receipt_config.confirmed_at`) ; `disabled` = refusé ou désactivé.
+_Avoid_ : publié.
+
+**Brouillon d'inscription** *(ADR 0075)* :
+Les établissements trouvés sur Google et corrigés par le restaurateur **avant** qu'il ait un compte. Ne touche pas la base : vit dans le navigateur et part avec la demande de compte ; les établissements sont créés (`pending`) à la création du compte, revalidés côté serveur.
+_Avoid_ : établissement pending (le brouillon n'existe pas encore en base).
+
+**Page d'avancement** *(ADR 0075)* :
+La seule page qu'un restaurateur voit tant qu'un de ses établissements `pending` n'a pas sa carte ou son ticket : ligne d'étapes (faites en vert, restantes en orange, validation en gris) et une carte par étape restante avec son bouton. Les étapes sont déduites des données, jamais déclarées.
+_Avoid_ : liste de lancement (ADR 0064, c'est la checklist de la console d'un établissement déjà ouvert), onboarding (trop vague).
 
 **Compte démo** *(ADR 0033)* :
 Établissement fictif (`restaurants.is_demo`) créé pour démontrer le produit à un prospect. Ce n'est **pas un mode** : même table, même code, même parcours, aucune branche conditionnelle — seule sa **visibilité** change. Il est exclu de l'accueil, de `/secteurs`, de la liste « Choisis ton restaurant » et des chiffres réseau ; son URL directe `/r/[id]` reste accessible, c'est ce qu'on ouvre pendant la démonstration. Bascule réversible d'un clic depuis `/platform`. Depuis m56, tous les établissements sauf Belchicken Kraainem sont des comptes démo. Toute nouvelle surface publique listant des établissements passe par `listLiveRestaurants()` (`lib/demo.ts`) — `status = 'active' AND is_demo = false`.
