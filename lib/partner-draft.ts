@@ -26,6 +26,8 @@ export type DraftEstablishment = {
   cuisine: string[];
   /** Valeurs lues sur Google, pour savoir ce que le restaurateur a corrigé. */
   google: Partial<Record<PrefillField, string>> | null;
+  /** Ce que Google dit du lieu, pour proposer des types de cuisine (lib/cuisine-tags.ts). */
+  hints?: { category: string; types: string[] };
 };
 
 export type Draft = { establishments: DraftEstablishment[] };
@@ -40,6 +42,8 @@ export type PlacePrefill = {
   website: string;
   mapsUrl: string;
   cuisine: string[];
+  category: string;
+  types: string[];
 };
 
 /**
@@ -89,7 +93,10 @@ export function fromPrefill(p: PlacePrefill): DraftEstablishment {
     phone: p.phone,
     website: displayWebsite(p.website),
     mapsUrl: p.mapsUrl,
-    cuisine: p.cuisine,
+    // Vide : le restaurateur choisit parmi des étiquettes proposées d'après
+    // la fiche (catégorie, types de lieu) et le nom — jamais imposées.
+    cuisine: [],
+    hints: { category: p.category, types: p.types },
     google: { name: p.name, address: p.address, sector: p.sector, phone: p.phone, website: displayWebsite(p.website) },
   };
 }

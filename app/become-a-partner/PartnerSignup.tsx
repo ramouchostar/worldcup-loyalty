@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { registerDraftEstablishments } from "./actions";
 import { TrackOnMount } from "@/components/analytics/TrackOnMount";
+import { CuisineTags } from "./CuisineTags";
 import { queueEvent } from "@/lib/analytics-pending";
 import {
   DRAFT_MAX_ESTABLISHMENTS,
@@ -264,15 +265,10 @@ export function PartnerSignup({ signedIn }: { signedIn: boolean }) {
                   <span>Site web</span>
                   <input className={input} value={e.website} maxLength={300} placeholder="Facultatif" onChange={(ev) => update(i, { website: ev.target.value })} />
                 </label>
-                <label className="sm:col-span-2 text-xs text-gray-500 space-y-1">
+                <div className="sm:col-span-2 text-xs text-gray-500 space-y-1">
                   <span>Type de cuisine</span>
-                  <input
-                    className={input}
-                    defaultValue={e.cuisine.join(", ")}
-                    placeholder="Ex : Burger, Smash burger"
-                    onBlur={(ev) => update(i, { cuisine: ev.target.value.split(",").map((c) => c.trim()).filter(Boolean).slice(0, 5) })}
-                  />
-                </label>
+                  <CuisineTags value={e.cuisine} onChange={(cuisine) => update(i, { cuisine })} name={e.name} hints={e.hints} />
+                </div>
               </div>
             </div>
           ))}
