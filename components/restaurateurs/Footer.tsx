@@ -34,8 +34,8 @@ export function Footer() {
           <Link href="/privacy" className="text-night-faint text-xs hover:text-night-text transition-colors">
             Politique de confidentialité
           </Link>
-          <a href="mailto:contact@boosteats.tech" className="text-night-faint text-xs hover:text-night-text transition-colors">
-            contact@boosteats.tech
+          <a href="mailto:contact@boosteats.be" className="text-night-faint text-xs hover:text-night-text transition-colors">
+            contact@boosteats.be
           </a>
         </div>
       </div>

@@ -37,9 +37,9 @@ const MIN_STEP_MS = 4200;
 const POLL_MS = 1200;
 
 const START_ERRORS: Record<string, string> = {
-  plafond_ip: "Trois analyses ont déjà été lancées depuis cette connexion aujourd'hui. Réessayez demain, ou écrivez à contact@boosteats.tech.",
-  plafond_jour: "L'analyse gratuite est très demandée aujourd'hui. Réessayez demain, ou écrivez à contact@boosteats.tech.",
-  indisponible: "L'analyse est momentanément indisponible. Écrivez à contact@boosteats.tech pour recevoir l'audit.",
+  plafond_ip: "Trois analyses ont déjà été lancées depuis cette connexion aujourd'hui. Réessayez demain, ou écrivez à contact@boosteats.be.",
+  plafond_jour: "L'analyse gratuite est très demandée aujourd'hui. Réessayez demain, ou écrivez à contact@boosteats.be.",
+  indisponible: "L'analyse est momentanément indisponible. Écrivez à contact@boosteats.be pour recevoir l'audit.",
   echec: "Cette fiche n'a pas pu être lue. Vérifiez l'établissement choisi et réessayez.",
 };
 

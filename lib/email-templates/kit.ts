@@ -20,6 +20,8 @@
 // aucune police web (repli système), aucune image indispensable à la
 // lecture — chaque image a un texte alternatif qui porte le sens.
 
+import { SITE_ORIGIN } from "@/lib/site";
+
 export type RenderedEmail = {
   subject: string;
   preheader: string;
@@ -45,7 +47,7 @@ export type MemberTheme = {
 };
 
 // Même défaut que app/layout.tsx : le domaine de production.
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://boosteats.tech";
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 export const appLink: LinkFn = (path) => `${APP_URL}${path}`;
 
 // Habillage d'un e-mail membre sans établissement (bienvenue) : l'identité

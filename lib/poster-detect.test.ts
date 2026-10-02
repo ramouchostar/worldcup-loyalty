@@ -34,6 +34,7 @@ test("QR d'affiche et de vitrine → programme reconnu", () => {
   );
   assert.equal(isProgramQrPayload("https://worldcup-loyalty.vercel.app/r/kraainem"), true);
   assert.equal(isProgramQrPayload("HTTPS://WORLDCUP-LOYALTY.VERCEL.APP/JOIN?REF=ABC123"), true);
+  assert.equal(isProgramQrPayload("https://www.boosteats.be/r/kraainem?utm_source=qr_code"), true);
 });
 
 test("QR d'avis du ticket de caisse ou étranger → jamais bloqué", () => {

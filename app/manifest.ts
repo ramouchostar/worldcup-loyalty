@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE_ORIGIN } from "@/lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -20,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
     // est DÉJÀ installée quand on navigue dans le navigateur — la carte
     // « Installe l'app » se cache alors au lieu de proposer un geste mort.
     prefer_related_applications: false,
-    related_applications: [{ platform: "webapp", url: "https://worldcup-loyalty.vercel.app/manifest.webmanifest" }],
+    related_applications: [{ platform: "webapp", url: `${SITE_ORIGIN}/manifest.webmanifest` }],
     icons: [
       {
         src: "/api/icons/192",

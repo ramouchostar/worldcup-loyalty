@@ -202,8 +202,8 @@ gérant saisies), **final** (figé, prêt à partir).
 - **Télécharger** : le PDF est la page du lien partagé, imprimée par le navigateur (bouton
   « Télécharger en PDF », ou `?pdf=1` qui ouvre directement l'impression) — une seule mise en
   page, sans Chromium sur Vercel ni fichier stocké (précisé le 2026-09-26).
-- **Partager le lien** : `boosteats.tech/audit/<nom-du-restaurant>/v<N>-<jeton>` (précisé le
-  2026-09-26, demande du porteur : un lien qu'on reconnaît dans WhatsApp). Le nom est
+- **Partager le lien** : `boosteats.be/audit/<nom-du-restaurant>/v<N>-<jeton>` (précisé le
+  2026-09-26, demande du porteur : un lien qu'on reconnaît dans WhatsApp ; domaine `.be` depuis le 2026-10-02, les liens `.tech` déjà envoyés ne s'ouvrent plus). Le nom est
   décoratif (un mauvais nom redirige vers le bon), seul le jeton ouvre : 128 bits, dérivé de
   l'identifiant du lien par HMAC avec un secret serveur (`AUDIT_SHARE_SECRET`, à défaut la clé
   service-role), **seule son empreinte sha256 est stockée** et la console peut réafficher le

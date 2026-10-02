@@ -113,7 +113,7 @@ function FlyerSheet({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "0.25mm solid #E4E4DC", paddingTop: "3.5mm" }}>
           <span style={{ ...mono, fontSize: "2.5mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82" }}>{urlLabel}</span>
           <span style={{ ...mono, fontSize: "1.75mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82" }}>
-            Propulsé par <span style={{ color: BOOSTEATS_GREEN }}>BOOSTEATS.TECH</span>
+            Propulsé par <span style={{ color: BOOSTEATS_GREEN }}>BOOSTEATS.BE</span>
           </span>
         </div>
       </div>
@@ -163,7 +163,7 @@ function StickerSheet({
           DES POINTS À CHAQUE COMMANDE
         </span>
         <span style={{ ...mono, fontSize: "1.25mm", letterSpacing: "0.12em", textTransform: "uppercase", color: BOOSTEATS_GREEN }}>
-          BOOSTEATS.TECH
+          BOOSTEATS.BE
         </span>
       </div>
     </div>
@@ -218,7 +218,7 @@ function AfficheSheet({
             ))}
           </div>
           <p style={{ ...mono, fontSize: "4mm", letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A82", margin: 0, borderTop: "0.5mm solid #3D3D3D", paddingTop: "5.5mm" }}>
-            Propulsé par <span style={{ color: BOOSTEATS_GREEN }}>BOOSTEATS.TECH</span>
+            Propulsé par <span style={{ color: BOOSTEATS_GREEN }}>BOOSTEATS.BE</span>
           </p>
         </div>
       </div>

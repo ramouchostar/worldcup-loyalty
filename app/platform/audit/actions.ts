@@ -240,7 +240,7 @@ export async function startAudit(formData: FormData) {
 }
 
 // ADR 0069 §6 — figer la version suivante et créer son lien partagé
-// (boosteats.tech/audit/<nom>/v<N>-<jeton>). Le lien s'affiche en tête du
+// (boosteats.be/audit/<nom>/v<N>-<jeton>). Le lien s'affiche en tête du
 // rapport, avec « Copier », « Ouvrir » et « PDF ».
 export async function shareAudit(auditId: string) {
   const user = await requireSuperAdmin();

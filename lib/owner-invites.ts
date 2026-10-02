@@ -3,6 +3,7 @@ import { createAdminClient } from "./supabase";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "./owner-invite-token";
 import { type AdminRole, upsertRestaurantAdmin } from "./restaurant-admins";
 import { sendOwnerInviteEmail } from "./email";
+import { SITE_ORIGIN } from "@/lib/site";
 
 // ADR 0032 — invitation restaurateur par lien. Le super-admin génère un lien depuis
 // /platform, l'envoie au restaurateur (WhatsApp / email), et c'est le clic du
@@ -14,7 +15,7 @@ import { sendOwnerInviteEmail } from "./email";
 // vie bornée, consommable une seule fois, compare-and-swap à l'acceptation.
 // Table service-role only (m55) — jamais lisible par la clé anon.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 
 // 14 jours : un restaurateur démarché sur le terrain ne s'inscrit pas le soir
 // même. Assez long pour survivre à une relance, assez court pour qu'un lien

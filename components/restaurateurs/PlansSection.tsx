@@ -41,7 +41,7 @@ const PRO_FEATURES = [
 ];
 
 const PILOT_MAILTO = (plan: string) =>
-  `mailto:contact@boosteats.tech?subject=${encodeURIComponent(`Place pilote — plan ${plan}`)}`;
+  `mailto:contact@boosteats.be?subject=${encodeURIComponent(`Place pilote — plan ${plan}`)}`;
 
 export function PlansSection() {
   return (

@@ -222,7 +222,7 @@ Le code est prêt ; ces réglages-là ne se font que dans l'admin GA4.
 
 1. **Créer la propriété** — fuseau `Europe/Brussels`, devise `EUR`.
 2. **Créer le flux de données web** sur le domaine de production
-   (`boosteats.tech`). Récupérer l'**ID de mesure** `G-XXXXXXXXXX`.
+   (`www.boosteats.be` — `boosteats.tech` jusqu'au 2026-10-02). Récupérer l'**ID de mesure** `G-XXXXXXXXXX`.
 3. **Renseigner `NEXT_PUBLIC_GA_MEASUREMENT_ID`** sur Vercel — production
    uniquement dans un premier temps. Redéployer (la CSP est calculée au build).
 

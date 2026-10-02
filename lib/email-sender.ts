@@ -1,8 +1,8 @@
 // Expéditeur et adresse de réponse des e-mails (ADR 0063 §5). Pur, sans
 // accès base : testable et importable partout.
 //
-//   EMAIL_DOMAIN    sous-domaine d'envoi vérifié chez Resend (mail.boosteats.tech)
-//   EMAIL_REPLY_TO  boîte réelle, lue par l'équipe (contact@boosteats.tech)
+//   EMAIL_DOMAIN    domaine d'envoi vérifié chez Resend (boosteats.be)
+//   EMAIL_REPLY_TO  boîte réelle, lue par l'équipe (contact@boosteats.be)
 //   EMAIL_FROM      repli historique tant que le domaine n'est pas configuré
 //
 // Membre : le nom de SON établissement comme expéditeur — c'est lui qu'il

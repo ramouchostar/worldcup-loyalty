@@ -108,7 +108,13 @@ export default async function PlatformMessagesPage() {
     label: `${e.audience === "membre" ? "Membre" : "Restaurateur"} · ${e.sequence}${e.variant ? ` (${e.variant})` : ""}`,
   }));
   const transactional = MESSAGES.filter((m) => m.kind === "transactionnel" && m.key !== "test");
-  const emailSendable = setup.hasApiKey && !!setup.domain;
+  // boosteats.tech abandonné le 2026-10-02 pour boosteats.be : une variable
+  // Vercel restée sur l'ancien domaine envoie depuis un domaine sans DNS
+  // (DKIM en échec → spam) et des réponses vers une boîte qui va disparaître.
+  const staleDomain = (v: string | null | undefined) => !!v && /boosteats\.tech/i.test(v);
+  const domainStale = staleDomain(setup.domain);
+  const replyToStale = staleDomain(setup.replyTo);
+  const emailSendable = setup.hasApiKey && !!setup.domain && !domainStale;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 py-8 px-4">
@@ -143,18 +149,24 @@ export default async function PlatformMessagesPage() {
             hint={setup.hasApiKey ? undefined : "Vercel → projet worldcup-loyalty → RESEND_API_KEY (Production), puis redéployer. Sans elle, aucun e-mail ne part."}
           />
           <SetupRow
-            ok={!!setup.domain}
+            ok={!!setup.domain && !domainStale}
             label="Domaine d'envoi"
             value={setup.domain ?? "Non défini"}
-            hint={setup.domain ? "Doit être exactement le domaine vérifié chez Resend." : "EMAIL_DOMAIN vide : l'expéditeur de secours de Resend ne délivre qu'au propriétaire du compte. Valeur attendue : boosteats.tech."}
+            hint={domainStale ? "Ancien domaine : boosteats.tech est abandonné. Vérifier boosteats.be chez Resend, puis EMAIL_DOMAIN=boosteats.be dans Vercel et redéployer." : setup.domain ? "Doit être exactement le domaine vérifié chez Resend." : "EMAIL_DOMAIN vide : l'expéditeur de secours de Resend ne délivre qu'au propriétaire du compte. Valeur attendue : boosteats.be."}
           />
-          <SetupRow ok={!!setup.domain} label="Expéditeur membre" value={setup.memberFrom} />
-          <SetupRow ok={!!setup.domain} label="Expéditeur restaurateur" value={setup.restaurantFrom} />
+          <SetupRow ok={!!setup.domain && !domainStale} label="Expéditeur membre" value={setup.memberFrom} />
+          <SetupRow ok={!!setup.domain && !domainStale} label="Expéditeur restaurateur" value={setup.restaurantFrom} />
           <SetupRow
-            ok={!!setup.replyTo}
+            ok={!!setup.replyTo && !replyToStale}
             label="Les réponses arrivent sur"
             value={setup.replyTo ?? "Non défini"}
-            hint={setup.replyTo ? undefined : "EMAIL_REPLY_TO : une boîte lue par l'équipe (contact@boosteats.tech), jamais celle d'un restaurant."}
+            hint={replyToStale ? "Ancien domaine : EMAIL_REPLY_TO=contact@boosteats.be dans Vercel (la boîte doit exister et recevoir)." : setup.replyTo ? undefined : "EMAIL_REPLY_TO : une boîte lue par l'équipe (contact@boosteats.be), jamais celle d'un restaurant."}
+          />
+          <SetupRow
+            ok={!staleDomain(setup.appUrl)}
+            label="Les liens des e-mails ouvrent"
+            value={setup.appUrl}
+            hint={staleDomain(setup.appUrl) ? "Ancien domaine, les liens mènent à une page introuvable : NEXT_PUBLIC_APP_URL=https://www.boosteats.be dans Vercel, puis redéployer." : undefined}
           />
           <SetupRow
             ok={setup.hasWebhookSecret ? true : null}

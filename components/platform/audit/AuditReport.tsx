@@ -984,7 +984,7 @@ function BoosteatsPlan({ auditId, name, top, answers, signals, objective, now, p
           Démarrer gratuitement dans mon restaurant
         </TrackedLink>
         <span className={s.sum} style={{ fontWeight: 500 }}>Gratuit jusqu&apos;à 500 tickets par mois, sans engagement.</span>
-        <span className={`${s.sum} ${s.printOnly}`}>boosteats.tech/become-a-partner</span>
+        <span className={`${s.sum} ${s.printOnly}`}>boosteats.be/become-a-partner</span>
       </div>
     </section>
   );

@@ -86,7 +86,7 @@ export function PartnerSignup({ signedIn }: { signedIn: boolean }) {
     const taken = res.result.takenByOthers;
     if (!res.next) {
       setError(
-        `${taken.join(", ")} ${taken.length > 1 ? "sont déjà inscrits" : "est déjà inscrit"} sur Boosteats par un autre compte. Si c'est le vôtre, écrivez-nous : contact@boosteats.tech.`,
+        `${taken.join(", ")} ${taken.length > 1 ? "sont déjà inscrits" : "est déjà inscrit"} sur Boosteats par un autre compte. Si c'est le vôtre, écrivez-nous : contact@boosteats.be.`,
       );
       setSaving(false);
       return;
@@ -101,7 +101,7 @@ export function PartnerSignup({ signedIn }: { signedIn: boolean }) {
     const draft = readDraft();
     setList(draft);
     if (new URLSearchParams(window.location.search).get("refus") === "deja_inscrit") {
-      setNotice("Ces établissements sont déjà inscrits sur Boosteats par un autre compte. Si ce sont les vôtres, écrivez-nous : contact@boosteats.tech.");
+      setNotice("Ces établissements sont déjà inscrits sur Boosteats par un autre compte. Si ce sont les vôtres, écrivez-nous : contact@boosteats.be.");
     }
     setSearching(draft.length === 0);
     setLoaded(true);
@@ -156,7 +156,7 @@ export function PartnerSignup({ signedIn }: { signedIn: boolean }) {
         return;
       }
       if (j.alreadyRegistered) {
-        setNotice(`${j.prefill.name} est déjà inscrit sur Boosteats. Si c'est votre établissement, écrivez-nous : contact@boosteats.tech.`);
+        setNotice(`${j.prefill.name} est déjà inscrit sur Boosteats. Si c'est votre établissement, écrivez-nous : contact@boosteats.be.`);
         return;
       }
       setList((l) => [...l, fromPrefill(j.prefill!)]);

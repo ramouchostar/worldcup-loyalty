@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { SITE_ORIGIN } from "@/lib/site";
 
 // POST (et non GET) : cet endpoint MUTE l'état (is_admin=true). Un GET mutant
 // est déclenchable par CSRF (<img src=...>) — on exige donc POST. Reste borné
@@ -26,5 +27,5 @@ export async function POST() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.redirect(new URL("/admin", process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app"));
+  return NextResponse.redirect(new URL("/admin", process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN));
 }

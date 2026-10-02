@@ -1,10 +1,11 @@
 import { RestaurateursLanding } from "@/components/restaurateurs/RestaurateursLanding";
+import { SITE_ORIGIN } from "@/lib/site";
 
 // Landing publique dédiée aux restaurateurs prospects — distincte du
 // formulaire d'inscription (/become-a-partner). Rôle : convaincre avant de
 // faire remplir un formulaire.
 //
-// Devenue la racine du domaine (2026-08-08, ex /restaurateurs) : boosteats.tech
+// Devenue la racine du domaine (2026-08-08, ex /restaurateurs) : boosteats.be
 // s'adresse en priorité aux restaurateurs prospects. La landing membre/client
 // a déménagé vers /membres (voir app/(public)/membres/page.tsx) — /restaurateurs
 // redirige ici en 308 (next.config.mjs) pour ne pas casser les liens existants.
@@ -38,7 +39,7 @@ export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
   // `images` est redonné : un openGraph de page remplace celui du layout, image comprise.
-  openGraph: { title: `Boosteats — ${TITLE}`, description: DESCRIPTION, url: "https://boosteats.tech", siteName: "Boosteats", locale: "fr_BE", type: "website", images: ["/opengraph-image"] },
+  openGraph: { title: `Boosteats — ${TITLE}`, description: DESCRIPTION, url: SITE_ORIGIN, siteName: "Boosteats", locale: "fr_BE", type: "website", images: ["/opengraph-image"] },
   twitter: { card: "summary_large_image", title: `Boosteats — ${TITLE}`, description: DESCRIPTION, images: ["/opengraph-image"] },
 };
 

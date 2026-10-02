@@ -10,8 +10,9 @@ import { getStaffStats } from "@/lib/staff-codes";
 import { usesBelchickenQrTemplate } from "@/lib/qr-template";
 import { StaffCodesSection } from "@/components/admin/StaffCodesSection";
 import { PageHeader } from "@/components/admin/ui";
+import { SITE_ORIGIN } from "@/lib/site";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 
 // QR code de l'établissement — pointe vers sa landing publique /r/[slug].
 // Généré côté serveur aux couleurs de la charte (ADR 0015) : PNG haute

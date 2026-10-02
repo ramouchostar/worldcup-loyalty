@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { resolveStaffCode, STAFF_PITCH, STAFF_FAQ } from "@/lib/staff-codes";
 import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
+import { SITE_ORIGIN } from "@/lib/site";
 
 // ADR 0053 §5 — le badge d'un membre du personnel : QR en grand, prénom, la
 // phrase à dire et trois réponses. Page PUBLIQUE (le gérant envoie le lien
@@ -10,7 +11,7 @@ import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/resta
 // départ de la personne. Aucune donnée sensible : le QR mène à la vitrine
 // publique, le code est fait pour être scanné.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 
 export const metadata = { title: "Mon badge — Boosteats" };
 
