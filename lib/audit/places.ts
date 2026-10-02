@@ -293,3 +293,33 @@ export async function photoUri(photoName: string, maxWidthPx = 640): Promise<str
     clearTimeout(t);
   }
 }
+
+// ─── Recherche par texte (ADR 0076, CRM de prospection) ─────────────────────
+
+const SEARCH_FIELDS = [
+  "places.id", "places.displayName", "places.formattedAddress", "places.addressComponents", "places.location",
+  "places.rating", "places.userRatingCount", "places.websiteUri", "places.nationalPhoneNumber",
+  "places.primaryType", "places.primaryTypeDisplayName", "places.types", "places.googleMapsUri",
+  "places.businessStatus", "places.delivery", "places.takeout", "places.dineIn",
+].join(",");
+
+/**
+ * Text Search limité au rectangle de Bruxelles : jusqu'à 20 fiches ouvertes.
+ * Les fiches fermées (businessStatus ≠ OPERATIONAL) sont retirées ici ; le
+ * filtre exact sur le code postal reste à l'appelant (ADR 0069 §2).
+ * Niveau Enterprise (note, téléphone, site) : un appel par recherche.
+ */
+export async function searchText(textQuery: string, maxResultCount = 20): Promise<PlaceDetails[]> {
+  const j = await call<{ places?: (RawPlace & { businessStatus?: string })[] }>("/places:searchText", {
+    method: "POST",
+    fieldMask: SEARCH_FIELDS,
+    body: {
+      textQuery,
+      languageCode: "fr",
+      regionCode: "be",
+      maxResultCount: Math.min(Math.max(maxResultCount, 1), 20),
+      locationRestriction: { rectangle: BRUSSELS_RECT },
+    },
+  });
+  return (j.places ?? []).filter((p) => !p.businessStatus || p.businessStatus === "OPERATIONAL").map(toDetails);
+}

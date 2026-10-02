@@ -1,6 +1,6 @@
 # ADR 0033 — Console plateforme : comptes démo, chiffres réseau, backlog
 
-**Statut** : Accepté (2026-08-15). Étend l'**ADR 0015 §7** (rôle super-admin plateforme) et l'**ADR 0030 §2/§7** (la console plateforme n'est pas une impasse). N'amende **ni l'ADR 0007** (aucun de ces chiffres ne redescend vers un membre) **ni l'ADR 0029** (le plan reste la seule mécanique de monétisation).
+**Statut** : Accepté (2026-08-15). §4 étendu par l'[ADR 0076](0076-crm-de-prospection-dans-la-plateforme.md) (onglet CRM, 2026-10-03). Étend l'**ADR 0015 §7** (rôle super-admin plateforme) et l'**ADR 0030 §2/§7** (la console plateforme n'est pas une impasse). N'amende **ni l'ADR 0007** (aucun de ces chiffres ne redescend vers un membre) **ni l'ADR 0029** (le plan reste la seule mécanique de monétisation).
 
 ## Contexte
 
