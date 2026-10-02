@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { COIN_EMOJI } from "@/lib/fluent-emoji";
+import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
 
 // Landing générale — audience membres/clients. Distincte de la racine "/"
 // (audience B2B restaurateurs depuis le 2026-08-08 — cf. app/(public)/page.tsx).
@@ -76,9 +77,7 @@ export default async function LandingPage() {
 
       <div className="pt-safe relative z-10">
         <div className="pt-8 pb-4 flex justify-center">
-          <span className="font-display font-bold text-lg tracking-tight text-brand-dark">
-            BOOST<span className="text-brand-red">EATS</span>
-          </span>
+          <BoosteatsLogo className="h-9 w-auto" />
         </div>
       </div>
 

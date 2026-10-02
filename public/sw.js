@@ -7,7 +7,7 @@
 // ci-dessous). Le bump force la mise à jour du service worker installé sur
 // les appareils déjà connectés dès la prochaine visite, au lieu d'attendre
 // une purge de cache fortuite.
-const CACHE_NAME = "worldcup-loyalty-v5";
+const CACHE_NAME = "worldcup-loyalty-v6";
 
 // Ressources à mettre en cache lors de l'installation.
 // /membres (start_url de la PWA) en est volontairement absent : rien ne le

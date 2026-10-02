@@ -11,7 +11,7 @@ export async function GET(
   const size = sizeParam === "512" ? 512 : 192;
   const radius = Math.round(size * 0.16);
 
-  const artRes = await fetch(new URL("/icons/icon-art.png", request.url));
+  const artRes = await fetch(new URL("/icons/icon-boosteats.png", request.url));
   const artBuffer = await artRes.arrayBuffer();
   const artDataUri = `data:image/png;base64,${Buffer.from(artBuffer).toString("base64")}`;
 

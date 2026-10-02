@@ -26,6 +26,28 @@
 
 ## Global Rules
 
+### Logo
+
+Recréé le 2026-10-02 (les fichiers de l'agence étaient perdus) : un cadeau
+ouvert d'où sort une étoile, sur tuile `#0C1509`, et le nom **BOOSTEATS** en
+Manrope ExtraBold converti en tracés. Fichiers dans `public/brand/` :
+
+| Fichier | Usage |
+|---------|-------|
+| `boosteats-symbole.svg` | Favicon, icône d'app, avatar |
+| `boosteats-symbole-sans-fond.svg` | Sur photo ou fond clair, sans tuile |
+| `boosteats-logo-horizontal.svg` / `-clair.svg` | En-têtes ; `-clair` sur fond sombre |
+| `boosteats-logo-vertical.svg` | Affiches, couvertures |
+| `boosteats-wordmark.svg` / `-clair.svg` | Le nom seul |
+| `boosteats-logo-horizontal-clair.png` | E-mails (les clients mail n'affichent pas le SVG) |
+
+Dans le code : `components/brand/BoosteatsLogo.tsx` (jamais un `BOOST<span>EATS</span>`
+en texte) ; images serveur (`next/og`) : `lib/brand/logo-svg.ts`. L'icône d'app
+`public/icons/icon-boosteats.png` est le symbole à fond plein, arrondi par
+`/api/icons/[size]`. Le logo Boosteats ne va **jamais** sur une surface aux
+couleurs d'un établissement (ADR 0015) ni en tête de console restaurateur
+(ADR 0054 : logo et nom de l'établissement).
+
 ### Color Palette
 
 La palette proposée par le générateur (rouge « appétissant » + or) n'a pas été

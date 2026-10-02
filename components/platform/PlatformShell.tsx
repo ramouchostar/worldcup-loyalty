@@ -21,6 +21,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
 
 // ADR 0030 §2/§7 + ADR 0033 §4 — remplace l'ancienne barre d'onglets
 // horizontale (components/platform/PlatformHeader.tsx, supprimée) par un
@@ -214,7 +215,8 @@ export function PlatformShell({
         }`}
       >
         <div className="flex items-center gap-2 h-16 px-3 border-b border-white/10">
-          {!collapsed && <span className="text-platform-accent font-black text-lg truncate px-1">Plateforme</span>}
+          <BoosteatsLogo variant="symbol" decorative className={`h-8 w-8 shrink-0 ${collapsed ? "hidden" : ""}`} />
+          {!collapsed && <span className="text-platform-accent font-black text-lg truncate">Plateforme</span>}
           <button
             type="button"
             onClick={toggleCollapsed}
@@ -241,7 +243,8 @@ export function PlatformShell({
           >
             <Menu size={20} aria-hidden="true" />
           </button>
-          <span className="text-platform-accent font-black text-base">Plateforme</span>
+          <BoosteatsLogo variant="symbol" decorative className="h-7 w-7 shrink-0" />
+          <span className="text-platform-accent font-black text-base -ml-1">Plateforme</span>
         </header>
 
         {mobileOpen && (
@@ -254,7 +257,8 @@ export function PlatformShell({
               className="fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[280px] flex-col bg-brand-dark text-white shadow-xl"
             >
               <div className="flex items-center justify-between h-14 px-4 pt-safe border-b border-white/10">
-                <span className="text-platform-accent font-black text-base">Plateforme</span>
+                <BoosteatsLogo variant="symbol" decorative className="h-7 w-7 shrink-0" />
+          <span className="text-platform-accent font-black text-base -ml-1">Plateforme</span>
                 <button
                   type="button"
                   onClick={() => setMobileOpen(false)}
