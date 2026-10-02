@@ -212,8 +212,7 @@ export function proShell(opts: {
   <td bgcolor="${MAIL.proDark}" style="background-color:${MAIL.proDark}; border-radius:20px 20px 0 0; padding:20px 28px 22px;" class="px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
       <td>
-        <span style="display:inline-block; width:8px; height:8px; border-radius:4px; background-color:${MAIL.proAccent};"></span>
-        <span style="color:#FFFFFF; font-size:15px; font-weight:800; letter-spacing:0.02em; padding-left:6px;">Boosteats</span>
+        <img src="${appLink("/brand/boosteats-logo-horizontal-clair.png")}" alt="Boosteats" width="110" height="24" style="display:block; width:110px; height:24px; border:0; color:#FFFFFF; font-size:15px; font-weight:800;" />
         <div style="margin-top:10px; color:rgba(255,255,255,0.62); font-family:${MONO}; font-size:11px; letter-spacing:0.12em; text-transform:uppercase;">${esc(opts.restaurantName)} · ${esc(opts.kicker)}</div>
       </td>
       ${logo}

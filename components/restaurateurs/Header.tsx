@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { useScrolled } from "./motion";
+import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
 
 export function Header() {
   const scrolled = useScrolled();
@@ -14,9 +15,9 @@ export function Header() {
       }`}
     >
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-6">
-        <span className="font-display font-bold text-[17px] tracking-tight text-white">
-          BOOST<span className="text-moss">EATS</span>
-        </span>
+        <Link href="/" className="shrink-0">
+          <BoosteatsLogo tone="light" className="h-8 w-auto" />
+        </Link>
         <nav className="hidden md:flex items-center gap-7">
           <NavLink href="/audit-gratuit">Audit gratuit</NavLink>
           <NavLink href="#fonctionnalites">Fonctionnalités</NavLink>
