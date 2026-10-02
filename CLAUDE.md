@@ -121,7 +121,7 @@ Deployment  : Vercel (ramouchostar/worldcup-loyalty)
 ## Variables d'environnement requises
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_URL=           # domaine perso possible (auth.boosteats.be) : ajouté à la CSP au build ; cookie de session figé (lib/supabase-cookie.ts)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_RESTAURANT_NAME=        # ex. "Belchicken Houba"

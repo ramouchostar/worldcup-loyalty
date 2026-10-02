@@ -23,6 +23,18 @@ const gaImgSrc = gaEnabled
   ? " https://*.google-analytics.com https://*.googletagmanager.com"
   : "";
 
+// Domaine personnalisé Supabase (ex. auth.boosteats.be, 2026-10-02) : l'origine
+// de NEXT_PUBLIC_SUPABASE_URL est ajoutée telle quelle, en plus de
+// *.supabase.co (les URL déjà stockées en base, logos et photos, gardent
+// l'ancien hôte, qui continue de répondre).
+let supabaseOrigin = "";
+try {
+  const u = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+  if (!u.hostname.endsWith(".supabase.co")) supabaseOrigin = u.host;
+} catch {}
+const sbImgSrc = supabaseOrigin ? ` https://${supabaseOrigin}` : "";
+const sbConnectSrc = supabaseOrigin ? ` https://${supabaseOrigin} wss://${supabaseOrigin}` : "";
+
 const ContentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -33,9 +45,9 @@ const ContentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   // *.googleusercontent.com : photos des fiches Google dans le rapport d'audit
   // (ADR 0069, /platform/audit) — images seulement, aucun script.
-  `img-src 'self' data: blob: https://*.supabase.co https://cdn.jsdelivr.net https://*.googleusercontent.com${gaImgSrc}`,
+  `img-src 'self' data: blob: https://*.supabase.co${sbImgSrc} https://cdn.jsdelivr.net https://*.googleusercontent.com${gaImgSrc}`,
   "font-src 'self' data:",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${gaConnectSrc}`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${sbConnectSrc}${gaConnectSrc}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");

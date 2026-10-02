@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getRestaurantId } from "@/lib/restaurant";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
 import {
   PARTNER_ATTRIBUTION_COOKIE,
   PARTNER_ATTRIBUTION_MAX_AGE,
@@ -16,6 +17,7 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: SUPABASE_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll();
