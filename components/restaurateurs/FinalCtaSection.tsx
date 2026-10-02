@@ -31,8 +31,8 @@ export function FinalCtaSection() {
         </div>
         <p className="text-sm text-ink-faint mt-5">
           Une question avant de démarrer ? L&apos;équipe répond à{" "}
-          <a href="mailto:contact@boosteats.tech" className="text-moss-dark hover:underline">
-            contact@boosteats.tech
+          <a href="mailto:contact@boosteats.be" className="text-moss-dark hover:underline">
+            contact@boosteats.be
           </a>
           .
         </p>

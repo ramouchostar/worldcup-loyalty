@@ -54,7 +54,7 @@ const nextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   // /restaurateurs → / (2026-08-08) : la landing restaurateurs a pris la
-  // racine du domaine boosteats.tech (ex landing membre, déplacée vers
+  // racine du domaine boosteats.be (ex landing membre, déplacée vers
   // /membres). Redirection permanente pour ne pas casser les liens/QR déjà
   // partagés vers l'ancienne URL.
   async redirects() {

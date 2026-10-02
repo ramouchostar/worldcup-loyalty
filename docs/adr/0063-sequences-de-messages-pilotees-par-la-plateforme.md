@@ -242,3 +242,13 @@ brancher le SMTP Resend dans Supabase, renseigner `EMAIL_DOMAIN` et `EMAIL_REPLY
 - **Aperçu** sur `/platform/messages` : pour chaque séquence et chaque établissement réel,
   combien de membres la recevraient aujourd'hui si elle était allumée seule (témoin compris).
   Au 21/09 à Kraainem : premier ticket 17 (+3 témoins), app 10 (+1), amis 1, équipe 19 (+2).
+
+## Amendement du 2026-10-02 — domaine boosteats.be
+
+`boosteats.tech` est abandonné au profit de **`boosteats.be`** (Vercel sert
+`www.boosteats.be`, l'apex y redirige). Tout ce qui précède vaut en remplaçant `.tech` par
+`.be` : domaine vérifié chez Resend `boosteats.be` (`EMAIL_DOMAIN=boosteats.be`, expéditeurs
+`bonjour@` / `equipe@`), réponses vers `contact@boosteats.be` (`EMAIL_REPLY_TO`), liens des
+e-mails sur `NEXT_PUBLIC_APP_URL=https://www.boosteats.be`. Le défaut du code est
+`SITE_ORIGIN` (`lib/site.ts`). `/platform/messages` signale en orange toute variable restée
+sur l'ancien domaine.

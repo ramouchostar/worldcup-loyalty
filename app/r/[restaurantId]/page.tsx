@@ -16,6 +16,7 @@ import { recordStaffLanding } from "@/lib/staff-codes";
 import { recordLanding } from "@/lib/qr-funnel";
 import { COIN_EMOJI, PEOPLE_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
+import { SITE_ORIGIN } from "@/lib/site";
 
 type LeaderboardRow = Omit<CommunityScore, "total_spent"> & {
   teams: Pick<Team, "name" | "flag_emoji" | "is_active">;
@@ -358,7 +359,7 @@ export default async function RestaurantLandingPage({
         <div className="max-w-lg mx-auto px-5 mt-4 pt-4 border-t border-white/10 text-center text-[11px] text-gray-500">
           Launched by{" "}
           <a
-            href="https://boosteats.tech"
+            href={SITE_ORIGIN}
             target="_blank"
             rel="noopener noreferrer"
             className="text-brand-gold hover:underline font-semibold"

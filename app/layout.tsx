@@ -4,6 +4,7 @@ import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { Analytics } from "@/components/analytics/Analytics";
 import { CookieBanner } from "@/components/analytics/CookieBanner";
+import { SITE_ORIGIN } from "@/lib/site";
 
 // Polices curées de la charte graphique (m48, lib/branding.ts FONT_OPTIONS).
 // Toutes montées ici, quel que soit l'établissement — c'est --brand-font
@@ -40,7 +41,7 @@ const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700
 const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
 const brandFontVariables = `${inter.variable} ${manrope.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://boosteats.tech";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 
 // Branding plateforme neutre (ADR 0015) — le nom d'un établissement
 // n'apparaît que sur ses propres surfaces, jamais dans les métadonnées

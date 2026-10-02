@@ -4,13 +4,13 @@ import { replyToAddress, senderAddress, senderDisplayName } from "./email-sender
 
 test("expéditeur membre : le nom de l'établissement, sur le domaine d'envoi", () => {
   assert.equal(
-    senderAddress("member", "Belchicken Kraainem", { domain: "mail.boosteats.tech" }),
-    '"Belchicken Kraainem" <bonjour@mail.boosteats.tech>'
+    senderAddress("member", "Belchicken Kraainem", { domain: "mail.boosteats.be" }),
+    '"Belchicken Kraainem" <bonjour@mail.boosteats.be>'
   );
 });
 
 test("expéditeur restaurateur : Boosteats", () => {
-  assert.equal(senderAddress("restaurant", "Belchicken Kraainem", { domain: "mail.boosteats.tech" }), "Boosteats <equipe@mail.boosteats.tech>");
+  assert.equal(senderAddress("restaurant", "Belchicken Kraainem", { domain: "mail.boosteats.be" }), "Boosteats <equipe@mail.boosteats.be>");
 });
 
 test("sans domaine configuré : repli sur EMAIL_FROM, puis sur l'adresse de test Resend", () => {
@@ -25,7 +25,7 @@ test("nom affiché : ni guillemets, ni chevrons, ni retour à la ligne", () => {
 });
 
 test("réponses : l'adresse configurée, jamais une chaîne vide", () => {
-  assert.equal(replyToAddress({ replyTo: " contact@boosteats.tech " }), "contact@boosteats.tech");
+  assert.equal(replyToAddress({ replyTo: " contact@boosteats.be " }), "contact@boosteats.be");
   assert.equal(replyToAddress({ replyTo: "" }), undefined);
   assert.equal(replyToAddress({}), undefined);
 });

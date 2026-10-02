@@ -138,10 +138,10 @@ ADMIN_EMAILS=                       # emails bootstrappés comme admin établiss
 SUPER_ADMIN_EMAILS=                 # emails bootstrappés comme super-admin plateforme (is_super_admin, ADR 0015 §7)
 RESEND_API_KEY=                     # emailing (lib/email.ts) — non configuré = envoi désactivé silencieusement
 EMAIL_FROM=                         # repli tant que EMAIL_DOMAIN est vide — ex. "Boosteats <onboarding@resend.dev>"
-EMAIL_DOMAIN=                       # ADR 0063 — domaine vérifié chez Resend : boosteats.tech (expéditeurs bonjour@ / equipe@)
+EMAIL_DOMAIN=                       # ADR 0063 — domaine vérifié chez Resend : boosteats.be (expéditeurs bonjour@ / equipe@)
 RESEND_WEBHOOK_SECRET=              # ADR 0063 — secret « whsec_… » du webhook Resend → /api/webhooks/resend (délivré, rebond, plainte)
-EMAIL_REPLY_TO=                     # ADR 0063 — boîte réelle qui reçoit les réponses, ex. contact@boosteats.tech (jamais celle d'un restaurant)
-NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://worldcup-loyalty.vercel.app
+EMAIL_REPLY_TO=                     # ADR 0063 — boîte réelle qui reçoit les réponses, ex. contact@boosteats.be (jamais celle d'un restaurant)
+NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://www.boosteats.be (défaut du code : SITE_ORIGIN, lib/site.ts)
 ANTHROPIC_API_KEY=                  # vision : OCR ticket, découverte clé ticket, suggestions menu, détection de design (m48)
 NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun script Google, aucune bannière cookies, CSP fermée
 GOOGLE_PLACES_API_KEY=              # ADR 0071 — serveur uniquement : Places API (New) + PageSpeed Insights (audit gratuit). Vide = /audit-gratuit « indisponible »

@@ -6,7 +6,7 @@ const NOW = new Date("2026-10-01T10:00:00Z");
 
 test("le lien du rapport d'audit porte ses UTM et l'identifiant du rapport", () => {
   const href = auditSignupHref("3f2a9c1e-0000-4000-8000-000000000001");
-  const a = readAttribution(new URL(href, "https://boosteats.tech").searchParams, "/become-a-partner", NOW);
+  const a = readAttribution(new URL(href, "https://boosteats.be").searchParams, "/become-a-partner", NOW);
   assert.equal(a?.utm_source, "audit");
   assert.equal(a?.utm_medium, "rapport");
   assert.equal(a?.utm_content, "3f2a9c1e-0000-4000-8000-000000000001");

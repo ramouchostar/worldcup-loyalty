@@ -1,7 +1,7 @@
 // ADR 0069 §6 — version finale figée et lien partagé au gérant.
 // SERVEUR UNIQUEMENT (service role) : tables en RLS sans policy.
 //
-// Le lien : boosteats.tech/audit/<nom-du-restaurant>/v<N>-<jeton>.
+// Le lien : boosteats.be/audit/<nom-du-restaurant>/v<N>-<jeton>.
 // - Le nom est lisible (le gérant reconnaît son restaurant dans WhatsApp) mais
 //   ne sert à rien pour ouvrir : seul le jeton compte (un mauvais nom redirige
 //   vers le bon).
@@ -14,15 +14,16 @@
 import { createHash, createHmac } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable, type AuditRow, type SectionRow } from "./store";
+import { SITE_ORIGIN } from "@/lib/site";
 
 export const SHARE_DAYS = 90;
 
 /**
- * Le lien envoyé au gérant est toujours sur boosteats.tech, quel que soit
+ * Le lien envoyé au gérant est toujours sur boosteats.be, quel que soit
  * NEXT_PUBLIC_APP_URL (encore l'adresse vercel.app en production le
  * 2026-09-26) : c'est notre marque qu'il doit reconnaître dans WhatsApp.
  */
-export const SHARE_ORIGIN = "https://boosteats.tech";
+export const SHARE_ORIGIN = SITE_ORIGIN;
 
 export interface Snapshot {
   v: 1;

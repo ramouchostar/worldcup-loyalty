@@ -7,7 +7,7 @@ import { AuditReport } from "@/components/platform/audit/AuditReport";
 import { AutoPrint, PrintButton } from "@/components/platform/audit/PrintButton";
 import s from "@/components/platform/audit/report.module.css";
 
-// ADR 0069 §6 — le rapport remis au gérant : boosteats.tech/audit/<nom>/v<N>-<jeton>.
+// ADR 0069 §6 — le rapport remis au gérant : boosteats.be/audit/<nom>/v<N>-<jeton>.
 // Lecture seule, version figée, noindex, 90 jours, révocable. Chaque ouverture
 // est comptée côté serveur (sauf les nôtres, super-admin) : la console dit si
 // le gérant l'a regardé.
@@ -42,7 +42,7 @@ export default async function SharedAuditPage({ params, searchParams }: { params
           <div className={s.card} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <b>{REASON[shared.reason]}</b>
             <span className={s.sum} style={{ fontWeight: 500 }}>
-              Pour recevoir une version à jour, écrivez-nous : <a href="mailto:contact@boosteats.tech">contact@boosteats.tech</a>.
+              Pour recevoir une version à jour, écrivez-nous : <a href="mailto:contact@boosteats.be">contact@boosteats.be</a>.
             </span>
           </div>
         </div>

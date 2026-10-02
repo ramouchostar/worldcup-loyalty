@@ -6,8 +6,9 @@ import { BRAND_DEFAULTS, brandStyle, hexToRgbChannels } from "@/lib/branding";
 import { PrintButton } from "./PrintButton";
 import { BelchickenPrintSheet, type BelchickenFormat } from "./belchicken-sheet";
 import { qrLocationLabel, usesBelchickenQrTemplate } from "@/lib/qr-template";
+import { SITE_ORIGIN } from "@/lib/site";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 
 // Les Belchicken (Kraainem, Houba, Uccle De Bue — lib/qr-template.ts) ont
 // leur propre identité imprimée (design Claude "Templates QR Belchicken" —

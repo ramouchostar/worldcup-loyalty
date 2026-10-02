@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isSendId, looksLikeBot, safeRedirectPath, trackLinks } from "./message-links";
 
-const APP = "https://boosteats.tech";
+const APP = "https://www.boosteats.be";
 const ID = "3f2b8c1e-9d4a-4b7e-8c21-5a6f0e9d1b23";
 
 test("redirection : seulement un chemin de notre domaine", () => {

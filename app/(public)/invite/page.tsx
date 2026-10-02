@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase";
 import { InviteRedirect } from "./InviteRedirect";
+import { SITE_ORIGIN } from "@/lib/site";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup-loyalty.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 
 type Props = { searchParams: Promise<{ ref?: string }> };
 
