@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
 
 export async function signIn(
   _prevState: { error: string } | null,
@@ -19,6 +20,7 @@ export async function signIn(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: SUPABASE_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return cookieStore.getAll();

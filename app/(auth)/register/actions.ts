@@ -8,6 +8,7 @@ import { recordConsents } from "@/lib/consent";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { sendWelcomeEmail } from "@/lib/email";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
 
 // ADR 0047 — /register ne collecte plus que le CONSENTEMENT (parcours Google
 // OAuth, où aucune case n'a pu être cochée à l'inscription). Prénom, zones et
@@ -28,6 +29,7 @@ export async function acceptProgramme(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: SUPABASE_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return cookieStore.getAll();

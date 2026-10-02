@@ -10,6 +10,7 @@ import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-toke
 import { reactivateIfAnonymized } from "@/lib/gdpr";
 import { createRestaurantsFromDraft, partnerNextStep } from "@/lib/partner-signup";
 import { PARTNER_ATTRIBUTION_COOKIE, decodeAttribution } from "@/lib/partner-attribution";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: SUPABASE_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return cookieStore.getAll();
