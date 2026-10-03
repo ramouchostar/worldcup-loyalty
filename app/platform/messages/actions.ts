@@ -6,6 +6,7 @@ import { isSequenceKey } from "@/lib/message-catalog";
 import { setMessageEnabled } from "@/lib/message-log";
 import { sendTestEmail } from "@/lib/email";
 import { defaultImage, previewEntries } from "@/lib/email-templates/fixtures";
+import { setTiming } from "@/lib/send-timing-data";
 
 // Même garde locale que les autres Server Actions de /platform : un layout ne
 // protège pas une action, chaque action revérifie le super-admin.
@@ -46,4 +47,16 @@ export async function sendTestEmailAction(entryId: string): Promise<{ ok: boolea
   return sent
     ? { ok: true, message: `Parti vers ${user.email}. Il apparaît dans le journal ci-dessous.` }
     : { ok: false, message: "Pas parti — la raison est dans « Dernier échec » et dans le journal." };
+}
+
+// ADR 0077 §4 — fixe (ou libère) l'heure d'envoi aux restaurateurs. Appelée
+// par un formulaire : `slot` vide = revenir à la rotation des créneaux.
+export async function setTimingAction(formData: FormData): Promise<void> {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+  const raw = String(formData.get("slot") ?? "");
+  const slot = raw === "" ? null : Number(raw);
+  const res = await setTiming(Number.isFinite(slot) ? slot : null, user.id);
+  if (!res.ok) console.error("[platform/messages] heure d'envoi:", res.error);
+  revalidatePath("/platform/messages");
 }

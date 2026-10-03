@@ -10,6 +10,8 @@ import { previewMemberSequences, type SequencePreview } from "@/lib/sequence-run
 import { MEMBER_SEQUENCE_KEYS } from "@/lib/sequence-rules";
 import { SequenceSwitch } from "./SequenceSwitch";
 import { TestEmailForm } from "./TestEmailForm";
+import { SendTimingSection } from "@/components/platform/SendTimingSection";
+import { loadTimingOverview, type TimingOverview } from "@/lib/send-timing-data";
 
 export const metadata = { title: "Messages — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -100,6 +102,12 @@ export default async function PlatformMessagesPage() {
     preview = await previewMemberSequences(o.restaurants.map((r) => r.id));
   } catch (err) {
     console.error("[platform/messages] aperçu des séquences indisponible:", err);
+  }
+  let timing: TimingOverview | null = null;
+  try {
+    timing = await loadTimingOverview();
+  } catch (err) {
+    console.error("[platform/messages] heures d'envoi indisponibles:", err);
   }
   const memberKeys = new Set<string>(MEMBER_SEQUENCE_KEYS);
   const enabled = new Set(o.settings.filter((s) => s.enabled).map((s) => `${s.message_key}|${s.restaurant_id}`));
@@ -275,6 +283,9 @@ export default async function PlatformMessagesPage() {
           </table>
         </div>
       </section>
+
+      {/* ── Meilleures heures (ADR 0077 §4) ───────────────────────────────── */}
+      {timing && <SendTimingSection o={timing} />}
 
       {/* ── Transactionnels ───────────────────────────────────────────────── */}
       <section>

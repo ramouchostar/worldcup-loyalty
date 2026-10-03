@@ -176,6 +176,12 @@ AUDIT_SHARE_SECRET=                 # ADR 0069 §6 — secret HMAC des liens /au
 - Séquences **éteintes par défaut**, allumées par séquence × établissement depuis `/platform/messages` (`message_settings`, `isMessageEnabled`) ; un e-mail de séquence par membre et par semaine ; arrêt par séquence ; **pas de pixel d'ouverture** — l'effet se mesure contre un groupe témoin de 10 %
 - Relances d'usage du programme = messages du programme (ADR 0039 précisé) ; une **promo par e-mail** exige une case de consentement distincte (la case actuelle dit « push et WhatsApp »)
 
+### ADR 0077 — Messages au restaurateur sur l'équipe en salle
+- Deux séquences restaurateur (`staff_setup` : aucun QR, J+7/J+14/J+30 après `activated_at` ; `staff_monthly` : le 2 du mois, le 3 si lundi ou jeudi), éteintes par défaut, propriétaire + gérants + managers ; règles pures `lib/pro-sequence-rules.ts`, moteur `lib/pro-sequence-runner.ts`, cron toutes les 30 min
+- **Push console** : abonnements à part (`console_push_subscriptions`), jamais `push_subscriptions` ; le push d'une étape est journalisé sur sa ligne et son lien passe par `/c/<envoi>`
+- **L'heure tourne** entre 9 h, 11 h, 15 h, 17 h 30 (`message_sends.send_slot`) ; aucune conclusion sous 30 envois par créneau et 10 clics pour le meilleur ; l'heure se fixe à la main (`message_timing`), 20 % continuent d'explorer. Le moteur ne part pas sans la colonne `send_slot`
+- « À relancer » (QR de l'équipe) = une seule règle, `lib/staff-status.ts`, lue par la page QR, l'accueil et le bilan mensuel
+
 ### ADR 0011 — Coupon de récupération anti-fraude
 - **Un seul cadeau actif** par membre à la fois — Option B : si une récompense est `available`, aucune nouvelle n'est créée jusqu'à ce qu'elle soit `redeemed` ou `expired`
 - **Jamais pendant la même visite** (amendé 2026-09-18) : un cadeau de ticket s'ouvre **4 h après le ticket**, puis reste **48 h** ; anniversaire et réserve : 48 h tout de suite. Règles dans `lib/reward-window.ts`, partagées par `/api/redemption/generate` (425 avant l'ouverture), le cron d'expiration, les rappels et les écrans
