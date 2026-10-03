@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { OwnerAnswers } from "@/lib/audit/signals";
 import s from "./report.module.css";
@@ -27,10 +27,13 @@ function initialMix(initial: OwnerAnswers | null): Record<ChannelKey, number> {
   return { surPlace: c.surPlace, emporter: c.emporter + (c.direct ?? 0), uberEats: c.uberEats, deliveroo: c.deliveroo, takeaway: c.takeaway };
 }
 
-function Submit({ disabled }: { disabled: boolean }) {
+// Le bouton n'est jamais désactivé pour une répartition fausse (2026-10-03) :
+// désactivé, il restait identique à l'œil et « ne répondait plus » sur iPad.
+// Il reste cliquable, et le clic dit ce qui bloque (voir onSubmit).
+function Submit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className={s.cta} disabled={disabled || pending}>
+    <button type="submit" className={s.cta} disabled={pending}>
       {pending ? "Révision de l'audit…" : "Réviser l'audit avec ces réponses"}
     </button>
   );
@@ -40,6 +43,10 @@ export function AnswersForm({ action, initial }: { action: (fd: FormData) => voi
   const [open, setOpen] = useState(false);
   const [mix, setMix] = useState<Record<ChannelKey, number>>(() => initialMix(initial));
   const total = Object.values(mix).reduce((a, b) => a + b, 0);
+  const mixOk = total === 0 || total === 100;
+  const [blocked, setBlocked] = useState(false);
+  const channelsRef = useRef<HTMLDivElement>(null);
+  const gap = total < 100 ? `il manque ${100 - total} %` : `${total - 100} % de trop`;
 
   if (!open) {
     return (
@@ -52,16 +59,28 @@ export function AnswersForm({ action, initial }: { action: (fd: FormData) => voi
   }
 
   return (
-    <form action={action} className={s.card} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (mixOk) return;
+        e.preventDefault();
+        setBlocked(true);
+        channelsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }}
+      className={s.card}
+      style={{ display: "flex", flexDirection: "column", gap: 18 }}
+    >
       <div>
         <span className={s.eyebrow}>Approfondir</span>
         <h2 style={{ margin: 0, fontSize: 20 }}>Questions au gérant</h2>
         <p className={s.lead}>Ses réponses révisent l&apos;audit : priorités, objectif et calendrier. Les notes restent celles mesurées.</p>
       </div>
-      <div className={s.q}>
+      <div className={s.q} ref={channelsRef}>
         <div className={s.bar}>
           <b>Répartition du chiffre d&apos;affaires par canal</b>
-          <span className={s.sum}>Total : {total} %{total === 100 ? "" : " (doit faire 100 %)"}</span>
+          <span className={mixOk ? s.sum : `${s.sum} ${s.sumOff}`}>
+            Total : {total} %{mixOk ? "" : ` — ${gap}`}
+          </span>
         </div>
         {CHANNELS.map(([key, label]) => (
           <label key={key} className={s.chan} htmlFor={`c-${key}`}>
@@ -119,8 +138,13 @@ export function AnswersForm({ action, initial }: { action: (fd: FormData) => voi
           </span>
         </label>
       </div>
-      <Submit disabled={total !== 0 && total !== 100} />
-      {total !== 0 && total !== 100 && <span className={s.sum}>La répartition doit faire 100 % (ou rester à 0 si le gérant ne l&apos;a pas donnée).</span>}
+      {blocked && !mixOk && (
+        <p role="alert" className={s.formError}>
+          <b>L&apos;audit n&apos;a pas été révisé : la répartition par canal fait {total} % au lieu de 100 % ({gap}).</b>{" "}
+          Ajuste les curseurs pour arriver à 100 %, ou remets-les tous à 0 si le gérant ne l&apos;a pas donnée.
+        </p>
+      )}
+      <Submit />
     </form>
   );
 }
