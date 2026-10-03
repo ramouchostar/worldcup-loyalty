@@ -35,8 +35,10 @@ Ce skill encode le seul chemin valide. Ne saute aucune étape.
    (`gh run view <id> --log-failed`), corriger, pousser sur la même branche (la PR se met à jour).
 8. **Fusion** : `gh pr merge <n> --merge --delete-branch` (merge commit — style du repo, pas de squash).
 9. **Retour** : `git checkout master && git pull --ff-only origin master && git branch -d <branche>`.
-10. **Migration ?** Si la PR contenait un fichier `docs/migrations/*.sql`, rappeler à l'auteur humain de
-    **l'appliquer dans l'éditeur SQL Supabase maintenant** et le noter dans la PR (commentaire `gh pr comment`).
+10. **Migration ?** Si la PR contenait un fichier `supabase/migrations/*.sql` (ADR 0074), rappeler à l'auteur humain que
+    le workflow « Migrations » attend **son approbation** (Actions → Migrations → Review deployments, environnement
+    `production`), de vérifier que `supabase db push` a réussi et de le noter dans la PR (commentaire `gh pr comment`).
+    Secrets absents ou job en échec : appliquer à la main dans l'éditeur SQL.
 
 ## Ce que ce skill refuse
 

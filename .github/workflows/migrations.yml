@@ -1,0 +1,82 @@
+# Migrations Supabase (ADR 0074) — appliquées par la CLI, jamais sans approbation.
+#
+# Quand : une migration de supabase/migrations/ arrive sur master, ou lancement manuel
+# (Actions → Migrations → Run workflow ; par défaut « essai à blanc »).
+#
+# Sécurité :
+#  - AUCUNE connexion à la production pendant une PR : le mot de passe de la base ne
+#    doit jamais être lisible par un workflow modifiable dans une PR. Les secrets vivent
+#    dans l'ENVIRONNEMENT `production` (Settings → Environments), qui exige l'approbation
+#    d'un relecteur avant que ce job ne démarre.
+#  - Un seul job à la fois (`concurrency`), jamais annulé en cours de route.
+#  - Secrets manquants = échec BRUYANT (jamais un « vert » qui n'a rien appliqué) : la
+#    migration s'applique alors à la main, comme avant (docs/migrations/README.md).
+#
+# Mise en place (une fois) : docs/migrations/README.md § Mise en place.
+name: Migrations
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Essai à blanc (liste ce qui serait appliqué, n'applique rien)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrations-production
+  cancel-in-progress: false
+
+jobs:
+  appliquer:
+    name: appliquer sur la production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secrets présents ?
+        run: |
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Secret $v absent de l'environnement « production ». Applique la migration à la main (docs/migrations/README.md) ou configure les secrets."
+              exit 1
+            fi
+          done
+
+      # Version épinglée : celle avec laquelle le format de nom et les options ont été vérifiés.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+
+      - name: Lier le projet
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Historique distant contre fichiers locaux
+        run: supabase migration list
+
+      - name: Essai à blanc
+        run: |
+          supabase db push --dry-run 2>&1 | tee dry-run.txt
+          {
+            echo "### Migrations qui seraient appliquées"
+            echo '```'
+            cat dry-run.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Appliquer
+        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+        run: supabase db push
