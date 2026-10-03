@@ -55,6 +55,13 @@ Trois contraintes cadrent la solution :
    (`/api/admin/staff-codes/qr`). Une seule adresse encodée partout
    (`staffQrTargetUrl`) : un scan du papier compte par prénom comme un scan du
    téléphone. Un code désactivé n'est ni imprimé ni téléchargeable.
+   *Complété le 2026-10-03 (refonte de la page QR)* : onglets « Mon équipe » /
+   « QR de l'établissement », une ligne par personne (scans → inscrits → avec un
+   ticket), envoi du badge par WhatsApp en un geste, et un état par personne
+   (`lib/staff-status.ts`) : **à relancer** = QR actif créé depuis plus de 7 jours,
+   moins de 3 scans sur 30 jours et aucune inscription ; « Nouveau » les 7 premiers
+   jours. Les personnes à relancer apparaissent dans un encadré « coup de pouce »
+   de la page, sur la carte équipe de l'accueil et dans « À faire » (ADR 0064).
 6. **Fail-open de bout en bout** : sans la migration, le cookie est posé mais rien
    n'est écrit, les compteurs sont sautés, la console explique quoi appliquer —
    le parcours client ne dépend jamais de la mesure (même règle qu'ADR 0037 §4).
