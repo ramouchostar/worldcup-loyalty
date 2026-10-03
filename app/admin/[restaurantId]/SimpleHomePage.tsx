@@ -1,3 +1,4 @@
+import { ConsolePushCard } from "@/components/admin/ConsolePushCard";
 import Link from "next/link";
 import { Hourglass, SlidersHorizontal } from "lucide-react";
 import { getRestaurant } from "@/lib/restaurant";
@@ -62,6 +63,7 @@ export async function SimpleHomePage({
 
   const bottom = (
     <>
+      <ConsolePushCard restaurantId={restaurantId} />
       {!bienvenue && <InstallAppCard audience="restaurateur" surface="console_admin" ton="discret" />}
       <Link
         href={`${base}/vue?mode=pro`}
