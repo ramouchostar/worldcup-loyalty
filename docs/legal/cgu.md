@@ -1,16 +1,14 @@
-# Conditions Générales d'Utilisation — [NOM DE L'APPLICATION]
+# Conditions Générales d'Utilisation — Boosteats
 
-**Version 1.0 — Dernière mise à jour : [DATE]**
-
-> **Modèle à faire relire par un juriste avant publication.** Éléments entre [crochets] à compléter.
+**Version 1.1 — Dernière mise à jour : 3 octobre 2026**
 
 ## 1. Objet
 
-Les présentes conditions générales d'utilisation (« CGU ») régissent l'accès et l'utilisation de l'application **[NOM DE L'APPLICATION]** (« l'Application ») par ses utilisateurs membres (« Membre »). En créant un compte, le Membre accepte les présentes CGU.
+Les présentes conditions générales d'utilisation (« CGU ») régissent l'accès et l'utilisation de l'application **Boosteats** (« l'Application ») par ses utilisateurs membres (« Membre »). En créant un compte, le Membre accepte les présentes CGU.
 
 ## 2. Éditeur
 
-L'Application est éditée par **[NOM DE LA SOCIÉTÉ]** — [forme juridique], [adresse], Belgique — numéro d'entreprise (BCE) **[Nº BCE]** — contact : **[email de contact]** (« l'Éditeur »).
+L'Application est éditée par **Boosteats**, projet en cours de constitution en société en Belgique — contact : **contact@boosteats.be** (« l'Éditeur »). Les coordonnées légales de la société seront publiées ici dès son immatriculation.
 
 ## 3. Définitions
 
@@ -60,8 +58,8 @@ Le Membre peut **supprimer son compte à tout moment** depuis *Paramètres > Con
 
 ## 13. Droit applicable et litiges
 
-Les présentes CGU sont régies par le **droit belge**. En cas de litige, une solution amiable sera recherchée en priorité ; à défaut, les tribunaux belges compétents sont saisis. Le Membre consommateur peut recourir au [Service de médiation pour le consommateur].
+Les présentes CGU sont régies par le **droit belge**. En cas de litige, une solution amiable sera recherchée en priorité ; à défaut, les tribunaux belges compétents sont saisis. Le Membre consommateur peut recourir au Service de médiation pour le consommateur (mediationconsommateur.be).
 
 ## 14. Contact
 
-**[NOM DE LA SOCIÉTÉ]** — [adresse] — **[email de contact]**.
+**Boosteats** — **contact@boosteats.be**.
