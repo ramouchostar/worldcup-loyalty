@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { resolveStaffCode, STAFF_PITCH, STAFF_FAQ } from "@/lib/staff-codes";
+import { resolveStaffCode, staffQrTargetUrl, STAFF_PITCH, STAFF_FAQ } from "@/lib/staff-codes";
 import { getRestaurant, getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { SITE_ORIGIN } from "@/lib/site";
 
@@ -29,7 +29,7 @@ export default async function StaffBadgePage({ params }: { params: Promise<{ cod
 
   // Compte comme un scan de QR dans l'entonnoir général (c'en est un) ET par
   // prénom (`p=`), le cookie d'attribution étant posé par le middleware.
-  const targetUrl = `${APP_URL}/r/${staff.restaurant_id}?utm_source=qr_code&utm_medium=staff&p=${staff.code}`;
+  const targetUrl = staffQrTargetUrl(APP_URL, staff.restaurant_id, staff.code);
   const qrDataUrl = await QRCode.toDataURL(targetUrl, {
     errorCorrectionLevel: "M",
     width: 1024,
