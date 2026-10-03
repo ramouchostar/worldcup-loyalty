@@ -8,6 +8,7 @@
 // parcours client (même règle qu'ADR 0037).
 import { createAdminClient } from "./supabase";
 import { todayInBrussels } from "./qr-funnel";
+import { brusselsMonthStartIso, nextMonth, previousMonth } from "./staff-status";
 
 // Même alphabet et même longueur que les codes de parrainage : lisible,
 // tapable, et le middleware les valide avec la même forme.
@@ -229,3 +230,84 @@ export async function getStaffStats(restaurantId: string): Promise<StaffStats[] 
 
 // ── Contenu du badge : lib/staff-status.ts (pur, lisible côté client) ─────
 export { STAFF_PITCH, STAFF_FAQ } from "./staff-status";
+
+// ── Bilan d'un mois civil (ADR 0077, séquence « Ton équipe en salle ce mois-ci ») ──
+
+export type StaffMonthRow = {
+  id: string;
+  label: string;
+  isActive: boolean;
+  createdAt: string;
+  landings: number;
+  signups: number;
+  withTicket: number;
+};
+
+export type StaffMonthStats = {
+  rows: StaffMonthRow[];
+  landings: number;
+  signups: number;
+  withTicket: number;
+  signupsPrev: number; // inscrits par l'équipe le mois d'avant
+};
+
+/** null = migration absente ou lecture en échec : le moteur n'envoie pas de bilan. */
+export async function getStaffMonthStats(restaurantId: string, yyyymm: number): Promise<StaffMonthStats | null> {
+  try {
+    const admin = createAdminClient();
+    const from = brusselsMonthStartIso(yyyymm);
+    const to = brusselsMonthStartIso(nextMonth(yyyymm));
+    const prevFrom = brusselsMonthStartIso(previousMonth(yyyymm));
+    const fromDay = `${Math.floor(yyyymm / 100)}-${String(yyyymm % 100).padStart(2, "0")}-01`;
+    const toMonth = nextMonth(yyyymm);
+    const toDay = `${Math.floor(toMonth / 100)}-${String(toMonth % 100).padStart(2, "0")}-01`;
+
+    const [{ data: codes, error }, { data: landings, error: e2 }, { data: acquisitions, error: e3 }] = await Promise.all([
+      admin.from("staff_codes").select("*").eq("restaurant_id", restaurantId).order("created_at"),
+      admin.from("staff_landings").select("code_id, count").eq("restaurant_id", restaurantId).gte("day", fromDay).lt("day", toDay),
+      admin.from("staff_acquisitions").select("code_id, user_id, joined_at").eq("restaurant_id", restaurantId).gte("joined_at", prevFrom).lt("joined_at", to),
+    ]);
+    if (error || e2 || e3) return null;
+
+    const acq = (acquisitions ?? []) as { code_id: string; user_id: string; joined_at: string }[];
+    const inMonth = acq.filter((a) => a.joined_at >= from);
+    const userIds = Array.from(new Set(inMonth.map((a) => a.user_id)));
+    const withOrder = new Set<string>();
+    if (userIds.length > 0) {
+      const { data: orders } = await admin
+        .from("orders")
+        .select("user_id")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "validated")
+        .in("user_id", userIds)
+        .limit(5000);
+      for (const o of (orders ?? []) as { user_id: string }[]) withOrder.add(o.user_id);
+    }
+    const landingsBy = new Map<string, number>();
+    for (const l of (landings ?? []) as { code_id: string; count: number }[]) {
+      landingsBy.set(l.code_id, (landingsBy.get(l.code_id) ?? 0) + l.count);
+    }
+
+    const rows = ((codes ?? []) as StaffCode[]).map((c) => {
+      const mine = inMonth.filter((a) => a.code_id === c.id);
+      return {
+        id: c.id,
+        label: c.label,
+        isActive: c.is_active,
+        createdAt: c.created_at,
+        landings: landingsBy.get(c.id) ?? 0,
+        signups: mine.length,
+        withTicket: mine.filter((a) => withOrder.has(a.user_id)).length,
+      };
+    });
+    return {
+      rows,
+      landings: rows.reduce((n, r) => n + r.landings, 0),
+      signups: rows.reduce((n, r) => n + r.signups, 0),
+      withTicket: rows.reduce((n, r) => n + r.withTicket, 0),
+      signupsPrev: acq.length - inMonth.length,
+    };
+  } catch {
+    return null;
+  }
+}

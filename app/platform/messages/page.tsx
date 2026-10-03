@@ -224,7 +224,7 @@ export default async function PlatformMessagesPage() {
       <section>
         {sectionTitle(
           "Séquences",
-          "Éteintes par défaut, allumées par établissement (ADR 0063 §2). Passage chaque jour à 18 h (Bruxelles) pour les séquences membres ; « aujourd'hui » = qui la recevrait si elle était allumée seule, témoin compris. Les séquences restaurateur arrivent avec la PR suivante."
+          "Éteintes par défaut, allumées par établissement (ADR 0063 §2). Passage chaque jour à 18 h (Bruxelles) pour les séquences membres ; « aujourd'hui » = qui la recevrait si elle était allumée seule, témoin compris. Séquences restaurateur « équipe en salle » (ADR 0077) : passage toutes les 30 minutes, chaque envoi à son créneau (9 h, 11 h, 15 h, 17 h 30) ; « Cap franchi », « Ta semaine » et « L'idée » n'ont pas encore de moteur."
         )}
         <div className="bg-white border border-gray-200 rounded-2xl overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">

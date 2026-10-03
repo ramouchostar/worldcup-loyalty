@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MESSAGES, SEQUENCES, addToTotals, emptyTotals, isSequenceKey, rate, totalsByKey } from "./message-catalog";
 
-test("les sept séquences de l'ADR 0063, et elles seules, se pilotent", () => {
+test("les séquences des ADR 0063 et 0077, et elles seules, se pilotent", () => {
   assert.deepEqual(
     SEQUENCES.map((s) => s.key),
-    ["first_ticket", "team_invite", "referral_nudge", "install_app", "milestone", "weekly_recap", "weekly_idea"]
+    ["first_ticket", "team_invite", "referral_nudge", "install_app", "milestone", "weekly_recap", "weekly_idea", "staff_setup", "staff_monthly"]
   );
   assert.equal(isSequenceKey("welcome"), false);
   assert.equal(isSequenceKey("n'importe quoi"), false);

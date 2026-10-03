@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { joinNames, needsNudge, sortStaff, staffBadgeWhatsappUrl, staffStatus, staffToNudge, topStaff, type StaffStatusInput } from "./staff-status";
+import { brusselsMonthStartIso, joinNames, needsNudge, nextMonth, previousMonth, sortStaff, staffBadgeWhatsappUrl, staffStatus, staffToNudge, topStaff, type StaffStatusInput } from "./staff-status";
 
 const NOW = new Date("2026-10-03T12:00:00Z");
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString();
@@ -62,4 +62,11 @@ test("WhatsApp : badge et phrase dans le message, aucun numéro imposé", () => 
   assert.match(text, /Salut Karim/);
   assert.match(text, /https:\/\/www\.boosteats\.be\/badge\/ABC234/);
   assert.match(text, /photographiez votre ticket/);
+});
+
+test("bornes d'un mois à Bruxelles", () => {
+  assert.equal(brusselsMonthStartIso(202609), "2026-08-31T22:00:00.000Z"); // été, UTC+2
+  assert.equal(brusselsMonthStartIso(202612), "2026-11-30T23:00:00.000Z"); // hiver, UTC+1
+  assert.equal(nextMonth(202612), 202701);
+  assert.equal(previousMonth(202701), 202612);
 });

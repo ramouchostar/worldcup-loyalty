@@ -3,7 +3,8 @@
 // journal et le futur moteur de séquences parlent de la même liste.
 //
 // Trois familles :
-//   sequence       — les sept séquences de l'ADR 0063 §1, éteintes par défaut,
+//   sequence       — les sept séquences de l'ADR 0063 §1 et les deux de
+//                    l'ADR 0077 (équipe en salle), éteintes par défaut,
 //                    allumées par établissement depuis la plateforme ;
 //   transactionnel — les e-mails qui répondent à un fait (compte créé, cadeau
 //                    qui expire…) : toujours actifs, jamais pilotés ;
@@ -34,6 +35,8 @@ export const MESSAGES: MessageDef[] = [
   { key: "milestone", label: "Cap franchi", audience: "restaurant", kind: "sequence", when: "Membres, tickets ou CA programme · au passage de 18 h", channels: "E-mail", success: "Console ouverte" },
   { key: "weekly_recap", label: "Ta semaine", audience: "restaurant", kind: "sequence", when: "Lundi 8 h", channels: "E-mail", success: "Annonce programmée" },
   { key: "weekly_idea", label: "L'idée de la semaine", audience: "restaurant", kind: "sequence", when: "Jeudi 10 h, si une idée tient", channels: "E-mail", success: "Annonce programmée" },
+  { key: "staff_setup", label: "Crée les QR de ton équipe", audience: "restaurant", kind: "sequence", when: "Aucun QR d'équipe · J+7, J+14, J+30 après la mise en ligne", channels: "E-mail, push", success: "Un QR créé" },
+  { key: "staff_monthly", label: "Ton équipe en salle ce mois-ci", audience: "restaurant", kind: "sequence", when: "≥ 1 QR d'équipe · le 2 du mois (le 3 si lundi ou jeudi)", channels: "E-mail, push", success: "Console ouverte" },
 
   // ── E-mails transactionnels (toujours actifs) ────────────────────────────
   { key: "welcome", label: "Bienvenue", audience: "member", kind: "transactionnel", when: "Compte créé", channels: "E-mail" },
