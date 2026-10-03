@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import { createAdminClient } from "./supabase";
 import { listLiveRestaurants } from "./demo";
 import { dispatch } from "./email";
-import { hasSendSlotColumn, listMessageSettings, listOptOuts } from "./message-log";
+import { hasSendSlotColumn, listMessageSettings, listOptOuts, recordSend } from "./message-log";
+import { sendConsolePush } from "./console-push";
+import { trackedUrl } from "./message-links";
 import { getRestaurantBranding, logoPublicUrl } from "./restaurant";
 import { getStaffMonthStats, getStaffStats, type StaffMonthStats } from "./staff-codes";
 import { staffToNudge } from "./staff-status";
@@ -203,6 +205,32 @@ export async function runProSequences(now = new Date(), timing: Timing = { locke
       });
       if (ok) report.sent += 1;
       else report.failed += 1;
+
+      // Le push de la même étape (ADR 0077 §2), sur sa propre ligne : l'appui
+      // passe par /c/<envoi> et compte comme un clic, comme dans l'e-mail.
+      const target = new URL(rendered.short.url);
+      const pushId = randomUUID();
+      const pushed = await sendConsolePush(rec.userId, r.id, {
+        title: rendered.short.title,
+        body: rendered.short.body,
+        url: trackedUrl(APP_URL, pushId, `${target.pathname}${target.search}${target.hash}`),
+      }).catch(() => "failed" as const);
+      if (pushed !== "no_device") {
+        await recordSend({
+          id: pushId,
+          restaurantId: r.id,
+          audience: "restaurant",
+          userId: rec.userId,
+          messageKey: decision.key,
+          step: decision.step,
+          channel: "push",
+          status: pushed === "sent" ? "sent" : "failed",
+          error: pushed === "sent" ? null : "Push console refusé (clés VAPID, table ou appareil)",
+          subject: rendered.short.body,
+          slot: decision.slot,
+        });
+        if (pushed === "sent") report.pushes += 1;
+      }
     }
   }
   return report;
