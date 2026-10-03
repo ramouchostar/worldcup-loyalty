@@ -64,6 +64,8 @@ export type DispatchMeta = {
   // Yahoo pour les envois récurrents).
   sendId?: string;
   unsubscribeUrl?: string;
+  // Créneau prévu « HHMM » (séquences restaurateur, ADR 0077 §4).
+  slot?: number | null;
 };
 
 // Envoie un e-mail et le journalise, qu'il parte ou non : une panne de
@@ -84,6 +86,7 @@ export async function dispatch(to: string, content: RenderedEmail, meta: Dispatc
       channel: "email",
       status,
       subject: content.subject,
+      slot: meta.slot ?? null,
       ...extra,
     });
 

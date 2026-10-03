@@ -24,6 +24,9 @@ export type SendRecord = {
   providerId?: string | null;
   error?: string | null;
   subject?: string | null;
+  // Créneau prévu « HHMM » (séquences restaurateur, ADR 0077 §4) — absent
+  // partout ailleurs, pour que les autres envois ne dépendent pas de la colonne.
+  slot?: number | null;
 };
 
 // Postgres « relation inconnue » / PostgREST « table absente du cache ».
@@ -50,6 +53,7 @@ export async function recordSend(r: SendRecord): Promise<string | null> {
         provider_id: r.providerId ?? null,
         error: r.error ? r.error.slice(0, 500) : null,
         subject: r.subject ? r.subject.slice(0, 200) : null,
+        ...(r.slot != null ? { send_slot: r.slot } : {}),
       })
       .select("id")
       .single();
@@ -180,16 +184,18 @@ export async function listOptOuts(userIds: string[]): Promise<{ byUser: Map<stri
 
 // L'envoi derrière un lien d'arrêt : l'identifiant d'envoi (UUID) prouve que
 // la personne a reçu l'e-mail — pas besoin d'être connecté pour dire stop.
-export async function getSendForStop(sendId: string): Promise<{ userId: string; messageKey: string; restaurantId: string | null } | null> {
+export async function getSendForStop(
+  sendId: string
+): Promise<{ userId: string; messageKey: string; restaurantId: string | null; audience: MessageAudience } | null> {
   try {
     const { data } = await createAdminClient()
       .from("message_sends")
-      .select("user_id, message_key, restaurant_id")
+      .select("user_id, message_key, restaurant_id, audience")
       .eq("id", sendId)
       .maybeSingle();
-    const row = data as { user_id: string | null; message_key: string; restaurant_id: string | null } | null;
+    const row = data as { user_id: string | null; message_key: string; restaurant_id: string | null; audience: MessageAudience } | null;
     if (!row?.user_id) return null;
-    return { userId: row.user_id, messageKey: row.message_key, restaurantId: row.restaurant_id };
+    return { userId: row.user_id, messageKey: row.message_key, restaurantId: row.restaurant_id, audience: row.audience };
   } catch {
     return null;
   }
@@ -235,6 +241,18 @@ export async function removeOptOut(userId: string, messageKey: string): Promise<
     return !error;
   } catch (err) {
     console.error("removeOptOut threw:", err);
+    return false;
+  }
+}
+
+// La colonne `send_slot` (migration 20261003-2010) est-elle là ? Le moteur des
+// séquences restaurateur ne part pas sans elle (ADR 0077) : un envoi qu'on ne
+// pourrait pas journaliser serait renvoyé à chaque passage.
+export async function hasSendSlotColumn(): Promise<boolean> {
+  try {
+    const { error } = await createAdminClient().from("message_sends").select("send_slot").limit(1);
+    return !error;
+  } catch {
     return false;
   }
 }

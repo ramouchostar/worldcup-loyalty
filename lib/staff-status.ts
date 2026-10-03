@@ -89,3 +89,28 @@ export function staffBadgeWhatsappUrl(label: string, restaurantName: string, bad
   const text = `Salut ${label} ! Voici ton QR pour le programme de fidélité de ${restaurantName} : ${badgeUrl}\n\nMontre-le au client qui paie, avec la phrase : « ${STAFF_PITCH} »`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
+
+// ── Mois civils à Bruxelles (bilan mensuel, ADR 0077) ─────────────────────
+
+// Minuit à Bruxelles du 1er du mois (« AAAAMM ») en ISO UTC — été comme hiver.
+export function brusselsMonthStartIso(yyyymm: number): string {
+  const y = Math.floor(yyyymm / 100);
+  const m = yyyymm % 100;
+  const noon = new Date(Date.UTC(y, m - 1, 1, 12));
+  const localHour = Number(
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", hour: "2-digit", hourCycle: "h23" }).format(noon)
+  );
+  return new Date(Date.UTC(y, m - 1, 1) - (localHour - 12) * 3_600_000).toISOString();
+}
+
+export function nextMonth(yyyymm: number): number {
+  const y = Math.floor(yyyymm / 100);
+  const m = yyyymm % 100;
+  return m === 12 ? (y + 1) * 100 + 1 : y * 100 + m + 1;
+}
+
+export function previousMonth(yyyymm: number): number {
+  const y = Math.floor(yyyymm / 100);
+  const m = yyyymm % 100;
+  return m === 1 ? (y - 1) * 100 + 12 : y * 100 + m - 1;
+}

@@ -12,6 +12,8 @@ import { installAppEmail } from "./member-install-app";
 import { milestoneEmail } from "./pro-milestone";
 import { recapHeadline, weeklyRecapEmail } from "./pro-weekly-recap";
 import { weeklyIdeaEmail } from "./pro-weekly-idea";
+import { staffSetupEmail, staffSetupShort } from "./pro-staff-setup";
+import { staffMonthlyEmail, staffMonthlyShort, type StaffMonthlyData } from "./pro-staff-monthly";
 import { welcomeEmail } from "./welcome";
 import { rewardReadyEmail } from "./reward-ready";
 import { tierUnlockedEmail } from "./tier-unlocked";
@@ -211,6 +213,37 @@ export function previewEntries(opts: { logoUrl: string | null; image: (name: str
         link, manageUrl: link(`/admin/${RID}/settings#emails`), stopUrl: stop("idee"),
       }),
     },
+
+    ...([1, 2, 3] as const).map((step) => ({
+      id: `r-staff-setup-${step}`,
+      kind: "sequence" as const,
+      audience: "restaurateur" as const,
+      sequence: "Crée les QR de ton équipe",
+      variant: ["J+7 après la mise en ligne", "J+14", "J+30, dernier rappel"][step - 1],
+      email: staffSetupEmail({
+        restaurantName: theme.restaurantName, restaurantId: RID, logoUrl: opts.logoUrl, step,
+        link, manageUrl: link(`/admin/${RID}/settings#emails`), stopUrl: stop("staff-setup"),
+      }),
+      short: staffSetupShort({ restaurantId: RID, step, link }),
+    })),
+    ...(() => {
+      const month: StaffMonthlyData = {
+        restaurantName: theme.restaurantName, restaurantId: RID, logoUrl: opts.logoUrl,
+        monthLabel: "septembre 2026", landings: 61, signups: 17, signupsPrev: 12, withTicket: 9, activeCodes: 5,
+        podium: [
+          { label: "Sofia", hint: "6 ont déjà envoyé un ticket", value: "9 inscr.", ratio: 1 },
+          { label: "Mehdi", hint: "3 ont déjà envoyé un ticket", value: "6 inscr.", ratio: 6 / 9 },
+          { label: "Lina", hint: "Nouvelle ce mois-ci", value: "2 inscr.", ratio: 2 / 9 },
+        ],
+        best: "Sofia", nudge: ["Karim", "Inès"],
+        link, manageUrl: link(`/admin/${RID}/settings#emails`), stopUrl: stop("staff-monthly"),
+      };
+      const idle: StaffMonthlyData = { ...month, landings: 0, signups: 0, signupsPrev: 3, withTicket: 0, podium: [], best: null, nudge: ["Karim", "Inès", "Sami"] };
+      return [
+        { id: "r-staff-monthly", kind: "sequence" as const, audience: "restaurateur" as const, sequence: "Ton équipe en salle ce mois-ci", variant: "Le 2 du mois", email: staffMonthlyEmail(month), short: staffMonthlyShort(month) },
+        { id: "r-staff-monthly-idle", kind: "sequence" as const, audience: "restaurateur" as const, sequence: "Ton équipe en salle ce mois-ci", variant: "Aucun scan du mois", email: staffMonthlyEmail(idle), short: staffMonthlyShort(idle) },
+      ];
+    })(),
 
     // ── Transactionnels existants, migrés sur le kit ────────────────────────
     { id: "t-welcome", kind: "transactionnel", audience: "membre", sequence: "Bienvenue", variant: "Compte créé", email: welcomeEmail("Léa Martin") },

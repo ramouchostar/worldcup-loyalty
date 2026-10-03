@@ -39,6 +39,8 @@ export default async function StopPage({
   const label = valid ? messageLabel(send!.messageKey) : null;
   const restaurant = valid && send!.restaurantId ? await getRestaurantDisplayName(send!.restaurantId).catch(() => null) : null;
   const already = valid && (fait === "1" || (await isOptedOut(send!.userId, send!.messageKey)));
+  // Séquences restaurateur (ADR 0077) : on parle à un gérant, pas à un membre.
+  const pro = valid && send!.audience === "restaurant";
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
@@ -58,7 +60,9 @@ export default async function StopPage({
               {DONE_TEXT[send!.messageKey] ?? `Tu ne recevras plus « ${label} »${restaurant ? ` de ${restaurant}` : ""}.`}
             </p>
             <p className="text-sm text-gray-600">
-              Tes points et tes cadeaux ne changent pas, et on te préviendra toujours quand un cadeau t&apos;attend.
+              {pro
+                ? "Ta console et tes autres messages ne changent pas. Le conseil reste visible sur l'accueil de ta console."
+                : "Tes points et tes cadeaux ne changent pas, et on te préviendra toujours quand un cadeau t'attend."}
             </p>
           </>
         )}
@@ -67,8 +71,9 @@ export default async function StopPage({
             <input type="hidden" name="id" value={id} />
             <h1 className="text-xl font-bold text-gray-900">Ne plus recevoir « {label} » ?</h1>
             <p className="text-sm text-gray-600">
-              {restaurant ? `Tu restes membre du programme de ${restaurant}. ` : "Tu restes membre du programme. "}
-              Seuls ces rappels s&apos;arrêtent : on te préviendra toujours quand un cadeau t&apos;attend.
+              {pro
+                ? `Seul ce message s'arrête${restaurant ? ` pour ${restaurant}` : ""}. Ta console et tes autres messages ne changent pas.`
+                : `${restaurant ? `Tu restes membre du programme de ${restaurant}. ` : "Tu restes membre du programme. "}Seuls ces rappels s'arrêtent : on te préviendra toujours quand un cadeau t'attend.`}
             </p>
             <button type="submit" className="w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white">
               Ne plus les recevoir
