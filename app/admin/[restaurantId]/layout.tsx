@@ -13,6 +13,7 @@ import { SimpleNav } from "@/components/admin/simple/SimpleNav";
 import { CONSOLE_VIEW_COOKIE, consoleSections, parseConsoleView, simpleTabs } from "@/lib/admin-nav";
 import { getPlan } from "@/lib/entitlements";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
+import { ConsoleVisitBeacon } from "@/components/admin/ConsoleVisitBeacon";
 import { loadProgress } from "@/lib/partner-progress-server";
 import { isIncomplete } from "@/lib/partner-progress";
 import { PARTNER_PROGRESS_PATH } from "@/lib/partner-signup";
@@ -187,6 +188,8 @@ export default async function AdminLayout({
       </header>
 
       {/* Bandeau Mode plateforme (ADR 0030 §3) */}
+      {/* ADR 0077 §4 — quand les gérants ouvrent leur console (compteur horaire anonyme). */}
+      {!isPlatformMode && <ConsoleVisitBeacon restaurantId={restaurantId} />}
       {isPlatformMode && (
         <div className="bg-warn/10 border-b border-warn/30">
           <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs">
