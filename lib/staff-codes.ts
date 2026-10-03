@@ -22,6 +22,34 @@ export function generateStaffCode(): string {
   return out;
 }
 
+/**
+ * Adresse encodée dans le QR d'un prénom (ADR 0053 §2) — UNE seule source pour
+ * le badge public, la planche A4 et le PNG : l'arrivée compte dans l'entonnoir
+ * général (c'est un scan de QR) ET par prénom (`p=`).
+ */
+export function staffQrTargetUrl(appUrl: string, restaurantId: string, code: string): string {
+  return `${appUrl}/r/${restaurantId}?utm_source=qr_code&utm_medium=staff&p=${code}`;
+}
+
+/** Codes ACTIFS d'un établissement, dans l'ordre de création — la planche A4
+ *  n'imprime jamais un code désactivé (son badge est mort, ADR 0053 §5).
+ *  null = migration absente. */
+export async function listActiveStaffCodes(restaurantId: string): Promise<StaffCode[] | null> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("staff_codes")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .eq("is_active", true)
+      .order("created_at");
+    if (error) return null;
+    return (data ?? []) as StaffCode[];
+  } catch {
+    return null;
+  }
+}
+
 export type StaffCode = {
   id: string;
   restaurant_id: string;

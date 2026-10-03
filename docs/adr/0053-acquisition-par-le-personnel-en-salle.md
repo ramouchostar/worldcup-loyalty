@@ -49,6 +49,12 @@ Trois contraintes cadrent la solution :
    grand, prénom, la phrase à dire et trois réponses aux questions courantes. Le
    staff l'ouvre sur son téléphone et la montre, ou l'imprime au format carte
    (85 × 55 mm). Le gérant l'envoie par WhatsApp : zéro enrôlement.
+   *Complété le 2026-10-03* : la console imprime aussi **tous les QR actifs d'un
+   coup** sur une planche A4 (`/admin/<id>/qr/print/equipe`, 6 cases par feuille,
+   QR au-dessus du prénom, à découper) et télécharge le **PNG** de chacun
+   (`/api/admin/staff-codes/qr`). Une seule adresse encodée partout
+   (`staffQrTargetUrl`) : un scan du papier compte par prénom comme un scan du
+   téléphone. Un code désactivé n'est ni imprimé ni téléchargeable.
 6. **Fail-open de bout en bout** : sans la migration, le cookie est posé mais rien
    n'est écrit, les compteurs sont sautés, la console explique quoi appliquer —
    le parcours client ne dépend jamais de la mesure (même règle qu'ADR 0037 §4).

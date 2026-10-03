@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Printer } from "lucide-react";
 import { readJsonSafe, describeHttpFailure } from "@/lib/fetch-json";
 import type { StaffStats } from "@/lib/staff-codes";
 
@@ -117,6 +119,15 @@ export function StaffCodesSection({
                     >
                       Voir
                     </a>
+                    {c.isActive && (
+                      <a
+                        href={`/api/admin/staff-codes/qr?restaurantId=${encodeURIComponent(restaurantId)}&codeId=${c.id}`}
+                        download
+                        className="ml-2 text-xs font-semibold text-ink-body hover:text-ink"
+                      >
+                        PNG
+                      </a>
+                    )}
                     <button
                       type="button"
                       onClick={() => void copierBadge(c.id, c.code)}
@@ -137,6 +148,16 @@ export function StaffCodesSection({
             </tbody>
           </table>
         </div>
+      )}
+
+      {stats.some((c) => c.isActive) && (
+        <Link
+          href={`/admin/${restaurantId}/qr/print/equipe`}
+          className="flex items-center justify-center gap-2 bg-white border border-paper-border rounded-xl py-2.5 text-sm font-semibold text-ink hover:border-ink-faint transition-colors"
+        >
+          <Printer size={15} strokeWidth={1.8} aria-hidden="true" />
+          Imprimer tous les QR (A4)
+        </Link>
       )}
 
       <form onSubmit={creer} className="flex gap-2">
@@ -162,6 +183,8 @@ export function StaffCodesSection({
       <p className="text-xs text-ink-faint">
         Envoie le lien du badge par WhatsApp : la personne l&apos;affiche depuis son
         téléphone ou l&apos;imprime au format carte. La phrase à dire est au dos.
+        Pour tout imprimer d&apos;un coup : la planche A4 met six QR par feuille,
+        le prénom sous chacun, à découper.
       </p>
     </div>
   );
