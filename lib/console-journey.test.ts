@@ -224,3 +224,28 @@ test("accueil : un établissement tout neuf commence par la liste de lancement",
   assert.equal(v.goal.target, 3);
   assert.equal(v.milestone?.next, 10); // 10 membres : le premier cap à portée
 });
+
+test("équipe équipée : le conseil devient « relance » pour les QR qui ne servent pas", () => {
+  const now = new Date("2026-10-03T12:00:00Z");
+  const old = new Date(now.getTime() - 20 * 86_400_000).toISOString();
+  const recent = new Date(now.getTime() - 2 * 86_400_000).toISOString();
+  const v = buildSimpleHomeView(
+    raw({
+      now,
+      staff: [
+        { label: "Sofia", signups30d: 9, landings30d: 31, isActive: true, createdAt: old },
+        { label: "Karim", signups30d: 0, landings30d: 2, isActive: true, createdAt: old },
+        { label: "Inès", signups30d: 0, landings30d: 0, isActive: true, createdAt: old },
+        { label: "Lina", signups30d: 0, landings30d: 0, isActive: true, createdAt: recent },
+      ],
+    })
+  );
+  assert.deepEqual(v.staffNudge, ["Karim", "Inès"]);
+  const item = v.todo.find((t) => t.key === "staff");
+  assert.equal(item?.title, "Relance Karim et Inès");
+  assert.equal(item?.href, "/admin/kraainem/qr#equipe");
+  // Sans date de création connue (données anciennes), personne n'est mis en défaut
+  assert.deepEqual(buildSimpleHomeView(raw()).staffNudge, []);
+  // Équipe équipée, personne à relancer : pas de tâche
+  assert.equal(staffTodo("/admin/x", [{ label: "A", isActive: true }, { label: "B", isActive: true }, { label: "C", isActive: true }], []), null);
+});

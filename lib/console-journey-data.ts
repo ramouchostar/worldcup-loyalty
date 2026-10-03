@@ -116,7 +116,7 @@ export async function loadSimpleHomeRaw(restaurantId: string, opts: { canManage:
     canManage: opts.canManage,
     catalogItemsWithCost,
     landings14d: landings,
-    staff: staff === null ? null : staff.map((s) => ({ label: s.label, signups30d: s.signups30d, isActive: s.isActive })),
+    staff: staff === null ? null : staff.map((s) => ({ label: s.label, signups30d: s.signups30d, landings30d: s.landings30d, isActive: s.isActive, createdAt: s.createdAt })),
     todo: { flagged, pending, claims, catalogGaps: catalogGaps.length },
     month: { revenue: budget?.programRevenue ?? 0, rewardsCost: budget?.rewardsCost ?? 0 },
     budgetPct: budget?.budgetPct ?? 0.08,

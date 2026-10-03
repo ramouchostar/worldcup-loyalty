@@ -18,6 +18,7 @@
 // ============================================================
 
 import { crossedMilestone, nextMilestone, type MilestoneKind } from "./email-templates/pro-milestone";
+import { joinNames, staffToNudge } from "./staff-status";
 
 // ── Étapes ──────────────────────────────────────────────────────────────────
 
@@ -295,11 +296,29 @@ export function tipOfTheDay(today: string): string {
 
 export const STAFF_CODES_TARGET = 3;
 
-export function staffTodo(base: string, staff: { label: string; isActive: boolean }[] | null): TodoItem | null {
+export function staffTodo(
+  base: string,
+  staff: { label: string; isActive: boolean }[] | null,
+  nudge: string[] = []
+): TodoItem | null {
   // Migration des codes salle absente : on ne réclame pas un outil qui n'existe pas.
   if (staff === null) return null;
   const active = staff.filter((s) => s.isActive);
-  if (active.length >= STAFF_CODES_TARGET) return null;
+  if (active.length >= STAFF_CODES_TARGET) {
+    // Équipe équipée : le conseil devient « relance ceux dont le QR ne sert
+    // pas » (lib/staff-status.ts), tant qu'il y en a.
+    if (nudge.length === 0) return null;
+    const several = nudge.length > 1;
+    return {
+      key: "staff",
+      title: `Relance ${joinNames(nudge)}`,
+      hint: `${several ? "Leur" : "Son"} QR n'a presque pas servi ce mois-ci. Imprime ${several ? "leur" : "sa"} carte ou renvoie-${several ? "leur" : "lui"} le badge avec la phrase à dire.`,
+      href: `${base}/qr#equipe`,
+      count: nudge.length,
+      tone: "warn",
+      cta: "Voir mon équipe",
+    };
+  }
   const href = `${base}/qr?creer=1#equipe`;
   if (active.length === 0) {
     return {
@@ -341,7 +360,9 @@ export type SimpleHomeRaw = {
   catalogItemsWithCost: number;
   landings14d: number;
   /** null : migration des codes salle absente (ADR 0053) — la carte se tait. */
-  staff: { label: string; signups30d: number; isActive: boolean }[] | null;
+  staff: { label: string; signups30d: number; isActive: boolean; landings30d?: number; createdAt?: string | null }[] | null;
+  /** « Maintenant » des règles datées (à relancer) — injecté, testable. */
+  now?: Date;
   todo: { flagged: number; pending: number; claims: number; catalogGaps: number };
   month: { revenue: number; rewardsCost: number };
   budgetPct: number;
@@ -384,6 +405,10 @@ export type SimpleHomeView = {
   month: MonthView | null;
   milestone: MilestoneView | null;
   staffTop: { label: string; signups30d: number }[];
+  /** Prénoms « à relancer » (lib/staff-status.ts) — la carte équipe et « À faire ». */
+  staffNudge: string[];
+  /** Onglet Équipe de la page QR — où mène la ligne « à relancer ». */
+  staffHref: string;
   hasStaffCodes: boolean;
   budgetPct: number;
 };
@@ -396,6 +421,11 @@ export function buildSimpleHomeView(raw: SimpleHomeRaw): SimpleHomeView {
   const week = recentDays(counts, raw.today, target, 7);
 
   const activeStaff = (raw.staff ?? []).filter((s) => s.isActive);
+  const now = raw.now ?? new Date();
+  const staffNudge = staffToNudge(
+    activeStaff.map((s) => ({ ...s, landings30d: s.landings30d ?? 0, createdAt: s.createdAt ?? null })),
+    now
+  ).map((s) => s.label);
   const items = launchChecklist({
     base: raw.base,
     hasLogo: raw.hasLogo,
@@ -425,7 +455,7 @@ export function buildSimpleHomeView(raw: SimpleHomeRaw): SimpleHomeView {
   }
 
   const todo: TodoItem[] = [];
-  const staffItem = staffTodo(raw.base, raw.staff);
+  const staffItem = staffTodo(raw.base, raw.staff, staffNudge);
   if (staffItem) todo.push(staffItem);
   const t = raw.todo;
   if (t.flagged > 0) {
@@ -499,6 +529,8 @@ export function buildSimpleHomeView(raw: SimpleHomeRaw): SimpleHomeView {
       .sort((a, b) => b.signups30d - a.signups30d)
       .slice(0, 3)
       .map(({ label, signups30d }) => ({ label, signups30d })),
+    staffNudge,
+    staffHref: `${raw.base}/qr#equipe`,
     hasStaffCodes: activeStaff.length > 0,
     budgetPct: raw.budgetPct,
   };
