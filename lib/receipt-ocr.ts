@@ -355,10 +355,13 @@ function interpretReading(
  * Oui quand la lecture est INCOMPLÈTE : total absent, ou — pour un établissement
  * à clé fiable — aucune clé UTILISABLE (rien de lu, forme impossible, code d'établissement
  * que personne n'utilise : dans tous ces cas la lecture est probablement fausse).
- * Non dans trois cas où relire ne servirait à rien et coûterait cher :
+ * Non dans quatre cas où relire ne servirait à rien et coûterait cher :
  *  - une affiche (elle est refusée telle quelle, `judgeReceipt`) ;
  *  - une clé d'un AUTRE établissement : elle est bien lue, c'est le ticket qui vient d'ailleurs ;
- *  - une année de clé réparée : la clé existe, le membre reprend la photo.
+ *  - une année de clé réparée : la clé existe, le membre reprend la photo ;
+ *  - un premier passage qui n'a lu **NI le total NI aucune clé** (ADR 0079) : photo floue, ticket
+ *    trop loin ou coupé, pas un ticket. Du 2026-09-30 au 2026-10-06, sur 39 relectures, 4 ont
+ *    servi ; 16 des 35 inutiles étaient dans ce cas, et chacune ajoutait ~10 s d'attente à un refus.
  */
 export function needsRescue(input: {
   amount: number | null;
@@ -366,7 +369,10 @@ export function needsRescue(input: {
   hasKeyPattern: boolean;
   looksLikePoster: boolean;
   keyIssue?: KeyIssue | null;
+  /** Le premier passage a lu le total, ou une clé (même refusée) : un ticket est bien là. */
+  totalOrKeySeen: boolean;
 }): boolean {
+  if (!input.totalOrKeySeen) return false;
   if (input.looksLikePoster && input.orderNumber === null) return false;
   const amountMissing = input.amount === null;
   const keyUnusable = input.hasKeyPattern && input.orderNumber === null && input.keyIssue !== "other_establishment";
@@ -501,6 +507,7 @@ export async function analyzeReceipt(
       hasKeyPattern: keyPattern !== null,
       looksLikePoster: reading.looks_like_qr_or_poster,
       keyIssue,
+      totalOrKeySeen: reading.amount !== null || reading.raw_order_number !== null,
     }) &&
     remaining() >= MIN_TIME_FOR_ANOTHER_READ_MS
   ) {

@@ -47,6 +47,9 @@ export const REJECTION_REASONS = [
   "daily_limit",
   "wrong_establishment",
   "key_code_unknown",
+  "rate_limited",
+  "visitor_rate_limited",
+  "reading_unavailable",
 ] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
 
@@ -65,6 +68,11 @@ export const REJECTION_LABELS: Record<RejectionReason, string> = {
   // ADR 0073 — le code de l'établissement dans la clé du ticket.
   wrong_establishment: "Ticket d'un autre établissement",
   key_code_unknown: "Clé lue avec un code d'établissement inconnu",
+  // ADR 0079 — refus CAUSÉS PAR LE SYSTÈME, pas par la photo : jusque-là invisibles
+  // (aucune ligne nulle part), alors que le client voyait « Trop de scans » ou une erreur.
+  rate_limited: "Trop de scans d'un membre (20 par heure)",
+  visitor_rate_limited: "Trop de scans depuis la même connexion (visiteurs)",
+  reading_unavailable: "Lecture impossible (panne ou délai dépassé)",
 };
 
 /**
