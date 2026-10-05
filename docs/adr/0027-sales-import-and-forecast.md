@@ -1,6 +1,6 @@
 # ADR 0027 — Import des ventes de caisse & prévision de chiffre d'affaires (forecast)
 
-**Statut** : Accepté — **v1 implémentée** (2026-07-26 ; build vert). Reste à faire côté exploitant : appliquer `docs/m45-sales-forecast.sql` dans Supabase, renseigner `restaurants.school_calendar`, peupler `reference_calendar` (calendrier belge officiel), déployer. Décision d'architecture, pas un engagement de résultat : le forecast est une **aide à la décision**, jamais une garantie. Prolonge l'ADR 0007 (euros = admin, jamais membre), l'ADR 0012 (données financières du programme), l'ADR 0020 (`order_time` / créneaux) et les stratégies programmées (m36 `scheduled_broadcasts`).
+**Statut** : Accepté — §3 amendé par l'[ADR 0078](0078-ca-du-jour-saisi-a-la-main.md) (2026-10-05 : le CA du jour saisi à la main est une deuxième source de ventes de caisse). **v1 implémentée** (2026-07-26 ; build vert). Reste à faire côté exploitant : appliquer `docs/m45-sales-forecast.sql` dans Supabase, renseigner `restaurants.school_calendar`, peupler `reference_calendar` (calendrier belge officiel), déployer. Décision d'architecture, pas un engagement de résultat : le forecast est une **aide à la décision**, jamais une garantie. Prolonge l'ADR 0007 (euros = admin, jamais membre), l'ADR 0012 (données financières du programme), l'ADR 0020 (`order_time` / créneaux) et les stratégies programmées (m36 `scheduled_broadcasts`).
 
 ## Contexte
 
