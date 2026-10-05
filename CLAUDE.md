@@ -141,6 +141,7 @@ EMAIL_FROM=                         # repli tant que EMAIL_DOMAIN est vide — e
 EMAIL_DOMAIN=                       # ADR 0063 — domaine vérifié chez Resend : boosteats.be (expéditeurs bonjour@ / equipe@)
 RESEND_WEBHOOK_SECRET=              # ADR 0063 — secret « whsec_… » du webhook Resend → /api/webhooks/resend (délivré, rebond, plainte)
 EMAIL_REPLY_TO=                     # ADR 0063 — boîte réelle qui reçoit les réponses, ex. contact@boosteats.be (jamais celle d'un restaurant)
+RESTAURANT_EMAIL_COPY_TO=           # copie de chaque e-mail restaurateur (défaut boosteats1@gmail.com, vide = aucune copie) — jamais un e-mail membre
 NEXT_PUBLIC_APP_URL=                # liens absolus (emails, QR codes) — ex. https://www.boosteats.be (défaut du code : SITE_ORIGIN, lib/site.ts)
 ANTHROPIC_API_KEY=                  # vision : OCR ticket, découverte clé ticket, suggestions menu, détection de design (m48)
 NEXT_PUBLIC_GA_MEASUREMENT_ID=      # GA4 (format G-XXXXXXXXXX) — vide = aucun script Google, aucune bannière cookies, CSP fermée
