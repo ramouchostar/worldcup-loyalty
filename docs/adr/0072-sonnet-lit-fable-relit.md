@@ -6,7 +6,8 @@ l'[ADR 0066](0066-la-carte-identite-du-ticket.md) (une lecture peut inventer) et
 (chaque lecture est conservée). Remplace la « seconde lecture de la clé » du 2026-09-18
 (modèle plus précis, clé seule). **§2 précisé par l'[ADR 0073](0073-le-format-de-la-cle-du-ticket.md)** :
 une clé de mauvaise forme ou de code inconnu déclenche la relecture (les clés courtes valides ne sont plus refusées) ;
-seule une clé d'un autre établissement ne la déclenche pas. Appliqué avec le bouclier de l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md).
+seule une clé d'un autre établissement ne la déclenche pas. **§2 précisé aussi par l'[ADR 0079](0079-chaque-refus-a-sa-cause.md)** :
+pas de relecture quand le premier passage n'a lu ni le total ni aucune clé. Appliqué avec le bouclier de l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md).
 
 ## Contexte
 
