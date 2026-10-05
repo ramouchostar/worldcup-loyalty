@@ -42,3 +42,28 @@ export function senderConfigFromEnv(): SenderConfig {
     fallbackFrom: process.env.EMAIL_FROM ?? null,
   };
 }
+
+// Copie plateforme : chaque e-mail parti chez un restaurateur part aussi,
+// à l'identique, vers la boîte Boosteats — pour voir exactement ce qu'il
+// reçoit. RESTAURANT_EMAIL_COPY_TO change l'adresse ; vide, plus de copie.
+// Jamais d'e-mail membre (ADR 0025), jamais l'e-mail de test, jamais une
+// copie de ce qu'on s'envoie déjà à soi-même.
+export const DEFAULT_RESTAURANT_COPY_TO = "boosteats1@gmail.com";
+
+export function restaurantCopyAddress(
+  to: string,
+  kind: SenderKind,
+  messageKey: string,
+  configured: string | null | undefined
+): string | null {
+  if (kind !== "restaurant" || messageKey === "test") return null;
+  const copy = (configured ?? DEFAULT_RESTAURANT_COPY_TO).trim();
+  if (!copy || copy.toLowerCase() === to.trim().toLowerCase()) return null;
+  return copy;
+}
+
+// Objet de la copie : le même, précédé du destinataire réel — sinon dix
+// restaurateurs donnent dix e-mails indiscernables.
+export function restaurantCopySubject(subject: string, to: string): string {
+  return `[Copie → ${to.trim()}] ${subject}`;
+}

@@ -3,7 +3,7 @@ import { createAdminClient } from "./supabase";
 import { getRestaurantBranding, logoPublicUrl } from "./restaurant";
 import { BRAND_DEFAULTS } from "./branding";
 import { foodIconUrl } from "./food-icon";
-import { replyToAddress, senderAddress, senderConfigFromEnv, type SenderKind } from "./email-sender";
+import { replyToAddress, restaurantCopyAddress, restaurantCopySubject, senderAddress, senderConfigFromEnv, type SenderKind } from "./email-sender";
 import { APP_URL, type MemberTheme, type RenderedEmail } from "./email-templates/kit";
 import { randomUUID } from "node:crypto";
 import { recordSend } from "./message-log";
@@ -113,11 +113,39 @@ export async function dispatch(to: string, content: RenderedEmail, meta: Dispatc
       return false;
     }
     await journal("sent", { providerId: data?.id ?? null });
+    await sendRestaurantCopy(resend, to, content, meta, config);
     return true;
   } catch (err) {
     console.error("email dispatch threw:", err);
     await journal("failed", { error: err instanceof Error ? err.message : String(err) });
     return false;
+  }
+}
+
+// Copie plateforme d'un e-mail restaurateur (lib/email-sender.ts). Envoi à
+// part plutôt qu'en Cci : liens non suivis — un clic dans la copie ne compte
+// pas comme un clic du restaurateur — et hors du journal message_sends, dont
+// les chiffres restent ceux des vrais destinataires. Ne casse jamais l'envoi.
+async function sendRestaurantCopy(
+  resend: Resend,
+  to: string,
+  content: RenderedEmail,
+  meta: DispatchMeta,
+  config: ReturnType<typeof senderConfigFromEnv>
+): Promise<void> {
+  const copyTo = restaurantCopyAddress(to, meta.audience, meta.key, process.env.RESTAURANT_EMAIL_COPY_TO);
+  if (!copyTo) return;
+  try {
+    const { error } = await resend.emails.send({
+      from: senderAddress(meta.audience, meta.restaurantName ?? null, config),
+      to: copyTo,
+      subject: restaurantCopySubject(content.subject, to),
+      html: content.html,
+      text: content.text,
+    });
+    if (error) console.error(`email copy (${meta.key}) failed:`, error);
+  } catch (err) {
+    console.error(`email copy (${meta.key}) threw:`, err);
   }
 }
 
