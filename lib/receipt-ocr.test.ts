@@ -37,7 +37,22 @@ const empty: Reading = {
 
 // ── Quand Fable relit (ADR 0072 §2, précisé par l'ADR 0073) ─────────────────
 
-const base = { amount: 9.8, orderNumber: "2026-09-05/223/09353", hasKeyPattern: true, looksLikePoster: false } as const;
+const base = { amount: 9.8, orderNumber: "2026-09-05/223/09353", hasKeyPattern: true, looksLikePoster: false, totalOrKeySeen: true } as const;
+
+// ── ADR 0079 : pas de relecture quand le premier passage n'a rien lu d'un ticket ──
+
+test("pas de relecture : ni total ni clé lus (photo floue, ticket trop loin, pas un ticket)", () => {
+  // 16 des 35 relectures inutiles du 2026-09-30 au 2026-10-06, ~10 s d'attente chacune
+  assert.equal(needsRescue({ ...base, amount: null, orderNumber: null, totalOrKeySeen: false }), false);
+});
+
+test("relecture : le total est lu mais pas la clé — un ticket est bien là", () => {
+  assert.equal(needsRescue({ ...base, orderNumber: null, totalOrKeySeen: true }), true);
+});
+
+test("relecture : une clé a été lue puis écartée (code inconnu) sans total — un ticket est bien là", () => {
+  assert.equal(needsRescue({ ...base, amount: null, orderNumber: null, keyIssue: "unknown_code", totalOrKeySeen: true }), true);
+});
 
 test("relecture : quand le total manque", () => {
   assert.equal(needsRescue({ ...base, amount: null }), true);
