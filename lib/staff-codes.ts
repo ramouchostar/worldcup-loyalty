@@ -164,6 +164,7 @@ export type StaffStats = {
   code: string;
   label: string;
   isActive: boolean;
+  createdAt: string;
   landings30d: number;
   signupsTotal: number;
   signups30d: number;
@@ -214,6 +215,7 @@ export async function getStaffStats(restaurantId: string): Promise<StaffStats[] 
         code: c.code,
         label: c.label,
         isActive: c.is_active,
+        createdAt: c.created_at,
         landings30d: landingsByCode.get(c.id) ?? 0,
         signupsTotal: mine.length,
         signups30d: mine.filter((a) => new Date(a.joined_at) >= since).length,
@@ -225,13 +227,5 @@ export async function getStaffStats(restaurantId: string): Promise<StaffStats[] 
   }
 }
 
-// ── Contenu du badge (validé par le porteur, 2026-09-10) ────────────────────
-
-export const STAFF_PITCH =
-  "Vous connaissez notre programme de fidélité ? Vous photographiez votre ticket, vous gagnez des cadeaux — je vous montre, ça prend 20 secondes.";
-
-export const STAFF_FAQ: { q: string; a: string }[] = [
-  { q: "C'est payant ?", a: "Non — gratuit, pour toujours. Pas de carte à garder." },
-  { q: "Je gagne quoi ?", a: "Des cadeaux du menu à mesure que vos tickets s'accumulent, à retirer au comptoir." },
-  { q: "Et mes données ?", a: "Elles ne servent qu'au programme — jamais revendues, effaçables à tout moment." },
-];
+// ── Contenu du badge : lib/staff-status.ts (pur, lisible côté client) ─────
+export { STAFF_PITCH, STAFF_FAQ } from "./staff-status";

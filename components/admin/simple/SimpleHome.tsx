@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
+  BellRing,
   Check,
   ChevronRight,
   CircleCheck,
@@ -524,6 +525,21 @@ function StaffCard({ view }: { view: SimpleHomeView }) {
         </ol>
       ) : (
         <p className="text-[13px] text-ink-muted mt-2">Aucune inscription par un QR de l&apos;équipe ces 30 derniers jours.</p>
+      )}
+      {/* Le coup de pouce (lib/staff-status.ts) : qui relancer, et où. */}
+      {view.staffNudge.length > 0 && (
+        <Link
+          href={view.staffHref}
+          className="mt-3 pt-3 border-t border-paper-border flex items-center justify-between gap-3 text-[13px] group"
+        >
+          <span className="flex items-center gap-1.5 font-semibold text-warn min-w-0">
+            <BellRing size={14} strokeWidth={1.8} className="shrink-0" aria-hidden="true" />
+            <span className="truncate">
+              {view.staffNudge.length} à relancer : {view.staffNudge.join(", ")}
+            </span>
+          </span>
+          <span className="font-semibold text-ink shrink-0 group-hover:underline">Voir</span>
+        </Link>
       )}
     </Card>
   );
