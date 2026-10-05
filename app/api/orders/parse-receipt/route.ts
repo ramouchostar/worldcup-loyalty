@@ -17,9 +17,12 @@ import { personalPointsForOrder, pointsGoalFrom, type PointsGoal } from "@/lib/c
 export const maxDuration = 60;
 
 // ADR 0045 — anti-abus du visiteur anonyme (pas de user_id à rate-limiter) :
-// plafond plus serré qu'authentifié, c'est un aperçu "preuve du scan" avant
-// tout engagement, pas un usage répété.
-const VISITOR_MAX_SCANS = 8;
+// on bride par ADRESSE IP, pas par personne. ADR 0079 : 8 par heure bloquait un
+// restaurant entier — tous les clients partagent le Wi-Fi (ou la même antenne
+// mobile), le 9e visiteur de l'heure recevait « Trop de scans ». 60 laisse passer
+// un afflux et garde un plafond contre quelqu'un qui enverrait des centaines de
+// photos (chaque scan est un appel Vision facturé).
+const VISITOR_MAX_SCANS = 60;
 const VISITOR_WINDOW_SECONDS = 3600;
 
 function clientIp(request: NextRequest): string {
@@ -40,6 +43,14 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Le formulaire est lu AVANT les limites (ADR 0079) : il dit de quel établissement il s'agit,
+  // et un refus du système doit se compter comme un refus de photo — jusque-là le client voyait
+  // « Trop de scans » et nous rien. Le coût : lire un corps de 4,5 Mo au plus avant de refuser.
+  const formData = await request.formData();
+  const file = formData.get("receipt") as File | null;
+  const rawRestaurantId = formData.get("restaurantId");
+  const countedRestaurant = rawRestaurantId ? String(rawRestaurantId) : null;
+
   // F8 (sécurité) — anti-abus de l'OCR (appels Claude Vision FACTURÉS).
   // ADR 0045 — ouvert aux visiteurs (preuve du scan avant la création de
   // compte) : sans session, pas de user_id à rate-limiter, on bride par IP
@@ -47,6 +58,7 @@ export async function POST(request: NextRequest) {
   // appliquée (voir lib/rate-limit.ts).
   if (user) {
     if (!(await checkRateLimit(user.id, "ocr_parse_receipt", 20, 3600))) {
+      if (countedRestaurant) await recordFunnelStep(countedRestaurant, "ticket_rejected", "rate_limited");
       return NextResponse.json(
         { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
         { status: 429 }
@@ -55,16 +67,13 @@ export async function POST(request: NextRequest) {
   } else {
     const ipHash = hashIp(clientIp(request));
     if (!(await checkIpRateLimit(ipHash, "ocr_parse_receipt_visitor", VISITOR_MAX_SCANS, VISITOR_WINDOW_SECONDS))) {
+      if (countedRestaurant) await recordFunnelStep(countedRestaurant, "ticket_rejected", "visitor_rate_limited");
       return NextResponse.json(
         { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
         { status: 429 }
       );
     }
   }
-
-  const formData = await request.formData();
-  const file = formData.get("receipt") as File | null;
-  const rawRestaurantId = formData.get("restaurantId");
 
   if (!file) return NextResponse.json({ error: "Aucune image fournie." }, { status: 400 });
   if (!rawRestaurantId) return NextResponse.json({ error: "restaurantId requis." }, { status: 400 });
@@ -91,6 +100,8 @@ export async function POST(request: NextRequest) {
     analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes);
   } catch (err) {
     console.error("[parse-receipt] Claude vision error:", err);
+    // ADR 0079 — panne ou délai dépassé : compté (le client voyait une erreur, nous rien).
+    await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "reading_unavailable");
     return NextResponse.json(
       { error: "Erreur lors de l'analyse de l'image. Réessaie avec une photo plus nette." },
       { status: 502 }

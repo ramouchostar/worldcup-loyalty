@@ -117,6 +117,8 @@ export async function POST(request: NextRequest) {
   // d'aperçu (ADR 0058 §4), c'est ici que l'OCR se plafonne : même compteur
   // que l'aperçu, 20 lectures par heure.
   if (!(await checkRateLimit(user.id, "ocr_parse_receipt", 20, 3600))) {
+    // ADR 0079 — un refus du SYSTÈME se compte, comme un refus de photo.
+    await recordFunnelStep(restaurantId, "ticket_rejected", "rate_limited");
     return NextResponse.json(
       { error: "Trop de scans en peu de temps. Réessaie dans quelques minutes." },
       { status: 429 }
@@ -137,7 +139,11 @@ export async function POST(request: NextRequest) {
   let serverOcr: ReceiptAnalysis;
   try {
     serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig, otherStoreCodes);
-  } catch {
+  } catch (err) {
+    // ADR 0079 — panne ou délai dépassé : jusque-là AUCUNE trace (le client voyait une erreur,
+    // nous rien). On compte, et on garde la cause dans les journaux du serveur.
+    console.error("[orders] lecture impossible:", (err as Error).message);
+    await recordFunnelStep(restaurantId, "ticket_rejected", "reading_unavailable");
     return NextResponse.json(
       { error: "On n'a pas pu lire ton ticket. Réessaie dans un instant." },
       { status: 502 }
