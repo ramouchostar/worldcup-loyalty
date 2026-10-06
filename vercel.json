@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/school-holidays",
       "schedule": "0 4 * * 1"
+    },
+    {
+      "path": "/api/cron/local-events",
+      "schedule": "30 3 */2 * *"
     }
   ]
 }

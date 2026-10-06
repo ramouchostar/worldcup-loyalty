@@ -1,0 +1,1194 @@
+{
+  "data": [
+    {
+      "id": 589119,
+      "sub_type": "other",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": true,
+      "is_not_major_event": false,
+      "ranking": 2,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "PATRICK BRUEL",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.589119"
+        },
+        "en": {
+          "name": "PATRICK BRUEL",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.589119"
+        },
+        "nl": {
+          "name": "PATRICK BRUEL",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.589119"
+        }
+      },
+      "place": {
+        "id": 328,
+        "location": {
+          "lat": 50.80999118,
+          "lon": 4.32601156
+        },
+        "translations": {
+          "fr": {
+            "name": "Forest National",
+            "address_zip": "1190",
+            "address_city": "Forest"
+          },
+          "en": {
+            "name": "Forest National",
+            "address_zip": "1190",
+            "address_city": "Forest"
+          },
+          "nl": {
+            "name": "Vorst Nationaal",
+            "address_zip": "1190",
+            "address_city": "Vorst"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "20:00:00",
+          "end": "23:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 579596,
+      "sub_type": "other",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": true,
+      "is_not_major_event": false,
+      "ranking": 2,
+      "date_next": "2026-10-10",
+      "translations": {
+        "fr": {
+          "name": "MONTE CRISTO",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.579596"
+        },
+        "en": {
+          "name": "MONTE CRISTO",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.579596"
+        },
+        "nl": {
+          "name": "MONTE CRISTO",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.579596"
+        }
+      },
+      "place": {
+        "id": 328,
+        "location": {
+          "lat": 50.80999118,
+          "lon": 4.32601156
+        },
+        "translations": {
+          "fr": {
+            "name": "Forest National",
+            "address_zip": "1190",
+            "address_city": "Forest"
+          },
+          "en": {
+            "name": "Forest National",
+            "address_zip": "1190",
+            "address_city": "Forest"
+          },
+          "nl": {
+            "name": "Vorst Nationaal",
+            "address_zip": "1190",
+            "address_city": "Vorst"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-10",
+          "doors": null,
+          "start": "15:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-10",
+          "doors": null,
+          "start": "20:30:00",
+          "end": "23:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700027780,
+      "sub_type": "party",
+      "is_permanent": false,
+      "is_free": true,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 0.7937005259840998,
+      "date_next": "2026-10-08",
+      "translations": {
+        "fr": {
+          "name": "International afterwork & party",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700027780"
+        },
+        "en": {
+          "name": "International afterwork & party",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700027780"
+        },
+        "nl": {
+          "name": "International afterwork & party",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700027780"
+        }
+      },
+      "place": {
+        "id": 50005934,
+        "location": {
+          "lat": 50.8364721,
+          "lon": 4.3643333
+        },
+        "translations": {
+          "fr": {
+            "name": "RATZ FOOD MARKET",
+            "address_zip": "1050",
+            "address_city": "Ixelles"
+          },
+          "en": {
+            "name": "RATZ FOOD MARKET",
+            "address_zip": "1050",
+            "address_city": "Ixelles"
+          },
+          "nl": {
+            "name": "RATZ FOOD MARKET",
+            "address_zip": "1050",
+            "address_city": "Elsene"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-08",
+          "doors": "18:00:00",
+          "start": "18:00:00",
+          "end": null,
+          "end_night_life": "01:00:00",
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700023284,
+      "sub_type": "concert",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 2,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "mary in the junkyard",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700023284"
+        },
+        "en": {
+          "name": "mary in the junkyard",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700023284"
+        },
+        "nl": {
+          "name": "mary in the junkyard",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700023284"
+        }
+      },
+      "place": {
+        "id": 11,
+        "location": {
+          "lat": 50.85461438,
+          "lon": 4.36620044
+        },
+        "translations": {
+          "fr": {
+            "name": "Botanique",
+            "address_zip": "1210",
+            "address_city": "Saint-Josse-Ten-Noode"
+          },
+          "en": {
+            "name": "Botanique",
+            "address_zip": "1210",
+            "address_city": "Saint-Josse-Ten-Noode"
+          },
+          "nl": {
+            "name": "Botanique",
+            "address_zip": "1210",
+            "address_city": "Sint-Joost-Ten-Node"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": "18:30:00",
+          "start": "19:30:00",
+          "end": null,
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700024023,
+      "sub_type": "concert",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 2,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "Echofarmer",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700024023"
+        },
+        "en": {
+          "name": "Echofarmer",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700024023"
+        },
+        "nl": {
+          "name": "Echofarmer",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700024023"
+        }
+      },
+      "place": {
+        "id": 11,
+        "location": {
+          "lat": 50.85461438,
+          "lon": 4.36620044
+        },
+        "translations": {
+          "fr": {
+            "name": "Botanique",
+            "address_zip": "1210",
+            "address_city": "Saint-Josse-Ten-Noode"
+          },
+          "en": {
+            "name": "Botanique",
+            "address_zip": "1210",
+            "address_city": "Saint-Josse-Ten-Noode"
+          },
+          "nl": {
+            "name": "Botanique",
+            "address_zip": "1210",
+            "address_city": "Sint-Joost-Ten-Node"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": "18:30:00",
+          "start": "19:30:00",
+          "end": "23:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700021218,
+      "sub_type": "brocante",
+      "is_permanent": false,
+      "is_free": true,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 0.13979972105947794,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "Marché du mardi à Molenbeek",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700021218"
+        },
+        "en": {
+          "name": "Marché du mardi à Molenbeek",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700021218"
+        },
+        "nl": {
+          "name": "Marché du mardi à Molenbeek",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700021218"
+        }
+      },
+      "place": {
+        "id": 271855,
+        "location": {
+          "lat": 50.84936951,
+          "lon": 4.32869935
+        },
+        "translations": {
+          "fr": {
+            "name": "Place de la Duchesse de Brabant",
+            "address_zip": "1080",
+            "address_city": "Molenbeek-Saint-Jean"
+          },
+          "en": {
+            "name": "Place de la Duchesse de Brabant",
+            "address_zip": "1080",
+            "address_city": "Molenbeek-Saint-Jean"
+          },
+          "nl": {
+            "name": "Place de la Duchesse de Brabant",
+            "address_zip": "1080",
+            "address_city": "Sint-Jans-Molenbeek"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "08:00:00",
+          "end": "13:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-13",
+          "doors": null,
+          "start": "08:00:00",
+          "end": "13:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-20",
+          "doors": null,
+          "start": "08:00:00",
+          "end": "13:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-27",
+          "doors": null,
+          "start": "08:00:00",
+          "end": "13:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700026465,
+      "sub_type": "foire",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 0.29744417462950146,
+      "date_next": "2026-10-08",
+      "translations": {
+        "fr": {
+          "name": "Pumpkimania 2026",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700026465"
+        },
+        "en": {
+          "name": "Pumpkimania 2026",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700026465"
+        },
+        "nl": {
+          "name": "Pumpkimania 2026",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700026465"
+        }
+      },
+      "place": {
+        "id": 271183,
+        "location": {
+          "lat": 50.8735921,
+          "lon": 4.2629103
+        },
+        "translations": {
+          "fr": {
+            "name": "Kasteel van Groot-Bijgaarden",
+            "address_zip": "1702",
+            "address_city": "Groot-Bijgaarden"
+          },
+          "en": {
+            "name": "Kasteel van Groot-Bijgaarden",
+            "address_zip": "1702",
+            "address_city": "Groot-Bijgaarden"
+          },
+          "nl": {
+            "name": "Kasteel van Groot-Bijgaarden",
+            "address_zip": "1702",
+            "address_city": "Groot-Bijgaarden"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-08",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-09",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-10",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-11",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700024603,
+      "sub_type": "sport",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 0.22151546799151525,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "Drohme Park : Adventure Golf",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700024603"
+        },
+        "en": {
+          "name": "Adventure Golf",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700024603"
+        },
+        "nl": {
+          "name": "Adventure Golf",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700024603"
+        }
+      },
+      "place": {
+        "id": 266533,
+        "location": {
+          "lat": 50.79681453,
+          "lon": 4.39647355
+        },
+        "translations": {
+          "fr": {
+            "name": "DROHME Park",
+            "address_zip": "1180",
+            "address_city": "Uccle"
+          },
+          "en": {
+            "name": "DROHME Park",
+            "address_zip": "1180",
+            "address_city": "Uccle"
+          },
+          "nl": {
+            "name": "DROHME Park",
+            "address_zip": "1180",
+            "address_city": "Ukkel"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "09:00:00",
+          "end": "18:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-07",
+          "doors": null,
+          "start": "09:00:00",
+          "end": "18:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-08",
+          "doors": null,
+          "start": "09:00:00",
+          "end": "18:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-09",
+          "doors": null,
+          "start": "09:00:00",
+          "end": "18:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700026577,
+      "sub_type": "theatre",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 1,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "À qui la faute?",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700026577"
+        },
+        "en": {
+          "name": "À qui la faute?",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700026577"
+        },
+        "nl": {
+          "name": "À qui la faute?",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700026577"
+        }
+      },
+      "place": {
+        "id": 136,
+        "location": {
+          "lat": 50.81722083,
+          "lon": 4.42730297
+        },
+        "translations": {
+          "fr": {
+            "name": "Centre Culturel d'Auderghem",
+            "address_zip": "1160",
+            "address_city": "Auderghem"
+          },
+          "en": {
+            "name": "Centre Culturel d'Auderghem",
+            "address_zip": "1160",
+            "address_city": "Auderghem"
+          },
+          "nl": {
+            "name": "CC Oudergem",
+            "address_zip": "1160",
+            "address_city": "Oudergem"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "20:30:00",
+          "end": "23:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-07",
+          "doors": null,
+          "start": "20:30:00",
+          "end": "23:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-08",
+          "doors": null,
+          "start": "20:30:00",
+          "end": "23:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-09",
+          "doors": null,
+          "start": "20:30:00",
+          "end": "23:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700026553,
+      "sub_type": "training",
+      "is_permanent": false,
+      "is_free": true,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 1.2599210498948732,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "Atelier Internet utile pour débutants",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700026553"
+        },
+        "en": {
+          "name": "Atelier Internet utile pour débutants",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700026553"
+        },
+        "nl": {
+          "name": "Atelier Internet utile pour débutants",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700026553"
+        }
+      },
+      "place": {
+        "id": 50003058,
+        "location": {
+          "lat": 50.8577741,
+          "lon": 4.3121225
+        },
+        "translations": {
+          "fr": {
+            "name": "Bibliothèque Jacqueline Harpman",
+            "address_zip": "1080",
+            "address_city": "Molenbeek-Saint-Jean"
+          },
+          "en": {
+            "name": "Bibliothèque Jacqueline Harpman",
+            "address_zip": "1080",
+            "address_city": "Molenbeek-Saint-Jean"
+          },
+          "nl": {
+            "name": "Bibliothèque Jacqueline Harpman",
+            "address_zip": "1080",
+            "address_city": "Sint-Jans-Molenbeek"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "09:30:00",
+          "end": "12:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700027632,
+      "sub_type": "tour",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 1,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "Expo M.C. Escher in Tour & Taxis",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700027632"
+        },
+        "en": {
+          "name": "Expo M.C. Escher in Tour & Taxis",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700027632"
+        },
+        "nl": {
+          "name": "Expo M.C. Escher in Tour & Taxis",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700027632"
+        }
+      },
+      "place": {
+        "id": 50004508,
+        "location": {
+          "lat": 50.8635871,
+          "lon": 4.3461753
+        },
+        "translations": {
+          "fr": {
+            "name": "Tour et Taxi - Shed 1 Bis",
+            "address_zip": "1000",
+            "address_city": "Bruxelles"
+          },
+          "en": {
+            "name": "Tour et Taxi - Shed 1 Bis",
+            "address_zip": "1000",
+            "address_city": "Brussels"
+          },
+          "nl": {
+            "name": "Tour et Taxi - Shed 1 Bis",
+            "address_zip": "1000",
+            "address_city": "Brussel"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "13:45:00",
+          "end": "17:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700022687,
+      "sub_type": "other",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 0.4680926207766303,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "Seuls, Même pas peur (d'avoir peur !)",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700022687"
+        },
+        "en": {
+          "name": "Alone, Not even scared (to be scared!)",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700022687"
+        },
+        "nl": {
+          "name": "Alleen, Niet bang (om bang te zijn!)",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700022687"
+        }
+      },
+      "place": {
+        "id": 202864,
+        "location": {
+          "lat": 50.8512206,
+          "lon": 4.3601618
+        },
+        "translations": {
+          "fr": {
+            "name": "Musée de la BD",
+            "address_zip": "1000",
+            "address_city": "Bruxelles"
+          },
+          "en": {
+            "name": "Comic Art Museum",
+            "address_zip": "1000",
+            "address_city": "Brussels"
+          },
+          "nl": {
+            "name": "Stripmuseum",
+            "address_zip": "1000",
+            "address_city": "Brussel"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-07",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-08",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-09",
+          "doors": null,
+          "start": "10:00:00",
+          "end": "18:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 592529,
+      "sub_type": "other",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": true,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 0.2030224346646805,
+      "date_next": "2026-10-07",
+      "translations": {
+        "fr": {
+          "name": "Brussel Discovery",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.592529"
+        },
+        "en": {
+          "name": "Brussel Discovery",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.592529"
+        },
+        "nl": {
+          "name": "Brussel Discovery",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.592529"
+        }
+      },
+      "place": {
+        "id": 211305,
+        "location": {
+          "lat": 50.85131354,
+          "lon": 4.37252117
+        },
+        "translations": {
+          "fr": {
+            "name": "GC Ten Noey",
+            "address_zip": "1210",
+            "address_city": "Saint-Josse-Ten-Noode"
+          },
+          "en": {
+            "name": "GC Ten Noey",
+            "address_zip": "1210",
+            "address_city": "Saint-Josse-Ten-Noode"
+          },
+          "nl": {
+            "name": "GC Ten Noey",
+            "address_zip": "1210",
+            "address_city": "Sint-Joost-Ten-Node"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-07",
+          "doors": null,
+          "start": "13:30:00",
+          "end": "17:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-14",
+          "doors": null,
+          "start": "13:30:00",
+          "end": "17:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-21",
+          "doors": null,
+          "start": "13:30:00",
+          "end": "17:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        },
+        {
+          "day": "2026-10-28",
+          "doors": null,
+          "start": "13:30:00",
+          "end": "17:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 590023,
+      "sub_type": "other",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": true,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 2,
+      "date_next": "2026-10-06",
+      "translations": {
+        "fr": {
+          "name": "Jalen Ngonda",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.590023"
+        },
+        "en": {
+          "name": "Jalen Ngonda",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.590023"
+        },
+        "nl": {
+          "name": "Jalen Ngonda",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.590023"
+        }
+      },
+      "place": {
+        "id": 107,
+        "location": {
+          "lat": 50.8472558,
+          "lon": 4.3488758
+        },
+        "translations": {
+          "fr": {
+            "name": "Ancienne Belgique",
+            "address_zip": "1000",
+            "address_city": "Bruxelles"
+          },
+          "en": {
+            "name": "Ancienne Belgique",
+            "address_zip": "1000",
+            "address_city": "Brussels"
+          },
+          "nl": {
+            "name": "Ancienne Belgique",
+            "address_zip": "1000",
+            "address_city": "Brussel"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-06",
+          "doors": null,
+          "start": "19:00:00",
+          "end": "22:30:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 5700017302,
+      "sub_type": "theatre",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": 0.2087064022423232,
+      "date_next": "2026-10-22",
+      "translations": {
+        "fr": {
+          "name": "Warm Up! Improvisation théâtrale",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700017302"
+        },
+        "en": {
+          "name": "Warm Up! Improvisation théâtrale",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700017302"
+        },
+        "nl": {
+          "name": "Warm Up! Improvisation théâtrale",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700017302"
+        }
+      },
+      "place": {
+        "id": 248422,
+        "location": {
+          "lat": 50.83377662,
+          "lon": 4.40748584
+        },
+        "translations": {
+          "fr": {
+            "name": "Le Petit Chapeau Rond Rouge",
+            "address_zip": "1040",
+            "address_city": "Etterbeek"
+          },
+          "en": {
+            "name": "Le Petit Chapeau Rond Rouge",
+            "address_zip": "1040",
+            "address_city": "Etterbeek"
+          },
+          "nl": {
+            "name": "Le Petit Chapeau Rond Rouge",
+            "address_zip": "1040",
+            "address_city": "Etterbeek"
+          }
+        }
+      },
+      "dates": [
+        {
+          "day": "2026-10-22",
+          "doors": "18:45:00",
+          "start": "20:30:00",
+          "end": "22:00:00",
+          "end_night_life": null,
+          "is_soldout": false,
+          "is_canceled": false
+        }
+      ]
+    },
+    {
+      "id": 332421,
+      "sub_type": "expo",
+      "is_permanent": true,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": null,
+      "date_next": "2023-07-11",
+      "translations": {
+        "fr": {
+          "name": "Le monde des Insectes",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.332421"
+        },
+        "en": {
+          "name": "Le monde des Insectes",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.332421"
+        },
+        "nl": {
+          "name": "Le monde des Insectes",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.332421"
+        }
+      },
+      "place": {
+        "id": 258354,
+        "location": {
+          "lat": 50.6813807,
+          "lon": 5.2306454
+        },
+        "translations": {
+          "fr": {
+            "name": "Insectarium \"Jean Leclercq\" Hexapoda",
+            "address_zip": "4300",
+            "address_city": "Waremme"
+          },
+          "en": {
+            "name": "Insectarium \"Jean Leclercq\" Hexapoda",
+            "address_zip": "4300",
+            "address_city": "Waremme"
+          },
+          "nl": {
+            "name": "Insectarium \"Jean Leclercq\" Hexapoda",
+            "address_zip": "4300",
+            "address_city": "Waremme"
+          }
+        }
+      },
+      "dates": []
+    },
+    {
+      "id": 5700020000,
+      "sub_type": "festival",
+      "is_permanent": false,
+      "is_free": false,
+      "is_canceled": false,
+      "is_soldout": false,
+      "is_high_capacity": false,
+      "is_not_major_event": false,
+      "ranking": null,
+      "date_next": null,
+      "translations": {
+        "fr": {
+          "name": "Vous êtes des clowns",
+          "agenda_url": "https://visit.brussels/fr/visitors/agenda/event-detail.5700020000"
+        },
+        "en": {
+          "name": "Vous êtes des clowns",
+          "agenda_url": "https://visit.brussels/en/visitors/agenda/event-detail.5700020000"
+        },
+        "nl": {
+          "name": "Vous êtes des clowns",
+          "agenda_url": "https://visit.brussels/nl/visitors/agenda/event-detail.5700020000"
+        }
+      },
+      "place": {
+        "id": 251803,
+        "location": {
+          "lat": 50.80935174,
+          "lon": 4.4326448
+        },
+        "translations": {
+          "fr": {
+            "name": "M.agency",
+            "address_zip": "1000",
+            "address_city": "Bruxelles"
+          },
+          "en": {
+            "name": "M.agency",
+            "address_zip": "1000",
+            "address_city": "Brussels"
+          },
+          "nl": {
+            "name": "M.agency",
+            "address_zip": "1000",
+            "address_city": "Brussel"
+          }
+        }
+      },
+      "dates": []
+    }
+  ],
+  "results": 17,
+  "totalPages": 1
+}
