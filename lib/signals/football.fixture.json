@@ -1,0 +1,392 @@
+[
+  {
+    "id": 212781,
+    "league": {
+      "id": 14,
+      "name": "Pro League",
+      "country": "Belgium",
+      "is_women": false
+    },
+    "home_team": "Cercle Brugge",
+    "away_team": "RSC Anderlecht",
+    "home_team_obj": {
+      "id": 235,
+      "name": "Cercle Brugge",
+      "short_name": "Cercle Brugge",
+      "country": "Belgium"
+    },
+    "away_team_obj": {
+      "id": 240,
+      "name": "RSC Anderlecht",
+      "short_name": "Anderlecht",
+      "country": "Belgium"
+    },
+    "event_date": "2026-10-10T14:00:00Z",
+    "round_number": 8,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 121,
+      "name": "Jan Breydel Stadium",
+      "city": "Bruges",
+      "country": "Belgium",
+      "capacity": 29975,
+      "latitude": 51.193272,
+      "longitude": 3.180583
+    }
+  },
+  {
+    "id": 212786,
+    "league": {
+      "id": 14,
+      "name": "Pro League",
+      "country": "Belgium",
+      "is_women": false
+    },
+    "home_team": "Royale Union Saint-Gilloise",
+    "away_team": "Oud-Heverlee Leuven",
+    "home_team_obj": {
+      "id": 116,
+      "name": "Royale Union Saint-Gilloise",
+      "short_name": "USG",
+      "country": "Belgium"
+    },
+    "away_team_obj": {
+      "id": 242,
+      "name": "Oud-Heverlee Leuven",
+      "short_name": "OH Leuven",
+      "country": "Belgium"
+    },
+    "event_date": "2026-10-11T14:00:00Z",
+    "round_number": 8,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 114,
+      "name": "Stade Joseph Marien",
+      "city": "Saint-Gilles",
+      "country": "Belgium",
+      "capacity": 9400,
+      "latitude": 50.817778,
+      "longitude": 4.329167
+    }
+  },
+  {
+    "id": 601040,
+    "league": {
+      "id": 7,
+      "name": "Champions League",
+      "country": "Europe",
+      "is_women": false
+    },
+    "home_team": "Inter",
+    "away_team": "Club Brugge KV",
+    "home_team_obj": {
+      "id": 77,
+      "name": "Inter",
+      "short_name": "Inter",
+      "country": "Italy"
+    },
+    "away_team_obj": {
+      "id": 123,
+      "name": "Club Brugge KV",
+      "short_name": "Club Brugge",
+      "country": "Belgium"
+    },
+    "event_date": "2026-10-13T19:00:00Z",
+    "round_number": 2,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 63,
+      "name": "San Siro/Giuseppe Meazza",
+      "city": "Milano",
+      "country": "Italy",
+      "capacity": 75817,
+      "latitude": 45.478025,
+      "longitude": 9.124206
+    }
+  },
+  {
+    "id": 601293,
+    "league": {
+      "id": 8,
+      "name": "Europa League",
+      "country": "Europe",
+      "is_women": false
+    },
+    "home_team": "Royale Union Saint-Gilloise",
+    "away_team": "Real Sociedad",
+    "home_team_obj": {
+      "id": 116,
+      "name": "Royale Union Saint-Gilloise",
+      "short_name": "USG",
+      "country": "Belgium"
+    },
+    "away_team_obj": {
+      "id": 48,
+      "name": "Real Sociedad",
+      "short_name": "Real Sociedad",
+      "country": "Spain"
+    },
+    "event_date": "2026-10-15T16:45:00Z",
+    "round_number": 2,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 233,
+      "name": "The King Power AT Den Dreef Stadium",
+      "city": "Heverlee",
+      "country": "Belgium",
+      "capacity": 10020,
+      "latitude": 50.868333,
+      "longitude": 4.694167
+    }
+  },
+  {
+    "id": 212687,
+    "league": {
+      "id": 64,
+      "name": "UEFA Nations League",
+      "country": "Europe",
+      "is_women": false
+    },
+    "home_team": "Türkiye",
+    "away_team": "Belgium",
+    "home_team_obj": {
+      "id": 932,
+      "name": "Türkiye",
+      "short_name": "Türkiye",
+      "country": "Türkiye"
+    },
+    "away_team_obj": {
+      "id": 477,
+      "name": "Belgium",
+      "short_name": "Belgium",
+      "country": "Belgium"
+    },
+    "event_date": "2026-11-12T17:00:00Z",
+    "round_number": 5,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 186,
+      "name": "Gursel Aksel Stadium",
+      "city": "Izmir",
+      "country": "Türkiye",
+      "capacity": 20756,
+      "latitude": 38.3958666,
+      "longitude": 27.0753273
+    }
+  },
+  {
+    "id": 212717,
+    "league": {
+      "id": 64,
+      "name": "UEFA Nations League",
+      "country": "Europe",
+      "is_women": false
+    },
+    "home_team": "Belgium",
+    "away_team": "Italy",
+    "home_team_obj": {
+      "id": 477,
+      "name": "Belgium",
+      "short_name": "Belgium",
+      "country": "Belgium"
+    },
+    "away_team_obj": {
+      "id": 1326,
+      "name": "Italy",
+      "short_name": "Italy",
+      "country": "Italy"
+    },
+    "event_date": "2026-11-15T19:45:00Z",
+    "round_number": 6,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 435,
+      "name": "Stade Roi Baudouin",
+      "city": "Brussels",
+      "country": "Belgium",
+      "capacity": 50000,
+      "latitude": 50.895706,
+      "longitude": 4.334083
+    }
+  },
+  {
+    "id": 216009,
+    "league": {
+      "id": 11,
+      "name": "Trendyol Super Lig",
+      "country": "Turkey",
+      "is_women": false
+    },
+    "home_team": "Galatasaray",
+    "away_team": "Kasımpaşa",
+    "home_team_obj": {
+      "id": 125,
+      "name": "Galatasaray",
+      "short_name": "Galatasaray",
+      "country": "Türkiye"
+    },
+    "away_team_obj": {
+      "id": 187,
+      "name": "Kasımpaşa",
+      "short_name": "Kasımpaşa",
+      "country": "Türkiye"
+    },
+    "event_date": "2026-10-09T17:00:00Z",
+    "round_number": 7,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 123,
+      "name": "Rams Park Stadyumu",
+      "city": "Istanbul",
+      "country": "Türkiye",
+      "capacity": 53978,
+      "latitude": 41.102869,
+      "longitude": 28.990419
+    }
+  },
+  {
+    "id": 605163,
+    "league": {
+      "id": 53,
+      "name": "Botola Pro",
+      "country": "Morocco",
+      "is_women": false
+    },
+    "home_team": "AS FAR Rabat",
+    "away_team": "Raja Club Athletic",
+    "home_team_obj": {
+      "id": 586,
+      "name": "AS FAR Rabat",
+      "short_name": "AS FAR",
+      "country": "Morocco"
+    },
+    "away_team_obj": {
+      "id": 2067,
+      "name": "Raja Club Athletic",
+      "short_name": "Raja CA",
+      "country": "Morocco"
+    },
+    "event_date": "2026-10-14T17:00:00Z",
+    "round_number": 1,
+    "round_name": "",
+    "status": "notstarted",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": null,
+    "venue": {
+      "id": 467,
+      "name": "Complexe Sportif Moulay Abdellah",
+      "city": "Rabat",
+      "country": "Morocco",
+      "capacity": 69700,
+      "latitude": null,
+      "longitude": null
+    }
+  },
+  {
+    "id": 211303,
+    "league": {
+      "id": 14,
+      "name": "Pro League",
+      "country": "Belgium",
+      "is_women": false
+    },
+    "home_team": "Club Brugge KV",
+    "away_team": "KV Kortrijk",
+    "home_team_obj": {
+      "id": 123,
+      "name": "Club Brugge KV",
+      "short_name": "Club Brugge",
+      "country": "Belgium"
+    },
+    "away_team_obj": {
+      "id": 2763,
+      "name": "KV Kortrijk",
+      "short_name": "Kortrijk",
+      "country": "Belgium"
+    },
+    "event_date": "2026-08-07T18:45:00Z",
+    "round_number": 1,
+    "round_name": "",
+    "status": "finished",
+    "home_score": 3,
+    "away_score": 0,
+    "is_local_derby": true,
+    "venue": {
+      "id": 121,
+      "name": "Jan Breydel Stadium",
+      "city": "Bruges",
+      "country": "Belgium",
+      "capacity": 29975,
+      "latitude": 51.193272,
+      "longitude": 3.180583
+    }
+  },
+  {
+    "id": 211324,
+    "league": {
+      "id": 14,
+      "name": "Pro League",
+      "country": "Belgium",
+      "is_women": false
+    },
+    "home_team": "KAA Gent",
+    "away_team": "Oud-Heverlee Leuven",
+    "home_team_obj": {
+      "id": 245,
+      "name": "KAA Gent",
+      "short_name": "Gent",
+      "country": "Belgium"
+    },
+    "away_team_obj": {
+      "id": 242,
+      "name": "Oud-Heverlee Leuven",
+      "short_name": "OH Leuven",
+      "country": "Belgium"
+    },
+    "event_date": "2026-08-22T18:30:00Z",
+    "round_number": 3,
+    "round_name": "",
+    "status": "postponed",
+    "home_score": null,
+    "away_score": null,
+    "is_local_derby": false,
+    "venue": {
+      "id": 236,
+      "name": "Planet Group Arena",
+      "city": "Gent",
+      "country": "Belgium",
+      "capacity": 20185,
+      "latitude": 51.016111,
+      "longitude": 3.734167
+    }
+  }
+]
