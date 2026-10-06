@@ -75,6 +75,15 @@ const INSTITUTION_ALIASES: Record<string, string[]> = {
   VUB: ["vub", "vrije universiteit brussel"],
   UCLouvain: ["uclouvain", "ucl", "universite catholique de louvain", "louvain la neuve", "lln"],
   "KU Leuven": ["ku leuven", "kuleuven", "katholieke universiteit leuven"],
+  // Hautes écoles. « vinci » seul est volontairement absent : un lycée Léonard
+  // de Vinci n'est pas la haute école. « Parnasse-ISEI » et l'ECAM en font partie.
+  "Haute École Léonard de Vinci": [
+    "haute ecole leonard de vinci", "he vinci", "he leonard de vinci", "ecam", "parnasse isei",
+  ],
+  EPHEC: ["ephec"],
+  HE2B: ["he2b", "haute ecole bruxelles brabant"],
+  // « erasmus » seul est absent : c'est aussi le programme d'échange.
+  EHB: ["ehb", "erasmushogeschool", "erasmushogeschool brussel", "erasmus hogeschool"],
 };
 
 // Communes et noms de lieu qui valent « la ville du campus ». À Bruxelles, un
