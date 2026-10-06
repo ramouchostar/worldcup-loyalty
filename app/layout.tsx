@@ -81,6 +81,10 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  // Vérification du domaine pour Meta Business (pixel / publicités).
+  verification: {
+    other: { "facebook-domain-verification": "qtgjelufmtpn5zvsny25v2l22elr23" },
+  },
 };
 
 export const viewport: Viewport = {
