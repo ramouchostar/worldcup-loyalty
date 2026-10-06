@@ -5,6 +5,7 @@ import {
   brusselsLocalToUtc,
   distanceKm,
   isNotable,
+  RANKING_KEEP_THRESHOLD,
   parseVisitBrusselsEvents,
   selectLocalEvents,
   type LocalEvent,
@@ -100,6 +101,23 @@ test("lecture : réponses inexploitables ignorées sans planter", () => {
   assert.deepEqual(parseVisitBrusselsEvents(null, WINDOW), []);
   assert.deepEqual(parseVisitBrusselsEvents({ error: "x" }, WINDOW), []);
   assert.deepEqual(parseVisitBrusselsEvents({ data: [null, 3, "x", { id: 1 }, { id: 2, dates: [{ day: "2026-10-08" }] }] }, WINDOW), []);
+});
+
+test("isNotable : le seuil de classement est 2 — un lieu à 1,3 (bibliothèque, centre communautaire) ne passe plus", () => {
+  const base = first(/Seuls, Même pas peur/); // « autre », classé 0,5 dans la fixture
+  const at = (ranking: number | null): LocalEvent => ({ ...base, isHighCapacity: false, sourceCategory: "other", category: "autre", ranking });
+  assert.equal(isNotable(at(2)), true); // Ancienne Belgique, Bozar, Flagey, Cirque Royal
+  assert.equal(isNotable(at(1.99)), false);
+  assert.equal(isNotable(at(1.3)), false); // cas réel : activités de bibliothèque
+  assert.equal(isNotable(at(1)), false);
+  assert.equal(isNotable(at(null)), false);
+  assert.equal(RANKING_KEEP_THRESHOLD, 2);
+  // Les catégories d'événement et la grande salle ne dépendent pas du classement.
+  assert.equal(isNotable({ ...at(0.1), category: "concert" }), true);
+  assert.equal(isNotable({ ...at(0.1), isHighCapacity: true }), true);
+  // Cinéma de quartier mal classé : non ; formation même classée 2 : non.
+  assert.equal(isNotable({ ...at(1.3), category: "cinema", sourceCategory: "movie" }), false);
+  assert.equal(isNotable({ ...at(2), sourceCategory: "training" }), false);
 });
 
 test("isNotable : grande salle, catégories d'événement, ou classement élevé — pas les ateliers ni les visites", () => {
