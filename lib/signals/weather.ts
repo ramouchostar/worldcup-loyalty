@@ -1,11 +1,15 @@
 // ============================================================
-// Signal « météo » — prévisions et historique Open-Meteo (backlog plateforme,
-// décidé le 2026-10-01 ; ADR 0074 §8).
+// Signal « météo » — prévisions Google Weather, historique Open-Meteo
+// (backlog plateforme, décidé le 2026-10-01 ; ADR 0074 §8).
 //
-// Module PUR : aucun réseau, aucune base, aucune horloge. Il lit la réponse
-// JSON d'Open-Meteo (prévisions /v1/forecast ou archive /v1/archive, même
-// forme) et la résume par SERVICE (midi, soir) : c'est à ces heures-là que la
-// météo change les tickets, pas à 4 h du matin.
+// Module PUR : aucun réseau, aucune base, aucune horloge. Il lit deux formes
+// de réponse vers les MÊMES heures typées, puis les résume par SERVICE (midi,
+// soir) : c'est à ces heures-là que la météo change les tickets.
+//   - Google Weather (forecast/hours, history/hours) : prévisions 7 jours et
+//     dernières 24 h — source retenue le 2026-10-06 (usage commercial permis,
+//     contrairement à l'offre gratuite d'Open-Meteo).
+//   - Open-Meteo (archive) : seulement pour amorcer le calage sur le passé,
+//     Google ne servant que 24 h d'historique.
 //
 // Une valeur absente reste ABSENTE : `null` n'est jamais lu comme « 0 mm ».
 // (Constaté le 2026-10-06 : l'archive ERA5-Land renvoie la pluie entièrement
@@ -28,7 +32,11 @@ export type WeatherHour = {
   precipitationProbability: number | null; // % — prévisions seulement
   snowfall: number | null; // cm
   windSpeed: number | null; // km/h à 10 m
-  weatherCode: number | null; // code WMO
+  /** Probabilité d'orage, % — Google seulement. */
+  thunderstormProbability: number | null;
+  /** Type de temps Google (« LIGHT_RAIN », « THUNDERSTORM »…) — Google seulement. */
+  condition: string | null;
+  weatherCode: number | null; // code WMO — Open-Meteo seulement
 };
 
 export type WeatherRead = {
@@ -38,6 +46,17 @@ export type WeatherRead = {
   timezone: string;
   hours: WeatherHour[];
 };
+
+export type Coordinates = { latitude: number; longitude: number };
+
+export function validCoordinates(c: Coordinates): boolean {
+  return (
+    Number.isFinite(c.latitude) &&
+    Number.isFinite(c.longitude) &&
+    Math.abs(c.latitude) <= 90 &&
+    Math.abs(c.longitude) <= 180
+  );
+}
 
 export type ServiceName = "midi" | "soir";
 
@@ -53,6 +72,7 @@ export type WeatherFlag = "pluie" | "orage" | "neige" | "froid" | "chaleur" | "v
 export const THRESHOLDS = {
   rainMm: 1, // cumul sur le service
   rainProbabilityPct: 60, // probabilité max sur le service
+  thunderProbabilityPct: 50, // probabilité d'orage max (Google)
   coldApparentC: 3, // ressenti min
   hotApparentC: 28, // ressenti max
   windKmh: 50, // vent max
@@ -72,8 +92,11 @@ export type ServiceWeather = {
   maxApparentTemperature: number | null;
   maxWindSpeed: number | null;
   snowfallCm: number | null;
-  /** Code WMO le plus élevé ≈ le temps le plus marquant du service. */
+  /** Code WMO le plus élevé ≈ le temps le plus marquant du service (Open-Meteo). */
   worstWeatherCode: number | null;
+  maxThunderstormProbability: number | null;
+  /** Types de temps Google rencontrés sur le service, sans doublon. */
+  conditions: string[];
   flags: WeatherFlag[];
 };
 
@@ -131,16 +154,99 @@ export function parseOpenMeteoHourly(raw: unknown): WeatherRead | null {
       precipitationProbability: probability[i],
       snowfall: snowfall[i],
       windSpeed: wind[i],
+      thunderstormProbability: null,
+      condition: null,
       weatherCode: code[i],
     })),
   };
 }
 
+// ── Lecture Google Weather ──────────────────────────────────────────────────
+
+type GoogleHour = {
+  displayDateTime?: { year?: number; month?: number; day?: number; hours?: number };
+  weatherCondition?: { type?: unknown };
+  temperature?: { degrees?: unknown; unit?: unknown };
+  feelsLikeTemperature?: { degrees?: unknown; unit?: unknown };
+  precipitation?: { probability?: { percent?: unknown }; qpf?: { quantity?: unknown; unit?: unknown }; snowQpf?: { quantity?: unknown } };
+  wind?: { speed?: { value?: unknown; unit?: unknown } };
+  thunderstormProbability?: unknown;
+};
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Heure LOCALE affichée par Google (« displayDateTime », déjà au fuseau du lieu). */
+function googleLocalHour(h: GoogleHour): string | null {
+  const d = h.displayDateTime;
+  if (!d || ![d.year, d.month, d.day, d.hours].every((x) => typeof x === "number")) return null;
+  return `${d.year}-${pad(d.month!)}-${pad(d.day!)}T${pad(d.hours!)}:00`;
+}
+
+/** Une unité inattendue (FAHRENHEIT, MILES_PER_HOUR, INCHES) → valeur inconnue, jamais convertie en silence. */
+function inUnit(v: { unit?: unknown } | undefined, unit: string, x: unknown): number | null {
+  if (!v || (v.unit !== undefined && v.unit !== unit)) return null;
+  return num(x);
+}
+
+/**
+ * Pages Google Weather (forecastHours ou historyHours) → heures typées, triées
+ * (l'historique arrive du plus récent au plus ancien). `null` si aucune page
+ * n'a la forme attendue ou si une heure n'a pas d'heure locale lisible.
+ * Google ne renvoie pas le point servi : on garde les coordonnées demandées.
+ */
+export function parseGoogleWeatherHours(
+  pages: unknown[],
+  at: Coordinates
+): WeatherRead | null {
+  const list: GoogleHour[] = [];
+  let timezone: string | null = null;
+  for (const p of pages) {
+    if (!p || typeof p !== "object") return null;
+    const r = p as Record<string, unknown>;
+    const hours = r.forecastHours ?? r.historyHours;
+    if (!Array.isArray(hours)) return null;
+    const tz = (r.timeZone as { id?: unknown } | undefined)?.id;
+    if (typeof tz === "string") timezone = tz;
+    list.push(...(hours as GoogleHour[]));
+  }
+  if (!timezone) return null;
+
+  const out: WeatherHour[] = [];
+  for (const h of list) {
+    const time = googleLocalHour(h);
+    if (!time) return null;
+    const pr = h.precipitation;
+    const rain = inUnit(pr?.qpf, "MILLIMETERS", pr?.qpf?.quantity);
+    const snowMm = num(pr?.snowQpf?.quantity);
+    out.push({
+      time,
+      temperature: inUnit(h.temperature, "CELSIUS", h.temperature?.degrees),
+      apparentTemperature: inUnit(h.feelsLikeTemperature, "CELSIUS", h.feelsLikeTemperature?.degrees),
+      precipitation: rain,
+      precipitationProbability: num(pr?.probability?.percent),
+      // Google donne la neige en équivalent eau (mm) ; 1 mm d'eau ≈ 1 cm de
+      // neige — approximation suffisante : seul « il neige » compte ici.
+      snowfall: snowMm,
+      windSpeed: inUnit(h.wind?.speed, "KILOMETERS_PER_HOUR", h.wind?.speed?.value),
+      thunderstormProbability: num(h.thunderstormProbability),
+      condition: typeof h.weatherCondition?.type === "string" ? h.weatherCondition.type : null,
+      weatherCode: null,
+    });
+  }
+  out.sort((a, b) => a.time.localeCompare(b.time));
+  return { latitude: at.latitude, longitude: at.longitude, timezone, hours: out };
+}
+
 // ── Résumé par service ──────────────────────────────────────────────────────
 
-/** Variables qui doivent être présentes pour qu'une heure soit complète. */
-type Required = "apparentTemperature" | "precipitation" | "windSpeed" | "weatherCode";
-const REQUIRED: Required[] = ["apparentTemperature", "precipitation", "windSpeed", "weatherCode"];
+/** Variables qui doivent être présentes pour qu'une heure soit complète (servies par les deux sources). */
+type Required = "apparentTemperature" | "precipitation" | "windSpeed";
+export const REQUIRED: Required[] = ["apparentTemperature", "precipitation", "windSpeed"];
+
+/** Heures où l'une des variables utiles est absente (`null`). */
+export function countMissingHours(read: WeatherRead): number {
+  return read.hours.filter((h) => REQUIRED.some((k) => h[k] === null)).length;
+}
 
 /** Agrège une variable ; `null` dès qu'UNE heure manque — jamais un total partiel. */
 function agg(values: (number | null)[], expected: number, f: (xs: number[]) => number): number | null {
@@ -171,7 +277,7 @@ export function summarizeServices(read: WeatherRead): ServiceWeather[] {
       const missingHours =
         expected - present.length + present.filter((h) => REQUIRED.some((k) => h[k] === null)).length;
 
-      const pick = (k: keyof Omit<WeatherHour, "time">) => present.map((h) => h[k]);
+      const pick = (k: Exclude<keyof WeatherHour, "time" | "condition">) => present.map((h) => h[k]);
       const s: ServiceWeather = {
         date,
         service,
@@ -184,6 +290,8 @@ export function summarizeServices(read: WeatherRead): ServiceWeather[] {
         maxWindSpeed: agg(pick("windSpeed"), expected, max),
         snowfallCm: agg(pick("snowfall"), expected, sum),
         worstWeatherCode: agg(pick("weatherCode"), expected, max),
+        maxThunderstormProbability: agg(pick("thunderstormProbability"), expected, max),
+        conditions: [...new Set(present.map((h) => h.condition).filter((c): c is string => !!c))],
         flags: [],
       };
       s.flags = flagsOf(s);
@@ -203,7 +311,13 @@ export function flagsOf(s: ServiceWeather): WeatherFlag[] {
   ) {
     f.push("pluie");
   }
-  if (s.worstWeatherCode !== null && s.worstWeatherCode >= t.thunderCode) f.push("orage");
+  if (
+    (s.worstWeatherCode !== null && s.worstWeatherCode >= t.thunderCode) ||
+    (s.maxThunderstormProbability !== null && s.maxThunderstormProbability >= t.thunderProbabilityPct) ||
+    s.conditions.some((c) => c.includes("THUNDER"))
+  ) {
+    f.push("orage");
+  }
   if (s.snowfallCm !== null && s.snowfallCm > 0) f.push("neige");
   if (s.minApparentTemperature !== null && s.minApparentTemperature <= t.coldApparentC) f.push("froid");
   if (s.maxApparentTemperature !== null && s.maxApparentTemperature >= t.hotApparentC) f.push("chaleur");

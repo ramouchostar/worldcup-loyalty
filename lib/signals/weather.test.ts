@@ -1,36 +1,71 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import forecastFixture from "./weather-forecast.fixture.json";
+import googleForecast from "./weather-google-forecast.fixture.json";
+import googleHistory from "./weather-google-history.fixture.json";
 import archiveFixture from "./weather-archive.fixture.json";
-import { flagsOf, parseOpenMeteoHourly, summarizeServices, type ServiceWeather, type WeatherRead } from "./weather";
+import {
+  countMissingHours,
+  flagsOf,
+  parseGoogleWeatherHours,
+  parseOpenMeteoHourly,
+  summarizeServices,
+  type ServiceWeather,
+  type WeatherRead,
+} from "./weather";
 
-// Fixtures : vraies réponses Open-Meteo pour Kraainem (centre de la commune),
-// lues le 2026-10-06 avec forecastUrl / archiveUrl.
+// Fixtures : vraies réponses lues le 2026-10-06 pour Kraainem — Google Weather
+// (7 pages de prévisions, 24 h d'historique ; champs inutiles retirés) et
+// archive Open-Meteo.
+const kraainem = { latitude: 50.8490066, longitude: 4.4588551 };
 
-test("prévisions réelles : 168 heures locales, point de grille servi, rien de vide", () => {
-  const r = parseOpenMeteoHourly(forecastFixture)!;
+test("Google, prévisions : 7 pages → 168 heures locales consécutives, rien de vide", () => {
+  const r = parseGoogleWeatherHours(googleForecast as unknown[], kraainem)!;
   assert.equal(r.hours.length, 168);
   assert.equal(r.timezone, "Europe/Brussels");
-  assert.equal(r.hours[0].time, "2026-10-06T00:00");
-  assert.equal(r.hours.at(-1)!.time, "2026-10-12T23:00");
-  assert.ok(r.hours.every((h) => h.precipitation !== null && h.precipitationProbability !== null));
+  assert.equal(r.hours[0].time, "2026-10-06T15:00"); // 13:00 UTC = 15:00 à Bruxelles
+  assert.equal(r.hours.at(-1)!.time, "2026-10-13T14:00");
+  assert.equal(countMissingHours(r), 0);
+  assert.equal(r.latitude, kraainem.latitude); // Google ne renvoie pas le point servi
 });
 
-test("prévisions réelles : 7 jours × midi et soir, mercredi soir pluvieux", () => {
-  const s = summarizeServices(parseOpenMeteoHourly(forecastFixture)!);
-  assert.equal(s.length, 14);
+test("Google, prévisions : mercredi soir pluvieux, jeudi midi pas assez pour un drapeau", () => {
+  const s = summarizeServices(parseGoogleWeatherHours(googleForecast as unknown[], kraainem)!);
   const wedEvening = s.find((x) => x.date === "2026-10-07" && x.service === "soir")!;
-  assert.equal(wedEvening.precipitationMm, 3.3);
-  assert.equal(wedEvening.maxPrecipitationProbability, 100);
+  assert.equal(wedEvening.precipitationMm, 6.7);
+  assert.equal(wedEvening.maxPrecipitationProbability, 75);
+  assert.deepEqual(wedEvening.conditions, ["RAIN_SHOWERS", "RAIN"]);
   assert.deepEqual(wedEvening.flags, ["pluie"]);
-  const tueLunch = s.find((x) => x.date === "2026-10-06" && x.service === "midi")!;
-  assert.deepEqual(tueLunch.flags, []);
-  assert.equal(tueLunch.missingHours, 0);
+  const thuLunch = s.find((x) => x.date === "2026-10-08" && x.service === "midi")!;
+  assert.equal(thuLunch.precipitationMm, 0.5);
+  assert.deepEqual(thuLunch.flags, []);
+  // Le midi du 6 est déjà passé à la lecture (15 h) : pas de service inventé.
+  assert.equal(s.some((x) => x.date === "2026-10-06" && x.service === "midi"), false);
 });
 
-test("archive réelle : pas de probabilité (c'est ce qui est tombé), la pluie se lit au cumul", () => {
+test("Google, historique : arrive du plus récent au plus ancien, ressort trié", () => {
+  const r = parseGoogleWeatherHours([googleHistory], kraainem)!;
+  assert.equal(r.hours.length, 24);
+  assert.equal(r.hours[0].time, "2026-10-05T15:00");
+  assert.equal(r.hours.at(-1)!.time, "2026-10-06T14:00");
+});
+
+test("Google : unité inattendue → valeur inconnue, jamais convertie en silence", () => {
+  const page = structuredClone(googleHistory) as { historyHours: { temperature: { unit: string } }[] };
+  page.historyHours[0].temperature.unit = "FAHRENHEIT";
+  const r = parseGoogleWeatherHours([page], kraainem)!;
+  assert.equal(r.hours.at(-1)!.temperature, null);
+});
+
+test("Google : forme inattendue → null", () => {
+  assert.equal(parseGoogleWeatherHours([{ error: { code: 403 } }], kraainem), null);
+  assert.equal(parseGoogleWeatherHours([{ forecastHours: [{}], timeZone: { id: "Europe/Brussels" } }], kraainem), null);
+  assert.equal(parseGoogleWeatherHours([{ forecastHours: [] }], kraainem), null); // sans fuseau
+});
+
+test("archive Open-Meteo réelle : pas de probabilité (c'est ce qui est tombé), la pluie se lit au cumul", () => {
   const r = parseOpenMeteoHourly(archiveFixture)!;
   const s = summarizeServices(r);
+  assert.equal(r.hours.length, 168);
   assert.ok(r.hours.every((h) => h.precipitationProbability === null));
   const monLunch = s.find((x) => x.date === "2026-09-28" && x.service === "midi")!;
   assert.equal(monLunch.maxPrecipitationProbability, null);
@@ -107,12 +142,16 @@ test("drapeaux : seuils de départ", () => {
     maxWindSpeed: 10,
     snowfallCm: 0,
     worstWeatherCode: 3,
+    maxThunderstormProbability: 0,
+    conditions: [],
     flags: [],
   };
   assert.deepEqual(flagsOf(base), []);
   assert.deepEqual(flagsOf({ ...base, precipitationMm: 1 }), ["pluie"]);
   assert.deepEqual(flagsOf({ ...base, maxPrecipitationProbability: 60 }), ["pluie"]);
   assert.deepEqual(flagsOf({ ...base, worstWeatherCode: 95 }), ["orage"]);
+  assert.deepEqual(flagsOf({ ...base, maxThunderstormProbability: 50 }), ["orage"]);
+  assert.deepEqual(flagsOf({ ...base, conditions: ["SCATTERED_THUNDERSTORMS"] }), ["orage"]);
   assert.deepEqual(flagsOf({ ...base, snowfallCm: 0.2, minApparentTemperature: -2 }), ["neige", "froid"]);
   assert.deepEqual(flagsOf({ ...base, maxApparentTemperature: 28 }), ["chaleur"]);
   assert.deepEqual(flagsOf({ ...base, maxWindSpeed: 50 }), ["vent"]);
@@ -123,7 +162,20 @@ test("les services suivent l'heure locale de la réponse", () => {
     latitude: 0,
     longitude: 0,
     timezone: "Europe/Brussels",
-    hours: [{ time: "2026-10-06T10:00", temperature: 1, apparentTemperature: 1, precipitation: 5, precipitationProbability: 90, snowfall: 0, windSpeed: 1, weatherCode: 61 }],
+    hours: [
+      {
+        time: "2026-10-06T10:00",
+        temperature: 1,
+        apparentTemperature: 1,
+        precipitation: 5,
+        precipitationProbability: 90,
+        snowfall: 0,
+        windSpeed: 1,
+        thunderstormProbability: null,
+        condition: "RAIN",
+        weatherCode: null,
+      },
+    ],
   };
   assert.deepEqual(summarizeServices(r), []); // 10 h n'est ni le midi ni le soir
 });
