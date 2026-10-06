@@ -1,0 +1,116 @@
+{
+  "version": "1.4",
+  "timestamp": "1791253610",
+  "disturbance": [
+    {
+      "id": "0",
+      "title": "Jette - Bruxelles-Midi",
+      "description": "Le week-end du 10-11/10, Infrabel effectue des travaux.\n\nLe parcours et l'heure de départ des trains S4 Alost - Denderleeuw - Bruxelles-Luxembourg sont adaptés.\nLe parcours et l'heure de départ des trains S10 Alost - Bruxelles-Midi - Termonde sont adaptés.\nAucun train ne s'arrête à Bockstael.\nVous pouvez prendre les bus STIB 14 et 88 munis de votre ticket de train.\n\nLe planificateur de voyages tient déjà compte de ces adaptations.",
+      "type": "planned",
+      "link": "http://www.belgianrail.be/jp/nmbs-realtime/help.exe/fr?tpl=showmap_external&tplParamHimMsgInfoGroup=works&messageID=113712&channelFilter=rss_line_90&",
+      "timestamp": "1791194617",
+      "richtext": "Le week-end du 10-11/10, Infrabel effectue des travaux.\n\nLe parcours et l'heure de départ des trains S4 Alost - Denderleeuw - Bruxelles-Luxembourg sont adaptés.\nLe parcours et l'heure de départ des trains S10 Alost - Bruxelles-Midi - Termonde sont adaptés.\nAucun train ne s'arrête à Bockstael.\nVous pouvez prendre les bus STIB 14 et 88 munis de votre ticket de train.\n\nLe planificateur de voyages tient déjà compte de ces adaptations.",
+      "descriptionLinks": {
+        "number": "1",
+        "descriptionLink": [
+          {
+            "id": "0",
+            "link": "http://www.belgianrail.be/jp/nmbs-realtime/help.exe/fr?tpl=showmap_external&tplParamHimMsgInfoGroup=works&messageID=113712&channelFilter=rss_line_90&",
+            "text": "Lire plus"
+          }
+        ]
+      }
+    },
+    {
+      "id": "3",
+      "title": "Schellebelle - Termonde",
+      "description": "Les week-ends, du 17/10 au 15/11, Infrabel effectue des travaux.\n\nTous les trains sont remplacés par des bus SNCB entre Schellebelle et Termonde.\nL'heure de départ des trains L Zeebrugge-Strand - Gand-Saint-Pierre - Malines est adaptée.\n\nLe planificateur de voyages tient déjà compte de ces adaptations. Les temps de parcours des bus SNCB peuvent varier selon la densité du trafic. Ceci peut entraîner des temps de trajet plus longs.\n\nPlus d'infos\nOù prendre mon bus ?",
+      "type": "planned",
+      "link": "https://www.belgiantrain.be/fr/news/works-schellebelle-dendermonde",
+      "timestamp": "1790851663",
+      "richtext": "Les week-ends, du 17/10 au 15/11, Infrabel effectue des travaux.\n\nTous les trains sont remplacés par des bus SNCB entre Schellebelle et Termonde.\nL'heure de départ des trains L Zeebrugge-Strand - Gand-Saint-Pierre - Malines est adaptée.\n\nLe planificateur de voyages tient déjà compte de ces adaptations. Les temps de parcours des bus SNCB peuvent varier selon la densité du trafic. Ceci peut entraîner des temps de trajet plus longs.\n\nPlus d'infos\nOù prendre mon bus ?",
+      "descriptionLinks": {
+        "number": "2",
+        "descriptionLink": [
+          {
+            "id": "0",
+            "link": "https://www.belgiantrain.be/fr/news/works-schellebelle-dendermonde",
+            "text": "Plus d'infos"
+          },
+          {
+            "id": "1",
+            "link": "https://www.belgianrail.be/jp/download/brail_him/1790851663439_FR_2610150_S.pdf",
+            "text": "Où prendre mon bus ?"
+          }
+        ]
+      }
+    },
+    {
+      "id": "1",
+      "title": "Tongres - Liers",
+      "description": "Le jeudi 08/10, Infrabel effectue des travaux.\n\nCertains trains S41 Hasselt - Liège-Guillemins - Verviers-Central sont remplacés par des bus SNCB entre Tongres et Liers.\n\nL'heure de départ de ces trains est adaptée.\n\nLe planificateur de voyages tient déjà compte de ces adaptations. Les temps de parcours des bus SNCB peuvent varier selon la densité du trafic. Ceci peut entraîner des temps de trajet plus longs.\n\nEn savoir plus sur les bus SNCB (FAQ) \nOù prendre mon bus ?",
+      "type": "planned",
+      "link": "https://www.belgiantrain.be/fr/support/faq/faq-routes-schedules/faq-bus ",
+      "timestamp": "1790948254",
+      "richtext": "Le jeudi 08/10, Infrabel effectue des travaux.\n\nCertains trains S41 Hasselt - Liège-Guillemins - Verviers-Central sont remplacés par des bus SNCB entre Tongres et Liers.\n\nL'heure de départ de ces trains est adaptée.\n\nLe planificateur de voyages tient déjà compte de ces adaptations. Les temps de parcours des bus SNCB peuvent varier selon la densité du trafic. Ceci peut entraîner des temps de trajet plus longs.\n\nEn savoir plus sur les bus SNCB (FAQ) \nOù prendre mon bus ?",
+      "descriptionLinks": {
+        "number": "2",
+        "descriptionLink": [
+          {
+            "id": "0",
+            "link": "https://www.belgiantrain.be/fr/support/faq/faq-routes-schedules/faq-bus ",
+            "text": "En savoir plus sur les bus SNCB (FAQ) "
+          },
+          {
+            "id": "1",
+            "link": "https://www.belgianrail.be/jp/download/brail_him/1790948253266_FR_2610092_S_adapt_.pdf",
+            "text": "Où prendre mon bus ?"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "title": "Bressoux - Visé",
+      "description": "Le mardi 27/10, Infrabel effectue des travaux.\n\nL'heure de départ de certains trains S44 Landen - Liège-Guillemins - Visé est adaptée.\n\nLe planificateur de voyages tient déjà compte de ces adaptations.",
+      "type": "planned",
+      "link": "http://www.belgianrail.be/jp/nmbs-realtime/help.exe/fr?tpl=showmap_external&tplParamHimMsgInfoGroup=works&messageID=113765&channelFilter=rss_line_90&",
+      "timestamp": "1790857104",
+      "richtext": "Le mardi 27/10, Infrabel effectue des travaux.\n\nL'heure de départ de certains trains S44 Landen - Liège-Guillemins - Visé est adaptée.\n\nLe planificateur de voyages tient déjà compte de ces adaptations.",
+      "descriptionLinks": {
+        "number": "1",
+        "descriptionLink": [
+          {
+            "id": "0",
+            "link": "http://www.belgianrail.be/jp/nmbs-realtime/help.exe/fr?tpl=showmap_external&tplParamHimMsgInfoGroup=works&messageID=113765&channelFilter=rss_line_90&",
+            "text": "Lire plus"
+          }
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "title": "Jette - Termonde",
+      "description": "Les week-ends, du 12/09 au 25/10, Infrabel effectue des travaux.\n\nLe week-end du 26-27/09, tous les trains sont remplacés par des bus SNCB entre Jette et Termonde.\nLes week-ends, du 12/09 au 25/10, excepté les 26-27/09, tous les trains sont remplacés par des bus SNCB entre Jette et Opwijk.\n\nLe parcours et l'heure de départ de la plupart des trains IC Bruxelles-Midi - Jette - Termonde sont adaptés.\n\nLe planificateur de voyages tient déjà compte de ces adaptations. \n\nLes temps de parcours des bus SNCB peuvent varier selon la densité du trafic. Ceci peut entraîner des temps de trajet plus longs.\n\nPlus d'infos\nOù prendre mon bus ?",
+      "type": "planned",
+      "link": "https://www.belgiantrain.be/fr/news/works-dendermonde-opwijk",
+      "timestamp": "1790844837",
+      "richtext": "Les week-ends, du 12/09 au 25/10, Infrabel effectue des travaux.\n\nLe week-end du 26-27/09, tous les trains sont remplacés par des bus SNCB entre Jette et Termonde.\nLes week-ends, du 12/09 au 25/10, excepté les 26-27/09, tous les trains sont remplacés par des bus SNCB entre Jette et Opwijk.\n\nLe parcours et l'heure de départ de la plupart des trains IC Bruxelles-Midi - Jette - Termonde sont adaptés.\n\nLe planificateur de voyages tient déjà compte de ces adaptations. \n\nLes temps de parcours des bus SNCB peuvent varier selon la densité du trafic. Ceci peut entraîner des temps de trajet plus longs.\n\nPlus d'infos\nOù prendre mon bus ?",
+      "descriptionLinks": {
+        "number": "2",
+        "descriptionLink": [
+          {
+            "id": "0",
+            "link": "https://www.belgiantrain.be/fr/news/works-dendermonde-opwijk",
+            "text": "Plus d'infos"
+          },
+          {
+            "id": "1",
+            "link": "https://www.belgianrail.be/jp/download/brail_him/1790844836477_FR_2609009_S.pdf",
+            "text": "Où prendre mon bus ?"
+          }
+        ]
+      }
+    }
+  ]
+}
