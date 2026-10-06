@@ -24,7 +24,10 @@
 
 BEGIN;
 
-DELETE FROM reference_calendar WHERE starts_on BETWEEN '2026-02-01' AND '2027-12-31';
+-- kind explicite : ne jamais purger les `exam_session` (migration 20261006-0200).
+DELETE FROM reference_calendar
+ WHERE starts_on BETWEEN '2026-02-01' AND '2027-12-31'
+   AND kind IN ('school_holiday', 'national_event');
 
 INSERT INTO reference_calendar (kind, community, starts_on, ends_on, label, expected_effect) VALUES
 -- ── Communauté française (FWB) ──────────────────────────────────────────────

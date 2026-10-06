@@ -56,6 +56,8 @@ export default async function ForecastPage({
     admin
       .from("reference_calendar")
       .select("kind, community, starts_on, ends_on, label, expected_effect")
+      // Les `exam_session` (signal blocus) ne sont pas des facteurs du forecast.
+      .in("kind", ["school_holiday", "national_event"])
       .gte("ends_on", since),
     admin
       .from("restaurant_events")
