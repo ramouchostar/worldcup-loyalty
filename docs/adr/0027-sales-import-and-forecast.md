@@ -52,7 +52,7 @@ Le calcul reste **déterministe et reproductible**. Un LLM (`@anthropic-ai/sdk`)
 ### 6. Données de référence
 
 - **Calculé (aucune table)** : paye, jours fériés belges.
-- **Table plateforme `reference_calendar`** (service-role, partagée) : vacances scolaires par **communauté (FR/NL/DE)** et par année + événements **nationaux/sportifs**. Maintenue par la plateforme. *Amendé le 2026-10-06 : un troisième `kind`, `exam_session` (blocus et sessions d'examens des universités, avec `institution`, `city`, `phase`), alimente le signal « blocus et examens » du copilote (`lib/signals/blocus.ts`, ADR 0074 §8). Le forecast ne le lit pas : il ne filtre que `school_holiday` et `national_event`.*
+- **Table plateforme `reference_calendar`** (service-role, partagée) : vacances scolaires par **communauté (FR/NL/DE)** et par année + événements **nationaux/sportifs**. Maintenue par la plateforme. *Amendé le 2026-10-06 : un troisième `kind`, `exam_session` (blocus et sessions d'examens des universités et hautes écoles, avec `institution`, `city`, `phase`), alimente le signal « blocus et examens » du copilote (`lib/signals/blocus.ts`, ADR 0074 §8). Le forecast ne le lit pas : il ne filtre que `school_holiday` et `national_event`.*
 - **Événements locaux** (`restaurant_events`, éditables par le restaurateur) : sa braderie de quartier, un concert voisin, une fermeture… Il connaît son terrain mieux que la plateforme, et l'édition **l'ancre** dans l'outil. Chaque événement porte une date (ou plage) et un sens attendu (hausse/baisse).
 
 ### 7. Sortie — **fourchette + niveau de confiance + plancher**

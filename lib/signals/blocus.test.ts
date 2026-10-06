@@ -87,3 +87,38 @@ test("tri : en cours avant à venir, puis par début, blocus avant examens", () 
     ["ULB:examens:en_cours", "UCLouvain:blocus:a_venir", "VUB:examens:a_venir"]
   );
 });
+
+// ── Hautes écoles ──────────────────────────────────────────────────────────
+
+const HE_ROWS: ExamSessionRow[] = [
+  { institution: "Haute École Léonard de Vinci", city: "Bruxelles", phase: "examens", starts_on: "2027-01-04", ends_on: "2027-01-23", label: "Session de janvier (HE Vinci)" },
+  { institution: "EPHEC", city: "Bruxelles", phase: "examens", starts_on: "2027-01-11", ends_on: "2027-01-31", label: "Examens de janvier (EPHEC)" },
+  { institution: "HE2B", city: "Bruxelles", phase: "examens", starts_on: "2027-01-04", ends_on: "2027-01-31", label: "Évaluations de janvier (HE2B)" },
+  { institution: "EHB", city: "Bruxelles", phase: "examens", starts_on: "2027-01-04", ends_on: "2027-01-29", label: "Examens de janvier (EHB)" },
+];
+const he = { sector: null, rows: HE_ROWS, today: "2027-01-12" };
+
+test("hautes écoles : « Haute École Léonard de Vinci » et « Parnasse-ISEI » désignent Vinci", () => {
+  for (const name of ["Haute École Léonard de Vinci", "Parnasse-ISEI", "ECAM"]) {
+    const out = readBlocusSignals({ ...he, schoolCommunityNames: [name] });
+    assert.deepEqual(out.map((s) => s.institution), ["Haute École Léonard de Vinci"], name);
+  }
+});
+
+test("hautes écoles : un lycée « Léonard de Vinci » n'est pas la haute école", () => {
+  assert.deepEqual(readBlocusSignals({ ...he, schoolCommunityNames: ["Lycée Léonard de Vinci"] }), []);
+  assert.deepEqual(readBlocusSignals({ ...he, schoolCommunityNames: ["Athénée Vinci"] }), []);
+});
+
+test("hautes écoles : EPHEC, HE2B et EHB reconnues par leur nom, « Erasmus » seul non", () => {
+  assert.deepEqual(readBlocusSignals({ ...he, schoolCommunityNames: ["Étudiants EPHEC"] }).map((s) => s.institution), ["EPHEC"]);
+  assert.deepEqual(readBlocusSignals({ ...he, schoolCommunityNames: ["HE2B Defré"] }).map((s) => s.institution), ["HE2B"]);
+  assert.deepEqual(readBlocusSignals({ ...he, schoolCommunityNames: ["Erasmushogeschool"] }).map((s) => s.institution), ["EHB"]);
+  assert.deepEqual(readBlocusSignals({ ...he, schoolCommunityNames: ["Erasmus Ixelles"] }), []);
+});
+
+test("hautes écoles : un secteur bruxellois les concerne toutes, avec la raison « secteur »", () => {
+  const out = readBlocusSignals({ ...he, sector: "Etterbeek", schoolCommunityNames: [] });
+  assert.equal(out.length, 4);
+  assert.ok(out.every((s) => s.matchedBy.join() === "secteur"));
+});
