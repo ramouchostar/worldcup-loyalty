@@ -1,0 +1,258 @@
+[
+  {
+    "id": "3b35acc8-1d1f-4291-a07f-3f181852afd2",
+    "startDate": "2026-04-06",
+    "endDate": "2026-04-19",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances de printemps (Pâques)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-NL"
+      }
+    ]
+  },
+  {
+    "id": "d76adc18-3e8f-4a6d-ac9e-2a9b0e4db5f8",
+    "startDate": "2026-04-06",
+    "endDate": "2026-04-18",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances de printemps (Pâques)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-DE"
+      }
+    ]
+  },
+  {
+    "id": "7d2ac181-f590-4d26-9d6d-97090b7be7f4",
+    "startDate": "2026-04-27",
+    "endDate": "2026-05-10",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances de printemps (Pâques)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-FR"
+      }
+    ]
+  },
+  {
+    "id": "632ce97e-c83b-40e2-9a94-e40591059511",
+    "startDate": "2026-07-01",
+    "endDate": "2026-08-31",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances d'été"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-NL"
+      }
+    ]
+  },
+  {
+    "id": "f2fcd3f3-6cc0-4f2b-a7e8-f3efe1d33731",
+    "startDate": "2026-07-01",
+    "endDate": "2026-08-31",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances d'été"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-DE"
+      }
+    ]
+  },
+  {
+    "id": "c7fd44bc-e2d4-4f69-bde7-83c1f624cdce",
+    "startDate": "2026-07-04",
+    "endDate": "2026-08-23",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances d'été"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-FR"
+      }
+    ]
+  },
+  {
+    "id": "7da2bda5-00b0-4204-a264-98d85bf8cd97",
+    "startDate": "2026-10-19",
+    "endDate": "2026-11-01",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Congé d'automne (Toussaint)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-FR"
+      }
+    ]
+  },
+  {
+    "id": "b09d0c83-0cba-4f60-81db-e93ca7254ab7",
+    "startDate": "2026-11-02",
+    "endDate": "2026-11-08",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Congé d'automne (Toussaint)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-NL"
+      }
+    ]
+  },
+  {
+    "id": "4f04cd58-75c6-48b9-a478-cd69cfe70471",
+    "startDate": "2026-12-21",
+    "endDate": "2027-01-03",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances d'hiver (Noël)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-FR"
+      }
+    ]
+  },
+  {
+    "id": "790cdc14-ade9-466f-841a-b00ca20870c4",
+    "startDate": "2026-12-21",
+    "endDate": "2027-01-03",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances d'hiver (Noël)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-NL"
+      }
+    ]
+  },
+  {
+    "id": "71154e3f-3088-4d4d-8f98-47c3dfeffb05",
+    "startDate": "2027-02-08",
+    "endDate": "2027-02-14",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Congé de détente (Carnaval)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-NL"
+      }
+    ]
+  },
+  {
+    "id": "d1032b6c-17f5-40d6-9821-b75edc4a200d",
+    "startDate": "2027-02-22",
+    "endDate": "2027-03-07",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Congé de détente (Carnaval)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-FR"
+      }
+    ]
+  },
+  {
+    "id": "82513b7a-ce4f-4aa3-85b9-92dc2af9265a",
+    "startDate": "2027-03-29",
+    "endDate": "2027-04-11",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances de printemps (Pâques)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-NL"
+      }
+    ]
+  },
+  {
+    "id": "11b9d34b-6857-4aac-b7af-04278bb01103",
+    "startDate": "2027-04-26",
+    "endDate": "2027-05-09",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances de printemps (Pâques)"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-FR"
+      }
+    ]
+  },
+  {
+    "id": "e5d81422-0c77-4331-8683-22b8dc0a3cad",
+    "startDate": "2027-07-01",
+    "endDate": "2027-08-31",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Vacances d'été"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-NL"
+      }
+    ]
+  },
+  {
+    "id": "dde6fa26-f916-4785-bf15-341b17029416",
+    "startDate": "2027-07-03",
+    "endDate": "2027-07-03",
+    "name": [
+      {
+        "language": "FR",
+        "text": "Début des vacances d'été"
+      }
+    ],
+    "groups": [
+      {
+        "code": "BE-FR"
+      }
+    ]
+  }
+]
