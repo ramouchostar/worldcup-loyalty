@@ -197,8 +197,14 @@ const NOTABLE_CATEGORIES = new Set<LocalEventCategory>(["concert", "spectacle", 
 // Formations, visites guidées, réunions : jamais, même bien classées (sauf grande salle).
 const NEVER_KEEP = new Set(["training", "tour", "meeting"]);
 
-/** Seuil de classement à partir duquel une catégorie « autre », cinéma, sport ou expo est gardée. */
-export const RANKING_KEEP_THRESHOLD = 1;
+/**
+ * Seuil de classement à partir duquel une catégorie « autre », cinéma, sport ou
+ * expo est gardée. Mesuré sur la première synchro réelle (2026-10-06) : entre 1
+ * et 2, ce sont des bibliothèques, des centres communautaires et un cinéma de
+ * quartier (1 647 séances de bruit) ; à 2, ce sont l'Ancienne Belgique, Bozar,
+ * Flagey, le Cirque Royal et La Monnaie (436 séances de vraies salles de soirée).
+ */
+export const RANKING_KEEP_THRESHOLD = 2;
 
 export function isNotable(e: LocalEvent): boolean {
   if (e.isHighCapacity) return true;
