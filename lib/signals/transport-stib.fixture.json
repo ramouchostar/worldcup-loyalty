@@ -1,0 +1,101 @@
+{
+  "results": [
+    {
+      "id": "31056042",
+      "content": "[{\"text\":[{\"en\":\"Event. 11 Oct-5:30pm, stop not served. Take B43 at HOMBORCH (B37 ALBERT).\",\"fr\":\"Événement. 11/10-17h30, arrêt supprimé. Prenez B43 à HOMBORCH (B37 ALBERT).\",\"nl\":\"Event. 11/10-17.30u, halte afgeschaft. Neem B43 aan HOMBORCH (B37 ALBERT).\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"43\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"1935\"}]"
+    },
+    {
+      "id": "31063530",
+      "content": "[{\"text\":[{\"en\":\"Event. 11 Oct-8:30pm, stop B61 80 moved to Avenue de Broqueville/de Broquevillelaan 6.\",\"fr\":\"Événement. 11/10-20h30, arrêt B61 80 déplacé Avenue de Broqueville 6.\",\"nl\":\"Event. 11/10-20.30u, halte B61 80 verplaatst naar de Broquevillelaan 6.\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"80\"},{\"id\":\"61\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"1139\"}]"
+    },
+    {
+      "id": "30616323",
+      "content": "[{\"text\":[{\"en\":\"Works. As of 29 Sep for +/- 2 weeks, bus 13 diverted btw SQ. CENTENAIRE/EEUWFEESTSQ. and LE ROUX.\",\"fr\":\"Travaux. Du 29/9 pour +/- 2 semaines, bus 13 dévié entre SQUARE DU CENTENAIRE et LE ROUX.\",\"nl\":\"Werken. Van 29/9 voor +/- 2 weken, bus 13 omgeleid tussen EEUWFEESTSQUARE en LE ROUX.\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"13\"}]",
+      "priority": 5,
+      "points": "[{\"id\":\"1303\"},{\"id\":\"4152\"},{\"id\":\"4163\"},{\"id\":\"3600\"},{\"id\":\"2422\"},{\"id\":\"4158\"},{\"id\":\"1183\"}]"
+    },
+    {
+      "id": "23917389",
+      "content": "[{\"text\":[{\"en\":\"Works.From 27/4/26 until Apr 2027, bus 50 takes over the itinerary of bus 52 between BERVOETS and GARE CENTRALE.\",\"fr\":\"Travaux. Du 27/4/26 à fin avril 2027, bus 50 reprend l’itinéraire du bus 52 entre BERVOETS et GARE CENTRALE. \",\"nl\":\"Werken. Van 27/4/26 tot eind april 2027 herneemt bus 50 de reisweg van bus 52 tussen BERVOETS en CENTRAAL STATION.\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[]",
+      "priority": 4,
+      "points": "[{\"id\":\"2333\"}]"
+    },
+    {
+      "id": "13024362",
+      "content": "[{\"text\":[{\"en\":\"Works. As of Monday 4 Aug., 6am, bus 47 is diverted, for +/- 2 months. Take the bus at: (David) Teniersstr. 151.\",\"fr\":\"Travaux. Dès le lundi 4/8, 6h, bus 47 dévié pendant +/- 2 mois. Arrêt: (David) Teniersstraat 151-157.\",\"nl\":\"Werken. Vanaf maandag 4/8, 6u, wordt bus 47 omgeleid voor +/- 2 maand. Neem je bus aan: (D.)Teniersstraat 151.\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[]",
+      "priority": 4,
+      "points": "[{\"id\":\"1485\"}]"
+    },
+    {
+      "id": "30672682",
+      "content": "[{\"text\":[{\"en\":\"Works. 10-11 Oct, metro 6 replaced by M-bus. M- bus to SIMONIS at the bus 14 stop to UZ-VUB.\",\"fr\":\"Travaux. 10-11/10, métro 6 remplacé par M-bus. M- bus vers SIMONIS à l'arrêt du bus 14 vers UZ-VUB.\",\"nl\":\"Werken. 10-11/10, metro 6 vervangen door M-bus. M-bus naar SIMONIS aan de halte van bus 14 naar UZ-VUB.\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"6\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"8774\"}]"
+    },
+    {
+      "id": "30672685",
+      "content": "[{\"text\":[{\"en\":\"Works. 10-11 Oct, metro 6 replaced by M-bus. M- bus stop to SIMONIS: boulevard Emile Bockstaellaan 262.\",\"fr\":\"Travaux. 10-11/10, métro 6 remplacé par M-bus. Arrêt du M-bus vers SIMONIS: boulevard Emile Bockstael 262.\",\"nl\":\"Werken. 10-11/10, metro 6 vervangen door M-bus. Halte van de M-bus naar SIMONIS: Emile Bockstaellaal 262.\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"6\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"8794\"}]"
+    },
+    {
+      "id": "25984950",
+      "content": "[{\"text\":[{\"en\":\"Works. Until 2028, stop not served. Take bus 74 to DROGENBOS at CARREFOUR STALLE (stop of bus 75 to BON AIR).\",\"fr\":\"Travaux. Jsq 2028, arrêt non desservi. Prenez le bus 74 vers DROGENBOS à CARR. STALLE (arrêt B75 vers BON AIR).\",\"nl\":\"Werken. Tot 2028, halte niet bediend. Neem bus 74 naar DROGENBOS aan KRUISPUNT STALLE (halte B75 naar GOEDE LUCHT).\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"82\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"5724\"}]"
+    },
+    {
+      "id": "25984948",
+      "content": "[{\"text\":[{\"en\":\"Until 2028, works. As of 6 June, T82 replaces T97 btw CARREFOUR STALLE and DIEWEG. For DROGENBOS, B74 at CARR. STALLE.\",\"fr\":\"Jsq 2028,travaux. Dès le 6/6, T82 remplace T97 entre CARR. STALLE et DIEWEG. Pour DROGENBOS, B74 à CARR. STALLE.\",\"nl\":\"Tot 2028, werken. Vanaf 6/6 vervangt T82 T97 tss KRUISPUNT STALLE en DIEWEG. Voor DROGENBOS, B74 aan KRUISPT STALLE\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"82\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"2603\"},{\"id\":\"5722F\"},{\"id\":\"5120\"},{\"id\":\"5123\"},{\"id\":\"2604F\"},{\"id\":\"5154F\"},{\"id\":\"5119\"},{\"id\":\"5163F\"},{\"id\":\"5153F\"}]"
+    },
+    {
+      "id": "31091159",
+      "content": "[{\"text\":[{\"en\":\"Passages of 04:26 - 04: 55 - 05:42 - 06:03 - 14: 09 from stop of bus 59 to HOPITAL ETTERBEEK- IXELLES.\",\"fr\":\"Passages de 04:26 - 04: 55 - 05:42 - 06:03 - 14: 09 depuis l'arrêt du bus 59 direction HOP. ETTERBEEK-IXELLES.\",\"nl\":\"Doorkomsten van 04:26 - 04:55 - 05:42 - 06:03 - 14:09 vanaf halte bus 59 richting ZIEKH. ETTERBEEK-ELSENE.\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"21\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"3214\"}]"
+    },
+    {
+      "id": "31071171",
+      "content": "[{\"text\":[{\"en\":\"Credence letters. 7 Oct, 9.30 am to 1pm, bus 38 71 diverted. Bus 71 at CENTRAAL STATION (stop bus 29 to DE BROUCKERE).\",\"fr\":\"Lettres de créance. 7/10 de 9h30 à 13h, bus 38 71 déviés. Bus 71 à GARE CENTRALE (arrêt du bus 29 vers DE BROUCKERE).\",\"nl\":\"Geloofsbrieven. 7/10, 9u30 tot 13u, bus 38 71 omgeleid. Bus 71 aan CENTRAAL STATION (halte bus 29 DE BROUCKERE).\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"38\"},{\"id\":\"71\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"3567\"}]"
+    },
+    {
+      "id": "24287600",
+      "content": "[{\"text\":[{\"en\":\"Works. 27 Apr 26-end 2027, stop not served by T51 81.T51 at LEMONNIER. MARIUS RENARD: T-bus 81 at terminus of bus 73.\",\"fr\":\"Travaux. 27/4/26-fin 2027, arrêt non desservi par T51 81. T51 à LEMONNIER.MARIUS RENARD: T-bus 81 au terminus B73\",\"nl\":\"Werken. 27/4/26-eind 2027, halte niet bediend door T51 81. T51 aan LEMONNIER. M. RENARD: T- bus 81 aan eindpunt B73\"}],\"type\":\"Description\"}]",
+      "type": "LongText",
+      "lines": "[{\"id\":\"81\"},{\"id\":\"51\"}]",
+      "priority": 4,
+      "points": "[{\"id\":\"0636\"}]"
+    }
+  ],
+  "totalCount": 12
+}
