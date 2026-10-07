@@ -1,3 +1,4 @@
+import { summarizeScanOutcomes } from "@/lib/scan-outcomes";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { RECEIPT_RETENTION_DAYS } from "@/lib/receipt-scans";
@@ -211,7 +212,8 @@ export default async function PlatformScansPage({
   );
 
   const soumis = scans.filter((s) => s.outcome === "submitted").length;
-  const abandonnes = scans.filter((s) => s.outcome === "parsed").length;
+  // Aperçus visiteurs devenus commande exclus, tickets rescannés comptés une fois (lib/scan-outcomes.ts).
+  const { previewBecameOrder, abandonedTickets: abandonnes } = summarizeScanOutcomes(scans);
   const refuses = scans.filter((s) => s.outcome === "header_rejected").length;
   const confiances = scans.map((s) => s.ocr_confidence).filter((c): c is number => c !== null);
   const confianceMoyenne = confiances.length
@@ -312,7 +314,7 @@ export default async function PlatformScansPage({
         {[
           { label: "Scans", value: String(scans.length) },
           { label: "Devenus commande", value: String(soumis) },
-          { label: "Jamais soumis", value: String(abandonnes) },
+          { label: "Tickets jamais soumis", value: String(abandonnes) },
           { label: "Tickets non reconnus", value: String(refuses) },
           { label: "Confiance moyenne", value: confianceMoyenne === null ? "—" : `${confianceMoyenne} %` },
         ].map((tuile) => (
@@ -371,7 +373,9 @@ export default async function PlatformScansPage({
                 const order = scan.order_id ? ordersById.get(scan.order_id) ?? null : null;
                 const url = scan.storage_path ? urlByPath.get(scan.storage_path) : null;
                 const divergences = ecarts(scan, order);
-                const outcome = OUTCOME_LABELS[scan.outcome];
+                const outcome = previewBecameOrder.has(scan.id)
+                  ? { label: "Aperçu visiteur (devenu commande)", color: "bg-green-50 text-green-700" }
+                  : OUTCOME_LABELS[scan.outcome];
                 return (
                   <tr key={scan.id} className="align-top">
                     <td className="px-3 py-3 whitespace-nowrap text-gray-700">
