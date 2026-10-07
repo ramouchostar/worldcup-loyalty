@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase";
 import { getAdminRestaurantIds } from "./restaurant-admins";
+import { pickDestination } from "./view-mode";
 
 // ADR 0030 §1 — routage post-login par rôle : la destination la plus
 // puissante gagne (plateforme > console resto > membre). Le paramètre
@@ -11,7 +12,7 @@ import { getAdminRestaurantIds } from "./restaurant-admins";
 // doit pas embarquer la clé service-role — garder les deux en phase).
 export async function resolvePostLoginDestination(
   userId: string,
-  opts?: { as?: string | null }
+  opts?: { as?: string | null; clientMode?: boolean }
 ): Promise<string> {
   const admin = createAdminClient();
 
@@ -41,17 +42,13 @@ export async function resolvePostLoginDestination(
   // défaut — même logique que /admin (app/admin/page.tsx, pont legacy).
   const hasConsole = adminRestaurantIds.length > 0 || !!profile?.is_admin;
 
-  // Porte « Espace restaurateur » : on honore l'intention affichée.
-  if (opts?.as === "resto") {
-    if (hasConsole) return "/admin";
-    if (profile?.is_super_admin) return "/platform";
-    return "/become-a-partner";
-  }
-
-  if (profile?.is_super_admin) return "/platform";
-  if (hasConsole) return "/admin";
-
-  if (membership) return `/r/${membership.restaurant_id}/dashboard`;
-  // Compte sans profil complété → finir l'inscription (cf. registerProfile).
-  return profile?.display_name ? "/join" : "/register";
+  return pickDestination(
+    {
+      isSuperAdmin: !!profile?.is_super_admin,
+      hasConsole,
+      membershipRestaurantId: membership?.restaurant_id ?? null,
+      hasDisplayName: !!profile?.display_name,
+    },
+    opts
+  );
 }

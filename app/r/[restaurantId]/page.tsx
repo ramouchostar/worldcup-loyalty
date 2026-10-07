@@ -1,3 +1,4 @@
+import { ModeButtons } from "@/components/account/ModeButtons";
 import { notFound, redirect } from "next/navigation";
 import { CLOCK_EMOJI } from "@/lib/fluent-emoji";
 import Link from "next/link";
@@ -53,13 +54,16 @@ export default async function RestaurantLandingPage({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={CLOCK_EMOJI} alt="" className="w-14 h-14 mx-auto mb-3" />
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            {restaurant.name} — en attente de validation
+            {restaurant.status === "disabled"
+              ? `${restaurant.name} — désactivé`
+              : `${restaurant.name} — en attente de validation`}
           </h1>
           <p className="text-gray-500 text-sm">
             {restaurant.status === "disabled"
               ? "Cet établissement n'est plus actif sur la plateforme."
               : "Notre équipe examine ton établissement. Cette page deviendra visible aux clients dès validation."}
           </p>
+          <ModeButtons className="mt-6" />
         </div>
       </div>
     );

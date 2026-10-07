@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { getRestaurantId } from "@/lib/restaurant";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
+import { VIEW_MODE_COOKIE, isClientMode, pickDestination } from "@/lib/view-mode";
 import {
   PARTNER_ATTRIBUTION_COOKIE,
   PARTNER_ATTRIBUTION_MAX_AGE,
@@ -163,17 +164,19 @@ export async function middleware(request: NextRequest) {
         .maybeSingle(),
     ]);
     const hasConsole = (owned ?? []).length > 0 || (seats ?? []).length > 0 || !!profile?.is_admin;
-    const asResto = request.nextUrl.searchParams.get("as") === "resto";
-    let dest: string;
-    if (asResto) {
-      dest = hasConsole ? "/admin" : profile?.is_super_admin ? "/platform" : "/become-a-partner";
-    } else if (profile?.is_super_admin) {
-      dest = "/platform";
-    } else if (hasConsole) {
-      dest = "/admin";
-    } else {
-      dest = membership ? `/r/${membership.restaurant_id}/dashboard` : "/join";
-    }
+    const dest = pickDestination(
+      {
+        isSuperAdmin: !!profile?.is_super_admin,
+        hasConsole,
+        membershipRestaurantId: membership?.restaurant_id ?? null,
+        // /join (et non /register) pour un compte sans profil : comportement historique.
+        hasDisplayName: true,
+      },
+      {
+        as: request.nextUrl.searchParams.get("as"),
+        clientMode: isClientMode(request.cookies.get(VIEW_MODE_COOKIE)?.value),
+      }
+    );
     return withAttribution(NextResponse.redirect(new URL(dest, request.url)));
   }
 

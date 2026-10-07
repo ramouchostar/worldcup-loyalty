@@ -179,9 +179,23 @@ export default async function AdminLayout({
                 Mes établissements
               </Link>
             )}
-            <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
-              ← Retour espace membre
-            </Link>
+            {restaurant.status === "active" ? (
+              <Link href={`/r/${restaurantId}/dashboard`} className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
+                ← Retour espace membre
+              </Link>
+            ) : (
+              // Pas d'espace membre à montrer tant que l'établissement n'est pas actif.
+              <form action="/mode/client" method="POST">
+                <button type="submit" className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
+                  Voir l&apos;app comme un client
+                </button>
+              </form>
+            )}
+            <form action="/api/auth/logout" method="POST">
+              <button type="submit" className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap">
+                Déconnexion
+              </button>
+            </form>
           </div>
         </div>
       </header>

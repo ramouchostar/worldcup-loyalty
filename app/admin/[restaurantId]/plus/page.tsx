@@ -8,6 +8,7 @@ import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
 import { getRestaurantBranding } from "@/lib/restaurant";
 import { CONSOLE_VIEW_COOKIE, consoleSections, parseConsoleView, simpleTabs } from "@/lib/admin-nav";
 import { NAV_ICONS } from "@/components/admin/AdminNavIcons";
+import { ModeButtons } from "@/components/account/ModeButtons";
 import { Card, PageHeader, SectionLabel } from "@/components/admin/ui";
 
 export const metadata = { title: "Plus" };
@@ -124,6 +125,9 @@ export default async function AdminPlusPage({ params }: { params: Promise<{ rest
           </Link>
         ))}
       </Card>
+
+      {/* Sortie de la console : l'app côté client, ou la déconnexion. */}
+      <ModeButtons />
     </div>
   );
 }
