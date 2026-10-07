@@ -1,6 +1,6 @@
 # ADR 0036 — Conserver les tickets scannés 30 jours
 
-**Statut** : Accepté (2026-08-20). Amende l'**ADR 0025 §7** (durée de conservation des reçus). Complète l'**ADR 0019** (clé de ticket découverte par établissement), l'**ADR 0029 §6** (métering des scans) et l'**ADR 0033** (console plateforme). Ne change rien à l'**ADR 0008** (auto-validation) ni à l'**ADR 0003** (bucket privé).
+**Statut** : Accepté (2026-08-20). Précisé par l'[ADR 0080](0080-photo-des-refus-visiteurs-sur-accord.md) (proposé) : §1 ne vaut pas pour les visiteurs sans compte. Amende l'**ADR 0025 §7** (durée de conservation des reçus). Complète l'**ADR 0019** (clé de ticket découverte par établissement), l'**ADR 0029 §6** (métering des scans) et l'**ADR 0033** (console plateforme). Ne change rien à l'**ADR 0008** (auto-validation) ni à l'**ADR 0003** (bucket privé).
 
 ## Contexte
 
