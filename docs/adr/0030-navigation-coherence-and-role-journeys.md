@@ -21,6 +21,7 @@ Un audit de navigation exhaustif (2026-08-05) a montré que l'app expose mal ses
 - **Un seul formulaire** de login (pas de duplication d'auth). Après connexion, destination = **le rôle le plus puissant** : super-admin → `/platform` ; owner/admin d'au moins un établissement → `/admin` (sa console) ; sinon → dashboard membre (comportement actuel).
 - **Habillage par paramètre** : `/login?as=resto` (lié depuis la landing restaurateurs) affiche le même formulaire avec un habillage « Espace restaurateur » et force la destination admin. Extensible (`?as=platform`).
 - Corrige au passage le bug connu « login restaurateur redirigé vers `/register` ».
+- **Amendement 2026-10-07 — « voir l'app comme un client »** : un compte avec console n'avait aucune sortie dans l'app installée (start_url `/membres` → console, et un établissement `pending`/`disabled` n'a pas d'espace membre ni de déconnexion). Cookie `be_view_mode=client`, posé par `POST /mode/client` et effacé par `POST /mode/restaurateur` et par la déconnexion ; `/membres` et la redirection `/login` le respectent (`lib/view-mode.ts`, `pickDestination`). `as=resto` l'emporte. Boutons « Voir l'app comme un client » et « Se déconnecter » : carte propriétaire non actif, page de suivi, onglet Plus, en-tête console ; « Ma console » du menu membre repasse par `/mode/restaurateur`.
 
 ### 2. Circulation entre les trois mondes (membre ⇄ admin ⇄ plateforme)
 

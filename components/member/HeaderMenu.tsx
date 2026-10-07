@@ -81,14 +81,13 @@ export function HeaderMenu({
               )}
               {/* Pont membre → admin (ADR 0030 §2). */}
               {adminHref && (
-                <Link
-                  href={adminHref}
-                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
-                  onClick={() => setOpen(false)}
-                >
-                  <UtensilsCrossed className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  Ma console
-                </Link>
+                // Passe par /mode/restaurateur : efface le mode « client » avant d'ouvrir la console.
+                <form action="/mode/restaurateur" method="POST">
+                  <button type="submit" className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left">
+                    <UtensilsCrossed className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    Ma console
+                  </button>
+                </form>
               )}
               <Link
                 href="/compte"

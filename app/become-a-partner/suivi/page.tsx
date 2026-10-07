@@ -1,3 +1,4 @@
+import { ModeButtons } from "@/components/account/ModeButtons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
@@ -109,6 +110,7 @@ export default async function PartnerProgressPage() {
               + Ajouter un établissement
             </Link>
           </p>
+          <ModeButtons />
         </div>
       </div>
     </div>

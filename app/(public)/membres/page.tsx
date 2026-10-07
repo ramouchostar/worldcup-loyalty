@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { VIEW_MODE_COOKIE, isClientMode } from "@/lib/view-mode";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
@@ -56,7 +58,11 @@ export default async function LandingPage() {
   // plateforme.
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect(await resolvePostLoginDestination(user.id));
+  if (user) {
+    // « Voir l'app comme un client » (lib/view-mode.ts) : le choix survit à la fermeture de l'app.
+    const clientMode = isClientMode((await cookies()).get(VIEW_MODE_COOKIE)?.value);
+    redirect(await resolvePostLoginDestination(user.id, { clientMode }));
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
