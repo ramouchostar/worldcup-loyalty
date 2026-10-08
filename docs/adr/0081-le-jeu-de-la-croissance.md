@@ -44,7 +44,7 @@ Le CA de la caisse existe désormais dans `restaurant_sales`, alimenté par la s
 
 - **Le départ** = la moyenne par jour ouvert des **28 premiers jours notés** (un jour fermé n'a pas
   de ligne de vente, ADR 0078 §4). Stable : il ne bouge plus une fois calculé.
-- **Paliers** = départ × (1 + 5 % × n), arrondis à 10 € ; **le cap** = cinquième palier (≈ +25 %).
+- **Paliers** : une marche fixe de 5 % du départ, arrondie à 10 € (350 € → 370, 390, 410, 430, 450 €) ; **le cap** = cinquième palier (≈ +25 %). Des marches égales se lisent d'un coup d'œil.
   Un palier de +5 % se gagne ; un saut de +28 % décourage.
 - **Monter d'un niveau** = la moyenne par jour tient le palier suivant **3 semaines sur les 4
   dernières**. Une semaine compte si elle a au moins 3 jours notés.
