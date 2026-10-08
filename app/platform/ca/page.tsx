@@ -42,6 +42,7 @@ const VERDICT_CLS = {
 
 const DAY_CLS: Record<Outcome | "a_noter" | "futur", string> = {
   repondu: "bg-emerald-50 dark:bg-emerald-950/40 border-transparent text-emerald-800 dark:text-emerald-300",
+  spontane: "bg-emerald-50 dark:bg-emerald-950/40 border-transparent text-emerald-800 dark:text-emerald-300",
   relance: "bg-amber-50 dark:bg-amber-950/40 border-transparent text-amber-800 dark:text-amber-300",
   sans_reponse: "bg-red-50 dark:bg-red-950/40 border-transparent text-red-800 dark:text-red-300",
   ferme: "border-gray-200 dark:border-gray-800 text-gray-500",
@@ -121,7 +122,9 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
           Chaque matin vers 10 h, envoie le WhatsApp au responsable de la caisse. Quand il répond, note le chiffre ici :
-          il part dans les ventes de {current.name} (prévision) et la réponse comparée se prépare. Objectif : 10 réponses sur 14 jours ouverts.
+          il part dans les ventes de {current.name} (prévision) et la réponse comparée se prépare. S&apos;il l&apos;envoie de lui-même à la
+          fermeture de sa caisse, note le jour des ventes en « De lui-même » : pas de message à lui envoyer le lendemain matin.
+          Objectif : 10 réponses sur 14 jours ouverts.
         </p>
       </header>
 
@@ -130,8 +133,8 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
       {sp.supprime && isDay(sp.supprime) && <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">Supprimé : {dayLabel(sp.supprime)}.</div>}
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3" aria-label="Où en est le test">
-        <Stat label="Réponses" value={stats.open ? `${stats.answered}/${stats.open}` : "—"} sub="sur les jours ouverts notés" />
-        <Stat label="Sans relance" value={stats.open ? `${stats.firstTry}/${stats.open}` : "—"} sub="dès le message de 10 h" />
+        <Stat label="Réponses" value={stats.open ? `${stats.answered}/${stats.open}` : "—"} sub={stats.spontaneous ? `dont ${stats.spontaneous} de lui-même` : "sur les jours ouverts notés"} />
+        <Stat label="Sans relance" value={stats.open ? `${stats.firstTry}/${stats.open}` : "—"} sub="dès 10 h, ou de lui-même" />
         <Stat label="Délai médian" value={delayLabel} sub="entre l'envoi et la réponse" />
         <Stat label="Jour du test" value={stats.start ? `${Math.min(stats.elapsed, TEST_DAYS)}` : "—"} sub={`sur ${TEST_DAYS}${stats.toNote.length ? ` · ${stats.toNote.length} à noter` : ""}`} />
       </section>
@@ -151,7 +154,7 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
                 <input id="jour" name="jour" type="date" required defaultValue={day} max={today} className={INPUT} />
               </div>
               <div className="space-y-1">
-                <label htmlFor="envoye" className={LABEL}>Message envoyé à</label>
+                <label htmlFor="envoye" className={LABEL}>Message envoyé à <span className="font-normal text-gray-500">(sauf « De lui-même »)</span></label>
                 <input id="envoye" name="envoye" type="time" defaultValue={editing?.asked_at ?? "10:00"} className={INPUT} />
               </div>
             </div>
@@ -161,7 +164,7 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
                 {OUTCOMES.map((o) => (
                   <label key={o} className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2 text-sm has-[:checked]:border-gray-900 dark:has-[:checked]:border-white has-[:checked]:font-semibold">
                     <input type="radio" name="issue" value={o} defaultChecked={(editing?.outcome ?? "repondu") === o} />
-                    {o === "historique" ? "Historique (avant le test)" : OUTCOME_LABEL[o]}
+                    {o === "historique" ? "Historique (avant le test)" : o === "spontane" ? "De lui-même (sans demande)" : OUTCOME_LABEL[o]}
                   </label>
                 ))}
               </div>
@@ -177,7 +180,7 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
                 defaultValue={editing?.amount != null ? String(editing.amount).replace(".", ",") : ""}
                 className={`${INPUT} text-2xl font-bold tabular-nums`}
               />
-              <p className="text-xs text-gray-500">Seulement pour « Répondu », « Après relance » et « Historique ». Ignoré sinon.</p>
+              <p className="text-xs text-gray-500">Seulement pour « Répondu », « Après relance », « De lui-même » et « Historique ». Ignoré sinon.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -185,7 +188,7 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
                 <input id="tickets" name="tickets" type="number" min={0} inputMode="numeric" defaultValue={editing?.tickets ?? ""} className={INPUT} />
               </div>
               <div className="space-y-1">
-                <label htmlFor="repondu" className={LABEL}>Réponse reçue à</label>
+                <label htmlFor="repondu" className={LABEL}>Chiffre reçu à</label>
                 <input id="repondu" name="repondu" type="time" defaultValue={editing?.replied_at ?? ""} className={INPUT} />
               </div>
             </div>
@@ -228,7 +231,8 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
           <div className="grid grid-cols-7 gap-1.5">
             {stats.days.map((d) => {
               const e = byDay.get(d);
-              const future = d > yesterday;
+              // Un chiffre envoyé de lui-même le soir même se note aujourd'hui.
+              const future = d > yesterday && !(d === today && e);
               const kind: keyof typeof DAY_CLS = future ? "futur" : e ? e.outcome : "a_noter";
               const label = future ? "" : e ? OUTCOME_LABEL[e.outcome].toLowerCase() : "à noter";
               const value = e?.amount != null ? (e.amount >= 1000 ? `${(e.amount / 1000).toFixed(1).replace(".", ",")}k` : `${Math.round(e.amount)}`) : e?.outcome === "ferme" ? "—" : "";

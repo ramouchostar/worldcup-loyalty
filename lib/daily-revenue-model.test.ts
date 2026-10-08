@@ -116,3 +116,21 @@ test("récap du lundi : jours remplis sur jours ouverts, jours qui manquent", ()
   assert.match(msg, /2 jours sur 3 remplis\. Il manque mercredi\./);
   assert.match(msg, /CA total des jours remplis : 2[\s  ]200 €/);
 });
+
+test("de lui-même : compte comme une réponse sans relance, hors délai médian", () => {
+  const entries = [
+    e("2026-10-06", "repondu", 1000, { replied_at: "10:30" }),
+    e("2026-10-07", "spontane", 1100, { asked_at: null, replied_at: "22:45" }),
+    e("2026-10-08", "spontane", 1050, { asked_at: null, replied_at: "23:05" }),
+  ];
+  const s = testStats(entries, "2026-10-09");
+  assert.equal(s.open, 3);
+  assert.equal(s.answered, 3);
+  assert.equal(s.firstTry, 3);
+  assert.equal(s.spontaneous, 2);
+  assert.equal(s.medianDelayMin, 30); // le seul jour demandé
+  assert.deepEqual(s.toNote, []);
+  // le chiffre envoyé de lui-même sert aux comparaisons et au récap
+  assert.match(replyMessage(entries, "2026-10-14", 1210, null), /\+10 % par rapport à mercredi dernier/);
+  assert.match(weeklyRecap(entries, "2026-10-12", "De Bue"), /3 jours sur 3 remplis/);
+});
