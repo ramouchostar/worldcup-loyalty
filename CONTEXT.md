@@ -348,6 +348,10 @@ _Avoid_ : « objectif CA » pour un palier (l'objectif du jour reste en tickets,
 Clic d'un restaurateur sur une mission « Une pub dans ta zone » ou « Des vidéos de ta maison » de l'accueil console : une ligne `service_requests` (`pub` | `video`, une seule en attente par établissement et par service), visible sur `/platform` jusqu'à ce que l'équipe l'ait traitée en rappelant. Les frais de la pub dépendent du forfait (`AD_FEE_PCT` : 20 / 15 / 5 %).
 _Avoid_ : « commande » de pub (rien n'est acheté ni lancé au clic) ; « demande de plan » (autre table, `plan_requests`).
 
+**Suivi du CA** *(ADR 0081 §7)* :
+Carte « Ton chiffre d'affaires » de l'accueil console (forfaits Croissance et Pro, fonction `revenue_tracker`) : dernier jour noté face aux mêmes jours de la semaine, semaine jusqu'à hier, 14 derniers jours, **part du programme** (CA des tickets validés ÷ CA de caisse des jours notés) et **taux de capture** (tickets du programme ÷ tickets de caisse, quand la caisse les donne). Alimentée par le CA du jour (ADR 0078) et les ventes importées. Console seulement (ADR 0007).
+_Avoid_ : « CA additionnel » ou « grâce à nous » pour la part du programme (ce sont les clients qui participent, ADR 0064).
+
 **Opportunité** :
 Suggestion commerciale chiffrée de la page admin `/admin/[id]/insights`, calculée par le moteur de stratégies terrain (`lib/insights.ts`, ADR 0022) à partir des ventes scannées (ADR 0020) et du catalogue (ADR 0013) : jour/heure creux, promo sûre, combo, formule dégressive. Fonctions pures et déterministes — chaque suggestion est explicable par ses chiffres, préserve la marge unité par unité, et n'est jamais appliquée automatiquement (l'app propose, l'admin décide). Surface admin uniquement : les coûts et marges n'apparaissent jamais dans le message broadcast proposé (ADR 0007).
 _Avoid_ : conseil IA (le calcul est déterministe), recommandation automatique.
