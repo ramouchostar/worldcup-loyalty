@@ -6,15 +6,18 @@
 // responsable de caisse) et un super-admin le note dans /platform/ca. On garde
 // aussi CE QUI S'EST PASSÉ (réponse directe, après relance, silence, fermé) :
 // c'est la trace du test — le taux de réponse dit si le geste tient.
+// « De lui-même » : le responsable envoie le chiffre sans qu'on le demande, à la
+// fermeture de sa caisse — le geste devient une routine, c'est le meilleur signe.
 
 import { normalizeAmount } from "@/lib/sales-import";
 
-export const OUTCOMES = ["repondu", "relance", "sans_reponse", "ferme", "historique"] as const;
+export const OUTCOMES = ["repondu", "relance", "spontane", "sans_reponse", "ferme", "historique"] as const;
 export type Outcome = (typeof OUTCOMES)[number];
 
 export const OUTCOME_LABEL: Record<Outcome, string> = {
   repondu: "Répondu",
   relance: "Après relance",
+  spontane: "De lui-même",
   sans_reponse: "Pas de réponse",
   ferme: "Fermé",
   historique: "Historique",
@@ -22,7 +25,12 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
 
 /** Les issues qui portent un montant (une réponse, ou un chiffre d'avant le test). */
 export function outcomeHasAmount(o: Outcome): boolean {
-  return o === "repondu" || o === "relance" || o === "historique";
+  return o === "repondu" || o === "relance" || o === "spontane" || o === "historique";
+}
+
+/** Les issues où l'on a demandé le chiffre (heure d'envoi du message utile). */
+export function outcomeWasAsked(o: Outcome): boolean {
+  return o === "repondu" || o === "relance" || o === "sans_reponse";
 }
 
 export interface DailyEntry {
@@ -198,8 +206,9 @@ export interface TestStats {
   elapsed: number; // jours du test déjà passés (≤ hier)
   toNote: string[]; // jours passés du test encore sans note
   open: number; // jours notés ouverts (hors fermé)
-  answered: number; // répondu + après relance
-  firstTry: number; // répondu sans relance
+  answered: number; // répondu + après relance + de lui-même
+  firstTry: number; // sans relance : répondu dès le message, ou envoyé de lui-même
+  spontaneous: number; // envoyé de lui-même, sans qu'on le demande
   medianDelayMin: number | null;
   verdict: Verdict;
 }
@@ -219,9 +228,12 @@ export function testStats(entries: DailyEntry[], today: string): TestStats {
   const byDay = new Map(testEntries.map((e) => [e.sales_day, e]));
   const inTest = days.map((d) => byDay.get(d)).filter((e): e is DailyEntry => !!e);
   const open = inTest.filter((e) => e.outcome !== "ferme");
-  const answered = open.filter((e) => e.outcome === "repondu" || e.outcome === "relance");
-  const firstTry = open.filter((e) => e.outcome === "repondu");
+  const answered = open.filter((e) => e.outcome === "repondu" || e.outcome === "relance" || e.outcome === "spontane");
+  const firstTry = open.filter((e) => e.outcome === "repondu" || e.outcome === "spontane");
+  const spontaneous = open.filter((e) => e.outcome === "spontane");
+  // Délai envoi → réponse : seulement quand on a demandé (un envoi spontané n'a pas d'envoi).
   const delays = answered
+    .filter((e) => outcomeWasAsked(e.outcome))
     .map((e) => {
       const a = minutes(e.asked_at);
       const b = minutes(e.replied_at);
@@ -241,6 +253,7 @@ export function testStats(entries: DailyEntry[], today: string): TestStats {
     open: open.length,
     answered: answered.length,
     firstTry: firstTry.length,
+    spontaneous: spontaneous.length,
     medianDelayMin,
     verdict: verdictFor(open.length, answered.length, elapsedDays.length >= TEST_DAYS && toNote.length === 0),
   };

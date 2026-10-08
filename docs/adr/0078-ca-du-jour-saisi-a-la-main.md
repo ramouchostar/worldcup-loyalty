@@ -4,7 +4,7 @@
 l'[ADR 0027](0027-sales-import-and-forecast.md) §3 (le CSV n'est plus la seule source des ventes de
 caisse). Reste dans le cadre de l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
 (mesurer, jamais se brancher sur la caisse) et applique l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md) (tester la
-scène avant de construire).
+scène avant de construire). **Amendé le 2026-10-08** : issue « De lui-même » (§6).
 
 ## Contexte
 
@@ -41,6 +41,14 @@ des plateformes de livraison.
    préférence, réponse par un simple chiffre), « Plus tard » qui relance à 15 h, tâche « CA d'hier »
    sur l'accueil de la console, récapitulatif du lundi au propriétaire (« 6 jours sur 7 remplis »).
    Ce sera un ADR à part, nourri des notes du test.
+6. **Amendement du 2026-10-08 — « De lui-même ».** À De Bue, le responsable envoie le chiffre le
+   soir, à la fermeture de sa caisse, sans qu'on le lui demande (deux jours de suite). C'est une
+   issue à part (`spontane`) : elle porte un montant, compte comme une réponse **sans relance**,
+   n'a pas d'heure d'envoi et sort donc du délai médian ; le compteur « dont N de lui-même » la
+   montre en tête de page. Le jour noté est le **jour des ventes** (souvent aujourd'hui, le chiffre
+   arrivant le soir même) ; pas de message du matin le lendemain. Si cette issue domine, la version
+   automatisée devra d'abord **recevoir** le chiffre du soir, et ne relancer qu'en son absence.
+   Migration `docs/migrations/20261008-1000-ca-du-jour-de-lui-meme.sql`.
 
 ## Conséquences
 
@@ -52,7 +60,7 @@ des plateformes de livraison.
   réponse comparée, statistiques du test, verdict).
 - Noter un jour remplace les ventes de ce jour, y compris celles d'un import CSV ; un import CSV
   ultérieur qui couvre ce jour reprend la main sur les ventes (même règle « remplacement par plage »).
-- **Trace** : taux de réponse sur les jours ouverts, part sans relance, délai médian entre l'envoi et
+- **Trace** : taux de réponse sur les jours ouverts, part sans relance, part envoyée de lui-même, délai médian entre l'envoi et
   la réponse — affichés en tête de `/platform/ca`, calculés depuis la table.
 - Houba est un compte de démonstration (m56) : le test se fait à la main et ne dépend pas de son
   statut, mais la version automatisée exigera de l'activer.

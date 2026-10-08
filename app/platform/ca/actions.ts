@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { deleteDailyEntry, saveDailyEntry } from "@/lib/daily-revenue";
-import { OUTCOMES, isDay, outcomeHasAmount, parseAmount, parseTime, type Outcome } from "@/lib/daily-revenue-model";
+import { OUTCOMES, isDay, outcomeHasAmount, outcomeWasAsked, parseAmount, parseTime, type Outcome } from "@/lib/daily-revenue-model";
 
 // Même garde locale que app/platform/crm/actions.ts : une Server Action n'est
 // pas protégée par le layout, elle revérifie le super-admin elle-même.
@@ -47,14 +47,19 @@ export async function saveDay(formData: FormData) {
         outcome,
         amount,
         tickets: Number.isInteger(ticketsRaw) && ticketsRaw > 0 ? ticketsRaw : null,
-        asked_at: outcome === "historique" ? null : parseTime(text(formData.get("envoye"))),
+        asked_at: outcomeWasAsked(outcome) ? parseTime(text(formData.get("envoye"))) : null,
         replied_at: withAmount && outcome !== "historique" ? parseTime(text(formData.get("repondu"))) : null,
         note: text(formData.get("note")),
       },
       user.id,
     );
   } catch (e) {
-    back({ r, jour: day, erreur: `Pas enregistré : ${(e as Error).message}` });
+    const msg = (e as Error).message;
+    // Fail-open : sans la migration 20261008-1000, la base refuse « De lui-même ».
+    if (outcome === "spontane" && /check constraint/i.test(msg)) {
+      back({ r, jour: day, erreur: "« De lui-même » pas encore accepté par la base : appliquer docs/migrations/20261008-1000-ca-du-jour-de-lui-meme.sql dans Supabase." });
+    }
+    back({ r, jour: day, erreur: `Pas enregistré : ${msg}` });
   }
   back({ r, jour: day, ok: "1" });
 }
