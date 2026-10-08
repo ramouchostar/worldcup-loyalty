@@ -15,6 +15,7 @@ export function ProgressRing({
   size = 112,
   stroke = 10,
   surface = "dark",
+  tone = "neutral",
   label,
   children,
 }: {
@@ -23,6 +24,8 @@ export function ProgressRing({
   size?: number;
   stroke?: number;
   surface?: "light" | "dark";
+  /** `boost` : progression aux couleurs de la charte Boosteats (jeu de la croissance, ADR 0081). */
+  tone?: "neutral" | "boost";
   /** Nom accessible (« 3 tickets sur un objectif de 4 »). */
   label: string;
   /** Contenu centré — en général le chiffre. */
@@ -33,7 +36,16 @@ export function ProgressRing({
   const ratio = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
   const met = max > 0 && value >= max;
   const track = surface === "dark" ? "stroke-white/15" : "stroke-paper-subtle";
-  const fill = met ? "stroke-good" : surface === "dark" ? "stroke-white" : "stroke-ink";
+  const fill =
+    tone === "boost"
+      ? surface === "dark"
+        ? "stroke-boost-light"
+        : "stroke-boost-olive"
+      : met
+        ? "stroke-good"
+        : surface === "dark"
+          ? "stroke-white"
+          : "stroke-ink";
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }} role="img" aria-label={label}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden="true">

@@ -74,6 +74,19 @@ const config: Config = {
           tint: "#EFF6D8",
           tint2: "#D8EA9E",
         },
+        // Charte Boosteats FIXE de la console restaurateur (ADR 0081) —
+        // design-system/boosteats/MASTER.md. Distincte de brand-* (piloté par
+        // établissement) : la console ne prend jamais la charte du resto.
+        // Contrastes mesurés le 2026-10-08 : blanc sur olive 4,59:1 (boutons),
+        // olive clair sur nuit 8,89:1 ; l'olive en PETIT texte sur papier ne
+        // passe pas (4,38:1) → texte en olive-dark (6,33:1 sur crème).
+        boost: {
+          olive: "#6B7C3F",
+          "olive-dark": "#4F5C2D",
+          light: "#A9BB6E",
+          night: "#0C1509",
+          cream: "#EFF1E4",
+        },
         // Surfaces sombres du site vitrine restaurateurs (redesign m55) —
         // hero, mockups produit, sections CTA. ink.DEFAULT reste le noir de
         // référence commun aux deux (console admin ET vitrine).

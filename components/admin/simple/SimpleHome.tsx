@@ -6,7 +6,6 @@ import {
   CircleCheck,
   Lightbulb,
   ListPlus,
-  Lock,
   PartyPopper,
   Receipt,
   Star,
@@ -38,11 +37,19 @@ const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
 export function SimpleHome({
   view,
   dateLabel,
+  stepper,
+  hero,
+  growthStage,
   top,
   bottom,
 }: {
   view: SimpleHomeView;
   dateLabel: string;
+  /** Le parcours en deux étapes du jeu de la croissance (ADR 0081). */
+  stepper: ReactNode;
+  /** Le grand chiffre : deux jauges à l'étape 1, le palier de CA à l'étape 2. */
+  hero: ReactNode;
+  growthStage: "machine" | "chiffre";
   /** Bandeaux ponctuels (établissement en attente, siège rétrogradé…). */
   top?: ReactNode;
   /** Proposition d'installer la console, lien vers la vue pro. */
@@ -52,7 +59,7 @@ export function SimpleHome({
     <div className="space-y-5">
       <div className="space-y-3">
         <PageHeader title="Aujourd'hui" subtitle={dateLabel} />
-        <StageStepper stages={view.stages} />
+        {stepper}
       </div>
 
       {top}
@@ -60,9 +67,14 @@ export function SimpleHome({
       <div className="grid gap-5 lg:grid-cols-5 lg:items-start">
         {/* Colonne principale : les deux premières questions */}
         <div className="space-y-5 lg:col-span-3">
-          {view.stage === "lancer" ? <LaunchCard view={view} /> : <GoalCard view={view} />}
+          {hero}
+          {/* Étape 1 : les gestes qui remplissent les deux jauges — la liste de
+              lancement, puis l'objectif du jour en tickets (ADR 0064 §5). */}
+          {growthStage === "machine" && (view.stage === "lancer" ? <LaunchCard view={view} /> : <GoalCard view={view} />)}
           <TodoCard view={view} />
-          {view.stage !== "lancer" && <NextStepCard view={view} />}
+          {/* La barre « vers 100 tickets » ferait doublon avec les jauges : seules
+              les idées de la page Opportunités restent une prochaine étape. */}
+          {view.next.kind === "ideas" && <NextStepCard view={view} />}
         </div>
 
         {/* Colonne de côté : la troisième question, puis le compact */}
@@ -70,68 +82,11 @@ export function SimpleHome({
           <MonthCard view={view} />
           <StaffCard view={view} />
           <MilestoneCard view={view} />
-          <JourneyCard view={view} />
         </div>
       </div>
 
       {bottom}
     </div>
-  );
-}
-
-// ── Parcours : trois étapes, l'étape en cours, ce qui ouvre la suivante ────
-
-function StageStepper({ stages }: { stages: SimpleHomeView["stages"] }) {
-  return (
-    <ol className="flex items-center gap-1.5 text-[12.5px]" aria-label="Ton parcours">
-      {stages.map((s, i) => (
-        <li key={s.key} className="flex items-center gap-1.5 min-w-0">
-          {i > 0 && <span className="w-4 sm:w-6 h-px bg-paper-border shrink-0" aria-hidden="true" />}
-          <span
-            className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10.5px] font-bold ${
-              s.state === "done" ? "bg-good text-white" : s.state === "current" ? "bg-ink text-white" : "bg-paper-subtle text-ink-faint"
-            }`}
-            aria-hidden="true"
-          >
-            {s.state === "done" ? <Check size={12} strokeWidth={3} /> : s.state === "locked" ? <Lock size={10} strokeWidth={2.4} /> : i + 1}
-          </span>
-          <span className={`truncate ${s.state === "current" ? "text-ink font-semibold" : "text-ink-muted"}`}>
-            {s.label}
-            <span className="sr-only">{s.state === "done" ? " — fait" : s.state === "current" ? " — en cours" : " — à venir"}</span>
-          </span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function JourneyCard({ view }: { view: SimpleHomeView }) {
-  // Sur téléphone, la frise compacte du haut suffit ; l'ordinateur a la place
-  // de dire ce qui ouvre chaque étape.
-  return (
-    <Card className="hidden lg:block">
-      <SectionLabel tone="muted">Ton parcours</SectionLabel>
-      <ol className="mt-3 space-y-3">
-        {view.stages.map((s, i) => (
-          <li key={s.key} className="flex items-start gap-3">
-            <span
-              className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold mt-0.5 ${
-                s.state === "done" ? "bg-good text-white" : s.state === "current" ? "bg-ink text-white" : "bg-paper-subtle text-ink-faint"
-              }`}
-              aria-hidden="true"
-            >
-              {s.state === "done" ? <Check size={13} strokeWidth={3} /> : s.state === "locked" ? <Lock size={11} strokeWidth={2.4} /> : i + 1}
-            </span>
-            <div className="min-w-0">
-              <p className={`text-[13.5px] ${s.state === "current" ? "font-semibold text-ink" : "text-ink-body"}`}>{s.label}</p>
-              <p className="text-[12px] text-ink-faint">
-                {s.state === "done" ? "Fait" : s.state === "current" ? "En cours" : `S'ouvre à ${s.unlock}`}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </Card>
   );
 }
 

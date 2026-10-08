@@ -4,6 +4,10 @@ import { getRestaurant } from "@/lib/restaurant";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { loadSimpleHomeRaw } from "@/lib/console-journey-data";
 import { buildSimpleHomeView } from "@/lib/console-journey";
+import { loadGrowthRaw } from "@/lib/growth-game-data";
+import { buildGrowthView } from "@/lib/growth-game";
+import { todayInBrussels } from "@/lib/qr-funnel";
+import { GrowthHero, GrowthStepper } from "@/components/admin/simple/GrowthHero";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { SimpleHome } from "@/components/admin/simple/SimpleHome";
 
@@ -24,7 +28,14 @@ export async function SimpleHomePage({
 }) {
   const base = `/admin/${restaurantId}`;
   const [access, restaurant] = await Promise.all([getAdminAccess(userId, restaurantId), getRestaurant(restaurantId)]);
-  const view = buildSimpleHomeView(await loadSimpleHomeRaw(restaurantId, { canManage: canManageEstablishment(access) }));
+  const today = todayInBrussels();
+  const [raw, growthRaw] = await Promise.all([
+    loadSimpleHomeRaw(restaurantId, { canManage: canManageEstablishment(access) }),
+    loadGrowthRaw(restaurantId, today),
+  ]);
+  const view = buildSimpleHomeView(raw);
+  // ADR 0081 — le jeu de la croissance : deux jauges, puis le palier de CA.
+  const growth = buildGrowthView(growthRaw);
 
   const dateLabel = capitalize(
     new Date().toLocaleDateString("fr-BE", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Brussels" })
@@ -76,7 +87,17 @@ export async function SimpleHomePage({
     </>
   );
 
-  return <SimpleHome view={view} dateLabel={dateLabel} top={top} bottom={bottom} />;
+  return (
+    <SimpleHome
+      view={view}
+      dateLabel={dateLabel}
+      stepper={<GrowthStepper stage={growth.stage} />}
+      hero={<GrowthHero growth={growth} base={base} today={today} salesIncomplete={growthRaw.salesIncomplete} />}
+      growthStage={growth.stage}
+      top={top}
+      bottom={bottom}
+    />
+  );
 }
 
 function capitalize(s: string): string {
