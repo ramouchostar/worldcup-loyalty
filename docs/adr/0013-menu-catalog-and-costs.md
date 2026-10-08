@@ -1,6 +1,6 @@
 # ADR 0013 — Catalogue menu & prix de revient soumis par l'établissement
 
-**Statut** : Accepté
+**Statut** : Accepté — §1 amendé par l'[ADR 0083](0083-le-catalogue-menu-s-importe.md) (2026-10-08) : le catalogue s'importe aussi d'un lien, d'une capture ou d'un PDF ; le prix de revient reste saisi par le restaurateur.
 
 ## Contexte
 
