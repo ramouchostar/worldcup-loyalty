@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Check, Lock } from "lucide-react";
 import { ProgressRing } from "@/components/admin/ui";
 import { addDays } from "@/lib/console-journey";
-import { BASELINE_DAYS, MACHINE_CONTACTS, MACHINE_TICKETS, type GrowthView } from "@/lib/growth-game";
+import { BASELINE_DAYS, etaLabel, MACHINE_CONTACTS, MACHINE_TICKETS, type GrowthView } from "@/lib/growth-game";
 import { GrowthChiffreCard } from "./GrowthChiffreCard";
 
 // Le grand chiffre de l'accueil simple — le jeu de la croissance (ADR 0081).
@@ -74,7 +74,7 @@ export function GrowthHero({
     );
   }
 
-  const etaLabel =
+  const etaDate =
     growth.eta === null
       ? null
       : new Date(`${addDays(today, growth.eta)}T12:00:00Z`).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "UTC" });
@@ -106,14 +106,13 @@ export function GrowthHero({
       <div className="flex items-start gap-3 mt-5 rounded-xl bg-white/[0.08] p-3.5">
         <Lock size={18} strokeWidth={2.2} className="text-boost-light shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-[14px] leading-snug">
-          Ton <strong>objectif en chiffre d&apos;affaires</strong> s&apos;allume quand les deux jauges sont pleines.
-          {etaLabel ? (
+          Ton <strong>objectif en chiffre d&apos;affaires</strong>{" "}s&apos;allume quand les deux jauges sont pleines.{" "}
+          {growth.eta !== null && etaDate ? (
             <>
-              {" "}
-              À ton rythme : <strong className="text-boost-light">vers le {etaLabel}</strong>.
+              À ton rythme : <strong className="text-boost-light">{etaLabel(growth.eta)}</strong> (vers le {etaDate}).
             </>
           ) : (
-            " Elles avancent dès que tes clients photographient leurs tickets."
+            "Elles avancent dès que tes clients photographient leurs tickets."
           )}
         </p>
       </div>

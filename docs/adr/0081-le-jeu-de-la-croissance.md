@@ -37,6 +37,11 @@ Le CA de la caisse existe désormais dans `restaurant_sales`, alimenté par la s
 - **Contacts** = adhésions à l'établissement (`memberships.joined_at`) sur 90 jours ; **tickets** =
   commandes validées (`orders.order_date`) sur la même fenêtre que la page Opportunités.
 - Comme dans l'ADR 0064, **aucun état stocké** : l'étape se recalcule à chaque affichage.
+- **La date estimée suit le rythme déjà pris** (amendé le 2026-10-08, terrain De Bue) : on mesure
+  sur les 7 derniers jours, ou depuis le premier ticket / le premier contact s'il est plus récent
+  (au moins 1 jour). Un établissement lancé la veille avec 12 tickets va à 12 par jour, pas à
+  12 ÷ 7 : l'ancien calcul l'envoyait au 23 décembre au lieu d'une dizaine de jours. Le délai se
+  dit en jours puis en semaines (« dans 11 jours »), la date entre parenthèses.
 - La liste de lancement, l'objectif du jour en tickets et « À faire » restent dans l'étape 1 :
   ce sont les gestes qui remplissent les deux anneaux.
 
@@ -76,6 +81,15 @@ un vrai chiffre de l'établissement (« 38 clients décrochent »), jamais une p
 Les quatre onglets de la vue simple ne changent pas. Sur ordinateur, la colonne de navigation
 devient une barre latérale rangée par sections nommées (Piloter, Mes clients, Agir, Mon programme,
 Mon compte) ; sur téléphone, « Plus » liste tout. Une page n'est jamais retirée (ADR 0064 §1).
+
+### 6. Des missions dès l'étape 1 : une pub dans la zone, des vidéos
+
+Sans attendre le chiffre, l'accueil propose deux missions qui remplissent les jauges : **une pub
+dans la zone** (frais de service selon le forfait : Gratuit 20 %, Croissance 15 %, Pro 5 % du
+budget) et **des vidéos** (devis de vidéastes spécialisés en restaurant). Tant que la pub et la
+vidéo ne sont pas intégrées à l'app (ADR à venir), le bouton enregistre une **demande de service**
+(`service_requests`) que l'équipe voit sur `/platform` et traite en rappelant : l'écran ne promet
+que ce qui se passe vraiment.
 
 ## Conséquences
 

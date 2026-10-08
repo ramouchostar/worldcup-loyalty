@@ -40,6 +40,7 @@ export function SimpleHome({
   stepper,
   hero,
   growthStage,
+  missions,
   top,
   bottom,
 }: {
@@ -50,6 +51,8 @@ export function SimpleHome({
   /** Le grand chiffre : deux jauges à l'étape 1, le palier de CA à l'étape 2. */
   hero: ReactNode;
   growthStage: "machine" | "chiffre";
+  /** Missions pub et vidéo (ADR 0081 §6). */
+  missions?: ReactNode;
   /** Bandeaux ponctuels (établissement en attente, siège rétrogradé…). */
   top?: ReactNode;
   /** Proposition d'installer la console, lien vers la vue pro. */
@@ -72,6 +75,7 @@ export function SimpleHome({
               lancement, puis l'objectif du jour en tickets (ADR 0064 §5). */}
           {growthStage === "machine" && (view.stage === "lancer" ? <LaunchCard view={view} /> : <GoalCard view={view} />)}
           <TodoCard view={view} />
+          {missions}
           {/* La barre « vers 100 tickets » ferait doublon avec les jauges : seules
               les idées de la page Opportunités restent une prochaine étape. */}
           {view.next.kind === "ideas" && <NextStepCard view={view} />}

@@ -8,8 +8,10 @@ import {
   rejectRestaurant,
   grantPlanRequest,
   dismissPlanRequest,
+  handleServiceRequest,
 } from "./actions";
 import { getPendingPlanRequests } from "@/lib/plan-requests";
+import { getPendingServiceRequests } from "@/lib/service-requests";
 import type { Plan } from "@/lib/entitlements";
 import { getActiveInvitesByRestaurant } from "@/lib/owner-invites";
 import { selectRestaurantsWithDemo } from "@/lib/demo";
@@ -43,11 +45,13 @@ export default async function PlatformPage() {
 
   const admin = createAdminClient();
 
-  const [{ rows: allRaw, demoColumnMissing }, { data: subsRaw }, planRequests] = await Promise.all([
+  const [{ rows: allRaw, demoColumnMissing }, { data: subsRaw }, planRequests, serviceRequests] = await Promise.all([
     selectRestaurantsWithDemo<RestaurantRow>(admin, COLUMNS, LEGACY_COLUMNS),
     // ADR 0029 — plans courants (m48) + demandes de plan (m51)
     admin.from("restaurant_subscriptions").select("restaurant_id, plan, status"),
     getPendingPlanRequests(),
+    // ADR 0081 §6 — demandes de pub et de vidéo venues des missions de la console
+    getPendingServiceRequests(),
   ]);
   const planById = new Map(
     (((subsRaw as { restaurant_id: string; plan: Plan; status: string }[] | null) ?? []))
@@ -269,6 +273,49 @@ export default async function PlatformPage() {
                       </button>
                     </form>
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Demandes de pub et de vidéo (ADR 0081 §6 — missions de la console) */}
+      {serviceRequests.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h2 className="font-bold text-gray-900 mb-4">
+            Demandes de pub et de vidéo
+            <span className="ml-2 bg-platform-accent text-brand-dark text-xs font-bold px-2 py-0.5 rounded-full">
+              {serviceRequests.length}
+            </span>
+          </h2>
+          <div className="space-y-3">
+            {serviceRequests.map((req) => {
+              const resto = all.find((r) => r.id === req.restaurant_id);
+              return (
+                <div key={req.id} className="border border-gray-200 rounded-xl p-4 flex items-center gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900">
+                      {resto?.name ?? req.restaurant_id}
+                      <span className="ml-2 text-xs font-bold text-platform-accent uppercase">
+                        → {req.service === "pub" ? "pub dans sa zone" : "vidéos"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {new Date(req.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "short", year: "numeric" })}
+                      {req.source && <> · depuis « {req.source} »</>}
+                      {" · plan : "}
+                      {planById.get(req.restaurant_id) ?? "gratuit"}
+                    </p>
+                  </div>
+                  <form action={handleServiceRequest.bind(null, req.id)}>
+                    <button
+                      type="submit"
+                      className="bg-gray-100 text-gray-700 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Rappelé, c&apos;est traité
+                    </button>
+                  </form>
                 </div>
               );
             })}

@@ -6,6 +6,7 @@ import { isIncomplete, missingSteps } from "@/lib/partner-progress";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { setPlan, type Plan } from "@/lib/entitlements";
 import { settlePlanRequests, markPlanRequestHandled } from "@/lib/plan-requests";
+import { markServiceRequestHandled } from "@/lib/service-requests";
 import { sendRestaurantActivatedEmail } from "@/lib/email";
 import { createOwnerInviteAndNotify, revokeOwnerInvite } from "@/lib/owner-invites";
 import { type AdminRole, parseAdminRole, upsertRestaurantAdmin } from "@/lib/restaurant-admins";
@@ -134,6 +135,14 @@ export async function dismissPlanRequest(requestId: string) {
   const user = await requireSuperAdmin();
   if (!user) return;
   await markPlanRequestHandled(requestId);
+  revalidatePath("/platform");
+}
+
+// ADR 0081 §6 — demande de pub ou de vidéo traitée (l'équipe a rappelé).
+export async function handleServiceRequest(requestId: string) {
+  const user = await requireSuperAdmin();
+  if (!user) return;
+  await markServiceRequestHandled(requestId);
   revalidatePath("/platform");
 }
 
