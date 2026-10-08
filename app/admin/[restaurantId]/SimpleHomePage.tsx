@@ -8,6 +8,12 @@ import { loadGrowthRaw } from "@/lib/growth-game-data";
 import { buildGrowthView } from "@/lib/growth-game";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { GrowthHero, GrowthStepper } from "@/components/admin/simple/GrowthHero";
+import { GrowthMissions } from "@/components/admin/simple/GrowthMissions";
+import { getEntitlement, getPlan } from "@/lib/entitlements";
+import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
+import { buildRevenueTracker } from "@/lib/revenue-tracker";
+import { RevenueTrackerCard } from "@/components/admin/simple/RevenueTrackerCard";
+import { pendingServicesFor } from "@/lib/service-requests";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { SimpleHome } from "@/components/admin/simple/SimpleHome";
 
@@ -29,10 +35,16 @@ export async function SimpleHomePage({
   const base = `/admin/${restaurantId}`;
   const [access, restaurant] = await Promise.all([getAdminAccess(userId, restaurantId), getRestaurant(restaurantId)]);
   const today = todayInBrussels();
-  const [raw, growthRaw] = await Promise.all([
+  const [raw, growthRaw, plan, pendingServices, revenueRaw, revenueAccess] = await Promise.all([
     loadSimpleHomeRaw(restaurantId, { canManage: canManageEstablishment(access) }),
     loadGrowthRaw(restaurantId, today),
+    getPlan(restaurantId),
+    pendingServicesFor(restaurantId),
+    loadRevenueTracker(restaurantId, today),
+    getEntitlement(restaurantId, "revenue_tracker"),
   ]);
+  // ADR 0081 §7 — le CA jour par jour, dès qu'il est noté (Croissance et Pro).
+  const tracker = buildRevenueTracker({ today, ...revenueRaw });
   const view = buildSimpleHomeView(raw);
   // ADR 0081 — le jeu de la croissance : deux jauges, puis le palier de CA.
   const growth = buildGrowthView(growthRaw);
@@ -94,6 +106,15 @@ export async function SimpleHomePage({
       stepper={<GrowthStepper stage={growth.stage} />}
       hero={<GrowthHero growth={growth} base={base} today={today} salesIncomplete={growthRaw.salesIncomplete} />}
       growthStage={growth.stage}
+      revenue={<RevenueTrackerCard tracker={tracker} allowed={revenueAccess.allowed} restaurantId={restaurantId} />}
+      missions={
+        <GrowthMissions
+          restaurantId={restaurantId}
+          plan={plan}
+          pending={pendingServices}
+          source={growth.stage === "machine" ? "accueil_etape1" : "accueil_etape2"}
+        />
+      }
       top={top}
       bottom={bottom}
     />

@@ -18,7 +18,9 @@ export type Feature =
   | "insights"
   | "broadcast_scheduled"
   | "barometer_advanced"
-  | "sector_benchmarks";
+  | "sector_benchmarks"
+  // ADR 0081 §7 — le CA jour par jour sur l'accueil, dès qu'il est noté.
+  | "revenue_tracker";
 
 // Plan qui débloque chaque fonction : A (analytique établissement) → croissance,
 // B (repères secteur) → pro. Source de vérité unique du mapping fonction→plan.
@@ -29,6 +31,7 @@ export const FEATURE_PLAN: Record<Feature, Plan> = {
   broadcast_scheduled: "croissance",
   barometer_advanced: "croissance",
   sector_benchmarks: "pro",
+  revenue_tracker: "croissance",
 };
 
 // Durée d'essai par défaut au déblocage (ADR 0029 §5, ajustable par fonction).

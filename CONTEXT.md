@@ -344,6 +344,14 @@ _Avoid_ : assigné/assignation (jargon), responsable unique, « valider pour l'�
 Accueil simple de la console en **deux étapes**, déduites des données à chaque affichage. **Étape 1 · Lancer la machine** : 100 tickets validés **et** 200 nouveaux contacts (adhésions) sur 90 jours, le CA y est montré verrouillé. **Étape 2 · Faire grandir le chiffre** : le **palier** de CA par jour. Le **départ** = moyenne par jour ouvert des 28 premiers jours notés (`restaurant_sales`) ; les **paliers** montent d'une marche fixe de 5 % du départ arrondie à 10 € (350 € → 370, 390… 450 €) ; le **cap** = cinquième palier. On monte d'un **niveau** en tenant le palier suivant 3 semaines sur les 4 dernières ; un niveau ne se perd jamais. Logique pure dans `lib/growth-game.ts`. Console seulement (ADR 0007).
 _Avoid_ : « objectif CA » pour un palier (l'objectif du jour reste en tickets, ADR 0064) ; « score » ou « points » pour le niveau (les points sont ceux du membre) ; « seuil CA » (réservé au double verrou, ADR 0012).
 
+**Demande de service** *(ADR 0081 §6)* :
+Clic d'un restaurateur sur une mission « Une pub dans ta zone » ou « Des vidéos de ta maison » de l'accueil console : une ligne `service_requests` (`pub` | `video`, une seule en attente par établissement et par service), visible sur `/platform` jusqu'à ce que l'équipe l'ait traitée en rappelant. Les frais de la pub dépendent du forfait (`AD_FEE_PCT` : 20 / 15 / 5 %).
+_Avoid_ : « commande » de pub (rien n'est acheté ni lancé au clic) ; « demande de plan » (autre table, `plan_requests`).
+
+**Suivi du CA** *(ADR 0081 §7)* :
+Carte « Ton chiffre d'affaires » de l'accueil console (forfaits Croissance et Pro, fonction `revenue_tracker`) : dernier jour noté face aux mêmes jours de la semaine, semaine jusqu'à hier, 14 derniers jours, **part du programme** (CA des tickets validés ÷ CA de caisse des jours notés) et **taux de capture** (tickets du programme ÷ tickets de caisse, quand la caisse les donne). Alimentée par le CA du jour (ADR 0078) et les ventes importées. Console seulement (ADR 0007).
+_Avoid_ : « CA additionnel » ou « grâce à nous » pour la part du programme (ce sont les clients qui participent, ADR 0064).
+
 **Opportunité** :
 Suggestion commerciale chiffrée de la page admin `/admin/[id]/insights`, calculée par le moteur de stratégies terrain (`lib/insights.ts`, ADR 0022) à partir des ventes scannées (ADR 0020) et du catalogue (ADR 0013) : jour/heure creux, promo sûre, combo, formule dégressive. Fonctions pures et déterministes — chaque suggestion est explicable par ses chiffres, préserve la marge unité par unité, et n'est jamais appliquée automatiquement (l'app propose, l'admin décide). Surface admin uniquement : les coûts et marges n'apparaissent jamais dans le message broadcast proposé (ADR 0007).
 _Avoid_ : conseil IA (le calcul est déterministe), recommandation automatique.

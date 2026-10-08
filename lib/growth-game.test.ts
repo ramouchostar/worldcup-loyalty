@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { addDays } from "./console-journey";
 import {
+  activeDays,
   BASELINE_DAYS,
+  etaLabel,
   baseline,
   buildGrowthView,
   growthStage,
@@ -32,6 +34,28 @@ test("date estimée : la jauge la plus lente décide, rien si l'une n'avance pas
   // 36 tickets manquants à 2/jour = 18 j ; 69 contacts à 3/jour = 23 j.
   assert.equal(machineEta({ tickets90: 64, contacts90: 131, ticketsWeek: 14, contactsWeek: 21 }), 23);
   assert.equal(machineEta({ tickets90: 64, contacts90: 131, ticketsWeek: 14, contactsWeek: 0 }), null);
+});
+
+test("rythme : mesuré depuis le démarrage s'il a moins de 7 jours", () => {
+  assert.equal(activeDays(null, "2026-10-08"), 7);
+  assert.equal(activeDays("2026-06-11", "2026-10-08"), 7);
+  assert.equal(activeDays("2026-10-08", "2026-10-08"), 1);
+  assert.equal(activeDays("2026-10-06", "2026-10-08"), 3);
+});
+
+test("date estimée : De Bue lancé aujourd'hui, 12 tickets et 17 contacts → 11 jours, pas fin décembre", () => {
+  const base = { tickets90: 12, contacts90: 17, ticketsWeek: 12, contactsWeek: 17 };
+  assert.equal(machineEta(base), 76); // l'ancien calcul (÷ 7) : vers le 23 décembre
+  assert.equal(machineEta({ ...base, ticketsDays: 1, contactsDays: 1 }), 11);
+  const v = buildGrowthView({ today: "2026-10-08", ...base, firstTicketDay: "2026-10-08", firstContactDay: "2026-10-08", sales: {} });
+  if (v.stage !== "machine") throw new Error("étape 1 attendue");
+  assert.equal(v.eta, 11);
+});
+
+test("délai : dit en jours, puis en semaines", () => {
+  assert.equal(etaLabel(1), "dès demain");
+  assert.equal(etaLabel(11), "dans 11 jours");
+  assert.equal(etaLabel(22), "dans environ 4 semaines");
 });
 
 test("ventes : les lignes d'un même jour s'additionnent", () => {

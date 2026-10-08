@@ -28,15 +28,47 @@ export function growthStage(v: { tickets90: number; contacts90: number }): Growt
   return v.tickets90 >= MACHINE_TICKETS && v.contacts90 >= MACHINE_CONTACTS ? "chiffre" : "machine";
 }
 
+/** Le rythme se mesure sur 7 jours, ou depuis le démarrage s'il est plus récent. */
+export const PACE_WINDOW_DAYS = 7;
+/** Dès le premier jour : le rythme du lancement motive, et se corrige tout seul le lendemain. */
+export const PACE_MIN_DAYS = 1;
+
 /**
- * Jours estimés avant que les DEUX jauges soient pleines, au rythme des
- * 7 derniers jours. null : l'une des deux n'avance pas (on ne promet rien).
+ * Jours sur lesquels mesurer le rythme : 7, ou moins si la première activité
+ * (premier ticket, premier contact) est plus récente. Un établissement lancé
+ * il y a 2 jours avec 12 tickets va à 6 par jour, pas à 12 ÷ 7 — diviser par 7
+ * repoussait sa date de plusieurs semaines et le démotivait (terrain De Bue,
+ * 2026-10-08).
  */
-export function machineEta(v: { tickets90: number; contacts90: number; ticketsWeek: number; contactsWeek: number }): number | null {
-  const t = daysToReach(MACHINE_TICKETS - v.tickets90, v.ticketsWeek / 7);
-  const c = daysToReach(MACHINE_CONTACTS - v.contacts90, v.contactsWeek / 7);
+export function activeDays(firstDay: string | null, today: string): number {
+  if (!firstDay) return PACE_WINDOW_DAYS;
+  const elapsed = Math.round((Date.parse(`${today}T12:00:00Z`) - Date.parse(`${firstDay}T12:00:00Z`)) / 86_400_000) + 1;
+  return Math.max(PACE_MIN_DAYS, Math.min(PACE_WINDOW_DAYS, elapsed));
+}
+
+/**
+ * Jours estimés avant que les DEUX jauges soient pleines, au rythme qu'il a
+ * déjà pris. null : l'une des deux n'avance pas (on ne promet rien).
+ */
+export function machineEta(v: {
+  tickets90: number;
+  contacts90: number;
+  ticketsWeek: number;
+  contactsWeek: number;
+  ticketsDays?: number;
+  contactsDays?: number;
+}): number | null {
+  const t = daysToReach(MACHINE_TICKETS - v.tickets90, v.ticketsWeek / (v.ticketsDays ?? PACE_WINDOW_DAYS));
+  const c = daysToReach(MACHINE_CONTACTS - v.contacts90, v.contactsWeek / (v.contactsDays ?? PACE_WINDOW_DAYS));
   if (t === null || c === null) return null;
   return Math.max(t, c);
+}
+
+/** « dans 9 jours », « dans environ 3 semaines » — un délai se dit, une date lointaine démotive. */
+export function etaLabel(days: number): string {
+  if (days <= 1) return "dès demain";
+  if (days < 14) return `dans ${days} jours`;
+  return `dans environ ${Math.ceil(days / 7)} semaines`;
 }
 
 // ── Ventes par jour ─────────────────────────────────────────────────────────
@@ -191,6 +223,9 @@ export type GrowthView =
 
 export type GrowthRaw = {
   today: string;
+  /** Premier ticket validé et première adhésion (jour belge), pour le rythme. */
+  firstTicketDay?: string | null;
+  firstContactDay?: string | null;
   tickets90: number;
   contacts90: number;
   ticketsWeek: number;
@@ -201,7 +236,14 @@ export type GrowthRaw = {
 export function buildGrowthView(raw: GrowthRaw): GrowthView {
   const notedDays = Object.keys(raw.sales).filter((d) => d <= raw.today).length;
   const counts = { tickets90: raw.tickets90, contacts90: raw.contacts90, ticketsWeek: raw.ticketsWeek, contactsWeek: raw.contactsWeek };
-  if (growthStage(raw) === "machine") return { stage: "machine", ...counts, eta: machineEta(raw), notedDays };
+  if (growthStage(raw) === "machine") {
+    const eta = machineEta({
+      ...counts,
+      ticketsDays: activeDays(raw.firstTicketDay ?? null, raw.today),
+      contactsDays: activeDays(raw.firstContactDay ?? null, raw.today),
+    });
+    return { stage: "machine", ...counts, eta, notedDays };
+  }
 
   const base = baseline(raw.sales);
   if (!base) return { stage: "chiffre", ...counts, notedDays, game: null };
