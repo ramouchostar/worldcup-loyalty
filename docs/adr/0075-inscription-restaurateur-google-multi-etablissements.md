@@ -1,6 +1,6 @@
 # ADR 0075 — L'inscription restaurateur part de Google, le compte vient après, plusieurs établissements d'un coup
 
-**Statut** : Accepté (2026-10-01) — décidé par le porteur en session, maquette validée
+**Statut** : Accepté (2026-10-01) — réserve sur l'import de la carte levée par l'[ADR 0083](0083-le-catalogue-menu-s-importe.md) (2026-10-08) — décidé par le porteur en session, maquette validée
 (« Inscription restaurant Boosteats », cinq écrans). C'est l'« ADR de suivi » annoncé par
 l'[ADR 0015](0015-multi-restaurant-platform-pivot.md) §6 et § Évolutions (flow self-service).
 Amende l'ADR 0015 §6-7 (ordre établissement → compte, condition de validation),
@@ -136,7 +136,8 @@ l'être une seconde fois par un autre compte (« Cet établissement est déjà i
 ## Conséquences
 
 - Le CSV de carte reste le format d'import tant qu'un import photo/PDF n'existe pas ; la
-  maquette annonce « photo, PDF ou fichier » : à aligner sur ce qui est livré.
+  maquette annonce « photo, PDF ou fichier » : à aligner sur ce qui est livré. *Levé par
+  l'ADR 0083 : lien, captures, PDF ou CSV, puis tableau à vérifier.*
 - `isRestaurantOwner` ne peut pas garder un brouillon (pas encore de siège) : le brouillon
   n'a pas de route serveur avant le compte, par construction.
 - La numérotation des étapes (« 2/4 », « 3/3 ») disparaît au profit de la ligne d'étapes.

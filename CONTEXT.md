@@ -189,8 +189,12 @@ Ancien multiplicateur ×1.5 sur le score affiché pendant 48h après qu'une équ
 ### Catalogue menu & coûts
 
 **Catalogue menu** :
-Ensemble des articles d'un établissement (table `menu_items`), chacun avec son prix de vente et son prix de revient. Source de vérité unique des articles et coûts utilisés par les récompenses (ADR 0013) — remplace les grilles codées en dur. Soumis par le restaurateur via un fichier CSV (colonnes `nom`, `categorie`, `prix_vente`, `prix_revient`). Strictement admin, jamais exposé côté membre (ADR 0007).
+Ensemble des articles d'un établissement (table `menu_items`), chacun avec son prix de vente et son prix de revient. Source de vérité unique des articles et coûts utilisés par les récompenses (ADR 0013) — remplace les grilles codées en dur. Importé par le restaurateur depuis un lien, des captures, un PDF ou le fichier CSV (colonnes `nom`, `categorie`, `prix_vente`, `prix_revient`), puis vérifié par lui dans un tableau (ADR 0083). Strictement admin, jamais exposé côté membre (ADR 0007).
 _Avoid_ : carte (ambigu), menu (réservé aux combos type "Menu 4 Tenders"), base produits.
+
+**Import du catalogue** *(ADR 0083)* :
+Lecture d'une carte existante (lien — le site de la fiche Google pré-rempli —, captures, PDF, ou CSV) par le modèle de lecture, **mise au format du catalogue par notre code** (catégories, tailles ADR 0067, doublons), puis **tableau à vérifier** par le restaurateur : prix de vente pré-rempli (« prix livraison, vérifie ton prix en salle » quand il vient d'une plateforme), **prix de revient toujours saisi par lui**, lignes à ajouter ou retirer. Enregistré par le même chemin que le CSV. Un lien bloqué (Uber Eats, Takeaway…) est dit à l'écran (`link_blocked`), jamais contourné.
+_Avoid_ : scraping, « on récupère ton menu Uber Eats ».
 
 **Article** :
 Une ligne du catalogue menu (`menu_items`) — un produit vendu par l'établissement. Possède un nom, une catégorie, un prix de vente et un prix de revient. Marqué `reward_eligible` s'il peut être proposé en cadeau. Re-téléverser le catalogue met à jour les articles existants (upsert sur le nom) et désactive ceux absents du nouveau fichier — jamais de suppression (préserve l'historique des récompenses).
