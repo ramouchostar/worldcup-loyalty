@@ -21,7 +21,8 @@ export function ProgressBar({
 }: {
   value: number;
   max: number;
-  tone?: "neutral" | "good";
+  /** `boost` : charte Boosteats (jeu de la croissance, ADR 0081). */
+  tone?: "neutral" | "good" | "boost";
   surface?: "light" | "dark";
   /** Nom accessible de la barre (« Tickets validés sur 90 jours »). */
   label: string;
@@ -29,7 +30,8 @@ export function ProgressBar({
 }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
   const track = surface === "dark" ? "bg-white/15" : "bg-paper-subtle";
-  const fill = tone === "good" ? "bg-good" : surface === "dark" ? "bg-white" : "bg-ink";
+  const fill =
+    tone === "good" ? "bg-good" : tone === "boost" ? (surface === "dark" ? "bg-boost-light" : "bg-boost-olive") : surface === "dark" ? "bg-white" : "bg-ink";
   return (
     <div
       role="progressbar"
