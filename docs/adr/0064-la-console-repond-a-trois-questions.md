@@ -1,6 +1,6 @@
 # ADR 0064 — La console répond à trois questions : une vue simple par étape, la vue pro intacte
 
-**Statut** : Accepté et en service (2026-09-21, PR #220) — demande du porteur du même jour ; §6 amendé le même jour (le QR de l'équipe en salle devient la première tâche « À faire », voir en fin de document). La PR qui porte cet ADR
+**Statut** : Accepté et en service (2026-09-21, PR #220) ; **§4 et §8 amendés par l'[ADR 0081](0081-le-jeu-de-la-croissance.md)** (2026-10-08 : deux étapes, tickets + contacts puis paliers de chiffre d'affaires) — demande du porteur du même jour ; §6 amendé le même jour (le QR de l'équipe en salle devient la première tâche « À faire », voir en fin de document). La PR qui porte cet ADR
 livre la vue simple (§1 à §8) ; les questions au restaurateur (§9) et le message du soir (§10)
 sont décidés dans leur principe et feront chacun leur PR. Transpose côté restaurateur l'[ADR
 0059](0059-l-accueil-repond-a-trois-questions.md) (l'accueil membre répond à trois questions) ;

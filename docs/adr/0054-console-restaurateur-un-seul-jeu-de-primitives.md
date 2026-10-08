@@ -1,6 +1,6 @@
 # ADR 0054 — Console restaurateur : un seul jeu de primitives
 
-**Statut** : Accepté (2026-09-13). Prolonge le redesign m54 (identité de la console :
+**Statut** : Accepté (2026-09-13) ; **amendé par l'[ADR 0081](0081-le-jeu-de-la-croissance.md)** (2026-10-08 : jetons fixes `boost-*` de la charte Boosteats, bandeau du haut coloré selon le forfait). Prolonge le redesign m54 (identité de la console :
 Space Grotesk + JetBrains Mono, jetons `ink-*`/`paper-*`, icônes au lieu d'émojis) et le
 socle de design system du 2026-09-12 (`design-system/boosteats/MASTER.md`), qui avait
 explicitement laissé la console de côté. Amende la **surface** de l'**ADR 0052**
