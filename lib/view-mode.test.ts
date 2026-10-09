@@ -34,3 +34,16 @@ test("isClientMode ne reconnaît que « client »", () => {
   assert.equal(isClientMode("autre"), false);
   assert.equal(isClientMode(undefined), false);
 });
+
+test("un prestataire arrive dans son espace, après plateforme et console, avant l'espace membre", () => {
+  assert.equal(pickDestination({ ...base, isProvider: true }), "/prestataire");
+  assert.equal(pickDestination({ ...base, isProvider: true, membershipRestaurantId: "r1" }), "/prestataire");
+  assert.equal(pickDestination({ ...base, isProvider: true, hasConsole: true }), "/admin");
+  assert.equal(pickDestination({ ...base, isProvider: true, isSuperAdmin: true }), "/platform");
+  // Le mode « voir l'app comme un client » saute plateforme et console, pas l'espace du prestataire.
+  assert.equal(pickDestination({ ...base, isProvider: true, hasConsole: true }, { clientMode: true }), "/prestataire");
+  // La porte « Espace restaurateur » reste celle du restaurateur.
+  assert.equal(pickDestination({ ...base, isProvider: true }, { as: "resto" }), "/become-a-partner");
+  // Sans le fait, rien ne change.
+  assert.equal(pickDestination({ ...base, isProvider: false }), "/join");
+});

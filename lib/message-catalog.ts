@@ -48,6 +48,8 @@ export const MESSAGES: MessageDef[] = [
   { key: "pending_requests_reminder", label: "Demandes en attente", audience: "restaurant", kind: "transactionnel", when: "> 15 demandes ou une de plus de 48 h", channels: "E-mail" },
   { key: "catalog_gaps_reminder", label: "Catalogue incomplet", audience: "restaurant", kind: "transactionnel", when: "Articles récurrents sans fiche depuis 7 j", channels: "E-mail" },
   { key: "owner_invite", label: "Invitation restaurateur", audience: "restaurant", kind: "transactionnel", when: "Lien d'invitation généré", channels: "E-mail" },
+  { key: "provider_invite", label: "Invitation prestataire", audience: "restaurant", kind: "transactionnel", when: "Lien d'invitation généré depuis /platform/prestataires", channels: "E-mail" },
+  { key: "provider_brief_received", label: "Brief reçu (prestataire)", audience: "restaurant", kind: "transactionnel", when: "Un restaurateur envoie son brief", channels: "E-mail" },
   { key: "test", label: "E-mail de test", audience: "member", kind: "transactionnel", when: "Envoyé depuis cette page", channels: "E-mail" },
 
   // ── Notifications (notification_log) ─────────────────────────────────────

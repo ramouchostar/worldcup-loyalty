@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getRestaurantId } from "@/lib/restaurant";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
+import { PROVIDER_INVITE_COOKIE, PROVIDER_INVITE_PATH } from "@/lib/provider-invite-token";
 import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
 import { VIEW_MODE_COOKIE, isClientMode, pickDestination } from "@/lib/view-mode";
 import {
@@ -91,6 +92,21 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Lien d'invitation PRESTATAIRE (/prestataire/invitation/[token], ADR 0084) — même
+  // mécanique que ci-dessus : le prestataire n'a pas encore de compte, le token est mémorisé
+  // dans un cookie httpOnly, la page d'invitation est publique à dessein.
+  const providerInviteMatch = path.match(PROVIDER_INVITE_PATH);
+  if (providerInviteMatch && !user && isValidInviteToken(providerInviteMatch[1])) {
+    supabaseResponse.cookies.set(PROVIDER_INVITE_COOKIE, providerInviteMatch[1], {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 14, // aligné sur la durée de vie de l'invitation
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+    return supabaseResponse;
+  }
+
   // Invitation en attente : elle prime sur le routage par rôle ci-dessous —
   // le restaurateur qui vient de s'inscrire doit atterrir sur son invitation,
   // pas sur l'app membre. Consommée (cookie effacé) par l'acceptation ou le
@@ -103,6 +119,15 @@ export async function middleware(request: NextRequest) {
     isValidInviteToken(pendingInvite)
   ) {
     return NextResponse.redirect(new URL(`/invite/${pendingInvite}`, request.url));
+  }
+  const pendingProviderInvite = request.cookies.get(PROVIDER_INVITE_COOKIE)?.value;
+  if (
+    user &&
+    (path === "/login" || path === "/signup" || path === "/join") &&
+    pendingProviderInvite &&
+    isValidInviteToken(pendingProviderInvite)
+  ) {
+    return NextResponse.redirect(new URL(`/prestataire/invitation/${pendingProviderInvite}`, request.url));
   }
 
   // Redirige les utilisateurs déjà connectés hors des pages auth, par rôle
@@ -148,7 +173,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute && user) {
-    const [{ data: profile }, { data: owned }, { data: seats }, { data: membership }] = await Promise.all([
+    const [{ data: profile }, { data: owned }, { data: seats }, { data: membership }, { data: providerRow }] = await Promise.all([
       supabase.from("profiles").select("is_admin, is_super_admin").eq("id", user.id).single(),
       supabase.from("restaurants").select("id").eq("owner_id", user.id).limit(1),
       // ADR 0041 — siège restaurant_admins (gérant/manager/équipe), pas
@@ -162,6 +187,9 @@ export async function middleware(request: NextRequest) {
         .order("joined_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      // ADR 0084 — compte lié à un prestataire actif (policy providers_own_read, sans clé
+      // service-role). Table absente → pas de ligne → comportement d'avant.
+      supabase.from("providers").select("id").eq("user_id", user.id).eq("status", "active").limit(1).maybeSingle(),
     ]);
     const hasConsole = (owned ?? []).length > 0 || (seats ?? []).length > 0 || !!profile?.is_admin;
     const dest = pickDestination(
@@ -171,6 +199,7 @@ export async function middleware(request: NextRequest) {
         membershipRestaurantId: membership?.restaurant_id ?? null,
         // /join (et non /register) pour un compte sans profil : comportement historique.
         hasDisplayName: true,
+        isProvider: !!providerRow,
       },
       {
         as: request.nextUrl.searchParams.get("as"),
@@ -198,10 +227,12 @@ export async function middleware(request: NextRequest) {
   // (/become-a-partner/<id>/…) restent réservées au compte.
   const isBecomePartnerRoute = path.startsWith("/become-a-partner/");
   const isPlatformRoute = path.startsWith("/platform");
+  // ADR 0084 — l'espace du prestataire ; seule la page d'invitation reste publique.
+  const isProviderRoute = path.startsWith("/prestataire") && !PROVIDER_INVITE_PATH.test(path);
 
   // Routes protégées : authentification requise. `reason` → bandeau clair
   // sur la page de login (ADR 0030 §8 — refus parlants, jamais silencieux).
-  if ((isRestaurantRoute || isAdminRoute || isJoinRoute || isBecomePartnerRoute || isPlatformRoute) && !user) {
+  if ((isRestaurantRoute || isAdminRoute || isJoinRoute || isBecomePartnerRoute || isPlatformRoute || isProviderRoute) && !user) {
     // `as=resto` (ADR 0030 §1) bascule /login sur l'habillage « Espace
     // restaurateur » (LoginForm.tsx) : badge dédié, lien direct "Inscrire mon
     // restaurant", et surtout passé au formulaire mot de passe → resolvePostLoginDestination
@@ -288,6 +319,14 @@ export async function middleware(request: NextRequest) {
       // ADR 0030 §8 — refus parlant : /join affiche pourquoi on atterrit là.
       return NextResponse.redirect(new URL("/join?reason=admin-required", request.url));
     }
+  }
+
+  // Espace prestataire (ADR 0084) : un compte lié à un prestataire ACTIF. Refus parlant sinon
+  // (/join explique pourquoi) — jamais une redirection silencieuse. Le détail (suspendu, exclu)
+  // se re-vérifie côté serveur dans chaque page et chaque route.
+  if (isProviderRoute && user) {
+    const { data: providerRow } = await supabase.from("providers").select("id").eq("user_id", user.id).eq("status", "active").limit(1).maybeSingle();
+    if (!providerRow) return NextResponse.redirect(new URL("/join?reason=provider-required", request.url));
   }
 
   // Console plateforme : is_super_admin requis (ADR 0015 §7 — rôle distinct

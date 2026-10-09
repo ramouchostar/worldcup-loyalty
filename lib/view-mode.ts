@@ -18,9 +18,11 @@ export type DestinationFacts = {
   hasConsole: boolean;
   membershipRestaurantId: string | null;
   hasDisplayName: boolean;
+  /** ADR 0084 — compte lié à un prestataire actif : il arrive dans son espace, pas dans l'app membre. */
+  isProvider?: boolean;
 };
 
-// Même hiérarchie qu'avant : plateforme > console > membre ; `as=resto`
+// Même hiérarchie qu'avant : plateforme > console > prestataire (ADR 0084) > membre ; `as=resto`
 // (porte « Espace restaurateur ») force la console ; le mode client saute
 // plateforme et console pour retomber sur l'espace membre (ou /join).
 export function pickDestination(
@@ -36,6 +38,9 @@ export function pickDestination(
     if (f.isSuperAdmin) return "/platform";
     if (f.hasConsole) return "/admin";
   }
+  // Après la plateforme et la console, avant l'espace membre : un prestataire n'a pas d'adhésion
+  // à montrer, et /join lui proposerait de choisir un restaurant.
+  if (f.isProvider) return "/prestataire";
   if (f.membershipRestaurantId) return `/r/${f.membershipRestaurantId}/dashboard`;
   return f.hasDisplayName ? "/join" : "/register";
 }

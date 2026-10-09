@@ -12,7 +12,7 @@ export function MissionTracker({
   template,
   providerName,
 }: {
-  mission: Pick<MissionRow, "metier" | "status" | "brief" | "brief_locked_at">;
+  mission: Pick<MissionRow, "metier" | "status" | "brief" | "brief_locked_at"> & Partial<Pick<MissionRow, "cancelled_by" | "cancellation_note">>;
   template: BriefTemplate;
   providerName: string | null;
 }) {
@@ -56,7 +56,15 @@ export function MissionTracker({
             {providerName ?? "Le vidéaste"} lit ton brief et te répond avec un devis. Son prix sera ferme. Tu ne paies rien tant que tu n&apos;as pas accepté.
           </p>
         )}
-        {tl.stopped && <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">Cette mission est arrêtée : {view.label.toLowerCase()}.</p>}
+        {tl.stopped && (
+          <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
+            {mission.status === "annule" && mission.cancelled_by === "provider"
+              ? `${providerName ?? "Le vidéaste"} ne peut pas faire cette mission${mission.cancellation_note ? ` : ${mission.cancellation_note}` : ""}. Rien n'a été payé : tu peux faire un nouveau brief.`
+              : mission.status === "annule" && mission.cancelled_by === "restaurant"
+                ? "Tu as annulé cette mission. Rien n'a été payé."
+                : `Cette mission est arrêtée : ${view.label.toLowerCase()}.`}
+          </p>
+        )}
       </Card>
 
       <Card padding="p-0">

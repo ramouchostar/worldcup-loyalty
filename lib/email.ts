@@ -18,6 +18,8 @@ import { rewardReadyEmail } from "./email-templates/reward-ready";
 import { tierUnlockedEmail } from "./email-templates/tier-unlocked";
 import { referralSuccessEmail } from "./email-templates/referral-success";
 import { ownerInviteEmail } from "./email-templates/owner-invite";
+import { providerInviteEmail } from "./email-templates/provider-invite";
+import { providerBriefReceivedEmail } from "./email-templates/provider-brief-received";
 
 // Emailing — chantier "landing pages / emailing / ads" (2026-07-28), volet
 // 2/3. Fournisseur : Resend. Même philosophie que sendPush()/sendWhatsApp()
@@ -42,7 +44,9 @@ export type EmailType =
   | "reward_ready"
   | "tier_unlocked"
   | "referral_success"
-  | "owner_invite";
+  | "owner_invite"
+  | "provider_invite"
+  | "provider_brief_received";
 
 let client: Resend | null = null;
 function getClient(): Resend | null {
@@ -310,6 +314,23 @@ export async function sendOwnerInviteEmail(
   const sent = await dispatch(to, ownerInviteEmail(restaurantName, inviteUrl, expiresAt, logoUrl), { key: "owner_invite", audience: "restaurant", restaurantId });
   if (sent) await logEmailSent("restaurant", restaurantId, "owner_invite", restaurantId);
   return sent;
+}
+
+// ADR 0084 — lien d'invitation prestataire généré depuis /platform. Boosteats signe (audience
+// « restaurant » = expéditeur Boosteats) ; la copie plateforme des e-mails pro suit.
+export async function sendProviderInviteEmail(to: string, name: string, inviteUrl: string, expiresAt: string): Promise<boolean> {
+  return dispatch(to, providerInviteEmail(name, inviteUrl, expiresAt, to), { key: "provider_invite", audience: "restaurant" });
+}
+
+// ADR 0084 — un brief vient d'être envoyé au prestataire : sans e-mail, il ne le saurait pas.
+export async function sendProviderBriefReceivedEmail(
+  to: string,
+  providerName: string,
+  restaurantName: string,
+  goal: string | null,
+  missionUrl: string
+): Promise<boolean> {
+  return dispatch(to, providerBriefReceivedEmail(providerName, restaurantName, goal, missionUrl), { key: "provider_brief_received", audience: "restaurant" });
 }
 
 export async function sendOnboardingReminderEmail(
