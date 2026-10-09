@@ -12,6 +12,7 @@ import {
   shootSlots,
   validateBrief,
   type BriefAnswers,
+  type BriefPhase,
 } from "./mission-brief";
 
 const TODAY = "2026-10-09";
@@ -33,26 +34,37 @@ const complete: BriefAnswers = {
   budget_cents: 80_000,
 };
 
-const codes = (a: BriefAnswers, t = VIDEO_TEMPLATE) => validateBrief(a, t, TODAY).issues.map((i) => `${i.key}:${i.code}`);
+const codes = (a: BriefAnswers, t = VIDEO_TEMPLATE, phase: BriefPhase = "brief") => validateBrief(a, t, TODAY, phase).issues.map((i) => `${i.key}:${i.code}`);
 
-test("un brief complet part", () => {
-  const v = validateBrief(complete, VIDEO_TEMPLATE, TODAY);
-  assert.equal(v.ok, true);
-  assert.deepEqual(v.issues, []);
+test("un brief complet part, et la préparation du tournage est complète elle aussi", () => {
+  for (const phase of ["brief", "tournage"] as const) {
+    const v = validateBrief(complete, VIDEO_TEMPLATE, TODAY, phase);
+    assert.equal(v.ok, true, phase);
+    assert.deepEqual(v.issues, []);
+  }
+});
+
+test("le brief ne demande ni date ni contact : ils viennent après l'acceptation du devis", () => {
+  const tournage = VIDEO_TEMPLATE.questions.filter((q) => q.phase === "tournage").map((q) => q.key);
+  assert.deepEqual(tournage.sort(), ["access", "contact", "roles", "shoot_date", "shoot_slot"]);
+  const briefOnly = { ...complete };
+  for (const k of tournage) delete briefOnly[k];
+  assert.equal(validateBrief(briefOnly, VIDEO_TEMPLATE, TODAY).ok, true);
+  assert.equal(validateBrief(briefOnly, VIDEO_TEMPLATE, TODAY, "tournage").ok, false);
 });
 
 test("un brief vide est refusé champ par champ, chaque refus nommé", () => {
   const issues = validateBrief({}, VIDEO_TEMPLATE, TODAY).issues;
-  const required = VIDEO_TEMPLATE.questions.filter((q) => q.required).map((q) => q.key);
+  const required = VIDEO_TEMPLATE.questions.filter((q) => q.required && (q.phase ?? "brief") === "brief").map((q) => q.key);
   assert.deepEqual(issues.map((i) => i.key).sort(), required.sort());
   assert.ok(issues.every((i) => i.code === "missing" || i.code === "not_attested"));
 });
 
 test("le tournage se prévoit au moins 7 jours à l'avance", () => {
   assert.equal(earliestShootDate(TODAY), "2026-10-16");
-  assert.deepEqual(codes({ ...complete, shoot_date: "2026-10-15" }), ["shoot_date:too_soon"]);
-  assert.deepEqual(codes({ ...complete, shoot_date: "2026-10-16" }), []);
-  assert.deepEqual(codes({ ...complete, shoot_date: "2026-10-01" }), ["shoot_date:past"]);
+  assert.deepEqual(codes({ ...complete, shoot_date: "2026-10-15" }, VIDEO_TEMPLATE, "tournage"), ["shoot_date:too_soon"]);
+  assert.deepEqual(codes({ ...complete, shoot_date: "2026-10-16" }, VIDEO_TEMPLATE, "tournage"), []);
+  assert.deepEqual(codes({ ...complete, shoot_date: "2026-10-01" }, VIDEO_TEMPLATE, "tournage"), ["shoot_date:past"]);
 });
 
 test("l'idée doit être développée (2 phrases, pas « un reel »)", () => {
@@ -66,15 +78,15 @@ test("la décision engage tous les décideurs : sans attestation, pas d'envoi", 
 });
 
 test("un seul contact sur place, avec un vrai téléphone", () => {
-  assert.deepEqual(codes({ ...complete, contact: { name: "", phone: "0470123456" } }), ["contact:missing"]);
-  assert.deepEqual(codes({ ...complete, contact: { name: "Karim", phone: "12" } }), ["contact:bad_phone"]);
+  assert.deepEqual(codes({ ...complete, contact: { name: "", phone: "0470123456" } }, VIDEO_TEMPLATE, "tournage"), ["contact:missing"]);
+  assert.deepEqual(codes({ ...complete, contact: { name: "Karim", phone: "12" } }, VIDEO_TEMPLATE, "tournage"), ["contact:bad_phone"]);
   assert.equal(phoneLooksValid("+32 470 12 34 56"), true);
   assert.equal(phoneLooksValid("abc"), false);
 });
 
 test("une réponse hors liste est refusée", () => {
   assert.deepEqual(codes({ ...complete, kitchen: "Peut-être" }), ["kitchen:bad_option"]);
-  assert.deepEqual(codes({ ...complete, roles: ["Plongeur"] }), ["roles:bad_option"]);
+  assert.deepEqual(codes({ ...complete, roles: ["Plongeur"] }, VIDEO_TEMPLATE, "tournage"), ["roles:bad_option"]);
 });
 
 test("budget plancher : refus ; ambition irréaliste : avertissement seulement", () => {

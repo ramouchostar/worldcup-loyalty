@@ -152,6 +152,7 @@ AUDIT_PUBLIC_DAILY_MAX=             # ADR 0071 — analyses gratuites par jour p
 AUDIT_IP_SALT=                      # ADR 0071 — sel de l'empreinte IP des demandes d'audit (jamais l'IP en clair)
 AUDIT_SHARE_SECRET=                 # ADR 0069 §6 — secret HMAC des liens /audit/<nom>/v<N>-<jeton> (à défaut : clé service-role ; le changer rend les anciens liens non réaffichables en console, ils s'ouvrent toujours)
 BZZOIRO_API_KEY=                   # signal foot (lib/signals/football-source.ts) — serveur uniquement : clé gratuite de sports.bzzoiro.com, en-tête « Authorization: Token … ». Vide = aucune lecture, dite dans le résultat (jamais silencieuse)
+MARKETPLACE_ENABLED=               # ADR 0084 — « true » ouvre le module Prestataires aux restaurateurs (lien « Prestataires » de la console, pages /admin/[id]/prestataires, routes /api/admin/missions). Vide = fermé : 404 partout, sauf pour le super-admin, qui le voit toujours
 ```
 
 ### Mesure d'audience — voir `docs/tracking-plan.md`

@@ -18,8 +18,17 @@ import { addDays } from "./console-journey";
 
 export type QuestionKind = "choice" | "multi" | "text" | "number" | "date" | "contact" | "list" | "flag" | "files";
 
+/**
+ * Deux temps (ADR 0084 §3 et §5) : le BRIEF part au prestataire pour qu'il chiffre ; la
+ * PRÉPARATION DU TOURNAGE (date, créneau, qui est là, contact) vient une fois le devis
+ * accepté, dans les disponibilités du prestataire — la date ne se choisit pas dans le vide.
+ */
+export type BriefPhase = "brief" | "tournage";
+
 export type BriefQuestion = {
   key: string;
+  /** Absent = « brief ». */
+  phase?: BriefPhase;
   label: string;
   kind: QuestionKind;
   required: boolean;
@@ -58,11 +67,11 @@ export const VIDEO_TEMPLATE: BriefTemplate = {
     { key: "noisy", label: "Appareils bruyants à couper", kind: "text", required: false },
     { key: "tone", label: "Ton", kind: "choice", required: true, options: ["Chaleureux", "Dynamique", "Sobre", "Gourmand"] },
     { key: "avoid", label: "À éviter", kind: "text", required: false },
-    { key: "shoot_date", label: "Date du tournage", kind: "date", required: true, hint: "Au moins 7 jours à l'avance : ton équipe doit être prévenue." },
-    { key: "shoot_slot", label: "Créneau", kind: "choice", required: true },
-    { key: "roles", label: "Qui doit être présent", kind: "multi", required: true, options: ["Cuisinier", "Serveur", "Barman"] },
-    { key: "contact", label: "Contact sur place", kind: "contact", required: true, hint: "Une seule personne, joignable le jour J." },
-    { key: "access", label: "Accès et déchargement", kind: "text", required: false },
+    { key: "shoot_date", phase: "tournage", label: "Date du tournage", kind: "date", required: true, hint: "Au moins 7 jours à l'avance : ton équipe doit être prévenue." },
+    { key: "shoot_slot", phase: "tournage", label: "Créneau", kind: "choice", required: true },
+    { key: "roles", phase: "tournage", label: "Qui doit être présent", kind: "multi", required: true, options: ["Cuisinier", "Serveur", "Barman"] },
+    { key: "contact", phase: "tournage", label: "Contact sur place", kind: "contact", required: true, hint: "Une seule personne, joignable le jour J." },
+    { key: "access", phase: "tournage", label: "Accès et déchargement", kind: "text", required: false },
     { key: "deciders", label: "Qui décide avec toi ?", kind: "list", required: true, hint: "Associé, conjoint… Tous doivent avoir validé." },
     { key: "deciders_attested", label: "Tous ont validé ce brief", kind: "flag", required: true },
     { key: "budget_cents", label: "Budget", kind: "number", required: true },
@@ -71,9 +80,20 @@ export const VIDEO_TEMPLATE: BriefTemplate = {
   ],
 };
 
+/** Les écrans de l'assistant de brief : quelques questions à la fois, jamais un mur de champs (restaurateur sur téléphone, en plein service). */
+export type BriefStep = { key: string; title: string; subtitle: string; keys: readonly string[] };
+
+export const VIDEO_BRIEF_STEPS: readonly BriefStep[] = [
+  { key: "idee", title: "Ton idée", subtitle: "Pour quoi faire, et sous quelle forme.", keys: ["goal", "format", "idea"] },
+  { key: "image", title: "Ce qu'on voit à l'image", subtitle: "Les plats, la salle, la cuisine, les gens.", keys: ["dishes", "kitchen", "highlights", "promo", "extras_count", "sound", "noisy"] },
+  { key: "ton", title: "Le ton", subtitle: "Tu cadres, le vidéaste te fera 2 à 3 propositions.", keys: ["tone", "avoid"] },
+  { key: "decideurs", title: "Qui décide ?", subtitle: "Une fois le brief envoyé, la décision est prise.", keys: ["deciders", "deciders_attested"] },
+  { key: "budget", title: "Budget et précisions", subtitle: "Juste un repère : tu ne paies rien maintenant.", keys: ["budget_cents", "notes"] },
+];
+
 // ── Validation ───────────────────────────────────────────────
 
-/** Un tournage se prévoit au moins une semaine à l'avance (les étudiants ne travaillent pas toute la semaine). */
+/** Un tournage se prévoit au moins une semaine après le choix de la date (les étudiants ne travaillent pas toute la semaine). */
 export const SHOOT_MIN_DAYS = 7;
 
 export type BriefIssueCode = "missing" | "too_short" | "too_soon" | "past" | "bad_option" | "bad_phone" | "not_attested" | "budget_below_floor";
@@ -98,11 +118,12 @@ export function phoneLooksValid(raw: string): boolean {
  * Le brief peut-il être verrouillé et envoyé ?
  * Chaque refus a un code nommé (la trace : « briefs refusés par champ manquant »).
  */
-export function validateBrief(answers: BriefAnswers, template: BriefTemplate, today: string): BriefVerdict {
+export function validateBrief(answers: BriefAnswers, template: BriefTemplate, today: string, phase: BriefPhase = "brief"): BriefVerdict {
   const issues: BriefIssue[] = [];
   const warnings: BriefWarning[] = [];
 
   for (const q of template.questions) {
+    if ((q.phase ?? "brief") !== phase) continue;
     const v = answers[q.key];
 
     if (q.kind === "flag") {
@@ -134,6 +155,8 @@ export function validateBrief(answers: BriefAnswers, template: BriefTemplate, to
       else if (q.key === "shoot_date" && v < earliestShootDate(today)) issues.push({ key: q.key, code: "too_soon" });
     }
   }
+
+  if (phase !== "brief") return { ok: issues.length === 0, issues, warnings };
 
   const budget = answers.budget_cents;
   if (typeof budget === "number" && template.budgetFloorCents !== undefined && budget < template.budgetFloorCents) {
