@@ -28,7 +28,11 @@ export function parseConsoleView(raw: string | undefined): ConsoleView {
   return raw === "pro" ? "pro" : "simple";
 }
 
-export function consoleSections(base: string, canManage: boolean): AdminNavSection[] {
+/**
+ * `marketplace` : le module « Prestataires » (ADR 0084) est ouvert pour ce restaurateur
+ * (MARKETPLACE_ENABLED, ou super-admin). Fermé = le lien n'existe pas.
+ */
+export function consoleSections(base: string, canManage: boolean, marketplace = false): AdminNavSection[] {
   return [
     {
       title: "Au quotidien",
@@ -49,6 +53,16 @@ export function consoleSections(base: string, canManage: boolean): AdminNavSecti
         { href: `${base}/referrals`, label: "Parrainages", icon: "referrals", hint: "Les clients qui en amènent d'autres" },
       ],
     },
+    ...(marketplace
+      ? [
+          {
+            title: "Contenus",
+            links: [
+              { href: `${base}/prestataires`, label: "Prestataires", icon: "prestataires", hint: "Un vidéaste, un photographe, un graphiste ou un imprimeur — brief clair, devis ferme" },
+            ],
+          },
+        ]
+      : []),
     {
       title: "Pilotage",
       links: [
