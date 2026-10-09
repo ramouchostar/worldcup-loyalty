@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MISSION_STATUSES } from "./mission-states";
 import { VIDEO_BRIEF_STEPS, VIDEO_TEMPLATE, type BriefIssueCode } from "./mission-brief";
-import { STATUS_VIEW, briefRows, centsToEurosInput, eurosToCents, issueMessage, timeline } from "./mission-view";
+import { PROVIDER_STATUS_VIEW, STATUS_VIEW, briefRows, centsToEurosInput, eurosToCents, issueMessage, timeline } from "./mission-view";
 
 test("chaque état a son nom à l'écran, et un seul", () => {
   for (const s of MISSION_STATUSES) assert.ok(STATUS_VIEW[s]?.label, s);
@@ -89,4 +89,10 @@ test("chaque motif de refus a une phrase pour le restaurateur", () => {
   const codes: BriefIssueCode[] = ["missing", "too_short", "too_soon", "past", "bad_option", "bad_phone", "not_attested", "budget_below_floor"];
   for (const c of codes) assert.ok(issueMessage(c).length > 3, c);
   assert.equal(new Set(codes.map(issueMessage)).size, codes.length);
+});
+
+test("chaque état a aussi son nom côté prestataire : un brief envoyé est « à chiffrer »", () => {
+  for (const s of MISSION_STATUSES) assert.ok(PROVIDER_STATUS_VIEW[s]?.label, s);
+  assert.equal(PROVIDER_STATUS_VIEW.envoye.label, "À chiffrer");
+  assert.equal(PROVIDER_STATUS_VIEW.envoye.tone, "warn");
 });

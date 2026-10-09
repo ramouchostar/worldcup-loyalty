@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase";
 import { getAdminRestaurantIds } from "./restaurant-admins";
 import { pickDestination } from "./view-mode";
+import { getProviderByUserId } from "./providers";
 
 // ADR 0030 §1 — routage post-login par rôle : la destination la plus
 // puissante gagne (plateforme > console resto > membre). Le paramètre
@@ -16,7 +17,7 @@ export async function resolvePostLoginDestination(
 ): Promise<string> {
   const admin = createAdminClient();
 
-  const [{ data: profileRaw }, adminRestaurantIds, { data: membership }] = await Promise.all([
+  const [{ data: profileRaw }, adminRestaurantIds, { data: membership }, provider] = await Promise.all([
     admin
       .from("profiles")
       .select("is_admin, is_super_admin, display_name")
@@ -31,6 +32,8 @@ export async function resolvePostLoginDestination(
       .order("joined_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // ADR 0084 — un prestataire actif arrive dans son espace (même règle que le middleware).
+    getProviderByUserId(userId),
   ]);
 
   const profile = profileRaw as {
@@ -48,6 +51,7 @@ export async function resolvePostLoginDestination(
       hasConsole,
       membershipRestaurantId: membership?.restaurant_id ?? null,
       hasDisplayName: !!profile?.display_name,
+      isProvider: provider?.status === "active",
     },
     opts
   );

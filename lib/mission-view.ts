@@ -39,6 +39,23 @@ export const STATUS_VIEW: Record<MissionStatus, { label: string; tone: StatusTon
   suspendu: { label: "Paiement à régulariser", tone: "warn" },
 };
 
+/** Le nom d'un état à l'écran du PRESTATAIRE : ce qu'il a à faire, pas ce que le restaurateur voit. */
+export const PROVIDER_STATUS_VIEW: Record<MissionStatus, { label: string; tone: StatusTone }> = {
+  brief: { label: "Brouillon du restaurateur", tone: "neutral" },
+  envoye: { label: "À chiffrer", tone: "warn" },
+  devis: { label: "Devis envoyé", tone: "neutral" },
+  accepte: { label: "Devis accepté", tone: "good" },
+  date_bloquee: { label: "Date réservée", tone: "good" },
+  production: { label: "En cours", tone: "neutral" },
+  livre: { label: "Livré", tone: "good" },
+  retouche: { label: "Retouche à faire", tone: "warn" },
+  valide: { label: "Validé", tone: "good" },
+  verse: { label: "Payé", tone: "good" },
+  annule: { label: "Annulé", tone: "danger" },
+  litige: { label: "En médiation", tone: "warn" },
+  suspendu: { label: "En attente du paiement", tone: "warn" },
+};
+
 // ── La frise ─────────────────────────────────────────────────
 
 export const TIMELINE_STEPS = [
