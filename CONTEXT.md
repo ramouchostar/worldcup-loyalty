@@ -508,6 +508,36 @@ _Avoid_ : score (réservé au **score communautaire**), score de confiance, note
 Réponse du restaurateur à un signalement, via un **fil médié par la plateforme** — il **ne reçoit jamais** le numéro/email du membre. Transforme un mécontentement en relation réparée.
 _Avoid_ : SAV, réclamation, support.
 
+### Prestataires *(ADR 0084 — proposé)*
+
+**Prestataire** :
+Professionnel indépendant (vidéaste, photographe, graphiste, imprimeur) invité par la plateforme à exécuter des **missions** pour des restaurateurs. Rôle distinct du restaurateur et du membre : aucun siège d'établissement, il ne voit que ses missions. Espace `/prestataire`.
+_Avoid_ : freelance, fournisseur (réservé aux fournisseurs de marchandises), agence.
+
+**Mission** :
+Une commande de contenu d'un restaurateur à un prestataire, de la demande au versement, avec ses états tracés (`mission_events`). Un restaurateur ne « commande » pas : il **réserve** un prestataire.
+_Avoid_ : commande (réservé aux commandes directes des membres, ADR 0008), projet, job.
+
+**Brief** :
+Les réponses du restaurateur aux questions du métier choisi (cases à cocher d'abord, précisions libres en dernier, pièces jointes). **Verrouillé** à l'envoi : tout changement ensuite est une **demande de modification** chiffrée par le prestataire.
+_Avoid_ : cahier des charges, demande, ticket (réservé à la photo de ticket de caisse).
+
+**Devis** :
+Prix, durée, contenu inclus et exclu proposés par le prestataire sur un brief verrouillé. **Ferme** : le prestataire ne le relève pas parce qu'il a sous-estimé.
+_Avoid_ : offre, estimation.
+
+**Prix du devis / Prix payé** :
+Le prestataire reçoit 87,5 % du **prix du devis**. Le restaurateur paie ce prix (plans Gratuit et Croissance) ou 92,5 % de ce prix (plan Pro). La commission de Boosteats est **comprise** : jamais une ligne séparée côté restaurateur. Montants en euros côté restaurateur et plateforme uniquement, **jamais côté membre** (ADR 0007).
+_Avoid_ : frais de service, commission affichée au restaurateur.
+
+**Compte-rendu de tournage** :
+Fiche remplie à la fin du jour J, validée par les deux parties (arrivée réelle, durée, éléments manquants). Pièce de référence d'un **litige**.
+_Avoid_ : rapport, feuille de route.
+
+**Message d'équipe** :
+Texte généré à partir du brief que le restaurateur partage à son équipe **au moins 7 jours avant** le tournage (qui est présent, uniforme, plats, contact sur place).
+_Avoid_ : consigne, mémo.
+
 ---
 
 ## Example dialogue
