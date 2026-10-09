@@ -39,3 +39,7 @@ scripts/tmp-*
 
 # Aperçu local des gabarits e-mail (scripts/email-preview.ts)
 .email-preview/
+
+# Supabase CLI (ADR 0074) : état local du lien avec le projet, jamais versionné
+supabase/.temp/
+supabase/.branches/

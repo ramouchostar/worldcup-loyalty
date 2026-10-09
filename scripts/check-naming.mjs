@@ -8,8 +8,11 @@
 //  2. docs/mNN-*.sql (héritage, m1..m60) : FIGÉ — plus aucune nouvelle
 //     migration sous cette forme (les collisions passées sont tolérées, pas
 //     les nouvelles).
-//  3. docs/migrations/YYYYMMDD-HHMM-slug.sql : format horodaté obligatoire,
-//     préfixe unique — impossible de collisionner à deux.
+//  3. docs/migrations/YYYYMMDD-HHMM-slug.sql (ère « à la main », 2026-08-21 →
+//     2026-09-29) : FIGÉ comme mNN — plus aucune nouvelle migration ici.
+//  4. supabase/migrations/YYYYMMDDHHMMSS_slug.sql (ADR 0074) : le format de la
+//     CLI Supabase, appliqué par la CI avec approbation ; version à 14 chiffres
+//     unique et postérieure à la dernière migration de docs/migrations/.
 import { readdirSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -48,7 +51,7 @@ for (const f of legacy) {
   if (n > LAST_LEGACY) {
     errors.push(
       `Migration ${f} : la numérotation mNN est figée à m${LAST_LEGACY}. ` +
-        `Crée-la dans docs/migrations/YYYYMMDD-HHMM-slug.sql (voir docs/migrations/README.md).`
+        `Crée-la dans supabase/migrations/YYYYMMDDHHMMSS_slug.sql (voir docs/migrations/README.md).`
     );
   }
   byNumber.set(n, [...(byNumber.get(n) ?? []), f]);
@@ -60,7 +63,11 @@ for (const [n, files] of byNumber) {
 }
 notes.push(`Migrations héritées : ${legacy.length} fichiers (m1…m${LAST_LEGACY}, figées)`);
 
-// ── 3. Nouvelles migrations docs/migrations/ (horodatées) ───────────────────
+// ── 3. docs/migrations/ (ère « à la main ») : FIGÉ ──────────────────────────
+// Ces migrations sont appliquées en production (à la main). La CLI ne les voit pas :
+// elle n'envoie que supabase/migrations/, sinon elle rejouerait 40 fichiers dont 5 ne
+// se vérifient pas (ADR 0074). Plus aucun fichier après le dernier ci-dessous.
+const LAST_HAND_APPLIED = "20260929-1100";
 const migDir = join(ROOT, "docs", "migrations");
 if (existsSync(migDir)) {
   const seen = new Map();
@@ -68,14 +75,42 @@ if (existsSync(migDir)) {
   for (const f of files) {
     const m = f.match(/^(\d{8}-\d{4})-[a-z0-9-]+\.sql$/);
     if (!m) {
-      errors.push(`Migration mal nommée : docs/migrations/${f} (attendu YYYYMMDD-HHMM-slug-en-minuscules.sql)`);
+      errors.push(`Migration mal nommée : docs/migrations/${f} (dossier gelé — les nouvelles vont dans supabase/migrations/)`);
+      continue;
+    }
+    if (m[1] > LAST_HAND_APPLIED) {
+      errors.push(
+        `Migration docs/migrations/${f} : ce dossier est gelé depuis ${LAST_HAND_APPLIED} (ADR 0074). ` +
+          `Déplace-la dans supabase/migrations/${m[1].replace("-", "")}00_${f.slice(14, -4).replace(/-/g, "_")}.sql — la CI l'applique avec approbation.`
+      );
       continue;
     }
     const prev = seen.get(m[1]);
     if (prev) errors.push(`Migrations avec le même horodatage : ${prev} et ${f} — décale d'une minute`);
     else seen.set(m[1], f);
   }
-  notes.push(`Migrations horodatées : ${files.length} fichier(s)`);
+  notes.push(`Migrations « à la main » (gelées) : ${files.length} fichier(s)`);
+}
+
+// ── 4. supabase/migrations/ : le format de la CLI, appliqué par la CI (ADR 0074) ──
+const sbDir = join(ROOT, "supabase", "migrations");
+if (existsSync(sbDir)) {
+  const seenVersion = new Map();
+  const files = readdirSync(sbDir).filter((f) => f.endsWith(".sql"));
+  for (const f of files) {
+    const m = f.match(/^(\d{14})_[a-z0-9_]+\.sql$/);
+    if (!m) {
+      errors.push(`Migration mal nommée : supabase/migrations/${f} (attendu YYYYMMDDHHMMSS_slug_en_minuscules.sql — \`supabase migration new <slug>\` le fait)`);
+      continue;
+    }
+    if (m[1] <= LAST_HAND_APPLIED.replace("-", "") + "00") {
+      errors.push(`Migration supabase/migrations/${f} : la version doit être postérieure à ${LAST_HAND_APPLIED} (dernière migration appliquée à la main)`);
+    }
+    const prev = seenVersion.get(m[1]);
+    if (prev) errors.push(`Migrations avec la même version : ${prev} et ${f} — décale d'une seconde`);
+    else seenVersion.set(m[1], f);
+  }
+  notes.push(`Migrations CLI (supabase/migrations) : ${files.length} fichier(s)`);
 }
 
 // ── 4. Anti-secret : le repo est PUBLIC — aucun mot de passe / clé en dur ──

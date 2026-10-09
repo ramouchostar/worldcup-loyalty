@@ -38,7 +38,7 @@ try {
   }
 } catch {}
 
-lines.push("Rappels : une branche + une PR par chantier (/ship) · nouvelle migration → /new-migration (docs/migrations/, horodatée) · nouvel ADR → /new-adr (numéro pris sur origin/master) · `npm run check:naming` avant de pousser.");
+lines.push("Rappels : une branche + une PR par chantier (/ship) · nouvelle migration → /new-migration (supabase/migrations/, appliquée par la CI après approbation) · nouvel ADR → /new-adr (numéro pris sur origin/master) · `npm run check:naming` avant de pousser.");
 
 process.stdout.write(`[collaboration] ${lines.join("\n")}\n`);
 process.exit(0);
