@@ -95,9 +95,14 @@ plateforme. Les pénalités s'appliquent sur la carte enregistrée.
 
 ### 5. Le tournage se prépare (le cœur du module)
 
-- Date de tournage **au moins 7 jours** après l'envoi (les étudiants ne travaillent pas toute
-  la semaine). Créneaux **conseillés** : avant le lunch, entre lunch et dîner, jour calme ;
-  jamais le rush ni, en hiver, 18 h pour une scène de jour.
+- **Deux temps** (amendé le 2026-10-09, maquette V4VideoBrief → V4VideoTournage) : le **brief**
+  (ce qu'on filme, qui décide, budget) part au prestataire pour qu'il chiffre ; la **préparation
+  du tournage** (date, créneau, qui est présent, contact sur place, accès) vient **après
+  l'acceptation du devis**, dans les disponibilités du prestataire — la date ne se choisit pas
+  dans le vide.
+- Date de tournage **au moins 7 jours** après le jour où elle est choisie (les étudiants ne
+  travaillent pas toute la semaine). Créneaux **conseillés** : avant le lunch, entre lunch et
+  dîner, jour calme ; jamais le rush ni, en hiver, 18 h pour une scène de jour.
 - Un **message d'équipe généré** à partir du brief (date, heure, qui doit être présent selon
   le brief, uniforme propre et repassé, plats prêts et plus remplis qu'à l'habitude, vaisselle
   propre, cuisine propre ou « aucun plan en cuisine », contact sur place), à copier ou
