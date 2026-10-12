@@ -5,6 +5,8 @@ import { excludedFor, sanitizeQuote, validateQuote, REFUSAL_REASONS, type QuoteI
 import type { BriefTemplate } from "./mission-brief";
 import type { ProviderRow } from "./providers";
 import type { MissionStatus } from "./mission-states";
+import { restaurantMissionUrl } from "./missions";
+import { sendProviderQuoteReceivedEmail } from "./email";
 
 // ============================================================
 // Réserver un prestataire (ADR 0084, PR D) — ce que le prestataire lit et écrit.
@@ -36,7 +38,7 @@ export type QuoteRow = {
 
 const QUOTE_COLUMNS = "id, mission_id, price_cents, hours, delivery_days, included, excluded, hypotheses, status, created_at";
 const MISSION_COLUMNS =
-  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, quote_cents, cancelled_by, cancellation_note, created_at, updated_at, restaurants(name)";
+  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, shoot_start, team_notified_at, quote_cents, cancelled_by, cancellation_note, created_at, updated_at, restaurants(name)";
 
 function withName(row: unknown): ProviderMissionRow {
   const r = row as MissionRow & { restaurants: { name: string } | null };
@@ -185,10 +187,38 @@ export async function submitQuote(missionId: string, provider: ProviderRow, rawQ
       actorId: provider.user_id ?? undefined,
       meta: { quoteId, priceCents: quote.priceCents, hours: quote.hours, deliveryDays: quote.deliveryDays },
     });
+    await notifyQuoteReceived(mission, provider);
     return { ok: true };
   } catch (e) {
     console.error("[provider-missions] submitQuote failed:", (e as Error).message);
     return { ok: false, reason: "unavailable" };
+  }
+}
+
+/**
+ * Le restaurateur apprend que son devis est arrivé : à celui qui a envoyé le brief, sinon au propriétaire.
+ * Best-effort (le devis est déjà parti) mais jamais silencieux : l'issue est une ligne de la trace.
+ */
+async function notifyQuoteReceived(mission: ProviderMissionRow, provider: ProviderRow): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: row } = await admin.from("missions").select("requested_by").eq("id", mission.id).maybeSingle();
+    const requestedBy = (row as { requested_by: string | null } | null)?.requested_by ?? null;
+    let email: string | null = null;
+    if (requestedBy) {
+      const { data: p } = await admin.from("profiles").select("email").eq("id", requestedBy).maybeSingle();
+      email = (p as { email: string | null } | null)?.email ?? null;
+    }
+    if (!email) {
+      const { data: r } = await admin.from("restaurants").select("profiles!restaurants_owner_id_fkey(email)").eq("id", mission.restaurant_id).maybeSingle();
+      email = ((r as { profiles?: { email?: string | null } | null } | null)?.profiles?.email as string | null | undefined) ?? null;
+    }
+    if (!email) throw new Error("aucune adresse de restaurateur");
+    const sent = await sendProviderQuoteReceivedEmail(email, mission.restaurant_name, provider.display_name, restaurantMissionUrl(mission.restaurant_id, mission.id), mission.restaurant_id);
+    await logEvent(mission.id, { kind: sent ? "restaurant_notified" : "notify_failed", actorKind: "system", meta: { channel: "email", about: "quote_received" } });
+  } catch (e) {
+    console.error("[provider-missions] notifyQuoteReceived failed:", (e as Error).message);
+    await logEvent(mission.id, { kind: "notify_failed", actorKind: "system", reason: (e as Error).message, meta: { channel: "email", about: "quote_received" } });
   }
 }
 

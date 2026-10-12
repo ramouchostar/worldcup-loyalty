@@ -105,8 +105,10 @@ export function QuoteCard({
       )}
 
       <div className="rounded-xl bg-boost-cream border border-boost-olive/30 p-3 text-[13.5px] text-ink-body space-y-1">
-        <p className="font-semibold text-ink">Le paiement de l&apos;acompte arrive bientôt</p>
-        <p>Dès que ce sera ouvert, tu pourras accepter ce devis, payer l&apos;acompte, et choisir la date du tournage dans les disponibilités de {providerName ?? "ton vidéaste"}. On te prévient.</p>
+        <p className="font-semibold text-ink">Ce devis te convient ?</p>
+        <p>
+          Dis-le à Boosteats : on enregistre ton accord et ton acompte de {view.depositPct} % ({formatEuros(view.depositCents)}), puis tu choisis ta date dans les jours libres de {providerName ?? "ton vidéaste"}. Le paiement en ligne arrive bientôt ; pour l&apos;instant on s&apos;arrange avec toi directement.
+        </p>
       </div>
 
       {canDecline && !confirm && (

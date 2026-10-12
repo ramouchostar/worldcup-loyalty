@@ -5,6 +5,7 @@ import { VIDEO_TEMPLATE, type BriefAnswers, type BriefIssue, type BriefTemplate 
 import { mergeAnswers, planSend, sanitizeAnswers, type ProviderCandidate } from "./mission-draft";
 import { sendProviderBriefReceivedEmail } from "./email";
 import { providerMissionUrl } from "./providers";
+import { SITE_ORIGIN } from "@/lib/site";
 import type { Metier } from "./mission-money";
 import type { MissionStatus } from "./mission-states";
 
@@ -23,6 +24,11 @@ import type { MissionStatus } from "./mission-states";
 // dans `mission_events` (kind, code, acteur).
 // ============================================================
 
+/** Le lien d'une mission, côté restaurateur (e-mails). */
+export function restaurantMissionUrl(restaurantId: string, missionId: string): string {
+  return `${process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN}/admin/${restaurantId}/prestataires/${missionId}`;
+}
+
 /** Le module est caché tant que MARKETPLACE_ENABLED n'est pas « true » (le super-admin le voit toujours). */
 export function marketplaceEnabled(isSuperAdmin: boolean): boolean {
   return isSuperAdmin || process.env.MARKETPLACE_ENABLED === "true";
@@ -37,6 +43,8 @@ export type MissionRow = {
   brief: BriefAnswers;
   brief_locked_at: string | null;
   shoot_date: string | null;
+  shoot_start: string | null;
+  team_notified_at: string | null;
   quote_cents: number | null;
   cancelled_by: "restaurant" | "provider" | "platform" | "system" | null;
   cancellation_note: string | null;
@@ -45,7 +53,7 @@ export type MissionRow = {
 };
 
 const MISSION_COLUMNS =
-  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, quote_cents, cancelled_by, cancellation_note, created_at, updated_at";
+  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, shoot_start, team_notified_at, quote_cents, cancelled_by, cancellation_note, created_at, updated_at";
 
 export type EventRow = {
   id: number;
@@ -88,7 +96,7 @@ export async function loadTemplate(metier: Metier): Promise<{ template: BriefTem
   return metier === "video" ? { template: VIDEO_TEMPLATE, id: null } : null;
 }
 
-async function logEvent(
+export async function logEvent(
   missionId: string,
   e: { kind: string; from?: MissionStatus; to?: MissionStatus; actorKind: "restaurant" | "provider" | "platform" | "system"; actorId?: string; reason?: string; meta?: Record<string, unknown> }
 ): Promise<void> {

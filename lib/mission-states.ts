@@ -51,11 +51,14 @@ const RULES: Record<MissionStatus, readonly Rule[]> = {
     { to: "annule", by: ["provider", "restaurant", "platform"] },
   ],
   devis: [
-    { to: "accepte", by: ["restaurant"] },
+    // « platform » : acceptation au nom du restaurateur quand l'acompte est convenu hors plateforme (pilote,
+    // avant Stripe) ; « system » : le paiement de l'acompte, une fois Stripe branché.
+    { to: "accepte", by: ["restaurant", "platform", "system"] },
     { to: "annule", by: ["restaurant", "platform", "system"] },
   ],
   accepte: [
-    { to: "date_bloquee", by: ["system"] },
+    // Le restaurateur choisit sa date parmi les jours libres du prestataire.
+    { to: "date_bloquee", by: ["restaurant", "system"] },
     { to: "suspendu", by: ["system"] },
     { to: "annule", by: ANYONE },
     { to: "litige", by: ANYONE },

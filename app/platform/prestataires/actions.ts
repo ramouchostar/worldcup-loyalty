@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { createProvider, createProviderInvite, setProviderStatus } from "@/lib/providers";
+import { acceptQuoteByPlatform } from "@/lib/missions-dates";
 
 // ADR 0084 — la plateforme invite, relance et suspend les prestataires. Réservé au super-admin :
 // chaque action se re-garde (une Server Action est une route publique).
@@ -49,4 +50,16 @@ export async function toggleProviderStatus(providerId: string, status: "active" 
   const ok = await setProviderStatus(providerId, status);
   revalidatePath("/platform/prestataires");
   return ok ? {} : { error: "Changement impossible : le prestataire n'a pas encore activé son compte, ou le service est indisponible." };
+}
+
+/**
+ * Pilote, avant Stripe : le restaurateur a dit oui au devis et l'acompte est convenu hors plateforme.
+ * La plateforme enregistre l'acceptation ; les montants sont figés avec le plan du restaurateur à cet instant.
+ */
+export async function acceptQuote(missionId: string): Promise<{ error?: string }> {
+  const userId = await requireSuperAdmin();
+  const r = await acceptQuoteByPlatform(missionId, userId);
+  revalidatePath("/platform/prestataires");
+  if (r.ok) return {};
+  return { error: r.reason === "not_a_quote" ? "Ce devis n'attend plus de réponse (déjà accepté, décliné ou annulé)." : r.reason === "not_found" ? "Mission introuvable." : "Enregistrement impossible pour le moment." };
 }

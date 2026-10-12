@@ -7,6 +7,7 @@ import { briefRows, METIER_LABELS, PROVIDER_STATUS_VIEW } from "@/lib/mission-vi
 import { formatEuros } from "@/lib/mission-money";
 import { providerView } from "@/lib/mission-quote";
 import { Card, EmptyState, PageHeader, SectionLabel, StatusBadge } from "@/components/admin/ui";
+import { dateLabelFr } from "@/lib/mission-team-message";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
 
@@ -99,6 +100,37 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           {mission.status === "devis" && (
             <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">En attente de la réponse du restaurateur. Ton devis est ferme pour ce brief.</p>
           )}
+        </Card>
+      )}
+
+      {mission.shoot_date && mission.shoot_start && mission.status !== "annule" && (
+        <Card className="space-y-2">
+          <SectionLabel>Le tournage</SectionLabel>
+          <p className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
+            {dateLabelFr(mission.shoot_date)} à {mission.shoot_start}
+          </p>
+          {(() => {
+            const c = (mission.brief?.contact as { name?: string; phone?: string } | undefined) ?? {};
+            const roles = Array.isArray(mission.brief?.roles) ? (mission.brief.roles as string[]) : [];
+            return (
+              <>
+                <p className="text-[13.5px] text-ink">
+                  <span className="font-semibold">Contact sur place :</span> {[c.name, c.phone].filter(Boolean).join(" · ") || "à confirmer"}
+                </p>
+                {roles.length > 0 && (
+                  <p className="text-[13.5px] text-ink">
+                    <span className="font-semibold">Présents :</span> {roles.join(", ").toLowerCase()}
+                  </p>
+                )}
+                {typeof mission.brief?.access === "string" && mission.brief.access && (
+                  <p className="text-[13.5px] text-ink whitespace-pre-line">
+                    <span className="font-semibold">Accès :</span> {mission.brief.access}
+                  </p>
+                )}
+              </>
+            );
+          })()}
+          <p className="text-[12.5px] text-ink-muted">Le restaurateur est engagé sur cette date, et toi aussi.</p>
         </Card>
       )}
 

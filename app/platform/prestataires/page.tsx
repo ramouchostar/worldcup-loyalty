@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { listProviders } from "@/lib/providers";
-import { InviteForm, LinkBox, ProviderActions } from "./ProviderControls";
+import { listQuotedMissions } from "@/lib/missions-dates";
+import { formatEuros } from "@/lib/mission-money";
+import { AcceptQuoteButton, InviteForm, LinkBox, ProviderActions } from "./ProviderControls";
 
 export const metadata = { title: "Prestataires — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -24,7 +26,7 @@ export default async function PlatformProvidersPage() {
   const { data: profile } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
   if (!profile?.is_super_admin) redirect("/join?reason=platform-required");
 
-  const result = await listProviders();
+  const [result, quoted] = await Promise.all([listProviders(), listQuotedMissions()]);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -40,11 +42,35 @@ export default async function PlatformProvidersPage() {
         <InviteForm />
       </section>
 
+      {quoted.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-semibold">Devis en attente d&apos;un oui</h2>
+          <p className="text-xs text-gray-500">
+            Pilote, avant Stripe : quand le restaurateur te dit oui et que l&apos;acompte est convenu, enregistre l&apos;acceptation. Il pourra alors choisir sa date.
+          </p>
+          <ul className="space-y-3">
+            {quoted.map((m) => (
+              <li key={m.id} className={`${CARD} p-5 flex items-start justify-between gap-3 flex-wrap`}>
+                <div className="min-w-0">
+                  <p className="font-semibold">
+                    {m.restaurant_name} <span className="text-gray-500 font-normal">· {m.provider_name}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Devis {formatEuros(m.price_cents)} · il paie {formatEuros(m.paid_cents)} (plan {m.plan}) · acompte {formatEuros(m.deposit_cents)}
+                  </p>
+                </div>
+                <AcceptQuoteButton missionId={m.id} deposit={formatEuros(m.deposit_cents)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="space-y-3">
         <h2 className="font-semibold">Les prestataires</h2>
         {!result.ok ? (
           <p className={`${CARD} p-5 text-sm text-gray-500`}>
-            Le module n&apos;est pas encore disponible : applique les migrations <code>20261009-1030-prestataires-schema</code> et <code>20261009-1500-prestataires-invitations</code>.
+            Le module n&apos;est pas encore disponible : applique les migrations <code>20261009-1030-prestataires-schema</code>, <code>20261009-1500-prestataires-invitations</code> et <code>20261012-1000-prestataires-disponibilites</code>.
           </p>
         ) : result.providers.length === 0 ? (
           <p className={`${CARD} p-5 text-sm text-gray-500`}>Aucun prestataire pour l&apos;instant. Invite le premier ci-dessus.</p>
