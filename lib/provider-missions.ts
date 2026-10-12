@@ -39,7 +39,7 @@ export type QuoteRow = {
 
 const QUOTE_COLUMNS = "id, mission_id, price_cents, hours, delivery_days, included, excluded, hypotheses, status, created_at";
 const MISSION_COLUMNS =
-  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, shoot_start, team_notified_at, j2_confirmed_provider_at, j2_confirmed_restaurant_at, quote_cents, cancelled_by, cancellation_note, created_at, updated_at, restaurants(name)";
+  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, shoot_start, team_notified_at, j2_confirmed_provider_at, j2_confirmed_restaurant_at, started_at, delivered_at, report, report_submitted_at, report_confirmed_at, report_contested_at, report_contest_note, retouch_rounds_used, quote_cents, cancelled_by, cancellation_note, created_at, updated_at, restaurants(name)";
 
 function withName(row: unknown): ProviderMissionRow {
   const r = row as MissionRow & { restaurants: { name: string } | null };

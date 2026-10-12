@@ -15,6 +15,8 @@ import { getCurrentQuote } from "@/lib/provider-missions";
 import { getPlan } from "@/lib/entitlements";
 import { restaurantView } from "@/lib/mission-quote";
 import { ShootPlanner } from "./ShootPlanner";
+import { DeliveryReview, ReportReview, type ReportView } from "./DayOfReview";
+import { listDeliveries } from "@/lib/missions-dayof";
 import { TeamNotice } from "./TeamNotice";
 import { loadBlocked } from "@/lib/missions-dates";
 import { buildCalendar, teamNoticeState } from "@/lib/mission-dates";
@@ -106,10 +108,30 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
       })
     : null;
 
+  // Le jour J : compte-rendu à confirmer, puis livraison à valider.
+  const report = mission.report as (ReportView & Record<string, unknown>) | null;
+  const reportState = mission.report_confirmed_at ? "confirmed" : mission.report_contested_at ? "contested" : "pending";
+  const deliveries = mission.delivered_at ? await listDeliveries(mission.id) : [];
+  const lastDelivery = deliveries.at(-1) ?? null;
+
   return (
     <div className="space-y-6 max-w-xl">
       {back}
       <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
+      {report && mission.report_submitted_at && (
+        <ReportReview restaurantId={restaurantId} missionId={mission.id} providerName={providerName ?? "Le prestataire"} report={report} state={reportState} contestNote={mission.report_contest_note} />
+      )}
+      {lastDelivery && (
+        <DeliveryReview
+          restaurantId={restaurantId}
+          missionId={mission.id}
+          providerName={providerName ?? "Le prestataire"}
+          links={lastDelivery.links}
+          message={lastDelivery.message}
+          canValidate={mission.status === "livre"}
+          validated={mission.status === "valide" || mission.status === "verse"}
+        />
+      )}
       {mission.status === "accepte" && calendar && <ShootPlanner restaurantId={restaurantId} missionId={mission.id} providerName={providerName} days={calendar} />}
       {calendarDown && <p className="text-[13.5px] text-ink-muted">Le calendrier n&apos;est pas disponible pour le moment. Réessaie dans un instant.</p>}
       {hasDate && teamMsg && (
