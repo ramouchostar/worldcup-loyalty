@@ -19,6 +19,7 @@ import {
   UserCog,
   House,
   LayoutGrid,
+  Clapperboard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -46,6 +47,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   qr: QrCode,
   settings: Settings,
   access: UserCog,
+  prestataires: Clapperboard,
   // Vue simple (ADR 0064) — l'accueil et l'onglet qui mène à tout le reste.
   home: House,
   more: LayoutGrid,
