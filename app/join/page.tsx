@@ -12,6 +12,11 @@ const REASON_BANNERS: Record<string, { icon: string; title: string; text: string
     title: "Section réservée aux restaurateurs",
     text: "Cette console appartient à un autre établissement, ou ton compte n'a pas encore d'accès restaurateur.",
   },
+  "provider-required": {
+    icon: "🔒",
+    title: "Espace réservé aux prestataires Boosteats",
+    text: "Ton compte n'est pas lié à un prestataire actif. Ouvre le lien d'invitation reçu par e-mail avec l'adresse à laquelle il a été envoyé.",
+  },
   "platform-required": {
     icon: "🔒",
     title: "Section réservée à l'équipe plateforme",

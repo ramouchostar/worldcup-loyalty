@@ -10,6 +10,10 @@ import { EmptyState, PageHeader } from "@/components/admin/ui";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { BriefWizard } from "./BriefWizard";
 import { MissionTracker } from "./MissionTracker";
+import { QuoteCard } from "./QuoteCard";
+import { getCurrentQuote } from "@/lib/provider-missions";
+import { getPlan } from "@/lib/entitlements";
+import { restaurantView } from "@/lib/mission-quote";
 
 // ADR 0084 — une mission : l'assistant de brief tant que c'est un brouillon,
 // puis le suivi (frise, brief verrouillé) une fois envoyée.
@@ -62,10 +66,27 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
     );
   }
 
+  // Le devis reçu, au prix que PAIE ce restaurateur selon son plan d'aujourd'hui (figé au paiement, pas ici).
+  const quote = mission.status === "devis" ? await getCurrentQuote(mission.id) : null;
+  const plan = quote ? await getPlan(restaurantId) : null;
+  const priceView = quote && plan ? restaurantView(quote.price_cents, plan) : null;
+  const budget = typeof mission.brief?.budget_cents === "number" ? mission.brief.budget_cents : null;
+
   return (
     <div className="space-y-6 max-w-xl">
       {back}
       <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
+      {quote && priceView && (
+        <QuoteCard
+          restaurantId={restaurantId}
+          missionId={mission.id}
+          providerName={providerName}
+          quote={{ hours: quote.hours, deliveryDays: quote.delivery_days, included: quote.included, excluded: quote.excluded, hypotheses: quote.hypotheses }}
+          view={{ paidCents: priceView.paidCents, depositCents: priceView.depositCents, balanceCents: priceView.balanceCents, depositPct: priceView.depositBps / 100 }}
+          budgetCents={budget}
+          canDecline
+        />
+      )}
     </div>
   );
 }

@@ -204,6 +204,8 @@ export function proShell(opts: {
   preheader: string;
   body: string;
   footer: Footer;
+  /** Ligne de marque du pied de page ; par défaut celle des restaurateurs. */
+  brandLine?: string;
 }): string {
   const logo = opts.logoUrl
     ? `<td align="right" class="hide-sm"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#FFFFFF" style="background-color:#FFFFFF; border-radius:10px; padding:5px 9px;"><img src="${esc(opts.logoUrl)}" alt="${esc(opts.restaurantName)}" height="24" style="display:block; height:24px; width:auto; border:0;" /></td></tr></table></td>`
@@ -224,7 +226,7 @@ export function proShell(opts: {
     ${opts.body}
   </td>
 </tr>
-${footerBlock(opts.footer, "Boosteats · la console de ton programme de fidélité")}`;
+${footerBlock(opts.footer, opts.brandLine ?? "Boosteats · la console de ton programme de fidélité")}`;
   return documentShell(opts.subject, opts.preheader, inner);
 }
 

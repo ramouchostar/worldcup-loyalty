@@ -3,6 +3,8 @@ import { isMissingTable } from "./audit/store";
 import { todayInBrussels } from "./qr-funnel";
 import { VIDEO_TEMPLATE, type BriefAnswers, type BriefIssue, type BriefTemplate } from "./mission-brief";
 import { mergeAnswers, planSend, sanitizeAnswers, type ProviderCandidate } from "./mission-draft";
+import { sendProviderBriefReceivedEmail } from "./email";
+import { providerMissionUrl } from "./providers";
 import type { Metier } from "./mission-money";
 import type { MissionStatus } from "./mission-states";
 
@@ -36,12 +38,14 @@ export type MissionRow = {
   brief_locked_at: string | null;
   shoot_date: string | null;
   quote_cents: number | null;
+  cancelled_by: "restaurant" | "provider" | "platform" | "system" | null;
+  cancellation_note: string | null;
   created_at: string;
   updated_at: string;
 };
 
 const MISSION_COLUMNS =
-  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, quote_cents, created_at, updated_at";
+  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, quote_cents, cancelled_by, cancellation_note, created_at, updated_at";
 
 export type EventRow = {
   id: number;
@@ -301,5 +305,29 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
   }
 
   await logEvent(missionId, { kind: "status", from: "brief", to: "envoye", actorKind: "restaurant", actorId: userId, meta: { providerId: plan.providerId } });
+  await notifyProvider(missionId, plan.providerId, restaurantId, mission.brief ?? {});
   return { ok: true, providerId: plan.providerId };
+}
+
+/**
+ * Le prestataire apprend qu'un brief l'attend. Best-effort — l'envoi du brief a déjà réussi — mais
+ * jamais silencieux : l'issue (partie ou non) est une ligne de la trace, et l'e-mail est aussi
+ * journalisé par `dispatch` (message_sends).
+ */
+async function notifyProvider(missionId: string, providerId: string, restaurantId: string, answers: BriefAnswers): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const [{ data: provider }, { data: restaurant }] = await Promise.all([
+      admin.from("providers").select("email, display_name").eq("id", providerId).maybeSingle(),
+      admin.from("restaurants").select("name").eq("id", restaurantId).maybeSingle(),
+    ]);
+    const p = provider as { email: string; display_name: string } | null;
+    if (!p) throw new Error("prestataire introuvable");
+    const goal = typeof answers.goal === "string" ? answers.goal : null;
+    const sent = await sendProviderBriefReceivedEmail(p.email, p.display_name, (restaurant as { name: string } | null)?.name ?? "Un restaurateur", goal, providerMissionUrl(missionId));
+    await logEvent(missionId, { kind: sent ? "provider_notified" : "notify_failed", actorKind: "system", meta: { channel: "email", providerId } });
+  } catch (e) {
+    console.error("[missions] notifyProvider failed:", (e as Error).message);
+    await logEvent(missionId, { kind: "notify_failed", actorKind: "system", reason: (e as Error).message, meta: { channel: "email", providerId } });
+  }
 }

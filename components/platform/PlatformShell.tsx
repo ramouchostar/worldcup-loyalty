@@ -8,6 +8,7 @@ import {
   BarChart3,
   ClipboardCheck,
   Handshake,
+  Clapperboard,
   ListTodo,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/platform/messages", label: "Messages", icon: Mail },
   { href: "/platform/audit", label: "Audit", icon: ClipboardCheck },
   { href: "/platform/crm", label: "CRM", icon: Handshake },
+  { href: "/platform/prestataires", label: "Prestataires", icon: Clapperboard },
 ];
 
 const COLLAPSE_KEY = "platform-sidebar-collapsed";
