@@ -7,7 +7,9 @@ https://claude.ai/artifact/VTogc8MVMSSk7AwGwULUMf). Amende l'[ADR 0064](0064-la-
 et l'[ADR 0054](0054-console-restaurateur-un-seul-jeu-de-primitives.md) (couleurs de la charte
 Boosteats et bandeau par forfait). S'appuie sur l'[ADR 0078](0078-ca-du-jour-saisi-a-la-main.md)
 (le CA du jour est la matière des paliers). La publicité lancée depuis l'app et le service vidéo
-feront l'objet d'un ADR à part (frais, commission et paiement encore ouverts).
+feront l'objet d'un ADR à part (frais, commission et paiement encore ouverts) : le **service
+vidéo** est traité par l'[ADR 0084](0084-reserver-un-prestataire-video-photo-design-impression.md)
+(proposé).
 
 ## Contexte
 
