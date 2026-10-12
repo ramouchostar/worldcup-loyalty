@@ -142,16 +142,22 @@ export function DeliveryReview({
   providerName,
   links,
   message,
+  version,
   canValidate,
   validated,
+  superseded,
 }: {
   restaurantId: string;
   missionId: string;
   providerName: string;
   links: string[];
   message: string | null;
+  /** 1, 2 ou 3 : la version livrée. */
+  version?: number;
   canValidate: boolean;
   validated: boolean;
+  /** Une version plus récente a été livrée : celle-ci n'est plus à valider. */
+  superseded?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -173,7 +179,7 @@ export function DeliveryReview({
 
   return (
     <Card className="space-y-4">
-      <SectionLabel>La livraison de {providerName}</SectionLabel>
+      <SectionLabel>{version && version > 1 ? `Version ${version} de ${providerName}` : `La livraison de ${providerName}`}{superseded ? " · remplacée" : ""}</SectionLabel>
       <ul className="space-y-2">
         {links.map((l) => (
           <li key={l}>
@@ -188,11 +194,11 @@ export function DeliveryReview({
         ))}
       </ul>
       {message && <p className="text-[14px] text-ink whitespace-pre-line">{message}</p>}
-      {validated ? (
+      {superseded ? null : validated ? (
         <p className="text-[13.5px] text-good font-semibold">Tu as validé cette livraison.</p>
       ) : canValidate ? (
         <div className="space-y-3 border-t border-paper-border pt-4">
-          <p className="text-[13.5px] text-ink-muted">Regarde tout avant de valider. Si quelque chose ne va pas, dis-le-nous avant de valider.</p>
+          <p className="text-[13.5px] text-ink-muted">Regarde tout avant de valider. Si quelque chose ne va pas, demande une retouche plus bas : toutes tes remarques en un seul envoi.</p>
           {error && (
             <p role="alert" className="text-danger text-[13px] font-semibold">
               {error}

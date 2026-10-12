@@ -157,7 +157,7 @@ export function ReportForm({
   );
 }
 
-export function DeliveryForm({ missionId }: { missionId: string }) {
+export function DeliveryForm({ missionId, title = "Livrer" }: { missionId: string; title?: string }) {
   const router = useRouter();
   const [links, setLinks] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
@@ -194,7 +194,7 @@ export function DeliveryForm({ missionId }: { missionId: string }) {
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">Livrer</h2>
+        <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">{title.charAt(0).toUpperCase() + title.slice(1)}</h2>
         <p className="text-ink-muted text-[13.5px] mt-1">Colle les liens de téléchargement (WeTransfer, Google Drive, Dropbox…), en https. Le restaurateur a deux tours de retours, chacun en une seule fois.</p>
       </div>
       {links.length > 0 && (

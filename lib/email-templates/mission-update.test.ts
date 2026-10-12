@@ -4,7 +4,7 @@ import { missionUpdateEmail, type MissionUpdateInput, type MissionUpdateKind } f
 
 const base: Omit<MissionUpdateInput, "kind" | "audience"> = { restaurantName: "Burger Palace", providerName: "Studio Croustille", url: "https://www.boosteats.be/x/m1" };
 const mail = (kind: MissionUpdateKind, audience: MissionUpdateInput["audience"]) => missionUpdateEmail({ ...base, kind, audience });
-const ALL = [["report_submitted", "restaurant"], ["delivered", "restaurant"], ["validated", "provider"], ["report_contested", "platform"]] as const;
+const ALL = [["report_submitted", "restaurant"], ["delivered", "restaurant"], ["validated", "provider"], ["report_contested", "platform"], ["retouch_requested", "provider"], ["validation_reminder", "restaurant"], ["auto_validated", "restaurant"], ["auto_validated", "provider"]] as const;
 
 test("chaque mise à jour a un sujet, le lien et ce qu'on attend", () => {
   for (const [kind, audience] of ALL) {
@@ -37,4 +37,27 @@ test("un nom venu de la base est échappé", () => {
   const m = missionUpdateEmail({ ...base, restaurantName: "<script>x</script>", providerName: "<b>Y</b>", kind: "delivered", audience: "restaurant" });
   assert.ok(!m.html.includes("<script>x</script>"));
   assert.ok(!m.html.includes("<b>Y</b>"));
+});
+
+test("retouche demandée : tous les tours en un envoi, une retouche n'est pas une refonte, dernier tour dit", () => {
+  const m = missionUpdateEmail({ ...base, kind: "retouch_requested", audience: "provider", round: 2 });
+  assert.match(m.subject, /tour 2 sur 2/);
+  assert.match(m.text, /un seul envoi/);
+  assert.match(m.text, /pas une refonte/);
+  assert.match(m.text, /dernier tour/);
+  assert.match(missionUpdateEmail({ ...base, kind: "retouch_requested", audience: "provider", round: 1 }).text, /Il reste un tour/);
+});
+
+test("les rappels de validation : le premier rassure, le second annonce la validation dans 2 jours", () => {
+  const a = missionUpdateEmail({ ...base, kind: "validation_reminder", audience: "restaurant", round: 1 });
+  const b = missionUpdateEmail({ ...base, kind: "validation_reminder", audience: "restaurant", round: 2 });
+  assert.match(a.text, /7 jours/);
+  assert.match(b.subject, /validation automatique/);
+  assert.match(b.text, /dans 2 jours/);
+  assert.match(b.text, /compte-rendu de tournage contesté bloque/);
+});
+
+test("la validation automatique parle à chacun avec ses mots", () => {
+  assert.match(missionUpdateEmail({ ...base, kind: "auto_validated", audience: "provider" }).text, /prépare ton versement/);
+  assert.match(missionUpdateEmail({ ...base, kind: "auto_validated", audience: "restaurant" }).text, /Tu n'as pas répondu/);
 });
