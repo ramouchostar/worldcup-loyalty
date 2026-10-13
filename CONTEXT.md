@@ -546,6 +546,10 @@ _Avoid_ : pitch, concept (réservé à l'écran « idée retenue » côté équi
 Un fichier joint au brief, à une idée de tournage ou à une retouche (25 Mo au plus). Format utile seulement, contenu vérifié, espace privé, téléchargement forcé. Une livraison n'est PAS une pièce jointe : elle reste un lien de téléchargement.
 _Avoid_ : upload, document (réservé aux documents légaux), livrable.
 
+**Règles du jeu** :
+Les règles du module Prestataires, écrites dans le produit et acceptées par case à cocher : par le restaurateur à chaque brief envoyé, par le prestataire une fois par version avant son premier devis. Elles portent une **version** ; l'acceptation garde laquelle.
+_Avoid_ : conditions générales (réservé au contrat juridique relu par un juriste), charte.
+
 **Message d'équipe** :
 Texte généré à partir du brief que le restaurateur partage à son équipe **au moins 7 jours avant** le tournage (qui est présent, uniforme, plats, contact sur place).
 _Avoid_ : consigne, mémo.

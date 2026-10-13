@@ -16,6 +16,8 @@ import { briefRows, centsToEurosInput, eurosToCents, issueMessage } from "@/lib/
 import { ambitionHint, floorHint } from "@/lib/marketplace-budgets-rules";
 import { formatEuros } from "@/lib/mission-money";
 import { FilePicker } from "@/components/missions/FilePicker";
+import { RulesList } from "@/components/missions/RulesList";
+import { RESTAURANT_RULES, RULES_ACCEPT_LABEL, RULES_REFUSAL_TEXT, RULES_VERSION } from "@/lib/mission-rules";
 import type { AttachmentView } from "@/lib/mission-files";
 
 // ADR 0084 §3 — l'assistant de brief du restaurateur : quelques questions par
@@ -61,6 +63,7 @@ export function BriefWizard({
   const byKey = useMemo(() => new Map(template.questions.map((q) => [q.key, q])), [template]);
   const allSteps = useMemo(() => [...steps, FILES_STEP], [steps]);
   const [fileCount, setFileCount] = useState(initialFiles.length);
+  const [rulesOk, setRulesOk] = useState(false);
   const isRecap = step === allSteps.length;
   const current = isRecap ? null : allSteps[step];
 
@@ -114,13 +117,17 @@ export function BriefWizard({
       if (first >= 0) setStep(first);
       return;
     }
+    if (!rulesOk) {
+      setSendError(RULES_REFUSAL_TEXT.not_accepted);
+      return;
+    }
     setSending(true);
     setSendError(null);
     try {
       const res = await fetch(`/api/admin/missions/${missionId}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId, answers }),
+        body: JSON.stringify({ restaurantId, answers, rules: { accepted: rulesOk, version: RULES_VERSION } }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -227,6 +234,18 @@ export function BriefWizard({
               <li>Tu changes d&apos;avis après l&apos;envoi ? C&apos;est une demande de modification, qu&apos;il chiffre ou refuse.</li>
               <li>Tu ne paies rien maintenant. La date du tournage se choisit après le devis, dans ses disponibilités.</li>
             </ul>
+          </Card>
+
+          <Card className="space-y-4">
+            <div>
+              <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">Les règles du jeu</h2>
+              <p className="text-ink-muted text-[13.5px] mt-1">Elles protègent le prestataire et toi. Lis-les : en envoyant ce brief, tu t&apos;y engages.</p>
+            </div>
+            <RulesList rules={RESTAURANT_RULES} />
+            <button type="button" role="checkbox" aria-checked={rulesOk} onClick={() => setRulesOk((v) => !v)} className={`w-full flex items-start gap-3 text-left rounded-xl border p-3 min-h-[44px] ${rulesOk ? "border-boost-olive bg-boost-cream" : "border-paper-border bg-white"}`}>
+              <span className={`mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center ${rulesOk ? "bg-boost-olive border-boost-olive text-white" : "border-ink-faint bg-white"}`}>{rulesOk && <Check className="w-3.5 h-3.5" aria-hidden />}</span>
+              <span className="text-[14px] font-semibold text-ink">{RULES_ACCEPT_LABEL.restaurant}</span>
+            </button>
           </Card>
 
           {issues.length > 0 && (

@@ -16,6 +16,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   switch (r.reason) {
     case "invalid_quote":
       return NextResponse.json({ error: "Il manque des informations dans ton devis.", reason: r.reason, issues: r.issues }, { status: 422 });
+    case "rules_not_accepted":
+      return NextResponse.json({ error: "Accepte d'abord les règles.", reason: r.reason }, { status: 409 });
     case "not_awaiting_quote":
       return NextResponse.json({ error: "Ce brief n'attend plus de devis.", reason: r.reason }, { status: 409 });
     case "not_found":

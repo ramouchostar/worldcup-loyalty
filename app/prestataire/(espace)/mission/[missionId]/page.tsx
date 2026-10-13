@@ -22,6 +22,8 @@ import { getTerms } from "@/lib/marketplace-settings";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
 import { ProposalsForm } from "./ProposalsForm";
+import { RulesGate } from "./RulesGate";
+import { providerHasAccepted } from "@/lib/missions-rules";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
 import { ChangePanel } from "./ChangePanel";
@@ -63,6 +65,9 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   // Les idées de tournage (PR K) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const files = await listFiles(mission.id);
   const filesBase = `/api/prestataire/missions/${mission.id}/files`;
+  // Les règles du jeu : à accepter une fois par version avant le premier devis (migration absente : pas de blocage).
+  const rules = mission.status === "envoye" ? await providerHasAccepted(provider.id) : null;
+  const rulesPending = !!rules && rules.ok && !rules.accepted;
   // Les demandes de modification (PR M) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const changesRes = mission.status === "envoye" || mission.status === "devis" ? null : await listChanges(mission.id);
   const commissionBps = changesRes?.ok && changesRes.changes.some((c) => c.status === "proposed") ? (await getTerms()).terms.commissionBps : 0;
@@ -140,7 +145,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {mission.status === "envoye" && (
         <>
-          <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} commissionBps={(await getTerms()).terms.commissionBps} />
+          {rulesPending ? <RulesGate /> : <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} commissionBps={(await getTerms()).terms.commissionBps} />}
           <RefuseForm missionId={mission.id} />
         </>
       )}

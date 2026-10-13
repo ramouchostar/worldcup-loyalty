@@ -7,6 +7,7 @@ import type { ProviderRow } from "./providers";
 import type { MissionStatus } from "./mission-states";
 import { restaurantMissionUrl } from "./missions";
 import { sendProviderQuoteReceivedEmail } from "./email";
+import { providerHasAccepted } from "./missions-rules";
 import { getRestaurantContactEmail } from "./missions-contact";
 
 // ============================================================
@@ -131,7 +132,7 @@ export async function getCurrentQuote(missionId: string): Promise<QuoteRow | nul
 
 export type QuoteResult =
   | { ok: true }
-  | { ok: false; reason: "not_found" | "not_awaiting_quote" | "invalid_quote" | "unavailable"; issues?: QuoteIssue[] };
+  | { ok: false; reason: "not_found" | "not_awaiting_quote" | "invalid_quote" | "rules_not_accepted" | "unavailable"; issues?: QuoteIssue[] };
 
 /** Le prestataire chiffre : devis ferme, `envoye → devis`, ou refus nommé. */
 export async function submitQuote(missionId: string, provider: ProviderRow, rawQuote: unknown): Promise<QuoteResult> {
@@ -140,6 +141,13 @@ export async function submitQuote(missionId: string, provider: ProviderRow, rawQ
   const mission = found.mission;
   if (!mission) return { ok: false, reason: "not_found" };
   if (mission.status !== "envoye") return { ok: false, reason: "not_awaiting_quote" };
+
+  // Les règles du jeu : acceptées une fois par version, avant le premier devis. (Migration absente : on ne bloque pas, le journal le dit.)
+  const accepted = await providerHasAccepted(provider.id);
+  if (accepted.ok && !accepted.accepted) {
+    await logEvent(missionId, { kind: "quote_refused", actorKind: "provider", actorId: provider.user_id ?? undefined, reason: "rules_not_accepted" });
+    return { ok: false, reason: "rules_not_accepted" };
+  }
 
   const quote = sanitizeQuote(rawQuote);
   const verdict = validateQuote(quote, mission.metier);

@@ -8,6 +8,8 @@ import { providerMissionUrl } from "./providers";
 import { SITE_ORIGIN } from "@/lib/site";
 import type { Metier } from "./mission-money";
 import type { MissionStatus } from "./mission-states";
+import { readAcceptance } from "./mission-rules";
+import { recordRestaurantAcceptance } from "./missions-rules";
 
 // ============================================================
 // Réserver un prestataire (ADR 0084, PR C) — lecture et écriture des missions.
@@ -268,10 +270,10 @@ export async function saveDraft(
 
 export type SendResult =
   | { ok: true; providerId: string }
-  | { ok: false; reason: "not_found" | "not_a_draft" | "invalid_brief" | "no_provider" | "unavailable"; issues?: BriefIssue[] };
+  | { ok: false; reason: "not_found" | "not_a_draft" | "invalid_brief" | "no_provider" | "rules_not_accepted" | "unavailable"; issues?: BriefIssue[]; rules?: "not_accepted" | "outdated" };
 
 /** Verrouille le brief et l'envoie au prestataire — ou refuse, en le disant et en le traçant. */
-export async function sendBrief(missionId: string, restaurantId: string, userId: string, answersFromScreen?: unknown): Promise<SendResult> {
+export async function sendBrief(missionId: string, restaurantId: string, userId: string, answersFromScreen?: unknown, rulesFromScreen?: unknown): Promise<SendResult> {
   // Les dernières réponses de l'écran passent avant la vérification : ce que le restaurateur voit est ce qui est jugé.
   if (answersFromScreen !== undefined) {
     const saved = await saveDraft(missionId, restaurantId, answersFromScreen);
@@ -310,6 +312,13 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
     return { ok: false, reason: plan.reason, issues: plan.issues };
   }
 
+  // Les règles du jeu : la case est exigée à CHAQUE brief envoyé, avec la version qu'on a montrée (jamais un oui à un texte qui a changé).
+  const rules = readAcceptance(rulesFromScreen);
+  if (!rules.ok) {
+    await logEvent(missionId, { kind: "brief_refused", actorKind: "restaurant", actorId: userId, reason: "rules_not_accepted", meta: { rules: rules.reason } });
+    return { ok: false, reason: "rules_not_accepted", rules: rules.reason };
+  }
+
   try {
     const admin = createAdminClient();
     const now = new Date().toISOString();
@@ -327,6 +336,8 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
     return { ok: false, reason: "unavailable" };
   }
 
+  const recorded = await recordRestaurantAcceptance(missionId, restaurantId, userId);
+  await logEvent(missionId, { kind: "rules_accepted", actorKind: "restaurant", actorId: userId, meta: { version: rules.acceptance.version, recorded } });
   await logEvent(missionId, { kind: "status", from: "brief", to: "envoye", actorKind: "restaurant", actorId: userId, meta: { providerId: plan.providerId } });
   await notifyProvider(missionId, plan.providerId, restaurantId, mission.brief ?? {});
   return { ok: true, providerId: plan.providerId };
