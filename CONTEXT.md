@@ -534,6 +534,10 @@ _Avoid_ : frais de service, commission affichée au restaurateur.
 Fiche remplie à la fin du jour J, validée par les deux parties (arrivée réelle, durée, éléments manquants). Pièce de référence d'un **litige**.
 _Avoid_ : rapport, feuille de route.
 
+**Proposition créative** :
+Une idée de tournage proposée par le prestataire après la date bloquée : titre, idée en quelques phrases, ce qu'il faut prévoir sur place, un exemple en lien. Par série de 2 ou 3, la première est celle qu'il **recommande** ; le restaurateur en choisit une (verrouillée), sinon la première est **retenue d'office** à J-2. Une seule nouvelle série possible, avec une raison par idée refusée.
+_Avoid_ : pitch, concept (réservé à l'écran « idée retenue » côté équipe), variante.
+
 **Message d'équipe** :
 Texte généré à partir du brief que le restaurateur partage à son équipe **au moins 7 jours avant** le tournage (qui est présent, uniforme, plats, contact sur place).
 _Avoid_ : consigne, mémo.

@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -22,6 +22,11 @@ export type MissionUpdateInput = {
   /** dispute_resolved : la décision de la plateforme et, pour un partage, la part du prestataire. */
   decision?: "pay" | "refund" | "split";
   providerPct?: number;
+  /** Propositions créatives : le titre retenu, le nombre d'idées, le dernier jour pour agir (« jeudi 22 octobre »), et pourquoi elle est retenue d'office. */
+  title?: string;
+  count?: number;
+  deadlineLabel?: string;
+  auto?: "auto" | "fallback";
 };
 
 type Copy = { subject: string; preheader: string; title: string; paragraphs: string[]; cta: string; note: string };
@@ -149,6 +154,71 @@ function copyFor(i: MissionUpdateInput): Copy {
         paragraphs: [`Boosteats a versé ton paiement pour la mission chez ${i.restaurantName}. Selon ta banque, il apparaît sous un à trois jours ouvrés.`],
         cta: "Voir la mission",
         note: "Merci pour ton travail.",
+      };
+    case "proposals_received":
+      return {
+        subject: `${i.providerName} te propose ${i.count ?? 2} idées de tournage`,
+        preheader: i.deadlineLabel ? `Choisis-en une avant ${i.deadlineLabel}.` : "Choisis celle qui te ressemble.",
+        title: "Des idées de tournage t'attendent",
+        paragraphs: [`${i.providerName} a préparé ${i.count ?? 2} idées pour ton tournage, la première étant celle qu'il recommande. Lis-les, regarde les exemples, puis choisis-en une.`, i.deadlineLabel ? `Sans réponse de ta part avant ${i.deadlineLabel}, la première idée est retenue d'office : tu en seras prévenu.` : "Sans réponse de ta part, la première idée est retenue d'office."],
+        cta: "Voir les idées",
+        note: "Aucune ne te plaît ? Tu peux demander une seule nouvelle série, en disant pourquoi pour chaque idée.",
+      };
+    case "proposals_again":
+      return {
+        subject: `${i.restaurantName} demande une nouvelle série d'idées`,
+        preheader: i.deadlineLabel ? `Dépose-la avant ${i.deadlineLabel}.` : "Les raisons sont dans l'espace.",
+        title: "Une nouvelle série d'idées est demandée",
+        paragraphs: [`Aucune de tes idées n'a convaincu ${i.restaurantName}. Pour chacune, la raison est dans l'espace : lis-les, puis propose 2 ou 3 nouvelles idées.`, "C'est la seule nouvelle série possible : si elle ne vient pas à temps, ta première idée est retenue."],
+        cta: "Lire les raisons",
+        note: i.deadlineLabel ? `Date limite : ${i.deadlineLabel}.` : "Date limite : deux jours avant le tournage.",
+      };
+    case "proposal_chosen":
+      return {
+        subject: `${i.restaurantName} a choisi : ${i.title ?? "ton idée"}`,
+        preheader: "L'idée est verrouillée : prépare le tournage.",
+        title: "Une idée est choisie",
+        paragraphs: [`${i.restaurantName} a choisi l'idée « ${i.title ?? ""} ». Elle est verrouillée : c'est celle que tu tournes. Ce qu'il faut préparer sur place est dans l'espace.`],
+        cta: "Voir l'idée choisie",
+        note: "Un autre choix après coup n'est plus possible.",
+      };
+    case "proposal_auto": {
+      const reason = i.auto === "fallback" ? "la nouvelle série n'est pas arrivée à temps, on garde donc la première idée recommandée" : "il n'y a pas eu de réponse à temps, on retient donc la première idée recommandée";
+      return {
+        subject: `Idée retenue d'office : ${i.title ?? ""}`,
+        preheader: "L'idée est verrouillée.",
+        title: "Une idée est retenue d'office",
+        paragraphs: [i.audience === "provider" ? `Pour le tournage chez ${i.restaurantName}, ${reason} : « ${i.title ?? ""} ». C'est celle que tu tournes.` : `Pour ton tournage avec ${i.providerName}, ${reason} : « ${i.title ?? ""} ». C'est celle qui sera tournée ; ce qu'il faut préparer est dans l'espace.`],
+        cta: "Voir l'idée retenue",
+        note: "Une idée retenue ne se change plus.",
+      };
+    }
+    case "proposals_due":
+      return {
+        subject: `${i.restaurantName} attend tes idées de tournage`,
+        preheader: i.deadlineLabel ? `À déposer avant ${i.deadlineLabel}.` : "2 ou 3 idées, la première étant ta recommandation.",
+        title: "Tes idées de tournage sont attendues",
+        paragraphs: [`Le tournage chez ${i.restaurantName} approche. Dépose 2 ou 3 idées (la première est celle que tu recommandes) : pour chacune, un titre, l'idée en quelques phrases, ce qu'il faut prévoir sur place et un exemple.`],
+        cta: "Déposer mes idées",
+        note: "Sans idée à temps, la plateforme t'appelle : le restaurateur ne peut pas choisir ce qu'il ne voit pas.",
+      };
+    case "proposals_choose":
+      return {
+        subject: `${i.providerName} t'attend : choisis ton idée de tournage`,
+        preheader: i.deadlineLabel ? `Avant ${i.deadlineLabel}, sinon la première est retenue.` : "Sinon la première idée est retenue d'office.",
+        title: "Choisis ton idée de tournage",
+        paragraphs: [`${i.providerName} t'a proposé ${i.count ?? 2} idées. Sans réponse de ta part${i.deadlineLabel ? ` avant ${i.deadlineLabel}` : ""}, la première (celle qu'il recommande) est retenue d'office.`],
+        cta: "Choisir mon idée",
+        note: "Aucune ne te plaît ? Une seule nouvelle série est possible, avec une raison pour chaque idée.",
+      };
+    case "proposals_missing":
+      return {
+        subject: `Aucune idée de tournage : ${i.providerName} chez ${i.restaurantName}`,
+        preheader: "Le tournage approche et le restaurateur n'a rien à choisir.",
+        title: "Aucune idée de tournage déposée",
+        paragraphs: [`${i.providerName} n'a déposé aucune idée pour le tournage chez ${i.restaurantName}${i.deadlineLabel ? ` (tournage ${i.deadlineLabel})` : ""}. Appelle le prestataire : sans idée, le restaurateur ne peut rien choisir.`],
+        cta: "Voir la mission",
+        note: "Le prestataire peut encore déposer ses idées jusqu'à trois jours avant le tournage.",
       };
     case "report_contested":
       return {

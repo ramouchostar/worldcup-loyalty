@@ -112,6 +112,18 @@ plateforme. Les pénalités s'appliquent sur la carte enregistrée.
   relance, puis alerte plateforme.
 - Jour J : fiche courte pour chacun, puis **compte-rendu de tournage** validé par les deux
   (arrivée réelle, durée, éléments manquants) — il sert de preuve en cas de litige.
+- **Propositions créatives** (amendé le 2026-10-13, PR K) : **après** la date bloquée, le prestataire
+  propose **2 ou 3 idées** de tournage, la première étant celle qu'il recommande. Une idée = un titre,
+  l'idée en quelques phrases, ce qu'il faut prévoir sur place (plats, personnes) et un lien d'exemple
+  (https). Le prestataire dépose avant **J-4** (rappel ce jour-là, accepté jusqu'à J-3, alerte
+  plateforme dès J-2 sans proposition). Le restaurateur choisit **avant J-2** ; la choisie est
+  **verrouillée**. **Silence : la première est retenue d'office à J-2**, tout le monde est prévenu par
+  e-mail. **Aucune ne plaît** (jusqu'à J-3) : **UNE seule** nouvelle série, avec une raison par idée
+  refusée (12 caractères au moins) ; le prestataire a jusqu'à J-2, le restaurateur choisit jusqu'à J-1,
+  sinon la première de la nouvelle série est retenue ; sans nouvelle série, on retombe sur la première
+  de la première. Le message d'équipe de J-7 part avant le choix : une fois l'idée retenue, un
+  **second message** (« on tourne X, prévoir Y ») est proposé à partager. Les idées ne bloquent pas
+  le tournage : sans idée, la plateforme appelle le prestataire, le jour J reste possible.
 - Droits à l'image des figurants : **préparés par le prestataire**. Clients en salle : floutés.
 
 ### 6. États d'une mission

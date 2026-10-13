@@ -21,6 +21,9 @@ import { PROVIDER_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-
 import { getTerms } from "@/lib/marketplace-settings";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
+import { ProposalsForm } from "./ProposalsForm";
+import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals";
+import { CHOSEN_BY_LABEL, judgeSubmit } from "@/lib/mission-proposals";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +56,9 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   const view = PROVIDER_STATUS_VIEW[mission.status];
   const rows = briefRows(mission.brief ?? {}, template);
   const budget = typeof mission.brief?.budget_cents === "number" ? mission.brief.budget_cents : null;
+  // Les idées de tournage (PR K) : migration absente → rien d'affiché, le reste de la mission fonctionne.
+  const pstate = mission.shoot_date && mission.status !== "annule" ? await loadProposalState(mission.id) : null;
+  const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
   const received = new Date(mission.brief_locked_at ?? mission.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" });
 
   return (
@@ -142,6 +148,45 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
             );
           })()}
           <p className="text-[12.5px] text-ink-muted">Le restaurateur est engagé sur cette date, et toi aussi.</p>
+        </Card>
+      )}
+
+      {pview && pstate?.ok && (pview.phase === "awaiting_proposals" || pview.phase === "awaiting_second") && pview.deadline &&
+        (judgeSubmit(rulesState(mission, pstate.state), todayInBrussels()) === "ok" ? (
+          <ProposalsForm
+            missionId={mission.id}
+            deadlineLabel={dateLabelFr(pview.deadline.day)}
+            second={pview.phase === "awaiting_second"}
+            rejected={pview.phase === "awaiting_second" ? pview.first.filter((p) => p.rejection_reason).map((p) => ({ title: p.title, reason: p.rejection_reason! })) : []}
+          />
+        ) : (
+          <Card className="space-y-1">
+            <SectionLabel>Les idées de tournage</SectionLabel>
+            <p className="text-[13.5px] text-warn font-semibold">Le délai est passé : appelle Boosteats, le restaurateur ne peut plus choisir à temps.</p>
+          </Card>
+        ))}
+      {pview && (pview.phase === "choose" || pview.phase === "choose_second") && pview.deadline && (
+        <Card className="space-y-3">
+          <SectionLabel>Tes idées de tournage</SectionLabel>
+          <p className="text-[13.5px] text-ink-muted">Le restaurateur choisit avant {dateLabelFr(pview.deadline.day)} ; sans réponse, ta première idée est retenue d&apos;office.</p>
+          <ol className="space-y-2">
+            {pview.current.map((p) => (
+              <li key={p.id} className="rounded-xl border border-paper-border bg-white p-3">
+                <p className="text-[14px] font-semibold text-ink">{p.title}</p>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
+      {pview?.chosen && pstate?.ok && pstate.state.chosenBy && (
+        <Card className="space-y-2">
+          <SectionLabel>L&apos;idée à tourner</SectionLabel>
+          <p className="text-[12.5px] text-ink-muted">{CHOSEN_BY_LABEL[pstate.state.chosenBy]} · verrouillée</p>
+          <p className="text-[15px] font-bold text-ink">{pview.chosen.title}</p>
+          <p className="text-[13.5px] text-ink whitespace-pre-line">{pview.chosen.idea}</p>
+          <p className="text-[13.5px] text-ink">
+            <span className="font-semibold">À prévoir sur place :</span> {pview.chosen.onsite}
+          </p>
         </Card>
       )}
 

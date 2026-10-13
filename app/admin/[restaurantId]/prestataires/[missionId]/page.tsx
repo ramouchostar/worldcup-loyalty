@@ -30,7 +30,10 @@ import { loadBlocked } from "@/lib/missions-dates";
 import { buildCalendar, teamNoticeState } from "@/lib/mission-dates";
 import { judgeConfirm } from "@/lib/mission-reminders";
 import { PresenceCard } from "@/components/missions/PresenceCard";
-import { dateLabelFr, teamMessage } from "@/lib/mission-team-message";
+import { conceptMessage, dateLabelFr, teamMessage } from "@/lib/mission-team-message";
+import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals";
+import { judgeReject } from "@/lib/mission-proposals";
+import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard";
 import { Card, SectionLabel } from "@/components/admin/ui";
 
 // ADR 0084 — une mission : l'assistant de brief tant que c'est un brouillon,
@@ -105,6 +108,10 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const a = mission.brief ?? {};
   const contact = (a.contact as { name?: string; phone?: string } | undefined) ?? {};
   const hasDate = !!mission.shoot_date && !!mission.shoot_start && mission.status !== "annule";
+  // Les idées de tournage (PR K) : migration absente → rien d'affiché, le reste de la mission fonctionne.
+  const pstate = hasDate ? await loadProposalState(mission.id) : null;
+  const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
+  const toIdea = (p: { id: string; rank: number; title: string; idea: string; onsite: string; example_link: string }): IdeaView => ({ id: p.id, rank: p.rank, title: p.title, idea: p.idea, onsite: p.onsite, link: p.example_link });
   const teamMsg = hasDate
     ? teamMessage({
         shootDate: mission.shoot_date!,
@@ -114,6 +121,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
         kitchen: typeof a.kitchen === "string" ? a.kitchen : undefined,
         contactName: contact.name,
         contactPhone: contact.phone,
+        concept: pview?.chosen ? { title: pview.chosen.title, onsite: pview.chosen.onsite } : undefined,
       })
     : null;
 
@@ -169,6 +177,32 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
             <p className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">{dateLabelFr(mission.shoot_date!)} à {mission.shoot_start}</p>
             <p className="text-[13.5px] text-ink-muted">avec {providerName ?? "ton prestataire"} · contact sur place : {[contact.name, contact.phone].filter(Boolean).join(" · ") || "à confirmer"}</p>
           </Card>
+          {pview && pstate?.ok && (pview.phase === "choose" || pview.phase === "choose_second") && pview.deadline && (
+            <ProposalsChoose
+              restaurantId={restaurantId}
+              missionId={mission.id}
+              ideas={pview.current.map(toIdea)}
+              providerName={providerName ?? "Le prestataire"}
+              deadlineLabel={dateLabelFr(pview.deadline.day)}
+              canReject={judgeReject(rulesState(mission, pstate.state), today) === "ok"}
+              second={pview.phase === "choose_second"}
+            />
+          )}
+          {pview && (pview.phase === "awaiting_proposals" || pview.phase === "awaiting_second") && pview.deadline && (
+            <Card className="space-y-1">
+              <SectionLabel>Ton idée de tournage</SectionLabel>
+              <p className="text-[13.5px] text-ink-muted">
+                {providerName ?? "Le prestataire"} prépare {pview.phase === "awaiting_second" ? "une nouvelle série d'idées, d'après tes raisons" : "ses idées de tournage"} : tu les recevras par e-mail, avant {dateLabelFr(pview.deadline.day)}.
+              </p>
+            </Card>
+          )}
+          {pview?.chosen && pstate?.ok && pstate.state.chosenBy && (
+            <ProposalChosen
+              idea={toIdea(pview.chosen)}
+              by={pstate.state.chosenBy}
+              teamUpdate={conceptMessage({ shootDate: mission.shoot_date!, startTime: mission.shoot_start!, providerName: providerName ?? "le prestataire", title: pview.chosen.title, onsite: pview.chosen.onsite })}
+            />
+          )}
           {mission.status === "date_bloquee" && (
             <PresenceCard
               confirmUrl={`/api/admin/missions/${mission.id}/confirm`}
