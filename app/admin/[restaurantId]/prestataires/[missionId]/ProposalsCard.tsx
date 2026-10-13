@@ -7,12 +7,14 @@ import { Card, SectionLabel } from "@/components/admin/ui";
 import { whatsappShareUrl } from "@/lib/mission-team-message";
 import { CHOSEN_BY_LABEL, REASON_ISSUE_TEXT, REASON_MAX, REASON_MIN, type ChosenBy, type ReasonIssue } from "@/lib/mission-proposals";
 import { linkHost } from "@/lib/mission-dayof";
+import { AttachmentList } from "@/components/missions/AttachmentList";
+import type { AttachmentView } from "@/lib/mission-files";
 
 // ADR 0084 §5 — le choix de l'idée de tournage. Le restaurateur choisit UNE idée (verrouillée ensuite) ; si
 // aucune ne lui plaît, UNE nouvelle série, avec une raison pour chaque idée refusée. Silence : la première est
 // retenue d'office (l'écran le dit, avec la date). L'idée retenue donne un message de plus pour l'équipe.
 
-export type IdeaView = { id: string; rank: number; title: string; idea: string; onsite: string; link: string };
+export type IdeaView = { id: string; rank: number; title: string; idea: string; onsite: string; link: string; files: AttachmentView[] };
 
 const primary = "inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-boost-olive text-white text-[14px] font-semibold shadow-[inset_0_-3px_0_#4F5C2D] hover:brightness-95 disabled:opacity-60";
 const ghost = "inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl border border-paper-border bg-white text-ink text-[14px] font-semibold disabled:opacity-60";
@@ -23,7 +25,7 @@ async function post(url: string, body: unknown) {
   return { ok: res.ok, status: res.status, data: (await res.json().catch(() => ({}))) as Record<string, unknown> };
 }
 
-function Idea({ i, recommended }: { i: IdeaView; recommended: boolean }) {
+function Idea({ i, recommended, filesBase, filesQuery }: { i: IdeaView; recommended: boolean; filesBase: string; filesQuery: string }) {
   return (
     <div className="space-y-1.5">
       <p className="text-[15px] font-bold text-ink">
@@ -37,6 +39,7 @@ function Idea({ i, recommended }: { i: IdeaView; recommended: boolean }) {
       <a href={i.link} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-[13px] font-semibold text-ink underline underline-offset-2 min-h-[32px]">
         Voir l&apos;exemple ({linkHost(i.link)}) <ExternalLink className="w-3.5 h-3.5" aria-hidden />
       </a>
+      <AttachmentList files={i.files} base={filesBase} query={filesQuery} />
     </div>
   );
 }
@@ -49,6 +52,8 @@ export function ProposalsChoose({
   deadlineLabel,
   canReject,
   second,
+  filesBase,
+  filesQuery,
 }: {
   restaurantId: string;
   missionId: string;
@@ -57,6 +62,8 @@ export function ProposalsChoose({
   deadlineLabel: string;
   canReject: boolean;
   second: boolean;
+  filesBase: string;
+  filesQuery: string;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -98,7 +105,7 @@ export function ProposalsChoose({
       <ol className="space-y-4">
         {ideas.map((i, k) => (
           <li key={i.id} className="rounded-2xl border border-paper-border p-4 space-y-3">
-            <Idea i={i} recommended={k === 0} />
+            <Idea i={i} recommended={k === 0} filesBase={filesBase} filesQuery={filesQuery} />
             {rejecting ? (
               <div className="space-y-1">
                 <label htmlFor={`r${i.id}`} className="block text-[13.5px] font-semibold text-ink">
@@ -149,7 +156,7 @@ export function ProposalsChoose({
   );
 }
 
-export function ProposalChosen({ idea, by, teamUpdate }: { idea: IdeaView; by: ChosenBy; teamUpdate: string }) {
+export function ProposalChosen({ idea, by, teamUpdate, filesBase, filesQuery }: { idea: IdeaView; by: ChosenBy; teamUpdate: string; filesBase: string; filesQuery: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <Card className="space-y-4">
@@ -159,7 +166,7 @@ export function ProposalChosen({ idea, by, teamUpdate }: { idea: IdeaView; by: C
           <Lightbulb className="w-3.5 h-3.5" aria-hidden /> {CHOSEN_BY_LABEL[by]} · verrouillée
         </p>
       </div>
-      <Idea i={idea} recommended={false} />
+      <Idea i={idea} recommended={false} filesBase={filesBase} filesQuery={filesQuery} />
       <div className="space-y-2 border-t border-paper-border pt-4">
         <p className="text-[13.5px] font-semibold text-ink">Dis à ton équipe ce qu&apos;on va tourner</p>
         <pre className="whitespace-pre-wrap font-sans text-[13.5px] text-ink bg-paper-subtle rounded-xl p-3 border border-paper-border">{teamUpdate}</pre>

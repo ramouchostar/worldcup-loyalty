@@ -31,9 +31,11 @@ import { buildCalendar, teamNoticeState } from "@/lib/mission-dates";
 import { judgeConfirm } from "@/lib/mission-reminders";
 import { PresenceCard } from "@/components/missions/PresenceCard";
 import { conceptMessage, dateLabelFr, teamMessage } from "@/lib/mission-team-message";
-import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals";
+import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals-state";
 import { judgeReject } from "@/lib/mission-proposals";
 import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard";
+import { listFiles } from "@/lib/missions-files";
+import { AttachmentList } from "@/components/missions/AttachmentList";
 import { Card, SectionLabel } from "@/components/admin/ui";
 
 // ADR 0084 — une mission : l'assistant de brief tant que c'est un brouillon,
@@ -70,6 +72,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   );
 
   if (mission.status === "brief") {
+    const briefFiles = await listFiles(mission.id, "brief");
     return (
       <div className="space-y-4">
         {back}
@@ -82,6 +85,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           initialAnswers={mission.brief ?? {}}
           today={todayInBrussels()}
           providerName={providerName}
+          initialFiles={briefFiles}
         />
       </div>
     );
@@ -109,9 +113,12 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const contact = (a.contact as { name?: string; phone?: string } | undefined) ?? {};
   const hasDate = !!mission.shoot_date && !!mission.shoot_start && mission.status !== "annule";
   // Les idées de tournage (PR K) : migration absente → rien d'affiché, le reste de la mission fonctionne.
+  const files = await listFiles(mission.id);
+  const filesBase = `/api/admin/missions/${mission.id}/files`;
+  const filesQuery = `?restaurantId=${encodeURIComponent(restaurantId)}`;
   const pstate = hasDate ? await loadProposalState(mission.id) : null;
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
-  const toIdea = (p: { id: string; rank: number; title: string; idea: string; onsite: string; example_link: string }): IdeaView => ({ id: p.id, rank: p.rank, title: p.title, idea: p.idea, onsite: p.onsite, link: p.example_link });
+  const toIdea = (p: { id: string; rank: number; title: string; idea: string; onsite: string; example_link: string }): IdeaView => ({ id: p.id, rank: p.rank, title: p.title, idea: p.idea, onsite: p.onsite, link: p.example_link, files: files.filter((f) => f.scope === "proposal" && f.ref === p.id) });
   const teamMsg = hasDate
     ? teamMessage({
         shootDate: mission.shoot_date!,
@@ -139,6 +146,12 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
     <div className="space-y-6 max-w-xl">
       {back}
       <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
+      {files.some((f) => f.scope === "brief") && (
+        <Card className="space-y-2">
+          <SectionLabel>Pièces jointes du brief</SectionLabel>
+          <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} query={filesQuery} />
+        </Card>
+      )}
       {report && mission.report_submitted_at && (
         <ReportReview restaurantId={restaurantId} missionId={mission.id} providerName={providerName ?? "Le prestataire"} report={report} state={reportState} contestNote={mission.report_contest_note} />
       )}
@@ -186,6 +199,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
               deadlineLabel={dateLabelFr(pview.deadline.day)}
               canReject={judgeReject(rulesState(mission, pstate.state), today) === "ok"}
               second={pview.phase === "choose_second"}
+              filesBase={filesBase}
+              filesQuery={filesQuery}
             />
           )}
           {pview && (pview.phase === "awaiting_proposals" || pview.phase === "awaiting_second") && pview.deadline && (
@@ -200,6 +215,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
             <ProposalChosen
               idea={toIdea(pview.chosen)}
               by={pstate.state.chosenBy}
+              filesBase={filesBase}
+              filesQuery={filesQuery}
               teamUpdate={conceptMessage({ shootDate: mission.shoot_date!, startTime: mission.shoot_start!, providerName: providerName ?? "le prestataire", title: pview.chosen.title, onsite: pview.chosen.onsite })}
             />
           )}

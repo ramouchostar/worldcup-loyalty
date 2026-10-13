@@ -15,6 +15,8 @@ import {
 import { briefRows, centsToEurosInput, eurosToCents, issueMessage } from "@/lib/mission-view";
 import { ambitionHint, floorHint } from "@/lib/marketplace-budgets-rules";
 import { formatEuros } from "@/lib/mission-money";
+import { FilePicker } from "@/components/missions/FilePicker";
+import type { AttachmentView } from "@/lib/mission-files";
 
 // ADR 0084 §3 — l'assistant de brief du restaurateur : quelques questions par
 // écran, cases et pastilles d'abord, texte libre jamais seul, sauvegarde
@@ -24,6 +26,9 @@ import { formatEuros } from "@/lib/mission-money";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+// Le dernier écran : les pièces jointes (facultatives). Il n'est pas dans le modèle de questions : les fichiers ont leur propre envoi.
+const FILES_STEP: BriefStep = { key: "pieces", title: "Pièces jointes", subtitle: "Logo, photos de plats, charte, exemples : tout ce qui aide le prestataire à bien viser. Facultatif.", keys: [] };
+
 export function BriefWizard({
   restaurantId,
   missionId,
@@ -32,6 +37,7 @@ export function BriefWizard({
   initialAnswers,
   today,
   providerName,
+  initialFiles,
 }: {
   restaurantId: string;
   missionId: string;
@@ -41,6 +47,7 @@ export function BriefWizard({
   /** Jour belge YYYY-MM-DD, calculé côté serveur. */
   today: string;
   providerName: string | null;
+  initialFiles: AttachmentView[];
 }) {
   const router = useRouter();
   const [answers, setAnswers] = useState<BriefAnswers>(initialAnswers);
@@ -52,8 +59,10 @@ export function BriefWizard({
   const dirty = useRef(false);
 
   const byKey = useMemo(() => new Map(template.questions.map((q) => [q.key, q])), [template]);
-  const isRecap = step === steps.length;
-  const current = isRecap ? null : steps[step];
+  const allSteps = useMemo(() => [...steps, FILES_STEP], [steps]);
+  const [fileCount, setFileCount] = useState(initialFiles.length);
+  const isRecap = step === allSteps.length;
+  const current = isRecap ? null : allSteps[step];
 
   function set(key: string, value: BriefAnswers[string]) {
     dirty.current = true;
@@ -101,7 +110,7 @@ export function BriefWizard({
     const all = validateBrief(answers, template, today, "brief").issues;
     if (all.length > 0) {
       setIssues(all);
-      const first = steps.findIndex((s) => s.keys.some((k) => all.some((i) => i.key === k)));
+      const first = allSteps.findIndex((s) => s.keys.some((k) => all.some((i) => i.key === k)));
       if (first >= 0) setStep(first);
       return;
     }
@@ -121,7 +130,7 @@ export function BriefWizard({
       if (res.status === 422 && Array.isArray(body.issues)) {
         const list = body.issues as BriefIssue[];
         setIssues(list);
-        const first = steps.findIndex((s) => s.keys.some((k) => list.some((i) => i.key === k)));
+        const first = allSteps.findIndex((s) => s.keys.some((k) => list.some((i) => i.key === k)));
         if (first >= 0) setStep(first);
       }
       setSendError(body.error ?? "Envoi impossible pour le moment. Réessaie.");
@@ -143,7 +152,7 @@ export function BriefWizard({
       <div>
         <div className="flex items-center justify-between text-[12px] text-ink-muted mb-2">
           <span className="font-mono tracking-[0.12em] uppercase">
-            {isRecap ? "Récapitulatif" : `Étape ${step + 1} sur ${steps.length}`}
+            {isRecap ? "Récapitulatif" : `Étape ${step + 1} sur ${allSteps.length}`}
           </span>
           <span aria-live="polite" className={save === "error" ? "text-danger font-semibold" : ""}>
             {save === "saving" && "Sauvegarde…"}
@@ -152,13 +161,13 @@ export function BriefWizard({
           </span>
         </div>
         <div className="flex gap-1.5" aria-hidden>
-          {[...steps, null].map((_, i) => (
+          {[...allSteps, null].map((_, i) => (
             <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-boost-olive" : "bg-paper-border"}`} />
           ))}
         </div>
       </div>
 
-      {current && (
+      {current && current.key !== FILES_STEP.key && (
         <Card className="space-y-5">
           <div>
             <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">{current.title}</h2>
@@ -171,6 +180,17 @@ export function BriefWizard({
           {current.keys.includes("budget_cents") && <BudgetNotes floor={floorHint(template.budgetFloorCents, formatEuros)} ambition={ambitionText} />}
         </Card>
       )}
+
+      {/* Toujours monté (caché hors de son écran) : les fichiers déjà envoyés ne se perdent pas quand on change d'écran. */}
+      <div className={current?.key === FILES_STEP.key ? "" : "hidden"}>
+        <Card className="space-y-5">
+          <div>
+            <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">{FILES_STEP.title}</h2>
+            <p className="text-ink-muted text-[13.5px] mt-1">{FILES_STEP.subtitle}</p>
+          </div>
+          <FilePicker endpoint={`/api/admin/missions/${missionId}/files`} extra={{ restaurantId }} scope="brief" initial={initialFiles} max={10} onChange={(f) => setFileCount(f.length)} />
+        </Card>
+      </div>
 
       {isRecap && (
         <>
@@ -186,6 +206,10 @@ export function BriefWizard({
                   <dd className="text-[14px] text-ink whitespace-pre-line">{r.value}</dd>
                 </div>
               ))}
+              <div className="px-5 py-3 border-t border-paper-border">
+                <dt className="text-[12px] text-ink-faint">Pièces jointes</dt>
+                <dd className="text-[14px] text-ink">{fileCount === 0 ? "Aucune" : `${fileCount} fichier${fileCount > 1 ? "s" : ""}`}</dd>
+              </div>
             </dl>
             <div className="px-5 pb-4">
               <button type="button" onClick={() => setStep(0)} className="text-[13px] font-semibold text-ink underline underline-offset-2 min-h-[44px]">

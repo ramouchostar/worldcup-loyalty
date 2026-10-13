@@ -64,7 +64,7 @@ test("la saisie venue du réseau est nettoyée : types, longueurs, au plus 4 lig
   assert.deepEqual(sanitizeProposals({ proposals: "x" }), []);
   const s = sanitizeProposals({ proposals: [idea(1), 42, { title: 7, idea: null }, idea(4), idea(5), idea(6)] });
   assert.equal(s.length, 4);
-  assert.deepEqual(s[1], { title: "", idea: "", onsite: "", link: "" });
+  assert.deepEqual(s[1], { title: "", idea: "", onsite: "", link: "", files: [] });
   const long = sanitizeProposals({ proposals: [{ title: "x".repeat(500), idea: "", onsite: "", link: "" }] });
   assert.ok(long[0].title.length <= 81); // juste assez pour que la validation voie le dépassement
 });

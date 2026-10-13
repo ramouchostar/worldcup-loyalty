@@ -8,7 +8,7 @@ import { logEvent, restaurantMissionUrl } from "./missions";
 import { providerMissionUrl } from "./providers";
 import { getRestaurantContactEmail } from "./missions-contact";
 import { sendMissionReminderEmail } from "./email";
-import { DEFAULT_RESTAURANT_COPY_TO } from "./email-sender";
+import { platformAddress } from "./platform-address";
 
 // ============================================================
 // Réserver un prestataire (ADR 0084 §5) — le passage quotidien des rappels.
@@ -34,11 +34,6 @@ type Row = ReminderMission & {
 export type ReminderRun =
   | { ok: false; reason: "unavailable" }
   | { ok: true; today: string; missions: number; due: number; sent: number; failed: number; skipped: number };
-
-/** L'adresse qui reçoit les alertes plateforme : la boîte réelle de l'équipe, sinon la copie plateforme. */
-export function platformAddress(): string {
-  return (process.env.EMAIL_REPLY_TO || process.env.RESTAURANT_EMAIL_COPY_TO || DEFAULT_RESTAURANT_COPY_TO).trim();
-}
 
 export async function runMissionReminders(now: Date = new Date()): Promise<ReminderRun> {
   const today = todayInBrussels(now);
