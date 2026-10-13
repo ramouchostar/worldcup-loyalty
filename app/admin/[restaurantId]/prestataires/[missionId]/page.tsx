@@ -15,6 +15,10 @@ import { getCurrentQuote } from "@/lib/provider-missions";
 import { getPlan } from "@/lib/entitlements";
 import { restaurantView } from "@/lib/mission-quote";
 import { ShootPlanner } from "./ShootPlanner";
+import { CancelCard } from "@/components/missions/CancelCard";
+import { costNow } from "@/lib/missions-cancel";
+import { RESTAURANT_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-rules";
+import { formatEuros } from "@/lib/mission-money";
 import { DeliveryReview, ReportReview, type ReportView } from "./DayOfReview";
 import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
 import { RetouchForm } from "./RetouchForm";
@@ -117,6 +121,9 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const retouches = mission.retouch_rounds_used > 0 ? await listRetouches(mission.id) : [];
   const retouch = retouchState(mission.status, mission.retouch_rounds_used);
 
+  // Annuler : le devis se décline (carte « Décliner ce devis ») ; le reste s'annule ici, coût dit d'abord.
+  const cancelQuote = canCancel("restaurant", mission.status) && mission.status !== "devis" ? costNow(mission, "restaurant") : null;
+
   return (
     <div className="space-y-6 max-w-xl">
       {back}
@@ -184,6 +191,17 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           view={{ paidCents: priceView.paidCents, depositCents: priceView.depositCents, balanceCents: priceView.balanceCents, depositPct: priceView.depositBps / 100 }}
           budgetCents={budget}
           canDecline
+        />
+      )}
+      {cancelQuote && (
+        <CancelCard
+          cancelUrl={`/api/admin/missions/${mission.id}/cancel`}
+          body={{ restaurantId }}
+          reasons={RESTAURANT_REASONS}
+          costText={describeCost("restaurant", cancelQuote, formatEuros)}
+          severity={cancelQuote.band}
+          title={mission.status === "envoye" ? "Retirer ma demande" : "Annuler cette mission"}
+          confirmLabel="Annuler la mission"
         />
       )}
     </div>

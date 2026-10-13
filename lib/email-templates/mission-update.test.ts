@@ -61,3 +61,29 @@ test("la validation automatique parle à chacun avec ses mots", () => {
   assert.match(missionUpdateEmail({ ...base, kind: "auto_validated", audience: "provider" }).text, /prépare ton versement/);
   assert.match(missionUpdateEmail({ ...base, kind: "auto_validated", audience: "restaurant" }).text, /Tu n'as pas répondu/);
 });
+
+const cancelled = (audience: MissionUpdateInput["audience"], cancelledBy: "restaurant" | "provider" | "platform", band: "free" | "half" | "full") =>
+  missionUpdateEmail({ ...base, kind: "cancelled", audience, cancelledBy, band });
+
+test("annulation : chacun lit ce qui le concerne, avec ses mots", () => {
+  assert.match(cancelled("provider", "restaurant", "half").text, /La moitié du tournage t'est due/);
+  assert.match(cancelled("provider", "restaurant", "full").text, /Tout le tournage t'est dû/);
+  assert.match(cancelled("provider", "restaurant", "free").text, /Aucun frais/);
+  assert.match(cancelled("restaurant", "provider", "full").text, /remboursé en entier/);
+  assert.match(cancelled("restaurant", "provider", "full").text, /nouveau brief/);
+  assert.match(cancelled("restaurant", "restaurant", "half").text, /La moitié du tournage est due/);
+  assert.match(cancelled("platform", "provider", "half").text, /à la main/);
+});
+
+test("la sanction est dite au prestataire qui annule tard, pas au prestataire qui annule à temps", () => {
+  assert.match(cancelled("provider", "provider", "full").text, /sanctionnée/);
+  assert.doesNotMatch(cancelled("provider", "provider", "free").text, /sanctionnée/);
+});
+
+test("le restaurateur ne lit jamais la sanction du prestataire", () => {
+  assert.doesNotMatch(cancelled("restaurant", "provider", "full").text, /sanction|avertissement|exclusion/);
+});
+
+test("aucun euro dans un e-mail d'annulation", () => {
+  for (const a of ["restaurant", "provider", "platform"] as const) for (const b of ["free", "half", "full"] as const) assert.doesNotMatch(cancelled(a, "provider", b).html + cancelled(a, "restaurant", b).text, /€/);
+});

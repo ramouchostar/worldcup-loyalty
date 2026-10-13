@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -16,6 +16,9 @@ export type MissionUpdateInput = {
   url: string;
   /** retouch_requested : le tour demandé (1 ou 2) ; validation_reminder : le rappel (1 ou 2). */
   round?: 1 | 2;
+  /** cancelled : qui annule, et la bande du barème (gratuit / la moitié / tout). */
+  cancelledBy?: "restaurant" | "provider" | "platform";
+  band?: "free" | "half" | "full";
 };
 
 type Copy = { subject: string; preheader: string; title: string; paragraphs: string[]; cta: string; note: string };
@@ -76,6 +79,42 @@ function copyFor(i: MissionUpdateInput): Copy {
         cta: "Voir la mission",
         note: "Un doute ? Écris à Boosteats.",
       };
+    case "cancelled": {
+      const band = i.band ?? "free";
+      const by = i.cancelledBy ?? "restaurant";
+      const when = band === "free" ? "plus de 7 jours avant le tournage" : band === "half" ? "entre 7 jours et 48 h avant le tournage" : "moins de 48 h avant le tournage";
+      if (i.audience === "platform") {
+        const share = band === "free" ? "sans frais" : band === "half" ? "la moitié est due" : "tout est dû";
+        return {
+          subject: `Mission annulée par ${by === "provider" ? i.providerName : by === "restaurant" ? i.restaurantName : "la plateforme"} : ${i.restaurantName}`,
+          preheader: `${when} : ${share}.`,
+          title: "Une mission est annulée",
+          paragraphs: [`${i.restaurantName} et ${i.providerName} : mission annulée ${when} (${share}).`, "Le règlement (remboursement, versement, sanction) est à faire à la main tant que le paiement en ligne n'est pas ouvert : il t'attend sur la page Prestataires."],
+          cta: "Voir la mission",
+          note: "Une annulation de moins de 7 jours est visible dans « Annulations à régler ».",
+        };
+      }
+      if (i.audience === "provider") {
+        const money = by === "restaurant" ? (band === "free" ? "Aucun frais : le jour est de nouveau libre dans ton calendrier." : band === "half" ? "La moitié du tournage t'est due ; le jour est de nouveau libre." : "Tout le tournage t'est dû ; le jour est de nouveau libre.") : "Le restaurateur est remboursé ; le jour est de nouveau libre.";
+        return {
+          subject: by === "restaurant" ? `${i.restaurantName} annule le tournage` : `Annulation enregistrée : ${i.restaurantName}`,
+          preheader: money,
+          title: by === "restaurant" ? "Le tournage est annulé" : "Ton annulation est enregistrée",
+          paragraphs: [by === "restaurant" ? `${i.restaurantName} a annulé ${when}.` : `Tu as annulé ${when}.`, money],
+          cta: "Voir la mission",
+          note: by === "provider" && band !== "free" ? "Une annulation tardive est sanctionnée : avertissement, puis visibilité réduite, puis exclusion en cas de récidive." : "Merci de ta confiance.",
+        };
+      }
+      const money = by === "provider" ? "Tu es remboursé en entier." : band === "free" ? "Aucun frais : tu es remboursé en entier." : band === "half" ? "La moitié du tournage est due ; le reste t'est rendu." : "Tout le tournage est dû.";
+      return {
+        subject: by === "provider" ? `${i.providerName} ne peut plus venir` : `Annulation enregistrée : ${i.providerName}`,
+        preheader: money,
+        title: by === "provider" ? "Le prestataire ne peut plus venir" : "Ton annulation est enregistrée",
+        paragraphs: [by === "provider" ? `${i.providerName} a annulé ${when}.` : `Tu as annulé ${when}.`, money, by === "provider" ? "Tu peux faire un nouveau brief : tes réponses ne sont pas perdues." : "Boosteats règle les montants avec toi."],
+        cta: "Voir la mission",
+        note: "Un tournage annulé à moins de 48 h est dû en entier.",
+      };
+    }
     case "report_contested":
       return {
         subject: `Compte-rendu contesté : ${i.restaurantName}`,

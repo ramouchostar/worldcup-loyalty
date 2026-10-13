@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { createProvider, createProviderInvite, setProviderStatus } from "@/lib/providers";
 import { acceptQuoteByPlatform } from "@/lib/missions-dates";
+import { cancelByPlatform, settleCancellation } from "@/lib/missions-cancel";
+import type { Fault } from "@/lib/mission-cancel-rules";
 
 // ADR 0084 — la plateforme invite, relance et suspend les prestataires. Réservé au super-admin :
 // chaque action se re-garde (une Server Action est une route publique).
@@ -62,4 +64,35 @@ export async function acceptQuote(missionId: string): Promise<{ error?: string }
   revalidatePath("/platform/prestataires");
   if (r.ok) return {};
   return { error: r.reason === "not_a_quote" ? "Ce devis n'attend plus de réponse (déjà accepté, décliné ou annulé)." : r.reason === "not_found" ? "Mission introuvable." : "Enregistrement impossible pour le moment." };
+}
+
+/**
+ * La plateforme tranche un tournage qui n'a pas eu lieu (absence) ou une annulation contestée : la faute décide du
+ * barème, la force majeure rembourse tout sans sanction. La raison est obligatoire : elle reste dans la trace.
+ */
+export async function cancelAsPlatform(missionId: string, fault: Fault, reason: string, noShow: boolean): Promise<{ error?: string; summary?: string }> {
+  const userId = await requireSuperAdmin();
+  const r = await cancelByPlatform(missionId, userId, fault, reason, noShow);
+  revalidatePath("/platform/prestataires");
+  if (r.ok) return { summary: r.band === "free" ? "Annulée sans frais." : r.band === "half" ? "Annulée : la moitié est due." : "Annulée : tout est dû." };
+  switch (r.reason) {
+    case "invalid":
+      return { error: "Explique ta décision en quelques mots (5 caractères au moins)." };
+    case "already_cancelled":
+      return { error: "Cette mission est déjà annulée." };
+    case "not_cancellable":
+      return { error: "Cette mission ne peut pas s'annuler dans son état actuel." };
+    case "not_found":
+      return { error: "Mission introuvable." };
+    default:
+      return { error: "Enregistrement impossible pour le moment." };
+  }
+}
+
+/** Le remboursement ou le règlement a été fait à la main : la ligne quitte la liste. */
+export async function settleCancellationAction(missionId: string): Promise<{ error?: string }> {
+  const userId = await requireSuperAdmin();
+  const ok = await settleCancellation(missionId, userId);
+  revalidatePath("/platform/prestataires");
+  return ok ? {} : { error: "Déjà réglée, ou service indisponible." };
 }
