@@ -7,6 +7,11 @@ import { createProvider, createProviderInvite, setProviderStatus } from "@/lib/p
 import { acceptQuoteByPlatform } from "@/lib/missions-dates";
 import { cancelByPlatform, settleCancellation } from "@/lib/missions-cancel";
 import type { Fault } from "@/lib/mission-cancel-rules";
+import { markPaidOut, openDispute, resolveDispute } from "@/lib/missions-superadmin";
+import { RESOLVE_ISSUE_TEXT } from "@/lib/mission-dispute";
+import { SETTINGS_ISSUE_TEXT, saveTerms, validateSettings } from "@/lib/marketplace-settings";
+import { BUDGET_ISSUE_TEXT, saveBudgetConfig, validateBudgets, formatsOf } from "@/lib/marketplace-budgets";
+import { VIDEO_TEMPLATE } from "@/lib/mission-brief";
 
 // ADR 0084 — la plateforme invite, relance et suspend les prestataires. Réservé au super-admin :
 // chaque action se re-garde (une Server Action est une route publique).
@@ -95,4 +100,66 @@ export async function settleCancellationAction(missionId: string): Promise<{ err
   const ok = await settleCancellation(missionId, userId);
   revalidatePath("/platform/prestataires");
   return ok ? {} : { error: "Déjà réglée, ou service indisponible." };
+}
+
+// ── Litiges, versements, réglages ────────────────────────────
+
+export async function openDisputeAction(missionId: string, reason: string): Promise<{ error?: string; ok?: boolean }> {
+  const userId = await requireSuperAdmin();
+  const r = await openDispute(missionId, userId, reason);
+  revalidatePath("/platform/prestataires", "layout");
+  if (r.ok) return { ok: true };
+  switch (r.reason) {
+    case "invalid":
+      return { error: "Explique pourquoi en quelques mots (10 caractères au moins) : c'est le début du dossier." };
+    case "not_openable":
+      return { error: "Un litige ne s'ouvre pas dans l'état actuel de cette mission (déjà ouvert, validée, annulée ou payée)." };
+    case "not_found":
+      return { error: "Mission introuvable." };
+    default:
+      return { error: "Enregistrement impossible pour le moment." };
+  }
+}
+
+export async function resolveDisputeAction(missionId: string, payload: { decision: string; providerPct: string; sanction: string; note: string }): Promise<{ error?: string; ok?: boolean }> {
+  const userId = await requireSuperAdmin();
+  const r = await resolveDispute(missionId, userId, payload);
+  revalidatePath("/platform/prestataires", "layout");
+  if (r.ok) return { ok: true };
+  switch (r.reason) {
+    case "invalid":
+      return { error: r.issue ? RESOLVE_ISSUE_TEXT[r.issue] : "Décision non valable." };
+    case "not_in_dispute":
+      return { error: "Ce litige est déjà tranché." };
+    case "not_found":
+      return { error: "Mission introuvable." };
+    default:
+      return { error: "Enregistrement impossible pour le moment." };
+  }
+}
+
+export async function markPaidOutAction(missionId: string): Promise<{ error?: string }> {
+  const userId = await requireSuperAdmin();
+  const r = await markPaidOut(missionId, userId);
+  revalidatePath("/platform/prestataires", "layout");
+  if (r.ok) return {};
+  return { error: r.reason === "not_validated" ? "Déjà payé, ou la livraison n'est pas validée." : r.reason === "not_found" ? "Mission introuvable." : "Enregistrement impossible pour le moment." };
+}
+
+export async function saveSettingsAction(payload: { commissionPct: string; proCommissionPct: string; depositPct: string }): Promise<{ error?: string; ok?: boolean }> {
+  const userId = await requireSuperAdmin();
+  const v = validateSettings(payload);
+  if (!v.ok) return { error: v.issues.map((i) => SETTINGS_ISSUE_TEXT[i]).join(" ") };
+  const ok = await saveTerms(v.terms, userId);
+  revalidatePath("/platform/prestataires", "layout");
+  return ok ? { ok: true } : { error: "Enregistrement impossible pour le moment : la migration du module est-elle appliquée ?" };
+}
+
+export async function saveBudgetsAction(payload: { floorEuros: string; ambitionEuros: Record<string, string> }): Promise<{ error?: string; ok?: boolean }> {
+  const userId = await requireSuperAdmin();
+  const v = validateBudgets(payload, formatsOf(VIDEO_TEMPLATE));
+  if (!v.ok) return { error: v.issues.map((i) => `${i.field === "floor" ? "Plancher" : i.field} : ${BUDGET_ISSUE_TEXT[i.code]}`).join(" ") };
+  const ok = await saveBudgetConfig("video", v.floorCents, v.ambitionCents, userId);
+  revalidatePath("/platform/prestataires", "layout");
+  return ok ? { ok: true } : { error: "Enregistrement impossible pour le moment : la migration du module est-elle appliquée ?" };
 }

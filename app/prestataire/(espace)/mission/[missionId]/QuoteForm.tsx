@@ -6,7 +6,7 @@ import { Check, Minus, Plus } from "lucide-react";
 import { Card } from "@/components/admin/ui";
 import { QUOTE_INCLUDES, excludedFor, providerView, quoteVsBudget, type QuoteIssue } from "@/lib/mission-quote";
 import { eurosToCents } from "@/lib/mission-view";
-import { formatEuros, type Metier } from "@/lib/mission-money";
+import { DEFAULT_TERMS, formatEuros, type Metier } from "@/lib/mission-money";
 
 // ADR 0084 §3 règle 2 — le prestataire chiffre : durée, prix, ce qui est inclus (et donc
 // exclu), hypothèses. Son devis est FERME pour ce brief : l'écran le dit avant l'envoi.
@@ -29,7 +29,7 @@ const ISSUE_TEXT: Record<string, string> = {
   hypotheses_too_long: "Tes hypothèses sont trop longues (1 000 caractères au plus)",
 };
 
-export function QuoteForm({ missionId, metier, budgetCents }: { missionId: string; metier: Metier; budgetCents: number | null }) {
+export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { missionId: string; metier: Metier; budgetCents: number | null; commissionBps: number }) {
   const router = useRouter();
   const [priceText, setPriceText] = useState("");
   const [hours, setHours] = useState(4);
@@ -41,7 +41,7 @@ export function QuoteForm({ missionId, metier, budgetCents }: { missionId: strin
   const [sending, setSending] = useState(false);
 
   const priceCents = eurosToCents(priceText);
-  const view = priceCents ? providerView(priceCents) : null;
+  const view = priceCents ? providerView(priceCents, { ...DEFAULT_TERMS, commissionBps }) : null;
   const budget = priceCents ? quoteVsBudget(priceCents, budgetCents) : null;
   const excluded = excludedFor(metier, included);
   const issueOf = (field: QuoteIssue["field"]) => issues.find((i) => i.field === field);
@@ -167,7 +167,7 @@ export function QuoteForm({ missionId, metier, budgetCents }: { missionId: strin
             <p className="text-[14px] text-ink">
               Tu reçois <span className="font-bold">{formatEuros(view.youReceiveCents)}</span>
             </p>
-            <p className="text-[12.5px] text-ink-muted">87,5 % du prix, comme prévu dans ton contrat-cadre. Le restaurateur ne voit que son propre prix, jamais ta part.</p>
+            <p className="text-[12.5px] text-ink-muted">{`${(100 - commissionBps / 100).toString().replace(".", ",")} %`} du prix, comme prévu dans ton contrat-cadre. Le restaurateur ne voit que son propre prix, jamais ta part.</p>
           </div>
         )}
         {budget && !budget.within && (

@@ -42,16 +42,18 @@ export type CancelRecord = {
   platformKeepsCents: number;
   sanction: ProviderSanction;
   settlement: Settlement;
+  /** Une annulation qui est la décision d'un litige (remboursement ou partage) : l'écran de règlement le dit. */
+  dispute?: { decision: "refund" | "split"; providerPct: number | null };
 };
 
 export type CancelResult =
   | { ok: true; band: "free" | "half" | "full"; sanction: ProviderSanction }
   | { ok: false; reason: "not_found" | "not_cancellable" | "invalid" | "already_cancelled" | "unavailable"; issue?: CancelIssue };
 
-type Actor = { kind: "restaurant"; userId: string } | { kind: "provider"; userId: string | undefined } | { kind: "platform"; userId: string };
+export type Actor = { kind: "restaurant"; userId: string } | { kind: "provider"; userId: string | undefined } | { kind: "platform"; userId: string };
 
 /** L'écriture commune : jamais deux annulations, jamais une annulation sans sa trace chiffrée. */
-async function writeCancellation(mission: MissionRow, quote: CancelQuote & { sanction?: ProviderSanction }, actor: Actor, reason: string, note: string, fault: Fault | null): Promise<"done" | "raced" | "unavailable"> {
+export async function writeCancellation(mission: MissionRow, quote: CancelQuote & { sanction?: ProviderSanction }, actor: Actor, reason: string, note: string, fault: Fault | null, extra?: { record?: Partial<CancelRecord>; columns?: Record<string, unknown> }): Promise<"done" | "raced" | "unavailable"> {
   const admin = createAdminClient();
   const sanction = quote.sanction ?? (actor.kind === "provider" ? quote.outcome.providerSanction : "none");
   const deposit = mission.deposit_cents ?? 0;
@@ -71,6 +73,7 @@ async function writeCancellation(mission: MissionRow, quote: CancelQuote & { san
     platformKeepsCents: quote.outcome.platformKeepsCents,
     sanction,
     settlement,
+    ...(extra?.record ?? {}),
   };
   const now = new Date().toISOString();
   try {
@@ -85,6 +88,7 @@ async function writeCancellation(mission: MissionRow, quote: CancelQuote & { san
         // Rien à régler (rien n'a été payé, rien n'est dû) : la ligne n'attend personne.
         cancellation_settled_at: settlement.direction === "none" ? now : null,
         updated_at: now,
+        ...(extra?.columns ?? {}),
       })
       .eq("id", mission.id)
       .eq("status", mission.status) // deux clics, ou les deux parties en même temps : une seule annulation
@@ -101,7 +105,7 @@ async function writeCancellation(mission: MissionRow, quote: CancelQuote & { san
 }
 
 /** La sanction du prestataire, en compare-and-swap sur son état : deux annulations en même temps ne s'écrasent pas. */
-async function sanctionProvider(providerId: string | null, missionId: string, sanction: ProviderSanction, actor: Actor): Promise<void> {
+export async function sanctionProvider(providerId: string | null, missionId: string, sanction: ProviderSanction, actor: Actor): Promise<void> {
   if (!providerId || sanction === "none") return;
   try {
     const admin = createAdminClient();

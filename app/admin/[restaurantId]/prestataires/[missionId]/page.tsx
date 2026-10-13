@@ -13,6 +13,8 @@ import { MissionTracker } from "./MissionTracker";
 import { QuoteCard } from "./QuoteCard";
 import { getCurrentQuote } from "@/lib/provider-missions";
 import { getPlan } from "@/lib/entitlements";
+import { getTerms } from "@/lib/marketplace-settings";
+import { ambitionHint, floorHint } from "@/lib/marketplace-budgets";
 import { restaurantView } from "@/lib/mission-quote";
 import { ShootPlanner } from "./ShootPlanner";
 import { CancelCard } from "@/components/missions/CancelCard";
@@ -85,7 +87,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   // Le devis reçu, au prix que PAIE ce restaurateur selon son plan d'aujourd'hui (figé au paiement, pas ici).
   const quote = mission.status === "devis" ? await getCurrentQuote(mission.id) : null;
   const plan = quote ? await getPlan(restaurantId) : null;
-  const priceView = quote && plan ? restaurantView(quote.price_cents, plan) : null;
+  const { terms } = quote ? await getTerms() : { terms: undefined };
+  const priceView = quote && plan ? restaurantView(quote.price_cents, plan, terms) : null;
   const budget = typeof mission.brief?.budget_cents === "number" ? mission.brief.budget_cents : null;
 
   // Après l'acceptation du devis : le restaurateur choisit sa date dans les jours libres du prestataire.

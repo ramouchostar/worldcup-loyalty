@@ -13,6 +13,8 @@ import {
   type BriefTemplate,
 } from "@/lib/mission-brief";
 import { briefRows, centsToEurosInput, eurosToCents, issueMessage } from "@/lib/mission-view";
+import { ambitionHint, floorHint } from "@/lib/marketplace-budgets-rules";
+import { formatEuros } from "@/lib/mission-money";
 
 // ADR 0084 §3 — l'assistant de brief du restaurateur : quelques questions par
 // écran, cases et pastilles d'abord, texte libre jamais seul, sauvegarde
@@ -131,6 +133,9 @@ export function BriefWizard({
   }
 
   const issueOf = (key: string) => issues.find((i) => i.key === key);
+  // Règle 4 de l'ADR : un budget très inférieur à l'ambition déclarée est SIGNALÉ avant l'envoi, jamais refusé.
+  const ambitionWarning = validateBrief(answers, template, today, "brief").warnings[0];
+  const ambitionText = ambitionWarning ? ambitionHint(ambitionWarning.format, formatEuros, template.ambitionBudgetCents?.[ambitionWarning.format] ?? 0) : null;
 
   return (
     <div className="space-y-4 max-w-xl">
@@ -163,6 +168,7 @@ export function BriefWizard({
             const q = byKey.get(key);
             return q ? <Question key={key} q={q} value={answers[key]} issue={issueOf(key)} onChange={(v) => set(key, v)} /> : null;
           })}
+          {current.keys.includes("budget_cents") && <BudgetNotes floor={floorHint(template.budgetFloorCents, formatEuros)} ambition={ambitionText} />}
         </Card>
       )}
 
@@ -189,6 +195,7 @@ export function BriefWizard({
           </Card>
 
           <Card className="bg-boost-cream border-boost-olive/30 space-y-2">
+            {ambitionText && <p className="text-[13.5px] text-warn font-semibold">{ambitionText}</p>}
             <p className="font-semibold text-ink text-[14px]">Ce qui se passe ensuite</p>
             <ul className="text-[13.5px] text-ink-body space-y-1.5 list-disc pl-5">
               <li>{providerName ? `${providerName} lit` : "Le vidéaste lit"} ton brief et te répond avec un devis.</li>
@@ -244,6 +251,16 @@ export function BriefWizard({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function BudgetNotes({ floor, ambition }: { floor: string | null; ambition: string | null }) {
+  if (!floor && !ambition) return null;
+  return (
+    <div className="space-y-1.5" aria-live="polite">
+      {floor && <p className="text-[13px] text-ink-muted">{floor}</p>}
+      {ambition && <p role="status" className="text-[13px] text-warn font-semibold">{ambition}</p>}
     </div>
   );
 }

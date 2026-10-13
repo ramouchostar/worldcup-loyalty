@@ -59,7 +59,7 @@ test("le restaurateur qui n'a plus de tour peut encore valider", () => {
 });
 
 test("la plateforme tranche un litige : verser, rembourser ou faire refaire — pas le restaurateur", () => {
-  assert.deepEqual(nextStatuses("litige", "platform").sort(), ["annule", "retouche", "verse"]);
+  assert.deepEqual(nextStatuses("litige", "platform").sort(), ["annule", "retouche", "valide", "verse"]);
   assert.deepEqual(nextStatuses("litige", "restaurant"), []);
   assert.deepEqual(nextStatuses("litige", "provider"), []);
 });
