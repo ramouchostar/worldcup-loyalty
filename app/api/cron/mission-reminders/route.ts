@@ -3,6 +3,7 @@ import { runMissionReminders } from "@/lib/mission-reminders-runner";
 import { runAutoValidation } from "@/lib/mission-validation-runner";
 import { runProposalsPass } from "@/lib/missions-proposals";
 import { cleanupFiles } from "@/lib/missions-files";
+import { runChangesPass } from "@/lib/missions-changes";
 
 // Passage quotidien du module Prestataires (ADR 0084) — 7 h UTC, soit 8 h à Bruxelles en hiver
 // (9 h en été) : à la prise de service, pas la veille au soir. Gardé par CRON_SECRET comme les autres crons.
@@ -18,9 +19,9 @@ export async function GET(request: Request) {
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
-  const [reminders, validation, proposals, files] = await Promise.all([runMissionReminders(), runAutoValidation(), runProposalsPass(), cleanupFiles()]);
+  const [reminders, validation, proposals, files, changes] = await Promise.all([runMissionReminders(), runAutoValidation(), runProposalsPass(), cleanupFiles(), runChangesPass()]);
   if (!reminders.ok && !validation.ok && !proposals.ok) {
     return NextResponse.json({ error: "Module Prestataires indisponible : migrations non appliquées ?", reminders, validation, proposals }, { status: 503 });
   }
-  return NextResponse.json({ reminders, validation, proposals, files });
+  return NextResponse.json({ reminders, validation, proposals, files, changes });
 }

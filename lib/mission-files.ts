@@ -15,16 +15,16 @@ export const MAX_SVG_BYTES = 2 * 1024 * 1024;
 export const MAX_MISSION_BYTES = 200 * 1024 * 1024;
 export const MAX_NAME_LENGTH = 120;
 
-export type FileScope = "brief" | "proposal" | "retouch";
-export const FILE_SCOPES: readonly FileScope[] = ["brief", "proposal", "retouch"];
+export type FileScope = "brief" | "proposal" | "retouch" | "change";
+export const FILE_SCOPES: readonly FileScope[] = ["brief", "proposal", "retouch", "change"];
 
 /** Combien de pièces jointes NON rattachées par portée : brief (10, définitif), idées (9 : 3 par idée), retouche (5 par tour). */
-export const MAX_UNLINKED: Record<FileScope, number> = { brief: 10, proposal: 9, retouch: 5 };
+export const MAX_UNLINKED: Record<FileScope, number> = { brief: 10, proposal: 9, retouch: 5, change: 3 };
 /** Par idée, au plus. */
 export const MAX_PER_PROPOSAL = 3;
 
 /** Qui peut déposer dans quelle portée. */
-export const SCOPE_ACTOR: Record<FileScope, "restaurant" | "provider"> = { brief: "restaurant", proposal: "provider", retouch: "restaurant" };
+export const SCOPE_ACTOR: Record<FileScope, "restaurant" | "provider"> = { brief: "restaurant", proposal: "provider", retouch: "restaurant", change: "restaurant" };
 
 type Sig = (b: Uint8Array) => boolean;
 

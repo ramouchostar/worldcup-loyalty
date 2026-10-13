@@ -190,7 +190,7 @@ test("les tailles se lisent en français", () => {
 });
 
 test("qui dépose où, et combien : le brief et les retouches au restaurateur, les idées au prestataire", () => {
-  assert.deepEqual(SCOPE_ACTOR, { brief: "restaurant", proposal: "provider", retouch: "restaurant" });
+  assert.deepEqual(SCOPE_ACTOR, { brief: "restaurant", proposal: "provider", retouch: "restaurant", change: "restaurant" });
   assert.deepEqual([...FILE_SCOPES].sort(), Object.keys(MAX_UNLINKED).sort());
   assert.ok(MAX_MISSION_BYTES >= MAX_FILE_BYTES * 4);
 });
@@ -206,7 +206,7 @@ test("la migration : espace privé, limite de 25 Mo, portées et dépositaires c
   const sql = readFileSync("docs/migrations/20261013-1300-prestataires-pieces-jointes.sql", "utf8");
   assert.match(sql, /'mission-files', 'mission-files', false, 26214400/);
   assert.equal(26214400, MAX_FILE_BYTES);
-  for (const s of FILE_SCOPES) assert.ok(sql.includes(`'${s}'`), s);
+  for (const s of FILE_SCOPES.filter((x) => x !== "change")) assert.ok(sql.includes(`'${s}'`), s); // « change » arrive avec la migration des modifications
   assert.match(sql, /uploaded_by\s+TEXT NOT NULL CHECK \(uploaded_by IN \('restaurant', 'provider'\)\)/);
   assert.match(sql, /ENABLE ROW LEVEL SECURITY/);
   assert.doesNotMatch(sql, /CREATE POLICY/); // aucune policy : le bucket n'est lisible que par le serveur

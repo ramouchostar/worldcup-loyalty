@@ -6,6 +6,8 @@ import { getForProvider } from "./provider-missions";
 import type { ProviderRow } from "./providers";
 import { retouchState } from "./mission-retouch";
 import { judgeSubmit } from "./mission-proposals";
+import { judgeChangeRequest } from "./mission-changes";
+import { listChanges } from "./missions-changes-state";
 import { loadProposalState, rulesState } from "./missions-proposals-state";
 import {
   FILE_SCOPES,
@@ -60,6 +62,10 @@ async function openScope(scope: FileScope, m: Ctx): Promise<{ open: boolean; ref
   if (scope === "retouch") {
     const s = retouchState(m.status, m.retouch_rounds_used);
     return s.can ? { open: true, ref: `round-${s.round}` } : { open: false, ref: null };
+  }
+  if (scope === "change") {
+    const c = await listChanges(m.id);
+    return { open: c.ok && judgeChangeRequest({ status: m.status, shootDate: m.shoot_date, changes: c.changes }, todayInBrussels()) === "ok", ref: null };
   }
   const p = await loadProposalState(m.id);
   if (!p.ok) return { open: false, ref: null };
