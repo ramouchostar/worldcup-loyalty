@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -27,6 +27,8 @@ export type MissionUpdateInput = {
   count?: number;
   deadlineLabel?: string;
   auto?: "auto" | "fallback";
+  /** Modifications : le prestataire propose « sans supplément ». */
+  free?: boolean;
 };
 
 type Copy = { subject: string; preheader: string; title: string; paragraphs: string[]; cta: string; note: string };
@@ -219,6 +221,78 @@ function copyFor(i: MissionUpdateInput): Copy {
         paragraphs: [`${i.providerName} n'a déposé aucune idée pour le tournage chez ${i.restaurantName}${i.deadlineLabel ? ` (tournage ${i.deadlineLabel})` : ""}. Appelle le prestataire : sans idée, le restaurateur ne peut rien choisir.`],
         cta: "Voir la mission",
         note: "Le prestataire peut encore déposer ses idées jusqu'à trois jours avant le tournage.",
+      };
+    case "change_requested":
+      return {
+        subject: `${i.restaurantName} demande une modification du brief`,
+        preheader: "Chiffre un supplément (ou « sans supplément »), ou refuse : tu as 3 jours.",
+        title: "Une modification du brief est demandée",
+        paragraphs: [`${i.restaurantName} souhaite changer quelque chose au brief verrouillé. La demande, avec ses pièces jointes éventuelles, est dans l'espace : lis-la, puis chiffre un supplément (il peut être nul) ou refuse en disant pourquoi.`, "Si tu ne réponds pas dans les 3 jours, la demande expire et le brief d'origine tient."],
+        cta: "Lire la demande",
+        note: "Une modification n'est jamais obligatoire pour toi : le brief d'origine, lui, reste ferme.",
+      };
+    case "change_quoted":
+      return {
+        subject: i.free ? `${i.providerName} accepte la modification, sans supplément` : `${i.providerName} propose un supplément pour ta modification`,
+        preheader: i.free ? "Accepte pour que le changement soit pris en compte." : "Accepte ou refuse : le brief d'origine tient si tu refuses.",
+        title: i.free ? "La modification est possible, sans supplément" : "Un supplément est proposé",
+        paragraphs: [i.free ? `${i.providerName} peut faire ce changement sans supplément. Confirme-le pour qu'il soit pris en compte.` : `${i.providerName} peut faire ce changement avec un supplément. Le prix et les jours de livraison éventuels en plus sont dans l'espace : accepte ou refuse.`, "Sans ta réponse avant 7 jours du tournage, la demande expire et le brief d'origine tient."],
+        cta: i.free ? "Confirmer la modification" : "Voir le supplément",
+        note: "Tu as droit à deux demandes de modification au total.",
+      };
+    case "change_provider_declined":
+      return {
+        subject: `${i.providerName} ne peut pas faire cette modification`,
+        preheader: "Le brief d'origine tient.",
+        title: "La modification est refusée",
+        paragraphs: [`${i.providerName} ne peut pas faire ce changement. Sa raison est dans l'espace. Rien d'autre ne change : le brief d'origine tient, la date aussi.`],
+        cta: "Lire la raison",
+        note: "Cette demande ne compte pas dans tes deux demandes de modification.",
+      };
+    case "change_accepted":
+      return i.audience === "platform"
+        ? {
+            subject: `Supplément accepté : ${i.providerName} chez ${i.restaurantName}`,
+            preheader: "À encaisser à la main tant que le paiement en ligne n'est pas ouvert.",
+            title: "Un supplément est accepté",
+            paragraphs: [`${i.restaurantName} a accepté le supplément de ${i.providerName} pour une modification du brief. Les montants de la mission sont mis à jour ; le supplément se règle avec le solde.`],
+            cta: "Voir la mission",
+            note: "Le détail (supplément, part du prestataire) est dans la trace de la mission.",
+          }
+        : {
+            subject: `${i.restaurantName} a accepté la modification`,
+            preheader: "Elle est prise en compte : le brief est complété.",
+            title: "La modification est acceptée",
+            paragraphs: [`${i.restaurantName} a accepté la modification${i.free ? " (sans supplément)" : " et son supplément"}. Elle complète le brief : c'est ce que tu livres. Elle est dans l'espace, avec ses pièces jointes.`],
+            cta: "Voir la modification",
+            note: "Les dates convenues ne changent pas, sauf les jours de livraison en plus que tu as indiqués.",
+          };
+    case "change_restaurant_declined":
+      return {
+        subject: `${i.restaurantName} garde le brief d'origine`,
+        preheader: "Le supplément n'est pas accepté.",
+        title: "Le supplément est refusé",
+        paragraphs: [`${i.restaurantName} n'a pas accepté le supplément : le brief d'origine tient, rien ne change pour toi.`],
+        cta: "Voir la mission",
+        note: "Merci de ta réponse rapide.",
+      };
+    case "change_withdrawn":
+      return {
+        subject: `${i.restaurantName} retire sa demande de modification`,
+        preheader: "Rien à faire : le brief d'origine tient.",
+        title: "La demande est retirée",
+        paragraphs: [`${i.restaurantName} a retiré sa demande de modification. Tu n'as rien à faire : le brief d'origine tient.`],
+        cta: "Voir la mission",
+        note: "Merci.",
+      };
+    case "change_expired":
+      return {
+        subject: i.audience === "provider" ? `Une demande de modification a expiré : ${i.restaurantName}` : `Ta demande de modification a expiré`,
+        preheader: "Le brief d'origine tient.",
+        title: "La demande de modification a expiré",
+        paragraphs: [i.audience === "provider" ? `La demande de modification de ${i.restaurantName} est restée sans réponse : elle expire, le brief d'origine tient.` : `Ta demande de modification est restée sans réponse à temps : elle expire, le brief d'origine tient.`, i.audience === "provider" ? "Une demande ne compte pas dans les deux du restaurateur quand le prestataire n'a pas répondu." : "Elle ne compte pas dans tes deux demandes : tu peux en faire une autre tant que le tournage est à plus de 7 jours."],
+        cta: "Voir la mission",
+        note: "Un doute ? Écris à Boosteats.",
       };
     case "report_contested":
       return {

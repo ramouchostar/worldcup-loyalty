@@ -1,15 +1,13 @@
 import { createAdminClient } from "./supabase";
 import { isMissingTable } from "./audit/store";
 import { todayInBrussels } from "./qr-funnel";
-import { logEvent, getMission, restaurantMissionUrl } from "./missions";
+import { logEvent, getMission } from "./missions";
+import { mailMission as mail } from "./missions-notify";
 import { getForProvider } from "./provider-missions";
-import { getRestaurantContactEmail } from "./missions-contact";
-import { providerMissionUrl, type ProviderRow } from "./providers";
-import { sendMissionUpdateEmail } from "./email";
+import type { ProviderRow } from "./providers";
 import { dateLabelFr } from "./mission-team-message";
 import { loadProposalState, rulesState } from "./missions-proposals-state";
 import { linkFiles } from "./missions-files-link";
-import { platformAddress } from "./platform-address";
 import {
   autoChoice,
   dueProposalReminders,
@@ -27,7 +25,6 @@ import {
   type ReasonIssue,
 } from "./mission-proposals";
 import { addDays } from "./console-journey";
-import type { MissionUpdateInput } from "./email-templates/mission-update";
 
 // ============================================================
 // Réserver un prestataire (ADR 0084 §5, PR K) — les propositions créatives : déposer, choisir, refuser, retenir d'office.
@@ -40,37 +37,6 @@ import type { MissionUpdateInput } from "./email-templates/mission-update";
 
 type DbError = { code?: string; message?: string } | null;
 const unavailable = { ok: false, reason: "unavailable" } as const;
-
-// ── Les e-mails ──────────────────────────────────────────────
-
-type Party = { restaurantId: string; restaurantName: string; providerName: string; providerEmail: string | null; requestedBy: string | null };
-
-async function party(missionId: string): Promise<Party | null> {
-  const { data } = await createAdminClient().from("missions").select("restaurant_id, requested_by, restaurants(name), providers(email, display_name)").eq("id", missionId).maybeSingle();
-  const r = data as unknown as { restaurant_id: string; requested_by: string | null; restaurants: { name: string } | null; providers: { email: string; display_name: string } | null } | null;
-  if (!r) return null;
-  return { restaurantId: r.restaurant_id, restaurantName: r.restaurants?.name ?? "Un restaurateur", providerName: r.providers?.display_name ?? "Le prestataire", providerEmail: r.providers?.email ?? null, requestedBy: r.requested_by };
-}
-
-type MailExtras = Pick<MissionUpdateInput, "title" | "count" | "deadlineLabel" | "auto">;
-
-/** Un e-mail à l'une des parties. Best-effort, jamais silencieux : l'issue est une ligne de la trace. */
-async function mail(missionId: string, to: "restaurant" | "provider" | "platform", kind: MissionUpdateInput["kind"], extras: MailExtras = {}): Promise<boolean> {
-  try {
-    const p = await party(missionId);
-    if (!p) throw new Error("mission introuvable");
-    const address = to === "restaurant" ? await getRestaurantContactEmail(p.restaurantId, p.requestedBy) : to === "provider" ? p.providerEmail : platformAddress();
-    if (!address) throw new Error(`aucune adresse pour ${to}`);
-    const url = to === "provider" ? providerMissionUrl(missionId) : restaurantMissionUrl(p.restaurantId, missionId);
-    const sent = await sendMissionUpdateEmail(address, { kind, audience: to, restaurantName: p.restaurantName, providerName: p.providerName, url, ...extras }, p.restaurantId);
-    await logEvent(missionId, { kind: sent ? (to === "provider" ? "provider_notified" : to === "restaurant" ? "restaurant_notified" : "platform_notified") : "notify_failed", actorKind: "system", meta: { channel: "email", about: kind } });
-    return sent;
-  } catch (e) {
-    console.error("[missions-proposals] mail failed:", kind, (e as Error).message);
-    await logEvent(missionId, { kind: "notify_failed", actorKind: "system", reason: (e as Error).message, meta: { channel: "email", about: kind } });
-    return false;
-  }
-}
 
 // ── Le prestataire dépose sa série ───────────────────────────
 

@@ -81,6 +81,17 @@ prestataire peut exercer plusieurs métiers. **Rien côté membre** (ADR 0007/00
    (« je n'aime pas » seul est refusé). Une retouche n'est pas une refonte.
 9. **Tout changement après verrouillage est une demande de modification** que le prestataire
    chiffre ou refuse.
+   *Précisé le 2026-10-14 (PR M)* : demandée **après l'acceptation du devis et jusqu'à J-7** du tournage
+   (au-delà, l'équipe est prévenue et le prestataire s'est organisé). Une demande = des catégories (plats,
+   cuisine ou salle, ton, format ou durée, personnes, autre) + une explication d'au moins 30 caractères +
+   pièces jointes éventuelles. Le prestataire a **3 jours** pour répondre : un **supplément** (jusqu'à
+   5 000 €, **éventuellement nul**) et des jours de livraison en plus, ou un **refus avec sa raison**. Le
+   restaurateur accepte ou non le supplément (jusqu'à J-7). **Refus ou silence : le brief d'origine tient**,
+   rien d'autre ne change. **Une seule demande ouverte à la fois, deux au total** ; une demande que le
+   prestataire refuse, laisse expirer ou que le restaurateur retire ne compte pas dans les deux. À
+   l'acceptation, le supplément est **figé** (plan et conditions du moment, même commission que le devis) et
+   ajouté aux montants de la mission ; avant Stripe il se règle à la main avec le solde, la plateforme est
+   alertée par e-mail. Les dates convenues ne changent pas.
 
 ### 4. Annulation et dates liantes
 

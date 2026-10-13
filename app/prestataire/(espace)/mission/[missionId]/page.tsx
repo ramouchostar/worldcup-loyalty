@@ -24,6 +24,8 @@ import { RefuseForm } from "./RefuseForm";
 import { ProposalsForm } from "./ProposalsForm";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
+import { ChangePanel } from "./ChangePanel";
+import { listChanges } from "@/lib/missions-changes-state";
 import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals-state";
 import { CHOSEN_BY_LABEL, judgeSubmit } from "@/lib/mission-proposals";
 
@@ -61,6 +63,10 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   // Les idées de tournage (PR K) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const files = await listFiles(mission.id);
   const filesBase = `/api/prestataire/missions/${mission.id}/files`;
+  // Les demandes de modification (PR M) : migration absente → rien d'affiché, le reste de la mission fonctionne.
+  const changesRes = mission.status === "envoye" || mission.status === "devis" ? null : await listChanges(mission.id);
+  const commissionBps = changesRes?.ok && changesRes.changes.some((c) => c.status === "proposed") ? (await getTerms()).terms.commissionBps : 0;
+  const changeFiles = (seq: number) => files.filter((f) => f.scope === "change" && f.ref === `change-${seq}`);
   const pstate = mission.shoot_date && mission.status !== "annule" ? await loadProposalState(mission.id) : null;
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
   const received = new Date(mission.brief_locked_at ?? mission.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" });
@@ -93,6 +99,42 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
         <Card className="space-y-2">
           <SectionLabel>Pièces jointes du brief</SectionLabel>
           <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} />
+        </Card>
+      )}
+
+      {changesRes?.ok &&
+        changesRes.changes
+          .filter((c) => c.status === "proposed")
+          .map((c) => (
+            <ChangePanel key={c.id} missionId={mission.id} commissionBps={commissionBps} filesBase={filesBase} change={{ id: c.id, seq: c.seq, categories: c.categories, description: c.description, files: changeFiles(c.seq) }} />
+          ))}
+      {changesRes?.ok && changesRes.changes.some((c) => c.status === "quoted") && (
+        <Card className="space-y-1">
+          <SectionLabel>Modification chiffrée</SectionLabel>
+          <p className="text-[13.5px] text-ink-muted">Ton supplément est envoyé : le restaurateur l&apos;accepte ou garde le brief d&apos;origine.</p>
+        </Card>
+      )}
+      {changesRes?.ok && changesRes.changes.some((c) => c.status === "accepted") && (
+        <Card className="space-y-3">
+          <SectionLabel>Modifications acceptées</SectionLabel>
+          <p className="text-[13px] text-ink-muted">Elles complètent le brief : c&apos;est ce que tu livres.</p>
+          <ol className="space-y-3">
+            {changesRes.changes
+              .filter((c) => c.status === "accepted")
+              .map((c) => (
+                <li key={c.id} className="rounded-xl border border-paper-border bg-white p-3 space-y-1.5">
+                  <p className="text-[12.5px] font-semibold text-ink-muted">
+                    Modification {c.seq} · {c.categories.join(" · ")}
+                  </p>
+                  <p className="text-[14px] text-ink whitespace-pre-line">{c.description}</p>
+                  <p className="text-[13px] text-ink">
+                    {c.provider_cents ? `Tu reçois ${formatEuros(c.provider_cents)} de plus` : "Sans supplément"}
+                    {c.delta_days ? ` · livraison ${c.delta_days} jour${c.delta_days > 1 ? "s" : ""} plus tard` : ""}
+                  </p>
+                  <AttachmentList files={changeFiles(c.seq)} base={filesBase} />
+                </li>
+              ))}
+          </ol>
         </Card>
       )}
 

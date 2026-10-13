@@ -20,7 +20,7 @@ import { ShootPlanner } from "./ShootPlanner";
 import { CancelCard } from "@/components/missions/CancelCard";
 import { costNow } from "@/lib/missions-cancel";
 import { RESTAURANT_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-rules";
-import { formatEuros } from "@/lib/mission-money";
+import { formatEuros, priceBreakdown } from "@/lib/mission-money";
 import { DeliveryReview, ReportReview, type ReportView } from "./DayOfReview";
 import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
 import { RetouchForm } from "./RetouchForm";
@@ -36,6 +36,9 @@ import { judgeReject } from "@/lib/mission-proposals";
 import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
+import { ChangesCard, type ChangeView } from "./ChangesCard";
+import { listChanges } from "@/lib/missions-changes-state";
+import { REQUEST_VERDICT_TEXT, judgeChangeRequest } from "@/lib/mission-changes";
 import { Card, SectionLabel } from "@/components/admin/ui";
 
 // ADR 0084 — une mission : l'assistant de brief tant que c'est un brouillon,
@@ -116,6 +119,25 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const files = await listFiles(mission.id);
   const filesBase = `/api/admin/missions/${mission.id}/files`;
   const filesQuery = `?restaurantId=${encodeURIComponent(restaurantId)}`;
+  // Les demandes de modification (PR M) : migration absente → rien d'affiché, le reste de la mission fonctionne.
+  const changesRes = mission.status === "envoye" || mission.status === "devis" ? null : await listChanges(mission.id);
+  const changePlan = changesRes?.ok && changesRes.changes.some((c) => c.status === "quoted") ? await getPlan(restaurantId) : null;
+  const changeTerms = changePlan ? (await getTerms()).terms : undefined;
+  const changeViews: ChangeView[] = changesRes?.ok
+    ? changesRes.changes.map((c) => ({
+        id: c.id,
+        seq: c.seq,
+        status: c.status,
+        categories: c.categories,
+        description: c.description,
+        files: files.filter((f) => f.scope === "change" && f.ref === `change-${c.seq}`),
+        paidCents: c.status === "accepted" ? c.paid_cents : c.supplement_cents === null ? null : changePlan ? priceBreakdown(c.supplement_cents, changePlan, changeTerms).paidCents : null,
+        deltaDays: c.delta_days,
+        providerNote: c.provider_note,
+        declineReason: c.decline_reason,
+      }))
+    : [];
+  const changeVerdict = changesRes?.ok ? judgeChangeRequest({ status: mission.status, shootDate: mission.shoot_date, changes: changesRes.changes }, today) : "not_now";
   const pstate = hasDate ? await loadProposalState(mission.id) : null;
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
   const toIdea = (p: { id: string; rank: number; title: string; idea: string; onsite: string; example_link: string }): IdeaView => ({ id: p.id, rank: p.rank, title: p.title, idea: p.idea, onsite: p.onsite, link: p.example_link, files: files.filter((f) => f.scope === "proposal" && f.ref === p.id) });
@@ -151,6 +173,17 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           <SectionLabel>Pièces jointes du brief</SectionLabel>
           <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} query={filesQuery} />
         </Card>
+      )}
+      {changesRes?.ok && (changeViews.length > 0 || changeVerdict === "ok") && (
+        <ChangesCard
+          restaurantId={restaurantId}
+          missionId={mission.id}
+          providerName={providerName ?? "Le prestataire"}
+          changes={changeViews}
+          blocked={changeVerdict === "ok" ? null : REQUEST_VERDICT_TEXT[changeVerdict]}
+          filesBase={filesBase}
+          filesQuery={filesQuery}
+        />
       )}
       {report && mission.report_submitted_at && (
         <ReportReview restaurantId={restaurantId} missionId={mission.id} providerName={providerName ?? "Le prestataire"} report={report} state={reportState} contestNote={mission.report_contest_note} />
