@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { listProviders } from "@/lib/providers";
 import { listQuotedMissions } from "@/lib/missions-dates";
+import { listUnconfirmed } from "@/lib/missions-presence";
+import { dateLabelFr } from "@/lib/mission-team-message";
 import { formatEuros } from "@/lib/mission-money";
 import { AcceptQuoteButton, InviteForm, LinkBox, ProviderActions } from "./ProviderControls";
 
@@ -26,7 +28,7 @@ export default async function PlatformProvidersPage() {
   const { data: profile } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
   if (!profile?.is_super_admin) redirect("/join?reason=platform-required");
 
-  const [result, quoted] = await Promise.all([listProviders(), listQuotedMissions()]);
+  const [result, quoted, watched] = await Promise.all([listProviders(), listQuotedMissions(), listUnconfirmed()]);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -41,6 +43,25 @@ export default async function PlatformProvidersPage() {
         <h2 className="font-semibold">Inviter un prestataire</h2>
         <InviteForm />
       </section>
+
+      {watched.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-semibold">Présences à confirmer (tournage dans 2 jours ou moins)</h2>
+          <p className="text-xs text-gray-500">Un rappel part par e-mail ; si personne ne répond, appelle. Un tournage annulé à moins de 48 h est dû en entier.</p>
+          <ul className="space-y-3">
+            {watched.map((w) => (
+              <li key={w.id} className={`${CARD} p-5`}>
+                <p className="font-semibold">
+                  {w.restaurant_name} <span className="text-gray-500 font-normal">· {w.provider_name}</span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  {dateLabelFr(w.shoot_date)}{w.shoot_start ? ` à ${w.shoot_start}` : ""} · <span className="text-amber-700 font-semibold">pas confirmé : {w.missing.join(", ")}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {quoted.length > 0 && (
         <section className="space-y-3">
@@ -70,7 +91,7 @@ export default async function PlatformProvidersPage() {
         <h2 className="font-semibold">Les prestataires</h2>
         {!result.ok ? (
           <p className={`${CARD} p-5 text-sm text-gray-500`}>
-            Le module n&apos;est pas encore disponible : applique les migrations <code>20261009-1030-prestataires-schema</code>, <code>20261009-1500-prestataires-invitations</code> et <code>20261012-1000-prestataires-disponibilites</code>.
+            Le module n&apos;est pas encore disponible : applique les migrations <code>20261009-1030-prestataires-schema</code>, <code>20261009-1500-prestataires-invitations</code>, <code>20261012-1000-prestataires-disponibilites</code> et <code>20261012-1100-prestataires-rappels</code>.
           </p>
         ) : result.providers.length === 0 ? (
           <p className={`${CARD} p-5 text-sm text-gray-500`}>Aucun prestataire pour l&apos;instant. Invite le premier ci-dessus.</p>

@@ -8,6 +8,9 @@ import { formatEuros } from "@/lib/mission-money";
 import { providerView } from "@/lib/mission-quote";
 import { Card, EmptyState, PageHeader, SectionLabel, StatusBadge } from "@/components/admin/ui";
 import { dateLabelFr } from "@/lib/mission-team-message";
+import { judgeConfirm } from "@/lib/mission-reminders";
+import { todayInBrussels } from "@/lib/qr-funnel";
+import { PresenceCard } from "@/components/missions/PresenceCard";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
 
@@ -132,6 +135,18 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           })()}
           <p className="text-[12.5px] text-ink-muted">Le restaurateur est engagé sur cette date, et toi aussi.</p>
         </Card>
+      )}
+
+      {mission.status === "date_bloquee" && mission.shoot_date && (
+        <PresenceCard
+          confirmUrl={`/api/prestataire/missions/${mission.id}/confirm`}
+          body={{}}
+          icsUrl={`/api/prestataire/missions/${mission.id}/ics`}
+          verdict={judgeConfirm(mission.shoot_date, todayInBrussels())}
+          selfConfirmed={!!mission.j2_confirmed_provider_at}
+          otherConfirmed={!!mission.j2_confirmed_restaurant_at}
+          otherName={mission.restaurant_name}
+        />
       )}
 
       {mission.status === "annule" && !quote && <p className="text-[13.5px] text-ink-muted">Cette mission est annulée.</p>}

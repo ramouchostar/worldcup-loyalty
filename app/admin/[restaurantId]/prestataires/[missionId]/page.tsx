@@ -18,6 +18,8 @@ import { ShootPlanner } from "./ShootPlanner";
 import { TeamNotice } from "./TeamNotice";
 import { loadBlocked } from "@/lib/missions-dates";
 import { buildCalendar, teamNoticeState } from "@/lib/mission-dates";
+import { judgeConfirm } from "@/lib/mission-reminders";
+import { PresenceCard } from "@/components/missions/PresenceCard";
 import { dateLabelFr, teamMessage } from "@/lib/mission-team-message";
 import { Card, SectionLabel } from "@/components/admin/ui";
 
@@ -117,6 +119,17 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
             <p className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">{dateLabelFr(mission.shoot_date!)} à {mission.shoot_start}</p>
             <p className="text-[13.5px] text-ink-muted">avec {providerName ?? "ton prestataire"} · contact sur place : {[contact.name, contact.phone].filter(Boolean).join(" · ") || "à confirmer"}</p>
           </Card>
+          {mission.status === "date_bloquee" && (
+            <PresenceCard
+              confirmUrl={`/api/admin/missions/${mission.id}/confirm`}
+              body={{ restaurantId }}
+              icsUrl={`/api/admin/missions/${mission.id}/ics?restaurantId=${encodeURIComponent(restaurantId)}`}
+              verdict={judgeConfirm(mission.shoot_date, today)}
+              selfConfirmed={!!mission.j2_confirmed_restaurant_at}
+              otherConfirmed={!!mission.j2_confirmed_provider_at}
+              otherName={providerName ?? "Le prestataire"}
+            />
+          )}
           {mission.status === "date_bloquee" && (
             <TeamNotice restaurantId={restaurantId} missionId={mission.id} message={teamMsg} state={teamNoticeState(mission.shoot_date!, today, !!mission.team_notified_at)} />
           )}

@@ -22,6 +22,7 @@ import { providerInviteEmail } from "./email-templates/provider-invite";
 import { providerBriefReceivedEmail } from "./email-templates/provider-brief-received";
 import { providerQuoteReceivedEmail } from "./email-templates/provider-quote-received";
 import { providerDateBookedEmail } from "./email-templates/provider-date-booked";
+import { missionReminderEmail, type MissionReminderInput } from "./email-templates/mission-reminder";
 
 // Emailing — chantier "landing pages / emailing / ads" (2026-07-28), volet
 // 2/3. Fournisseur : Resend. Même philosophie que sendPush()/sendWhatsApp()
@@ -50,7 +51,8 @@ export type EmailType =
   | "provider_invite"
   | "provider_brief_received"
   | "provider_quote_received"
-  | "provider_date_booked";
+  | "provider_date_booked"
+  | "mission_reminder";
 
 let client: Resend | null = null;
 function getClient(): Resend | null {
@@ -345,6 +347,13 @@ export async function sendProviderQuoteReceivedEmail(to: string, restaurantName:
 // ADR 0084 — le restaurateur a réservé sa date : le prestataire en est prévenu.
 export async function sendProviderDateBookedEmail(to: string, input: Parameters<typeof providerDateBookedEmail>[0]): Promise<boolean> {
   return dispatch(to, providerDateBookedEmail(input), { key: "provider_date_booked", audience: "restaurant" });
+}
+
+// ADR 0084 §5 — rappel de tournage (J-7, J-2, veille) ou alerte plateforme. L'étape (`step`) porte
+// le rappel (1 = J-7, 2 = J-2, 3 = veille, 4 = alerte) dans le journal des envois.
+const REMINDER_STEP = { j7: 1, j2: 2, veille: 3, alerte: 4 } as const;
+export async function sendMissionReminderEmail(to: string, input: MissionReminderInput, restaurantId: string): Promise<boolean> {
+  return dispatch(to, missionReminderEmail(input), { key: "mission_reminder", audience: "restaurant", restaurantId, step: REMINDER_STEP[input.key] });
 }
 
 export async function sendOnboardingReminderEmail(
