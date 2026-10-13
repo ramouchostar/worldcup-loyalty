@@ -21,6 +21,8 @@ import {
 } from "./mission-dayof";
 import { judgeRetouchRound, nextDeliveryRound, retouchState, sanitizeNotes, type RetouchIssue, type RetouchNote } from "./mission-retouch";
 import type { MissionUpdateInput } from "./email-templates/mission-update";
+import { linkFiles } from "./missions-files-link";
+import { MAX_UNLINKED, sanitizeIds } from "./mission-files";
 
 // ============================================================
 // Réserver un prestataire (ADR 0084 §5, PR G) — le jour J : démarrer, compte-rendu, livraison, validation.
@@ -319,7 +321,9 @@ export async function requestRetouch(missionId: string, restaurantId: string, us
       await admin.from("missions").update({ status: "livre", retouch_rounds_used: m.retouch_rounds_used }).eq("id", missionId).eq("status", "retouche");
       throw e2;
     }
-    await logEvent(missionId, { kind: "status", from: "livre", to: "retouche", actorKind: "restaurant", actorId: userId, meta: { round: state.round, notes: verdict.notes.length } });
+    const attachmentIds = sanitizeIds((raw as { attachmentIds?: unknown } | null)?.attachmentIds, MAX_UNLINKED.retouch);
+    const linked = await linkFiles(missionId, "retouch", "restaurant", attachmentIds, `round-${state.round}`);
+    await logEvent(missionId, { kind: "status", from: "livre", to: "retouche", actorKind: "restaurant", actorId: userId, meta: { round: state.round, notes: verdict.notes.length, files: linked } });
     await notifyProviderRetouch(missionId, m.provider_id, restaurantId, state.round);
     return { ok: true, round: state.round, left: state.left - 1 };
   } catch (e) {

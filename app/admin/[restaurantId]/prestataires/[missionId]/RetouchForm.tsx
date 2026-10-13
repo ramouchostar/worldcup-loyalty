@@ -6,6 +6,8 @@ import { Plus, X } from "lucide-react";
 import { Card, SectionLabel } from "@/components/admin/ui";
 import { RETOUCH_ISSUE_TEXT, roundsLabel, type RetouchIssue } from "@/lib/mission-retouch";
 import { checkRetouchNote } from "@/lib/mission-brief";
+import { FilePicker } from "@/components/missions/FilePicker";
+import { MAX_UNLINKED } from "@/lib/mission-files";
 
 // ADR 0084 §3 règle 8 — un tour de retours : TOUTES les remarques en UN seul envoi. Chacune est classée
 // (lumière, rythme, texte…) et motivée : « je n'aime pas » seul est refusé, ici avant l'envoi et côté serveur.
@@ -38,6 +40,7 @@ export function RetouchForm({
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [fileIds, setFileIds] = useState<string[]>([]);
 
   function add() {
     const issue = checkRetouchNote({ category, text }, categories);
@@ -55,7 +58,7 @@ export function RetouchForm({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/missions/${missionId}/retouch`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurantId, notes }) });
+      const res = await fetch(`/api/admin/missions/${missionId}/retouch`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurantId, notes, attachmentIds: fileIds }) });
       const body = await res.json().catch(() => ({}));
       if (res.ok) return router.refresh();
       if (res.status === 422 && Array.isArray(body.problems)) setProblems(body.problems as RetouchIssue[]);
@@ -130,6 +133,13 @@ export function RetouchForm({
           <Plus className="w-4 h-4" aria-hidden /> Ajouter cette remarque
         </button>
       </fieldset>
+
+      <div className="space-y-1.5">
+        <p className="text-[14px] font-semibold text-ink">
+          Captures ou références <span className="font-normal text-ink-faint">· facultatif</span>
+        </p>
+        <FilePicker endpoint={`/api/admin/missions/${missionId}/files`} extra={{ restaurantId }} scope="retouch" max={MAX_UNLINKED.retouch} onChange={(f) => setFileIds(f.map((x) => x.id))} label="Joindre une capture" />
+      </div>
 
       {error && <p role="alert" className="text-danger text-[13.5px] font-semibold">{error}</p>}
 

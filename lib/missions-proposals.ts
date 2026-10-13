@@ -7,16 +7,16 @@ import { getRestaurantContactEmail } from "./missions-contact";
 import { providerMissionUrl, type ProviderRow } from "./providers";
 import { sendMissionUpdateEmail } from "./email";
 import { dateLabelFr } from "./mission-team-message";
-import { platformAddress } from "./mission-reminders-runner";
+import { loadProposalState, rulesState } from "./missions-proposals-state";
+import { linkFiles } from "./missions-files-link";
+import { platformAddress } from "./platform-address";
 import {
-  actionDeadline,
   autoChoice,
   dueProposalReminders,
   judgeChoose,
   judgeReject,
   judgeSubmit,
   proposalDeadlines,
-  proposalPhase,
   sanitizeProposals,
   sanitizeReasons,
   validateProposals,
@@ -24,8 +24,6 @@ import {
   type ChosenBy,
   type DueProposalReminder,
   type ProposalIssue,
-  type ProposalMissionState,
-  type ProposalPhase,
   type ReasonIssue,
 } from "./mission-proposals";
 import { addDays } from "./console-journey";
@@ -42,59 +40,6 @@ import type { MissionUpdateInput } from "./email-templates/mission-update";
 
 type DbError = { code?: string; message?: string } | null;
 const unavailable = { ok: false, reason: "unavailable" } as const;
-
-export type ProposalRow = { id: string; round: number; rank: number; title: string; idea: string; onsite: string; example_link: string; rejection_reason: string | null };
-
-export type ProposalState = {
-  round: number;
-  rejectedAt: string | null;
-  chosenId: string | null;
-  chosenAt: string | null;
-  chosenBy: ChosenBy | null;
-  proposals: ProposalRow[];
-};
-
-const PROPOSAL_COLUMNS = "id, round, rank, title, idea, onsite, example_link, rejection_reason";
-
-/** L'état des propositions d'une mission, ou « unavailable » si la migration n'est pas passée. */
-export async function loadProposalState(missionId: string): Promise<{ ok: true; state: ProposalState } | typeof unavailable> {
-  try {
-    const admin = createAdminClient();
-    const [{ data: m, error: e1 }, { data: rows, error: e2 }] = await Promise.all([
-      admin.from("missions").select("proposals_round, proposals_rejected_at, proposal_chosen_id, proposal_chosen_at, proposal_chosen_by").eq("id", missionId).maybeSingle(),
-      admin.from("mission_proposals").select(PROPOSAL_COLUMNS).eq("mission_id", missionId).order("round", { ascending: true }).order("rank", { ascending: true }),
-    ]);
-    if (e1) throw e1;
-    if (e2) throw e2;
-    const r = m as { proposals_round: number; proposals_rejected_at: string | null; proposal_chosen_id: string | null; proposal_chosen_at: string | null; proposal_chosen_by: ChosenBy | null } | null;
-    if (!r) return unavailable;
-    return {
-      ok: true,
-      state: { round: r.proposals_round, rejectedAt: r.proposals_rejected_at, chosenId: r.proposal_chosen_id, chosenAt: r.proposal_chosen_at, chosenBy: r.proposal_chosen_by, proposals: (rows ?? []) as ProposalRow[] },
-    };
-  } catch (e) {
-    if (!isMissingTable(e as DbError)) console.error("[missions-proposals] loadProposalState failed:", (e as Error).message);
-    return unavailable;
-  }
-}
-
-export function rulesState(mission: { status: string; shoot_date: string | null }, s: Pick<ProposalState, "round" | "rejectedAt" | "chosenId">): ProposalMissionState {
-  return { status: mission.status, shootDate: mission.shoot_date, round: s.round, rejectedAt: s.rejectedAt, chosenId: s.chosenId };
-}
-
-/** Ce que l'écran affiche : la phase, la série en cours, la proposition choisie, la date limite. */
-export function proposalView(mission: { status: string; shoot_date: string | null }, s: ProposalState) {
-  const rs = rulesState(mission, s);
-  const phase: ProposalPhase = proposalPhase(rs);
-  const current = s.proposals.filter((p) => p.round === s.round);
-  return {
-    phase,
-    current,
-    first: s.proposals.filter((p) => p.round === 1),
-    chosen: s.proposals.find((p) => p.id === s.chosenId) ?? null,
-    deadline: actionDeadline(rs),
-  };
-}
 
 // ── Les e-mails ──────────────────────────────────────────────
 
@@ -173,12 +118,14 @@ export async function submitProposals(missionId: string, provider: ProviderRow, 
     if (error) throw error;
     if (!moved || moved.length === 0) return { ok: false, reason: "not_expected" };
 
-    const { error: e2 } = await admin.from("mission_proposals").insert(input.map((p, i) => ({ mission_id: missionId, round, rank: i + 1, title: p.title, idea: p.idea, onsite: p.onsite, example_link: p.link })));
+    const { data: created, error: e2 } = await admin.from("mission_proposals").insert(input.map((p, i) => ({ mission_id: missionId, round, rank: i + 1, title: p.title, idea: p.idea, onsite: p.onsite, example_link: p.link }))).select("id, rank");
     if (e2) {
       // La série n'a pas pu s'écrire : le compteur revient, jamais « déposé » sans propositions.
       await admin.from("missions").update({ proposals_round: s.round }).eq("id", missionId).eq("proposals_round", round);
       throw e2;
     }
+    // Les pièces jointes déjà déposées sont rattachées à leur idée (seuls les fichiers confirmés, de ce prestataire, non rattachés).
+    for (const p of (created ?? []) as { id: string; rank: number }[]) await linkFiles(missionId, "proposal", "provider", input[p.rank - 1]?.files ?? [], p.id);
     const d = proposalDeadlines(m.shoot_date!);
     const late = round === 1 && today > d.providerDue;
     await logEvent(missionId, { kind: "proposals_submitted", actorKind: "provider", actorId: provider.user_id ?? undefined, meta: { round, count: input.length, late } });

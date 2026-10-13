@@ -22,7 +22,9 @@ import { getTerms } from "@/lib/marketplace-settings";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
 import { ProposalsForm } from "./ProposalsForm";
-import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals";
+import { listFiles } from "@/lib/missions-files";
+import { AttachmentList } from "@/components/missions/AttachmentList";
+import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals-state";
 import { CHOSEN_BY_LABEL, judgeSubmit } from "@/lib/mission-proposals";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +59,8 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   const rows = briefRows(mission.brief ?? {}, template);
   const budget = typeof mission.brief?.budget_cents === "number" ? mission.brief.budget_cents : null;
   // Les idées de tournage (PR K) : migration absente → rien d'affiché, le reste de la mission fonctionne.
+  const files = await listFiles(mission.id);
+  const filesBase = `/api/prestataire/missions/${mission.id}/files`;
   const pstate = mission.shoot_date && mission.status !== "annule" ? await loadProposalState(mission.id) : null;
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
   const received = new Date(mission.brief_locked_at ?? mission.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" });
@@ -84,6 +88,13 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           ))}
         </dl>
       </Card>
+
+      {files.some((f) => f.scope === "brief") && (
+        <Card className="space-y-2">
+          <SectionLabel>Pièces jointes du brief</SectionLabel>
+          <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} />
+        </Card>
+      )}
 
       {mission.status === "envoye" && (
         <>
@@ -187,6 +198,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           <p className="text-[13.5px] text-ink">
             <span className="font-semibold">À prévoir sur place :</span> {pview.chosen.onsite}
           </p>
+          <AttachmentList files={files.filter((f) => f.scope === "proposal" && f.ref === pview.chosen!.id)} base={filesBase} />
         </Card>
       )}
 
@@ -237,6 +249,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
                 </li>
               ))}
             </ol>
+            <AttachmentList files={files.filter((f) => f.scope === "retouch" && f.ref === `round-${r.round}`)} base={filesBase} />
           </Card>
         ))}
       {mission.status === "retouche" && <DeliveryForm missionId={mission.id} title={`Livrer la ${versionLabel(mission.retouch_rounds_used + 1).toLowerCase()}`} />}

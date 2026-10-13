@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { Card, SectionLabel } from "@/components/admin/ui";
+import { FilePicker } from "@/components/missions/FilePicker";
 import { IDEA_MAX, IDEA_MIN, MAX_PROPOSALS, MIN_PROPOSALS, ONSITE_MAX, PROPOSAL_ISSUE_TEXT, TITLE_MAX, type ProposalIssue } from "@/lib/mission-proposals";
+import { MAX_PER_PROPOSAL } from "@/lib/mission-files";
 
 // ADR 0084 §5 — les idées de tournage : 2 ou 3, la PREMIÈRE est celle qu'on recommande. Pour chacune : un titre,
 // l'idée en quelques phrases, ce qu'il faut prévoir sur place (plats, personnes) et un lien d'exemple.
@@ -13,8 +15,8 @@ import { IDEA_MAX, IDEA_MIN, MAX_PROPOSALS, MIN_PROPOSALS, ONSITE_MAX, PROPOSAL_
 const input = "w-full border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive";
 const primary = "w-full inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-boost-olive text-white text-[14px] font-semibold shadow-[inset_0_-3px_0_#4F5C2D] hover:brightness-95 disabled:opacity-60";
 
-type Draft = { title: string; idea: string; onsite: string; link: string };
-const blank = (): Draft => ({ title: "", idea: "", onsite: "", link: "" });
+type Draft = { title: string; idea: string; onsite: string; link: string; files: string[] };
+const blank = (): Draft => ({ title: "", idea: "", onsite: "", link: "", files: [] });
 
 export type RejectedIdea = { title: string; reason: string };
 
@@ -25,8 +27,9 @@ export function ProposalsForm({ missionId, deadlineLabel, second, rejected }: { 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const set = (i: number, k: keyof Draft, v: string) => setDrafts((d) => d.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-  const problem = (i: number, field: keyof Draft) => {
+  const setFiles = (i: number, files: string[]) => setDrafts((d) => d.map((x, j) => (j === i ? { ...x, files } : x)));
+  const set = (i: number, k: Exclude<keyof Draft, "files">, v: string) => setDrafts((d) => d.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const problem = (i: number, field: Exclude<keyof Draft, "files">) => {
     const p = issues.find((x) => x.index === i && x.field === field);
     return p ? PROPOSAL_ISSUE_TEXT[p.code] : null;
   };
@@ -104,6 +107,12 @@ export function ProposalsForm({ missionId, deadlineLabel, second, rejected }: { 
             <label htmlFor={`l${i}`} className="block text-[14px] font-semibold text-ink">Un exemple (lien)</label>
             <input id={`l${i}`} value={d.link} onChange={(e) => set(i, "link", e.target.value)} inputMode="url" placeholder="https://…" className={input} />
             {problem(i, "link") && <p role="alert" className="text-danger text-[13px] font-semibold">{problem(i, "link")}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-[14px] font-semibold text-ink">
+              Une image ou un PDF de référence <span className="font-normal text-ink-faint">· facultatif</span>
+            </p>
+            <FilePicker endpoint={`/api/prestataire/missions/${missionId}/files`} scope="proposal" max={MAX_PER_PROPOSAL} onChange={(f) => setFiles(i, f.map((x) => x.id))} label="Joindre un fichier" />
           </div>
         </fieldset>
       ))}

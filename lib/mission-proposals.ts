@@ -14,6 +14,7 @@
 // ============================================================
 
 import { addDays } from "./console-journey";
+import { MAX_PER_PROPOSAL, sanitizeIds } from "./mission-files";
 
 export const MIN_PROPOSALS = 2;
 export const MAX_PROPOSALS = 3;
@@ -27,7 +28,8 @@ export const LINK_MAX = 500;
 export const REASON_MIN = 12;
 export const REASON_MAX = 500;
 
-export type ProposalInput = { title: string; idea: string; onsite: string; link: string };
+/** `files` : les pièces jointes déjà déposées (identifiants), au plus 3 par idée. */
+export type ProposalInput = { title: string; idea: string; onsite: string; link: string; files?: string[] };
 
 export type ProposalField = "title" | "idea" | "onsite" | "link";
 export type ProposalIssueCode = "too_few" | "too_many" | "empty" | "too_short" | "too_long" | "link_invalid" | "link_not_https" | "link_credentials" | "duplicate_title";
@@ -38,7 +40,7 @@ export function sanitizeProposals(raw: unknown): ProposalInput[] {
   const s = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max + 1) : "");
   return list.slice(0, MAX_PROPOSALS + 1).map((p) => {
     const o = p && typeof p === "object" ? (p as Record<string, unknown>) : {};
-    return { title: s(o.title, TITLE_MAX), idea: s(o.idea, IDEA_MAX), onsite: s(o.onsite, ONSITE_MAX), link: s(o.link, LINK_MAX) };
+    return { title: s(o.title, TITLE_MAX), idea: s(o.idea, IDEA_MAX), onsite: s(o.onsite, ONSITE_MAX), link: s(o.link, LINK_MAX), files: sanitizeIds(o.files, MAX_PER_PROPOSAL) };
   });
 }
 

@@ -124,6 +124,18 @@ plateforme. Les pénalités s'appliquent sur la carte enregistrée.
   de la première. Le message d'équipe de J-7 part avant le choix : une fois l'idée retenue, un
   **second message** (« on tourne X, prévoir Y ») est proposé à partager. Les idées ne bloquent pas
   le tournage : sans idée, la plateforme appelle le prestataire, le jour J reste possible.
+- **Pièces jointes** (amendé le 2026-10-14, PR L) : trois endroits — le **brief** (restaurateur : logo,
+  photos de plats, charte, exemples ; 10 fichiers, verrouillés à l'envoi), les **idées** (prestataire :
+  une image ou un PDF de référence, 3 par idée) et les **retouches** (restaurateur : captures, 5 par
+  tour). **25 Mo** par fichier, **200 Mo** par mission. Formats utiles seulement : images (jpg, png,
+  webp, gif, heic, svg sans code actif), PDF, Office, vidéo (mp4, mov, webm), audio, polices, `.zip`.
+  **Refusés** : programmes, scripts, pages web, fichiers à macros, archives rar/7z — vérifié sur le
+  nom (double extension comprise) ET sur le **contenu réel** (les premiers octets doivent être ceux
+  du format annoncé). Espace **privé** ; téléchargement forcé par un lien signé de 60 s, jamais
+  ouvert dans la page. **Les livraisons restent des liens** : les vidéos lourdes demandent un
+  stockage à bas coût et un envoi en morceaux (Cloudflare R2 ou Infomaniak, à trancher). Une
+  analyse antivirus (service externe) viendra dans une PR dédiée ; en attendant, la liste blanche,
+  le contrôle du contenu et le téléchargement forcé limitent le risque.
 - Droits à l'image des figurants : **préparés par le prestataire**. Clients en salle : floutés.
 
 ### 6. États d'une mission
