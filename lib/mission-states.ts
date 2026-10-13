@@ -94,7 +94,8 @@ const RULES: Record<MissionStatus, readonly Rule[]> = {
   ],
   suspendu: [
     { to: "date_bloquee", by: ["system", "platform"] },
-    { to: "annule", by: ["system", "platform"] },
+    // Le restaurateur dont le paiement a échoué peut renoncer lui-même (le barème s'applique si une date est réservée).
+    { to: "annule", by: ["restaurant", "system", "platform"] },
   ],
 };
 

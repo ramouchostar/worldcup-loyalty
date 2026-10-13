@@ -15,6 +15,9 @@ import { judgeStart } from "@/lib/mission-dayof";
 import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
 import { versionLabel } from "@/lib/mission-retouch";
 import { DeliveryForm, ReportForm, StartButton } from "./DayOfPanel";
+import { CancelCard } from "@/components/missions/CancelCard";
+import { costNow } from "@/lib/missions-cancel";
+import { PROVIDER_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-rules";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
 
@@ -208,6 +211,22 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
         ))}
 
       {mission.status === "annule" && !quote && <p className="text-[13.5px] text-ink-muted">Cette mission est annulée.</p>}
+      {canCancel("provider", mission.status) &&
+        (() => {
+          const q = costNow(mission, "provider");
+          return (
+            <CancelCard
+              cancelUrl={`/api/prestataire/missions/${mission.id}/cancel`}
+              body={{}}
+              reasons={PROVIDER_REASONS}
+              costText={describeCost("provider", q, () => "")}
+              severity={q.band}
+              title="Je ne peux plus venir"
+              extraWarning="Le restaurateur compte sur cette date : il est remboursé en entier, et le jour redevient libre dans ton calendrier."
+              confirmLabel="Annuler le tournage"
+            />
+          );
+        })()}
     </div>
   );
 }

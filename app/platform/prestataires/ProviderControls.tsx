@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { acceptQuote, inviteProvider, reissueInvite, toggleProviderStatus, type InviteActionResult } from "./actions";
+import { acceptQuote, cancelAsPlatform, inviteProvider, reissueInvite, settleCancellationAction, toggleProviderStatus, type InviteActionResult } from "./actions";
+import { FAULT_LABELS, type Fault } from "@/lib/mission-cancel-rules";
 
 const INPUT = "w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2.5 py-1.5 text-sm";
 const BTN = "rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold text-xs px-3 py-2 disabled:opacity-50";
@@ -152,6 +153,58 @@ export function AcceptQuoteButton({ missionId, deposit }: { missionId: string; d
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Un tournage passé sans démarrage : la plateforme tranche (qui est en faute, ou force majeure). */
+export function MissedShootControls({ missionId }: { missionId: string }) {
+  const [fault, setFault] = useState<Fault | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ error?: string; summary?: string } | null>(null);
+  async function decide() {
+    if (!fault) return;
+    if (!window.confirm(`${FAULT_LABELS[fault]}. Annuler la mission avec cette décision ? Elle est définitive.`)) return;
+    setBusy(true);
+    setResult(await cancelAsPlatform(missionId, fault, reason, fault !== "none"));
+    setBusy(false);
+  }
+  return (
+    <div className="space-y-2 w-full">
+      <div className="flex flex-wrap gap-2">
+        {(["restaurant", "provider", "none"] as const).map((f) => (
+          <button key={f} type="button" onClick={() => setFault(f)} className={fault === f ? BTN : BTN_GHOST}>
+            {FAULT_LABELS[f]}
+          </button>
+        ))}
+      </div>
+      <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ce que tu as constaté (obligatoire)" maxLength={500} className={INPUT} />
+      <button type="button" disabled={busy || !fault || reason.trim().length < 5} onClick={decide} className={BTN}>
+        {busy ? "…" : "Annuler avec cette décision"}
+      </button>
+      {result?.error && <p role="alert" className="text-xs font-semibold text-red-600">{result.error}</p>}
+      {result?.summary && <p role="status" className="text-xs font-semibold text-emerald-700">{result.summary}</p>}
+    </div>
+  );
+}
+
+export function SettleButton({ missionId }: { missionId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function settle() {
+    if (!window.confirm("Le remboursement ou le règlement est bien fait ? La ligne quittera la liste.")) return;
+    setBusy(true);
+    const r = await settleCancellationAction(missionId);
+    if (r.error) setError(r.error);
+    setBusy(false);
+  }
+  return (
+    <div className="space-y-1">
+      <button type="button" disabled={busy} onClick={settle} className={BTN}>
+        {busy ? "…" : "Marquer comme réglé"}
+      </button>
+      {error && <p role="alert" className="text-xs font-semibold text-red-600">{error}</p>}
     </div>
   );
 }
