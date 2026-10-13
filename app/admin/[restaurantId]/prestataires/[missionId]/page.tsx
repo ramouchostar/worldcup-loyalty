@@ -16,7 +16,9 @@ import { getPlan } from "@/lib/entitlements";
 import { restaurantView } from "@/lib/mission-quote";
 import { ShootPlanner } from "./ShootPlanner";
 import { DeliveryReview, ReportReview, type ReportView } from "./DayOfReview";
-import { listDeliveries } from "@/lib/missions-dayof";
+import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
+import { RetouchForm } from "./RetouchForm";
+import { categoriesFor, retouchState } from "@/lib/mission-retouch";
 import { TeamNotice } from "./TeamNotice";
 import { loadBlocked } from "@/lib/missions-dates";
 import { buildCalendar, teamNoticeState } from "@/lib/mission-dates";
@@ -112,7 +114,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const report = mission.report as (ReportView & Record<string, unknown>) | null;
   const reportState = mission.report_confirmed_at ? "confirmed" : mission.report_contested_at ? "contested" : "pending";
   const deliveries = mission.delivered_at ? await listDeliveries(mission.id) : [];
-  const lastDelivery = deliveries.at(-1) ?? null;
+  const retouches = mission.retouch_rounds_used > 0 ? await listRetouches(mission.id) : [];
+  const retouch = retouchState(mission.status, mission.retouch_rounds_used);
 
   return (
     <div className="space-y-6 max-w-xl">
@@ -121,16 +124,31 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
       {report && mission.report_submitted_at && (
         <ReportReview restaurantId={restaurantId} missionId={mission.id} providerName={providerName ?? "Le prestataire"} report={report} state={reportState} contestNote={mission.report_contest_note} />
       )}
-      {lastDelivery && (
+      {[...deliveries].reverse().map((d, i) => (
         <DeliveryReview
+          key={d.id}
           restaurantId={restaurantId}
           missionId={mission.id}
           providerName={providerName ?? "Le prestataire"}
-          links={lastDelivery.links}
-          message={lastDelivery.message}
-          canValidate={mission.status === "livre"}
-          validated={mission.status === "valide" || mission.status === "verse"}
+          links={d.links}
+          message={d.message}
+          version={d.round}
+          superseded={i > 0}
+          canValidate={mission.status === "livre" && i === 0}
+          validated={i === 0 && (mission.status === "valide" || mission.status === "verse")}
         />
+      ))}
+      {mission.status === "livre" && retouch.can && (
+        <RetouchForm restaurantId={restaurantId} missionId={mission.id} categories={categoriesFor(mission.metier)} roundsLeft={retouch.left} withTimecode={mission.metier === "video"} />
+      )}
+      {mission.status === "livre" && !retouch.can && retouch.reason === "no_rounds_left" && (
+        <p className="text-[13.5px] text-ink-muted">Tu as utilisé tes deux tours de retours : tu peux valider la livraison, ou écrire à Boosteats.</p>
+      )}
+      {mission.status === "retouche" && (
+        <Card className="space-y-2">
+          <SectionLabel>Retouche en cours</SectionLabel>
+          <p className="text-[13.5px] text-ink-muted">{providerName ?? "Le prestataire"} a reçu tes remarques ({retouches.at(-1)?.notes.length ?? 0}) et te livre la version suivante. Tu seras prévenu par e-mail.</p>
+        </Card>
       )}
       {mission.status === "accepte" && calendar && <ShootPlanner restaurantId={restaurantId} missionId={mission.id} providerName={providerName} days={calendar} />}
       {calendarDown && <p className="text-[13.5px] text-ink-muted">Le calendrier n&apos;est pas disponible pour le moment. Réessaie dans un instant.</p>}

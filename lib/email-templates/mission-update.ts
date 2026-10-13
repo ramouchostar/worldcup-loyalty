@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -14,6 +14,8 @@ export type MissionUpdateInput = {
   restaurantName: string;
   providerName: string;
   url: string;
+  /** retouch_requested : le tour demandé (1 ou 2) ; validation_reminder : le rappel (1 ou 2). */
+  round?: 1 | 2;
 };
 
 type Copy = { subject: string; preheader: string; title: string; paragraphs: string[]; cta: string; note: string };
@@ -46,6 +48,33 @@ function copyFor(i: MissionUpdateInput): Copy {
         paragraphs: [`${i.restaurantName} a validé ta livraison. La mission est terminée ; Boosteats prépare ton versement.`],
         cta: "Voir la mission",
         note: "Merci pour ton travail.",
+      };
+    case "retouch_requested":
+      return {
+        subject: `${i.restaurantName} demande une retouche (tour ${i.round ?? 1} sur 2)`,
+        preheader: "Toutes ses remarques sont dans l'espace : lis-les d'un coup.",
+        title: "Une retouche est demandée",
+        paragraphs: [`${i.restaurantName} a regroupé toutes ses remarques en un seul envoi, chacune classée et expliquée. Corrige-les, puis livre la nouvelle version.`, "Une retouche n'est pas une refonte : si une demande change le brief de départ, c'est une demande de modification que tu peux chiffrer ou refuser."],
+        cta: "Lire les remarques",
+        note: i.round === 2 ? "C'est le dernier tour de retours inclus." : "Il reste un tour de retours au restaurateur après celui-ci.",
+      };
+    case "validation_reminder":
+      return {
+        subject: i.round === 2 ? `${i.providerName} attend ta réponse : validation automatique bientôt` : `${i.providerName} attend ta réponse sur la livraison`,
+        preheader: i.round === 2 ? "Sans réponse, la livraison sera validée dans 2 jours." : "Regarde la livraison, puis valide ou demande une retouche.",
+        title: i.round === 2 ? "Dernier rappel : la livraison sera validée dans 2 jours" : "Ta livraison t'attend",
+        paragraphs: [`${i.providerName} a livré depuis plusieurs jours. Regarde tout, puis valide ou demande une retouche (tes remarques en un seul envoi).`, i.round === 2 ? "Sans réponse de ta part, la livraison sera validée automatiquement dans 2 jours et le prestataire sera payé." : "Sans réponse, elle sera validée automatiquement au bout de 7 jours."],
+        cta: "Voir la livraison",
+        note: "Un compte-rendu de tournage contesté bloque la validation automatique.",
+      };
+    case "auto_validated":
+      return {
+        subject: i.audience === "provider" ? `${i.restaurantName} : livraison validée automatiquement` : `Ta livraison de ${i.providerName} a été validée automatiquement`,
+        preheader: "Sept jours sans réponse, deux rappels envoyés.",
+        title: "Livraison validée automatiquement",
+        paragraphs: [i.audience === "provider" ? `${i.restaurantName} n'a pas répondu en 7 jours malgré deux rappels : la livraison est validée et Boosteats prépare ton versement.` : `Tu n'as pas répondu en 7 jours malgré deux rappels : la livraison de ${i.providerName} est validée et la mission est terminée.`],
+        cta: "Voir la mission",
+        note: "Un doute ? Écris à Boosteats.",
       };
     case "report_contested":
       return {

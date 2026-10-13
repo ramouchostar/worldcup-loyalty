@@ -12,7 +12,8 @@ import { judgeConfirm } from "@/lib/mission-reminders";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { PresenceCard } from "@/components/missions/PresenceCard";
 import { judgeStart } from "@/lib/mission-dayof";
-import { listDeliveries } from "@/lib/missions-dayof";
+import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
+import { versionLabel } from "@/lib/mission-retouch";
 import { DeliveryForm, ReportForm, StartButton } from "./DayOfPanel";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
@@ -171,10 +172,30 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
         </>
       )}
 
+      {mission.status === "retouche" &&
+        (await listRetouches(mission.id)).slice(-1).map((r) => (
+          <Card key={r.round} className="space-y-3">
+            <SectionLabel>Retouche demandée · tour {r.round} sur 2</SectionLabel>
+            <p className="text-[13px] text-ink-muted">Toutes les remarques du restaurateur, d&apos;un seul envoi. Une retouche n&apos;est pas une refonte : si une demande change le brief de départ, c&apos;est une demande de modification que tu peux chiffrer ou refuser.</p>
+            <ol className="space-y-2">
+              {r.notes.map((n, i) => (
+                <li key={i} className="rounded-xl border border-paper-border bg-white p-3">
+                  <p className="text-[12px] font-semibold text-ink-muted">
+                    {n.category}
+                    {n.at ? ` · ${n.at}` : ""}
+                  </p>
+                  <p className="text-[14px] text-ink whitespace-pre-line">{n.text}</p>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        ))}
+      {mission.status === "retouche" && <DeliveryForm missionId={mission.id} title={`Livrer la ${versionLabel(mission.retouch_rounds_used + 1).toLowerCase()}`} />}
+
       {(mission.status === "livre" || mission.status === "valide" || mission.status === "verse") &&
         (await listDeliveries(mission.id)).map((d) => (
           <Card key={d.id} className="space-y-2">
-            <SectionLabel>Ta livraison</SectionLabel>
+            <SectionLabel>{d.round > 1 ? `Ta ${versionLabel(d.round).toLowerCase()}` : "Ta livraison"}</SectionLabel>
             <ul className="text-[13.5px] text-ink space-y-1">
               {d.links.map((l) => (
                 <li key={l} className="truncate">{l}</li>
