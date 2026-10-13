@@ -18,6 +18,7 @@ import { DeliveryForm, ReportForm, StartButton } from "./DayOfPanel";
 import { CancelCard } from "@/components/missions/CancelCard";
 import { costNow } from "@/lib/missions-cancel";
 import { PROVIDER_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-rules";
+import { getTerms } from "@/lib/marketplace-settings";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
 
@@ -80,7 +81,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {mission.status === "envoye" && (
         <>
-          <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} />
+          <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} commissionBps={(await getTerms()).terms.commissionBps} />
           <RefuseForm missionId={mission.id} />
         </>
       )}
@@ -89,7 +90,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
         <Card className="space-y-3">
           <SectionLabel>Ton devis</SectionLabel>
           <p className="text-[14px] text-ink">
-            <span className="font-bold">{formatEuros(quote.price_cents)}</span> · tu reçois <span className="font-bold">{formatEuros(providerView(quote.price_cents).youReceiveCents)}</span>
+            <span className="font-bold">{formatEuros(quote.price_cents)}</span> · tu reçois <span className="font-bold">{formatEuros(providerView(quote.price_cents, (await getTerms()).terms).youReceiveCents)}</span>
           </p>
           <p className="text-[13.5px] text-ink-muted">
             {quote.hours ? `${String(quote.hours).replace(".", ",")} h de travail` : ""}

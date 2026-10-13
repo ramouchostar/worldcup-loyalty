@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -19,6 +19,9 @@ export type MissionUpdateInput = {
   /** cancelled : qui annule, et la bande du barème (gratuit / la moitié / tout). */
   cancelledBy?: "restaurant" | "provider" | "platform";
   band?: "free" | "half" | "full";
+  /** dispute_resolved : la décision de la plateforme et, pour un partage, la part du prestataire. */
+  decision?: "pay" | "refund" | "split";
+  providerPct?: number;
 };
 
 type Copy = { subject: string; preheader: string; title: string; paragraphs: string[]; cta: string; note: string };
@@ -115,6 +118,38 @@ function copyFor(i: MissionUpdateInput): Copy {
         note: "Un tournage annulé à moins de 48 h est dû en entier.",
       };
     }
+    case "dispute_opened":
+      return {
+        subject: i.audience === "provider" ? `Médiation ouverte : ${i.restaurantName}` : `Médiation ouverte avec ${i.providerName}`,
+        preheader: "Boosteats examine le dossier. Rien n'est automatique en attendant.",
+        title: "Boosteats examine votre mission",
+        paragraphs: [`Une médiation est ouverte sur la mission entre ${i.restaurantName} et ${i.providerName}. Boosteats lit le brief, le devis, le compte-rendu et les livraisons, puis prend contact avec chacun.`, "Pendant ce temps, aucun rappel, aucune validation et aucun versement ne se déclenche tout seul."],
+        cta: "Voir la mission",
+        note: "Tu n'as rien à faire : réponds simplement si Boosteats te contacte.",
+      };
+    case "dispute_resolved": {
+      const d = i.decision ?? "pay";
+      const pct = i.providerPct ?? 0;
+      const restaurant = d === "pay" ? "Après examen, la livraison est jugée conforme au brief : elle est validée et la mission est terminée." : d === "refund" ? "Après examen, tu es remboursé en entier." : `Après examen, le prestataire reçoit ${pct} % de ce qu'il aurait reçu ; le reste t'est rendu.`;
+      const provider = d === "pay" ? "Après examen, ta livraison est jugée conforme : elle est validée et Boosteats prépare ton versement." : d === "refund" ? "Après examen, le restaurateur est remboursé en entier. Aucun versement n'est dû pour cette mission." : `Après examen, tu reçois ${pct} % de ce que tu aurais reçu pour cette mission.`;
+      return {
+        subject: `Médiation terminée : ${i.audience === "provider" ? i.restaurantName : i.providerName}`,
+        preheader: i.audience === "provider" ? provider : restaurant,
+        title: "La médiation est terminée",
+        paragraphs: [i.audience === "provider" ? provider : restaurant, "La décision est définitive. Boosteats règle les montants avec chacun."],
+        cta: "Voir la mission",
+        note: "Une question sur la décision ? Réponds à cet e-mail.",
+      };
+    }
+    case "paid_out":
+      return {
+        subject: `Ton versement pour ${i.restaurantName} est parti`,
+        preheader: "La mission est terminée et payée.",
+        title: "Tu as été payé",
+        paragraphs: [`Boosteats a versé ton paiement pour la mission chez ${i.restaurantName}. Selon ta banque, il apparaît sous un à trois jours ouvrés.`],
+        cta: "Voir la mission",
+        note: "Merci pour ton travail.",
+      };
     case "report_contested":
       return {
         subject: `Compte-rendu contesté : ${i.restaurantName}`,

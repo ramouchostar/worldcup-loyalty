@@ -4,7 +4,7 @@ import { missionUpdateEmail, type MissionUpdateInput, type MissionUpdateKind } f
 
 const base: Omit<MissionUpdateInput, "kind" | "audience"> = { restaurantName: "Burger Palace", providerName: "Studio Croustille", url: "https://www.boosteats.be/x/m1" };
 const mail = (kind: MissionUpdateKind, audience: MissionUpdateInput["audience"]) => missionUpdateEmail({ ...base, kind, audience });
-const ALL = [["report_submitted", "restaurant"], ["delivered", "restaurant"], ["validated", "provider"], ["report_contested", "platform"], ["retouch_requested", "provider"], ["validation_reminder", "restaurant"], ["auto_validated", "restaurant"], ["auto_validated", "provider"]] as const;
+const ALL = [["report_submitted", "restaurant"], ["delivered", "restaurant"], ["validated", "provider"], ["report_contested", "platform"], ["retouch_requested", "provider"], ["validation_reminder", "restaurant"], ["auto_validated", "restaurant"], ["auto_validated", "provider"], ["dispute_opened", "restaurant"], ["dispute_opened", "provider"], ["dispute_resolved", "restaurant"], ["dispute_resolved", "provider"], ["paid_out", "provider"]] as const;
 
 test("chaque mise à jour a un sujet, le lien et ce qu'on attend", () => {
   for (const [kind, audience] of ALL) {
@@ -86,4 +86,24 @@ test("le restaurateur ne lit jamais la sanction du prestataire", () => {
 
 test("aucun euro dans un e-mail d'annulation", () => {
   for (const a of ["restaurant", "provider", "platform"] as const) for (const b of ["free", "half", "full"] as const) assert.doesNotMatch(cancelled(a, "provider", b).html + cancelled(a, "restaurant", b).text, /€/);
+});
+
+test("médiation ouverte : rien n'est automatique en attendant", () => {
+  for (const a of ["restaurant", "provider"] as const) assert.match(mail("dispute_opened", a).text, /aucun versement ne se déclenche tout seul/);
+});
+
+test("médiation tranchée : chacun lit sa décision avec ses mots, un partage dit le pourcentage", () => {
+  const r = (audience: "restaurant" | "provider", decision: "pay" | "refund" | "split", providerPct?: number) => missionUpdateEmail({ ...base, kind: "dispute_resolved", audience, decision, providerPct }).text;
+  assert.match(r("restaurant", "pay"), /validée et la mission est terminée/);
+  assert.match(r("provider", "pay"), /prépare ton versement/);
+  assert.match(r("restaurant", "refund"), /remboursé en entier/);
+  assert.match(r("provider", "refund"), /Aucun versement n'est dû/);
+  assert.match(r("restaurant", "split", 60), /60 % de ce qu'il aurait reçu/);
+  assert.match(r("provider", "split", 60), /tu reçois 60 %/);
+});
+
+test("le versement part : le prestataire est prévenu, sans montant", () => {
+  const m = mail("paid_out", "provider");
+  assert.match(m.text, /Tu as été payé/);
+  assert.match(m.text, /un à trois jours ouvrés/);
 });

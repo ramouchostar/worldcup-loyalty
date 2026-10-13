@@ -87,7 +87,8 @@ const RULES: Record<MissionStatus, readonly Rule[]> = {
   verse: [],
   annule: [],
   litige: [
-    // La plateforme tranche : verser, rembourser, ou faire refaire.
+    // La plateforme tranche : valider (le prestataire sera payé), rembourser (partiellement ou en entier), ou faire refaire.
+    { to: "valide", by: ["platform"] },
     { to: "verse", by: ["platform"] },
     { to: "annule", by: ["platform"] },
     { to: "retouche", by: ["platform"] },

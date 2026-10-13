@@ -7,7 +7,10 @@ import { dateLabelFr } from "@/lib/mission-team-message";
 import { formatEuros } from "@/lib/mission-money";
 import { listMissedShoots, listToSettle } from "@/lib/missions-cancel";
 import { describeSettlement, sanctionLabel } from "@/lib/mission-cancel-rules";
+import { listOpenDisputes, listToPay } from "@/lib/missions-superadmin";
 import { AcceptQuoteButton, InviteForm, LinkBox, MissedShootControls, ProviderActions, SettleButton } from "./ProviderControls";
+import { PaidOutButton } from "./litiges/[id]/DisputeControls";
+import { SubNav } from "./SubNav";
 
 export const metadata = { title: "Prestataires — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -30,12 +33,13 @@ export default async function PlatformProvidersPage() {
   const { data: profile } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
   if (!profile?.is_super_admin) redirect("/join?reason=platform-required");
 
-  const [result, quoted, watched, missed, toSettle] = await Promise.all([listProviders(), listQuotedMissions(), listUnconfirmed(), listMissedShoots(), listToSettle()]);
+  const [result, quoted, watched, missed, toSettle, toPay, disputes] = await Promise.all([listProviders(), listQuotedMissions(), listUnconfirmed(), listMissedShoots(), listToSettle(), listToPay(), listOpenDisputes()]);
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
+      <div className="space-y-3">
         <h1 className="text-2xl font-bold">Prestataires</h1>
+        <SubNav active="prestataires" disputes={disputes.length} />
         <p className="text-sm text-gray-500 mt-1">
           Vidéastes, photographes, graphistes, imprimeurs. Ils sont créés sur invitation : le lien est lié à leur adresse e-mail et ne sert qu&apos;une fois.
         </p>
@@ -83,6 +87,29 @@ export default async function PlatformProvidersPage() {
         </section>
       )}
 
+      {toPay.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-semibold">À verser aux prestataires</h2>
+          <p className="text-xs text-gray-500">Livraisons validées (par le restaurateur ou automatiquement). Tant que le paiement en ligne n&apos;est pas ouvert, tu verses à la main puis tu cliques : le prestataire en est prévenu par e-mail.</p>
+          <ul className="space-y-3">
+            {toPay.map((p) => (
+              <li key={p.id} className={`${CARD} p-5 flex items-start justify-between gap-3 flex-wrap`}>
+                <div className="min-w-0">
+                  <p className="font-semibold">
+                    {p.provider_name} <span className="text-gray-500 font-normal">· {p.restaurant_name}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Validée {p.validated_at ? `le ${new Date(p.validated_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" })}` : ""} · {p.provider_email ?? "adresse inconnue"}
+                  </p>
+                  <p className="text-sm font-semibold text-amber-800">À verser : {formatEuros(p.provider_cents)}</p>
+                </div>
+                <PaidOutButton missionId={p.id} amount={formatEuros(p.provider_cents)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {toSettle.length > 0 && (
         <section className="space-y-3">
           <h2 className="font-semibold">Annulations à régler</h2>
@@ -95,7 +122,7 @@ export default async function PlatformProvidersPage() {
                     {c.restaurant_name} <span className="text-gray-500 font-normal">· {c.provider_name}</span>
                   </p>
                   <p className="text-xs text-gray-500">
-                    Annulée le {new Date(c.cancelled_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" })} par {c.record.by === "provider" ? "le prestataire" : c.record.by === "restaurant" ? "le restaurateur" : "la plateforme"} · {c.record.band === "free" ? "sans frais" : c.record.band === "half" ? "la moitié est due" : "tout est dû"} · {c.record.reason}
+                    Annulée le {new Date(c.cancelled_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" })} par {c.record.by === "provider" ? "le prestataire" : c.record.by === "restaurant" ? "le restaurateur" : "la plateforme"} · {c.record.dispute ? (c.record.dispute.decision === "refund" ? "litige : remboursement" : `litige : partage à ${c.record.dispute.providerPct} % pour le prestataire`) : c.record.band === "free" ? "sans frais" : c.record.band === "half" ? "la moitié est due" : "tout est dû"} · {c.record.reason}
                   </p>
                   <p className="text-xs text-gray-500">
                     Payé {formatEuros(c.record.paidCents)} · acompte reçu {formatEuros(c.record.depositCents)} · retenu {formatEuros(c.record.retainedCents)} · au prestataire {formatEuros(c.record.providerPayoutCents)}
@@ -138,7 +165,7 @@ export default async function PlatformProvidersPage() {
         <h2 className="font-semibold">Les prestataires</h2>
         {!result.ok ? (
           <p className={`${CARD} p-5 text-sm text-gray-500`}>
-            Le module n&apos;est pas encore disponible : applique les migrations <code>20261009-1030-prestataires-schema</code>, <code>20261009-1500-prestataires-invitations</code>, <code>20261012-1000-prestataires-disponibilites</code>, <code>20261012-1100-prestataires-rappels</code>, <code>20261012-1200-prestataires-jour-j</code>, <code>20261012-1300-prestataires-retouches</code> et <code>20261013-1000-prestataires-annulations</code>.
+            Le module n&apos;est pas encore disponible : applique les migrations <code>20261009-1030-prestataires-schema</code>, <code>20261009-1500-prestataires-invitations</code>, <code>20261012-1000-prestataires-disponibilites</code>, <code>20261012-1100-prestataires-rappels</code>, <code>20261012-1200-prestataires-jour-j</code>, <code>20261012-1300-prestataires-retouches</code>, <code>20261013-1000-prestataires-annulations</code> et <code>20261013-1100-prestataires-superadmin</code>.
           </p>
         ) : result.providers.length === 0 ? (
           <p className={`${CARD} p-5 text-sm text-gray-500`}>Aucun prestataire pour l&apos;instant. Invite le premier ci-dessus.</p>

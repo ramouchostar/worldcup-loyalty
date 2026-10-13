@@ -6,7 +6,8 @@ import { getPlan } from "./entitlements";
 import { logEvent, loadTemplate, getMission, getProviderName, restaurantMissionUrl, type MissionRow } from "./missions";
 import { providerMissionUrl } from "./providers";
 import { sendProviderDateBookedEmail } from "./email";
-import { priceBreakdown, splitPayment, DEFAULT_TERMS } from "./mission-money";
+import { priceBreakdown, splitPayment } from "./mission-money";
+import { getTerms } from "./marketplace-settings";
 import { mergeAnswers, sanitizeAnswers } from "./mission-draft";
 import { validateBrief, type BriefAnswers, type BriefIssue } from "./mission-brief";
 import { canTransition } from "./mission-states";
@@ -103,9 +104,11 @@ export async function acceptQuoteByPlatform(missionId: string, platformUserId: s
     const quote = q as { id: string; price_cents: number } | null;
     if (!quote) return { ok: false, reason: "not_a_quote" };
 
+    // Les conditions EN VIGUEUR à cet instant, figées sur la mission : un réglage changé plus tard ne touche jamais une mission déjà acceptée.
+    const { terms } = await getTerms();
     const plan = await getPlan(mission.restaurant_id);
-    const b = priceBreakdown(quote.price_cents, plan, DEFAULT_TERMS);
-    const split = splitPayment(b.paidCents, DEFAULT_TERMS.depositBps);
+    const b = priceBreakdown(quote.price_cents, plan, terms);
+    const split = splitPayment(b.paidCents, terms.depositBps);
 
     const now = new Date().toISOString();
     const { data: moved, error: e2 } = await admin
@@ -157,12 +160,13 @@ export async function listQuotedMissions(): Promise<QuotedMission[]> {
       .limit(50);
     if (error) throw error;
     const out: QuotedMission[] = [];
+    const { terms } = await getTerms();
     for (const row of (data ?? []) as unknown as { id: string; restaurant_id: string; metier: string; updated_at: string; restaurants: { name: string } | null; providers: { display_name: string } | null; mission_quotes: { price_cents: number; status: string; created_at: string }[] }[]) {
       const q = [...row.mission_quotes].filter((x) => x.status === "proposed").sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
       if (!q) continue;
       const plan = await getPlan(row.restaurant_id);
-      const b = priceBreakdown(q.price_cents, plan, DEFAULT_TERMS);
-      out.push({ id: row.id, restaurant_name: row.restaurants?.name ?? row.restaurant_id, provider_name: row.providers?.display_name ?? "", metier: row.metier, price_cents: q.price_cents, paid_cents: b.paidCents, deposit_cents: splitPayment(b.paidCents, DEFAULT_TERMS.depositBps).depositCents, plan, since: row.updated_at });
+      const b = priceBreakdown(q.price_cents, plan, terms);
+      out.push({ id: row.id, restaurant_name: row.restaurants?.name ?? row.restaurant_id, provider_name: row.providers?.display_name ?? "", metier: row.metier, price_cents: q.price_cents, paid_cents: b.paidCents, deposit_cents: splitPayment(b.paidCents, terms.depositBps).depositCents, plan, since: row.updated_at });
     }
     return out;
   } catch (e) {
