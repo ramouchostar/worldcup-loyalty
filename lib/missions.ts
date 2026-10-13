@@ -47,6 +47,14 @@ export type MissionRow = {
   team_notified_at: string | null;
   j2_confirmed_provider_at: string | null;
   j2_confirmed_restaurant_at: string | null;
+  started_at: string | null;
+  delivered_at: string | null;
+  report: Record<string, unknown> | null;
+  report_submitted_at: string | null;
+  report_confirmed_at: string | null;
+  report_contested_at: string | null;
+  report_contest_note: string | null;
+  retouch_rounds_used: number;
   quote_cents: number | null;
   cancelled_by: "restaurant" | "provider" | "platform" | "system" | null;
   cancellation_note: string | null;
@@ -55,7 +63,7 @@ export type MissionRow = {
 };
 
 const MISSION_COLUMNS =
-  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, shoot_start, team_notified_at, j2_confirmed_provider_at, j2_confirmed_restaurant_at, quote_cents, cancelled_by, cancellation_note, created_at, updated_at";
+  "id, restaurant_id, provider_id, metier, status, brief, brief_locked_at, shoot_date, shoot_start, team_notified_at, j2_confirmed_provider_at, j2_confirmed_restaurant_at, started_at, delivered_at, report, report_submitted_at, report_confirmed_at, report_contested_at, report_contest_note, retouch_rounds_used, quote_cents, cancelled_by, cancellation_note, created_at, updated_at";
 
 export type EventRow = {
   id: number;

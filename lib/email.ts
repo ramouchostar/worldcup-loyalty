@@ -23,6 +23,7 @@ import { providerBriefReceivedEmail } from "./email-templates/provider-brief-rec
 import { providerQuoteReceivedEmail } from "./email-templates/provider-quote-received";
 import { providerDateBookedEmail } from "./email-templates/provider-date-booked";
 import { missionReminderEmail, type MissionReminderInput } from "./email-templates/mission-reminder";
+import { missionUpdateEmail, type MissionUpdateInput } from "./email-templates/mission-update";
 
 // Emailing — chantier "landing pages / emailing / ads" (2026-07-28), volet
 // 2/3. Fournisseur : Resend. Même philosophie que sendPush()/sendWhatsApp()
@@ -52,7 +53,8 @@ export type EmailType =
   | "provider_brief_received"
   | "provider_quote_received"
   | "provider_date_booked"
-  | "mission_reminder";
+  | "mission_reminder"
+  | "mission_update";
 
 let client: Resend | null = null;
 function getClient(): Resend | null {
@@ -354,6 +356,11 @@ export async function sendProviderDateBookedEmail(to: string, input: Parameters<
 const REMINDER_STEP = { j7: 1, j2: 2, veille: 3, alerte: 4 } as const;
 export async function sendMissionReminderEmail(to: string, input: MissionReminderInput, restaurantId: string): Promise<boolean> {
   return dispatch(to, missionReminderEmail(input), { key: "mission_reminder", audience: "restaurant", restaurantId, step: REMINDER_STEP[input.key] });
+}
+
+// ADR 0084 §5 — le jour J et après : compte-rendu prêt, livraison, validation, contestation.
+export async function sendMissionUpdateEmail(to: string, input: MissionUpdateInput, restaurantId: string): Promise<boolean> {
+  return dispatch(to, missionUpdateEmail(input), { key: "mission_update", audience: "restaurant", restaurantId });
 }
 
 export async function sendOnboardingReminderEmail(

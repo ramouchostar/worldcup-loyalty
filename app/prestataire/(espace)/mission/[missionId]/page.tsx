@@ -11,6 +11,9 @@ import { dateLabelFr } from "@/lib/mission-team-message";
 import { judgeConfirm } from "@/lib/mission-reminders";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { PresenceCard } from "@/components/missions/PresenceCard";
+import { judgeStart } from "@/lib/mission-dayof";
+import { listDeliveries } from "@/lib/missions-dayof";
+import { DeliveryForm, ReportForm, StartButton } from "./DayOfPanel";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
 
@@ -148,6 +151,40 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           otherName={mission.restaurant_name}
         />
       )}
+
+      {mission.status === "date_bloquee" && mission.shoot_date && (
+        <StartButton missionId={mission.id} canStart={judgeStart(mission.status, mission.shoot_date, todayInBrussels()) === "ok"} tooEarly={judgeStart(mission.status, mission.shoot_date, todayInBrussels()) === "too_early"} />
+      )}
+
+      {mission.status === "production" && (
+        <>
+          {mission.report_confirmed_at && <p className="text-[13.5px] text-good font-semibold">Le restaurateur a confirmé ton compte-rendu.</p>}
+          {mission.report_contested_at && <p className="text-[13.5px] text-warn font-semibold">Le restaurateur conteste ton compte-rendu : Boosteats te contacte. Tu peux quand même livrer.</p>}
+          {!mission.report_confirmed_at && !mission.report_contested_at && (
+            <ReportForm
+              missionId={mission.id}
+              defaultArrival={mission.shoot_start ?? ""}
+              initial={mission.report ? { arrival: String(mission.report.arrival ?? ""), end: String(mission.report.end ?? ""), missing: Array.isArray(mission.report.missing) ? (mission.report.missing as string[]) : [], note: String(mission.report.note ?? "") } : null}
+            />
+          )}
+          {mission.report_submitted_at ? <DeliveryForm missionId={mission.id} /> : <p className="text-[13.5px] text-ink-muted">La livraison s&apos;ouvre une fois le compte-rendu envoyé.</p>}
+        </>
+      )}
+
+      {(mission.status === "livre" || mission.status === "valide" || mission.status === "verse") &&
+        (await listDeliveries(mission.id)).map((d) => (
+          <Card key={d.id} className="space-y-2">
+            <SectionLabel>Ta livraison</SectionLabel>
+            <ul className="text-[13.5px] text-ink space-y-1">
+              {d.links.map((l) => (
+                <li key={l} className="truncate">{l}</li>
+              ))}
+            </ul>
+            <p className="text-[13.5px] text-ink-muted">
+              {mission.status === "livre" ? "En attente de la validation du restaurateur." : "Livraison validée par le restaurateur."}
+            </p>
+          </Card>
+        ))}
 
       {mission.status === "annule" && !quote && <p className="text-[13.5px] text-ink-muted">Cette mission est annulée.</p>}
     </div>
