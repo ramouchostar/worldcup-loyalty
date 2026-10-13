@@ -36,7 +36,7 @@ export type ReminderRun =
   | { ok: true; today: string; missions: number; due: number; sent: number; failed: number; skipped: number };
 
 /** L'adresse qui reçoit les alertes plateforme : la boîte réelle de l'équipe, sinon la copie plateforme. */
-function platformAddress(): string {
+export function platformAddress(): string {
   return (process.env.EMAIL_REPLY_TO || process.env.RESTAURANT_EMAIL_COPY_TO || DEFAULT_RESTAURANT_COPY_TO).trim();
 }
 
