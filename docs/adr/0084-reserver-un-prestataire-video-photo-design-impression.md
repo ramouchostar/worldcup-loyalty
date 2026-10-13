@@ -93,6 +93,15 @@ prestataire peut exercer plusieurs métiers. **Rien côté membre** (ADR 0007/00
    ajouté aux montants de la mission ; avant Stripe il se règle à la main avec le solde, la plateforme est
    alertée par e-mail. Les dates convenues ne changent pas.
 
+*Les règles sont écrites dans le produit, avec une VERSION* (amendé le 2026-10-14, PR N ; `lib/mission-rules.ts`) :
+une liste dans les mots du restaurateur (11 règles : brief verrouillé, devis ferme, idées, décideurs, contact,
+équipe, retours, validation automatique, date liante et barème, acompte, médiation) et une dans ceux du prestataire
+(9 règles). Le **restaurateur** coche « j'ai lu les règles et je les accepte pour ce brief » **à chaque brief envoyé**
+(sans la case, l'envoi est refusé) ; le **prestataire** les accepte **une fois par version**, avant son premier devis (il
+peut refuser un brief sans les avoir acceptées). Une acceptation garde : qui, quand, **quelle version**, pour quelle
+mission (`rules_acceptances` et la trace `rules_accepted`). Changer un mot des règles change la version (un test épingle
+l'empreinte du texte). **Brouillon à faire relire par un juriste** avant l'ouverture au public (§9).
+
 ### 4. Annulation et dates liantes
 
 | Délai avant la date | Le restaurateur annule | Le prestataire annule |
