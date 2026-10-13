@@ -97,3 +97,15 @@ test("jamais de validation silencieuse : sans les deux rappels, on envoie le rap
   assert.deepEqual(autoValidation(delivered, after(8), 1), { action: "remind", reminder: 2 });
   assert.deepEqual(autoValidation(delivered, after(30), 2), { action: "validate" });
 });
+
+test("l'acceptation du devis : le restaurateur, la plateforme (pilote) ou le paiement — jamais le prestataire", () => {
+  for (const by of ["restaurant", "platform", "system"] as const) assert.deepEqual(canTransition("devis", "accepte", by), { ok: true }, by);
+  assert.deepEqual(canTransition("devis", "accepte", "provider"), { ok: false, reason: "actor_not_allowed" });
+});
+
+test("la date se choisit après l'acceptation, par le restaurateur ; le prestataire ne la fixe pas seul", () => {
+  assert.deepEqual(canTransition("accepte", "date_bloquee", "restaurant"), { ok: true });
+  assert.deepEqual(canTransition("accepte", "date_bloquee", "provider"), { ok: false, reason: "actor_not_allowed" });
+  // Pas de date avant d'avoir accepté le devis.
+  assert.deepEqual(canTransition("devis", "date_bloquee", "restaurant"), { ok: false, reason: "not_allowed" });
+});

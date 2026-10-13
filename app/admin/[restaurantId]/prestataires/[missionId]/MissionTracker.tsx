@@ -51,6 +51,14 @@ export function MissionTracker({
             </li>
           ))}
         </ol>
+        {mission.status === "devis" && (
+          <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
+            {providerName ?? "Le vidéaste"} t&apos;a envoyé son devis : lis-le plus bas. La date du tournage se choisit après son acceptation.
+          </p>
+        )}
+        {mission.status === "accepte" && (
+          <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">Devis accepté. Choisis maintenant ta date de tournage plus bas.</p>
+        )}
         {mission.status === "envoye" && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
             {providerName ?? "Le vidéaste"} lit ton brief et te répond avec un devis. Son prix sera ferme. Tu ne paies rien tant que tu n&apos;as pas accepté.

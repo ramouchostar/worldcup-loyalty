@@ -20,6 +20,8 @@ import { referralSuccessEmail } from "./email-templates/referral-success";
 import { ownerInviteEmail } from "./email-templates/owner-invite";
 import { providerInviteEmail } from "./email-templates/provider-invite";
 import { providerBriefReceivedEmail } from "./email-templates/provider-brief-received";
+import { providerQuoteReceivedEmail } from "./email-templates/provider-quote-received";
+import { providerDateBookedEmail } from "./email-templates/provider-date-booked";
 
 // Emailing — chantier "landing pages / emailing / ads" (2026-07-28), volet
 // 2/3. Fournisseur : Resend. Même philosophie que sendPush()/sendWhatsApp()
@@ -46,7 +48,9 @@ export type EmailType =
   | "referral_success"
   | "owner_invite"
   | "provider_invite"
-  | "provider_brief_received";
+  | "provider_brief_received"
+  | "provider_quote_received"
+  | "provider_date_booked";
 
 let client: Resend | null = null;
 function getClient(): Resend | null {
@@ -331,6 +335,16 @@ export async function sendProviderBriefReceivedEmail(
   missionUrl: string
 ): Promise<boolean> {
   return dispatch(to, providerBriefReceivedEmail(providerName, restaurantName, goal, missionUrl), { key: "provider_brief_received", audience: "restaurant" });
+}
+
+// ADR 0084 — le devis du prestataire est arrivé : le restaurateur en est prévenu.
+export async function sendProviderQuoteReceivedEmail(to: string, restaurantName: string, providerName: string, missionUrl: string, restaurantId: string): Promise<boolean> {
+  return dispatch(to, providerQuoteReceivedEmail(restaurantName, providerName, missionUrl), { key: "provider_quote_received", audience: "restaurant", restaurantId });
+}
+
+// ADR 0084 — le restaurateur a réservé sa date : le prestataire en est prévenu.
+export async function sendProviderDateBookedEmail(to: string, input: Parameters<typeof providerDateBookedEmail>[0]): Promise<boolean> {
+  return dispatch(to, providerDateBookedEmail(input), { key: "provider_date_booked", audience: "restaurant" });
 }
 
 export async function sendOnboardingReminderEmail(

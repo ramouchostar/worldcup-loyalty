@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Inbox, Wrench } from "lucide-react";
+import { CalendarDays, ChevronRight, Inbox, Wrench } from "lucide-react";
 import { requireProviderPage } from "@/lib/providers";
 import { listForProvider, type ProviderMissionRow } from "@/lib/provider-missions";
 import { METIER_LABELS, PROVIDER_STATUS_VIEW } from "@/lib/mission-view";
@@ -28,7 +28,15 @@ export default async function ProviderInbox() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Mes missions" subtitle="Un brief complet, un devis ferme. Lis, chiffre, fixe ta date." />
+      <PageHeader
+        title="Mes missions"
+        subtitle="Un brief complet, un devis ferme. Lis, chiffre, fixe ta date."
+        action={
+          <Link href="/prestataire/disponibilites" className="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-paper-border bg-white text-[14px] font-semibold text-ink">
+            <CalendarDays className="w-4 h-4" aria-hidden /> Mes disponibilités
+          </Link>
+        }
+      />
       {result.missions.length === 0 ? (
         <EmptyState icon={Inbox} title="Aucun brief pour l'instant">
           Dès qu&apos;un restaurateur t&apos;envoie un brief, il apparaît ici et tu reçois un e-mail.
