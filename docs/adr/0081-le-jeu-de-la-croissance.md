@@ -9,7 +9,8 @@ Boosteats et bandeau par forfait). S'appuie sur l'[ADR 0078](0078-ca-du-jour-sai
 (le CA du jour est la matière des paliers). La publicité lancée depuis l'app et le service vidéo
 feront l'objet d'un ADR à part (frais, commission et paiement encore ouverts) : le **service
 vidéo** est traité par l'[ADR 0084](0084-reserver-un-prestataire-video-photo-design-impression.md)
-(proposé).
+(proposé), la **publicité gérée** par l'[ADR 0085](0085-campagnes-publicitaires-gerees-code-client-et-nommage.md)
+(proposé : compte unique, code client, nommage des campagnes, budget prépayé).
 
 ## Contexte
 
