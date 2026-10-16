@@ -356,6 +356,22 @@ _Avoid_ : « objectif CA » pour un palier (l'objectif du jour reste en tickets,
 Clic d'un restaurateur sur une mission « Une pub dans ta zone » ou « Des vidéos de ta maison » de l'accueil console : une ligne `service_requests` (`pub` | `video`, une seule en attente par établissement et par service), visible sur `/platform` jusqu'à ce que l'équipe l'ait traitée en rappelant. Les frais de la pub dépendent du forfait (`AD_FEE_PCT` : 20 / 15 / 5 %).
 _Avoid_ : « commande » de pub (rien n'est acheté ni lancé au clic) ; « demande de plan » (autre table, `plan_requests`).
 
+**Code client** *(ADR 0085)* :
+`restaurants.client_code` — `BE001`, `BE002`… : numéro d'un établissement **réel** (`active` et non démo), attribué en base une seule fois dans l'ordre d'entrée (`activated_at`, à défaut `created_at`), jamais réutilisé, même après un départ. Un compte démo n'en a jamais ; un établissement `pending` le reçoit à sa validation. Un code par établissement, pas par restaurateur. Clé de rattachement des campagnes publicitaires.
+_Avoid_ : identifiant client (ambigu avec `restaurants.id`), numéro de compte, « client » pour un prospect (ADR 0076).
+
+**Campagne publicitaire** *(ADR 0085)* :
+Campagne payante diffusée sur une régie (Meta aujourd'hui) depuis le **compte publicitaire unique** de Boosteats, pour un établissement. Son nom suit la convention `<code client> | <établissement> | <objectif> | <AAAAMM> | <libellé libre>` ; le nom **détecte** le client à la première lecture, puis le lien identifiant de campagne → établissement fait foi. Résultats lus chaque jour dans Supabase (agrégés), budget prépayé suivi par un registre de versements (restant = versements − dépense lue). Console et plateforme seulement (ADR 0007).
+_Avoid_ : « campagne » nu (réservé au message ponctuel composé sur la plateforme, voir **Séquence de messages**) ; pub boostée (c'est un geste Facebook, pas une campagne gérée).
+
+**Objectif de campagne** *(ADR 0085)* :
+Troisième segment du nom d'une campagne publicitaire, dans une liste fermée qui s'allonge : `TRAFIC`, `NOTORIETE`, `MESSAGES`, `INSCRIPTION`, `UBEREATS`, `DELIVEROO`, `TAKEAWAY`. Un objectif inconnu ne bloque pas le rattachement, il est signalé.
+_Avoid_ : l'« objectif » de campagne de Meta (le réglage de la régie, autre chose) ; objectif du jour (tickets, ADR 0064).
+
+**Campagne non rattachée** *(ADR 0085)* :
+Campagne publicitaire dont le nom ne permet pas de trouver le client (illisible, code inconnu, code et établissement incohérents). Listée sur `/platform` avec sa dépense jusqu'à rattachement manuel — jamais ignorée : sa dépense n'est refacturée à personne. La dépense non rattachée sur 7 jours doit rester à 0.
+_Avoid_ : campagne orpheline, campagne inconnue.
+
 **Suivi du CA** *(ADR 0081 §7)* :
 Carte « Ton chiffre d'affaires » de l'accueil console (forfaits Croissance et Pro, fonction `revenue_tracker`) : dernier jour noté face aux mêmes jours de la semaine, semaine jusqu'à hier, 14 derniers jours, **part du programme** (CA des tickets validés ÷ CA de caisse des jours notés) et **taux de capture** (tickets du programme ÷ tickets de caisse, quand la caisse les donne). Alimentée par le CA du jour (ADR 0078) et les ventes importées. Console seulement (ADR 0007).
 _Avoid_ : « CA additionnel » ou « grâce à nous » pour la part du programme (ce sont les clients qui participent, ADR 0064).
