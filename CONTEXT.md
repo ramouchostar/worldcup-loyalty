@@ -356,6 +356,14 @@ _Avoid_ : « objectif CA » pour un palier (l'objectif du jour reste en tickets,
 Clic d'un restaurateur sur une mission « Une pub dans ta zone » ou « Des vidéos de ta maison » de l'accueil console : une ligne `service_requests` (`pub` | `video`, une seule en attente par établissement et par service), visible sur `/platform` jusqu'à ce que l'équipe l'ait traitée en rappelant. Les frais de la pub dépendent du forfait (`AD_FEE_PCT` : 20 / 15 / 5 %).
 _Avoid_ : « commande » de pub (rien n'est acheté ni lancé au clic) ; « demande de plan » (autre table, `plan_requests`).
 
+**Demande de pub** *(ADR 0086)* :
+Une campagne publicitaire demandée et payée par le restaurateur depuis sa console (`ad_requests`) : objectif, budget (≥ 100 €), budget par jour, dates, zone, création (une de ses 5 à 10 meilleures publications Instagram, ou un fichier envoyé). États : paiement attendu → payée → préparée (créée en pause chez Meta) ⇄ à corriger → en diffusion ⇄ en pause → terminée. Deux gestes humains, ceux du porteur : **confirmer le paiement** (tant que Revolut n'a pas d'API) et **valider le lancement** ; pause, relance, alertes et rapports sont automatiques. Remplace, pour la pub, la demande de rappel (`service_requests`).
+_Avoid_ : commande de pub ; « recharge » pour une première demande (une recharge relève le plafond d'une campagne existante).
+
+**Crédit pub** *(ADR 0086)* :
+Ce qu'un restaurateur a payé pour une campagne publicitaire, frais de service exclus : registre `ad_credit_transactions`, jamais de solde stocké. Le plafond Meta de la campagne vaut le total payé, donc tout le crédit est dépensé ; non remboursable (conditions de la Pub).
+_Avoid_ : solde, porte-monnaie, « points » (réservés au membre, ADR 0061).
+
 **Code client** *(ADR 0085)* :
 `restaurants.client_code` — `BE001`, `BE002`… : numéro d'un établissement **réel** (`active` et non démo), attribué en base une seule fois dans l'ordre d'entrée (`activated_at`, à défaut `created_at`), jamais réutilisé, même après un départ. Un compte démo n'en a jamais ; un établissement `pending` le reçoit à sa validation. Un code par établissement, pas par restaurateur. Clé de rattachement des campagnes publicitaires.
 _Avoid_ : identifiant client (ambigu avec `restaurants.id`), numéro de compte, `client_number` / `B0042` (forme envisagée le 2026-09-28, remplacée par `BE001`), « client » pour un prospect (ADR 0076).
