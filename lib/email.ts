@@ -12,6 +12,7 @@ import { welcomeEmail } from "./email-templates/welcome";
 import { partnerApplicationReceivedEmail } from "./email-templates/partner-application-received";
 import { restaurantActivatedEmail } from "./email-templates/restaurant-activated";
 import { onboardingReminderEmail } from "./email-templates/onboarding-reminder";
+import type { EstablishmentProgress } from "./partner-progress";
 import { pendingRequestsReminderEmail } from "./email-templates/pending-requests-reminder";
 import { catalogGapsReminderEmail } from "./email-templates/catalog-gaps-reminder";
 import { rewardReadyEmail } from "./email-templates/reward-ready";
@@ -363,16 +364,22 @@ export async function sendMissionUpdateEmail(to: string, input: MissionUpdateInp
   return dispatch(to, missionUpdateEmail(input), { key: "mission_update", audience: "restaurant", restaurantId });
 }
 
+// Une relance par restaurateur (tous ses établissements), étape 1 ou 2 —
+// règles dans lib/onboarding-reminder-rules.ts, cron /api/cron/onboarding-reminders.
+// Le journal (message_sends, user_id + step) EST le compteur des relances.
 export async function sendOnboardingReminderEmail(
   to: string,
-  restaurantName: string,
-  restaurantId: string,
-  stuckAtStep: 2 | 3
+  params: { ownerId: string; establishments: EstablishmentProgress[]; step: 1 | 2 }
 ): Promise<boolean> {
-  const logoUrl = await getRestaurantLogoUrl(restaurantId);
-  const sent = await dispatch(to, onboardingReminderEmail(restaurantName, restaurantId, stuckAtStep, logoUrl), { key: "onboarding_reminder", audience: "restaurant", restaurantId });
-  if (sent) await logEmailSent("restaurant", restaurantId, "onboarding_reminder", restaurantId);
-  return sent;
+  const firstId = params.establishments[0]?.id ?? null;
+  const logoUrl = params.establishments.length === 1 && firstId ? await getRestaurantLogoUrl(firstId) : null;
+  return dispatch(to, onboardingReminderEmail({ establishments: params.establishments, step: params.step, logoUrl }), {
+    key: "onboarding_reminder",
+    audience: "restaurant",
+    restaurantId: firstId,
+    userId: params.ownerId,
+    step: params.step,
+  });
 }
 
 export async function sendPendingRequestsReminderEmail(

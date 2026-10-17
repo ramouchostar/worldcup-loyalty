@@ -5,6 +5,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantId, getRestaurantLogos } from "@/lib/restaurant";
 import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
 import { RestaurantMark } from "@/components/admin/RestaurantMark";
+import { PARTNER_PROGRESS_PATH } from "@/lib/partner-signup";
 
 export default async function AdminLandingPage() {
   const supabase = await createServerSupabaseClient();
@@ -23,7 +24,7 @@ export default async function AdminLandingPage() {
 
   const { data: adminRestaurants } =
     adminRestaurantIds.length > 0
-      ? await admin.from("restaurants").select("id, name").in("id", adminRestaurantIds).order("name")
+      ? await admin.from("restaurants").select("id, name, status").in("id", adminRestaurantIds).order("name")
       : { data: [] };
 
   const restaurants = [...(adminRestaurants ?? [])];
@@ -33,12 +34,19 @@ export default async function AdminLandingPage() {
   if (profile?.is_admin) {
     const legacyId = getRestaurantId();
     if (!restaurants.some((r) => r.id === legacyId)) {
-      const { data: legacy } = await admin.from("restaurants").select("id, name").eq("id", legacyId).maybeSingle();
+      const { data: legacy } = await admin.from("restaurants").select("id, name, status").eq("id", legacyId).maybeSingle();
       if (legacy) restaurants.push(legacy);
     }
   }
 
   if (restaurants.length === 1) redirect(`/admin/${restaurants[0].id}`);
+
+  // ADR 0075 — tous ses établissements en attente (Krusty : Anderlecht et
+  // Koekelberg) : chaque choix menait de toute façon à la page d'avancement.
+  // Le lien des relances d'inscription (/login?as=resto) y arrive en direct.
+  if (restaurants.length > 1 && restaurants.every((r) => r.status === "pending")) {
+    redirect(PARTNER_PROGRESS_PATH);
+  }
 
   // ADR 0015 — on choisit son établissement au logo, pas à la lecture d'une
   // liste de noms : c'est exactement l'écran où la confusion coûte cher

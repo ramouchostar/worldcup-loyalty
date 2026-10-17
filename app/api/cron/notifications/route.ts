@@ -10,7 +10,6 @@ import {
   wasEmailSentRecently,
   sendTierUnlockedEmail,
   sendPendingRequestsReminderEmail,
-  sendOnboardingReminderEmail,
   sendRewardReadyEmail,
   sendCatalogGapsReminderEmail,
 } from "@/lib/email";
@@ -42,10 +41,6 @@ const PENDING_REQUESTS_EMAIL_COOLDOWN  = 20; // ~1x/jour tant que ça persiste
 // au plus, déclenché seulement au-delà de 7 jours d'inaction.
 const CATALOG_GAPS_STALE_HOURS = 7 * 24;
 const CATALOG_GAPS_EMAIL_COOLDOWN = 7 * 24;
-
-// Relance onboarding self-service inachevé (étape 2 ou 3)
-const ONBOARDING_STUCK_HOURS   = 48;
-const ONBOARDING_EMAIL_COOLDOWN = 48;
 
 // Rappel cadeau prêt à récupérer avant expiration (ADR 0011 : échéance
 // calculée par lib/reward-window — 4 h + 48 h pour un cadeau de ticket)
@@ -386,38 +381,8 @@ export async function GET(request: Request) {
   }
   } // fin boucle restaurants
 
-  // ── Relance onboarding self-service inachevé (étape 2 ou 3, ADR 0019) ──
-  const { data: pendingRestaurantsRaw } = await admin
-    .from("restaurants")
-    .select("id, name, created_at, profiles!restaurants_owner_id_fkey(email)")
-    .eq("status", "pending");
-
-  for (const r of (pendingRestaurantsRaw ?? []) as any[]) {
-    const hoursSinceCreated = (now.getTime() - new Date(r.created_at).getTime()) / 3_600_000;
-    if (hoursSinceCreated < ONBOARDING_STUCK_HOURS) continue;
-
-    const ownerEmail = r.profiles?.email;
-    if (!ownerEmail) continue;
-
-    const [{ count: menuItemsCount }, { data: receiptConfig }] = await Promise.all([
-      // Même critère « carte faite » que la page d'avancement (lib/partner-progress.ts).
-      admin.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", r.id).eq("is_active", true),
-      admin.from("restaurant_receipt_config").select("confirmed_at").eq("restaurant_id", r.id).maybeSingle(),
-    ]);
-
-    let stuckAtStep: 2 | 3 | null = null;
-    if ((menuItemsCount ?? 0) === 0) {
-      stuckAtStep = 2;
-    } else if (!receiptConfig?.confirmed_at) {
-      stuckAtStep = 3;
-    }
-    if (stuckAtStep === null) continue; // onboarding terminé, en attente de validation — pas une relance
-
-    const alreadySent = await wasEmailSentRecently("restaurant", r.id, "onboarding_reminder", ONBOARDING_EMAIL_COOLDOWN);
-    if (alreadySent) continue;
-
-    await sendOnboardingReminderEmail(ownerEmail, r.name, r.id, stuckAtStep);
-  }
+  // La relance d'inscription a son propre cron (/api/cron/onboarding-reminders) :
+  // en fin de ce cron-ci, coupé par Vercel vers 5 min, elle ne partait jamais.
 
   return NextResponse.json({ sent, evaluated, restaurants: restaurants.length });
 }
