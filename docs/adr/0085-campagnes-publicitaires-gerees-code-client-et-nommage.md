@@ -9,6 +9,10 @@ et ne les contredit pas. Il précise l'[ADR 0033](0033-console-plateforme-demo-c
 (une colonne de plus sur `restaurants`, les comptes démo n'en ont pas). Il n'amende **ni
 l'ADR 0007 ni l'ADR 0028** : tout ce qui suit est console restaurateur et plateforme, le membre
 n'en voit rien. Appliqué avec le bouclier de l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md).
+**Amendé le 2026-10-17** (§ 2) : la convention de nommage fusionne avec la règle du backlog
+plateforme décidée le 2026-09-28 (« Pub autour du resto »). Ce plan du 2026-09-28 (campagne
+allumée par le restaurateur, crédit rechargé par Stripe, arrêt automatique) reste au backlog :
+cet ADR en est la première marche (lecture), il ne l'écarte pas.
 
 ## Contexte
 
@@ -70,23 +74,38 @@ le numéro suivant à leur validation, dans l'ordre où elle se fait.
 
 ### 2. La convention de nommage des campagnes
 
-Au niveau **campagne** (pas ensemble de publicités, pas publicité) :
+*Amendé le 2026-10-17 : fusion avec la règle décidée le 2026-09-28 et rangée dans le backlog
+plateforme (« Numéro client et règle de nommage des campagnes », migration
+`20260928-1320-backlog-pub-locale-meta-tiktok.sql`), que la première version de cet ADR
+ignorait. On garde le code `BE001` (déjà attribué en base) et la liste d'objectifs du
+2026-10-16 ; on reprend du 2026-09-28 le séparateur `_`, la régie dans le nom, la version et
+le nommage des trois niveaux. La première forme (barres verticales, mois de lancement) n'a
+servi à aucune campagne et n'est plus lue.*
 
 ```
-<code client> | <établissement> | <objectif> | <AAAAMM> | <libellé libre>
-BE001 | kraainem | TRAFIC | 202610 | lancement points
-BE002 | houba | UBEREATS | 202611 | match belgique
+<code client>_<établissement>_<régie>_<objectif>_v<N>     campagne
+<nom de la campagne>_<ciblage>                            ensemble de publicités
+<nom de la campagne>_<création>                           publicité
+
+BE001_kraainem_META_TRAFIC_v1
+BE001_kraainem_META_TRAFIC_v1_r3km-18-45
+BE001_kraainem_META_TRAFIC_v1_crousti-vendredi
+BE002_houba_TIKTOK_UBEREATS_v2
 ```
 
+- **`_` ne sert qu'à séparer.** Les identifiants d'établissement et les segments libres
+  (ciblage, création) utilisent le tiret, jamais `_`.
 - **code client** : la clé de rattachement (§ 3).
 - **établissement** : l'identifiant exact en base (`restaurants.id`). Il ne rattache pas, il
   **contrôle** : un code et un identifiant qui ne vont pas ensemble bloquent le rattachement.
+- **régie** : `META` ou `TIKTOK` (liste fermée ; `GOOGLE` le jour venu).
 - **objectif** : une liste fermée, en majuscules, sans accent :
 
   | Code | Ce que la campagne pousse |
   |---|---|
   | `TRAFIC` | les visites au restaurant |
-  | `NOTORIETE` | la connaissance du lieu dans la zone |
+  | `NOTORIETE` | la connaissance du lieu dans la zone (`AW` du 2026-09-28) |
+  | `VIDEO` | les vues de vidéo autour du resto (`VV` du 2026-09-28, « Pub autour du resto ») |
   | `MESSAGES` | les conversations WhatsApp / Messenger |
   | `INSCRIPTION` | les adhésions au programme de fidélité |
   | `UBEREATS` | la vitrine de l'établissement sur Uber Eats |
@@ -97,12 +116,14 @@ BE002 | houba | UBEREATS | 202611 | match belgique
   une ligne dans le module qui tient la liste, et une ligne de `CONTEXT.md`. Une campagne dont
   l'objectif n'est pas dans la liste **reste rattachée** à son client (c'est le code qui
   compte) mais est signalée « objectif inconnu » sur `/platform`.
-- **AAAAMM** : le mois de lancement.
-- **libellé libre** : pour l'humain, jamais lu par le système.
-- Séparateur ` | ` (barre verticale entourée d'espaces) : absent de tout `restaurants.id`, il
-  coupe sans ambiguïté. La lecture tolère les espaces en trop et la casse du code client.
-
-La convention vaut pour toute régie (TikTok, Google le jour venu) : elle ne dépend pas de Meta.
+- **`v<N>`** : on **ne renomme jamais** une campagne pour changer ce qu'elle fait ; on la
+  recrée en `v2`. Un renommage malgré tout ne déplace rien (§ 3), mais il est signalé
+  (« nom ≠ identifiant enregistré »).
+- **ciblage / création** : libres, pour l'humain (`r3km-18-45`, `crousti-vendredi`). Le
+  système ne lit que le préfixe : un ensemble ou une publicité dont le préfixe n'est pas le nom
+  de sa campagne est signalé, jamais corrigé automatiquement.
+- La lecture tolère la casse du code client et de la régie ; elle n'accepte pas d'autre
+  séparateur que `_`.
 
 ### 3. Le nom détecte, l'identifiant rattache
 
@@ -165,8 +186,10 @@ construit (ADR 0065).
   pas de page, pas de tâche, rien ne casse ailleurs).
 - **`/platform`** : le code client sur l'onglet Réseau (on l'a sous les yeux en nommant une
   campagne), les campagnes non rattachées, les alertes budget et plafond.
-- **Lecture du nom** : fonction pure et testée (cas : nom correct, espaces, minuscules, code
-  inconnu, incohérence code/établissement, objectif inconnu, séparateur absent).
+- **Lecture du nom** : fonction pure et testée (cas : campagne, ensemble et publicité
+  corrects, minuscules, code inconnu, incohérence code/établissement, régie ou objectif
+  inconnus, version absente, préfixe d'ensemble ou de publicité différent de la campagne,
+  mauvais séparateur).
 - **Trace** (ADR 0065) :
   - par exécution de la tâche planifiée : campagnes lues, rattachées, non rattachées, en
     erreur, avec la cause ; un appel Meta en échec est journalisé, jamais avalé ;
