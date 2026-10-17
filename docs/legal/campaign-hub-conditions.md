@@ -1,6 +1,6 @@
 # Conditions d'utilisation — BE Campaign Hub
 
-**Version 1.0 — Dernière mise à jour : 14 octobre 2026**
+**Version 1.1 — Dernière mise à jour : 17 octobre 2026**
 
 ## 1. Objet
 
@@ -8,7 +8,7 @@ Les présentes conditions régissent l'utilisation de **BE Campaign Hub** (« l'
 
 ## 2. Éditeur
 
-L'Outil est édité par **Boosteats**, projet en cours de constitution en société en Belgique — contact : **contact@boosteats.be** (« l'Éditeur »). Les coordonnées légales de la société seront publiées ici dès son immatriculation.
+L'Outil est édité par **Boosteats** est une marque exploitée par **Mehdi Haik**, entreprise individuelle de droit belge, avenue de la Liberté 208, 1081 Koekelberg, numéro d'entreprise BE 0737.736.369 — contact : **contact@boosteats.be** (« l'Éditeur »).
 
 ## 3. Accès
 
@@ -50,9 +50,16 @@ Boosteats n'est pas responsable :
 
 Sa responsabilité est limitée aux dommages directs, dans les conditions permises par la loi et par le contrat conclu avec le Client.
 
-## 8. Facturation
+## 8. Facturation et budget prépayé
 
-Les dépenses publicitaires et les frais de gestion sont facturés selon le contrat conclu avec le Client.
+Lorsque le Client demande une campagne depuis sa console Boosteats :
+- il **paie à l'avance** le budget de diffusion de la campagne, augmenté des frais de service de son forfait, par lien de paiement Revolut ou par virement avec la communication structurée indiquée ;
+- le budget minimum est de **100 €** par campagne, montant minimum imposé par Meta pour plafonner une campagne ;
+- la campagne est plafonnée chez la plateforme au **total payé** pour elle : elle s'arrête d'elle-même lorsque ce montant est dépensé, ou à sa date de fin ; le Client peut la recharger pour la prolonger ;
+- **le budget versé n'est pas remboursable**, y compris lorsqu'il n'est pas entièrement dépensé à la fin de la campagne ;
+- une facture est émise pour chaque paiement. L'Éditeur relève du **régime particulier de la franchise de taxe** : ses factures ne portent pas de TVA tant que ce régime s'applique.
+
+Les autres prestations sont facturées selon le contrat conclu avec le Client.
 
 ## 9. Fin de l'accès
 
@@ -77,7 +84,7 @@ Les présentes conditions sont régies par le **droit belge**. En cas de litige,
 
 # Terms of Service — BE Campaign Hub (English version)
 
-**Version 1.0 — Last updated: 14 October 2026**
+**Version 1.1 — Last updated: 17 October 2026**
 
 ## 1. Purpose
 
@@ -85,7 +92,7 @@ These terms govern the use of **BE Campaign Hub** (the "Tool"), the internal too
 
 ## 2. Publisher
 
-The Tool is published by **Boosteats**, a company being incorporated in Belgium — contact: **contact@boosteats.be**. The company's legal details will be published here once it is registered.
+The Tool is published by **Boosteats** is a trade name of **Mehdi Haik**, a Belgian sole proprietorship, Avenue de la Liberté 208, 1081 Koekelberg, enterprise number BE 0737.736.369 — contact: **contact@boosteats.be**.
 
 ## 3. Access
 
@@ -127,9 +134,16 @@ Boosteats is not liable for:
 
 Its liability is limited to direct damages, to the extent permitted by law and by the agreement with the Client.
 
-## 8. Billing
+## 8. Billing and prepaid budget
 
-Ad spend and management fees are invoiced as set out in the agreement with the Client.
+When the Client requests a campaign from its Boosteats console:
+- it **pays in advance** the campaign's media budget plus its plan's service fee, by Revolut payment link or by bank transfer with the structured reference provided;
+- the minimum budget is **€100** per campaign, the minimum Meta accepts to cap a campaign;
+- the campaign is capped on the platform at the **total paid** for it: it stops by itself once that amount is spent, or on its end date; the Client may top it up to extend it;
+- **the budget paid is non-refundable**, including when it is not fully spent by the end of the campaign;
+- an invoice is issued for every payment. The Publisher is under the Belgian **small business VAT exemption scheme**: its invoices carry no VAT while that scheme applies.
+
+Other services are invoiced as set out in the agreement with the Client.
 
 ## 9. End of access
 

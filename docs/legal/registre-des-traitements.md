@@ -87,10 +87,10 @@
 
 ## T9 — Gestion des campagnes publicitaires des clients (BE Campaign Hub)
 - **Personnes concernées :** restaurateurs clients (personne de contact) ; pour les audiences personnalisées, les clients du restaurateur figurant sur une liste qu'il fournit.
-- **Données :** identifiants et réglages des comptes publicitaires Meta / TikTok, structure et créations des campagnes, statistiques **agrégées** (aucune donnée d'une personne exposée à une publicité), journal des actions ; contact du client ; listes d'audience **hachées SHA-256 avant envoi**, jamais conservées en clair. Pas de lecture des formulaires de prospects ni des messages.
+- **Données :** identifiants et réglages des comptes publicitaires Meta / TikTok, structure et créations des campagnes, publications Instagram du restaurateur (lues pour proposer celles à promouvoir), données de paiement et de facturation du restaurateur (raison sociale, numéro de TVA, adresse, montants), statistiques **agrégées** (aucune donnée d'une personne exposée à une publicité), journal des actions ; contact du client ; listes d'audience **hachées SHA-256 avant envoi**, jamais conservées en clair. Pas de lecture des formulaires de prospects ni des messages.
 - **Rôle :** responsable pour les données de contact du client ; **sous-traitant du client** pour les données de ses comptes publicitaires (mandat de gestion + DPA à signer avec chaque client).
 - **Base légale :** exécution du contrat (art. 6.1.b) ; intérêt légitime pour le journal des actions et la sécurité (art. 6.1.f).
-- **Destinataires / sous-traitants :** Meta Platforms Ireland, TikTok (plateformes publicitaires) ; Anthropic (analyse et rapports par IA, sans donnée personnelle de tiers) ; hébergeur de l'outil ; messagerie des alertes à l'équipe.
+- **Destinataires / sous-traitants :** Meta Platforms Ireland, TikTok (plateformes publicitaires) ; Anthropic (analyse et rapports par IA, sans donnée personnelle de tiers) ; hébergeur de l'outil ; messagerie des alertes à l'équipe ; Revolut (paiement du budget pub) ; Accountable (factures Peppol).
 - **Transferts hors UE :** Anthropic (États-Unis) et, selon l'hébergeur, d'autres — clauses contractuelles types / Data Privacy Framework à vérifier.
 - **Conservation :** jetons supprimés au retrait de l'accès ; statistiques, rapports et journal : durée du contrat + [90] jours ; factures [7] ans.
 - **Sécurité :** jetons dans un coffre de secrets chiffré, accès équipe avec 2FA, journal de chaque action, plafonds d'action fixés avec le client.
