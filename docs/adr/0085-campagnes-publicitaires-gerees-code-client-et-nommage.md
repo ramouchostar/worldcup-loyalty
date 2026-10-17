@@ -1,7 +1,9 @@
 # ADR 0085 — Campagnes publicitaires gérées : un compte Boosteats, un code client, un nommage lu par le système
 
-**Statut** : Proposé (2026-10-16). Décidé par le porteur en session pendant la création de
-l'application Meta et du System User (2026-10-16), **à valider par l'associé**. C'est l'« ADR
+**Statut** : Accepté (2026-10-17 ; proposé le 2026-10-16). Décidé par le porteur en session
+pendant la création de l'application Meta et du System User ; le porteur a confirmé le
+2026-10-17 qu'il ne requiert pas la validation de l'associé. **Précisé par l'[ADR 0086](0086-pub-le-process-deux-validations-le-reste-automatique.md)**
+(§4 : la lecture devient pilotage, §5 : plafond = total payé, ≥ 100 €). C'est l'« ADR
 pub » annoncé par l'[ADR 0081](0081-le-jeu-de-la-croissance.md) §6 et les conséquences de
 l'ADR 0081 : il précise ce qui se passe **après** une demande de service `pub`. Il s'appuie sur
 les pages légales BE Campaign Hub (`docs/legal/campaign-hub-*.md`, fusionnées le 2026-10-14)
