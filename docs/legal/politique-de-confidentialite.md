@@ -1,6 +1,6 @@
 # Politique de confidentialité — Boosteats
 
-**Version 1.1 — Dernière mise à jour : 3 octobre 2026**
+**Version 1.2 — Dernière mise à jour : 17 octobre 2026**
 
 Votre vie privée compte. Ce document explique, en langage clair, **quelles données nous collectons, pourquoi, avec qui elles sont partagées, combien de temps nous les gardons, et quels sont vos droits.**
 
@@ -12,7 +12,7 @@ Votre vie privée compte. Ce document explique, en langage clair, **quelles donn
 
 Le responsable du traitement est :
 
-**Boosteats**, projet en cours de constitution en société en Belgique, accessible sur www.boosteats.be. Les coordonnées légales de la société (dénomination, forme juridique, adresse, numéro d'entreprise) seront publiées ici dès son immatriculation.
+**Boosteats** est une marque exploitée par **Mehdi Haik**, entreprise individuelle de droit belge, avenue de la Liberté 208, 1081 Koekelberg, numéro d'entreprise BE 0737.736.369, accessible sur www.boosteats.be.
 Contact vie privée : **contact@boosteats.be**.
 
 ## 2. Les données que nous collectons

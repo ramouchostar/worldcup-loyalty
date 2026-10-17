@@ -1,6 +1,6 @@
 # Conditions Générales d'Utilisation — Boosteats
 
-**Version 1.1 — Dernière mise à jour : 3 octobre 2026**
+**Version 1.2 — Dernière mise à jour : 17 octobre 2026**
 
 ## 1. Objet
 
@@ -8,7 +8,7 @@ Les présentes conditions générales d'utilisation (« CGU ») régissent l'acc
 
 ## 2. Éditeur
 
-L'Application est éditée par **Boosteats**, projet en cours de constitution en société en Belgique — contact : **contact@boosteats.be** (« l'Éditeur »). Les coordonnées légales de la société seront publiées ici dès son immatriculation.
+L'Application est éditée par **Boosteats** est une marque exploitée par **Mehdi Haik**, entreprise individuelle de droit belge, avenue de la Liberté 208, 1081 Koekelberg, numéro d'entreprise BE 0737.736.369 — contact : **contact@boosteats.be** (« l'Éditeur »).
 
 ## 3. Définitions
 

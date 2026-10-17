@@ -1,6 +1,6 @@
 # Politique de confidentialité — BE Campaign Hub
 
-**Version 1.0 — Dernière mise à jour : 14 octobre 2026**
+**Version 1.1 — Dernière mise à jour : 17 octobre 2026**
 
 BE Campaign Hub est l'outil interne avec lequel **Boosteats** gère les campagnes publicitaires de ses clients restaurateurs sur **Meta** (Facebook, Instagram) et **TikTok**. Ce document explique quelles données l'outil reçoit de ces plateformes, à quoi elles servent, avec qui elles sont partagées, combien de temps nous les gardons et comment les faire supprimer.
 
@@ -12,7 +12,7 @@ Cette politique complète la politique de confidentialité générale de Boostea
 
 ## 1. Qui est responsable
 
-**Boosteats**, projet en cours de constitution en société en Belgique, accessible sur www.boosteats.be. Les coordonnées légales de la société (dénomination, forme juridique, adresse, numéro d'entreprise) seront publiées ici dès son immatriculation.
+**Boosteats** est une marque exploitée par **Mehdi Haik**, entreprise individuelle de droit belge, avenue de la Liberté 208, 1081 Koekelberg, numéro d'entreprise BE 0737.736.369, accessible sur www.boosteats.be.
 Contact : **contact@boosteats.be**.
 
 - Pour les **données de contact de nos clients** (nom, e-mail, téléphone de la personne qui nous mandate), Boosteats est **responsable du traitement**.
@@ -31,7 +31,7 @@ Nous ne demandons **jamais** les identifiants de connexion personnels d'un clien
 **Données reçues des plateformes :**
 - identifiants et paramètres des comptes publicitaires, des Pages et des pixels concernés ;
 - structure des campagnes : campagnes, ensembles ou groupes d'annonces, publicités, budgets, enchères, calendriers, ciblage (zones, tranches d'âge, centres d'intérêt) ;
-- créations publicitaires : textes, images et vidéos fournis par le client ;
+- créations publicitaires : textes, images et vidéos fournis par le client, et les **publications de son compte Instagram** (texte, image ou vidéo, nombre de J'aime et de commentaires) lues pour lui proposer celles à promouvoir ;
 - statistiques de performance **agrégées** : impressions, portée, clics, vues de vidéo, conversions, dépenses, coût par résultat, répartitions par âge, sexe, zone ou emplacement.
 
 **Ce que l'outil ne fait pas :**
@@ -68,6 +68,7 @@ Une partie de la gestion est automatisée. L'outil applique des règles convenue
 
 - **Meta Platforms Ireland Ltd** et **TikTok (TikTok Technology Ltd / TikTok Information Technologies UK Ltd)** : les plateformes publicitaires elles-mêmes, qui reçoivent les instructions de campagne.
 - **Anthropic** (modèle d'IA, § 5), qui agit comme sous-traitant.
+- **Revolut** (paiement du budget publicitaire par le client) et **Accountable** (émission des factures par le réseau Peppol), pour les seules données de paiement et de facturation du client.
 - **Hébergeur de l'outil** et **service de messagerie** utilisé pour envoyer les alertes et rapports à l'équipe Boosteats. Ce sont aussi des sous-traitants.
 - **Le client lui-même**, qui reçoit les rapports de ses propres comptes.
 
@@ -121,7 +122,7 @@ Nous pouvons faire évoluer cette politique. En cas de changement important, nou
 
 # Privacy Policy — BE Campaign Hub (English version)
 
-**Version 1.0 — Last updated: 14 October 2026**
+**Version 1.1 — Last updated: 17 October 2026**
 
 BE Campaign Hub is the internal tool **Boosteats** uses to manage advertising campaigns for its restaurant clients on **Meta** (Facebook, Instagram) and **TikTok**. This policy explains which data the tool receives from these platforms, how it is used and shared, how long it is kept and how to have it deleted.
 
@@ -129,7 +130,7 @@ BE Campaign Hub is the internal tool **Boosteats** uses to manage advertising ca
 
 ## 1. Who is responsible
 
-**Boosteats**, a company being incorporated in Belgium, www.boosteats.be. The company's legal details will be published here once it is registered. Contact: **contact@boosteats.be**.
+**Boosteats** is a trade name of **Mehdi Haik**, a Belgian sole proprietorship, Avenue de la Liberté 208, 1081 Koekelberg, enterprise number BE 0737.736.369, www.boosteats.be. Contact: **contact@boosteats.be**.
 
 - For **client contact data** (name, email, phone of the person instructing us), Boosteats is the **controller**.
 - For **ad account data**, Boosteats acts **on behalf of the client** and on the client's instructions (processor under the GDPR), under the management agreement signed with the client.
@@ -147,7 +148,7 @@ We **never** ask for a client's personal login credentials. The tool only uses t
 **Data received from the platforms:**
 - identifiers and settings of the ad accounts, Pages and pixels concerned;
 - campaign structure: campaigns, ad sets or ad groups, ads, budgets, bids, schedules, targeting (locations, age ranges, interests);
-- ad creatives: copy, images and videos provided by the client;
+- ad creatives: copy, images and videos provided by the client, and the **posts of its Instagram account** (text, image or video, like and comment counts) read to suggest which ones to promote;
 - **aggregated** performance statistics: impressions, reach, clicks, video views, conversions, spend, cost per result, breakdowns by age, gender, location or placement.
 
 **What the tool does not do:**
@@ -184,6 +185,7 @@ Part of the management is automated. The tool applies rules agreed with the clie
 
 - **Meta Platforms Ireland Ltd** and **TikTok (TikTok Technology Ltd / TikTok Information Technologies UK Ltd)**: the advertising platforms themselves, which receive the campaign instructions.
 - **Anthropic** (AI model, § 5), as a processor.
+- **Revolut** (the client's payment of its ad budget) and **Accountable** (invoices issued over the Peppol network), for the client's payment and billing data only.
 - **The tool's hosting provider** and the **messaging service** used to send alerts and reports to the Boosteats team, also as processors.
 - **The client**, who receives reports on its own accounts.
 
