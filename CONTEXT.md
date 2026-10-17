@@ -358,14 +358,14 @@ _Avoid_ : « commande » de pub (rien n'est acheté ni lancé au clic) ; « dema
 
 **Code client** *(ADR 0085)* :
 `restaurants.client_code` — `BE001`, `BE002`… : numéro d'un établissement **réel** (`active` et non démo), attribué en base une seule fois dans l'ordre d'entrée (`activated_at`, à défaut `created_at`), jamais réutilisé, même après un départ. Un compte démo n'en a jamais ; un établissement `pending` le reçoit à sa validation. Un code par établissement, pas par restaurateur. Clé de rattachement des campagnes publicitaires.
-_Avoid_ : identifiant client (ambigu avec `restaurants.id`), numéro de compte, « client » pour un prospect (ADR 0076).
+_Avoid_ : identifiant client (ambigu avec `restaurants.id`), numéro de compte, `client_number` / `B0042` (forme envisagée le 2026-09-28, remplacée par `BE001`), « client » pour un prospect (ADR 0076).
 
 **Campagne publicitaire** *(ADR 0085)* :
-Campagne payante diffusée sur une régie (Meta aujourd'hui) depuis le **compte publicitaire unique** de Boosteats, pour un établissement. Son nom suit la convention `<code client> | <établissement> | <objectif> | <AAAAMM> | <libellé libre>` ; le nom **détecte** le client à la première lecture, puis le lien identifiant de campagne → établissement fait foi. Résultats lus chaque jour dans Supabase (agrégés), budget prépayé suivi par un registre de versements (restant = versements − dépense lue). Console et plateforme seulement (ADR 0007).
+Campagne payante diffusée sur une régie (Meta aujourd'hui) depuis le **compte publicitaire unique** de Boosteats, pour un établissement. Son nom suit la convention `<code client>_<établissement>_<régie>_<objectif>_v<N>` (`BE001_kraainem_META_TRAFIC_v1`), prolongée par `_<ciblage>` pour un ensemble et `_<création>` pour une publicité ; `_` ne sert qu'à séparer, on ne renomme pas, on recrée en `v2` ; le nom **détecte** le client à la première lecture, puis le lien identifiant de campagne → établissement fait foi. Résultats lus chaque jour dans Supabase (agrégés), budget prépayé suivi par un registre de versements (restant = versements − dépense lue). Console et plateforme seulement (ADR 0007).
 _Avoid_ : « campagne » nu (réservé au message ponctuel composé sur la plateforme, voir **Séquence de messages**) ; pub boostée (c'est un geste Facebook, pas une campagne gérée).
 
 **Objectif de campagne** *(ADR 0085)* :
-Troisième segment du nom d'une campagne publicitaire, dans une liste fermée qui s'allonge : `TRAFIC`, `NOTORIETE`, `MESSAGES`, `INSCRIPTION`, `UBEREATS`, `DELIVEROO`, `TAKEAWAY`. Un objectif inconnu ne bloque pas le rattachement, il est signalé.
+Quatrième segment du nom d'une campagne publicitaire (après la régie `META` | `TIKTOK`), dans une liste fermée qui s'allonge : `TRAFIC`, `NOTORIETE`, `VIDEO`, `MESSAGES`, `INSCRIPTION`, `UBEREATS`, `DELIVEROO`, `TAKEAWAY`. Un objectif inconnu ne bloque pas le rattachement, il est signalé.
 _Avoid_ : l'« objectif » de campagne de Meta (le réglage de la régie, autre chose) ; objectif du jour (tickets, ADR 0064).
 
 **Campagne non rattachée** *(ADR 0085)* :
