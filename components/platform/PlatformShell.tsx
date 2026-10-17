@@ -40,7 +40,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/platform/scans", label: "Tickets", icon: Receipt },
   { href: "/platform/messages", label: "Messages", icon: Mail },
   { href: "/platform/audit", label: "Audit", icon: ClipboardCheck },
-  { href: "/platform/crm", label: "CRM", icon: Handshake },
+  { href: "/platform/crm", label: "Outbound", icon: Handshake },
   { href: "/platform/prestataires", label: "Prestataires", icon: Clapperboard },
 ];
 

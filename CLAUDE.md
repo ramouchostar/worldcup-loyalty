@@ -167,7 +167,7 @@ MARKETPLACE_ENABLED=               # ADR 0084 — « true » ouvre le module Pre
 - **Toute surface publique qui liste ou compte des établissements passe par `listLiveRestaurants()` (`lib/demo.ts`)** — `status = 'active' AND is_demo = false`. L'oublier est une régression au même titre qu'exposer `target_revenue` côté client
 - Depuis m56 : tous les établissements sauf `kraainem` sont des comptes démo
 - `restaurants.activated_at` ≠ `created_at` — maille de la courbe d'activation, première activation uniquement
-- `/platform` est un espace à huit onglets (Réseau · Chiffres · Backlog · Membres · Tickets · Messages · Audit — ADR 0069 · CRM — ADR 0076), navigation portée par `components/platform/PlatformShell.tsx` sous `app/platform/layout.tsx` ; chaque page garde son propre contrôle `is_super_admin`
+- `/platform` est un espace à huit onglets (Réseau · Chiffres · Backlog · Membres · Tickets · Messages · Audit — ADR 0069 · Outbound, ex-CRM — ADR 0076), navigation portée par `components/platform/PlatformShell.tsx` sous `app/platform/layout.tsx` ; chaque page garde son propre contrôle `is_super_admin`
 - Le CA réseau ne figure QUE sur `/platform/stats` — jamais côté membre (ADR 0007), jamais chez un restaurateur pour un autre établissement (ADR 0015 §7)
 - Backlog (`platform_backlog`) : priorité **calculée** (`impact ÷ effort`), jamais saisie
 

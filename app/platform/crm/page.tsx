@@ -31,7 +31,7 @@ import {
   updateDetails,
 } from "./actions";
 
-export const metadata = { title: "CRM — Plateforme" };
+export const metadata = { title: "Outbound — Plateforme" };
 export const dynamic = "force-dynamic";
 // L'audit lancé depuis une fiche tourne en tâche de fond après la redirection.
 export const maxDuration = 300;
@@ -62,9 +62,9 @@ export default async function PlatformCrmPage({ searchParams }: { searchParams: 
   if (prospects.missing || events.missing) {
     return (
       <div className="max-w-5xl mx-auto py-8 px-4 space-y-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">CRM</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Outbound</h1>
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
-          <p className="font-semibold">Tables du CRM absentes</p>
+          <p className="font-semibold">Tables d&apos;Outbound absentes</p>
           <p className="text-amber-700 text-xs mt-0.5">Appliquer docs/migrations/20261003-0020-crm-prospection.sql dans Supabase.</p>
         </div>
       </div>
@@ -99,7 +99,7 @@ export default async function PlatformCrmPage({ searchParams }: { searchParams: 
     <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">CRM</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Outbound</h1>
           <p className="text-gray-500 text-sm mt-1">
             Prospection restaurateurs à Bruxelles · objectif {WEEKLY_SIGNED_TARGET} signés par semaine · l&apos;audit gratuit ouvre la porte.
           </p>
