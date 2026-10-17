@@ -7,6 +7,8 @@ et l'offre de l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitati
 ni l'ADR 0029 : rien de ce qui est ici ne descend vers un membre. Stratégies détaillées :
 [`docs/strategie/prospection-bruxelles.md`](../strategie/prospection-bruxelles.md).
 
+**Amendé le 2026-10-17** : l'onglet s'appelle **Outbound** (prospection de nouveaux établissements), pour le distinguer de l'espace de suivi des établissements déjà clients. L'URL `/platform/crm` et les noms de code (`lib/crm*.ts`, tables) ne changent pas.
+
 ## Contexte
 
 Les associés veulent signer **5 établissements par semaine** à Bruxelles. Il n'existe aucun suivi :
