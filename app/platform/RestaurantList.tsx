@@ -19,6 +19,8 @@ export type RestaurantViewRow = {
   status: "pending" | "active" | "disabled";
   // ADR 0033 §1 — établissement fictif de démonstration.
   isDemo: boolean;
+  // ADR 0085 §1 — BE001… ; null pour un compte démo ou un établissement pas encore validé.
+  clientCode: string | null;
   memberCount: number;
   ownerEmail: string | null;
   hasOwner: boolean;
@@ -151,6 +153,39 @@ function OwnerInviteRow({ row }: { row: RestaurantViewRow }) {
   );
 }
 
+// ADR 0085 §1 — le code client en tête de la ligne grise, copiable d'un clic :
+// c'est lui qu'on tape en tête du nom d'une campagne publicitaire. Un compte
+// démo n'en a jamais (rien d'affiché) ; un établissement réel en attente le
+// recevra à sa validation, on le dit pour qu'on ne le cherche pas.
+function ClientCode({ row }: { row: RestaurantViewRow }) {
+  const [copied, setCopied] = useState(false);
+
+  if (!row.clientCode) {
+    if (row.isDemo || row.status !== "pending") return null;
+    return <>code à la validation{" · "}</>;
+  }
+
+  return (
+    <>
+      <span className="font-mono font-bold text-gray-700">{row.clientCode}</span>
+      <button
+        type="button"
+        onClick={() => {
+          navigator.clipboard?.writeText(row.clientCode!);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+        aria-label={`Copier le code client ${row.clientCode}`}
+        title="Copier le code client"
+        className="ml-1 px-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+      >
+        {copied ? "✓" : "⧉"}
+      </button>
+      {" · "}
+    </>
+  );
+}
+
 const SCOPES = [
   { key: "reels", label: "Réels" },
   { key: "demo", label: "Démo" },
@@ -175,6 +210,7 @@ export function RestaurantList({ restaurants }: { restaurants: RestaurantViewRow
     ? inScope.filter((r) =>
         r.name.toLowerCase().includes(q) ||
         r.id.toLowerCase().includes(q) ||
+        (r.clientCode ?? "").toLowerCase().includes(q) ||
         (r.sector ?? "").toLowerCase().includes(q) ||
         (r.ownerEmail ?? "").toLowerCase().includes(q)
       )
@@ -205,7 +241,7 @@ export function RestaurantList({ restaurants }: { restaurants: RestaurantViewRow
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Rechercher un établissement (nom, secteur, email owner, id)…"
+        placeholder="Rechercher un établissement (nom, code client, secteur, email owner, id)…"
         className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-platform-accent/40"
       />
 
@@ -231,6 +267,7 @@ export function RestaurantList({ restaurants }: { restaurants: RestaurantViewRow
                       {r.sector && <span className="ml-2 text-xs font-normal text-gray-400">📍 {r.sector}</span>}
                     </p>
                     <p className="text-xs text-gray-400 truncate">
+                      <ClientCode row={r} />
                       <span className="font-mono">{r.id}</span>
                       {" · "}
                       {r.memberCount} membre{r.memberCount > 1 ? "s" : ""}

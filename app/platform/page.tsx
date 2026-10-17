@@ -71,7 +71,7 @@ export default async function PlatformPage() {
   // Emails des owners + compteurs par établissement (réseau petit — les
   // requêtes parallèles suffisent largement)
   const ownerIds = Array.from(new Set(all.map((r) => r.owner_id).filter((id): id is string => !!id)));
-  const [{ data: owners }, membershipsRes, menuCounts, activeInvites] = await Promise.all([
+  const [{ data: owners }, membershipsRes, menuCounts, activeInvites, clientCodes] = await Promise.all([
     ownerIds.length > 0
       ? admin.from("profiles").select("id, email").in("id", ownerIds)
       : Promise.resolve({ data: [] }),
@@ -87,6 +87,18 @@ export default async function PlatformPage() {
     ),
     // ADR 0032 — liens d'invitation restaurateur encore en circulation
     getActiveInvitesByRestaurant(),
+    // ADR 0085 §1 — lu à part : sans la migration, la colonne manque et la
+    // liste s'affiche quand même, simplement sans code.
+    admin
+      .from("restaurants")
+      .select("id, client_code")
+      .not("client_code", "is", null)
+      .then(({ data, error }) => ({
+        missing: !!error,
+        byId: new Map(
+          error ? [] : ((data ?? []) as { id: string; client_code: string }[]).map((r) => [r.id, r.client_code] as const)
+        ),
+      })),
   ]);
   // ADR 0075 §4 — carte et ticket : la validation les attend.
   const pendingProgress = new Map((await loadProgress(pendingList.map((r) => r.id))).map((p) => [p.id, p] as const));
@@ -107,6 +119,7 @@ export default async function PlatformPage() {
       sector: r.sector,
       status: r.status,
       isDemo: !!r.is_demo,
+      clientCode: clientCodes.byId.get(r.id) ?? null,
       memberCount: membersById.get(r.id) ?? 0,
       ownerEmail: r.owner_id ? ownerEmailById.get(r.owner_id) ?? null : null,
       hasOwner: !!r.owner_id,
@@ -126,6 +139,16 @@ export default async function PlatformPage() {
           </Link>
         </p>
       </div>
+
+      {clientCodes.missing && !demoColumnMissing && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
+          <p className="font-semibold">Codes clients indisponibles</p>
+          <p className="text-amber-700 text-xs mt-0.5">
+            Exécute <span className="font-mono">docs/migrations/20261017-1057-code-client.sql</span> dans
+            Supabase pour attribuer BE001, BE002… aux établissements réels (ADR 0085).
+          </p>
+        </div>
+      )}
 
       {demoColumnMissing && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
