@@ -13,7 +13,8 @@
 --    « Mes clients », avec l'app installée. Deux cas, distingués par la date :
 --    a) adhésion POSTÉRIEURE à l'anonymisation = la personne est revenue
 --       (même compte de connexion) → on réactive le profil (e-mail repris du
---       compte de connexion, prénom vidé, redemandé dans /compte) ;
+--       compte de connexion, nom = début de l'e-mail comme à l'inscription,
+--       m29b — display_name est NOT NULL) ;
 --    b) adhésion ANTÉRIEURE = l'effacement a échoué en partie → on termine
 --       l'effacement (adhésion supprimée), la personne voulait partir.
 --
@@ -41,7 +42,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- 2a. Revenus après suppression → réactivés
 UPDATE profiles p
 SET anonymized_at = NULL,
-    display_name  = NULL,
+    display_name  = split_part(u.email, '@', 1),
     email         = u.email
 FROM auth.users u
 WHERE u.id = p.id
