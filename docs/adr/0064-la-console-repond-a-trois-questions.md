@@ -242,3 +242,15 @@ création des QR du personnel, avec un bouton qui mène directement à cette cr�
 - **Une action, un seul endroit** (ADR 0054 §5) : le QR de l'équipe quitte la liste de lancement
   (qui passe à quatre gestes) et la carte « prochaine étape » de l'étape « Prendre le rythme ».
 - Migration des codes salle absente : aucune tâche — on ne réclame pas un outil qui n'existe pas.
+
+## Amendement 2026-10-03 — après l'équipement, le coup de pouce
+
+**Demande du porteur** (maquette validée) : le conseil « quand il faut » sur l'accueil.
+
+- **Une fois l'équipe équipée** (3 QR actifs), la même tâche « À faire » (clé `staff`) devient
+  **« Relance Karim et Inès »** tant qu'au moins un QR est *à relancer* (`lib/staff-status.ts` :
+  plus de 7 jours, moins de 3 scans sur 30 jours, aucune inscription). Bouton « Voir mon équipe »
+  vers `/qr#equipe`. Personne à relancer : aucune tâche.
+- **La carte « Équipe en salle »** garde son podium et ajoute une ligne « N à relancer : … → Voir ».
+- Même règle, même module que l'encadré « coup de pouce » de la page QR : un seul endroit où elle
+  se décide.

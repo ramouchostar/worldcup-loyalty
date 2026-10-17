@@ -9,12 +9,15 @@ import { BRAND_DEFAULTS } from "@/lib/branding";
 import { getStaffStats } from "@/lib/staff-codes";
 import { usesBelchickenQrTemplate } from "@/lib/qr-template";
 import { StaffCodesSection } from "@/components/admin/StaffCodesSection";
+import { QrTabs } from "@/components/admin/QrTabs";
 import { PageHeader } from "@/components/admin/ui";
 import { SITE_ORIGIN } from "@/lib/site";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 
-// QR code de l'établissement — pointe vers sa landing publique /r/[slug].
+// Page QR : deux onglets (maquette validée le 2026-10-03). « Mon équipe »
+// d'abord — un QR par prénom, ADR 0053 — puis le QR de l'établissement, qui
+// pointe vers sa landing publique /r/[slug].
 // Généré côté serveur aux couleurs de la charte (ADR 0015) : PNG haute
 // résolution + SVG vectoriel, et trois supports imprimables prêts à l'emploi.
 export default async function AdminQrPage({
@@ -79,12 +82,14 @@ export default async function AdminQrPage({
         { key: "a4", icon: FileText, label: "Affiche caisse", desc: "A4 · 210 × 297 mm — à afficher au comptoir" },
       ];
 
+  const activeStaff = (staffStats ?? []).filter((s) => s.isActive).length;
+
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-6 max-w-2xl">
       <PageHeader
-        title={<>QR code de {restaurant.name}</>}
-        subtitle={<>Un client qui le scanne arrive sur ta page, s&apos;inscrit et rejoint ta
-          communauté. Choisis un support prêt-à-imprimer, ou télécharge le QR brut.</>}
+        title="QR codes"
+        subtitle={<>Chaque personne en salle a son QR : tu vois qui fait inscrire des clients.
+          Le QR de l&apos;établissement, ses affiches et ses fichiers sont dans le second onglet.</>}
       />
 
       {restaurant.status !== "active" && (
@@ -96,84 +101,94 @@ export default async function AdminQrPage({
         </div>
       )}
 
-      {/* ADR 0053 — Équipe en salle : un QR par prénom, la mesure de qui
-          apporte des clients. Aucune distinction de poste. Ancre `#equipe` :
-          la vue simple (ADR 0064) y envoie directement. */}
-      <div id="equipe" className="space-y-3 scroll-mt-20">
-        <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Équipe en salle</p>
-        <p className="text-xs text-ink-muted -mt-1">
-          Un QR personnel par prénom : tu vois qui amène des clients, et chacun
-          montre son badge depuis son téléphone.
-        </p>
-        <StaffCodesSection
-          restaurantId={restaurantId}
-          initialStats={staffStats ?? []}
-          migrationMissing={staffStats === null}
-          autoFocus={creer === "1"}
-        />
-      </div>
-
-      {/* Supports imprimables */}
-      <div className="space-y-3">
-        <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Supports prêts à imprimer</p>
-        <div className="grid gap-3">
-          {formats.map((f) => (
-            <Link
-              key={f.key}
-              href={`/admin/${restaurantId}/qr/print?format=${f.key}`}
-              className="flex items-center gap-4 bg-white rounded-xl border border-paper-border p-4 hover:border-ink-faint hover:shadow-sm transition-all"
-            >
-              <span className="w-10 h-10 rounded-xl bg-paper-subtle text-ink-muted flex items-center justify-center shrink-0">
-                <f.icon size={20} strokeWidth={1.6} aria-hidden="true" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-ink">{f.label}</p>
-                <p className="text-xs text-ink-faint">{f.desc}</p>
+      <QrTabs
+        teamCount={activeStaff}
+        equipe={
+          // ADR 0053 — Équipe en salle : un QR par prénom, la mesure de qui
+          // apporte des clients. Ancre `#equipe` : la vue simple (ADR 0064)
+          // y envoie directement.
+          <div id="equipe" className="scroll-mt-20">
+            <StaffCodesSection
+              restaurantId={restaurantId}
+              restaurantName={restaurant.name}
+              initialStats={staffStats ?? []}
+              migrationMissing={staffStats === null}
+              autoFocus={creer === "1"}
+              nowIso={new Date().toISOString()}
+              appUrl={APP_URL}
+            />
+          </div>
+        }
+        etablissement={
+          <div id="etablissement" className="space-y-4 scroll-mt-20">
+            <p className="text-sm text-ink-muted">
+              Un client qui le scanne arrive sur ta page, s&apos;inscrit et rejoint ta communauté.
+            </p>
+            <div className="bg-white rounded-xl border border-paper-border p-4 grid gap-5 sm:grid-cols-[180px_minmax(0,1fr)] items-start">
+              <div className="space-y-2">
+                <div
+                  className="w-full max-w-[180px] aspect-square [&>svg]:w-full [&>svg]:h-full"
+                  dangerouslySetInnerHTML={{ __html: svg }}
+                />
+                <p className="text-[11px] text-ink-faint font-mono break-all">{targetUrl.replace(/^https?:\/\//, "")}</p>
               </div>
-              <span className="text-ink font-semibold text-sm shrink-0">Imprimer →</span>
-            </Link>
-          ))}
-        </div>
-        <p className="text-xs text-ink-faint">
-          <Palette size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
-          Les supports reprennent ton logo et tes couleurs. Configure-les dans{" "}
-          <Link href={`/admin/${restaurantId}/settings`} className="text-ink hover:underline">Mon établissement</Link>.
-        </p>
-      </div>
-
-      {/* Aperçu + QR brut */}
-      <div className="bg-white rounded-xl border border-paper-border p-6 flex flex-col items-center">
-        <div
-          className="w-56 h-56 [&>svg]:w-full [&>svg]:h-full"
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
-        <p className="mt-4 text-xs text-ink-faint font-mono break-all text-center">{targetUrl}</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <a
-          href={pngDataUrl}
-          download={`qr-${restaurantId}.png`}
-          className="bg-ink text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
-        >
-          <Download size={15} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
-          PNG (2048 px)
-        </a>
-        <a
-          href={svgDataUrl}
-          download={`qr-${restaurantId}.svg`}
-          className="bg-ink text-white text-center py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
-        >
-          <Download size={15} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
-          SVG (imprimeur)
-        </a>
-      </div>
-
-      <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1">
-        <p><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Pour les supports, imprime avec les marges « Aucune » et les couleurs d&apos;arrière-plan activées.</p>
-        <p><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Le SVG est vectoriel : c&apos;est le format à donner à un imprimeur professionnel.</p>
-        <p><Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />Teste toujours le QR imprimé avec ton téléphone avant de le distribuer.</p>
-      </div>
+              <div className="space-y-2 min-w-0">
+                <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Prêt à imprimer</p>
+                {formats.map((f) => (
+                  <Link
+                    key={f.key}
+                    href={`/admin/${restaurantId}/qr/print?format=${f.key}`}
+                    className="flex items-center gap-3 rounded-xl border border-paper-border px-3 py-2.5 hover:border-ink-faint hover:shadow-sm transition-all"
+                  >
+                    <span className="w-9 h-9 rounded-lg bg-paper-subtle text-ink-muted flex items-center justify-center shrink-0">
+                      <f.icon size={18} strokeWidth={1.6} aria-hidden="true" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-ink text-sm">{f.label}</p>
+                      <p className="text-xs text-ink-faint">{f.desc}</p>
+                    </div>
+                    <span className="text-ink font-semibold text-xs shrink-0">Imprimer →</span>
+                  </Link>
+                ))}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <a
+                    href={pngDataUrl}
+                    download={`qr-${restaurantId}.png`}
+                    className="inline-flex items-center gap-1.5 bg-white border border-paper-border text-ink text-xs font-bold px-3 py-2 rounded-lg hover:border-ink-faint"
+                  >
+                    <Download size={14} strokeWidth={1.8} aria-hidden="true" />
+                    PNG (2048 px)
+                  </a>
+                  <a
+                    href={svgDataUrl}
+                    download={`qr-${restaurantId}.svg`}
+                    className="inline-flex items-center gap-1.5 bg-white border border-paper-border text-ink text-xs font-bold px-3 py-2 rounded-lg hover:border-ink-faint"
+                  >
+                    <Download size={14} strokeWidth={1.8} aria-hidden="true" />
+                    SVG pour l&apos;imprimeur
+                  </a>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-ink-faint">
+              <Palette size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+              Les supports reprennent ton logo et tes couleurs. Configure-les dans{" "}
+              <Link href={`/admin/${restaurantId}/settings`} className="text-ink hover:underline">Mon établissement</Link>.
+            </p>
+            <details className="bg-paper rounded-xl p-4 text-xs text-ink-muted">
+              <summary className="cursor-pointer font-semibold text-ink-body">
+                <Lightbulb size={13} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" aria-hidden="true" />
+                Conseils d&apos;impression
+              </summary>
+              <div className="space-y-1 mt-2">
+                <p>Pour les supports, imprime avec les marges « Aucune » et les couleurs d&apos;arrière-plan activées.</p>
+                <p>Le SVG est vectoriel : c&apos;est le format à donner à un imprimeur professionnel.</p>
+                <p>Teste toujours le QR imprimé avec ton téléphone avant de le distribuer.</p>
+              </div>
+            </details>
+          </div>
+        }
+      />
     </div>
   );
 }
