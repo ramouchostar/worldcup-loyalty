@@ -11,7 +11,7 @@
 
 export const RULES_VERSION = "2026-10-14";
 
-import type { MetierFamily } from "./mission-metier";
+import type { Metier } from "./mission-money";
 
 export type Rule = { title: string; text: string };
 export type RulesAudience = "restaurant" | "provider";
@@ -72,16 +72,47 @@ export const STUDIO_PROVIDER_RULES: readonly Rule[] = [
 
 export const RULES: Record<RulesAudience, readonly Rule[]> = { restaurant: RESTAURANT_RULES, provider: PROVIDER_RULES };
 
-/** Les règles et leur version pour une famille de métiers. */
-export function rulesFor(audience: RulesAudience, family: MetierFamily): readonly Rule[] {
-  if (family === "atelier") return audience === "restaurant" ? STUDIO_RESTAURANT_RULES : STUDIO_PROVIDER_RULES;
+// ── L'impression : les règles d'atelier, plus le bon à tirer ──
+
+/** Le texte des règles d'impression a sa propre version (le bon à tirer n'existe qu'ici). */
+export const PRINT_RULES_VERSION = "2026-10-20";
+
+const BAT_RESTAURANT_RULE: Rule = { title: "Le bon à tirer fait foi", text: "L'imprimeur t'envoie une épreuve : tu la vérifies point par point, puis tu la signes, ou tu demandes des corrections (deux tours, chacun en un seul envoi). Une fois signée, c'est exactement ce qui sera imprimé : tu ne peux plus annuler, et une erreur visible sur le bon à tirer n'est pas réimprimée gratuitement. Le solde est dû à la signature." };
+const BAT_PROVIDER_RULE: Rule = { title: "Le bon à tirer fait foi", text: "Tu envoies une épreuve au restaurateur ; il la signe ou demande des corrections (deux tours, chacun en un seul envoi). Tu n'imprimes qu'après la signature, et ce que tu imprimes doit correspondre au bon à tirer signé. Tu reteste le QR code sur l'épreuve avant de l'envoyer. Une erreur visible sur un bon à tirer signé n'est pas à ta charge." };
+
+// Les règles d'atelier, avec la règle d'annulation remplacée (le bon à tirer signé ferme l'annulation) et la règle du bon à tirer en plus.
+export const PRINT_RESTAURANT_RULES: readonly Rule[] = [
+  ...STUDIO_RESTAURANT_RULES.filter((r) => r.title !== "Deux tours de retours" && r.title !== "Tu peux annuler tant que le travail n'a pas commencé"),
+  BAT_RESTAURANT_RULE,
+  { title: "Tu peux annuler jusqu'à la signature", text: "Tant que l'imprimeur n'a pas commencé, l'annulation est gratuite. Une fois commencé, l'acompte lui reste et le reste t'est rendu. Après la signature du bon à tirer, on n'annule plus." },
+];
+
+export const PRINT_PROVIDER_RULES: readonly Rule[] = [
+  ...STUDIO_PROVIDER_RULES.filter((r) => r.title !== "Deux tours de retours, en un seul envoi chacun" && r.title !== "Tu dis quand tu commences"),
+  BAT_PROVIDER_RULE,
+  { title: "Tu dis quand tu commences", text: "Touche « Je commence » quand tu démarres l'épreuve. Avant, le restaurateur peut annuler sans frais ; après, ton acompte te reste acquis, jusqu'à la signature du bon à tirer, après laquelle plus personne n'annule. Si tu annules après avoir commencé, le restaurateur est remboursé en entier et tu reçois un avertissement." },
+];
+
+export type RulesKind = "tournage" | "atelier" | "impression";
+
+export const rulesKindOf = (m: Metier): RulesKind => (m === "impression" ? "impression" : m === "design" ? "atelier" : "tournage");
+
+/** Les règles d'un type de mission, pour un côté. */
+export function rulesFor(audience: RulesAudience, kind: RulesKind): readonly Rule[] {
+  if (kind === "impression") return audience === "restaurant" ? PRINT_RESTAURANT_RULES : PRINT_PROVIDER_RULES;
+  if (kind === "atelier") return audience === "restaurant" ? STUDIO_RESTAURANT_RULES : STUDIO_PROVIDER_RULES;
   return RULES[audience];
 }
 
-export const rulesVersionFor = (family: MetierFamily): string => (family === "atelier" ? STUDIO_RULES_VERSION : RULES_VERSION);
+export const rulesVersionFor = (kind: RulesKind): string => (kind === "impression" ? PRINT_RULES_VERSION : kind === "atelier" ? STUDIO_RULES_VERSION : RULES_VERSION);
+
+/** L'empreinte du texte des règles d'impression (voir `rulesFingerprint`). */
+export function printRulesFingerprint(): string {
+  return fnv(JSON.stringify({ version: PRINT_RULES_VERSION, restaurant: PRINT_RESTAURANT_RULES, provider: PRINT_PROVIDER_RULES }));
+}
 
 /** Toutes les versions en vigueur (le prestataire peut accepter l'une ou l'autre). */
-export const CURRENT_RULES_VERSIONS: readonly string[] = [RULES_VERSION, STUDIO_RULES_VERSION];
+export const CURRENT_RULES_VERSIONS: readonly string[] = [RULES_VERSION, STUDIO_RULES_VERSION, PRINT_RULES_VERSION];
 
 export const RULES_ACCEPT_LABEL: Record<RulesAudience, string> = {
   restaurant: "J'ai lu les règles et je les accepte pour ce brief.",

@@ -37,6 +37,9 @@ import { judgeReject } from "@/lib/mission-proposals";
 import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
+import { BatCard, type ProofView } from "./BatCard";
+import { listProofs } from "@/lib/missions-bat-state";
+import { batChecklist, batPhase, batSummary, correctionRoundsLeft } from "@/lib/mission-print";
 import { ChangesCard, type ChangeView } from "./ChangesCard";
 import { listChanges } from "@/lib/missions-changes-state";
 import { REQUEST_VERDICT_TEXT, judgeChangeRequest } from "@/lib/mission-changes";
@@ -160,16 +163,31 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const reportState = mission.report_confirmed_at ? "confirmed" : mission.report_contested_at ? "contested" : "pending";
   const deliveries = mission.delivered_at ? await listDeliveries(mission.id) : [];
   const retouches = mission.retouch_rounds_used > 0 ? await listRetouches(mission.id) : [];
-  const retouch = retouchState(mission.status, mission.retouch_rounds_used);
+  const retouch = retouchState(mission.status, mission.retouch_rounds_used, mission.metier);
+  // Le bon à tirer (impression) : migration absente → rien d'affiché, le reste de la mission fonctionne.
+  const proofsRes = mission.metier === "impression" && ["production", "livre", "valide", "verse"].includes(mission.status) ? await listProofs(mission.id) : null;
+  const batSigned = !!proofsRes?.ok && proofsRes.proofs.some((p) => p.status === "signed");
 
   // Annuler : le devis se décline (carte « Décliner ce devis ») ; le reste s'annule ici, coût dit d'abord.
-  const cancelQuote = canCancel("restaurant", mission.status, mission.metier) && mission.status !== "devis" ? costNow(mission, "restaurant") : null;
+  const cancelQuote = canCancel("restaurant", mission.status, mission.metier) && mission.status !== "devis" && !batSigned ? costNow(mission, "restaurant") : null;
 
   return (
     <div className="space-y-6 max-w-xl">
       {back}
       <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
-      {!hasShoot(mission.metier) && (mission.status === "accepte" || mission.status === "production") && (
+      {proofsRes?.ok && mission.status === "production" && (
+        <BatCard
+          restaurantId={restaurantId}
+          missionId={mission.id}
+          providerName={providerLabel(mission.metier, providerName)}
+          phase={batPhase(proofsRes.proofs)}
+          proofs={proofsRes.proofs.map((p): ProofView => ({ id: p.id, round: p.round, status: p.status, links: p.links, message: p.message, corrections: p.corrections, signedName: p.signed_name, signedAt: p.signed_at }))}
+          checklist={batChecklist(mission.brief)}
+          summary={batSummary(mission.brief)}
+          correctionsLeft={correctionRoundsLeft(proofsRes.proofs)}
+        />
+      )}
+      {!hasShoot(mission.metier) && !(mission.metier === "impression" && mission.status === "production" && proofsRes?.ok) && (mission.status === "accepte" || mission.status === "production") && (
         <Card className="space-y-1">
           <SectionLabel>{mission.status === "accepte" ? "Bientôt au travail" : "En cours de création"}</SectionLabel>
           <p className="text-[13.5px] text-ink-muted">
@@ -210,10 +228,14 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           superseded={i > 0}
           canValidate={mission.status === "livre" && i === 0}
           validated={i === 0 && (mission.status === "valide" || mission.status === "verse")}
+          print={mission.metier === "impression"}
         />
       ))}
       {mission.status === "livre" && retouch.can && (
         <RetouchForm restaurantId={restaurantId} missionId={mission.id} categories={categoriesFor(mission.metier)} roundsLeft={retouch.left} withTimecode={mission.metier === "video"} />
+      )}
+      {mission.status === "livre" && !retouch.can && retouch.reason === "print" && (
+        <p className="text-[13.5px] text-ink-muted">Les corrections se font sur le bon à tirer, avant l&apos;impression. Si ce que tu reçois ne correspond pas à ce que tu as signé, écris à Boosteats.</p>
       )}
       {mission.status === "livre" && !retouch.can && retouch.reason === "no_rounds_left" && (
         <p className="text-[13.5px] text-ink-muted">Tu as utilisé tes deux tours de retours : tu peux valider la livraison, ou écrire à Boosteats.</p>

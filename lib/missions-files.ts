@@ -60,7 +60,7 @@ const actorId = (a: FileActor) => (a.kind === "restaurant" ? a.userId : (a.provi
 async function openScope(scope: FileScope, m: Ctx): Promise<{ open: boolean; ref: string | null }> {
   if (scope === "brief") return { open: m.status === "brief", ref: null };
   if (scope === "retouch") {
-    const s = retouchState(m.status, m.retouch_rounds_used);
+    const s = retouchState(m.status, m.retouch_rounds_used, m.metier);
     return s.can ? { open: true, ref: `round-${s.round}` } : { open: false, ref: null };
   }
   if (scope === "change") {

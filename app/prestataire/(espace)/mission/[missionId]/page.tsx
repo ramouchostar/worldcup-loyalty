@@ -15,8 +15,8 @@ import { judgeStart } from "@/lib/mission-dayof";
 import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
 import { versionLabel } from "@/lib/mission-retouch";
 import { DeliveryForm, ReportForm, StartButton, StartWorkButton } from "./DayOfPanel";
-import { familyOf, hasShoot } from "@/lib/mission-metier";
-import { rulesVersionFor } from "@/lib/mission-rules";
+import { hasShoot } from "@/lib/mission-metier";
+import { rulesKindOf, rulesVersionFor } from "@/lib/mission-rules";
 import { briefHeadline } from "@/lib/mission-view";
 import { CancelCard } from "@/components/missions/CancelCard";
 import { costNow } from "@/lib/missions-cancel";
@@ -29,6 +29,9 @@ import { RulesGate } from "./RulesGate";
 import { providerHasAccepted } from "@/lib/missions-rules";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
+import { BatPanel } from "./BatPanel";
+import { listProofs } from "@/lib/missions-bat-state";
+import { batPhase } from "@/lib/mission-print";
 import { ChangePanel } from "./ChangePanel";
 import { listChanges } from "@/lib/missions-changes-state";
 import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals-state";
@@ -69,11 +72,12 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   const files = await listFiles(mission.id);
   const filesBase = `/api/prestataire/missions/${mission.id}/files`;
   // Les règles du jeu : à accepter une fois par version avant le premier devis (migration absente : pas de blocage).
-  const rules = mission.status === "envoye" ? await providerHasAccepted(provider.id, rulesVersionFor(familyOf(mission.metier))) : null;
+  const rules = mission.status === "envoye" ? await providerHasAccepted(provider.id, rulesVersionFor(rulesKindOf(mission.metier))) : null;
   const rulesPending = !!rules && rules.ok && !rules.accepted;
   // Les demandes de modification (PR M) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const changesRes = mission.status === "envoye" || mission.status === "devis" ? null : await listChanges(mission.id);
   const commissionBps = changesRes?.ok && changesRes.changes.some((c) => c.status === "proposed") ? (await getTerms()).terms.commissionBps : 0;
+  const proofsRes = mission.metier === "impression" && mission.status === "production" ? await listProofs(mission.id) : null;
   const changeFiles = (seq: number) => files.filter((f) => f.scope === "change" && f.ref === `change-${seq}`);
   const pstate = mission.shoot_date && mission.status !== "annule" ? await loadProposalState(mission.id) : null;
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
@@ -148,7 +152,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {mission.status === "envoye" && (
         <>
-          {rulesPending ? <RulesGate family={familyOf(mission.metier)} /> : <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} commissionBps={(await getTerms()).terms.commissionBps} />}
+          {rulesPending ? <RulesGate kind={rulesKindOf(mission.metier)} /> : <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} commissionBps={(await getTerms()).terms.commissionBps} />}
           <RefuseForm missionId={mission.id} />
         </>
       )}
@@ -270,7 +274,16 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {mission.status === "accepte" && !hasShoot(mission.metier) && <StartWorkButton missionId={mission.id} />}
 
-      {mission.status === "production" && !hasShoot(mission.metier) && <DeliveryForm missionId={mission.id} title="Livrer ton travail" />}
+      {mission.status === "production" && mission.metier === "design" && <DeliveryForm missionId={mission.id} title="Livrer ton travail" />}
+      {mission.status === "production" && mission.metier === "impression" && !proofsRes?.ok && <p className="text-[13.5px] text-ink-muted">Le bon à tirer n&apos;est pas encore disponible. Réessaie dans un instant.</p>}
+      {mission.status === "production" && mission.metier === "impression" && proofsRes?.ok && (
+        <BatPanel
+          missionId={mission.id}
+          phase={batPhase(proofsRes.proofs)}
+          proofs={proofsRes.proofs.map((p) => ({ id: p.id, round: p.round, status: p.status, corrections: p.corrections, signedName: p.signed_name }))}
+          qrUrl={typeof mission.brief?.qr_url === "string" && mission.brief.qr_url.trim() ? mission.brief.qr_url.trim() : null}
+        />
+      )}
 
       {mission.status === "production" && hasShoot(mission.metier) && (
         <>

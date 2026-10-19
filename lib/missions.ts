@@ -3,14 +3,14 @@ import { isMissingTable } from "./audit/store";
 import { todayInBrussels } from "./qr-funnel";
 import { defaultTemplate, type BriefAnswers, type BriefIssue, type BriefTemplate } from "./mission-brief";
 import { briefHeadline } from "./mission-view";
+import { checkQrUrl } from "./qr-check";
 import { mergeAnswers, planSend, sanitizeAnswers, type ProviderCandidate } from "./mission-draft";
 import { sendProviderBriefReceivedEmail } from "./email";
 import { providerMissionUrl } from "./providers";
 import { SITE_ORIGIN } from "@/lib/site";
 import type { Metier } from "./mission-money";
 import type { MissionStatus } from "./mission-states";
-import { readAcceptance, rulesVersionFor } from "./mission-rules";
-import { familyOf } from "./mission-metier";
+import { readAcceptance, rulesKindOf, rulesVersionFor } from "./mission-rules";
 import { recordRestaurantAcceptance } from "./missions-rules";
 
 // ============================================================
@@ -316,10 +316,31 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
   }
 
   // Les règles du jeu : la case est exigée à CHAQUE brief envoyé, avec la version qu'on a montrée (jamais un oui à un texte qui a changé).
-  const rules = readAcceptance(rulesFromScreen, rulesVersionFor(familyOf(mission.metier)));
+  const rules = readAcceptance(rulesFromScreen, rulesVersionFor(rulesKindOf(mission.metier)));
   if (!rules.ok) {
     await logEvent(missionId, { kind: "brief_refused", actorKind: "restaurant", actorId: userId, reason: "rules_not_accepted", meta: { rules: rules.reason } });
     return { ok: false, reason: "rules_not_accepted", rules: rules.reason };
+  }
+
+  // Impression : le QR code est RETESTÉ au moment d'envoyer (un site peut tomber entre le test et l'envoi), et un « fichier prêt »
+  // suppose un fichier joint. Le serveur ne croit pas la case cochée à l'écran.
+  if (mission.metier === "impression") {
+    const a = mission.brief ?? {};
+    const qr = typeof a.qr_url === "string" ? a.qr_url.trim() : "";
+    if (qr) {
+      const check = await checkQrUrl(qr);
+      if (!check.ok) {
+        await logEvent(missionId, { kind: "brief_refused", actorKind: "restaurant", actorId: userId, reason: "qr_unreachable", meta: { qr: check.reason } });
+        return { ok: false, reason: "invalid_brief", issues: [{ key: "qr_url", code: "bad_url" }] };
+      }
+    }
+    if (a.file_state === "Prêt à imprimer") {
+      const { count, error: ce } = await createAdminClient().from("mission_attachments").select("id", { count: "exact", head: true }).eq("mission_id", missionId).eq("scope", "brief").not("confirmed_at", "is", null);
+      if (!ce && (count ?? 0) === 0) {
+        await logEvent(missionId, { kind: "brief_refused", actorKind: "restaurant", actorId: userId, reason: "file_missing" });
+        return { ok: false, reason: "invalid_brief", issues: [{ key: "file_state", code: "needs_detail" }] };
+      }
+    }
   }
 
   try {

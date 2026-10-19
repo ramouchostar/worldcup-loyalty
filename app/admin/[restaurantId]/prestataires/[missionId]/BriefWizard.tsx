@@ -18,8 +18,7 @@ import { ambitionHint, floorHint } from "@/lib/marketplace-budgets-rules";
 import { formatEuros } from "@/lib/mission-money";
 import { FilePicker } from "@/components/missions/FilePicker";
 import { RulesList } from "@/components/missions/RulesList";
-import { RULES_ACCEPT_LABEL, RULES_REFUSAL_TEXT, rulesFor, rulesVersionFor } from "@/lib/mission-rules";
-import { familyOf } from "@/lib/mission-metier";
+import { RULES_ACCEPT_LABEL, RULES_REFUSAL_TEXT, rulesFor, rulesKindOf, rulesVersionFor } from "@/lib/mission-rules";
 import type { AttachmentView } from "@/lib/mission-files";
 
 // ADR 0084 §3 — l'assistant de brief du restaurateur : quelques questions par
@@ -129,7 +128,7 @@ export function BriefWizard({
       const res = await fetch(`/api/admin/missions/${missionId}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId, answers, rules: { accepted: rulesOk, version: rulesVersionFor(familyOf(template.metier)) } }),
+        body: JSON.stringify({ restaurantId, answers, rules: { accepted: rulesOk, version: rulesVersionFor(rulesKindOf(template.metier)) } }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -184,6 +183,25 @@ export function BriefWizard({
           </div>
           {current.keys.map((key) => {
             const q = byKey.get(key);
+            if (key === "qr_tested") return null; // posé par le test, jamais coché à la main
+            if (key === "qr_url" && q) {
+              return (
+                <QrField
+                  key={key}
+                  q={q}
+                  value={typeof answers.qr_url === "string" ? answers.qr_url : ""}
+                  tested={answers.qr_tested === true}
+                  issue={issueOf("qr_url") ?? issueOf("qr_tested")}
+                  endpoint={`/api/admin/missions/${missionId}/qr-check`}
+                  restaurantId={restaurantId}
+                  onChange={(v) => {
+                    set("qr_url", v);
+                    set("qr_tested", false);
+                  }}
+                  onTested={() => set("qr_tested", true)}
+                />
+              );
+            }
             return q ? <Question key={key} q={q} value={answers[key]} issue={issueOf(key)} minDate={q.key === "deadline" ? earliestDeadline(today) : today} onChange={(v) => set(key, v)} /> : null;
           })}
           {current.keys.includes("budget_cents") && <BudgetNotes floor={floorHint(template.budgetFloorCents, formatEuros)} ambition={ambitionText} />}
@@ -243,7 +261,7 @@ export function BriefWizard({
               <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">Les règles du jeu</h2>
               <p className="text-ink-muted text-[13.5px] mt-1">Elles protègent le prestataire et toi. Lis-les : en envoyant ce brief, tu t&apos;y engages.</p>
             </div>
-            <RulesList rules={rulesFor("restaurant", familyOf(template.metier))} />
+            <RulesList rules={rulesFor("restaurant", rulesKindOf(template.metier))} />
             <button type="button" role="checkbox" aria-checked={rulesOk} onClick={() => setRulesOk((v) => !v)} className={`w-full flex items-start gap-3 text-left rounded-xl border p-3 min-h-[44px] ${rulesOk ? "border-boost-olive bg-boost-cream" : "border-paper-border bg-white"}`}>
               <span className={`mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center ${rulesOk ? "bg-boost-olive border-boost-olive text-white" : "border-ink-faint bg-white"}`}>{rulesOk && <Check className="w-3.5 h-3.5" aria-hidden />}</span>
               <span className="text-[14px] font-semibold text-ink">{RULES_ACCEPT_LABEL.restaurant}</span>
@@ -296,6 +314,48 @@ export function BriefWizard({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** « Tester le scan » : le serveur vérifie que l'adresse du QR code ouvre bien un site (jamais un scan de caméra). */
+function QrField({ q, value, tested, issue, endpoint, restaurantId, onChange, onTested }: { q: BriefQuestion; value: string; tested: boolean; issue: BriefIssue | undefined; endpoint: string; restaurantId: string; onChange: (v: string) => void; onTested: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const id = `q-${q.key}`;
+  async function test() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurantId, url: value }) });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) {
+        onTested();
+        setMessage(`Ça marche : cette adresse ouvre ${body.finalHost}${body.redirected ? " (après une redirection)" : ""}.`);
+      } else setMessage(body.error ?? "Test impossible pour le moment. Réessaie.");
+    } catch {
+      setMessage("Pas de connexion. Réessaie dans un instant.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="block text-[14px] font-semibold text-ink">
+        {q.label}
+        <span className="font-normal text-ink-faint"> · facultatif</span>
+      </label>
+      {q.hint && <p className="text-[12.5px] text-ink-muted">{q.hint}</p>}
+      <div className="flex gap-2">
+        <input id={id} value={value} onChange={(e) => { onChange(e.target.value); setMessage(null); }} inputMode="url" placeholder="https://monrestaurant.be/menu" maxLength={500} className="flex-1 min-w-0 border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive" />
+        <button type="button" disabled={busy || !value.trim()} onClick={test} className="inline-flex items-center min-h-[44px] px-4 rounded-xl border border-paper-border bg-white text-ink text-[14px] font-semibold disabled:opacity-50">
+          {busy ? "…" : "Tester le scan"}
+        </button>
+      </div>
+      {value.trim() && tested && !message && <p className="text-[13px] text-good font-semibold">QR code testé.</p>}
+      {message && <p role="status" className={`text-[13px] font-semibold ${tested ? "text-good" : "text-danger"}`}>{message}</p>}
+      {value.trim() && !tested && !message && <p className="text-[13px] text-warn font-semibold">Teste le scan avant de continuer.</p>}
+      {issue && <p role="alert" className="text-danger text-[13px] font-semibold">{issueMessage(issue.code)}</p>}
     </div>
   );
 }
