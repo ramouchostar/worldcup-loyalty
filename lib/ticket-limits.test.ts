@@ -19,3 +19,10 @@ test("le jour commence à minuit, heure de Bruxelles (été et hiver)", () => {
   // Hiver (UTC+1)
   assert.equal(brusselsDayStartIso(new Date("2026-12-10T12:00:00Z")), "2026-12-09T23:00:00.000Z");
 });
+
+test("même refus répété : on arrête à la troisième lecture refusée", async () => {
+  const { isRepeatedRefusal, REPEATED_REFUSAL_MAX } = await import("./ticket-limits");
+  assert.equal(isRepeatedRefusal(0), false);
+  assert.equal(isRepeatedRefusal(REPEATED_REFUSAL_MAX - 1), false);
+  assert.equal(isRepeatedRefusal(REPEATED_REFUSAL_MAX), true);
+});

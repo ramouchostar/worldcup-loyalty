@@ -9,7 +9,7 @@ import { recordFunnelStep } from "@/lib/funnel";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
-import { isOtherEstablishment, judgeReceipt, notAReceiptMessage, otherEstablishmentMessage, refusalReason } from "@/lib/receipt-proof";
+import { isOtherEstablishment, judgeReceipt, notAReceiptMessage, otherEstablishmentMessage, refusalReason, unknownCodeMessage } from "@/lib/receipt-proof";
 import { loadRewardGrid, welcomeReward } from "@/lib/rewards";
 import { listCatalogue } from "@/lib/points";
 import { personalPointsForOrder, pointsGoalFrom, type PointsGoal } from "@/lib/catalogue";
@@ -147,6 +147,12 @@ export async function POST(request: NextRequest) {
   if (isOtherEstablishment(analysis)) {
     await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "wrong_establishment");
     return NextResponse.json({ error: otherEstablishmentMessage(restaurantName) }, { status: 422 });
+  }
+
+  // Code d'établissement inconnu (ADR 0073) : dire la vraie cause plutôt que « reprends la photo ».
+  if (analysis.key_issue === "unknown_code") {
+    await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "key_code_unknown");
+    return NextResponse.json({ error: unknownCodeMessage(restaurantName) }, { status: 422 });
   }
 
   if (verdict === "poster") {

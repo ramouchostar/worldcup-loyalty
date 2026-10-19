@@ -50,6 +50,7 @@ export const REJECTION_REASONS = [
   "rate_limited",
   "visitor_rate_limited",
   "reading_unavailable",
+  "repeat_refused",
 ] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
 
@@ -73,6 +74,8 @@ export const REJECTION_LABELS: Record<RejectionReason, string> = {
   rate_limited: "Trop de scans d'un membre (20 par heure)",
   visitor_rate_limited: "Trop de scans depuis la même connexion (visiteurs)",
   reading_unavailable: "Lecture impossible (panne ou délai dépassé)",
+  // Refus répété du même type de ticket (code d'établissement inconnu), arrêté avant la lecture.
+  repeat_refused: "Même refus répété (arrêté avant la lecture)",
 };
 
 /**

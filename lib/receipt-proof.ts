@@ -30,7 +30,28 @@ export function judgeReceipt(
 
 /** Refus d'une photo sans ticket reconnu : dit quoi cadrer, avec les mots de l'établissement. */
 export function notAReceiptMessage(restaurantName: string, keyLabel: string | null): string {
-  return `On n'a pas reconnu de ticket ${restaurantName} sur cette photo. Cadre la zone du total et du ${keyLabel ?? "numéro de commande"}, de près et bien à plat — pas besoin de tout le ticket.`;
+  return `On n'a pas reconnu de ticket ${restaurantName} sur cette photo. ${keyFramingHint(keyLabel)}`;
+}
+
+/**
+ * Où se trouve la clé, et quoi cadrer. Audit des refus 2026-10-19 : des membres
+ * photographiaient le reçu de carte (« EFT »), en bas du ticket — il porte aussi un
+ * « Total » mais pas le numéro de commande, qui est plus haut. Cinq essais de suite
+ * sur la même moitié de ticket.
+ */
+export function keyFramingHint(keyLabel: string | null): string {
+  return `Le ${keyLabel ?? "numéro de commande"} est imprimé dans le haut du ticket, avec le total — pas sur le reçu de paiement par carte (« EFT »). Cadre cette partie, de près et bien à plat.`;
+}
+
+/**
+ * Refus d'un ticket dont la clé porte un code d'établissement que PERSONNE ne reconnaît
+ * (ADR 0073 : `unknown_code`). Audit 2026-10-19 : 14 refus, des tickets d'autres
+ * Belchicken (Ixelles, Uccle) — le refus est juste, le message « reprends la photo »
+ * ne l'était pas (un membre a renvoyé le même ticket 8 fois). On dit la vraie cause, sans
+ * nommer un autre établissement (ADR 0025) ni afficher le code.
+ */
+export function unknownCodeMessage(restaurantName: string): string {
+  return `Le numéro de commande lu sur ce ticket ne correspond pas à ${restaurantName}. S'il vient d'un autre établissement, il ne compte pas ici. Sinon, reprends la photo du numéro, de près et bien à plat.`;
 }
 
 /**

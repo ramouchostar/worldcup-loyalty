@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { judgeReceipt, notAReceiptMessage } from "./receipt-proof";
+import { judgeReceipt, keyFramingHint, notAReceiptMessage, unknownCodeMessage } from "./receipt-proof";
 
 const ticket = { order_number: "2026-09-14/223/05481", has_restaurant_header: true, looks_like_qr_or_poster: false };
 
@@ -55,4 +55,18 @@ test("motif de refus : sans code en cause, les motifs d'avant ne changent pas", 
   assert.equal(refusalReason({ amount: null, key_issue: null }, "not_a_receipt"), "unreadable");
   assert.equal(refusalReason({ amount: 9.8, key_issue: null }, "not_a_receipt"), "header_rejected");
   assert.equal(refusalReason({ amount: 9.8 }, "incomplete"), "unreadable");
+});
+
+test("code inconnu : on dit la vraie cause, sans nommer d'autre établissement ni de code", () => {
+  const m = unknownCodeMessage("Belchicken Kraainem");
+  assert.match(m, /ne correspond pas à Belchicken Kraainem/);
+  assert.match(m, /autre établissement/);
+  assert.doesNotMatch(m, /\d{3}/);
+  assert.doesNotMatch(m, /reprends la photo\.$/);
+});
+
+test("le cadrage dit où est la clé et écarte le reçu de carte", () => {
+  assert.match(keyFramingHint("Bestelnummer"), /Bestelnummer.*haut du ticket.*EFT/);
+  assert.match(keyFramingHint(null), /numéro de commande/);
+  assert.match(notAReceiptMessage("Belchicken Kraainem", "Bestelnummer"), /haut du ticket/);
 });

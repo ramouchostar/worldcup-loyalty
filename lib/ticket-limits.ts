@@ -21,6 +21,22 @@ export const FREQUENT_TICKETS_THRESHOLD = 6;
 export const DAILY_LIMIT_MESSAGE =
   "Tu as déjà envoyé 2 tickets aujourd'hui. Garde celui-ci : tu pourras l'envoyer demain.";
 
+// 3. Même refus répété : un membre qui renvoie la même photo d'un ticket que
+//    nous refusons pour son code d'établissement (clé lue, code inconnu) paie
+//    un appel Vision à chaque essai pour le même résultat — 8 lectures de suite
+//    constatées le 2026-10-16. Au-delà de trois refus en une demi-heure, on
+//    arrête AVANT la lecture et on le dit.
+export const REPEATED_REFUSAL_MAX = 3;
+export const REPEATED_REFUSAL_WINDOW_MINUTES = 30;
+
+export const REPEATED_REFUSAL_MESSAGE =
+  "Ce ticket a déjà été refusé plusieurs fois : son numéro ne correspond pas à cet établissement. Essaie avec un autre ticket, ou montre-le au comptoir.";
+
+/** Le client a-t-il déjà vu ce refus assez de fois ? (`recentRefusals` = refus « code inconnu » dans la fenêtre) */
+export function isRepeatedRefusal(recentRefusals: number): boolean {
+  return recentRefusals >= REPEATED_REFUSAL_MAX;
+}
+
 /** Le client a-t-il déjà atteint sa limite du jour ? (`sentToday` = commandes créées aujourd'hui) */
 export function isDailyLimitReached(sentToday: number): boolean {
   return sentToday >= TICKETS_PER_DAY_MAX;
