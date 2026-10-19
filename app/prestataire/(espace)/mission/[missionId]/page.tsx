@@ -29,6 +29,9 @@ import { RulesGate } from "./RulesGate";
 import { providerHasAccepted } from "@/lib/missions-rules";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
+import { MessagesCard } from "@/components/missions/MessagesCard";
+import { listMessages, unreadCounts } from "@/lib/missions-messages";
+import { canWrite as canWriteMessage, contactsUnlocked } from "@/lib/mission-messages";
 import { BatPanel } from "./BatPanel";
 import { listProofs } from "@/lib/missions-bat-state";
 import { batPhase } from "@/lib/mission-print";
@@ -78,6 +81,8 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   const changesRes = mission.status === "envoye" || mission.status === "devis" ? null : await listChanges(mission.id);
   const commissionBps = changesRes?.ok && changesRes.changes.some((c) => c.status === "proposed") ? (await getTerms()).terms.commissionBps : 0;
   const proofsRes = mission.metier === "impression" && mission.status === "production" ? await listProofs(mission.id) : null;
+  const thread = await listMessages(mission.id, "provider");
+  const unread = (await unreadCounts([mission.id], "provider")).get(mission.id) ?? 0;
   const changeFiles = (seq: number) => files.filter((f) => f.scope === "change" && f.ref === `change-${seq}`);
   const pstate = mission.shoot_date && mission.status !== "annule" ? await loadProposalState(mission.id) : null;
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
@@ -149,6 +154,17 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           </ol>
         </Card>
       )}
+
+      <MessagesCard
+        me="provider"
+        otherName={mission.restaurant_name}
+        messages={thread}
+        sendUrl={`/api/prestataire/missions/${mission.id}/messages`}
+        readUrl={`/api/prestataire/missions/${mission.id}/messages/read`}
+        canWrite={canWriteMessage(mission.status)}
+        contactsLocked={!contactsUnlocked(mission.status)}
+        unread={unread}
+      />
 
       {mission.status === "envoye" && (
         <>

@@ -202,6 +202,23 @@ L'impression est un métier d'atelier (§5 bis) avec un **bon à tirer (BAT)** e
   plateforme arrête).
 - **Règles du jeu d'impression** : leur propre texte et leur propre version, avec la règle « Le bon à tirer fait foi ».
 
+### 5 quater. La messagerie (amendé le 2026-10-20, PR Q)
+
+Restaurateur et prestataire s'écrivent **dans la mission** (`lib/mission-messages.ts`), de l'envoi du brief à la livraison
+validée ; une mission annulée ou versée se lit, elle ne s'écrit plus. Tout est **gardé** : c'est une pièce du litige, que la
+plateforme lit avec le **texte d'origine**.
+
+- **Contacts masqués jusqu'au début du travail** (décision du porteur) : numéros de téléphone (écritures belges et
+  internationales), adresses e-mail (y compris « nom (at) site (dot) be ») et liens de messagerie (WhatsApp, Telegram,
+  Messenger, Signal) sont remplacés par « [numéro masqué] »… tant que la mission n'est pas en production. Prix, dates, heures et
+  quantités restent lisibles ; un lien ordinaire (exemple, épreuve) aussi. Le **contact sur place** du jour J reste affiché dans
+  la mission, comme avant. Chaque masquage laisse une ligne dans la trace (`message_masked`, nombre de e-mails / numéros /
+  liens) : c'est la mesure de ceux qui tentent de sortir de la plateforme. Le masquage est une **dissuasion**, pas un blocage :
+  on ne détecte pas un numéro écrit en toutes lettres.
+- **Prévenir l'autre** : un e-mail **sans le contenu**, seulement si le message n'a pas été lu et **au plus un toutes les 30
+  minutes** ; un compteur « n messages » dans les listes. Pas de temps réel : le fil se recharge à l'envoi.
+- **Limite** : 30 messages par heure et par personne et par mission, 1 500 caractères au plus.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →

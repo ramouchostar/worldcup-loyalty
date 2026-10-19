@@ -37,6 +37,9 @@ import { judgeReject } from "@/lib/mission-proposals";
 import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
+import { MessagesCard } from "@/components/missions/MessagesCard";
+import { listMessages, unreadCounts } from "@/lib/missions-messages";
+import { canWrite as canWriteMessage, contactsUnlocked } from "@/lib/mission-messages";
 import { BatCard, type ProofView } from "./BatCard";
 import { listProofs } from "@/lib/missions-bat-state";
 import { batChecklist, batPhase, batSummary, correctionRoundsLeft } from "@/lib/mission-print";
@@ -164,6 +167,9 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const deliveries = mission.delivered_at ? await listDeliveries(mission.id) : [];
   const retouches = mission.retouch_rounds_used > 0 ? await listRetouches(mission.id) : [];
   const retouch = retouchState(mission.status, mission.retouch_rounds_used, mission.metier);
+  // La messagerie : migration absente → fil vide (écrire répond « pas encore disponible »), le reste fonctionne.
+  const thread = await listMessages(mission.id, "restaurant");
+  const unread = (await unreadCounts([mission.id], "restaurant")).get(mission.id) ?? 0;
   // Le bon à tirer (impression) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const proofsRes = mission.metier === "impression" && ["production", "livre", "valide", "verse"].includes(mission.status) ? await listProofs(mission.id) : null;
   const batSigned = !!proofsRes?.ok && proofsRes.proofs.some((p) => p.status === "signed");
@@ -202,6 +208,17 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} query={filesQuery} />
         </Card>
       )}
+      <MessagesCard
+        me="restaurant"
+        otherName={providerLabel(mission.metier, providerName)}
+        messages={thread}
+        sendUrl={`/api/admin/missions/${mission.id}/messages`}
+        readUrl={`/api/admin/missions/${mission.id}/messages/read`}
+        extra={{ restaurantId }}
+        canWrite={canWriteMessage(mission.status)}
+        contactsLocked={!contactsUnlocked(mission.status)}
+        unread={unread}
+      />
       {changesRes?.ok && (changeViews.length > 0 || changeVerdict === "ok") && (
         <ChangesCard
           restaurantId={restaurantId}

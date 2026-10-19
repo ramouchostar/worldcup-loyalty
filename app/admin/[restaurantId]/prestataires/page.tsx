@@ -7,6 +7,7 @@ import { listMissions, marketplaceEnabled } from "@/lib/missions";
 import { STATUS_VIEW, METIER_LABELS, briefHeadline } from "@/lib/mission-view";
 import { EmptyState, PageHeader, StatusBadge, Card, CardRow, SectionLabel } from "@/components/admin/ui";
 import { NewBriefButton } from "./NewBriefButton";
+import { unreadCounts } from "@/lib/missions-messages";
 
 // ADR 0084 — « Prestataires » : réserver un vidéaste (puis photographe, graphiste,
 // imprimeur). Accueil du module : ce qu'on peut commander, et mes missions.
@@ -20,6 +21,7 @@ export default async function PrestatairesPage({ params }: { params: Promise<{ r
   if (!marketplaceEnabled(access.isSuperAdmin)) notFound();
 
   const result = await listMissions(restaurantId);
+  const unread = result.ok ? await unreadCounts(result.missions.map((m) => m.id), "restaurant") : new Map<string, number>();
   const base = `/admin/${restaurantId}/prestataires`;
 
   const services = [
@@ -71,6 +73,7 @@ export default async function PrestatairesPage({ params }: { params: Promise<{ r
           <Card padding="p-0">
             {result.missions.map((m, i) => {
               const view = STATUS_VIEW[m.status];
+              const n = unread.get(m.id) ?? 0;
               return (
                 <CardRow key={m.id} first={i === 0}>
                   <Link href={`${base}/${m.id}`} className="flex items-center gap-3 min-h-[44px]">
@@ -84,6 +87,7 @@ export default async function PrestatairesPage({ params }: { params: Promise<{ r
                         {new Date(m.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" })}
                       </p>
                     </div>
+                    {n > 0 && <span className="shrink-0 inline-flex items-center rounded-full bg-boost-olive text-white text-[11px] font-bold px-2 py-0.5">{n} message{n > 1 ? "s" : ""}</span>}
                     <StatusBadge tone={view.tone}>{view.label}</StatusBadge>
                     <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" aria-hidden />
                   </Link>
