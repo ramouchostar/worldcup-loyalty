@@ -423,7 +423,12 @@ export default function SubmitOrderClient({
         const supabase = createClient();
         await supabase.auth.signInWithOAuth({
           provider: "google",
-          options: { redirectTo: `${window.location.origin}/auth/callback` },
+          // Toujours proposer le choix du compte Google (sinon, après
+          // déconnexion, le navigateur reconnecte seul le même compte).
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: { prompt: "select_account" },
+          },
         });
         return; // la redirection OAuth prend la main
       }
