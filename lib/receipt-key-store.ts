@@ -43,3 +43,33 @@ export function checkStoreCode(
   if (code === ownCode) return "ok";
   return otherCodes.includes(code) ? "other_establishment" : "unknown_code";
 }
+
+/**
+ * Corrige l'erreur d'un seul chiffre dans le code d'établissement (ADR 0073, amendé le 2026-10-19).
+ *
+ * Le code est CONSTANT par établissement et imprimé en tout petit : à De Bue, 17 lectures sur 86
+ * donnaient 263 pour 253, et un même ticket a été lu 253 puis 263 (un ticket n'a qu'un code).
+ * Refuser ces tickets punit un vrai client, et deux lectures différentes d'un même ticket
+ * donnent deux clés — l'anti-doublon ne les rapproche plus.
+ *
+ * On ramène la clé au code de l'établissement quand le code lu :
+ *  - n'est PAS celui de l'établissement, ni celui d'un autre établissement du réseau (un vrai
+ *    ticket de Houba lu à Kraainem reste un refus net) ;
+ *  - ne diffère que d'UN chiffre (substitution, même position).
+ * Un code plus éloigné (Ixelles 234 pour 223 : deux chiffres) reste un refus.
+ *
+ * @returns la clé corrigée, ou null s'il n'y a rien à corriger
+ */
+export function repairStoreCode(
+  key: string | null | undefined,
+  ownCode: string | null | undefined,
+  otherCodes: readonly string[]
+): string | null {
+  const code = storeCodeOf(key);
+  if (!ownCode || code === null || code === ownCode || otherCodes.includes(code)) return null;
+  if (ownCode.length !== code.length) return null;
+  let differing = 0;
+  for (let i = 0; i < code.length; i++) if (code[i] !== ownCode[i]) differing++;
+  if (differing !== 1) return null;
+  return (key as string).trim().replace(`/${code}/`, `/${ownCode}/`);
+}

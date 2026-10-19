@@ -75,7 +75,7 @@ heure) ne change pas.
 
 - **Corriger le code d'établissement** quand le nom du restaurant est lisible (213 ou 233 lus pour 223) : sauverait
   le ticket T237/T238 sans créer de faux doublon (le code est constant par établissement). Non retenu par le porteur
-  pour cette fois.
+  pour cette fois. **Repris le 2026-10-19 (décidé) : voir l'[ADR 0073](0073-le-format-de-la-cle-du-ticket.md) §2 bis.**
 - **Faire noter la qualité de la photo par le modèle** (floue, trop loin, coupée) pour ajouter une cause lisible même
   sans photo, et un message précis au client : à reprendre.
 - **Détecter le flou avant l'envoi**, dans l'appli : à calibrer sur nos photos, après l'arrivage.
