@@ -7,7 +7,7 @@ import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
 import { insertOrderItems } from "@/lib/order-items";
-import { claimScanImage, linkScanToOrder, storeScan } from "@/lib/receipt-scans";
+import { claimScanImage, linkScanToOrder, markScanRefused, storeScan } from "@/lib/receipt-scans";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { guardAgainstDuplicates, recordDuplicateReview } from "@/lib/duplicate-guard";
 import { DUPLICATE_MEMBER_MESSAGE } from "@/lib/duplicate-detection";
@@ -21,6 +21,7 @@ import {
   notAReceiptMessage,
   otherEstablishmentMessage,
   refusalReason,
+  scanRefusalReason,
   unknownCodeMessage,
 } from "@/lib/receipt-proof";
 import { missingReceiptParts } from "@/lib/ticket-auto-send";
@@ -202,6 +203,10 @@ export async function POST(request: NextRequest) {
       file: receiptFile,
       analysis: serverOcr,
       outcome: verdict === "receipt" && !serverOcr.key_issue ? "parsed" : "header_rejected",
+      refusalReason: scanRefusalReason(serverOcr, {
+        checkCompleteness: true,
+        hasReliableKey: receiptConfig.has_reliable_key,
+      }),
     }));
 
   // ADR 0073 — la clé porte le code d'un AUTRE établissement : le ticket vient
@@ -403,6 +408,7 @@ export async function POST(request: NextRequest) {
     });
     // Entonnoir (ADR 0037) : le doublon est un motif de refus à part entière.
     await recordFunnelStep(restaurantId, "ticket_rejected", "duplicate");
+    await markScanRefused(readingScanId, "duplicate");
     // Message unique et sans détail technique : la mécanique anti-fraude ne
     // s'explique pas au membre (ADR 0008 / 0019 / 0052 §6).
     return NextResponse.json({ error: DUPLICATE_MEMBER_MESSAGE }, { status: 409 });
@@ -465,6 +471,7 @@ export async function POST(request: NextRequest) {
       // entière — c'est le seul qui grandit quand l'anti-doublon devient plus
       // strict, et il ne doit pas se confondre avec un ticket illisible.
       await recordFunnelStep(restaurantId, "ticket_rejected", "duplicate");
+    await markScanRefused(readingScanId, "duplicate");
       return NextResponse.json({ error: DUPLICATE_MEMBER_MESSAGE }, { status: 409 });
     }
     return NextResponse.json({ error: "Erreur serveur. Réessaie." }, { status: 500 });

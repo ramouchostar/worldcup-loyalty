@@ -11,6 +11,9 @@ export type ScanLite = {
   user_id: string | null;
   ocr_order_number: string | null;
   outcome: "parsed" | "header_rejected" | "submitted";
+  // Migration 20261019-1500 : le motif du refus, écrit sur le scan. Un scan « parsed » qui en porte
+  // un a été REFUSÉ après lecture (lecture incomplète, doublon) : il n'est pas « jamais soumis ».
+  refusal_reason?: string | null;
 };
 
 const ticketKey = (s: ScanLite) =>
@@ -33,7 +36,7 @@ export function summarizeScanOutcomes(scans: ScanLite[]): ScanOutcomeSummary {
   const previewBecameOrder = new Set<string>();
   const abandoned = new Set<string>();
   for (const s of scans) {
-    if (s.outcome !== "parsed") continue;
+    if (s.outcome !== "parsed" || s.refusal_reason) continue;
     const k = ticketKey(s);
     if (k && submittedKeys.has(k)) {
       if (!s.user_id) previewBecameOrder.add(s.id);

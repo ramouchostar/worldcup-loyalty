@@ -17,6 +17,8 @@
 // ============================================================
 
 import type { KeyIssue, ReceiptAnalysis } from "./receipt-ocr";
+import type { RejectionReason } from "./funnel";
+import { missingReceiptParts } from "./ticket-auto-send";
 
 export type ReceiptVerdict = "receipt" | "poster" | "not_a_receipt";
 
@@ -40,7 +42,61 @@ export function notAReceiptMessage(restaurantName: string, keyLabel: string | nu
  * sur la même moitié de ticket.
  */
 export function keyFramingHint(keyLabel: string | null): string {
-  return `Le ${keyLabel ?? "numéro de commande"} est imprimé dans le haut du ticket, avec le total — pas sur le reçu de paiement par carte (« EFT »). Cadre cette partie, de près et bien à plat.`;
+  const name = keyLabelForMember(keyLabel);
+  // Le reçu « EFT » et la place du numéro sont ceux des tickets de borne Belchicken, dont
+  // l'étiquette est néerlandaise : pour un autre établissement on ne promet pas où est la clé.
+  if (!isDutchLabel(keyLabel)) {
+    return `Cadre le ${name} et le total, de près et bien à plat, sans le reçu de paiement par carte.`;
+  }
+  return `Le ${name} est imprimé dans le haut du ticket, avec le total — pas sur le reçu de paiement par carte (« EFT »). Cadre cette partie, de près et bien à plat.`;
+}
+
+const DUTCH_KEY_LABEL = /bestelnummer|bestelling|ordernummer/i;
+function isDutchLabel(keyLabel: string | null): boolean {
+  return !!keyLabel && DUTCH_KEY_LABEL.test(keyLabel);
+}
+
+/**
+ * Comment nommer la clé à un membre. L'étiquette « Bestelnummer » est celle des tickets
+ * imprimés en néerlandais (Kraainem, en Flandre) ; un membre francophone doit aussi lire
+ * « numéro de commande » : on met les deux. Un autre établissement garde sa propre étiquette.
+ */
+export function keyLabelForMember(keyLabel: string | null): string {
+  if (!keyLabel) return "numéro de commande";
+  return isDutchLabel(keyLabel) ? `numéro de commande (« ${keyLabel} »)` : keyLabel;
+}
+
+/**
+ * Le motif exact du refus d'une lecture, dans l'ordre où les routes refusent — ou
+ * null si la lecture passe. Écrit sur le scan (`receipt_scans.refusal_reason`) : la
+ * cause d'un refus se lit scan par scan, plus seulement en total par jour.
+ *
+ * @param checkCompleteness vrai pour l'envoi du membre (total et clé exigés, ADR 0058) ;
+ *   faux pour l'aperçu du visiteur, qui ne refuse pas une lecture incomplète.
+ */
+export function scanRefusalReason(
+  analysis: Pick<ReceiptAnalysis, "amount" | "order_number" | "key_corrected" | "has_restaurant_header" | "looks_like_qr_or_poster"> & {
+    key_issue?: KeyIssue | null;
+  },
+  opts: { checkCompleteness: boolean; hasReliableKey?: boolean }
+): RejectionReason | null {
+  if (isOtherEstablishment(analysis)) return "wrong_establishment";
+  const verdict = judgeReceipt(analysis);
+  if (verdict === "poster") return "qr_detected";
+  if (verdict === "not_a_receipt") return refusalReason(analysis, "not_a_receipt");
+  if (analysis.key_issue === "unknown_code") return "key_code_unknown";
+  if (
+    opts.checkCompleteness &&
+    missingReceiptParts({
+      amount: analysis.amount,
+      order_number: analysis.order_number,
+      key_corrected: analysis.key_corrected,
+      has_reliable_key: opts.hasReliableKey,
+    })
+  ) {
+    return refusalReason(analysis, "incomplete");
+  }
+  return null;
 }
 
 /**

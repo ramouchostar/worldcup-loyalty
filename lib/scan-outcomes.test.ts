@@ -45,3 +45,12 @@ test("sans numéro lu : une ligne = un ticket, les refus ne comptent pas", () =>
   ]);
   assert.equal(r.abandonedTickets, 2);
 });
+
+test("un scan lu puis refusé (lecture incomplète, doublon) n'est pas « jamais soumis »", () => {
+  const r = summarizeScanOutcomes([
+    scan({ id: "a", ocr_order_number: "01234", refusal_reason: "duplicate" }),
+    scan({ id: "b", refusal_reason: "unreadable" }),
+    scan({ id: "c", ocr_order_number: "05555" }),
+  ]);
+  assert.equal(r.abandonedTickets, 1);
+});

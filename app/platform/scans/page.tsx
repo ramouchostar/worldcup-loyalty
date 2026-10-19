@@ -4,7 +4,7 @@ import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { RECEIPT_RETENTION_DAYS } from "@/lib/receipt-scans";
 import type { ReceiptReadTrace } from "@/lib/receipt-ocr";
 import { getFunnel, type FunnelDay } from "@/lib/qr-funnel";
-import { getFunnelReport, type FunnelReport } from "@/lib/funnel";
+import { getFunnelReport, REJECTION_LABELS, type FunnelReport, type RejectionReason } from "@/lib/funnel";
 import { FunnelStepsTable } from "@/components/platform/FunnelStepsTable";
 import { detectScanFrictions, FRICTION_MIN_SCANS, FRICTION_WINDOW_MIN } from "@/lib/scan-frictions";
 import { getMatchRates, MATCH_RATE_ALERT_PCT, MATCH_RATE_MIN_LINES } from "@/lib/match-rates";
@@ -51,6 +51,8 @@ type ScanRow = {
   // Trace de la lecture (ADR 0072, migration 20260929-0900) : qui a lu, en combien
   // de temps, et ce que la relecture par Fable a comblé.
   ocr_trace?: ReceiptReadTrace | null;
+  // Cause du refus, écrite sur le scan (migration 20261019-1500) : absente avant, ou si pas refusé.
+  refusal_reason?: string | null;
 };
 
 // « Sonnet 8,2 s » / « Sonnet → Fable : clé comblée » — la trace en une ligne.
@@ -214,7 +216,11 @@ export default async function PlatformScansPage({
   const soumis = scans.filter((s) => s.outcome === "submitted").length;
   // Aperçus visiteurs devenus commande exclus, tickets rescannés comptés une fois (lib/scan-outcomes.ts).
   const { previewBecameOrder, abandonedTickets: abandonnes } = summarizeScanOutcomes(scans);
-  const refuses = scans.filter((s) => s.outcome === "header_rejected").length;
+  // Refusé = « numéro non lu » d'avant, OU toute lecture qui porte un motif (lecture incomplète, doublon).
+  const refuses = scans.filter((s) => s.outcome === "header_rejected" || !!s.refusal_reason).length;
+  const causes = new Map<string, number>();
+  for (const s of scans) if (s.refusal_reason) causes.set(s.refusal_reason, (causes.get(s.refusal_reason) ?? 0) + 1);
+  const sansCause = scans.filter((s) => s.outcome === "header_rejected" && !s.refusal_reason).length;
   const confiances = scans.map((s) => s.ocr_confidence).filter((c): c is number => c !== null);
   const confianceMoyenne = confiances.length
     ? Math.round(confiances.reduce((a, b) => a + b, 0) / confiances.length)
@@ -315,7 +321,7 @@ export default async function PlatformScansPage({
           { label: "Scans", value: String(scans.length) },
           { label: "Devenus commande", value: String(soumis) },
           { label: "Tickets jamais soumis", value: String(abandonnes) },
-          { label: "Tickets non reconnus", value: String(refuses) },
+          { label: "Tickets refusés", value: String(refuses) },
           { label: "Confiance moyenne", value: confianceMoyenne === null ? "—" : `${confianceMoyenne} %` },
         ].map((tuile) => (
           <div key={tuile.label} className="bg-white rounded-lg border border-gray-200 p-3">
@@ -324,6 +330,20 @@ export default async function PlatformScansPage({
           </div>
         ))}
       </section>
+
+      {/* La cause de chaque refus, scan par scan (migration 20261019-1500) — « sans cause » =
+          refus d'avant la migration ; les refus d'avant lecture (limites, pannes) restent dans
+          le tableau de l'entonnoir, ils n'ont pas de scan. */}
+      {refuses > 0 && (
+        <p className="-mt-5 mb-8 text-xs text-gray-600">
+          Causes des refus :{" "}
+          {[...causes.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([r, n]) => `${REJECTION_LABELS[r as RejectionReason] ?? r} ${n}`)
+            .concat(sansCause > 0 ? [`sans cause (avant la migration) ${sansCause}`] : [])
+            .join(" · ")}
+        </p>
+      )}
 
       {/* Rattachement catalogue ↔ tickets (ADR 0046) — une seule fenêtre
           repliable : la liste complète poussait les frictions et la table des
@@ -373,7 +393,10 @@ export default async function PlatformScansPage({
                 const order = scan.order_id ? ordersById.get(scan.order_id) ?? null : null;
                 const url = scan.storage_path ? urlByPath.get(scan.storage_path) : null;
                 const divergences = ecarts(scan, order);
-                const outcome = previewBecameOrder.has(scan.id)
+                const refused = !!scan.refusal_reason && scan.outcome === "parsed";
+                const outcome = refused
+                  ? { label: "Refusé", color: "bg-red-100 text-red-800" }
+                  : previewBecameOrder.has(scan.id)
                   ? { label: "Aperçu visiteur (devenu commande)", color: "bg-green-50 text-green-700" }
                   : OUTCOME_LABELS[scan.outcome];
                 return (
@@ -455,6 +478,11 @@ export default async function PlatformScansPage({
                       >
                         {outcome.label}
                       </span>
+                      {scan.refusal_reason && (
+                        <div className="mt-1 text-xs text-gray-600">
+                          {REJECTION_LABELS[scan.refusal_reason as RejectionReason] ?? scan.refusal_reason}
+                        </div>
+                      )}
                       {order && (
                         <>
                           <div className="mt-1 whitespace-nowrap">

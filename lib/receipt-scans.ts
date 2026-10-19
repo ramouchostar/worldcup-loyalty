@@ -101,8 +101,10 @@ export async function storeScan(params: {
   file: File;
   analysis: ReceiptAnalysis;
   outcome: ScanOutcome;
+  /** Le motif du refus, quand cette lecture est refusée (migration 20261019-1500). */
+  refusalReason?: string | null;
 }): Promise<string | null> {
-  const { restaurantId, userId, file, analysis, outcome } = params;
+  const { restaurantId, userId, file, analysis, outcome, refusalReason = null } = params;
   try {
     const admin = createAdminClient();
     const storagePath = userId
@@ -147,11 +149,19 @@ export async function storeScan(params: {
     };
     // Trace de la lecture (ADR 0072, migration 20260929-0900) : sans la colonne,
     // le reste de la lecture est rangé quand même, puis on retombe plus bas si besoin.
+    // Cause du refus (migration 20261019-1500) : même principe, colonne par colonne.
     let { data, error } = await admin
       .from("receipt_scans")
-      .insert({ ...withIdentity, ocr_trace: analysis.trace })
+      .insert({ ...withIdentity, ocr_trace: analysis.trace, refusal_reason: refusalReason })
       .select("id")
       .single();
+    if (error && /refusal_reason/.test(error.message)) {
+      ({ data, error } = await admin
+        .from("receipt_scans")
+        .insert({ ...withIdentity, ocr_trace: analysis.trace })
+        .select("id")
+        .single());
+    }
     if (error && /ocr_trace/.test(error.message)) {
       ({ data, error } = await admin.from("receipt_scans").insert(withIdentity).select("id").single());
     }
@@ -201,6 +211,21 @@ export async function claimScanImage(
   } catch (e) {
     console.error("[receipt-scans] claimScanImage failed:", (e as Error).message);
     return null;
+  }
+}
+
+/**
+ * Écrit la cause d'un refus qui tombe APRÈS la rangée du scan (le doublon : il se juge
+ * une fois la lecture rangée). Best-effort, comme tout ce fichier : sans la colonne
+ * (migration 20261019-1500 pas encore appliquée), rien ne casse.
+ */
+export async function markScanRefused(scanId: string | null, reason: string): Promise<void> {
+  if (!scanId) return;
+  try {
+    const { error } = await createAdminClient().from("receipt_scans").update({ refusal_reason: reason }).eq("id", scanId);
+    if (error) throw error;
+  } catch (e) {
+    console.error("[receipt-scans] markScanRefused failed:", (e as Error).message);
   }
 }
 

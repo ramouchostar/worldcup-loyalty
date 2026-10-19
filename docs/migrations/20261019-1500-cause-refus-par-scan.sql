@@ -1,0 +1,32 @@
+-- ============================================================
+-- 2026-10-19 15:00 — La cause du refus, écrite sur chaque scan
+--
+-- Jusqu'ici la cause d'un refus n'existait qu'en TOTAL par jour et par motif
+-- (`funnel_events`, ADR 0037/0079) : pour savoir pourquoi CE ticket avait été
+-- refusé, il fallait la déduire des champs lus (audit du 2026-10-19 : photos
+-- regardées une à une). `refusal_reason` garde, pour chaque scan refusé après
+-- lecture, le motif exact — le même vocabulaire que `ticket_rejected.reason` :
+--   unreadable · header_rejected · key_code_unknown · wrong_establishment ·
+--   qr_detected · duplicate
+-- NULL = pas refusé (ou scan d'avant cette migration : aucun rattrapage, la
+-- cause d'alors ne se déduit pas de façon fiable).
+--
+-- Les refus qui tombent AVANT la lecture (limite du jour, plafonds, panne de la
+-- lecture, refus répété) n'ont pas de scan : ils restent dans `funnel_events`.
+--
+-- Lecture réservée à la plateforme : `receipt_scans` est service-role only (m58).
+-- Sans cette migration : rien ne casse — `storeScan` (lib/receipt-scans.ts)
+-- réessaie sans la colonne, seule la cause est perdue. Idempotente.
+-- ============================================================
+
+ALTER TABLE receipt_scans ADD COLUMN IF NOT EXISTS refusal_reason TEXT;
+
+-- ── Vérification ──────────────────────────────────────────────────────────
+--   SELECT column_name FROM information_schema.columns
+--    WHERE table_name = 'receipt_scans' AND column_name = 'refusal_reason';   -- 1 ligne
+--
+-- ── Suivi (après 7 jours) : les refus par cause, scan par scan ─────────────
+--   SELECT refusal_reason, COUNT(*) FROM receipt_scans
+--    WHERE scanned_at > now() - interval '7 days' AND refusal_reason IS NOT NULL
+--    GROUP BY 1 ORDER BY 2 DESC;
+-- À comparer au tableau « refus » de l'entonnoir : l'écart = refus d'avant lecture.
