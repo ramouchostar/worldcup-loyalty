@@ -10,6 +10,8 @@
 
 import { addDays } from "./console-journey";
 import { SHOOT_MIN_DAYS } from "./mission-brief";
+import { changeableStatuses } from "./mission-metier";
+import type { Metier } from "./mission-money";
 
 export const CHANGE_CATEGORIES = ["Plats à montrer", "Cuisine ou salle", "Ton et style", "Format ou durée", "Personnes à l'image", "Autre"] as const;
 export const MAX_CHANGES = 2;
@@ -78,12 +80,12 @@ export const REQUEST_ISSUE_TEXT: Record<RequestIssueCode, string> = {
   description_long: "C'est trop long : va à l'essentiel (1 000 caractères au plus).",
 };
 
-export type RequestContext = { status: string; shootDate: string | null; changes: readonly ChangeLite[] };
+export type RequestContext = { status: string; shootDate: string | null; changes: readonly ChangeLite[]; /** Absent : un métier de tournage. */ metier?: Metier };
 export type RequestVerdict = "ok" | "not_now" | "too_late" | "open_exists" | "limit_reached";
 
 /** Une modification se demande une fois le devis accepté, jusqu'à J-7 du tournage. */
 export function judgeChangeRequest(c: RequestContext, today: string): RequestVerdict {
-  if (c.status !== "accepte" && c.status !== "date_bloquee") return "not_now";
+  if (!changeableStatuses(c.metier ?? "video").includes(c.status)) return "not_now";
   if (c.shootDate && today > addDays(c.shootDate, -SHOOT_MIN_DAYS)) return "too_late";
   if (c.changes.some((x) => OPEN_STATUSES.includes(x.status))) return "open_exists";
   if (c.changes.filter(countsTowardLimit).length >= MAX_CHANGES) return "limit_reached";

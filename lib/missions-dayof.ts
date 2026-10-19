@@ -8,6 +8,8 @@ import { providerMissionUrl, type ProviderRow } from "./providers";
 import { sendMissionUpdateEmail } from "./email";
 import { DEFAULT_RESTAURANT_COPY_TO } from "./email-sender";
 import { canTransition } from "./mission-states";
+import { hasShoot } from "./mission-metier";
+import { mailMission } from "./missions-notify";
 import {
   judgeStart,
   overrun,
@@ -65,6 +67,7 @@ export async function startShoot(missionId: string, provider: ProviderRow): Prom
   if (!found.ok) return unavailable;
   const m = found.mission;
   if (!m) return { ok: false, reason: "not_found" };
+  if (!hasShoot(m.metier)) return startWork(m, provider);
   const verdict = judgeStart(m.status, m.shoot_date, todayInBrussels());
   if (verdict !== "ok" || !canTransition(m.status, "production", "provider").ok) return { ok: false, reason: verdict === "too_early" ? "too_early" : "not_booked" };
 
@@ -83,6 +86,32 @@ export async function startShoot(missionId: string, provider: ProviderRow): Prom
     return { ok: true };
   } catch (e) {
     if (!isMissingTable(e as DbError)) console.error("[missions-dayof] startShoot failed:", (e as Error).message);
+    return unavailable;
+  }
+}
+
+/**
+ * Un métier d'atelier (design, impression) : pas de date ni d'arrivée. Le prestataire touche « Je commence » quand il
+ * commence : `accepte → production`. C'est ce geste qui sépare « annulation gratuite » et « l'acompte reste au prestataire ».
+ */
+async function startWork(m: { id: string; status: string; metier: string }, provider: ProviderRow): Promise<StartResult> {
+  if (m.status !== "accepte" || !canTransition("accepte", "production", "provider").ok) return { ok: false, reason: "not_booked" };
+  try {
+    const now = new Date().toISOString();
+    const { data, error } = await createAdminClient()
+      .from("missions")
+      .update({ status: "production", started_at: now, updated_at: now })
+      .eq("id", m.id)
+      .eq("provider_id", provider.id)
+      .eq("status", "accepte") // deux clics : un seul démarrage
+      .select("id");
+    if (error) throw error;
+    if (!data || data.length === 0) return { ok: false, reason: "not_booked" };
+    await logEvent(m.id, { kind: "status", from: "accepte", to: "production", actorKind: "provider", actorId: provider.user_id ?? undefined, reason: "work_started" });
+    await mailMission(m.id, "restaurant", "work_started");
+    return { ok: true };
+  } catch (e) {
+    if (!isMissingTable(e as DbError)) console.error("[missions-dayof] startWork failed:", (e as Error).message);
     return unavailable;
   }
 }
@@ -223,7 +252,8 @@ export async function submitDelivery(missionId: string, provider: ProviderRow, r
   if (!m) return { ok: false, reason: "not_found" };
   const next = nextDeliveryRound(m.status, m.retouch_rounds_used);
   if (!next.ok || !canTransition(m.status, "livre", "provider").ok) return { ok: false, reason: "not_awaiting_delivery" };
-  if (next.round === 1 && !m.report_submitted_at) return { ok: false, reason: "no_report" };
+  // Le compte-rendu du tournage n'existe que pour un métier de tournage ; un visuel se livre directement.
+  if (next.round === 1 && hasShoot(m.metier) && !m.report_submitted_at) return { ok: false, reason: "no_report" };
 
   const input = sanitizeDelivery(raw);
   const verdict = validateDelivery(input);

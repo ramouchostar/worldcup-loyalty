@@ -158,6 +158,29 @@ plateforme. Les pénalités s'appliquent sur la carte enregistrée.
   le contrôle du contenu et le téléchargement forcé limitent le risque.
 - Droits à l'image des figurants : **préparés par le prestataire**. Clients en salle : floutés.
 
+### 5 bis. Les métiers d'atelier : graphiste, imprimeur (amendé le 2026-10-19, PR O)
+
+Deux familles de métiers (`lib/mission-metier.ts`). Les **métiers de tournage** (vidéo, photo) sont liés par une
+**date** (§5). Les **métiers d'atelier** (design, impression) n'ont pas de date de tournage : le restaurateur indique
+**pour quand** il veut son travail (au moins 5 jours devant), le prestataire dit **dans son devis** s'il peut le tenir.
+
+- **Parcours** : brief → devis → devis accepté → le prestataire touche **« Je commence »** (`accepte → production`, ce geste
+  fait foi) → livraison par liens → deux tours de retours → validation. Ni message d'équipe, ni présence, ni compte-rendu
+  de tournage, ni idées de tournage, ni rappels de J-7.
+- **Annulation** (décision du porteur) : **gratuite tant que le prestataire n'a pas commencé**. Une fois commencé, **l'acompte
+  reste au prestataire** (sa part au prorata, le reste à Boosteats) et le reste est rendu ; le prestataire qui annule après
+  avoir commencé rembourse tout et reçoit un avertissement. Pour l'imprimeur, la même règle vaudra jusqu'à la signature du
+  bon à tirer, après laquelle on n'annule plus (PR suivante).
+- **Brief du graphiste** (d'après la maquette V4DesignBrief) : ce qu'on dessine (carte ou menu, menu du jour, flyer, affiche,
+  logo et charte, visuels réseaux), l'usage, la charte (« rien choisi » : le graphiste fait choisir couleurs, polices et
+  modèle), les langues, le style, ce qu'on aime et n'aime pas, le **contenu final** — case d'engagement : ajouter un plat
+  ensuite est une demande de modification —, les décideurs, le budget, le jour souhaité.
+- **Retouches** d'un visuel : deux tours (§3 règle 8), remarques classées (texte, prix, couleur, logo, photo, mise en page) et
+  motivées. Les épingles posées sur l'image (maquette) viendront avec un visualiseur d'images.
+- **Règles du jeu d'atelier** : leur propre texte et leur propre version (`STUDIO_RULES_VERSION`), à accepter comme celles du
+  tournage.
+- **Modification** (règle 9) : possible après le devis accepté **et pendant la création**, sans limite de J-7 (il n'y a pas de date).
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →

@@ -28,7 +28,7 @@ export function CancelCard({
   /** La phrase de coût, calculée côté serveur à l'instant de l'affichage. */
   costText: string;
   /** free : aucune conséquence ; half / full : une conséquence réelle, mise en avant. */
-  severity: "free" | "half" | "full";
+  severity: "free" | "half" | "full" | "deposit";
   title: string;
   extraWarning?: string;
   confirmLabel: string;

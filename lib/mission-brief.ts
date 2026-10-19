@@ -91,15 +91,72 @@ export const VIDEO_BRIEF_STEPS: readonly BriefStep[] = [
   { key: "budget", title: "Budget et précisions", subtitle: "Juste un repère : tu ne paies rien maintenant.", keys: ["budget_cents", "notes"] },
 ];
 
+/**
+ * Modèle design (graphiste) par défaut, d'après la maquette V4DesignBrief : quoi, usage, charte, langues, style, ce qu'on aime
+ * et n'aime pas, le contenu FINAL (l'ajouter plus tard est une demande de modification), pour quand. Pas de tournage : aucune
+ * question de la phase « tournage ».
+ */
+export const DESIGN_TEMPLATE: BriefTemplate = {
+  metier: "design",
+  questions: [
+    { key: "what", label: "Qu'est-ce qu'on dessine ?", kind: "multi", required: true, options: ["Carte ou menu", "Menu du jour", "Flyer", "Affiche", "Logo et charte", "Visuels réseaux sociaux"], hint: "Coche tout ce que tu veux dans cette commande." },
+    { key: "use", label: "Pour quel usage ?", kind: "multi", required: true, options: ["Salle", "Vitrine", "Réseaux sociaux", "Livraison et emporter", "Impression"], hint: "Le graphiste choisit les bons formats et la bonne définition." },
+    { key: "charte", label: "As-tu déjà une charte graphique ?", kind: "choice", required: true, options: ["J'ai une charte", "Je n'ai rien choisi"], hint: "Logo, couleurs, polices. Rien choisi ? Le graphiste t'envoie un lien pour choisir couleurs, polices et modèle. Ce que tu choisis là t'engage." },
+    { key: "languages", label: "Dans quelles langues ?", kind: "multi", required: true, options: ["Français", "Néerlandais", "Anglais"] },
+    { key: "style", label: "Quel style ?", kind: "choice", required: true, options: ["Moderne", "Chaleureux", "Sobre", "Gourmand", "Authentique"] },
+    { key: "likes", label: "Ce que tu aimes", kind: "text", required: true, minLength: 20, hint: "Donne des liens (ou joins des images à l'étape suivante) et dis pourquoi en une phrase pour chacun." },
+    { key: "dislikes", label: "Ce que tu n'aimes pas", kind: "text", required: false, hint: "Pour chaque exemple, dis pourquoi en une phrase." },
+    { key: "content", label: "Le contenu final", kind: "text", required: true, minLength: 30, hint: "Les plats et les prix, les horaires, l'adresse, les mentions : tout ce qui doit figurer." },
+    { key: "content_final", label: "C'est la version finale du contenu", kind: "flag", required: true, hint: "Ajouter un plat après = demande de modification, que le graphiste chiffre." },
+    { key: "deciders", label: "Qui décide avec toi ?", kind: "list", required: true, hint: "Associé, conjoint… Tous doivent avoir validé." },
+    { key: "deciders_attested", label: "Tous ont validé ce brief", kind: "flag", required: true },
+    { key: "budget_cents", label: "Budget", kind: "number", required: true },
+    { key: "deadline", label: "Pour quand ?", kind: "date", required: true, hint: "Le jour où tu veux avoir le visuel. Le graphiste te dit dans son devis si c'est faisable." },
+    { key: "notes", label: "Précisions", kind: "text", required: false },
+    { key: "files", label: "Pièces jointes", kind: "files", required: false },
+  ],
+};
+
+export const DESIGN_BRIEF_STEPS: readonly BriefStep[] = [
+  { key: "quoi", title: "Qu'est-ce qu'on dessine ?", subtitle: "Un ou plusieurs supports, et à quoi ils servent.", keys: ["what", "use"] },
+  { key: "style", title: "Ton style", subtitle: "Ta charte, tes langues, l'ambiance.", keys: ["charte", "languages", "style"] },
+  { key: "gouts", title: "Ce que tu aimes, ce que tu n'aimes pas", subtitle: "Des exemples valent mieux qu'un long discours.", keys: ["likes", "dislikes"] },
+  { key: "contenu", title: "Le contenu final", subtitle: "C'est la version finale : un plat ajouté après est une modification.", keys: ["content", "content_final"] },
+  { key: "decideurs", title: "Qui décide ?", subtitle: "Une fois le brief envoyé, la décision est prise.", keys: ["deciders", "deciders_attested"] },
+  { key: "budget", title: "Budget et délai", subtitle: "Juste un repère : tu ne paies rien maintenant.", keys: ["budget_cents", "deadline", "notes"] },
+];
+
+/** Le modèle par défaut du code pour un métier (la base peut le remplacer). `null` : ce métier n'est pas encore ouvert. */
+export function defaultTemplate(metier: BriefTemplate["metier"]): BriefTemplate | null {
+  if (metier === "video") return VIDEO_TEMPLATE;
+  if (metier === "design") return DESIGN_TEMPLATE;
+  return null;
+}
+
+/** Les écrans de l'assistant de brief d'un métier. */
+export function stepsFor(metier: BriefTemplate["metier"]): readonly BriefStep[] {
+  return metier === "design" ? DESIGN_BRIEF_STEPS : VIDEO_BRIEF_STEPS;
+}
+
 // ── Validation ───────────────────────────────────────────────
 
 /** Un tournage se prévoit au moins une semaine après le choix de la date (les étudiants ne travaillent pas toute la semaine). */
 export const SHOOT_MIN_DAYS = 7;
 
-export type BriefIssueCode = "missing" | "too_short" | "too_soon" | "past" | "bad_option" | "bad_phone" | "not_attested" | "budget_below_floor";
+export type BriefIssueCode = "missing" | "too_short" | "too_soon" | "deadline_too_soon" | "past" | "bad_option" | "bad_phone" | "not_attested" | "budget_below_floor";
 export type BriefIssue = { key: string; code: BriefIssueCode };
 export type BriefWarning = { code: "ambition_vs_budget"; format: string };
 export type BriefVerdict = { ok: boolean; issues: BriefIssue[]; warnings: BriefWarning[] };
+
+/** Un visuel se prévoit au moins quelques jours à l'avance : le graphiste confirme ensuite si c'est faisable. */
+export const DESIGN_MIN_DAYS = 5;
+/** Les cases qui ENGAGENT : cochées, jamais « à remplir » (le message dit « coche cette case »). */
+export const ATTESTATION_KEYS: readonly string[] = ["deciders_attested", "content_final"];
+
+/** Première date de livraison possible d'un visuel depuis le jour belge `today`. */
+export function earliestDeadline(today: string): string {
+  return addDays(today, DESIGN_MIN_DAYS);
+}
 
 /** Première date de tournage possible depuis le jour belge `today`. */
 export function earliestShootDate(today: string): string {
@@ -127,7 +184,7 @@ export function validateBrief(answers: BriefAnswers, template: BriefTemplate, to
     const v = answers[q.key];
 
     if (q.kind === "flag") {
-      if (q.required && v !== true) issues.push({ key: q.key, code: q.key === "deciders_attested" ? "not_attested" : "missing" });
+      if (q.required && v !== true) issues.push({ key: q.key, code: ATTESTATION_KEYS.includes(q.key) ? "not_attested" : "missing" });
       continue;
     }
 
@@ -153,6 +210,7 @@ export function validateBrief(answers: BriefAnswers, template: BriefTemplate, to
     if (q.kind === "date" && typeof v === "string") {
       if (v < today) issues.push({ key: q.key, code: "past" });
       else if (q.key === "shoot_date" && v < earliestShootDate(today)) issues.push({ key: q.key, code: "too_soon" });
+      else if (q.key === "deadline" && v < earliestDeadline(today)) issues.push({ key: q.key, code: "deadline_too_soon" });
     }
   }
 

@@ -14,7 +14,10 @@ import { PresenceCard } from "@/components/missions/PresenceCard";
 import { judgeStart } from "@/lib/mission-dayof";
 import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
 import { versionLabel } from "@/lib/mission-retouch";
-import { DeliveryForm, ReportForm, StartButton } from "./DayOfPanel";
+import { DeliveryForm, ReportForm, StartButton, StartWorkButton } from "./DayOfPanel";
+import { familyOf, hasShoot } from "@/lib/mission-metier";
+import { rulesVersionFor } from "@/lib/mission-rules";
+import { briefHeadline } from "@/lib/mission-view";
 import { CancelCard } from "@/components/missions/CancelCard";
 import { costNow } from "@/lib/missions-cancel";
 import { PROVIDER_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-rules";
@@ -66,7 +69,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   const files = await listFiles(mission.id);
   const filesBase = `/api/prestataire/missions/${mission.id}/files`;
   // Les règles du jeu : à accepter une fois par version avant le premier devis (migration absente : pas de blocage).
-  const rules = mission.status === "envoye" ? await providerHasAccepted(provider.id) : null;
+  const rules = mission.status === "envoye" ? await providerHasAccepted(provider.id, rulesVersionFor(familyOf(mission.metier))) : null;
   const rulesPending = !!rules && rules.ok && !rules.accepted;
   // Les demandes de modification (PR M) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const changesRes = mission.status === "envoye" || mission.status === "devis" ? null : await listChanges(mission.id);
@@ -81,7 +84,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
       {back}
       <PageHeader
         title={mission.restaurant_name}
-        subtitle={`${METIER_LABELS[mission.metier]}${typeof mission.brief?.goal === "string" ? ` · ${mission.brief.goal}` : ""} · reçu le ${received}`}
+        subtitle={`${METIER_LABELS[mission.metier]}${briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : ""} · reçu le ${received}`}
         action={<StatusBadge tone={view.tone}>{view.label}</StatusBadge>}
       />
 
@@ -145,7 +148,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {mission.status === "envoye" && (
         <>
-          {rulesPending ? <RulesGate /> : <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} commissionBps={(await getTerms()).terms.commissionBps} />}
+          {rulesPending ? <RulesGate family={familyOf(mission.metier)} /> : <QuoteForm missionId={mission.id} metier={mission.metier} budgetCents={budget} commissionBps={(await getTerms()).terms.commissionBps} />}
           <RefuseForm missionId={mission.id} />
         </>
       )}
@@ -265,7 +268,11 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
         <StartButton missionId={mission.id} canStart={judgeStart(mission.status, mission.shoot_date, todayInBrussels()) === "ok"} tooEarly={judgeStart(mission.status, mission.shoot_date, todayInBrussels()) === "too_early"} />
       )}
 
-      {mission.status === "production" && (
+      {mission.status === "accepte" && !hasShoot(mission.metier) && <StartWorkButton missionId={mission.id} />}
+
+      {mission.status === "production" && !hasShoot(mission.metier) && <DeliveryForm missionId={mission.id} title="Livrer ton travail" />}
+
+      {mission.status === "production" && hasShoot(mission.metier) && (
         <>
           {mission.report_confirmed_at && <p className="text-[13.5px] text-good font-semibold">Le restaurateur a confirmé ton compte-rendu.</p>}
           {mission.report_contested_at && <p className="text-[13.5px] text-warn font-semibold">Le restaurateur conteste ton compte-rendu : Boosteats te contacte. Tu peux quand même livrer.</p>}
@@ -317,7 +324,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
         ))}
 
       {mission.status === "annule" && !quote && <p className="text-[13.5px] text-ink-muted">Cette mission est annulée.</p>}
-      {canCancel("provider", mission.status) &&
+      {canCancel("provider", mission.status, mission.metier) &&
         (() => {
           const q = costNow(mission, "provider");
           return (

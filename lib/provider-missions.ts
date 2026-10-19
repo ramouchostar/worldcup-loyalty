@@ -8,6 +8,8 @@ import type { MissionStatus } from "./mission-states";
 import { restaurantMissionUrl } from "./missions";
 import { sendProviderQuoteReceivedEmail } from "./email";
 import { providerHasAccepted } from "./missions-rules";
+import { rulesVersionFor } from "./mission-rules";
+import { familyOf } from "./mission-metier";
 import { getRestaurantContactEmail } from "./missions-contact";
 
 // ============================================================
@@ -143,7 +145,7 @@ export async function submitQuote(missionId: string, provider: ProviderRow, rawQ
   if (mission.status !== "envoye") return { ok: false, reason: "not_awaiting_quote" };
 
   // Les règles du jeu : acceptées une fois par version, avant le premier devis. (Migration absente : on ne bloque pas, le journal le dit.)
-  const accepted = await providerHasAccepted(provider.id);
+  const accepted = await providerHasAccepted(provider.id, rulesVersionFor(familyOf(mission.metier)));
   if (accepted.ok && !accepted.accepted) {
     await logEvent(missionId, { kind: "quote_refused", actorKind: "provider", actorId: provider.user_id ?? undefined, reason: "rules_not_accepted" });
     return { ok: false, reason: "rules_not_accepted" };

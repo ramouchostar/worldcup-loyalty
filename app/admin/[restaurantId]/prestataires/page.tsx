@@ -4,7 +4,7 @@ import { Camera, ChevronRight, Clapperboard, PenTool, Printer, Wrench } from "lu
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
 import { listMissions, marketplaceEnabled } from "@/lib/missions";
-import { STATUS_VIEW, METIER_LABELS } from "@/lib/mission-view";
+import { STATUS_VIEW, METIER_LABELS, briefHeadline } from "@/lib/mission-view";
 import { EmptyState, PageHeader, StatusBadge, Card, CardRow, SectionLabel } from "@/components/admin/ui";
 import { NewBriefButton } from "./NewBriefButton";
 
@@ -25,7 +25,7 @@ export default async function PrestatairesPage({ params }: { params: Promise<{ r
   const services = [
     { metier: "video" as const, icon: Clapperboard, desc: "Reels, film, pack du mois : un vidéaste vient chez toi.", open: true },
     { metier: "photo" as const, icon: Camera, desc: "Tes plats, ta salle, ton équipe.", open: false },
-    { metier: "design" as const, icon: PenTool, desc: "Menu, flyer, affiche, logo.", open: false },
+    { metier: "design" as const, icon: PenTool, desc: "Carte, menu, flyer, affiche, logo, visuels réseaux : un graphiste crée pour toi.", open: true },
     { metier: "impression" as const, icon: Printer, desc: "Menus, flyers, chevalets, QR codes.", open: false },
   ];
 
@@ -77,7 +77,7 @@ export default async function PrestatairesPage({ params }: { params: Promise<{ r
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-ink text-[14px] truncate">
                         {METIER_LABELS[m.metier]}
-                        {typeof m.brief?.goal === "string" ? ` · ${m.brief.goal}` : ""}
+                        {briefHeadline(m.brief) ? ` · ${briefHeadline(m.brief)}` : ""}
                       </p>
                       <p className="text-[12.5px] text-ink-faint">
                         {m.status === "brief" ? "Brouillon commencé le " : "Créée le "}

@@ -11,13 +11,15 @@ import {
   type BriefQuestion,
   type BriefStep,
   type BriefTemplate,
+  earliestDeadline,
 } from "@/lib/mission-brief";
 import { briefRows, centsToEurosInput, eurosToCents, issueMessage } from "@/lib/mission-view";
 import { ambitionHint, floorHint } from "@/lib/marketplace-budgets-rules";
 import { formatEuros } from "@/lib/mission-money";
 import { FilePicker } from "@/components/missions/FilePicker";
 import { RulesList } from "@/components/missions/RulesList";
-import { RESTAURANT_RULES, RULES_ACCEPT_LABEL, RULES_REFUSAL_TEXT, RULES_VERSION } from "@/lib/mission-rules";
+import { RULES_ACCEPT_LABEL, RULES_REFUSAL_TEXT, rulesFor, rulesVersionFor } from "@/lib/mission-rules";
+import { familyOf } from "@/lib/mission-metier";
 import type { AttachmentView } from "@/lib/mission-files";
 
 // ADR 0084 §3 — l'assistant de brief du restaurateur : quelques questions par
@@ -127,7 +129,7 @@ export function BriefWizard({
       const res = await fetch(`/api/admin/missions/${missionId}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId, answers, rules: { accepted: rulesOk, version: RULES_VERSION } }),
+        body: JSON.stringify({ restaurantId, answers, rules: { accepted: rulesOk, version: rulesVersionFor(familyOf(template.metier)) } }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -182,7 +184,7 @@ export function BriefWizard({
           </div>
           {current.keys.map((key) => {
             const q = byKey.get(key);
-            return q ? <Question key={key} q={q} value={answers[key]} issue={issueOf(key)} onChange={(v) => set(key, v)} /> : null;
+            return q ? <Question key={key} q={q} value={answers[key]} issue={issueOf(key)} minDate={q.key === "deadline" ? earliestDeadline(today) : today} onChange={(v) => set(key, v)} /> : null;
           })}
           {current.keys.includes("budget_cents") && <BudgetNotes floor={floorHint(template.budgetFloorCents, formatEuros)} ambition={ambitionText} />}
         </Card>
@@ -241,7 +243,7 @@ export function BriefWizard({
               <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">Les règles du jeu</h2>
               <p className="text-ink-muted text-[13.5px] mt-1">Elles protègent le prestataire et toi. Lis-les : en envoyant ce brief, tu t&apos;y engages.</p>
             </div>
-            <RulesList rules={RESTAURANT_RULES} />
+            <RulesList rules={rulesFor("restaurant", familyOf(template.metier))} />
             <button type="button" role="checkbox" aria-checked={rulesOk} onClick={() => setRulesOk((v) => !v)} className={`w-full flex items-start gap-3 text-left rounded-xl border p-3 min-h-[44px] ${rulesOk ? "border-boost-olive bg-boost-cream" : "border-paper-border bg-white"}`}>
               <span className={`mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center ${rulesOk ? "bg-boost-olive border-boost-olive text-white" : "border-ink-faint bg-white"}`}>{rulesOk && <Check className="w-3.5 h-3.5" aria-hidden />}</span>
               <span className="text-[14px] font-semibold text-ink">{RULES_ACCEPT_LABEL.restaurant}</span>
@@ -314,11 +316,14 @@ function Question({
   q,
   value,
   issue,
+  minDate,
   onChange,
 }: {
   q: BriefQuestion;
   value: BriefAnswers[string];
   issue: BriefIssue | undefined;
+  /** Une date ne se choisit pas avant ce jour (le serveur juge de toute façon). */
+  minDate: string;
   onChange: (v: BriefAnswers[string]) => void;
 }) {
   const id = `q-${q.key}`;
@@ -373,6 +378,8 @@ function Question({
         ) : null}
       </>
     );
+  } else if (q.kind === "date") {
+    control = <input id={id} type="date" min={minDate} value={typeof value === "string" ? value : ""} onChange={(e) => onChange(e.target.value || null)} className="border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive min-h-[44px]" />;
   } else if (q.kind === "list") {
     control = <ListField id={id} items={Array.isArray(value) ? value : []} onChange={onChange} placeholder={q.key === "dishes" ? "Ajouter un plat" : "Ajouter une personne"} />;
   } else if (q.kind === "number") {

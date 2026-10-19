@@ -42,7 +42,7 @@ const unavailable = { ok: false, reason: "unavailable" } as const;
 
 export type FileActor = { kind: "restaurant"; restaurantId: string; userId: string } | { kind: "provider"; provider: ProviderRow };
 
-type Ctx = Pick<MissionRow, "id" | "status" | "shoot_date" | "retouch_rounds_used" | "restaurant_id" | "provider_id">;
+type Ctx = Pick<MissionRow, "id" | "status" | "shoot_date" | "retouch_rounds_used" | "restaurant_id" | "provider_id" | "metier">;
 
 /** La mission, vue par CET acteur : le restaurateur de l'établissement ou le prestataire de la mission, jamais un autre. */
 async function contextOf(actor: FileActor, missionId: string): Promise<{ ok: true; mission: Ctx | null } | typeof unavailable> {
@@ -65,7 +65,7 @@ async function openScope(scope: FileScope, m: Ctx): Promise<{ open: boolean; ref
   }
   if (scope === "change") {
     const c = await listChanges(m.id);
-    return { open: c.ok && judgeChangeRequest({ status: m.status, shootDate: m.shoot_date, changes: c.changes }, todayInBrussels()) === "ok", ref: null };
+    return { open: c.ok && judgeChangeRequest({ status: m.status, shootDate: m.shoot_date, changes: c.changes, metier: m.metier }, todayInBrussels()) === "ok", ref: null };
   }
   const p = await loadProposalState(m.id);
   if (!p.ok) return { open: false, ref: null };

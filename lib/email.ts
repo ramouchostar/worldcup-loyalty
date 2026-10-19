@@ -24,6 +24,7 @@ import { providerQuoteReceivedEmail } from "./email-templates/provider-quote-rec
 import { providerDateBookedEmail } from "./email-templates/provider-date-booked";
 import { missionReminderEmail, type MissionReminderInput } from "./email-templates/mission-reminder";
 import { missionUpdateEmail, type MissionUpdateInput } from "./email-templates/mission-update";
+import type { Metier } from "./mission-money";
 
 // Emailing — chantier "landing pages / emailing / ads" (2026-07-28), volet
 // 2/3. Fournisseur : Resend. Même philosophie que sendPush()/sendWhatsApp()
@@ -336,9 +337,10 @@ export async function sendProviderBriefReceivedEmail(
   providerName: string,
   restaurantName: string,
   goal: string | null,
-  missionUrl: string
+  missionUrl: string,
+  metier?: Metier
 ): Promise<boolean> {
-  return dispatch(to, providerBriefReceivedEmail(providerName, restaurantName, goal, missionUrl), { key: "provider_brief_received", audience: "restaurant" });
+  return dispatch(to, providerBriefReceivedEmail(providerName, restaurantName, goal, missionUrl, metier), { key: "provider_brief_received", audience: "restaurant" });
 }
 
 // ADR 0084 — le devis du prestataire est arrivé : le restaurateur en est prévenu.

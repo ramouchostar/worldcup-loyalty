@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CalendarDays, ChevronRight, Inbox, Wrench } from "lucide-react";
 import { requireProviderPage } from "@/lib/providers";
 import { listForProvider, type ProviderMissionRow } from "@/lib/provider-missions";
-import { METIER_LABELS, PROVIDER_STATUS_VIEW } from "@/lib/mission-view";
+import { METIER_LABELS, PROVIDER_STATUS_VIEW, briefHeadline } from "@/lib/mission-view";
 import type { MissionStatus } from "@/lib/mission-states";
 import { Card, CardRow, EmptyState, PageHeader, SectionLabel, StatusBadge } from "@/components/admin/ui";
 
@@ -69,7 +69,7 @@ function Section({ title, missions, emptyText }: { title: string; missions: Prov
                     <p className="font-semibold text-ink text-[14px] truncate">{m.restaurant_name}</p>
                     <p className="text-[12.5px] text-ink-faint truncate">
                       {METIER_LABELS[m.metier]}
-                      {typeof m.brief?.goal === "string" ? ` · ${m.brief.goal}` : ""}
+                      {briefHeadline(m.brief) ? ` · ${briefHeadline(m.brief)}` : ""}
                       {typeof m.brief?.format === "string" ? ` · ${m.brief.format}` : ""}
                     </p>
                   </div>

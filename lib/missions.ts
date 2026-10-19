@@ -1,14 +1,16 @@
 import { createAdminClient } from "./supabase";
 import { isMissingTable } from "./audit/store";
 import { todayInBrussels } from "./qr-funnel";
-import { VIDEO_TEMPLATE, type BriefAnswers, type BriefIssue, type BriefTemplate } from "./mission-brief";
+import { defaultTemplate, type BriefAnswers, type BriefIssue, type BriefTemplate } from "./mission-brief";
+import { briefHeadline } from "./mission-view";
 import { mergeAnswers, planSend, sanitizeAnswers, type ProviderCandidate } from "./mission-draft";
 import { sendProviderBriefReceivedEmail } from "./email";
 import { providerMissionUrl } from "./providers";
 import { SITE_ORIGIN } from "@/lib/site";
 import type { Metier } from "./mission-money";
 import type { MissionStatus } from "./mission-states";
-import { readAcceptance } from "./mission-rules";
+import { readAcceptance, rulesVersionFor } from "./mission-rules";
+import { familyOf } from "./mission-metier";
 import { recordRestaurantAcceptance } from "./missions-rules";
 
 // ============================================================
@@ -110,7 +112,8 @@ export async function loadTemplate(metier: Metier): Promise<{ template: BriefTem
   } catch (e) {
     console.error("[missions] loadTemplate failed:", (e as Error).message);
   }
-  return metier === "video" ? { template: VIDEO_TEMPLATE, id: null } : null;
+  const fallback = defaultTemplate(metier);
+  return fallback ? { template: fallback, id: null } : null;
 }
 
 export async function logEvent(
@@ -313,7 +316,7 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
   }
 
   // Les règles du jeu : la case est exigée à CHAQUE brief envoyé, avec la version qu'on a montrée (jamais un oui à un texte qui a changé).
-  const rules = readAcceptance(rulesFromScreen);
+  const rules = readAcceptance(rulesFromScreen, rulesVersionFor(familyOf(mission.metier)));
   if (!rules.ok) {
     await logEvent(missionId, { kind: "brief_refused", actorKind: "restaurant", actorId: userId, reason: "rules_not_accepted", meta: { rules: rules.reason } });
     return { ok: false, reason: "rules_not_accepted", rules: rules.reason };
@@ -336,10 +339,10 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
     return { ok: false, reason: "unavailable" };
   }
 
-  const recorded = await recordRestaurantAcceptance(missionId, restaurantId, userId);
+  const recorded = await recordRestaurantAcceptance(missionId, restaurantId, userId, rules.acceptance.version);
   await logEvent(missionId, { kind: "rules_accepted", actorKind: "restaurant", actorId: userId, meta: { version: rules.acceptance.version, recorded } });
   await logEvent(missionId, { kind: "status", from: "brief", to: "envoye", actorKind: "restaurant", actorId: userId, meta: { providerId: plan.providerId } });
-  await notifyProvider(missionId, plan.providerId, restaurantId, mission.brief ?? {});
+  await notifyProvider(missionId, plan.providerId, restaurantId, mission.brief ?? {}, mission.metier);
   return { ok: true, providerId: plan.providerId };
 }
 
@@ -348,7 +351,7 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
  * jamais silencieux : l'issue (partie ou non) est une ligne de la trace, et l'e-mail est aussi
  * journalisé par `dispatch` (message_sends).
  */
-async function notifyProvider(missionId: string, providerId: string, restaurantId: string, answers: BriefAnswers): Promise<void> {
+async function notifyProvider(missionId: string, providerId: string, restaurantId: string, answers: BriefAnswers, metier: Metier): Promise<void> {
   try {
     const admin = createAdminClient();
     const [{ data: provider }, { data: restaurant }] = await Promise.all([
@@ -357,8 +360,8 @@ async function notifyProvider(missionId: string, providerId: string, restaurantI
     ]);
     const p = provider as { email: string; display_name: string } | null;
     if (!p) throw new Error("prestataire introuvable");
-    const goal = typeof answers.goal === "string" ? answers.goal : null;
-    const sent = await sendProviderBriefReceivedEmail(p.email, p.display_name, (restaurant as { name: string } | null)?.name ?? "Un restaurateur", goal, providerMissionUrl(missionId));
+    const goal = briefHeadline(answers);
+    const sent = await sendProviderBriefReceivedEmail(p.email, p.display_name, (restaurant as { name: string } | null)?.name ?? "Un restaurateur", goal, providerMissionUrl(missionId), metier);
     await logEvent(missionId, { kind: sent ? "provider_notified" : "notify_failed", actorKind: "system", meta: { channel: "email", providerId } });
   } catch (e) {
     console.error("[missions] notifyProvider failed:", (e as Error).message);

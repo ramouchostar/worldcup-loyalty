@@ -8,6 +8,8 @@
 // ============================================================
 
 import { canTransition, type Actor, type MissionStatus } from "./mission-states";
+import { hasShoot, isStudio } from "./mission-metier";
+import type { Metier } from "./mission-money";
 import { cancelBand, cancellationOutcome, hoursBeforeShoot, type CancelBand, type CancellationOutcome, type ProviderSanction } from "./mission-cancellation";
 
 export type Canceller = "restaurant" | "provider";
@@ -17,8 +19,13 @@ const RESTAURANT_CAN: readonly MissionStatus[] = ["brief", "envoye", "devis", "a
 // Un brief encore à chiffrer se REFUSE (avec sa propre raison, lib/provider-missions.ts) : ici, seulement après le devis accepté.
 const PROVIDER_CAN: readonly MissionStatus[] = ["accepte", "date_bloquee"];
 
-export function canCancel(by: Canceller, status: MissionStatus): boolean {
-  const allowed = by === "restaurant" ? RESTAURANT_CAN : PROVIDER_CAN;
+// Un métier d'atelier se travaille sans date : l'annulation reste possible PENDANT la création (l'acompte reste au prestataire).
+const RESTAURANT_CAN_STUDIO: readonly MissionStatus[] = ["brief", "envoye", "devis", "accepte", "production", "suspendu"];
+const PROVIDER_CAN_STUDIO: readonly MissionStatus[] = ["accepte", "production"];
+
+export function canCancel(by: Canceller, status: MissionStatus, metier?: Metier): boolean {
+  const studio = !!metier && isStudio(metier);
+  const allowed = by === "restaurant" ? (studio ? RESTAURANT_CAN_STUDIO : RESTAURANT_CAN) : studio ? PROVIDER_CAN_STUDIO : PROVIDER_CAN;
   return allowed.includes(status) && canTransition(status, "annule", by).ok;
 }
 
@@ -64,6 +71,8 @@ export type CancelQuote = {
   outcome: CancellationOutcome;
   /** Pas encore de date réservée : rien à perdre (la date est ce qui lie). */
   beforeDate: boolean;
+  /** Métier d'atelier : le texte dit « le travail a commencé » et non « tant de jours avant le tournage ». */
+  studio?: { started: boolean };
 };
 
 export type CancelFacts = {
@@ -78,6 +87,10 @@ export type CancelFacts = {
   now: Date;
   /** Absent le jour J : toujours « tout est dû ». */
   noShow?: boolean;
+  /** Le métier : un métier d'atelier (design, impression) n'a pas de date, voir `quoteCancellation`. */
+  metier?: Metier;
+  /** L'acompte reçu (métier d'atelier : c'est lui qui reste au prestataire une fois le travail commencé). */
+  depositCents?: number;
 };
 
 /**
@@ -85,6 +98,11 @@ export type CancelFacts = {
  * perdre : la date est ce qui lie. Avec une date, la bande dépend des heures restantes avant le début du tournage.
  */
 export function quoteCancellation(f: CancelFacts): CancelQuote {
+  if (f.metier && !hasShoot(f.metier)) {
+    const started = f.status === "production";
+    const outcome = cancellationOutcome({ by: f.by, hoursBefore: Number.POSITIVE_INFINITY, paidCents: f.paidCents, providerCents: f.providerCents, studio: { started, depositCents: f.depositCents ?? 0 } });
+    return { band: outcome.band, hoursBefore: null, outcome, beforeDate: false, studio: { started } };
+  }
   const hasDate = !!f.shootDate && !!f.shootStart && ["date_bloquee", "suspendu", "production"].includes(f.status);
   const hoursBefore = hasDate ? hoursBeforeShoot(f.shootDate!, f.shootStart!, f.now) : null;
   const outcome = cancellationOutcome({
@@ -99,6 +117,10 @@ export function quoteCancellation(f: CancelFacts): CancelQuote {
 
 /** La phrase que lit celui qui s'apprête à annuler. */
 export function describeCost(by: Canceller, q: CancelQuote, euros: (cents: number) => string): string {
+  if (q.studio) {
+    if (by === "restaurant") return q.studio.started ? `Le travail a commencé : l'acompte (${euros(q.outcome.retainedCents)}) reste au prestataire, le reste t'est rendu.` : "Le travail n'a pas commencé : l'annulation est gratuite.";
+    return q.studio.started ? "Tu as commencé : le restaurateur est remboursé en entier et tu reçois un avertissement." : "Tu n'as pas commencé : tu peux annuler sans conséquence. Le restaurateur est remboursé.";
+  }
   if (q.beforeDate) return by === "restaurant" ? "Aucune date n'est encore réservée : l'annulation est gratuite." : "Aucune date n'est encore réservée : tu peux annuler sans conséquence.";
   if (by === "restaurant") {
     if (q.band === "free") return "Plus de 7 jours avant le tournage : l'annulation est gratuite, tu es remboursé en entier.";
