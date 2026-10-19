@@ -1,5 +1,6 @@
 "use client";
 
+import { keyFramingHint, keyLabelForMember } from "@/lib/receipt-proof";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -636,10 +637,10 @@ export default function SubmitOrderClient({
   // gardée s'affiche ; l'échec de l'aperçu OCR reste silencieux (ADR 0045).
   const framingTitle = framingIssue
     ? framingIssue.total && framingIssue.key
-      ? `On voit mal le total et le ${keyLabel}`
+      ? `On voit mal le total et le ${keyLabelForMember(keyLabel)}`
       : framingIssue.total
         ? "On voit mal le total"
-        : `On voit mal le ${keyLabel}`
+        : `On voit mal le ${keyLabelForMember(keyLabel)}`
     : "";
   const topAlert: {
     tone: "error" | "warn";
@@ -666,7 +667,7 @@ export default function SubmitOrderClient({
                 title: framingTitle,
                 // Clé manquante : dire OÙ elle est (le reçu de carte en bas n'en porte pas).
                 hint: framingIssue.key
-                  ? `Le ${keyLabel} est dans le haut du ticket, avec le total — pas sur le reçu de carte (« EFT »). Rapproche-toi, ticket bien à plat.`
+                  ? keyFramingHint(keyLabel)
                   : "Rapproche-toi, ticket bien à plat, et cadre-les dans le rectangle.",
                 reframe: true,
               }

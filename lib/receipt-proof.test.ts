@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { judgeReceipt, keyFramingHint, notAReceiptMessage, unknownCodeMessage } from "./receipt-proof";
+import { judgeReceipt, keyFramingHint, keyLabelForMember, notAReceiptMessage, scanRefusalReason, unknownCodeMessage } from "./receipt-proof";
 
 const ticket = { order_number: "2026-09-14/223/05481", has_restaurant_header: true, looks_like_qr_or_poster: false };
 
@@ -69,4 +69,45 @@ test("le cadrage dit où est la clé et écarte le reçu de carte", () => {
   assert.match(keyFramingHint("Bestelnummer"), /Bestelnummer.*haut du ticket.*EFT/);
   assert.match(keyFramingHint(null), /numéro de commande/);
   assert.match(notAReceiptMessage("Belchicken Kraainem", "Bestelnummer"), /haut du ticket/);
+});
+
+const lecture = (p: Partial<Parameters<typeof scanRefusalReason>[0]> = {}) => ({
+  amount: 9.9,
+  order_number: "2026-10-16/223/06933",
+  key_corrected: false,
+  has_restaurant_header: true,
+  looks_like_qr_or_poster: false,
+  key_issue: null,
+  ...p,
+});
+
+test("motif écrit sur le scan : dans l'ordre où les routes refusent", () => {
+  const membre = { checkCompleteness: true, hasReliableKey: true };
+  assert.equal(scanRefusalReason(lecture(), membre), null);
+  assert.equal(scanRefusalReason(lecture({ key_issue: "other_establishment", order_number: null }), membre), "wrong_establishment");
+  assert.equal(scanRefusalReason(lecture({ looks_like_qr_or_poster: true, order_number: null }), membre), "qr_detected");
+  assert.equal(scanRefusalReason(lecture({ has_restaurant_header: false, order_number: null, amount: null }), membre), "unreadable");
+  assert.equal(scanRefusalReason(lecture({ has_restaurant_header: false, order_number: null }), membre), "header_rejected");
+  assert.equal(scanRefusalReason(lecture({ key_issue: "unknown_code", order_number: null }), membre), "key_code_unknown");
+  // Ticket reconnu mais clé non lue : lecture incomplète.
+  assert.equal(scanRefusalReason(lecture({ order_number: null }), membre), "unreadable");
+  assert.equal(scanRefusalReason(lecture({ amount: null }), membre), "unreadable");
+});
+
+test("l'aperçu du visiteur ne refuse pas une lecture incomplète", () => {
+  assert.equal(scanRefusalReason(lecture({ order_number: null }), { checkCompleteness: false }), null);
+  assert.equal(scanRefusalReason(lecture({ key_issue: "unknown_code", order_number: null }), { checkCompleteness: false }), "key_code_unknown");
+});
+
+test("sans clé fiable à l'établissement, une clé absente n'est pas un refus", () => {
+  assert.equal(scanRefusalReason(lecture({ order_number: null }), { checkCompleteness: true, hasReliableKey: false }), null);
+});
+
+test("« Bestelnummer » est l'étiquette néerlandaise : le membre lit aussi « numéro de commande »", () => {
+  assert.equal(keyLabelForMember("Bestelnummer"), "numéro de commande (« Bestelnummer »)");
+  assert.equal(keyLabelForMember("N° de commande"), "N° de commande");
+  assert.equal(keyLabelForMember(null), "numéro de commande");
+  // La place de la clé et le reçu « EFT » ne sont promis que pour les tickets de borne néerlandais.
+  assert.match(keyFramingHint("Bestelnummer"), /haut du ticket.*EFT/);
+  assert.doesNotMatch(keyFramingHint("N° de commande"), /EFT|haut du ticket/);
 });
