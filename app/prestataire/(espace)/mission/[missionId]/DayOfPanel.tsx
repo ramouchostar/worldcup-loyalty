@@ -56,6 +56,39 @@ export function StartButton({ missionId, canStart, tooEarly }: { missionId: stri
   );
 }
 
+export function StartWorkButton({ missionId }: { missionId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function go() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await post(`/api/prestataire/missions/${missionId}/start`, {});
+      if (r.ok) return router.refresh();
+      setError((r.data.error as string) ?? "Impossible pour le moment. Réessaie.");
+    } catch {
+      setError("Pas de connexion. Réessaie dans un instant.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Card className="space-y-3">
+      <SectionLabel>Au travail</SectionLabel>
+      <p className="text-[13.5px] text-ink-muted">Touche « Je commence » quand tu démarres. Avant, le restaurateur peut encore annuler sans frais ; après, ton acompte te reste acquis.</p>
+      {error && (
+        <p role="alert" className="text-danger text-[13px] font-semibold">
+          {error}
+        </p>
+      )}
+      <button type="button" disabled={busy} onClick={go} className={primary}>
+        {busy ? "…" : "Je commence"}
+      </button>
+    </Card>
+  );
+}
+
 export function ReportForm({
   missionId,
   defaultArrival,

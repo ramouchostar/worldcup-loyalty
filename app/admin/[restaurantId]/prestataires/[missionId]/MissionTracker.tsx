@@ -2,7 +2,8 @@ import { Check } from "lucide-react";
 import { Card, PageHeader, SectionLabel, StatusBadge } from "@/components/admin/ui";
 import type { BriefTemplate } from "@/lib/mission-brief";
 import type { MissionRow } from "@/lib/missions";
-import { METIER_LABELS, STATUS_VIEW, briefRows, timeline } from "@/lib/mission-view";
+import { METIER_LABELS, STATUS_VIEW, briefHeadline, briefRows, timeline } from "@/lib/mission-view";
+import { hasShoot, providerLabel } from "@/lib/mission-metier";
 
 // ADR 0084 — le suivi d'une mission envoyée : la frise (où ça en est, en mots
 // de restaurateur) et le brief verrouillé tel que le prestataire l'a reçu.
@@ -17,7 +18,8 @@ export function MissionTracker({
   providerName: string | null;
 }) {
   const view = STATUS_VIEW[mission.status];
-  const tl = timeline(mission.status);
+  const tl = timeline(mission.status, mission.metier);
+  const who = providerLabel(mission.metier, providerName);
   const rows = briefRows(mission.brief ?? {}, template);
   const lockedOn = mission.brief_locked_at
     ? new Date(mission.brief_locked_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" })
@@ -26,7 +28,7 @@ export function MissionTracker({
   return (
     <>
       <PageHeader
-        title={`${METIER_LABELS[mission.metier]}${typeof mission.brief?.goal === "string" ? ` · ${mission.brief.goal}` : ""}`}
+        title={`${METIER_LABELS[mission.metier]}${briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : ""}`}
         subtitle={providerName ? `avec ${providerName}` : undefined}
         action={<StatusBadge tone={view.tone}>{view.label}</StatusBadge>}
       />
@@ -53,21 +55,23 @@ export function MissionTracker({
         </ol>
         {mission.status === "devis" && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
-            {providerName ?? "Le vidéaste"} t&apos;a envoyé son devis : lis-le plus bas. La date du tournage se choisit après son acceptation.
+            {who} t&apos;a envoyé son devis : lis-le plus bas.{hasShoot(mission.metier) ? " La date du tournage se choisit après son acceptation." : " Le travail commence après son acceptation."}
           </p>
         )}
         {mission.status === "accepte" && (
-          <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">Devis accepté. Choisis maintenant ta date de tournage plus bas.</p>
+          <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
+            {hasShoot(mission.metier) ? "Devis accepté. Choisis maintenant ta date de tournage plus bas." : `Devis accepté. ${who} va commencer : tu seras prévenu par e-mail. Tant qu'il n'a pas commencé, tu peux annuler sans frais.`}
+          </p>
         )}
         {mission.status === "envoye" && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
-            {providerName ?? "Le vidéaste"} lit ton brief et te répond avec un devis. Son prix sera ferme. Tu ne paies rien tant que tu n&apos;as pas accepté.
+            {who} lit ton brief et te répond avec un devis. Son prix sera ferme. Tu ne paies rien tant que tu n&apos;as pas accepté.
           </p>
         )}
         {tl.stopped && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
             {mission.status === "annule" && mission.cancelled_by === "provider"
-              ? `${providerName ?? "Le vidéaste"} ne peut pas faire cette mission${mission.cancellation_note ? ` : ${mission.cancellation_note}` : ""}. Rien n'a été payé : tu peux faire un nouveau brief.`
+              ? `${who} ne peut pas faire cette mission${mission.cancellation_note ? ` : ${mission.cancellation_note}` : ""}. Rien n'a été payé : tu peux faire un nouveau brief.`
               : mission.status === "annule" && mission.cancelled_by === "restaurant"
                 ? "Tu as annulé cette mission. Rien n'a été payé."
                 : `Cette mission est arrêtée : ${view.label.toLowerCase()}.`}

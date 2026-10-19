@@ -6,8 +6,9 @@ import { getForProvider } from "./provider-missions";
 import type { ProviderRow } from "./providers";
 import { getPlan } from "./entitlements";
 import { getTerms } from "./marketplace-settings";
-import { priceBreakdown } from "./mission-money";
+import { priceBreakdown, type Metier } from "./mission-money";
 import { mailMission as mail } from "./missions-notify";
+import { changeableStatuses } from "./mission-metier";
 import { linkFiles } from "./missions-files-link";
 import { sanitizeIds, MAX_UNLINKED } from "./mission-files";
 import { CHANGE_COLUMNS, listChanges, type ChangeRow } from "./missions-changes-state";
@@ -58,7 +59,7 @@ export async function requestChange(missionId: string, restaurantId: string, use
   const list = await listChanges(missionId);
   if (!list.ok) return unavailable;
 
-  const verdict = judgeChangeRequest({ status: m.status, shootDate: m.shoot_date, changes: list.changes }, todayInBrussels());
+  const verdict = judgeChangeRequest({ status: m.status, shootDate: m.shoot_date, changes: list.changes, metier: m.metier }, todayInBrussels());
   if (verdict !== "ok") {
     await logEvent(missionId, { kind: "change_refused", actorKind: "restaurant", actorId: userId, reason: verdict });
     return { ok: false, reason: "refused", verdict };
@@ -177,7 +178,7 @@ export async function answerChange(missionId: string, restaurantId: string, user
   try {
     const c = await loadOne(missionId, changeId);
     if (!c) return { ok: false, reason: "not_found" };
-    if (m.status !== "accepte" && m.status !== "date_bloquee") return { ok: false, reason: "not_expected" };
+    if (!changeableStatuses(m.metier).includes(m.status)) return { ok: false, reason: "not_expected" };
     if (answer === "withdraw") return withdraw(m, c, userId);
     if (answer !== "accept" && answer !== "decline") return { ok: false, reason: "not_expected" };
     const verdict = judgeRestaurantAnswer(c.status, m.shoot_date, todayInBrussels());
@@ -244,7 +245,7 @@ async function accept(m: MissionRow, c: ChangeRow, userId: string): Promise<Answ
         updated_at: now,
       })
       .eq("id", m.id)
-      .in("status", ["accepte", "date_bloquee"]);
+      .in("status", [...changeableStatuses(m.metier)]);
     for (const col of ["quote_cents", "paid_cents", "provider_cents", "platform_cents"] as const) q = t[col] === null ? q.is(col, null) : q.eq(col, t[col] as number);
     const { data: moved, error: e2 } = await q.select("id");
     if (e2) throw e2;
@@ -268,19 +269,19 @@ async function accept(m: MissionRow, c: ChangeRow, userId: string): Promise<Answ
 
 export type ChangesRun = { ok: false } | { ok: true; open: number; expired: number };
 
-type OpenRow = { id: string; mission_id: string; seq: number; status: ChangeRow["status"]; created_at: string; missions: { shoot_date: string | null; status: string } | null };
+type OpenRow = { id: string; mission_id: string; seq: number; status: ChangeRow["status"]; created_at: string; missions: { shoot_date: string | null; status: string; metier: Metier } | null };
 
 /** Une demande expire quand le prestataire n'a pas répondu en 3 jours, ou que la fenêtre de J-7 est passée, ou que la mission n'en est plus là. */
 export async function runChangesPass(now: Date = new Date()): Promise<ChangesRun> {
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.from("mission_changes").select("id, mission_id, seq, status, created_at, missions(shoot_date, status)").in("status", ["proposed", "quoted"]).limit(200);
+    const { data, error } = await admin.from("mission_changes").select("id, mission_id, seq, status, created_at, missions(shoot_date, status, metier)").in("status", ["proposed", "quoted"]).limit(200);
     if (error) throw error;
     const rows = (data ?? []) as unknown as OpenRow[];
     const today = todayInBrussels(now);
     let expired = 0;
     for (const r of rows) {
-      const gone = !r.missions || !["accepte", "date_bloquee"].includes(r.missions.status);
+      const gone = !r.missions || !changeableStatuses(r.missions.metier).includes(r.missions.status);
       if (!gone && !shouldExpire({ status: r.status, createdAt: r.created_at, shootDate: r.missions?.shoot_date ?? null }, today, now)) continue;
       const { data: moved, error: e2 } = await admin.from("mission_changes").update({ status: "expired", decided_at: now.toISOString() }).eq("id", r.id).in("status", ["proposed", "quoted"]).select("id");
       if (e2) throw e2;

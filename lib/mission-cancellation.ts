@@ -20,7 +20,7 @@ export const FREE_CANCEL_HOURS = 7 * 24;
 export const LATE_CANCEL_HOURS = 48;
 
 export type Canceller = "restaurant" | "provider";
-export type CancelBand = "free" | "half" | "full";
+export type CancelBand = "free" | "half" | "full" | "deposit";
 export type ProviderSanction = "none" | "avertissement" | "penalite";
 
 export function cancelBand(hoursBefore: number): CancelBand {
@@ -29,8 +29,8 @@ export function cancelBand(hoursBefore: number): CancelBand {
   return "full";
 }
 
-const RESTAURANT_RATIO_BPS: Record<CancelBand, number> = { free: 0, half: 5_000, full: BPS };
-const PROVIDER_SANCTION: Record<CancelBand, ProviderSanction> = { free: "none", half: "avertissement", full: "penalite" };
+const RESTAURANT_RATIO_BPS: Record<CancelBand, number> = { free: 0, half: 5_000, full: BPS, deposit: 0 };
+const PROVIDER_SANCTION: Record<CancelBand, ProviderSanction> = { free: "none", half: "avertissement", full: "penalite", deposit: "avertissement" };
 
 export type CancellationInput = {
   by: Canceller;
@@ -41,6 +41,12 @@ export type CancellationInput = {
   paidCents: number;
   /** Part du prestataire sur la somme payée (87,5 % du devis). */
   providerCents: number;
+  /**
+   * Métier d'atelier (design, impression) : pas de date, donc pas d'heures. Gratuit tant que le travail n'a pas commencé ;
+   * ensuite l'ACOMPTE reste au prestataire (bande « deposit »). Le prestataire qui annule après le début rembourse tout
+   * et reçoit un avertissement.
+   */
+  studio?: { started: boolean; depositCents: number };
 };
 
 export type CancellationOutcome = {
@@ -59,6 +65,7 @@ export type CancellationOutcome = {
 export function cancellationOutcome(i: CancellationInput): CancellationOutcome {
   if (!Number.isInteger(i.paidCents) || i.paidCents < 0) throw new Error("paidCents invalide");
   if (!Number.isInteger(i.providerCents) || i.providerCents < 0) throw new Error("providerCents invalide");
+  if (i.studio) return studioOutcome(i, i.studio);
   const band = i.noShow ? "full" : cancelBand(i.hoursBefore);
 
   if (i.by === "provider") {
@@ -77,6 +84,15 @@ export function cancellationOutcome(i: CancellationInput): CancellationOutcome {
     platformKeepsCents: retainedCents - providerPayoutCents,
     providerSanction: "none",
   };
+}
+
+function studioOutcome(i: CancellationInput, studio: { started: boolean; depositCents: number }): CancellationOutcome {
+  const band: CancelBand = studio.started ? "deposit" : "free";
+  if (i.by === "provider") return { band, refundCents: i.paidCents, retainedCents: 0, providerPayoutCents: 0, platformKeepsCents: 0, providerSanction: PROVIDER_SANCTION[band] };
+  // L'acompte, jamais plus que ce qui a été payé ; la part du prestataire au prorata de ce qui est retenu.
+  const retainedCents = studio.started ? Math.min(Math.max(0, studio.depositCents), i.paidCents) : 0;
+  const providerPayoutCents = i.paidCents > 0 ? Math.min(retainedCents, Math.round((i.providerCents * retainedCents) / i.paidCents)) : 0;
+  return { band, refundCents: i.paidCents - retainedCents, retainedCents, providerPayoutCents, platformKeepsCents: retainedCents - providerPayoutCents, providerSanction: "none" };
 }
 
 // ── Heure de Bruxelles ───────────────────────────────────────

@@ -59,6 +59,9 @@ const RULES: Record<MissionStatus, readonly Rule[]> = {
   accepte: [
     // Le restaurateur choisit sa date parmi les jours libres du prestataire.
     { to: "date_bloquee", by: ["restaurant", "system"] },
+    // Un métier d'atelier (design, impression) n'a pas de date : le prestataire commence quand il le décide.
+    // (Réservé aux métiers d'atelier par la fonction qui l'écrit : voir lib/missions-dayof.ts, startWork.)
+    { to: "production", by: ["provider"] },
     { to: "suspendu", by: ["system"] },
     { to: "annule", by: ANYONE },
     { to: "litige", by: ANYONE },
@@ -71,7 +74,8 @@ const RULES: Record<MissionStatus, readonly Rule[]> = {
   ],
   production: [
     { to: "livre", by: ["provider"] },
-    { to: "annule", by: ["platform"] },
+    // Un métier d'atelier s'annule pendant la création (l'acompte reste au prestataire) ; un tournage commencé, seule la plateforme l'arrête.
+    { to: "annule", by: ["platform", "restaurant", "provider"] },
     { to: "litige", by: ANYONE },
   ],
   livre: [

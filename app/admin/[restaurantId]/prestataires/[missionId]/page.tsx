@@ -4,7 +4,8 @@ import { ChevronLeft, Hourglass } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
 import { getMission, getProviderName, loadTemplate, marketplaceEnabled } from "@/lib/missions";
-import { VIDEO_BRIEF_STEPS } from "@/lib/mission-brief";
+import { stepsFor } from "@/lib/mission-brief";
+import { hasShoot, providerLabel } from "@/lib/mission-metier";
 import { METIER_LABELS } from "@/lib/mission-view";
 import { EmptyState, PageHeader } from "@/components/admin/ui";
 import { todayInBrussels } from "@/lib/qr-funnel";
@@ -84,7 +85,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           restaurantId={restaurantId}
           missionId={mission.id}
           template={tpl.template}
-          steps={VIDEO_BRIEF_STEPS}
+          steps={stepsFor(mission.metier)}
           initialAnswers={mission.brief ?? {}}
           today={todayInBrussels()}
           providerName={providerName}
@@ -105,7 +106,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const today = todayInBrussels();
   let calendar = null as ReturnType<typeof buildCalendar> | null;
   let calendarDown = false;
-  if (mission.status === "accepte" && mission.provider_id) {
+  if (mission.status === "accepte" && mission.provider_id && hasShoot(mission.metier)) {
     const loaded = await loadBlocked(mission.provider_id, today, mission.id);
     if (loaded.ok) calendar = buildCalendar(today, loaded.blocked);
     else calendarDown = true;
@@ -162,12 +163,21 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const retouch = retouchState(mission.status, mission.retouch_rounds_used);
 
   // Annuler : le devis se décline (carte « Décliner ce devis ») ; le reste s'annule ici, coût dit d'abord.
-  const cancelQuote = canCancel("restaurant", mission.status) && mission.status !== "devis" ? costNow(mission, "restaurant") : null;
+  const cancelQuote = canCancel("restaurant", mission.status, mission.metier) && mission.status !== "devis" ? costNow(mission, "restaurant") : null;
 
   return (
     <div className="space-y-6 max-w-xl">
       {back}
       <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
+      {!hasShoot(mission.metier) && (mission.status === "accepte" || mission.status === "production") && (
+        <Card className="space-y-1">
+          <SectionLabel>{mission.status === "accepte" ? "Bientôt au travail" : "En cours de création"}</SectionLabel>
+          <p className="text-[13.5px] text-ink-muted">
+            {mission.status === "accepte" ? `${providerLabel(mission.metier, providerName)} va commencer. Tu seras prévenu par e-mail dès qu'il s'y met, puis à la livraison.` : `${providerLabel(mission.metier, providerName)} travaille sur ton brief. Tu seras prévenu à la livraison : tu auras alors deux tours de retours.`}
+            {typeof mission.brief?.deadline === "string" ? ` Livraison souhaitée : ${dateLabelFr(mission.brief.deadline)}.` : ""}
+          </p>
+        </Card>
+      )}
       {files.some((f) => f.scope === "brief") && (
         <Card className="space-y-2">
           <SectionLabel>Pièces jointes du brief</SectionLabel>

@@ -12,6 +12,8 @@
 import { formatEuros, type Metier } from "./mission-money";
 import type { BriefAnswers, BriefIssueCode, BriefQuestion, BriefTemplate } from "./mission-brief";
 import type { MissionStatus } from "./mission-states";
+import { hasShoot } from "./mission-metier";
+import { dateLabelFr } from "./mission-team-message";
 
 export const METIER_LABELS: Record<Metier, string> = {
   video: "Vidéo",
@@ -82,16 +84,27 @@ const STEP_OF: Partial<Record<MissionStatus, number>> = {
   verse: 5,
 };
 
+/** La frise d'un métier d'atelier (design, impression) : pas de date de tournage, le travail commence quand le prestataire le décide. */
+export const STUDIO_TIMELINE_STEPS = [
+  { key: "envoye", label: "Brief envoyé" },
+  { key: "devis", label: "Devis" },
+  { key: "accepte", label: "Devis accepté" },
+  { key: "production", label: "Création en cours" },
+  { key: "livre", label: "Livraison" },
+  { key: "valide", label: "Validé" },
+] as const;
+
 export type StepState = "done" | "current" | "todo";
 
-export function timeline(status: MissionStatus): { steps: { key: string; label: string; state: StepState }[]; stopped: boolean } {
+export function timeline(status: MissionStatus, metier?: Metier): { steps: { key: string; label: string; state: StepState }[]; stopped: boolean } {
+  const steps = metier && !hasShoot(metier) ? STUDIO_TIMELINE_STEPS : TIMELINE_STEPS;
   // Annulée ou en médiation : la frise s'arrête, l'écran le dit au lieu de mentir sur l'avancement.
   const stopped = status === "annule" || status === "litige";
   const cur = STEP_OF[status] ?? -1;
   const finished = status === "verse";
   return {
     stopped,
-    steps: TIMELINE_STEPS.map((s, i) => ({
+    steps: steps.map((s, i) => ({
       key: s.key,
       label: s.label,
       state: stopped ? (i < cur ? "done" : "todo") : finished || i < cur ? "done" : i === cur ? "current" : "todo",
@@ -106,10 +119,19 @@ function renderValue(q: BriefQuestion, v: BriefAnswers[string]): string | null {
   if (q.kind === "files") return null; // les pièces jointes ont leur propre zone
   if (q.kind === "flag") return v === true ? "Oui" : null;
   if (q.key === "budget_cents" && typeof v === "number") return formatEuros(v);
+  if (q.kind === "date" && typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return dateLabelFr(v);
   if (Array.isArray(v)) return v.length ? v.join(", ") : null;
   if (typeof v === "object") return [v.name, v.phone].filter(Boolean).join(" · ") || null;
   if (typeof v === "string") return v.trim() || null;
   return String(v);
+}
+
+/** Le titre court d'un brief : son but (vidéo) ou ce qu'on dessine (design). */
+export function briefHeadline(answers: BriefAnswers | null | undefined): string | null {
+  const a = answers ?? {};
+  if (typeof a.goal === "string" && a.goal.trim()) return a.goal.trim();
+  if (Array.isArray(a.what) && a.what.length > 0) return a.what.join(", ");
+  return null;
 }
 
 /** Les réponses du brief sous forme de lignes « question → réponse », dans l'ordre du questionnaire. */
@@ -144,6 +166,7 @@ const ISSUE_MESSAGES: Record<BriefIssueCode, string> = {
   missing: "À remplir",
   too_short: "Un peu plus développé, s'il te plaît",
   too_soon: "Il faut au moins 7 jours pour prévenir ton équipe",
+  deadline_too_soon: "Laisse au moins 5 jours au graphiste",
   past: "Cette date est passée",
   bad_option: "Choisis une des propositions",
   bad_phone: "Numéro de téléphone incomplet",

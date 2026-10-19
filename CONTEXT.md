@@ -554,6 +554,10 @@ _Avoid_ : offre, estimation.
 Le prestataire reçoit 87,5 % du **prix du devis**. Le restaurateur paie ce prix (plans Gratuit et Croissance) ou 92,5 % de ce prix (plan Pro). La commission de Boosteats est **comprise** : jamais une ligne séparée côté restaurateur. Montants en euros côté restaurateur et plateforme uniquement, **jamais côté membre** (ADR 0007).
 _Avoid_ : frais de service, commission affichée au restaurateur.
 
+**Métier d'atelier** :
+Un métier sans date de tournage (graphiste, imprimeur) : le restaurateur indique pour quand il veut son travail, le prestataire commence quand il le décide (« Je commence »). Annulation gratuite avant le début, l'acompte reste au prestataire ensuite. S'oppose au **métier de tournage** (vidéaste, photographe), lié par une date.
+_Avoid_ : métier créatif, studio.
+
 **Demande de modification** :
 Un changement demandé par le restaurateur au brief verrouillé, après l'acceptation du devis et jusqu'à 7 jours avant le tournage. Le prestataire la chiffre (un **supplément**, éventuellement nul) ou la refuse avec sa raison ; le restaurateur accepte ou non. Une à la fois, deux au total ; refus ou silence : le brief d'origine tient.
 _Avoid_ : avenant, changement de dernière minute, retouche (réservé aux tours de retours après la livraison).

@@ -8,6 +8,7 @@ import { providerMissionUrl, type ProviderRow } from "./providers";
 import { sendMissionUpdateEmail } from "./email";
 import { DEFAULT_RESTAURANT_COPY_TO } from "./email-sender";
 import { canTransition } from "./mission-states";
+import { hasShoot } from "./mission-metier";
 import { applySanction, canCancel, isMissedShoot, quoteCancellation, quotePlatformCancellation, sanitizeCancel, settlementOf, validateCancel, type CancelIssue, type CancelQuote, type Canceller, type Fault, type Settlement } from "./mission-cancel-rules";
 import type { ProviderSanction } from "./mission-cancellation";
 import type { MissionUpdateInput } from "./email-templates/mission-update";
@@ -28,7 +29,7 @@ type DbError = { code?: string; message?: string } | null;
 const unavailable = { ok: false, reason: "unavailable" } as const;
 
 export type CancelRecord = {
-  band: "free" | "half" | "full";
+  band: "free" | "half" | "full" | "deposit";
   by: "restaurant" | "provider" | "platform";
   fault: Fault | null;
   reason: string;
@@ -47,7 +48,7 @@ export type CancelRecord = {
 };
 
 export type CancelResult =
-  | { ok: true; band: "free" | "half" | "full"; sanction: ProviderSanction }
+  | { ok: true; band: "free" | "half" | "full" | "deposit"; sanction: ProviderSanction }
   | { ok: false; reason: "not_found" | "not_cancellable" | "invalid" | "already_cancelled" | "unavailable"; issue?: CancelIssue };
 
 export type Actor = { kind: "restaurant"; userId: string } | { kind: "provider"; userId: string | undefined } | { kind: "platform"; userId: string };
@@ -139,7 +140,7 @@ export async function sanctionProvider(providerId: string | null, missionId: str
 /** L'autre partie apprend l'annulation ; la plateforme, quand elle n'est pas gratuite ou qu'il y a de l'argent en jeu. */
 async function notifyCancelled(mission: MissionRow, record: { band: CancelRecord["band"]; settlement: Settlement }, cancelledBy: CancelRecord["by"], names: { restaurant: string; provider: string }): Promise<void> {
   const admin = createAdminClient();
-  const base = { kind: "cancelled" as const, restaurantName: names.restaurant, providerName: names.provider, cancelledBy, band: record.band };
+  const base = { kind: "cancelled" as const, restaurantName: names.restaurant, providerName: names.provider, cancelledBy, band: record.band, studio: !hasShoot(mission.metier) };
   const jobs: { who: MissionUpdateInput["audience"]; skip: boolean; to: () => Promise<string | null>; url: string }[] = [
     { who: "restaurant", skip: cancelledBy === "restaurant", to: async () => getRestaurantContactEmail(mission.restaurant_id, (await admin.from("missions").select("requested_by").eq("id", mission.id).maybeSingle()).data?.requested_by ?? null), url: restaurantMissionUrl(mission.restaurant_id, mission.id) },
     { who: "provider", skip: cancelledBy === "provider" || !mission.provider_id, to: async () => ((await admin.from("providers").select("email").eq("id", mission.provider_id).maybeSingle()).data as { email: string } | null)?.email ?? null, url: providerMissionUrl(mission.id) },
@@ -178,6 +179,8 @@ async function names(mission: MissionRow): Promise<{ restaurant: string; provide
 export function costNow(mission: MissionRow, by: Canceller, now: Date = new Date()): CancelQuote {
   return quoteCancellation({
     by,
+    metier: mission.metier,
+    depositCents: mission.deposit_cents ?? 0,
     status: mission.status,
     shootDate: mission.shoot_date,
     shootStart: mission.shoot_start,
@@ -193,7 +196,7 @@ export async function cancelByRestaurant(missionId: string, restaurantId: string
   const m = found.mission;
   if (!m) return { ok: false, reason: "not_found" };
   if (m.status === "annule") return { ok: false, reason: "already_cancelled" };
-  if (!canCancel("restaurant", m.status)) return { ok: false, reason: "not_cancellable" };
+  if (!canCancel("restaurant", m.status, m.metier)) return { ok: false, reason: "not_cancellable" };
   const input = sanitizeCancel(raw);
   const v = validateCancel("restaurant", input);
   if (!v.ok) return { ok: false, reason: "invalid", issue: v.issue };
@@ -212,7 +215,7 @@ export async function cancelByProvider(missionId: string, provider: ProviderRow,
   const m = found.mission;
   if (!m) return { ok: false, reason: "not_found" };
   if (m.status === "annule") return { ok: false, reason: "already_cancelled" };
-  if (!canCancel("provider", m.status)) return { ok: false, reason: "not_cancellable" };
+  if (!canCancel("provider", m.status, m.metier)) return { ok: false, reason: "not_cancellable" };
   const input = sanitizeCancel(raw);
   const v = validateCancel("provider", input);
   if (!v.ok) return { ok: false, reason: "invalid", issue: v.issue };
@@ -244,6 +247,8 @@ export async function cancelByPlatform(missionId: string, platformUserId: string
 
     const quote = quotePlatformCancellation({
       fault,
+      metier: m.metier,
+      depositCents: m.deposit_cents ?? 0,
       status: m.status,
       shootDate: m.shoot_date,
       shootStart: m.shoot_start,

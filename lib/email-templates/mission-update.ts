@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "work_started" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -18,7 +18,9 @@ export type MissionUpdateInput = {
   round?: 1 | 2;
   /** cancelled : qui annule, et la bande du barème (gratuit / la moitié / tout). */
   cancelledBy?: "restaurant" | "provider" | "platform";
-  band?: "free" | "half" | "full";
+  band?: "free" | "half" | "full" | "deposit";
+  /** Métier d'atelier (design, impression) : pas de date de tournage, l'annulation parle du début du travail. */
+  studio?: boolean;
   /** dispute_resolved : la décision de la plateforme et, pour un partage, la part du prestataire. */
   decision?: "pay" | "refund" | "split";
   providerPct?: number;
@@ -46,7 +48,7 @@ function copyFor(i: MissionUpdateInput): Copy {
       };
     case "delivered":
       return {
-        subject: `${i.providerName} a livré ta vidéo`,
+        subject: `${i.providerName} a livré ton travail`,
         preheader: "Télécharge, regarde, puis valide.",
         title: "Ta livraison est arrivée",
         paragraphs: [`${i.providerName} t'a envoyé les liens de téléchargement. Regarde tout avant de répondre : tu as droit à deux tours de retours, et chaque tour se fait en une seule fois, avec toutes tes remarques.`],
@@ -89,9 +91,52 @@ function copyFor(i: MissionUpdateInput): Copy {
         cta: "Voir la mission",
         note: "Un doute ? Écris à Boosteats.",
       };
+    case "work_started":
+      return {
+        subject: `${i.providerName} a commencé`,
+        preheader: "Ton brief est entre ses mains.",
+        title: "Le travail a commencé",
+        paragraphs: [`${i.providerName} a commencé ton brief. Tu seras prévenu par e-mail dès que la première version est livrée.`, "Tu pourras alors demander jusqu'à deux tours de retours, chacun en un seul envoi."],
+        cta: "Suivre la mission",
+        note: "Annuler maintenant : l'acompte reste au prestataire, le reste t'est rendu.",
+      };
     case "cancelled": {
       const band = i.band ?? "free";
       const by = i.cancelledBy ?? "restaurant";
+      if (i.studio) {
+        const started = band === "deposit";
+        const when = started ? "après le début du travail" : "avant le début du travail";
+        if (i.audience === "platform") {
+          return {
+            subject: `Mission annulée par ${by === "provider" ? i.providerName : by === "restaurant" ? i.restaurantName : "la plateforme"} : ${i.restaurantName}`,
+            preheader: started ? "Le travail avait commencé : l'acompte reste au prestataire." : "Le travail n'avait pas commencé : sans frais.",
+            title: "Une mission est annulée",
+            paragraphs: [`${i.restaurantName} et ${i.providerName} : mission annulée ${when}.`, started ? "Le règlement (acompte au prestataire, remboursement du reste, avertissement éventuel) est à faire à la main tant que le paiement en ligne n'est pas ouvert : il t'attend sur la page Prestataires." : "Aucun frais."],
+            cta: "Voir la mission",
+            note: "Une annulation après le début du travail est visible dans « Annulations à régler ».",
+          };
+        }
+        if (i.audience === "provider") {
+          const money = by === "restaurant" ? (started ? "L'acompte te reste acquis." : "Aucun frais : rien n'était commencé.") : "Le restaurateur est remboursé en entier.";
+          return {
+            subject: by === "restaurant" ? `${i.restaurantName} annule la mission` : `Annulation enregistrée : ${i.restaurantName}`,
+            preheader: money,
+            title: by === "restaurant" ? "La mission est annulée" : "Ton annulation est enregistrée",
+            paragraphs: [by === "restaurant" ? `${i.restaurantName} a annulé ${when}.` : `Tu as annulé ${when}.`, money],
+            cta: "Voir la mission",
+            note: by === "provider" && started ? "Une annulation après le début du travail est sanctionnée par un avertissement." : "Merci de ta confiance.",
+          };
+        }
+        const money = by === "provider" ? "Tu es remboursé en entier." : started ? "L'acompte reste au prestataire ; le reste t'est rendu." : "Aucun frais : tu es remboursé en entier.";
+        return {
+          subject: by === "provider" ? `${i.providerName} ne peut plus faire cette mission` : `Annulation enregistrée : ${i.providerName}`,
+          preheader: money,
+          title: by === "provider" ? "Le prestataire arrête la mission" : "Ton annulation est enregistrée",
+          paragraphs: [by === "provider" ? `${i.providerName} a annulé ${when}.` : `Tu as annulé ${when}.`, money, by === "provider" ? "Tu peux faire un nouveau brief : tes réponses ne sont pas perdues." : "Boosteats règle les montants avec toi."],
+          cta: "Voir la mission",
+          note: "Après le début du travail, l'acompte reste au prestataire.",
+        };
+      }
       const when = band === "free" ? "plus de 7 jours avant le tournage" : band === "half" ? "entre 7 jours et 48 h avant le tournage" : "moins de 48 h avant le tournage";
       if (i.audience === "platform") {
         const share = band === "free" ? "sans frais" : band === "half" ? "la moitié est due" : "tout est dû";
