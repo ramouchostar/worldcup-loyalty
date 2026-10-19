@@ -13,6 +13,7 @@
 // ============================================================
 
 import { addDays } from "./console-journey";
+import { judgeUrl } from "./safe-url";
 
 // ── Modèle de questionnaire ──────────────────────────────────
 
@@ -126,16 +127,52 @@ export const DESIGN_BRIEF_STEPS: readonly BriefStep[] = [
   { key: "budget", title: "Budget et délai", subtitle: "Juste un repère : tu ne paies rien maintenant.", keys: ["budget_cents", "deadline", "notes"] },
 ];
 
+/**
+ * Modèle impression (imprimeur) par défaut, d'après la maquette V4PrintBrief : produit, quantité, format, papier, finition,
+ * fichier (prêt, ou « à faire faire » par un graphiste d'abord), QR code testé avant l'envoi, réception, au plus tard le.
+ * Le bon à tirer (BAT) vient APRÈS le devis : voir lib/mission-print.ts.
+ */
+export const PRINT_TEMPLATE: BriefTemplate = {
+  metier: "impression",
+  questions: [
+    { key: "product", label: "On imprime quoi ?", kind: "choice", required: true, options: ["Menus", "Flyers", "Affiches", "Banderoles", "Chevalets de table", "Sets de table", "Sacs et emballages", "Autocollants", "Cartes de visite"] },
+    { key: "quantity", label: "Quelle quantité ?", kind: "choice", required: true, options: ["100", "250", "500", "1000", "Plus de 1000"], hint: "Plus de 1000 : dis le nombre exact dans les précisions." },
+    { key: "size", label: "Quel format ?", kind: "choice", required: true, options: ["A6", "A5", "A4", "A3", "DL", "Autre format"], hint: "Autre format : dis les dimensions dans les précisions." },
+    { key: "paper", label: "Quel papier ?", kind: "choice", required: true, options: ["Standard", "Épais", "Recyclé"] },
+    { key: "finish", label: "Quelle finition ?", kind: "choice", required: true, options: ["Mat", "Brillant", "Pelliculé"] },
+    { key: "file_state", label: "Ton fichier", kind: "choice", required: true, options: ["Prêt à imprimer", "À faire faire"], hint: "Prêt à imprimer : joins le PDF à la dernière étape. Pas de fichier ? Fais d'abord un brief avec un graphiste, puis reviens ici." },
+    { key: "qr_url", label: "L'adresse du QR code", kind: "text", required: false, hint: "Si ton impression porte un QR code : colle l'adresse qu'il doit ouvrir, puis teste-la. L'imprimeur reteste le scan sur le bon à tirer." },
+    { key: "qr_tested", label: "Le QR code est testé", kind: "flag", required: false },
+    { key: "delivery_mode", label: "Comment reçois-tu l'impression ?", kind: "choice", required: true, options: ["Livraison au restaurant", "Retrait chez l'imprimeur"] },
+    { key: "deadline", label: "Reçu au plus tard le", kind: "date", required: true, hint: "L'imprimeur confirme dans son devis si c'est faisable." },
+    { key: "deciders", label: "Qui décide avec toi ?", kind: "list", required: true, hint: "Associé, conjoint… Tous doivent avoir validé." },
+    { key: "deciders_attested", label: "Tous ont validé ce brief", kind: "flag", required: true },
+    { key: "budget_cents", label: "Budget", kind: "number", required: true },
+    { key: "notes", label: "Précisions", kind: "text", required: false },
+    { key: "files", label: "Pièces jointes", kind: "files", required: false },
+  ],
+};
+
+export const PRINT_BRIEF_STEPS: readonly BriefStep[] = [
+  { key: "produit", title: "On imprime quoi ?", subtitle: "Le produit, la quantité et le format.", keys: ["product", "quantity", "size"] },
+  { key: "papier", title: "Papier et finition", subtitle: "Le rendu entre tes mains.", keys: ["paper", "finish"] },
+  { key: "fichier", title: "Ton fichier et ton QR code", subtitle: "Un QR code qui ne marche pas, ça coûte cher : teste-le maintenant.", keys: ["file_state", "qr_url", "qr_tested"] },
+  { key: "reception", title: "Réception", subtitle: "Où et pour quand.", keys: ["delivery_mode", "deadline"] },
+  { key: "decideurs", title: "Qui décide ?", subtitle: "Une fois le brief envoyé, la décision est prise.", keys: ["deciders", "deciders_attested"] },
+  { key: "budget", title: "Budget et précisions", subtitle: "Juste un repère : tu ne paies rien maintenant.", keys: ["budget_cents", "notes"] },
+];
+
 /** Le modèle par défaut du code pour un métier (la base peut le remplacer). `null` : ce métier n'est pas encore ouvert. */
 export function defaultTemplate(metier: BriefTemplate["metier"]): BriefTemplate | null {
   if (metier === "video") return VIDEO_TEMPLATE;
   if (metier === "design") return DESIGN_TEMPLATE;
+  if (metier === "impression") return PRINT_TEMPLATE;
   return null;
 }
 
 /** Les écrans de l'assistant de brief d'un métier. */
 export function stepsFor(metier: BriefTemplate["metier"]): readonly BriefStep[] {
-  return metier === "design" ? DESIGN_BRIEF_STEPS : VIDEO_BRIEF_STEPS;
+  return metier === "design" ? DESIGN_BRIEF_STEPS : metier === "impression" ? PRINT_BRIEF_STEPS : VIDEO_BRIEF_STEPS;
 }
 
 // ── Validation ───────────────────────────────────────────────
@@ -143,7 +180,7 @@ export function stepsFor(metier: BriefTemplate["metier"]): readonly BriefStep[] 
 /** Un tournage se prévoit au moins une semaine après le choix de la date (les étudiants ne travaillent pas toute la semaine). */
 export const SHOOT_MIN_DAYS = 7;
 
-export type BriefIssueCode = "missing" | "too_short" | "too_soon" | "deadline_too_soon" | "past" | "bad_option" | "bad_phone" | "not_attested" | "budget_below_floor";
+export type BriefIssueCode = "missing" | "too_short" | "too_soon" | "deadline_too_soon" | "bad_url" | "needs_detail" | "past" | "bad_option" | "bad_phone" | "not_attested" | "budget_below_floor";
 export type BriefIssue = { key: string; code: BriefIssueCode };
 export type BriefWarning = { code: "ambition_vs_budget"; format: string };
 export type BriefVerdict = { ok: boolean; issues: BriefIssue[]; warnings: BriefWarning[] };
@@ -151,7 +188,7 @@ export type BriefVerdict = { ok: boolean; issues: BriefIssue[]; warnings: BriefW
 /** Un visuel se prévoit au moins quelques jours à l'avance : le graphiste confirme ensuite si c'est faisable. */
 export const DESIGN_MIN_DAYS = 5;
 /** Les cases qui ENGAGENT : cochées, jamais « à remplir » (le message dit « coche cette case »). */
-export const ATTESTATION_KEYS: readonly string[] = ["deciders_attested", "content_final"];
+export const ATTESTATION_KEYS: readonly string[] = ["deciders_attested", "content_final", "qr_tested"];
 
 /** Première date de livraison possible d'un visuel depuis le jour belge `today`. */
 export function earliestDeadline(today: string): string {
@@ -215,6 +252,15 @@ export function validateBrief(answers: BriefAnswers, template: BriefTemplate, to
   }
 
   if (phase !== "brief") return { ok: issues.length === 0, issues, warnings };
+
+  // Impression : un QR code écrit doit être une adresse https admissible ET testée ; un format ou une quantité « hors liste » se précise.
+  const qr = typeof answers.qr_url === "string" ? answers.qr_url.trim() : "";
+  if (qr) {
+    if (!judgeUrl(qr).ok) issues.push({ key: "qr_url", code: "bad_url" });
+    else if (answers.qr_tested !== true) issues.push({ key: "qr_tested", code: "not_attested" });
+  }
+  const notes = typeof answers.notes === "string" ? answers.notes.trim() : "";
+  if ((answers.quantity === "Plus de 1000" || answers.size === "Autre format") && notes.length < 10 && template.metier === "impression") issues.push({ key: "notes", code: "needs_detail" });
 
   const budget = answers.budget_cents;
   if (typeof budget === "number" && template.budgetFloorCents !== undefined && budget < template.budgetFloorCents) {

@@ -146,6 +146,7 @@ export function DeliveryReview({
   canValidate,
   validated,
   superseded,
+  print = false,
 }: {
   restaurantId: string;
   missionId: string;
@@ -158,6 +159,8 @@ export function DeliveryReview({
   validated: boolean;
   /** Une version plus récente a été livrée : celle-ci n'est plus à valider. */
   superseded?: boolean;
+  /** Impression : un objet (livré ou prêt au retrait), pas des fichiers ; la réception se confirme, elle ne se retouche pas. */
+  print?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -179,14 +182,14 @@ export function DeliveryReview({
 
   return (
     <Card className="space-y-4">
-      <SectionLabel>{version && version > 1 ? `Version ${version} de ${providerName}` : `La livraison de ${providerName}`}{superseded ? " · remplacée" : ""}</SectionLabel>
+      <SectionLabel>{print ? `Ton impression, par ${providerName}` : version && version > 1 ? `Version ${version} de ${providerName}` : `La livraison de ${providerName}`}{superseded ? " · remplacée" : ""}</SectionLabel>
       <ul className="space-y-2">
         {links.map((l) => (
           <li key={l}>
             <a href={l} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-2 min-h-[44px] px-3 rounded-xl border border-paper-border bg-white text-[14px] text-ink hover:bg-paper-subtle">
               <ExternalLink className="w-4 h-4 shrink-0 text-ink-muted" aria-hidden />
               <span className="flex-1 min-w-0">
-                <span className="block font-semibold">Télécharger</span>
+                <span className="block font-semibold">{print ? "Suivi" : "Télécharger"}</span>
                 <span className="block text-[12.5px] text-ink-muted truncate">{linkHost(l)}</span>
               </span>
             </a>
@@ -195,17 +198,17 @@ export function DeliveryReview({
       </ul>
       {message && <p className="text-[14px] text-ink whitespace-pre-line">{message}</p>}
       {superseded ? null : validated ? (
-        <p className="text-[13.5px] text-good font-semibold">Tu as validé cette livraison.</p>
+        <p className="text-[13.5px] text-good font-semibold">{print ? "Tu as confirmé la réception." : "Tu as validé cette livraison."}</p>
       ) : canValidate ? (
         <div className="space-y-3 border-t border-paper-border pt-4">
-          <p className="text-[13.5px] text-ink-muted">Regarde tout avant de valider. Si quelque chose ne va pas, demande une retouche plus bas : toutes tes remarques en un seul envoi.</p>
+          <p className="text-[13.5px] text-ink-muted">{print ? "Vérifie que l'impression correspond au bon à tirer que tu as signé. Si ce n'est pas le cas, écris à Boosteats avant de confirmer : on examine l'épreuve signée et l'impression." : "Regarde tout avant de valider. Si quelque chose ne va pas, demande une retouche plus bas : toutes tes remarques en un seul envoi."}</p>
           {error && (
             <p role="alert" className="text-danger text-[13px] font-semibold">
               {error}
             </p>
           )}
           <button type="button" disabled={busy} onClick={validate} className={primary}>
-            {busy ? "…" : "Je valide la livraison"}
+            {busy ? "…" : print ? "J'ai bien reçu mon impression" : "Je valide la livraison"}
           </button>
         </div>
       ) : null}

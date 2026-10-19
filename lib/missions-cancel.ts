@@ -9,6 +9,7 @@ import { sendMissionUpdateEmail } from "./email";
 import { DEFAULT_RESTAURANT_COPY_TO } from "./email-sender";
 import { canTransition } from "./mission-states";
 import { hasShoot } from "./mission-metier";
+import { batSignedFor } from "./missions-bat-state";
 import { applySanction, canCancel, isMissedShoot, quoteCancellation, quotePlatformCancellation, sanitizeCancel, settlementOf, validateCancel, type CancelIssue, type CancelQuote, type Canceller, type Fault, type Settlement } from "./mission-cancel-rules";
 import type { ProviderSanction } from "./mission-cancellation";
 import type { MissionUpdateInput } from "./email-templates/mission-update";
@@ -196,7 +197,7 @@ export async function cancelByRestaurant(missionId: string, restaurantId: string
   const m = found.mission;
   if (!m) return { ok: false, reason: "not_found" };
   if (m.status === "annule") return { ok: false, reason: "already_cancelled" };
-  if (!canCancel("restaurant", m.status, m.metier)) return { ok: false, reason: "not_cancellable" };
+  if (!canCancel("restaurant", m.status, m.metier) || (await batSignedFor(m))) return { ok: false, reason: "not_cancellable" };
   const input = sanitizeCancel(raw);
   const v = validateCancel("restaurant", input);
   if (!v.ok) return { ok: false, reason: "invalid", issue: v.issue };
@@ -215,7 +216,7 @@ export async function cancelByProvider(missionId: string, provider: ProviderRow,
   const m = found.mission;
   if (!m) return { ok: false, reason: "not_found" };
   if (m.status === "annule") return { ok: false, reason: "already_cancelled" };
-  if (!canCancel("provider", m.status, m.metier)) return { ok: false, reason: "not_cancellable" };
+  if (!canCancel("provider", m.status, m.metier) || (await batSignedFor(m))) return { ok: false, reason: "not_cancellable" };
   const input = sanitizeCancel(raw);
   const v = validateCancel("provider", input);
   if (!v.ok) return { ok: false, reason: "invalid", issue: v.issue };

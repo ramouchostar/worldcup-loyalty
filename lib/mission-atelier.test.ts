@@ -57,7 +57,7 @@ test("le modèle design : chaque question du brief est dans UN écran de l'assis
   assert.equal(defaultTemplate("design"), DESIGN_TEMPLATE);
   assert.equal(defaultTemplate("video"), VIDEO_TEMPLATE);
   assert.equal(defaultTemplate("photo"), null);
-  assert.equal(defaultTemplate("impression"), null);
+  assert.equal(defaultTemplate("impression")?.metier, "impression");
 });
 
 test("un brief design complet est recevable", () => {

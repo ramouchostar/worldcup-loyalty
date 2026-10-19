@@ -17,6 +17,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Ta livraison n'est pas valable.", reason: r.reason, issues: r.issues }, { status: 422 });
     case "no_report":
       return NextResponse.json({ error: "Remplis d'abord le compte-rendu du tournage : c'est la pièce de référence.", reason: r.reason }, { status: 409 });
+    case "no_bat":
+      return NextResponse.json({ error: "Tu livres après la signature du bon à tirer : envoie d'abord l'épreuve et attends que le restaurateur la signe.", reason: r.reason }, { status: 409 });
     case "not_awaiting_delivery":
       return NextResponse.json({ error: "Cette mission n'attend pas de livraison.", reason: r.reason }, { status: 409 });
     case "not_found":

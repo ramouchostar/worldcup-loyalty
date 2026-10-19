@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "work_started" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "work_started" | "bat_submitted" | "bat_corrections" | "bat_signed" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -31,6 +31,8 @@ export type MissionUpdateInput = {
   auto?: "auto" | "fallback";
   /** Modifications : le prestataire propose « sans supplément ». */
   free?: boolean;
+  /** Impression : la livraison est un objet (livré ou prêt au retrait), pas des liens à télécharger ni des retouches à demander. */
+  print?: boolean;
 };
 
 type Copy = { subject: string; preheader: string; title: string; paragraphs: string[]; cta: string; note: string };
@@ -47,6 +49,16 @@ function copyFor(i: MissionUpdateInput): Copy {
         note: "Ce compte-rendu est la pièce de référence en cas de litige : relis-le vraiment.",
       };
     case "delivered":
+      if (i.print) {
+        return {
+          subject: `${i.providerName} a livré ton impression`,
+          preheader: "Vérifie-la, puis confirme que tu l'as bien reçue.",
+          title: "Ton impression est prête",
+          paragraphs: [`${i.providerName} indique que ton impression est livrée ou prête au retrait. Regarde-la, puis confirme la réception dans l'espace.`, "Elle doit correspondre au bon à tirer que tu as signé. Si ce n'est pas le cas, écris-nous : Boosteats examine l'épreuve signée et l'impression."],
+          cta: "Confirmer la réception",
+          note: "Sans réponse de ta part, la réception est confirmée automatiquement au bout de 7 jours (deux rappels avant).",
+        };
+      }
       return {
         subject: `${i.providerName} a livré ton travail`,
         preheader: "Télécharge, regarde, puis valide.",
@@ -91,6 +103,42 @@ function copyFor(i: MissionUpdateInput): Copy {
         cta: "Voir la mission",
         note: "Un doute ? Écris à Boosteats.",
       };
+    case "bat_submitted":
+      return {
+        subject: `${i.providerName} t'envoie ${(i.count ?? 1) > 1 ? "une nouvelle épreuve" : "ton bon à tirer"}`,
+        preheader: "Vérifie chaque point, puis signe ou demande des corrections.",
+        title: (i.count ?? 1) > 1 ? "Une nouvelle épreuve t'attend" : "Ton bon à tirer t'attend",
+        paragraphs: [`${i.providerName} a préparé ${(i.count ?? 1) > 1 ? "l'épreuve corrigée" : "l'épreuve de ton impression"}. Regarde-la attentivement : une fois signée, c'est exactement ce qui sera imprimé.`, "Tu peux la signer, ou demander des corrections (deux tours au total, chacun en un seul envoi)."],
+        cta: "Voir l'épreuve",
+        note: "Une erreur visible sur un bon à tirer signé n'est pas réimprimée gratuitement.",
+      };
+    case "bat_corrections":
+      return {
+        subject: `${i.restaurantName} demande ${i.count ?? 1} correction${(i.count ?? 1) > 1 ? "s" : ""} sur le bon à tirer`,
+        preheader: "Toutes ses corrections sont dans l'espace : lis-les d'un coup.",
+        title: "Des corrections sont demandées",
+        paragraphs: [`${i.restaurantName} a regroupé ses corrections en un seul envoi, chacune classée et expliquée. Corrige-les, puis envoie une nouvelle épreuve.`],
+        cta: "Lire les corrections",
+        note: "Après la troisième épreuve, il ne reste qu'à signer.",
+      };
+    case "bat_signed":
+      return i.audience === "platform"
+        ? {
+            subject: `Bon à tirer signé : ${i.providerName} chez ${i.restaurantName}`,
+            preheader: "Le solde est dû à la signature : à encaisser à la main tant que le paiement en ligne n'est pas ouvert.",
+            title: "Un bon à tirer est signé",
+            paragraphs: [`${i.restaurantName} a signé le bon à tirer de ${i.providerName}. L'impression est lancée et la mission n'est plus annulable. Le solde est dû ; il se règle à la main tant que le paiement en ligne n'est pas ouvert.`],
+            cta: "Voir la mission",
+            note: "Le nom signé et les points cochés sont dans la trace de la mission.",
+          }
+        : {
+            subject: `${i.restaurantName} a signé le bon à tirer`,
+            preheader: "Tu peux imprimer.",
+            title: "Le bon à tirer est signé : lance l'impression",
+            paragraphs: [`${i.restaurantName} a signé l'épreuve. Tu peux imprimer : ce que tu imprimes doit correspondre à l'épreuve signée. Quand c'est livré ou prêt au retrait, dis-le dans l'espace.`],
+            cta: "Voir la mission",
+            note: "Plus personne ne peut annuler, et il n'y a plus de correction.",
+          };
     case "work_started":
       return {
         subject: `${i.providerName} a commencé`,

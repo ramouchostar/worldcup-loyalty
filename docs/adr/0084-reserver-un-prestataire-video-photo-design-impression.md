@@ -181,6 +181,27 @@ Deux familles de métiers (`lib/mission-metier.ts`). Les **métiers de tournage*
   tournage.
 - **Modification** (règle 9) : possible après le devis accepté **et pendant la création**, sans limite de J-7 (il n'y a pas de date).
 
+### 5 ter. L'imprimeur et le bon à tirer (amendé le 2026-10-20, PR P)
+
+L'impression est un métier d'atelier (§5 bis) avec un **bon à tirer (BAT)** entre le devis et le papier.
+
+- **Brief** (maquette V4PrintBrief) : produit (menus, flyers, affiches, banderoles, chevalets, sets de table, sacs et
+  emballages, autocollants, cartes de visite), quantité, format, papier, finition, fichier (prêt, ou « à faire faire » : un
+  graphiste d'abord ; un fichier « prêt » exige une pièce jointe, vérifié par le serveur), **QR code** (adresse https
+  **testée avant l'envoi** : le serveur va chercher l'adresse, jamais une adresse interne — `lib/safe-url.ts` — et la
+  retestera à l'envoi), réception (livraison ou retrait), reçu au plus tard le.
+- **Le BAT** : l'imprimeur envoie une **épreuve** (liens https) ; le restaurateur coche chaque point (textes et prix, visuel,
+  QR code s'il y en a un, quantité et format) et **signe de son nom**, ou demande des **corrections** (deux tours, chacun en un
+  seul envoi : trois épreuves au plus). **Une fois signé** : plus d'annulation, plus de correction, le **solde est dû**
+  (réglé à la main avant Stripe, la plateforme est alertée), et une erreur visible sur le BAT n'est **pas réimprimée
+  gratuitement**. L'imprimeur n'imprime ni ne livre qu'après la signature.
+- **Livraison** : un objet, pas des fichiers — un mot qui dit où et quand (« livré au restaurant le 3 », « prêt au
+  retrait »), un lien de suivi facultatif ; le restaurateur **confirme la réception** (automatique au bout de 7 jours). Pas de
+  tours de retouche après l'impression : les corrections se font sur l'épreuve.
+- **Annulation** : comme le graphiste (§5 bis) jusqu'à la signature du BAT, après laquelle plus personne n'annule (seule la
+  plateforme arrête).
+- **Règles du jeu d'impression** : leur propre texte et leur propre version, avec la règle « Le bon à tirer fait foi ».
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →

@@ -554,6 +554,10 @@ _Avoid_ : offre, estimation.
 Le prestataire reçoit 87,5 % du **prix du devis**. Le restaurateur paie ce prix (plans Gratuit et Croissance) ou 92,5 % de ce prix (plan Pro). La commission de Boosteats est **comprise** : jamais une ligne séparée côté restaurateur. Montants en euros côté restaurateur et plateforme uniquement, **jamais côté membre** (ADR 0007).
 _Avoid_ : frais de service, commission affichée au restaurateur.
 
+**Bon à tirer (BAT)** :
+L'épreuve d'une impression que l'imprimeur envoie avant d'imprimer. Le restaurateur la vérifie point par point et la **signe de son nom** (ou demande des corrections, deux tours). Signé, c'est exactement ce qui sera imprimé : plus d'annulation, le solde est dû, une erreur visible n'est pas réimprimée gratuitement.
+_Avoid_ : maquette, épreuve de validation, devis (réservé au prix du prestataire).
+
 **Métier d'atelier** :
 Un métier sans date de tournage (graphiste, imprimeur) : le restaurateur indique pour quand il veut son travail, le prestataire commence quand il le décide (« Je commence »). Annulation gratuite avant le début, l'acompte reste au prestataire ensuite. S'oppose au **métier de tournage** (vidéaste, photographe), lié par une date.
 _Avoid_ : métier créatif, studio.

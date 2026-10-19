@@ -67,10 +67,11 @@ export const RETOUCH_ISSUE_TEXT: Record<RetouchIssue["issue"], string> = {
 
 export type RetouchState =
   | { can: true; round: 1 | 2; left: number }
-  | { can: false; reason: "not_delivered" | "no_rounds_left" };
+  | { can: false; reason: "not_delivered" | "no_rounds_left" | "print" };
 
 /** Le restaurateur peut-il demander un tour ? Seulement sur une livraison, et tant qu'il en reste. */
-export function retouchState(status: MissionStatus, roundsUsed: number): RetouchState {
+export function retouchState(status: MissionStatus, roundsUsed: number, metier?: Metier): RetouchState {
+  if (metier === "impression") return { can: false, reason: "print" }; // les corrections se font sur le bon à tirer, avant l'impression
   if (status !== "livre") return { can: false, reason: "not_delivered" };
   if (roundsLeft(roundsUsed) <= 0) return { can: false, reason: "no_rounds_left" };
   return { can: true, round: (roundsUsed + 1) as 1 | 2, left: roundsLeft(roundsUsed) };

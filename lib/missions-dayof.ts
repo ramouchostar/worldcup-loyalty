@@ -9,6 +9,8 @@ import { sendMissionUpdateEmail } from "./email";
 import { DEFAULT_RESTAURANT_COPY_TO } from "./email-sender";
 import { canTransition } from "./mission-states";
 import { hasShoot } from "./mission-metier";
+import { listProofs } from "./missions-bat-state";
+import { canDeliverPrint, validatePrintDelivery } from "./mission-print";
 import { mailMission } from "./missions-notify";
 import {
   judgeStart,
@@ -44,12 +46,12 @@ async function quotedHours(missionId: string): Promise<number | null> {
   return typeof h === "number" ? h : null;
 }
 
-async function notifyRestaurant(missionId: string, restaurantId: string, kind: MissionUpdateInput["kind"], providerName: string, restaurantName: string): Promise<void> {
+async function notifyRestaurant(missionId: string, restaurantId: string, kind: MissionUpdateInput["kind"], providerName: string, restaurantName: string, extra: Pick<MissionUpdateInput, "print"> = {}): Promise<void> {
   try {
     const { data } = await createAdminClient().from("missions").select("requested_by").eq("id", missionId).maybeSingle();
     const to = await getRestaurantContactEmail(restaurantId, (data as { requested_by: string | null } | null)?.requested_by ?? null);
     if (!to) throw new Error("aucune adresse de restaurateur");
-    const sent = await sendMissionUpdateEmail(to, { kind, audience: "restaurant", restaurantName, providerName, url: restaurantMissionUrl(restaurantId, missionId) }, restaurantId);
+    const sent = await sendMissionUpdateEmail(to, { kind, audience: "restaurant", restaurantName, providerName, url: restaurantMissionUrl(restaurantId, missionId), ...extra }, restaurantId);
     await logEvent(missionId, { kind: sent ? "restaurant_notified" : "notify_failed", actorKind: "system", meta: { channel: "email", about: kind } });
   } catch (e) {
     console.error("[missions-dayof] notifyRestaurant failed:", (e as Error).message);
@@ -238,7 +240,7 @@ export async function listDeliveries(missionId: string): Promise<DeliveryRow[]> 
   }
 }
 
-export type DeliverResult = { ok: true; round: number } | { ok: false; reason: "not_found" | "no_report" | "not_awaiting_delivery" | "invalid" | "unavailable"; issues?: DeliveryIssue[] };
+export type DeliverResult = { ok: true; round: number } | { ok: false; reason: "not_found" | "no_report" | "no_bat" | "not_awaiting_delivery" | "invalid" | "unavailable"; issues?: DeliveryIssue[] };
 
 /**
  * Le prestataire livre (liens https) : `production → livre` (version 1, après le compte-rendu : c'est la pièce,
@@ -255,8 +257,15 @@ export async function submitDelivery(missionId: string, provider: ProviderRow, r
   // Le compte-rendu du tournage n'existe que pour un métier de tournage ; un visuel se livre directement.
   if (next.round === 1 && hasShoot(m.metier) && !m.report_submitted_at) return { ok: false, reason: "no_report" };
 
+  // Une impression se livre APRÈS la signature du bon à tirer, et c'est un objet : un mot qui dit où et quand suffit.
+  const print = m.metier === "impression";
+  if (print) {
+    const proofs = await listProofs(missionId);
+    if (!proofs.ok) return unavailable;
+    if (!canDeliverPrint(m.status, proofs.proofs)) return { ok: false, reason: "no_bat" };
+  }
   const input = sanitizeDelivery(raw);
-  const verdict = validateDelivery(input);
+  const verdict = print ? validatePrintDelivery(input) : validateDelivery(input);
   if (!verdict.ok) {
     await logEvent(missionId, { kind: "delivery_refused", actorKind: "provider", actorId: provider.user_id ?? undefined, reason: "invalid", meta: { round: next.round, issues: verdict.issues.map((i) => `${i.code}${i.index === undefined ? "" : `@${i.index}`}`) } });
     return { ok: false, reason: "invalid", issues: verdict.issues };
@@ -284,7 +293,7 @@ export async function submitDelivery(missionId: string, provider: ProviderRow, r
       throw e2;
     }
     await logEvent(missionId, { kind: "status", from, to: "livre", actorKind: "provider", actorId: provider.user_id ?? undefined, meta: { round: next.round, links: input.links.length } });
-    await notifyRestaurant(missionId, m.restaurant_id, "delivered", provider.display_name, m.restaurant_name);
+    await notifyRestaurant(missionId, m.restaurant_id, "delivered", provider.display_name, m.restaurant_name, { print: m.metier === "impression" });
     return { ok: true, round: next.round };
   } catch (e) {
     if (!isMissingTable(e as DbError)) console.error("[missions-dayof] submitDelivery failed:", (e as Error).message);
@@ -321,7 +330,7 @@ export async function requestRetouch(missionId: string, restaurantId: string, us
   if (!found.ok) return unavailable;
   const m = found.mission;
   if (!m) return { ok: false, reason: "not_found" };
-  const state = retouchState(m.status, m.retouch_rounds_used);
+  const state = retouchState(m.status, m.retouch_rounds_used, m.metier);
   if (!state.can) return { ok: false, reason: state.reason === "no_rounds_left" ? "no_rounds_left" : "not_delivered" };
   if (!canTransition("livre", "retouche", "restaurant", { roundsUsed: m.retouch_rounds_used }).ok) return { ok: false, reason: "no_rounds_left" };
 
