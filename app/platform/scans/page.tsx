@@ -73,6 +73,8 @@ function traceLine(trace: ReceiptReadTrace | null | undefined): string | null {
   // ADR 0073 — la clé a été lue puis écartée à cause du code d'établissement.
   if (trace.key_issue === "other_establishment") line += " · ticket d'un autre établissement";
   if (trace.key_issue === "unknown_code") line += " · code d'établissement inconnu";
+  // Erreur d'un chiffre sur le code, corrigée (« 263→253 ») : la clé brute reste dans la lecture.
+  if (trace.key_code_repaired) line += ` · code corrigé ${trace.key_code_repaired}`;
   return line;
 }
 

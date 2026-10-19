@@ -62,3 +62,41 @@ test("forme de la clé : ce qui n'existe pas est refusé", () => {
   assert.equal(shape.test("2026-09-20/22/01645"), false, "code à 2 chiffres");
   assert.equal(shape.test("2026-09-20/223/0164B"), false, "lettre dans le numéro (Haiku a lu 0701B)");
 });
+
+import { repairStoreCode } from "./receipt-key-store";
+
+test("De Bue : 263, 255, 259 sont des erreurs d'un chiffre sur 253 et sont ramenés à 253", () => {
+  for (const code of ["263", "255", "259", "203"]) {
+    assert.equal(repairStoreCode(`2026-10-07/${code}/03872`, "253", ["223", "258"]), "2026-10-07/253/03872", code);
+  }
+});
+
+test("Kraainem : 213, 233, 225, 228, 221 (lectures réelles de T237 et d'autres) sont ramenés à 223", () => {
+  for (const code of ["213", "233", "225", "228", "221"]) {
+    assert.equal(repairStoreCode(`2026-10-04/${code}/0726`, "223", ["258"]), "2026-10-04/223/0726", code);
+  }
+});
+
+test("un code à deux chiffres d'écart reste refusé : Ixelles 234 et Uccle 250 ne sont pas Kraainem", () => {
+  assert.equal(repairStoreCode("2026-10-16/234/06933", "223", ["258"]), null);
+  assert.equal(repairStoreCode("2026-10-13/250/04719", "223", ["258"]), null);
+});
+
+test("le code d'un AUTRE établissement du réseau n'est jamais corrigé", () => {
+  // 258 (Houba) est à un chiffre de 253 (De Bue) : un vrai ticket de Houba reste un refus net.
+  assert.equal(repairStoreCode("2026-10-07/258/01972", "253", ["223", "258"]), null);
+  assert.equal(checkStoreCode("2026-10-07/258/01972", "253", ["223", "258"]), "other_establishment");
+});
+
+test("rien à corriger : bon code, pas de code connu, pas de clé", () => {
+  assert.equal(repairStoreCode("2026-10-07/253/03872", "253", ["223", "258"]), null);
+  assert.equal(repairStoreCode("2026-10-07/263/03872", null, ["223", "258"]), null);
+  assert.equal(repairStoreCode(null, "253", []), null);
+  assert.equal(repairStoreCode("01645", "253", []), null);
+});
+
+test("la clé corrigée ne change que le code du milieu, pas la date ni le numéro", () => {
+  assert.equal(repairStoreCode("2026-10-11/263/04477", "253", ["223", "258"]), "2026-10-11/253/04477");
+  // Un même ticket lu 253 puis 263 donne désormais la même clé : l'anti-doublon le rapproche.
+  assert.equal(repairStoreCode("2026-10-11/263/04477", "253", []), "2026-10-11/253/04477");
+});

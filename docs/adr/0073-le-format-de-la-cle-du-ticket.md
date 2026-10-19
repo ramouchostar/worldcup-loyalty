@@ -1,6 +1,6 @@
 # ADR 0073 — Le format de la clé du ticket : ce qui existe, et rien d'autre
 
-**Statut** : Accepté (2026-09-29) ; amendé le 2026-10-19 : un code d'établissement inconnu ne répond plus « reprends la photo » mais dit la cause (le numéro ne correspond pas à cet établissement), et un même refus répété trois fois en une demi-heure s'arrête avant la lecture (motif `repeat_refused`). Voir l'audit des refus du 2026-10-19 — décisions du porteur : De Bue en « forme seule », refus net d'un
+**Statut** : Accepté (2026-09-29) ; amendé le 2026-10-19 (§2 bis : De Bue = 253 ; une erreur d'un seul chiffre sur le code est corrigée, décision du porteur) et : un code d'établissement inconnu ne répond plus « reprends la photo » mais dit la cause (le numéro ne correspond pas à cet établissement), et un même refus répété trois fois en une demi-heure s'arrête avant la lecture (motif `repeat_refused`). Voir l'audit des refus du 2026-10-19 — décisions du porteur : De Bue en « forme seule », refus net d'un
 ticket d'un autre établissement, liste en lecture seule pour l'existant. Complète l'[ADR 0019](0019-receipt-key-discovery.md)
 (la clé est définie par établissement), l'[ADR 0052](0052-dedoublonnage-par-empreinte-de-ticket.md) (anti-doublon),
 l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (lecture incomplète = nouvelle photo) et précise le
@@ -63,6 +63,15 @@ moteur de motif reste générique (le code n'est pas dans le regex : il faut pou
 - code que **personne** n'utilise (228, 262…) → lecture presque sûrement fausse : Fable relit (§4), et
   si le code reste faux, le membre reprend la photo ;
 - pas de `store_code` (De Bue, colonne absente) → aucun contrôle, la forme seule est vérifiée (fail-open).
+
+### 2 bis. Une erreur d'un seul chiffre sur le code se corrige (amendement du 2026-10-19)
+
+Le code est constant par établissement et imprimé en tout petit. Mesuré le 2026-10-19 (clés brutes de tous les scans depuis le 25 septembre) : Houba 258 ×40 sur 40, Kraainem 223 ×176 mais aussi 213, 225, 228, 232, 233 ; **De Bue 253 ×63, 263 ×17**, puis 255, 259, 203, 250, 258, 265. Un même ticket De Bue a été lu 253 puis 263 (2026-10-11/04477) : un ticket n'a qu'un code, 263 est une erreur de lecture. Refuser ces tickets punit un vrai client, et deux lectures d'un même ticket donnent deux clés — l'anti-doublon ne les rapproche plus.
+
+- **De Bue : `store_code = 253`** (migration `20261019-1700-code-de-bue.sql`, à appliquer après vérification sur un ticket De Bue). Le « forme seule » du §2 ne vaut plus que pour un établissement dont on ne connaît pas encore le code.
+- **Correction d'un chiffre** (`repairStoreCode`, `lib/receipt-key-store.ts`) : un code lu qui n'est NI celui de l'établissement NI celui d'un autre établissement du réseau, et qui n'en diffère que d'un chiffre (même position), est ramené au code de l'établissement. La clé brute reste dans `raw_order_number`, la trace dit `key_code_repaired: « 263→253 »`, `/platform/scans` l'affiche. Cela vaut pour **tous** les établissements dont le code est connu (Kraainem : 213, 225, 228, 232, 233 → 223, dont le T237 de l'ADR 0079).
+- **Reste un refus** : un code à deux chiffres d'écart (Ixelles 234, Uccle 250 vis-à-vis de Kraainem — le vrai ticket d'ailleurs) ; le code d'un autre établissement du réseau (un ticket de Houba lu à Kraainem ou à De Bue reste `wrong_establishment`).
+- **Risque connu** : un vrai ticket d'un Belchicken hors réseau dont le code est à un chiffre du nôtre (Uccle Waterloo 250, à un chiffre de De Bue 253) passe. À surveiller via le nombre de `key_code_repaired` ; le correctif est de ne pas corriger quand le code lu est un code connu d'un établissement hors réseau.
 
 ### 3. Un ticket d'un autre établissement est refusé, sans nommer l'autre
 

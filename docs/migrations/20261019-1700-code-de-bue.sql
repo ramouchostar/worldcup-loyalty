@@ -1,0 +1,35 @@
+-- ============================================================
+-- 2026-10-19 17:00 — Le code d'établissement de De Bue (ADR 0073, amendé)
+--
+-- À APPLIQUER SEULEMENT APRÈS VÉRIFICATION sur un ticket De Bue : le numéro de commande
+-- doit ressembler à 2026-10-xx/253/… (le groupe du milieu).
+--
+-- Mesuré le 2026-10-19 sur 128 lectures de scans De Bue (clé brute) : 253 ×63, 263 ×17, puis
+-- des erreurs isolées (255, 259, 203, 250, 258, 265). Un même ticket a été lu 253 puis 263
+-- (2026-10-11/04477) : 263 est une erreur de lecture d'un chiffre. À titre de comparaison,
+-- Houba : 258 ×40 sur 40 ; Kraainem : 223 ×176.
+--
+-- Effet : De Bue passe de « forme seule, aucun contrôle » à « code contrôlé » comme Kraainem et
+-- Houba — un ticket d'un autre Belchicken est refusé ; une erreur d'un chiffre (263, 255, 259…)
+-- est ramenée à 253 par la lecture (`repairStoreCode`, trace `key_code_repaired`).
+--
+-- Sans cette migration : rien ne change pour De Bue (code inconnu = aucun contrôle).
+-- Idempotente : ne touche rien si un code est déjà renseigné.
+-- ============================================================
+
+UPDATE restaurant_receipt_config SET store_code = '253' WHERE restaurant_id = 'de-bue' AND store_code IS NULL;
+
+-- ── Vérification ──────────────────────────────────────────────────────────
+--   SELECT restaurant_id, store_code FROM restaurant_receipt_config
+--    WHERE restaurant_id IN ('kraainem', 'houba', 'de-bue');     -- 223 · 258 · 253
+--
+-- ── Suivi (7 jours après) — ce qui dira que la règle est fausse ───────────────
+--   -- Tickets De Bue refusés pour le code (sur /platform/scans : motif « code d'établissement inconnu »
+--   -- ou « autre établissement ») : s'ils sont nombreux ET légitimes, la règle est trop dure.
+--   SELECT refusal_reason, COUNT(*) FROM receipt_scans
+--    WHERE restaurant_id = 'de-bue' AND scanned_at > now() - interval '7 days'
+--      AND refusal_reason IN ('key_code_unknown', 'wrong_establishment') GROUP BY 1;
+--   -- Corrections faites : combien de lectures ont été ramenées à 253 (trace de la lecture).
+--   SELECT COUNT(*) FROM receipt_scans
+--    WHERE restaurant_id = 'de-bue' AND scanned_at > now() - interval '7 days'
+--      AND ocr_trace ? 'key_code_repaired';

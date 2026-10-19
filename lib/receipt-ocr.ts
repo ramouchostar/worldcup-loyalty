@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TICKET_KEY_DESCRIPTION, TICKET_KEY_PATTERN, compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
 import { sanitizeKeyDate } from "./receipt-key-sanity";
-import { checkStoreCode, type KeyStoreVerdict } from "./receipt-key-store";
+import { checkStoreCode, repairStoreCode, storeCodeOf, type KeyStoreVerdict } from "./receipt-key-store";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 export type AllowedReceiptType = (typeof ALLOWED_TYPES)[number];
@@ -83,6 +83,11 @@ export type ReceiptReadTrace = {
    * code qui n'est celui d'aucun. Absent quand la clé est gardée ou n'a pas été lue.
    */
   key_issue?: KeyIssue;
+  /**
+   * Le code d'établissement lu différait d'un chiffre du bon (« 263→253 ») et la clé a été
+   * ramenée à celui de l'établissement. La clé brute reste dans `raw_order_number`.
+   */
+  key_code_repaired?: string;
 };
 
 export type RescueFilled = "amount" | "key";
@@ -487,8 +492,18 @@ export async function analyzeReceipt(
   // ADR 0073 — le code de l'établissement dans la clé : une clé d'ailleurs, ou avec un code
   // que personne n'utilise, est écartée (order_number null) ; la clé brute reste pour l'audit.
   const ownStoreCode = config?.store_code ?? null;
+  // Erreur d'un seul chiffre sur le code (« 263 » pour « 253 ») : la clé est ramenée au code de
+  // l'établissement plutôt qu'écartée — la trace garde « 263→253 ».
+  let codeRepaired: string | null = null;
   const screened = (r: Reading): { reading: Reading; issue: KeyIssue | null } => {
     const verdict = checkStoreCode(r.order_number, ownStoreCode, otherStoreCodes);
+    if (verdict === "unknown_code") {
+      const repaired = repairStoreCode(r.order_number, ownStoreCode, otherStoreCodes);
+      if (repaired) {
+        codeRepaired = `${storeCodeOf(r.order_number)}→${ownStoreCode}`;
+        return { reading: { ...r, order_number: repaired }, issue: null };
+      }
+    }
     return verdict === "other_establishment" || verdict === "unknown_code"
       ? { reading: { ...r, order_number: null }, issue: verdict }
       : { reading: r, issue: null };
@@ -550,6 +565,7 @@ export async function analyzeReceipt(
   const confidence = reading.order_number && reading.amount ? 90 : reading.order_number || reading.amount ? 65 : 35;
 
   if (keyIssue) trace.key_issue = keyIssue;
+  if (codeRepaired && reading.order_number) trace.key_code_repaired = codeRepaired;
 
   return {
     ...reading,
