@@ -21,6 +21,7 @@ import {
   notAReceiptMessage,
   otherEstablishmentMessage,
   refusalReason,
+  unknownCodeMessage,
 } from "@/lib/receipt-proof";
 import { missingReceiptParts } from "@/lib/ticket-auto-send";
 import { personalPointsForOrder, type PointsGoal } from "@/lib/catalogue";
@@ -29,9 +30,12 @@ import { amountBand } from "@/lib/analytics";
 import {
   DAILY_LIMIT_MESSAGE,
   FREQUENT_WINDOW_DAYS,
+  REPEATED_REFUSAL_MESSAGE,
+  REPEATED_REFUSAL_WINDOW_MINUTES,
   brusselsDayStartIso,
   isDailyLimitReached,
   isFrequentSubmitter,
+  isRepeatedRefusal,
 } from "@/lib/ticket-limits";
 
 export const maxDuration = 60;
@@ -48,6 +52,28 @@ function reframe(missing: { total: boolean; key: boolean }, error?: string) {
     },
     { status: 422 }
   );
+}
+
+// Refus « code inconnu » de ce membre dans cet établissement sur la fenêtre
+// récente : la clé a été lue (brute) mais écartée (jamais retenue).
+async function hasRepeatedUnknownCode(userId: string, restaurantId: string): Promise<boolean> {
+  try {
+    const since = new Date(Date.now() - REPEATED_REFUSAL_WINDOW_MINUTES * 60_000).toISOString();
+    const { count, error } = await createAdminClient()
+      .from("receipt_scans")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("restaurant_id", restaurantId)
+      .eq("outcome", "header_rejected")
+      .not("ocr_order_number_raw", "is", null)
+      .is("ocr_order_number", null)
+      .gte("scanned_at", since);
+    if (error) throw error;
+    return isRepeatedRefusal(count ?? 0);
+  } catch (e) {
+    console.error("[orders] comptage des refus répétés impossible:", (e as Error).message);
+    return false;
+  }
 }
 
 // Commandes créées par ce membre dans cet établissement depuis `sinceIso`
@@ -125,6 +151,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Même refus « code d'établissement inconnu » déjà vu plusieurs fois par ce
+  // membre : on arrête avant la lecture (un appel Vision payé pour le même
+  // résultat). Fail-open : une erreur de comptage ne bloque jamais un membre.
+  if (await hasRepeatedUnknownCode(user.id, restaurantId)) {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "repeat_refused");
+    return NextResponse.json({ error: REPEATED_REFUSAL_MESSAGE }, { status: 422 });
+  }
+
   // ADR 0019 — la clé de commande est définie par l'établissement
   // (restaurant_receipt_config, fallback Bestelnummer legacy).
   // ADR 0073 — le code de l'établissement dans la clé : on lit aussi ceux des autres.
@@ -186,6 +220,14 @@ export async function POST(request: NextRequest) {
       { error: notAReceiptMessage(restaurantName, receiptConfig.key_label) },
       { status: 422 }
     );
+  }
+
+  // Code d'établissement inconnu (ADR 0073) : la clé a été lue mais ce n'est celle
+  // d'aucun de nos établissements — presque toujours un ticket d'ailleurs. Dire la
+  // vraie cause (refaire la même photo n'y change rien), compté à part comme avant.
+  if (serverOcr.key_issue === "unknown_code") {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "key_code_unknown");
+    return NextResponse.json({ error: unknownCodeMessage(restaurantName) }, { status: 422 });
   }
 
   // Lecture incomplète : total absent ou hors bornes, ou — là où

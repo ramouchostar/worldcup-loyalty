@@ -1,6 +1,6 @@
 # ADR 0073 — Le format de la clé du ticket : ce qui existe, et rien d'autre
 
-**Statut** : Accepté (2026-09-29) — décisions du porteur : De Bue en « forme seule », refus net d'un
+**Statut** : Accepté (2026-09-29) ; amendé le 2026-10-19 : un code d'établissement inconnu ne répond plus « reprends la photo » mais dit la cause (le numéro ne correspond pas à cet établissement), et un même refus répété trois fois en une demi-heure s'arrête avant la lecture (motif `repeat_refused`). Voir l'audit des refus du 2026-10-19 — décisions du porteur : De Bue en « forme seule », refus net d'un
 ticket d'un autre établissement, liste en lecture seule pour l'existant. Complète l'[ADR 0019](0019-receipt-key-discovery.md)
 (la clé est définie par établissement), l'[ADR 0052](0052-dedoublonnage-par-empreinte-de-ticket.md) (anti-doublon),
 l'[ADR 0058](0058-le-ticket-ne-se-corrige-pas.md) (lecture incomplète = nouvelle photo) et précise le

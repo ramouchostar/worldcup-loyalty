@@ -659,7 +659,10 @@ export default function SubmitOrderClient({
               {
                 tone: "warn",
                 title: framingTitle,
-                hint: "Rapproche-toi, ticket bien à plat, et cadre-les dans le rectangle.",
+                // Clé manquante : dire OÙ elle est (le reçu de carte en bas n'en porte pas).
+                hint: framingIssue.key
+                  ? `Le ${keyLabel} est dans le haut du ticket, avec le total — pas sur le reçu de carte (« EFT »). Rapproche-toi, ticket bien à plat.`
+                  : "Rapproche-toi, ticket bien à plat, et cadre-les dans le rectangle.",
                 reframe: true,
               }
             : // Visiteur compris (ADR 0048 amendé) : le refus s'affiche, il n'est
