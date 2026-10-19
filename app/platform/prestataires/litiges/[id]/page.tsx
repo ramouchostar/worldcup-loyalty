@@ -9,6 +9,7 @@ import { formatDuration, linkHost } from "@/lib/mission-dayof";
 import { formatEuros } from "@/lib/mission-money";
 import { dateLabelFr } from "@/lib/mission-team-message";
 import { SubNav } from "../../SubNav";
+import { listMessages } from "@/lib/missions-messages";
 import { OpenDisputeForm, ResolveDisputeForm } from "./DisputeControls";
 
 export const metadata = { title: "Dossier — Prestataires — Plateforme" };
@@ -39,6 +40,7 @@ export default async function DisputeFilePage({ params }: { params: Promise<{ id
   if (!loaded.file) notFound();
   const { mission: m, restaurantName, providerName, providerWarnings, quote, deliveries, retouches, events } = loaded.file;
   const tpl = await loadTemplate(m.metier);
+  const thread = await listMessages(m.id, "platform");
   const rows = tpl ? briefRows(m.brief ?? {}, tpl.template) : [];
   const v = STATUS_VIEW[m.status];
   const report = m.report as { arrival?: string; end?: string; durationMinutes?: number | null; missing?: string[]; note?: string; overrunMinutes?: number } | null;
@@ -168,6 +170,26 @@ export default async function DisputeFilePage({ params }: { params: Promise<{ id
             </ol>
           </div>
         ))}
+      </section>
+
+      <section className={`${CARD} p-5 space-y-2`}>
+        <h2 className="font-semibold">Les messages ({thread.length})</h2>
+        <p className="text-xs text-gray-500">Le texte tel qu&apos;il a été écrit, y compris les numéros et e-mails que les parties n&apos;ont pas vus.</p>
+        {thread.length === 0 ? (
+          <p className="text-sm text-gray-500">Aucun message.</p>
+        ) : (
+          <ol className="space-y-2 text-sm">
+            {thread.map((t) => (
+              <li key={t.id}>
+                <span className="text-xs text-gray-500">
+                  {t.sender === "restaurant" ? restaurantName : t.sender === "provider" ? providerName : "Boosteats"} · {when(t.at)}
+                  {t.masked ? " · contact masqué pour les parties" : ""}
+                </span>
+                <p className="whitespace-pre-line">{t.body}</p>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
       <section className={`${CARD} p-5 space-y-2`}>

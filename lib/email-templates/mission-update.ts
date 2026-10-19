@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "work_started" | "bat_submitted" | "bat_corrections" | "bat_signed" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "work_started" | "message_received" | "bat_submitted" | "bat_corrections" | "bat_signed" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -102,6 +102,15 @@ function copyFor(i: MissionUpdateInput): Copy {
         paragraphs: [i.audience === "provider" ? `${i.restaurantName} n'a pas répondu en 7 jours malgré deux rappels : la livraison est validée et Boosteats prépare ton versement.` : `Tu n'as pas répondu en 7 jours malgré deux rappels : la livraison de ${i.providerName} est validée et la mission est terminée.`],
         cta: "Voir la mission",
         note: "Un doute ? Écris à Boosteats.",
+      };
+    case "message_received":
+      return {
+        subject: i.audience === "provider" ? `${i.restaurantName} t'a écrit` : `${i.providerName} t'a écrit`,
+        preheader: "Un message t'attend dans la mission.",
+        title: "Tu as un nouveau message",
+        paragraphs: [i.audience === "provider" ? `${i.restaurantName} t'a écrit dans votre mission. Lis-le et réponds depuis l'espace : tout est gardé au même endroit.` : `${i.providerName} t'a écrit dans votre mission. Lis-le et réponds depuis l'espace : tout est gardé au même endroit.`],
+        cta: "Lire le message",
+        note: "Tu ne recevras pas d'autre e-mail tant que tu n'as pas lu celui-ci, et au plus un toutes les 30 minutes.",
       };
     case "bat_submitted":
       return {

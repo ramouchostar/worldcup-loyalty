@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, ChevronRight, Inbox, Wrench } from "lucide-react";
 import { requireProviderPage } from "@/lib/providers";
+import { unreadCounts } from "@/lib/missions-messages";
 import { listForProvider, type ProviderMissionRow } from "@/lib/provider-missions";
 import { METIER_LABELS, PROVIDER_STATUS_VIEW, briefHeadline } from "@/lib/mission-view";
 import type { MissionStatus } from "@/lib/mission-states";
@@ -13,6 +14,7 @@ const ACTIVE: MissionStatus[] = ["devis", "accepte", "date_bloquee", "production
 export default async function ProviderInbox() {
   const { provider } = await requireProviderPage();
   const result = await listForProvider(provider.id);
+  const unread = result.ok ? await unreadCounts(result.missions.map((m) => m.id), "provider") : new Map<string, number>();
 
   if (!result.ok) {
     return (
@@ -43,16 +45,16 @@ export default async function ProviderInbox() {
         </EmptyState>
       ) : (
         <>
-          <Section title="À chiffrer" missions={toQuote} emptyText="Rien à chiffrer : tu es à jour." />
-          {active.length > 0 && <Section title="En cours" missions={active} />}
-          {done.length > 0 && <Section title="Terminées" missions={done} />}
+          <Section title="À chiffrer" missions={toQuote} unread={unread} emptyText="Rien à chiffrer : tu es à jour." />
+          {active.length > 0 && <Section title="En cours" missions={active} unread={unread} />}
+          {done.length > 0 && <Section title="Terminées" missions={done} unread={unread} />}
         </>
       )}
     </div>
   );
 }
 
-function Section({ title, missions, emptyText }: { title: string; missions: ProviderMissionRow[]; emptyText?: string }) {
+function Section({ title, missions, unread, emptyText }: { title: string; missions: ProviderMissionRow[]; unread: Map<string, number>; emptyText?: string }) {
   return (
     <section className="space-y-3">
       <SectionLabel>{title}</SectionLabel>
@@ -62,6 +64,7 @@ function Section({ title, missions, emptyText }: { title: string; missions: Prov
         <Card padding="p-0">
           {missions.map((m, i) => {
             const view = PROVIDER_STATUS_VIEW[m.status];
+            const n = unread.get(m.id) ?? 0;
             return (
               <CardRow key={m.id} first={i === 0}>
                 <Link href={`/prestataire/mission/${m.id}`} className="flex items-center gap-3 min-h-[44px]">
@@ -73,6 +76,7 @@ function Section({ title, missions, emptyText }: { title: string; missions: Prov
                       {typeof m.brief?.format === "string" ? ` · ${m.brief.format}` : ""}
                     </p>
                   </div>
+                  {n > 0 && <span className="shrink-0 inline-flex items-center rounded-full bg-boost-olive text-white text-[11px] font-bold px-2 py-0.5">{n} message{n > 1 ? "s" : ""}</span>}
                   <StatusBadge tone={view.tone}>{view.label}</StatusBadge>
                   <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" aria-hidden />
                 </Link>
