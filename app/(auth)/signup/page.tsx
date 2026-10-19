@@ -187,7 +187,12 @@ export default function SignupPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      // Toujours proposer le choix du compte Google (sinon, après déconnexion, le
+      // navigateur reconnecte seul le même compte).
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { prompt: "select_account" },
+      },
     });
   }
 

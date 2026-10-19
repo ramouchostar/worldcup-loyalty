@@ -50,7 +50,12 @@ export default function LoginForm() {
     const supabase = createClient();
     const { error: oauthErr } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      // Toujours proposer le choix du compte Google (sinon, après déconnexion, le
+      // navigateur reconnecte seul le même compte).
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { prompt: "select_account" },
+      },
     });
     if (oauthErr) {
       setError("Connexion Google échouée.");
