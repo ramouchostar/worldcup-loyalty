@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { Card, SectionLabel } from "@/components/admin/ui";
 import { AttachmentList } from "@/components/missions/AttachmentList";
 import type { AttachmentView } from "@/lib/mission-files";
-import { MAX_DELTA_DAYS, NOTE_MAX, PROVIDER_REFUSAL_REASONS, PROVIDER_ANSWER_DAYS, QUOTE_ISSUE_TEXT, REASON_MIN, type ChangeQuoteIssue } from "@/lib/mission-changes";
+import { MAX_DELTA_DAYS, NOTE_MAX, PROVIDER_REFUSAL_REASONS, PROVIDER_ANSWER_DAYS, REASON_MIN, type ChangeQuoteIssue } from "@/lib/mission-changes";
+import { useT } from "@/components/i18n/I18nProvider";
+import { formatEurosL, type MessageKey } from "@/lib/i18n/core";
 import { eurosToCents } from "@/lib/mission-view";
-import { DEFAULT_TERMS, formatEuros } from "@/lib/mission-money";
+import { DEFAULT_TERMS } from "@/lib/mission-money";
 import { providerView } from "@/lib/mission-quote";
 
 // ADR 0084 §3 règle 9 — le prestataire répond à une demande de modification : un supplément (éventuellement nul) et
@@ -27,6 +29,9 @@ async function post(url: string, body: unknown) {
 
 export function ChangePanel({ missionId, change, commissionBps, filesBase }: { missionId: string; change: OpenChange; commissionBps: number; filesBase: string }) {
   const router = useRouter();
+  const tr = useT();
+  const { t, locale } = tr;
+  const eur = (cents: number) => formatEurosL(cents, locale);
   const [free, setFree] = useState(false);
   const [priceText, setPriceText] = useState("");
   const [days, setDays] = useState(0);
@@ -49,9 +54,9 @@ export function ChangePanel({ missionId, change, commissionBps, filesBase }: { m
       const r = await post(url, body);
       if (r.ok) return router.refresh();
       if (r.status === 422 && Array.isArray(r.data.issues)) setIssues(r.data.issues as ChangeQuoteIssue[]);
-      setError((r.data.error as string) ?? "Impossible pour le moment. Réessaie.");
+      setError(tr.err(r.data, "err.generic"));
     } catch {
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     } finally {
       setBusy(null);
     }
@@ -59,38 +64,36 @@ export function ChangePanel({ missionId, change, commissionBps, filesBase }: { m
 
   const problem = (f: ChangeQuoteIssue["field"]) => {
     const p = issues.find((i) => i.field === f);
-    return p ? QUOTE_ISSUE_TEXT[p.code] : null;
+    return p ? t(`change.issue.${p.code}` as MessageKey) : null;
   };
 
   return (
     <Card className="space-y-5">
       <div>
-        <SectionLabel>Demande de modification {change.seq}</SectionLabel>
-        <p className="text-[13.5px] text-ink-muted mt-1">
-          Le restaurateur demande un changement au brief verrouillé. Chiffre un supplément (il peut être nul) ou refuse en disant pourquoi. Sans réponse en {PROVIDER_ANSWER_DAYS} jours, la demande expire et le brief d&apos;origine tient.
-        </p>
+        <SectionLabel>{t("change.title", { seq: change.seq })}</SectionLabel>
+        <p className="text-[13.5px] text-ink-muted mt-1">{t("change.intro", { days: PROVIDER_ANSWER_DAYS })}</p>
       </div>
       <div className="rounded-xl border border-paper-border bg-white p-3 space-y-2">
         <p className="text-[12.5px] font-semibold text-ink-muted">{change.categories.join(" · ")}</p>
         <p className="text-[14px] text-ink whitespace-pre-line">{change.description}</p>
-        <AttachmentList files={change.files} base={filesBase} />
+        <AttachmentList locale={locale} files={change.files} base={filesBase} />
       </div>
 
       {!refusing ? (
         <div className="space-y-4">
           <button type="button" role="checkbox" aria-checked={free} onClick={() => setFree((v) => !v)} className={`w-full flex items-center gap-3 text-left rounded-xl border p-3 min-h-[44px] ${free ? "border-boost-olive bg-boost-cream" : "border-paper-border bg-white"}`}>
             <span className={`w-5 h-5 shrink-0 rounded border ${free ? "bg-boost-olive border-boost-olive" : "border-ink-faint bg-white"}`} aria-hidden />
-            <span className="text-[14px] font-semibold text-ink">Sans supplément</span>
+            <span className="text-[14px] font-semibold text-ink">{t("change.free")}</span>
           </button>
           {!free && (
             <div className="space-y-1">
               <label htmlFor="chg-price" className="block text-[14px] font-semibold text-ink">
-                Ton supplément (€)
+                {t("change.price")}
               </label>
               <input id="chg-price" value={priceText} onChange={(e) => setPriceText(e.target.value)} inputMode="decimal" placeholder="120" className={`${field} w-40`} />
               {view && (
                 <p className="text-[13px] text-ink-muted">
-                  Tu reçois <span className="font-semibold text-ink">{formatEuros(view.youReceiveCents)}</span> sur {formatEuros(view.quoteCents)}.
+                  {t("change.youReceive", { amount: eur(view.youReceiveCents), total: eur(view.quoteCents) })}
                 </p>
               )}
               {problem("price") && <p role="alert" className="text-danger text-[13px] font-semibold">{problem("price")}</p>}
@@ -98,14 +101,14 @@ export function ChangePanel({ missionId, change, commissionBps, filesBase }: { m
           )}
           <div className="space-y-1">
             <label htmlFor="chg-days" className="block text-[14px] font-semibold text-ink">
-              Jours de livraison en plus
+              {t("change.days")}
             </label>
             <input id="chg-days" type="number" min={0} max={MAX_DELTA_DAYS} value={days} onChange={(e) => setDays(Math.max(0, Math.min(MAX_DELTA_DAYS, Number(e.target.value) || 0)))} className={`${field} w-28`} />
             {problem("delta") && <p role="alert" className="text-danger text-[13px] font-semibold">{problem("delta")}</p>}
           </div>
           <div className="space-y-1">
             <label htmlFor="chg-note" className="block text-[14px] font-semibold text-ink">
-              Un mot pour le restaurateur <span className="font-normal text-ink-faint">· facultatif</span>
+              {t("change.note")} <span className="font-normal text-ink-faint">· {t("quote.optional")}</span>
             </label>
             <textarea id="chg-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={NOTE_MAX} className={field} />
             {problem("note") && <p role="alert" className="text-danger text-[13px] font-semibold">{problem("note")}</p>}
@@ -117,25 +120,26 @@ export function ChangePanel({ missionId, change, commissionBps, filesBase }: { m
           )}
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy !== null} onClick={() => run("quote", `${base}/quote`, { free, priceCents: cents ?? 0, deltaDays: days, note })} className={primary}>
-              {busy === "quote" ? "Envoi…" : free ? "Accepter, sans supplément" : "Envoyer mon supplément"}
+              {busy === "quote" ? t("quote.sending") : free ? t("change.sendFree") : t("change.sendQuote")}
             </button>
             <button type="button" disabled={busy !== null} onClick={() => setRefusing(true)} className={ghost}>
-              Refuser
+              {t("change.refuse")}
             </button>
           </div>
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-[14px] font-semibold text-ink">Pourquoi ?</p>
-          <div role="group" aria-label="Raisons" className="flex flex-wrap gap-2">
+          <p className="text-[14px] font-semibold text-ink">{t("change.why")}</p>
+          <div role="group" aria-label={t("change.reasons")} className="flex flex-wrap gap-2">
             {PROVIDER_REFUSAL_REASONS.map((r) => (
               <button key={r} type="button" aria-pressed={reason === r} onClick={() => setReason(r)} className={`min-h-[44px] px-4 rounded-xl border text-[14px] font-medium text-left ${reason === r ? "bg-boost-olive border-boost-olive text-white" : "bg-white border-paper-border text-ink"}`}>
-                {r}
+                {tr.canon("changeRefuse", r)}
               </button>
             ))}
           </div>
-          <textarea aria-label="Précise ta raison" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={500} className={field} />
-          <p className="text-[12px] text-ink-faint">{reason.trim().length < REASON_MIN ? `${REASON_MIN} caractères au moins : le restaurateur lira ta raison.` : " "}</p>
+          <textarea aria-label={t("change.reasonLabel")} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={500} className={field} />
+          <p className="text-[12px] text-ink-faint">{reason.trim().length < REASON_MIN ? t("change.reasonMin", { n: REASON_MIN }) : " "}</p>
+          {locale !== "fr" && <p className="text-[12px] text-ink-faint">{t("change.reasonFrench")}</p>}
           {error && (
             <p role="alert" className="text-danger text-[13.5px] font-semibold">
               {error}
@@ -143,13 +147,13 @@ export function ChangePanel({ missionId, change, commissionBps, filesBase }: { m
           )}
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy !== null} onClick={() => run("decline", `${base}/decline`, { reason })} className={primary}>
-              {busy === "decline" ? "…" : "Refuser la demande"}
+              {busy === "decline" ? "…" : t("change.decline")}
             </button>
             <button type="button" disabled={busy !== null} onClick={() => setRefusing(false)} className={ghost}>
-              Revenir
+              {t("change.back")}
             </button>
           </div>
-          <p className="text-[12.5px] text-ink-muted">Le brief d&apos;origine tient : ta réponse ne change rien à ce que tu as déjà accepté.</p>
+          <p className="text-[12.5px] text-ink-muted">{t("change.keeps")}</p>
         </div>
       )}
     </Card>

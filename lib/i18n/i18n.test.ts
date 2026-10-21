@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { LOCALES, dayLabel, formatEurosL, getT, interpolate, isLocale, makeTranslator, messagesFor, monthLabel, normalizeLocale, weekdayShort } from "./index";
+import { LOCALES, dayLabel, formatEurosL, getT, humanSizeL, interpolate, isLocale, makeTranslator, messagesFor, monthLabel, normalizeLocale, weekdayShort } from "./index";
 import { fr } from "./messages/fr";
 import { nl } from "./messages/nl";
 import { en } from "./messages/en";
@@ -38,8 +38,8 @@ test("chaque pluriel a ses deux formes dans les trois langues", () => {
 test("rien n'est resté en français dans les autres langues (hors mots identiques connus)", () => {
   // Mots qui s'écrivent pareil dans deux langues (Design, Photo, Boosteats, « message(s) », Montage…).
   const SAME: Record<string, string[]> = {
-    nl: ["metier.design", "msg.platform", "canon.included.Montage"],
-    en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other", "mission.version", "msg.title", "msg.platform"],
+    nl: ["metier.design", "msg.platform", "canon.included.Montage", "proposals.field.ideaCount"],
+    en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other", "mission.version", "msg.title", "msg.platform", "proposals.field.ideaCount"],
   };
   for (const [name, d] of [["nl", nl], ["en", en]] as const) {
     const same = KEYS.filter((k) => (d as Record<string, string>)[k] === (fr as Record<string, string>)[k]);
@@ -136,6 +136,8 @@ test("aucun composant client n'importe l'index des dictionnaires (il embarquerai
 
 // ── Les données écrites en français (prestations, raisons) s'affichent dans la langue de celui qui lit ──
 import { QUOTE_INCLUDES, REFUSAL_REASONS } from "../mission-quote";
+import { REPORT_MISSING_OPTIONS } from "../mission-dayof";
+import { PROVIDER_REFUSAL_REASONS } from "../mission-changes";
 import { PROVIDER_REASONS, RESTAURANT_REASONS, describeCostT, describeCost, type CancelQuote } from "../mission-cancel-rules";
 
 test("chaque prestation et chaque raison enregistrée a sa traduction, et la donnée n'est jamais modifiée", () => {
@@ -146,6 +148,8 @@ test("chaque prestation et chaque raison enregistrée a sa traduction, et la don
     }
     for (const r of REFUSAL_REASONS.filter((r) => r !== "Autre raison")) assert.ok(`canon.refuse.${r}` in fr, r);
     for (const r of [...PROVIDER_REASONS, ...RESTAURANT_REASONS].filter((r) => r !== "Autre raison")) assert.ok(`canon.cancel.${r}` in fr, r);
+    for (const r of REPORT_MISSING_OPTIONS) assert.ok(`canon.report.${r}` in fr, r);
+    for (const r of PROVIDER_REFUSAL_REASONS.filter((r) => r !== "Autre raison")) assert.ok(`canon.changeRefuse.${r}` in fr, r);
   }
   assert.equal(getT("nl").canon("included", "Montage"), "Montage");
   assert.equal(getT("nl").canon("included", "Sous-titres"), "Ondertitels");
@@ -183,4 +187,19 @@ test("le coût d'une annulation est dit dans chaque langue, sans variable oubli�
       }
     }
   }
+});
+
+test("les erreurs connues du serveur ont leur phrase dans chaque langue", () => {
+  for (const reason of ["too_early", "not_booked", "locked", "not_started", "no_report", "no_bat", "not_awaiting_delivery", "not_expected", "reason_short", "reason_long", "too_late", "invalid", "already_signed", "awaiting_review", "no_rounds_left", "not_production", "not_print", "not_found", "unavailable"]) {
+    assert.ok(`err.${reason}` in fr, `err.${reason} manque`);
+    for (const l of LOCALES) assert.equal(getT(l).err({ reason, error: "x" }, "err.generic"), getT(l).t(`err.${reason}` as never), `${l}:${reason}`);
+  }
+});
+
+test("les tailles de fichier suivent la langue", () => {
+  assert.equal(humanSizeL(500, "fr"), "500 o");
+  assert.equal(humanSizeL(2048, "nl"), "2 KB");
+  assert.equal(humanSizeL(1_572_864, "fr"), "1,5 Mo");
+  assert.equal(humanSizeL(1_572_864, "nl"), "1,5 MB");
+  assert.equal(humanSizeL(1_572_864, "en"), "1.5 MB");
 });

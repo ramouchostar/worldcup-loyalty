@@ -50,7 +50,7 @@ export type Translator = {
   err: (body: { reason?: unknown; error?: unknown } | null | undefined, fallback: MessageKey) => string;
 };
 
-export type CanonKind = "included" | "refuse" | "cancel";
+export type CanonKind = "included" | "refuse" | "cancel" | "report" | "changeRefuse";
 
 export function makeTranslator(locale: Locale, messages: Messages): Translator {
   const t = (key: MessageKey, vars?: Vars) => interpolate(messages[key] ?? fr[key] ?? key, vars);
@@ -97,4 +97,13 @@ export function monthLabel(month: string, locale: Locale): string {
   const d = new Date(`${month}-01T12:00:00Z`);
   if (Number.isNaN(d.getTime())) return month;
   return new Intl.DateTimeFormat(LOCALE_TAG[locale], { month: "long", year: "numeric", timeZone: "UTC" }).format(d);
+}
+
+/** La taille d'un fichier : « 1,5 Mo » (fr), « 1,5 MB » (nl), « 1.5 MB » (en). */
+export function humanSizeL(bytes: number, locale: Locale): string {
+  const unit = locale === "fr" ? ["o", "Ko", "Mo"] : ["B", "KB", "MB"];
+  if (bytes < 1024) return `${bytes} ${unit[0]}`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} ${unit[1]}`;
+  const n = (bytes / (1024 * 1024)).toFixed(1);
+  return `${locale === "en" ? n : n.replace(".", ",")} ${unit[2]}`;
 }
