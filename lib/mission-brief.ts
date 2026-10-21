@@ -93,6 +93,44 @@ export const VIDEO_BRIEF_STEPS: readonly BriefStep[] = [
 ];
 
 /**
+ * Modèle photo (photographe) par défaut : même parcours que la vidéo (une date lie les deux parties, des idées de séance, un
+ * compte-rendu du jour J), avec ses propres questions : ce qu'on photographie, combien d'images, pour quel usage, quel niveau de
+ * retouche. Les clés de la phase « tournage » sont celles de la vidéo : toute la mécanique du jour J les réutilise telle quelle.
+ */
+export const PHOTO_TEMPLATE: BriefTemplate = {
+  metier: "photo",
+  questions: [
+    { key: "goal", label: "Pour quoi faire ?", kind: "choice", required: true, options: ["Carte et menu", "Réseaux sociaux", "Site et Google", "Livraison (Uber Eats, Deliveroo)", "Presse et communication", "Ambiance du lieu"] },
+    { key: "shots", label: "Que veux-tu photographier ?", kind: "multi", required: true, options: ["Plats", "Boissons", "Salle", "Façade et terrasse", "Équipe", "Cuisine en action", "Portraits"], hint: "Coche tout ce que tu veux dans cette séance." },
+    { key: "count", label: "Combien d'images retouchées ?", kind: "choice", required: true, options: ["10", "20", "40", "60 ou plus"], hint: "Le photographe en prend davantage et te livre les meilleures, retouchées." },
+    { key: "idea", label: "Ton idée en deux phrases", kind: "text", required: true, minLength: 20, hint: "Le photographe te fera 2 à 3 propositions de séance : décris le but, pas la technique." },
+    { key: "dishes", label: "Plats à photographier", kind: "list", required: true, hint: "Écris « aucun » si tu ne veux pas de plats." },
+    { key: "people", label: "Des personnes sur les photos ?", kind: "choice", required: true, options: ["Non", "L'équipe seulement", "Équipe et clients"], hint: "Les clients en salle ne sont jamais reconnaissables." },
+    { key: "extras_count", label: "Figurants", kind: "number", required: false },
+    { key: "style", label: "Quel style ?", kind: "choice", required: true, options: ["Naturel", "Chaleureux", "Sobre", "Gourmand", "Éditorial"] },
+    { key: "avoid", label: "À éviter", kind: "text", required: false },
+    { key: "shoot_date", phase: "tournage", label: "Date de la séance", kind: "date", required: true, hint: "Au moins 7 jours à l'avance : ton équipe doit être prévenue." },
+    { key: "shoot_slot", phase: "tournage", label: "Créneau", kind: "choice", required: true },
+    { key: "roles", phase: "tournage", label: "Qui doit être présent", kind: "multi", required: true, options: ["Cuisinier", "Serveur", "Barman", "Gérant"] },
+    { key: "contact", phase: "tournage", label: "Contact sur place", kind: "contact", required: true, hint: "Une seule personne, joignable le jour J." },
+    { key: "access", phase: "tournage", label: "Accès et déchargement", kind: "text", required: false },
+    { key: "deciders", label: "Qui décide avec toi ?", kind: "list", required: true, hint: "Associé, conjoint… Tous doivent avoir validé." },
+    { key: "deciders_attested", label: "Tous ont validé ce brief", kind: "flag", required: true },
+    { key: "budget_cents", label: "Budget", kind: "number", required: true },
+    { key: "notes", label: "Précisions", kind: "text", required: false },
+    { key: "files", label: "Pièces jointes", kind: "files", required: false },
+  ],
+};
+
+export const PHOTO_BRIEF_STEPS: readonly BriefStep[] = [
+  { key: "idee", title: "Ton idée", subtitle: "Pour quoi faire, et ce qu'on photographie.", keys: ["goal", "shots", "count", "idea"] },
+  { key: "image", title: "Ce qu'on voit sur les photos", subtitle: "Les plats, les gens, ce qu'il faut éviter.", keys: ["dishes", "people", "extras_count"] },
+  { key: "ton", title: "Le style", subtitle: "Tu cadres, le photographe te fera 2 à 3 propositions.", keys: ["style", "avoid"] },
+  { key: "decideurs", title: "Qui décide ?", subtitle: "Une fois le brief envoyé, la décision est prise.", keys: ["deciders", "deciders_attested"] },
+  { key: "budget", title: "Budget et précisions", subtitle: "Juste un repère : tu ne paies rien maintenant.", keys: ["budget_cents", "notes"] },
+];
+
+/**
  * Modèle design (graphiste) par défaut, d'après la maquette V4DesignBrief : quoi, usage, charte, langues, style, ce qu'on aime
  * et n'aime pas, le contenu FINAL (l'ajouter plus tard est une demande de modification), pour quand. Pas de tournage : aucune
  * question de la phase « tournage ».
@@ -165,6 +203,7 @@ export const PRINT_BRIEF_STEPS: readonly BriefStep[] = [
 /** Le modèle par défaut du code pour un métier (la base peut le remplacer). `null` : ce métier n'est pas encore ouvert. */
 export function defaultTemplate(metier: BriefTemplate["metier"]): BriefTemplate | null {
   if (metier === "video") return VIDEO_TEMPLATE;
+  if (metier === "photo") return PHOTO_TEMPLATE;
   if (metier === "design") return DESIGN_TEMPLATE;
   if (metier === "impression") return PRINT_TEMPLATE;
   return null;
@@ -172,7 +211,7 @@ export function defaultTemplate(metier: BriefTemplate["metier"]): BriefTemplate 
 
 /** Les écrans de l'assistant de brief d'un métier. */
 export function stepsFor(metier: BriefTemplate["metier"]): readonly BriefStep[] {
-  return metier === "design" ? DESIGN_BRIEF_STEPS : metier === "impression" ? PRINT_BRIEF_STEPS : VIDEO_BRIEF_STEPS;
+  return metier === "photo" ? PHOTO_BRIEF_STEPS : metier === "design" ? DESIGN_BRIEF_STEPS : metier === "impression" ? PRINT_BRIEF_STEPS : VIDEO_BRIEF_STEPS;
 }
 
 // ── Validation ───────────────────────────────────────────────
@@ -324,6 +363,7 @@ export function reminderDates(shootDate: string): { key: ReminderKey; date: stri
 // ── Remarques de retour ──────────────────────────────────────
 
 export const VIDEO_NOTE_CATEGORIES = ["Cadrage", "Lumière", "Rythme", "Texte", "Son", "Couleurs", "Musique", "Autre"] as const;
+export const PHOTO_NOTE_CATEGORIES = ["Cadrage", "Lumière", "Couleurs", "Retouche", "Sélection", "Texte", "Autre"] as const;
 export const DESIGN_NOTE_CATEGORIES = ["Texte", "Prix", "Couleur", "Logo", "Photo", "Mise en page", "Autre"] as const;
 
 const VAGUE = /^(je n'?aime pas|j'?aime pas|pas bien|bof|nul|à refaire|a refaire)[ .!]*$/i;

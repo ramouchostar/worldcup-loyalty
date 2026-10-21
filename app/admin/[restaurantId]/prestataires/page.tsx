@@ -26,9 +26,9 @@ export default async function PrestatairesPage({ params }: { params: Promise<{ r
 
   const services = [
     { metier: "video" as const, icon: Clapperboard, desc: "Reels, film, pack du mois : un vidéaste vient chez toi.", open: true },
-    { metier: "photo" as const, icon: Camera, desc: "Tes plats, ta salle, ton équipe.", open: false },
+    { metier: "photo" as const, icon: Camera, desc: "Tes plats, ta salle, ton équipe : un photographe vient chez toi.", open: true },
     { metier: "design" as const, icon: PenTool, desc: "Carte, menu, flyer, affiche, logo, visuels réseaux : un graphiste crée pour toi.", open: true },
-    { metier: "impression" as const, icon: Printer, desc: "Menus, flyers, chevalets, QR codes.", open: false },
+    { metier: "impression" as const, icon: Printer, desc: "Menus, flyers, chevalets, QR codes : un imprimeur s'en charge, avec bon à tirer.", open: true },
   ];
 
   return (

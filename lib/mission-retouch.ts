@@ -7,7 +7,7 @@
 // ============================================================
 
 import { MAX_RETOUCH_ROUNDS, roundsLeft, type MissionStatus } from "./mission-states";
-import { checkRetouchNote, DESIGN_NOTE_CATEGORIES, VIDEO_NOTE_CATEGORIES, type NoteIssue } from "./mission-brief";
+import { checkRetouchNote, DESIGN_NOTE_CATEGORIES, PHOTO_NOTE_CATEGORIES, VIDEO_NOTE_CATEGORIES, type NoteIssue } from "./mission-brief";
 import type { Metier } from "./mission-money";
 
 export const MAX_NOTES = 20;
@@ -17,7 +17,7 @@ export const MAX_TIMECODE = 12;
 export type RetouchNote = { category: string; text: string; at: string | null };
 
 export function categoriesFor(metier: Metier): readonly string[] {
-  return metier === "video" || metier === "photo" ? VIDEO_NOTE_CATEGORIES : DESIGN_NOTE_CATEGORIES;
+  return metier === "video" ? VIDEO_NOTE_CATEGORIES : metier === "photo" ? PHOTO_NOTE_CATEGORIES : DESIGN_NOTE_CATEGORIES;
 }
 
 /** Un horodatage facultatif (« 0:08 », « 1:05 ») : où, dans la vidéo, la remarque s'applique. */
