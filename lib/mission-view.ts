@@ -9,6 +9,7 @@
 // (B2B), jamais côté membre (ADR 0007).
 // ============================================================
 
+import { dayLabel, formatEurosL, type Locale } from "./i18n/core";
 import { formatEuros, type Metier } from "./mission-money";
 import type { BriefAnswers, BriefIssueCode, BriefQuestion, BriefTemplate } from "./mission-brief";
 import type { MissionStatus } from "./mission-states";
@@ -114,12 +115,14 @@ export function timeline(status: MissionStatus, metier?: Metier): { steps: { key
 
 // ── Le résumé du brief ───────────────────────────────────────
 
-function renderValue(q: BriefQuestion, v: BriefAnswers[string]): string | null {
+const YES: Record<Locale, string> = { fr: "Oui", nl: "Ja", en: "Yes" };
+
+function renderValue(q: BriefQuestion, v: BriefAnswers[string], locale: Locale): string | null {
   if (v === null || v === undefined) return null;
   if (q.kind === "files") return null; // les pièces jointes ont leur propre zone
-  if (q.kind === "flag") return v === true ? "Oui" : null;
-  if (q.key === "budget_cents" && typeof v === "number") return formatEuros(v);
-  if (q.kind === "date" && typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return dateLabelFr(v);
+  if (q.kind === "flag") return v === true ? YES[locale] : null;
+  if (q.key === "budget_cents" && typeof v === "number") return locale === "fr" ? formatEuros(v) : formatEurosL(v, locale);
+  if (q.kind === "date" && typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return dayLabel(v, locale);
   if (Array.isArray(v)) return v.length ? v.join(", ") : null;
   if (typeof v === "object") return [v.name, v.phone].filter(Boolean).join(" · ") || null;
   if (typeof v === "string") return v.trim() || null;
@@ -135,11 +138,12 @@ export function briefHeadline(answers: BriefAnswers | null | undefined): string 
 }
 
 /** Les réponses du brief sous forme de lignes « question → réponse », dans l'ordre du questionnaire. */
-export function briefRows(answers: BriefAnswers, template: BriefTemplate, phase: "brief" | "tournage" = "brief"): { label: string; value: string }[] {
+/** `locale` : la langue de celui qui lit (dates, « oui », budget) ; les libellés et les réponses viennent du questionnaire et du restaurateur, tels quels. */
+export function briefRows(answers: BriefAnswers, template: BriefTemplate, phase: "brief" | "tournage" = "brief", locale: Locale = "fr"): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = [];
   for (const q of template.questions) {
     if ((q.phase ?? "brief") !== phase) continue;
-    const value = renderValue(q, answers[q.key]);
+    const value = renderValue(q, answers[q.key], locale);
     if (value) rows.push({ label: q.label, value });
   }
   return rows;

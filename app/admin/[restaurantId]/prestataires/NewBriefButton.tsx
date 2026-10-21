@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Ouvre (ou rouvre) le brouillon d'un métier puis y emmène le restaurateur.
 // Un brouillon par métier : « Commencer » reprend là où il s'était arrêté.
@@ -16,6 +17,8 @@ export function NewBriefButton({
   label: string;
 }) {
   const router = useRouter();
+  const tr = useT();
+  const { t } = tr;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,9 +36,9 @@ export function NewBriefButton({
         router.push(`/admin/${restaurantId}/prestataires/${body.missionId}`);
         return;
       }
-      setError(body.error ?? "Impossible d'ouvrir le brief pour le moment.");
+      setError(tr.err(body, "rest.newbrief.failed"));
     } catch {
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     }
     setLoading(false);
   }
@@ -48,7 +51,7 @@ export function NewBriefButton({
         onClick={go}
         className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[44px] px-5 rounded-xl bg-boost-olive text-white text-[14px] font-semibold shadow-[inset_0_-3px_0_#4F5C2D] hover:brightness-95 disabled:opacity-60"
       >
-        {loading ? "Ouverture…" : label} {!loading && <ArrowRight className="w-4 h-4" aria-hidden />}
+        {loading ? t("rest.newbrief.opening") : label} {!loading && <ArrowRight className="w-4 h-4" aria-hidden />}
       </button>
       {error && (
         <p role="alert" className="text-danger text-[13px] font-semibold mt-2">
