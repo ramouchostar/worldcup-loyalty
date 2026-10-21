@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { saveBudgetsAction, saveSettingsAction } from "../actions";
 import { exampleBreakdown, validateSettings } from "@/lib/marketplace-settings-rules";
-import { formatEuros } from "@/lib/mission-money";
+import { formatEuros, type Metier } from "@/lib/mission-money";
 
 const INPUT = "w-28 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2.5 py-1.5 text-sm";
 const BTN = "rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold text-xs px-3 py-2 disabled:opacity-50";
@@ -63,7 +63,7 @@ export function SettingsForm({ initial }: { initial: { commissionPct: string; pr
   );
 }
 
-export function BudgetsForm({ formats, initial }: { formats: string[]; initial: { floorEuros: string; ambitionEuros: Record<string, string> } }) {
+export function BudgetsForm({ metier, noun, formats, initial }: { metier: Metier; noun: string; formats: string[]; initial: { floorEuros: string; ambitionEuros: Record<string, string> } }) {
   const [floor, setFloor] = useState(initial.floorEuros);
   const [amb, setAmb] = useState(initial.ambitionEuros);
   const [busy, setBusy] = useState(false);
@@ -72,7 +72,7 @@ export function BudgetsForm({ formats, initial }: { formats: string[]; initial: 
   async function save() {
     setBusy(true);
     setMsg(null);
-    const r = await saveBudgetsAction({ floorEuros: floor, ambitionEuros: amb });
+    const r = await saveBudgetsAction(metier, { floorEuros: floor, ambitionEuros: amb });
     setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: "Budgets enregistrés. Les restaurateurs les voient dès leur prochain brief." });
     setBusy(false);
   }
@@ -80,7 +80,7 @@ export function BudgetsForm({ formats, initial }: { formats: string[]; initial: 
   return (
     <div className="space-y-4">
       <label className="block space-y-1 text-xs font-medium">
-        Budget plancher d&apos;un brief vidéo
+        Budget plancher d&apos;un brief {noun}
         <span className="flex items-center gap-1.5">
           <input value={floor} onChange={(e) => setFloor(e.target.value)} inputMode="decimal" placeholder="aucun" className={INPUT} />
           <span>€ hors TVA</span>
@@ -88,6 +88,7 @@ export function BudgetsForm({ formats, initial }: { formats: string[]; initial: 
         <span className="block font-normal text-gray-500">Sous ce budget, le brief est refusé (message clair). Vide = pas de plancher.</span>
       </label>
 
+      {formats.length > 0 && (
       <fieldset className="space-y-2">
         <legend className="text-xs font-medium">Budget réaliste par format <span className="font-normal text-gray-500">· un avertissement, jamais un refus</span></legend>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -101,6 +102,7 @@ export function BudgetsForm({ formats, initial }: { formats: string[]; initial: 
         </div>
         <p className="text-xs text-gray-500">Le restaurateur qui choisit « Film » avec un budget en dessous voit : « Un projet Film demande en général au moins … ». Il peut envoyer son brief quand même.</p>
       </fieldset>
+      )}
 
       <button type="button" disabled={busy} onClick={save} className={BTN}>
         {busy ? "Enregistrement…" : "Enregistrer les budgets"}

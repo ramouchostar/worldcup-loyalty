@@ -267,6 +267,14 @@ celles de la vidéo : toute la mécanique du jour J les réutilise telle quelle.
 couleurs, retouche, sélection, texte, autre) : ni son, ni rythme, ni musique. Les tuiles **Photo** et **Impression** de la page
 « Prestataires » du restaurateur s'ouvrent (l'impression restait affichée « Bientôt » alors qu'elle était construite).
 
+### 5 nonies. Les budgets planchers pour les quatre métiers (amendé le 2026-10-21, PR V)
+
+La page « Réglages » de la plateforme règle maintenant le **plancher de budget** de chaque métier (vidéo, photo, design, impression), plus
+seulement celui de la vidéo. Sous le plancher, le brief est refusé avec un message clair, dit AVANT le clic. Le seuil d'**ambition
+réaliste** (un avertissement, jamais un refus) reste propre au métier qui a une question « format » (la vidéo) : les autres n'en ont pas.
+Un métier sans modèle de questions ne peut pas être enregistré. Le premier enregistrement d'un métier fige son questionnaire du code en
+base (comme pour la vidéo) : pour changer ensuite une question, il faut passer par la base.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
