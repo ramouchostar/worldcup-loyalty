@@ -7,6 +7,8 @@
 // Fonctions PURES : l'instant est injecté. Le barème lui-même vit dans lib/mission-cancellation.ts.
 // ============================================================
 
+import { makeTranslator, type Translator } from "./i18n/core";
+import { fr } from "./i18n/messages/fr";
 import { canTransition, type Actor, type MissionStatus } from "./mission-states";
 import { hasShoot, isStudio } from "./mission-metier";
 import type { Metier } from "./mission-money";
@@ -117,19 +119,26 @@ export function quoteCancellation(f: CancelFacts): CancelQuote {
 
 /** La phrase que lit celui qui s'apprête à annuler. */
 export function describeCost(by: Canceller, q: CancelQuote, euros: (cents: number) => string): string {
+  return describeCostT(makeTranslator("fr", fr), by, q, euros);
+}
+
+/** Le coût d'une annulation, dans la langue du traducteur (le français reste exactement celui d'avant). */
+export function describeCostT(tr: Translator, by: Canceller, q: CancelQuote, euros: (cents: number) => string): string {
+  const t = tr.t;
+  const amount = euros(q.outcome.retainedCents);
   if (q.studio) {
-    if (by === "restaurant") return q.studio.started ? `Le travail a commencé : l'acompte (${euros(q.outcome.retainedCents)}) reste au prestataire, le reste t'est rendu.` : "Le travail n'a pas commencé : l'annulation est gratuite.";
-    return q.studio.started ? "Tu as commencé : le restaurateur est remboursé en entier et tu reçois un avertissement." : "Tu n'as pas commencé : tu peux annuler sans conséquence. Le restaurateur est remboursé.";
+    if (by === "restaurant") return q.studio.started ? t("cost.studio.restaurant.started", { amount }) : t("cost.studio.restaurant.notStarted");
+    return q.studio.started ? t("cost.studio.provider.started") : t("cost.studio.provider.notStarted");
   }
-  if (q.beforeDate) return by === "restaurant" ? "Aucune date n'est encore réservée : l'annulation est gratuite." : "Aucune date n'est encore réservée : tu peux annuler sans conséquence.";
+  if (q.beforeDate) return by === "restaurant" ? t("cost.noDate.restaurant") : t("cost.noDate.provider");
   if (by === "restaurant") {
-    if (q.band === "free") return "Plus de 7 jours avant le tournage : l'annulation est gratuite, tu es remboursé en entier.";
-    if (q.band === "half") return `Entre 7 jours et 48 h avant le tournage : la moitié est due (${euros(q.outcome.retainedCents)}), le reste t'est rendu.`;
-    return `Moins de 48 h avant le tournage : tout est dû (${euros(q.outcome.retainedCents)}).`;
+    if (q.band === "free") return t("cost.restaurant.free");
+    if (q.band === "half") return t("cost.restaurant.half", { amount });
+    return t("cost.restaurant.full", { amount });
   }
-  if (q.band === "free") return "Plus de 7 jours avant le tournage : tu peux annuler sans conséquence. Le restaurateur est remboursé.";
-  if (q.band === "half") return "Entre 7 jours et 48 h avant le tournage : le restaurateur est remboursé et tu reçois un avertissement.";
-  return "Moins de 48 h avant le tournage : le restaurateur est remboursé et ta visibilité est réduite (une récidive peut mener à l'exclusion).";
+  if (q.band === "free") return t("cost.provider.free");
+  if (q.band === "half") return t("cost.provider.half");
+  return t("cost.provider.full");
 }
 
 // ── La sanction du prestataire ───────────────────────────────

@@ -1,8 +1,9 @@
 // Nederlands (België), informeel (« je »). Referentietaal is het Frans (fr.ts): elke sleutel staat hier, anders faalt `npm run type-check`.
 // Vertaald door Claude; door een Nederlandstalige te laten nalezen vóór het open gaat voor Nederlandstalige gebruikers.
-import type { Messages } from "./fr";
+import type { Messages, frBase } from "./fr";
+import { nlMission } from "./nl-mission";
 
-export const nl: Messages = {
+const nlBase: Record<keyof typeof frBase, string> = {
   "shell.brand": "Boosteats · ruimte voor dienstverleners",
   "shell.logout": "Afmelden",
   "shell.nav.label": "Ruimte voor dienstverleners",
@@ -96,3 +97,5 @@ export const nl: Messages = {
   "avail.savedExcept.one": "Opgeslagen, behalve {n} dag die al door een restauranthouder is geboekt.",
   "avail.savedExcept.other": "Opgeslagen, behalve {n} dagen die al door een restauranthouder zijn geboekt.",
 };
+
+export const nl: Messages = { ...nlBase, ...nlMission };

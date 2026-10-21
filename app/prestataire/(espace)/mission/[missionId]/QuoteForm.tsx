@@ -6,7 +6,9 @@ import { Check, Minus, Plus } from "lucide-react";
 import { Card } from "@/components/admin/ui";
 import { QUOTE_INCLUDES, excludedFor, providerView, quoteVsBudget, type QuoteIssue } from "@/lib/mission-quote";
 import { eurosToCents } from "@/lib/mission-view";
-import { DEFAULT_TERMS, formatEuros, type Metier } from "@/lib/mission-money";
+import { DEFAULT_TERMS, type Metier } from "@/lib/mission-money";
+import { useT } from "@/components/i18n/I18nProvider";
+import { formatEurosL, type MessageKey } from "@/lib/i18n/core";
 
 // ADR 0084 §3 règle 2 — le prestataire chiffre : durée, prix, ce qui est inclus (et donc
 // exclu), hypothèses. Son devis est FERME pour ce brief : l'écran le dit avant l'envoi.
@@ -19,18 +21,12 @@ const DEFAULT_INCLUDED: Record<Metier, string[]> = {
   impression: ["Impression", "Livraison"],
 };
 
-const ISSUE_TEXT: Record<string, string> = {
-  price_invalid: "Indique ton prix en euros",
-  price_too_high: "Ce prix est trop élevé pour un devis en ligne",
-  hours_invalid: "Indique une durée (par quarts d'heure)",
-  delivery_invalid: "Indique un délai de livraison en jours",
-  included_empty: "Coche au moins une prestation incluse",
-  included_unknown: "Une prestation n'est pas reconnue",
-  hypotheses_too_long: "Tes hypothèses sont trop longues (1 000 caractères au plus)",
-};
-
 export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { missionId: string; metier: Metier; budgetCents: number | null; commissionBps: number }) {
   const router = useRouter();
+  const tr = useT();
+  const { t, locale } = tr;
+  const eur = (cents: number) => formatEurosL(cents, locale);
+  const issueText = (i: QuoteIssue | undefined) => (i ? t(`quote.issue.${i.code}` as MessageKey) : null);
   const [priceText, setPriceText] = useState("");
   const [hours, setHours] = useState(4);
   const [days, setDays] = useState(7);
@@ -62,9 +58,9 @@ export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { m
         return;
       }
       if (res.status === 422 && Array.isArray(body.issues)) setIssues(body.issues as QuoteIssue[]);
-      setError(body.error ?? "Envoi impossible pour le moment. Réessaie.");
+      setError(tr.err(body, "err.sendFailed"));
     } catch {
-      setError("Pas de connexion. Ton devis n'est pas parti : réessaie dans un instant.");
+      setError(t("quote.offline"));
     } finally {
       setSending(false);
     }
@@ -73,12 +69,12 @@ export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { m
   return (
     <Card className="space-y-6">
       <div>
-        <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">Ton devis</h2>
-        <p className="text-ink-muted text-[13.5px] mt-1">Ton prix est ferme pour ce brief. Si le restaurateur le change ensuite, c&apos;est une demande de modification.</p>
+        <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">{t("quote.title")}</h2>
+        <p className="text-ink-muted text-[13.5px] mt-1">{t("quote.note")}</p>
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="text-[14px] font-semibold text-ink">Ce qui est inclus</legend>
+        <legend className="text-[14px] font-semibold text-ink">{t("quote.included")}</legend>
         <div className="space-y-2">
           {QUOTE_INCLUDES[metier].map((item) => {
             const on = included.includes(item);
@@ -94,45 +90,49 @@ export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { m
                 <span className={`w-5 h-5 shrink-0 rounded border flex items-center justify-center ${on ? "bg-boost-olive border-boost-olive text-white" : "border-ink-faint bg-white"}`}>
                   {on && <Check className="w-3.5 h-3.5" aria-hidden />}
                 </span>
-                <span className="text-[14px] text-ink">{item}</span>
+                <span className="text-[14px] text-ink">{tr.canon("included", item)}</span>
               </button>
             );
           })}
         </div>
         {excluded.length > 0 && (
           <p className="text-[12.5px] text-ink-muted">
-            <span className="font-semibold">Non inclus</span> (écrit tel quel dans le devis) : {excluded.join(", ")}.
+            <span className="font-semibold">{t("quote.excluded")}</span> {t("quote.excludedNote", { list: excluded.map((x) => tr.canon("included", x)).join(", ") })}
           </p>
         )}
         {issueOf("included") && (
           <p role="alert" className="text-danger text-[13px] font-semibold">
-            {ISSUE_TEXT[issueOf("included")!.code]}
+            {issueText(issueOf("included"))}
           </p>
         )}
       </fieldset>
 
       <div className="grid grid-cols-2 gap-4">
         <Stepper
-          label="Durée de travail"
-          value={`${String(hours).replace(".", ",")} h`}
+          label={t("quote.hours")}
+          lessLabel={t("quote.stepperLess", { label: t("quote.hours") })}
+          moreLabel={t("quote.stepperMore", { label: t("quote.hours") })}
+          value={`${String(hours).replace(".", locale === "en" ? "." : ",")} h`}
           onDec={() => setHours((h) => Math.max(0.5, h - 0.5))}
           onInc={() => setHours((h) => Math.min(200, h + 0.5))}
-          issue={issueOf("hours") ? ISSUE_TEXT[issueOf("hours")!.code] : null}
+          issue={issueText(issueOf("hours"))}
         />
         <Stepper
-          label="Livraison, jours après le tournage"
+          label={t("quote.days")}
+          lessLabel={t("quote.stepperLess", { label: t("quote.days") })}
+          moreLabel={t("quote.stepperMore", { label: t("quote.days") })}
           value={`${days} j`}
           onDec={() => setDays((d) => Math.max(1, d - 1))}
           onInc={() => setDays((d) => Math.min(90, d + 1))}
-          issue={issueOf("delivery") ? ISSUE_TEXT[issueOf("delivery")!.code] : null}
+          issue={issueText(issueOf("delivery"))}
         />
       </div>
 
       <div className="space-y-2">
         <label htmlFor="hyp" className="block text-[14px] font-semibold text-ink">
-          Tes hypothèses <span className="font-normal text-ink-faint">· facultatif</span>
+          {t("quote.hypotheses")} <span className="font-normal text-ink-faint">· {t("quote.optional")}</span>
         </label>
-        <p className="text-[12.5px] text-ink-muted">Ce sur quoi ton prix repose (nombre de plats, un seul lieu, pas de déplacement…). Ce qui n&apos;est pas écrit ici est dans ton prix.</p>
+        <p className="text-[12.5px] text-ink-muted">{t("quote.hypothesesNote")}</p>
         <textarea
           id="hyp"
           value={hypotheses}
@@ -145,7 +145,7 @@ export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { m
 
       <div className="space-y-2">
         <label htmlFor="price" className="block text-[14px] font-semibold text-ink">
-          Prix du devis (hors TVA)
+          {t("quote.price")}
         </label>
         <div className="flex items-center gap-2">
           <input
@@ -159,20 +159,20 @@ export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { m
         </div>
         {issueOf("price") && (
           <p role="alert" className="text-danger text-[13px] font-semibold">
-            {ISSUE_TEXT[issueOf("price")!.code]}
+            {issueText(issueOf("price"))}
           </p>
         )}
         {view && (
           <div className="rounded-xl bg-boost-cream border border-boost-olive/30 p-3 space-y-1">
             <p className="text-[14px] text-ink">
-              Tu reçois <span className="font-bold">{formatEuros(view.youReceiveCents)}</span>
+              {t("quote.youReceive", { amount: eur(view.youReceiveCents) })}
             </p>
-            <p className="text-[12.5px] text-ink-muted">{`${(100 - commissionBps / 100).toString().replace(".", ",")} %`} du prix, comme prévu dans ton contrat-cadre. Le restaurateur ne voit que son propre prix, jamais ta part.</p>
+            <p className="text-[12.5px] text-ink-muted">{t("quote.shareNote", { pct: (100 - commissionBps / 100).toString().replace(".", locale === "en" ? "." : ",") })}</p>
           </div>
         )}
         {budget && !budget.within && (
           <p className="text-[12.5px] text-warn font-semibold">
-            Ton prix dépasse de {budget.overPct} % le budget indiqué par le restaurateur ({formatEuros(budgetCents ?? 0)}). Il pourra décliner : si c&apos;est voulu, explique-le dans tes hypothèses.
+            {t("quote.overBudget", { pct: budget.overPct, budget: eur(budgetCents ?? 0) })}
           </p>
         )}
       </div>
@@ -188,24 +188,24 @@ export function QuoteForm({ missionId, metier, budgetCents, commissionBps }: { m
         onClick={send}
         className="w-full inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-boost-olive text-white text-[14px] font-semibold shadow-[inset_0_-3px_0_#4F5C2D] hover:brightness-95 disabled:opacity-60"
       >
-        {sending ? "Envoi…" : view ? `Envoyer le devis · ${formatEuros(view.quoteCents)}` : "Envoyer le devis"}
+        {sending ? t("quote.sending") : view ? t("quote.sendWithPrice", { price: eur(view.quoteCents) }) : t("quote.send")}
       </button>
     </Card>
   );
 }
 
-function Stepper({ label, value, onDec, onInc, issue }: { label: string; value: string; onDec: () => void; onInc: () => void; issue: string | null }) {
+function Stepper({ label, lessLabel, moreLabel, value, onDec, onInc, issue }: { label: string; lessLabel: string; moreLabel: string; value: string; onDec: () => void; onInc: () => void; issue: string | null }) {
   return (
     <div className="space-y-1.5">
       <p className="text-[14px] font-semibold text-ink">{label}</p>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onDec} aria-label={`Moins : ${label}`} className="w-11 h-11 rounded-xl border border-paper-border bg-white flex items-center justify-center">
+        <button type="button" onClick={onDec} aria-label={lessLabel} className="w-11 h-11 rounded-xl border border-paper-border bg-white flex items-center justify-center">
           <Minus className="w-4 h-4" aria-hidden />
         </button>
         <span className="min-w-[3.5rem] text-center text-[15px] font-semibold text-ink" aria-live="polite">
           {value}
         </span>
-        <button type="button" onClick={onInc} aria-label={`Plus : ${label}`} className="w-11 h-11 rounded-xl border border-paper-border bg-white flex items-center justify-center">
+        <button type="button" onClick={onInc} aria-label={moreLabel} className="w-11 h-11 rounded-xl border border-paper-border bg-white flex items-center justify-center">
           <Plus className="w-4 h-4" aria-hidden />
         </button>
       </div>

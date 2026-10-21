@@ -6,7 +6,9 @@
 // IDENTIQUES dans les trois langues (un test le vérifie). Tutoiement partout (« tu » / « je » / « you »).
 // ============================================================
 
-export const fr = {
+import { frMission } from "./fr-mission";
+
+export const frBase = {
   // ── Coque de l'espace prestataire ──────────────────────────
   "shell.brand": "Boosteats · espace prestataire",
   "shell.logout": "Déconnexion",
@@ -106,6 +108,8 @@ export const fr = {
   "avail.savedExcept.one": "Enregistré, sauf {n} jour déjà réservé par un restaurateur.",
   "avail.savedExcept.other": "Enregistré, sauf {n} jours déjà réservés par un restaurateur.",
 } as const;
+
+export const fr = { ...frBase, ...frMission } as const;
 
 export type MessageKey = keyof typeof fr;
 export type Messages = Record<MessageKey, string>;

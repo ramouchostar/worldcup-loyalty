@@ -38,7 +38,19 @@ export type Translator = {
   t: (key: MessageKey, vars?: Vars) => string;
   /** Pluriel : « 1 message » / « 3 messages ». `n` est aussi disponible comme `{n}`. */
   tp: (base: PluralBase, n: number, vars?: Vars) => string;
+  /**
+   * Une prestation ou une raison écrite telle quelle dans les données (en français : « Montage », « Je suis malade »…) est affichée dans la
+   * langue de celui qui lit ; ce qui n'a pas de traduction (texte libre) reste tel quel. La donnée enregistrée ne change JAMAIS.
+   */
+  canon: (kind: CanonKind, text: string) => string;
+  /**
+   * Le message d'une réponse d'erreur du serveur : une cause connue (`reason`) a sa phrase dans la langue de l'utilisateur ; en français on garde
+   * le texte précis du serveur ; sinon le repli donné.
+   */
+  err: (body: { reason?: unknown; error?: unknown } | null | undefined, fallback: MessageKey) => string;
 };
+
+export type CanonKind = "included" | "refuse" | "cancel";
 
 export function makeTranslator(locale: Locale, messages: Messages): Translator {
   const t = (key: MessageKey, vars?: Vars) => interpolate(messages[key] ?? fr[key] ?? key, vars);
@@ -46,6 +58,17 @@ export function makeTranslator(locale: Locale, messages: Messages): Translator {
     locale,
     t,
     tp: (base, n, vars) => t(`${base}.${n === 1 ? "one" : "other"}` as MessageKey, { n, ...vars }),
+    err: (body, fallback) => {
+      const key = typeof body?.reason === "string" ? `err.${body.reason}` : "";
+      if (key && key in fr) return t(key as MessageKey);
+      if (locale === "fr" && typeof body?.error === "string" && body.error) return body.error;
+      return t(fallback);
+    },
+    canon: (kind, text) => {
+      if (text === "Autre raison") return t("canon.other");
+      const key = `canon.${kind}.${text}`;
+      return key in fr ? t(key as MessageKey) : text;
+    },
   };
 }
 

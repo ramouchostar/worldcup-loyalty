@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Send } from "lucide-react";
 import { Card, SectionLabel } from "@/components/admin/ui";
-import { LOCKED_NOTICE, MAX_BODY, type Sender } from "@/lib/mission-messages";
+import { MAX_BODY, type Sender } from "@/lib/mission-messages";
+import { useT } from "@/components/i18n/I18nProvider";
+import { LOCALE_TAG, type Locale } from "@/lib/i18n/core";
 
 // ADR 0084 — la messagerie d'une mission : restaurateur et prestataire s'écrivent ICI, pas par téléphone. Tout est gardé.
 // Tant que le travail n'a pas commencé, les numéros, e-mails et liens de messagerie sont masqués (l'écran le dit avant
@@ -12,7 +14,7 @@ import { LOCKED_NOTICE, MAX_BODY, type Sender } from "@/lib/mission-messages";
 
 export type ThreadMessage = { id: string; sender: Sender; body: string; at: string; masked: boolean };
 
-const when = (iso: string) => new Date(iso).toLocaleString("fr-BE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels" });
+const whenIn = (iso: string, locale: Locale) => new Date(iso).toLocaleString(LOCALE_TAG[locale], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels" });
 
 export function MessagesCard({
   me,
@@ -37,6 +39,9 @@ export function MessagesCard({
   unread: number;
 }) {
   const router = useRouter();
+  const tr = useT();
+  const { t, locale } = tr;
+  const when = (iso: string) => whenIn(iso, locale);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,13 +65,13 @@ export function MessagesCard({
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setText("");
-        if (data.masked) setNotice("Un numéro, une adresse e-mail ou un lien de messagerie a été masqué : tout passe ici.");
+        if (data.masked) setNotice(t("msg.maskedNotice"));
         router.refresh();
         return;
       }
-      setError(data.error ?? "Impossible pour le moment. Réessaie.");
+      setError(tr.err(data, "err.generic"));
     } catch {
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     } finally {
       setBusy(false);
     }
@@ -76,13 +81,13 @@ export function MessagesCard({
     <Card className="space-y-4">
       <div>
         <SectionLabel>
-          Messages{unread > 0 ? <span className="ml-2 inline-flex items-center rounded-full bg-boost-olive text-white text-[11px] font-bold px-2 py-0.5">{unread} nouveau{unread > 1 ? "x" : ""}</span> : null}
+          {t("msg.title")}{unread > 0 ? <span className="ml-2 inline-flex items-center rounded-full bg-boost-olive text-white text-[11px] font-bold px-2 py-0.5">{tr.tp("msg.new", unread)}</span> : null}
         </SectionLabel>
-        <p className="text-[13px] text-ink-muted mt-1">Écris à {otherName} ici : c&apos;est gardé, et ça évite les malentendus.</p>
+        <p className="text-[13px] text-ink-muted mt-1">{t("msg.intro", { name: otherName })}</p>
       </div>
 
       {messages.length === 0 ? (
-        <p className="text-[13.5px] text-ink-muted">Aucun message pour le moment.</p>
+        <p className="text-[13.5px] text-ink-muted">{t("msg.empty")}</p>
       ) : (
         <ol className="space-y-3 max-h-[420px] overflow-y-auto pr-1" aria-live="polite">
           {messages.map((m) => {
@@ -91,8 +96,8 @@ export function MessagesCard({
               <li key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                 <div className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[14px] whitespace-pre-line break-words ${mine ? "bg-boost-olive text-white" : m.sender === "platform" ? "bg-ink text-white" : "bg-paper-subtle text-ink border border-paper-border"}`}>{m.body}</div>
                 <span className="text-[11.5px] text-ink-faint mt-1">
-                  {mine ? "Toi" : m.sender === "platform" ? "Boosteats" : otherName} · {when(m.at)}
-                  {m.masked ? " · contact masqué" : ""}
+                  {mine ? t("msg.you") : m.sender === "platform" ? t("msg.platform") : otherName} · {when(m.at)}
+                  {m.masked ? ` · ${t("msg.masked")}` : ""}
                 </span>
               </li>
             );
@@ -105,13 +110,13 @@ export function MessagesCard({
         <div className="space-y-2">
           {contactsLocked && (
             <p className="text-[12.5px] text-ink-muted inline-flex items-start gap-1.5">
-              <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden /> {LOCKED_NOTICE}
+              <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden /> {t("msg.locked")}
             </p>
           )}
           <label htmlFor="msg-body" className="sr-only">
-            Ton message
+            {t("msg.label")}
           </label>
-          <textarea id="msg-body" value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={MAX_BODY} placeholder={`Ton message pour ${otherName}`} className="w-full border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive" />
+          <textarea id="msg-body" value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={MAX_BODY} placeholder={t("msg.placeholder", { name: otherName })} className="w-full border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive" />
           {notice && (
             <p role="status" className="text-warn text-[13px] font-semibold">
               {notice}
@@ -123,11 +128,11 @@ export function MessagesCard({
             </p>
           )}
           <button type="button" disabled={busy || text.trim().length === 0} onClick={send} className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-xl bg-boost-olive text-white text-[14px] font-semibold shadow-[inset_0_-3px_0_#4F5C2D] hover:brightness-95 disabled:opacity-50">
-            <Send className="w-4 h-4" aria-hidden /> {busy ? "Envoi…" : "Envoyer"}
+            <Send className="w-4 h-4" aria-hidden /> {busy ? t("msg.sending") : t("msg.send")}
           </button>
         </div>
       ) : (
-        <p className="text-[13px] text-ink-muted">Cette mission est terminée ou annulée : on ne peut plus écrire. Si besoin, écris à Boosteats.</p>
+        <p className="text-[13px] text-ink-muted">{t("msg.closed")}</p>
       )}
     </Card>
   );

@@ -32,12 +32,15 @@ test("chaque pluriel a ses deux formes dans les trois langues", () => {
     const base = k.slice(0, -4);
     for (const d of [fr, nl, en] as Record<string, string>[]) assert.ok(`${base}.other` in d, `${base}.other manque`);
   }
-  for (const k of KEYS.filter((k) => k.endsWith(".other"))) assert.ok(`${k.slice(0, -6)}.one` in fr, `${k} sans .one`);
+  for (const k of KEYS.filter((k) => k.endsWith(".other") && !k.startsWith("canon."))) assert.ok(`${k.slice(0, -6)}.one` in fr, `${k} sans .one`);
 });
 
 test("rien n'est resté en français dans les autres langues (hors mots identiques connus)", () => {
-  // « message(s) », « Photo » et « Design » s'écrivent pareil en français et en anglais.
-  const SAME: Record<string, string[]> = { nl: ["metier.design"], en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other"] };
+  // Mots qui s'écrivent pareil dans deux langues (Design, Photo, Boosteats, « message(s) », Montage…).
+  const SAME: Record<string, string[]> = {
+    nl: ["metier.design", "msg.platform", "canon.included.Montage"],
+    en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other", "mission.version", "msg.title", "msg.platform"],
+  };
   for (const [name, d] of [["nl", nl], ["en", en]] as const) {
     const same = KEYS.filter((k) => (d as Record<string, string>)[k] === (fr as Record<string, string>)[k]);
     assert.deepEqual(same, [...SAME[name]].sort(), `${name} : textes restés en français`);
@@ -129,4 +132,55 @@ test("aucun composant client n'importe l'index des dictionnaires (il embarquerai
   assert.doesNotMatch(provider, /messages\/(nl|en)/);
   assert.match(readFileSync("lib/i18n/core.ts", "utf8"), /from "\.\/messages\/fr"/);
   assert.doesNotMatch(readFileSync("lib/i18n/core.ts", "utf8"), /messages\/(nl|en)/);
+});
+
+// ── Les données écrites en français (prestations, raisons) s'affichent dans la langue de celui qui lit ──
+import { QUOTE_INCLUDES, REFUSAL_REASONS } from "../mission-quote";
+import { PROVIDER_REASONS, RESTAURANT_REASONS, describeCostT, describeCost, type CancelQuote } from "../mission-cancel-rules";
+
+test("chaque prestation et chaque raison enregistrée a sa traduction, et la donnée n'est jamais modifiée", () => {
+  for (const l of LOCALES) {
+    const tr = getT(l);
+    for (const metier of Object.keys(QUOTE_INCLUDES) as (keyof typeof QUOTE_INCLUDES)[]) {
+      for (const item of QUOTE_INCLUDES[metier]) assert.ok(`canon.included.${item}` in fr, `canon.included.${item} manque`), assert.ok(tr.canon("included", item).length > 0);
+    }
+    for (const r of REFUSAL_REASONS.filter((r) => r !== "Autre raison")) assert.ok(`canon.refuse.${r}` in fr, r);
+    for (const r of [...PROVIDER_REASONS, ...RESTAURANT_REASONS].filter((r) => r !== "Autre raison")) assert.ok(`canon.cancel.${r}` in fr, r);
+  }
+  assert.equal(getT("nl").canon("included", "Montage"), "Montage");
+  assert.equal(getT("nl").canon("included", "Sous-titres"), "Ondertitels");
+  assert.equal(getT("en").canon("cancel", "Je suis malade"), "I'm ill");
+  assert.equal(getT("nl").canon("refuse", "Autre raison"), "Andere reden");
+  assert.equal(getT("fr").canon("refuse", "Autre raison"), "Autre raison");
+  // Du texte libre n'a pas de traduction : il reste tel quel.
+  assert.equal(getT("en").canon("included", "Un truc à moi"), "Un truc à moi");
+});
+
+test("err : une cause connue a sa phrase, le français garde le texte précis du serveur, sinon le repli", () => {
+  assert.equal(getT("nl").err({ reason: "not_found", error: "Mission introuvable." }, "err.generic"), "Opdracht niet gevonden.");
+  assert.equal(getT("fr").err({ reason: "zzz", error: "Texte précis du serveur." }, "err.generic"), "Texte précis du serveur.");
+  assert.equal(getT("en").err({ reason: "zzz", error: "Texte précis du serveur." }, "err.generic"), "Not possible right now. Try again.");
+  assert.equal(getT("en").err(null, "err.generic"), "Not possible right now. Try again.");
+});
+
+test("le coût d'une annulation est dit dans chaque langue, sans variable oubliée, et le français est celui d'avant", () => {
+  const base = { band: "half", beforeDate: false, studio: null, outcome: { retainedCents: 50_000 } } as unknown as CancelQuote;
+  const cases: CancelQuote[] = [
+    base,
+    { ...base, band: "free" } as CancelQuote,
+    { ...base, band: "full" } as CancelQuote,
+    { ...base, beforeDate: true } as CancelQuote,
+    { ...base, studio: { started: true, depositCents: 10_000 } } as unknown as CancelQuote,
+    { ...base, studio: { started: false, depositCents: 10_000 } } as unknown as CancelQuote,
+  ];
+  for (const by of ["restaurant", "provider"] as const) {
+    for (const q of cases) {
+      assert.equal(describeCostT(getT("fr"), by, q, (c) => `${c / 100} €`), describeCost(by, q, (c) => `${c / 100} €`));
+      for (const l of ["nl", "en"] as const) {
+        const text = describeCostT(getT(l), by, q, (c) => `${c / 100} €`);
+        assert.ok(text.length > 10);
+        assert.doesNotMatch(text, /\{\w+\}/, `${l} : variable oubliée`);
+      }
+    }
+  }
 });
