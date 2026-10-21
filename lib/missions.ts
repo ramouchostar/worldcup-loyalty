@@ -12,6 +12,7 @@ import type { Metier } from "./mission-money";
 import type { MissionStatus } from "./mission-states";
 import { readAcceptance, rulesKindOf, rulesVersionFor } from "./mission-rules";
 import { recordRestaurantAcceptance } from "./missions-rules";
+import { isTestName } from "./mission-test-set";
 
 // ============================================================
 // Réserver un prestataire (ADR 0084, PR C) — lecture et écriture des missions.
@@ -292,9 +293,14 @@ export async function sendBrief(missionId: string, restaurantId: string, userId:
   let providers: ProviderCandidate[] = [];
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.from("providers").select("id, status, metiers, visibility_reduced, created_at").eq("status", "active");
+    const [{ data, error }, { data: resto }] = await Promise.all([
+      admin.from("providers").select("id, status, metiers, visibility_reduced, created_at, display_name").eq("status", "active"),
+      admin.from("restaurants").select("is_demo").eq("id", restaurantId).maybeSingle(),
+    ]);
     if (error) throw error;
-    providers = (data as ProviderCandidate[]) ?? [];
+    // Un prestataire « [TEST] » (jeu de test) ne reçoit JAMAIS le brief d'un vrai client : seulement ceux d'un établissement de démonstration.
+    const demo = (resto as { is_demo?: boolean } | null)?.is_demo === true;
+    providers = ((data as (ProviderCandidate & { display_name: string })[]) ?? []).filter((p) => demo || !isTestName(p.display_name));
   } catch (e) {
     console.error("[missions] sendBrief providers failed:", (e as Error).message);
     return { ok: false, reason: "unavailable" };
