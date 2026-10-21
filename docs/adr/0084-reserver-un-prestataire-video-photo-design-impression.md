@@ -258,6 +258,15 @@ point de la liste de contrôle coché ou non** (un point non coché est en rouge
 épreuve · en attente · corrections · signée). Lecture seule : le dossier n'ajoute aucune règle, la décision reste à l'arbitre ; une
 épreuve signée garde le sens de §5 ter (c'est ce qui devait être imprimé).
 
+### 5 octies. La photo (amendé le 2026-10-21, PR U)
+
+Le photographe suit **exactement le parcours du vidéaste** (métier de tournage : une date lie les deux parties, idées de séance, compte-rendu
+du jour J, barème d'annulation en heures, règles du tournage), avec **ses propres questions** : pour quoi faire, ce qu'on photographie,
+combien d'images retouchées, plats, personnes sur les photos, style. Les questions de la phase « tournage » ont les **mêmes clés** que
+celles de la vidéo : toute la mécanique du jour J les réutilise telle quelle. Catégories de retours propres à la photo (cadrage, lumière,
+couleurs, retouche, sélection, texte, autre) : ni son, ni rythme, ni musique. Les tuiles **Photo** et **Impression** de la page
+« Prestataires » du restaurateur s'ouvrent (l'impression restait affichée « Bientôt » alors qu'elle était construite).
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →

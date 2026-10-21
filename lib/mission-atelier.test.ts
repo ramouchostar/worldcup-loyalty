@@ -56,7 +56,7 @@ test("le modèle design : chaque question du brief est dans UN écran de l'assis
   assert.notEqual(stepsFor("video"), DESIGN_BRIEF_STEPS);
   assert.equal(defaultTemplate("design"), DESIGN_TEMPLATE);
   assert.equal(defaultTemplate("video"), VIDEO_TEMPLATE);
-  assert.equal(defaultTemplate("photo"), null);
+  assert.equal(defaultTemplate("photo")?.metier, "photo");
   assert.equal(defaultTemplate("impression")?.metier, "impression");
 });
 
