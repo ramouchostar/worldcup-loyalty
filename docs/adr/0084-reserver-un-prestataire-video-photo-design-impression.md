@@ -360,6 +360,16 @@ Le module parle **français, néerlandais et anglais**. Principes :
   (test de parité cas par cas sur `copyFor`). **Les alertes de la plateforme restent en français** (Boosteats les lit).
   Suivent : les règles du jeu une fois validées par le juriste, la relecture des traductions par des natifs.
 
+### 5 quaterdecies. La purge « durée de la mission + 12 mois » (amendé le 2026-10-21)
+
+Décision du dossier juriste : les pièces d'une mission ne sont pas gardées indéfiniment. **Tant que le juriste n'a pas validé la durée et la
+liste, la purge est à blanc** : un passage hebdomadaire (`/api/cron/purge-missions`, lundi 4 h) COMPTE ce qui serait effacé pour les missions
+finies (`verse`, `annule`) depuis plus de 12 mois — messages, pièces jointes (nombre et poids), livraisons, épreuves, contacts du brief —
+et ne supprime RIEN (le code ne contient aucune suppression ; un test le vérifie). Une mission en litige n'est jamais comptée.
+**Jamais touchés, même plus tard** : montants, devis, trace (`mission_events`), signature du bon à tirer, règles acceptées (pièces comptables
+et preuves). Les avis publics restent aussi : question posée au juriste (anonymiser plutôt qu'effacer ?). Pour allumer la vraie purge : une PR
+dédiée, après la réponse du juriste, avec fichiers du stockage et sauvegarde préalable.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
