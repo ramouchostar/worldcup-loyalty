@@ -327,8 +327,14 @@ Le module parle **français, néerlandais et anglais**. Principes :
 - **Les règles du jeu ne sont pas traduites tant que le juriste n'a pas validé le texte français** (traduire un texte qui va changer =
   le refaire, et une traduction non relue d'un texte juridique peut engager Boosteats). Mes traductions NL et EN sont à faire relire
   par un locuteur natif avant l'ouverture à des utilisateurs de ces langues.
-- Premier lot : la coque de l'espace prestataire, la boîte de réception, les revenus et les disponibilités. Suivent : la page d'une
-  mission et ses formulaires, le profil, l'invitation, les e-mails du prestataire, puis le côté restaurateur.
+- **Les données écrites en français restent en français dans la base** (prestations d'un devis, raisons de refus ou d'annulation) : ce
+  sont des textes que lit l'AUTRE partie. Elles s'affichent dans la langue de celui qui lit (`canon.*`), jamais modifiées ; un texte libre
+  n'est pas traduit. Les libellés d'un questionnaire (en base, en français) ne sont pas traduits non plus pour l'instant.
+- **Les messages d'erreur du serveur** : une cause connue (`reason`) a sa phrase dans la langue de l'utilisateur (`err.*`) ; en français
+  on garde le texte précis du serveur ; sinon un repli traduit.
+- Lots : (1) la coque, la boîte de réception, les revenus, les disponibilités ; (2) la page d'une mission, le devis, le refus, les
+  règles (écran seulement, texte en français), la messagerie, l'annulation, la présence, l'avis. Suivent : les formulaires du jour J,
+  du bon à tirer, des modifications et des idées, le profil, l'invitation, les e-mails du prestataire, puis le côté restaurateur.
 
 ### 6. États d'une mission
 

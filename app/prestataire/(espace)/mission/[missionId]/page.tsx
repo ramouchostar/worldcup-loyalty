@@ -3,24 +3,23 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Hourglass } from "lucide-react";
 import { requireProviderPage } from "@/lib/providers";
 import { getForProvider } from "@/lib/provider-missions";
-import { briefRows, METIER_LABELS, PROVIDER_STATUS_VIEW } from "@/lib/mission-view";
-import { formatEuros } from "@/lib/mission-money";
+import { briefRows, PROVIDER_STATUS_VIEW } from "@/lib/mission-view";
+import { getProviderLocale } from "@/lib/provider-locale";
+import { LOCALE_TAG, dayLabel, formatEurosL, getT, type MessageKey } from "@/lib/i18n";
 import { providerView } from "@/lib/mission-quote";
 import { Card, EmptyState, PageHeader, SectionLabel, StatusBadge } from "@/components/admin/ui";
-import { dateLabelFr } from "@/lib/mission-team-message";
 import { judgeConfirm } from "@/lib/mission-reminders";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { PresenceCard } from "@/components/missions/PresenceCard";
 import { judgeStart } from "@/lib/mission-dayof";
 import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
-import { versionLabel } from "@/lib/mission-retouch";
 import { DeliveryForm, ReportForm, StartButton, StartWorkButton } from "./DayOfPanel";
 import { hasShoot } from "@/lib/mission-metier";
 import { rulesKindOf, rulesVersionFor } from "@/lib/mission-rules";
 import { briefHeadline } from "@/lib/mission-view";
 import { CancelCard } from "@/components/missions/CancelCard";
 import { costNow } from "@/lib/missions-cancel";
-import { PROVIDER_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-rules";
+import { PROVIDER_REASONS, canCancel, describeCostT } from "@/lib/mission-cancel-rules";
 import { getTerms } from "@/lib/marketplace-settings";
 import { QuoteForm } from "./QuoteForm";
 import { RefuseForm } from "./RefuseForm";
@@ -41,7 +40,7 @@ import { batPhase } from "@/lib/mission-print";
 import { ChangePanel } from "./ChangePanel";
 import { listChanges } from "@/lib/missions-changes-state";
 import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals-state";
-import { CHOSEN_BY_LABEL, judgeSubmit } from "@/lib/mission-proposals";
+import { judgeSubmit } from "@/lib/mission-proposals";
 
 export const dynamic = "force-dynamic";
 
@@ -50,11 +49,15 @@ export const dynamic = "force-dynamic";
 export default async function ProviderMissionPage({ params }: { params: Promise<{ missionId: string }> }) {
   const { missionId } = await params;
   const { provider } = await requireProviderPage();
+  const locale = await getProviderLocale(provider.id);
+  const tr = getT(locale);
+  const { t } = tr;
+  const eur = (cents: number) => formatEurosL(cents, locale);
   const found = await getForProvider(missionId, provider.id);
 
   const back = (
     <Link href="/prestataire" className="inline-flex items-center gap-1 text-[13px] text-ink-muted hover:text-ink min-h-[44px]">
-      <ChevronLeft className="w-4 h-4" aria-hidden /> Mes missions
+      <ChevronLeft className="w-4 h-4" aria-hidden /> {t("mission.back")}
     </Link>
   );
 
@@ -62,8 +65,8 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
     return (
       <div className="space-y-4">
         {back}
-        <EmptyState icon={Hourglass} title="Le service n'est pas encore ouvert">
-          Reviens bientôt : on finit de le mettre en place.
+        <EmptyState icon={Hourglass} title={t("mission.notOpen.title")}>
+          {t("mission.notOpen.body")}
         </EmptyState>
       </div>
     );
@@ -90,21 +93,21 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   const changeFiles = (seq: number) => files.filter((f) => f.scope === "change" && f.ref === `change-${seq}`);
   const pstate = mission.shoot_date && mission.status !== "annule" ? await loadProposalState(mission.id) : null;
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
-  const received = new Date(mission.brief_locked_at ?? mission.created_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" });
+  const received = new Date(mission.brief_locked_at ?? mission.created_at).toLocaleDateString(LOCALE_TAG[locale], { day: "numeric", month: "long", timeZone: "Europe/Brussels" });
 
   return (
     <div className="space-y-6">
       {back}
       <PageHeader
         title={mission.restaurant_name}
-        subtitle={`${METIER_LABELS[mission.metier]}${briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : ""} · reçu le ${received}`}
-        action={<StatusBadge tone={view.tone}>{view.label}</StatusBadge>}
+        subtitle={t("mission.subtitle", { metier: t(`metier.${mission.metier}` as MessageKey), headline: briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : "", date: received })}
+        action={<StatusBadge tone={view.tone}>{t(`status.provider.${mission.status}` as MessageKey)}</StatusBadge>}
       />
 
       <Card padding="p-0">
         <div className="px-5 pt-4">
-          <SectionLabel>Le brief</SectionLabel>
-          <p className="text-ink-muted text-[13px] mt-1">Complet et verrouillé : tu peux chiffrer. Un changement ensuite est une demande de modification.</p>
+          <SectionLabel>{t("mission.brief.title")}</SectionLabel>
+          <p className="text-ink-muted text-[13px] mt-1">{t("mission.brief.note")}</p>
         </div>
         <dl className="mt-2">
           {rows.map((r, i) => (
@@ -118,7 +121,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {files.some((f) => f.scope === "brief") && (
         <Card className="space-y-2">
-          <SectionLabel>Pièces jointes du brief</SectionLabel>
+          <SectionLabel>{t("mission.brief.files")}</SectionLabel>
           <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} />
         </Card>
       )}
@@ -131,26 +134,26 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           ))}
       {changesRes?.ok && changesRes.changes.some((c) => c.status === "quoted") && (
         <Card className="space-y-1">
-          <SectionLabel>Modification chiffrée</SectionLabel>
-          <p className="text-[13.5px] text-ink-muted">Ton supplément est envoyé : le restaurateur l&apos;accepte ou garde le brief d&apos;origine.</p>
+          <SectionLabel>{t("mission.change.quoted.title")}</SectionLabel>
+          <p className="text-[13.5px] text-ink-muted">{t("mission.change.quoted.body")}</p>
         </Card>
       )}
       {changesRes?.ok && changesRes.changes.some((c) => c.status === "accepted") && (
         <Card className="space-y-3">
-          <SectionLabel>Modifications acceptées</SectionLabel>
-          <p className="text-[13px] text-ink-muted">Elles complètent le brief : c&apos;est ce que tu livres.</p>
+          <SectionLabel>{t("mission.change.accepted.title")}</SectionLabel>
+          <p className="text-[13px] text-ink-muted">{t("mission.change.accepted.note")}</p>
           <ol className="space-y-3">
             {changesRes.changes
               .filter((c) => c.status === "accepted")
               .map((c) => (
                 <li key={c.id} className="rounded-xl border border-paper-border bg-white p-3 space-y-1.5">
                   <p className="text-[12.5px] font-semibold text-ink-muted">
-                    Modification {c.seq} · {c.categories.join(" · ")}
+                    {t("mission.change.item", { seq: c.seq, categories: c.categories.join(" · ") })}
                   </p>
                   <p className="text-[14px] text-ink whitespace-pre-line">{c.description}</p>
                   <p className="text-[13px] text-ink">
-                    {c.provider_cents ? `Tu reçois ${formatEuros(c.provider_cents)} de plus` : "Sans supplément"}
-                    {c.delta_days ? ` · livraison ${c.delta_days} jour${c.delta_days > 1 ? "s" : ""} plus tard` : ""}
+                    {c.provider_cents ? t("mission.change.extra", { amount: eur(c.provider_cents) }) : t("mission.change.noExtra")}
+                    {c.delta_days ? tr.tp("mission.change.delay", c.delta_days) : ""}
                   </p>
                   <AttachmentList files={changeFiles(c.seq)} base={filesBase} />
                 </li>
@@ -179,37 +182,37 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {quote && (
         <Card className="space-y-3">
-          <SectionLabel>Ton devis</SectionLabel>
-          <p className="text-[14px] text-ink">
-            <span className="font-bold">{formatEuros(quote.price_cents)}</span> · tu reçois <span className="font-bold">{formatEuros(providerView(quote.price_cents, (await getTerms()).terms).youReceiveCents)}</span>
+          <SectionLabel>{t("mission.quote.title")}</SectionLabel>
+          <p className="text-[14px] text-ink font-bold">
+            {t("mission.quote.youReceive", { price: eur(quote.price_cents), amount: eur(providerView(quote.price_cents, (await getTerms()).terms).youReceiveCents) })}
           </p>
           <p className="text-[13.5px] text-ink-muted">
-            {quote.hours ? `${String(quote.hours).replace(".", ",")} h de travail` : ""}
+            {quote.hours ? t("mission.quote.hours", { hours: String(quote.hours).replace(".", locale === "en" ? "." : ",") }) : ""}
             {quote.hours && quote.delivery_days ? " · " : ""}
-            {quote.delivery_days ? `livraison en ${quote.delivery_days} jours` : ""}
+            {quote.delivery_days ? t("mission.quote.delivery", { days: quote.delivery_days }) : ""}
           </p>
           {quote.included.length > 0 && (
             <p className="text-[13.5px] text-ink">
-              <span className="font-semibold">Inclus :</span> {quote.included.join(", ")}
+              <span className="font-semibold">{t("mission.quote.included")}</span> {quote.included.map((x) => tr.canon("included", x)).join(", ")}
             </p>
           )}
           {quote.excluded.length > 0 && (
             <p className="text-[13.5px] text-ink-muted">
-              <span className="font-semibold">Non inclus :</span> {quote.excluded.join(", ")}
+              <span className="font-semibold">{t("mission.quote.excluded")}</span> {quote.excluded.map((x) => tr.canon("included", x)).join(", ")}
             </p>
           )}
           {quote.hypotheses && <p className="text-[13.5px] text-ink-muted whitespace-pre-line">{quote.hypotheses}</p>}
           {mission.status === "devis" && (
-            <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">En attente de la réponse du restaurateur. Ton devis est ferme pour ce brief.</p>
+            <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">{t("mission.quote.waiting")}</p>
           )}
         </Card>
       )}
 
       {mission.shoot_date && mission.shoot_start && mission.status !== "annule" && (
         <Card className="space-y-2">
-          <SectionLabel>Le tournage</SectionLabel>
+          <SectionLabel>{t("mission.shoot.title")}</SectionLabel>
           <p className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
-            {dateLabelFr(mission.shoot_date)} à {mission.shoot_start}
+            {t("mission.shoot.when", { date: dayLabel(mission.shoot_date, locale), time: mission.shoot_start })}
           </p>
           {(() => {
             const c = (mission.brief?.contact as { name?: string; phone?: string } | undefined) ?? {};
@@ -217,22 +220,22 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
             return (
               <>
                 <p className="text-[13.5px] text-ink">
-                  <span className="font-semibold">Contact sur place :</span> {[c.name, c.phone].filter(Boolean).join(" · ") || "à confirmer"}
+                  <span className="font-semibold">{t("mission.shoot.contact")}</span> {[c.name, c.phone].filter(Boolean).join(" · ") || t("mission.shoot.contactTbd")}
                 </p>
                 {roles.length > 0 && (
                   <p className="text-[13.5px] text-ink">
-                    <span className="font-semibold">Présents :</span> {roles.join(", ").toLowerCase()}
+                    <span className="font-semibold">{t("mission.shoot.roles")}</span> {roles.join(", ").toLowerCase()}
                   </p>
                 )}
                 {typeof mission.brief?.access === "string" && mission.brief.access && (
                   <p className="text-[13.5px] text-ink whitespace-pre-line">
-                    <span className="font-semibold">Accès :</span> {mission.brief.access}
+                    <span className="font-semibold">{t("mission.shoot.access")}</span> {mission.brief.access}
                   </p>
                 )}
               </>
             );
           })()}
-          <p className="text-[12.5px] text-ink-muted">Le restaurateur est engagé sur cette date, et toi aussi.</p>
+          <p className="text-[12.5px] text-ink-muted">{t("mission.shoot.committed")}</p>
         </Card>
       )}
 
@@ -240,20 +243,20 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
         (judgeSubmit(rulesState(mission, pstate.state), todayInBrussels()) === "ok" ? (
           <ProposalsForm
             missionId={mission.id}
-            deadlineLabel={dateLabelFr(pview.deadline.day)}
+            deadlineLabel={dayLabel(pview.deadline.day, locale)}
             second={pview.phase === "awaiting_second"}
             rejected={pview.phase === "awaiting_second" ? pview.first.filter((p) => p.rejection_reason).map((p) => ({ title: p.title, reason: p.rejection_reason! })) : []}
           />
         ) : (
           <Card className="space-y-1">
-            <SectionLabel>Les idées de tournage</SectionLabel>
-            <p className="text-[13.5px] text-warn font-semibold">Le délai est passé : appelle Boosteats, le restaurateur ne peut plus choisir à temps.</p>
+            <SectionLabel>{t("mission.ideas.title")}</SectionLabel>
+            <p className="text-[13.5px] text-warn font-semibold">{t("mission.ideas.late")}</p>
           </Card>
         ))}
       {pview && (pview.phase === "choose" || pview.phase === "choose_second") && pview.deadline && (
         <Card className="space-y-3">
-          <SectionLabel>Tes idées de tournage</SectionLabel>
-          <p className="text-[13.5px] text-ink-muted">Le restaurateur choisit avant {dateLabelFr(pview.deadline.day)} ; sans réponse, ta première idée est retenue d&apos;office.</p>
+          <SectionLabel>{t("mission.ideas.yours")}</SectionLabel>
+          <p className="text-[13.5px] text-ink-muted">{t("mission.ideas.chooseBefore", { date: dayLabel(pview.deadline.day, locale) })}</p>
           <ol className="space-y-2">
             {pview.current.map((p) => (
               <li key={p.id} className="rounded-xl border border-paper-border bg-white p-3">
@@ -265,12 +268,12 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
       )}
       {pview?.chosen && pstate?.ok && pstate.state.chosenBy && (
         <Card className="space-y-2">
-          <SectionLabel>L&apos;idée à tourner</SectionLabel>
-          <p className="text-[12.5px] text-ink-muted">{CHOSEN_BY_LABEL[pstate.state.chosenBy]} · verrouillée</p>
+          <SectionLabel>{t("mission.ideas.chosen")}</SectionLabel>
+          <p className="text-[12.5px] text-ink-muted">{t("mission.ideas.chosenLocked", { who: t(`mission.chosenBy.${pstate.state.chosenBy}` as MessageKey) })}</p>
           <p className="text-[15px] font-bold text-ink">{pview.chosen.title}</p>
           <p className="text-[13.5px] text-ink whitespace-pre-line">{pview.chosen.idea}</p>
           <p className="text-[13.5px] text-ink">
-            <span className="font-semibold">À prévoir sur place :</span> {pview.chosen.onsite}
+            <span className="font-semibold">{t("mission.ideas.onsite")}</span> {pview.chosen.onsite}
           </p>
           <AttachmentList files={files.filter((f) => f.scope === "proposal" && f.ref === pview.chosen!.id)} base={filesBase} />
         </Card>
@@ -294,8 +297,8 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {mission.status === "accepte" && !hasShoot(mission.metier) && <StartWorkButton missionId={mission.id} />}
 
-      {mission.status === "production" && mission.metier === "design" && <DeliveryForm missionId={mission.id} title="Livrer ton travail" />}
-      {mission.status === "production" && mission.metier === "impression" && !proofsRes?.ok && <p className="text-[13.5px] text-ink-muted">Le bon à tirer n&apos;est pas encore disponible. Réessaie dans un instant.</p>}
+      {mission.status === "production" && mission.metier === "design" && <DeliveryForm missionId={mission.id} title={t("mission.deliver.work")} />}
+      {mission.status === "production" && mission.metier === "impression" && !proofsRes?.ok && <p className="text-[13.5px] text-ink-muted">{t("mission.bat.unavailable")}</p>}
       {mission.status === "production" && mission.metier === "impression" && proofsRes?.ok && (
         <BatPanel
           missionId={mission.id}
@@ -307,8 +310,8 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
 
       {mission.status === "production" && hasShoot(mission.metier) && (
         <>
-          {mission.report_confirmed_at && <p className="text-[13.5px] text-good font-semibold">Le restaurateur a confirmé ton compte-rendu.</p>}
-          {mission.report_contested_at && <p className="text-[13.5px] text-warn font-semibold">Le restaurateur conteste ton compte-rendu : Boosteats te contacte. Tu peux quand même livrer.</p>}
+          {mission.report_confirmed_at && <p className="text-[13.5px] text-good font-semibold">{t("mission.report.confirmed")}</p>}
+          {mission.report_contested_at && <p className="text-[13.5px] text-warn font-semibold">{t("mission.report.contested")}</p>}
           {!mission.report_confirmed_at && !mission.report_contested_at && (
             <ReportForm
               missionId={mission.id}
@@ -316,15 +319,15 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
               initial={mission.report ? { arrival: String(mission.report.arrival ?? ""), end: String(mission.report.end ?? ""), missing: Array.isArray(mission.report.missing) ? (mission.report.missing as string[]) : [], note: String(mission.report.note ?? "") } : null}
             />
           )}
-          {mission.report_submitted_at ? <DeliveryForm missionId={mission.id} /> : <p className="text-[13.5px] text-ink-muted">La livraison s&apos;ouvre une fois le compte-rendu envoyé.</p>}
+          {mission.report_submitted_at ? <DeliveryForm missionId={mission.id} /> : <p className="text-[13.5px] text-ink-muted">{t("mission.report.deliveryLocked")}</p>}
         </>
       )}
 
       {mission.status === "retouche" &&
         (await listRetouches(mission.id)).slice(-1).map((r) => (
           <Card key={r.round} className="space-y-3">
-            <SectionLabel>Retouche demandée · tour {r.round} sur 2</SectionLabel>
-            <p className="text-[13px] text-ink-muted">Toutes les remarques du restaurateur, d&apos;un seul envoi. Une retouche n&apos;est pas une refonte : si une demande change le brief de départ, c&apos;est une demande de modification que tu peux chiffrer ou refuser.</p>
+            <SectionLabel>{t("mission.retouch.title", { round: r.round })}</SectionLabel>
+            <p className="text-[13px] text-ink-muted">{t("mission.retouch.note")}</p>
             <ol className="space-y-2">
               {r.notes.map((n, i) => (
                 <li key={i} className="rounded-xl border border-paper-border bg-white p-3">
@@ -339,26 +342,26 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
             <AttachmentList files={files.filter((f) => f.scope === "retouch" && f.ref === `round-${r.round}`)} base={filesBase} />
           </Card>
         ))}
-      {mission.status === "retouche" && <DeliveryForm missionId={mission.id} title={`Livrer la ${versionLabel(mission.retouch_rounds_used + 1).toLowerCase()}`} />}
+      {mission.status === "retouche" && <DeliveryForm missionId={mission.id} title={t("mission.deliver.version", { version: t("mission.version", { n: mission.retouch_rounds_used + 1 }) })} />}
 
       {(mission.status === "livre" || mission.status === "valide" || mission.status === "verse") &&
         (await listDeliveries(mission.id)).map((d) => (
           <Card key={d.id} className="space-y-2">
-            <SectionLabel>{d.round > 1 ? `Ta ${versionLabel(d.round).toLowerCase()}` : "Ta livraison"}</SectionLabel>
+            <SectionLabel>{d.round > 1 ? t("mission.delivery.version", { version: t("mission.version", { n: d.round }) }) : t("mission.delivery.first")}</SectionLabel>
             <ul className="text-[13.5px] text-ink space-y-1">
               {d.links.map((l) => (
                 <li key={l} className="truncate">{l}</li>
               ))}
             </ul>
             <p className="text-[13.5px] text-ink-muted">
-              {mission.status === "livre" ? "En attente de la validation du restaurateur." : "Livraison validée par le restaurateur."}
+              {mission.status === "livre" ? t("mission.delivery.waiting") : t("mission.delivery.validated")}
             </p>
           </Card>
         ))}
 
       {reviewed && !reviewed.provider_to_restaurant && <ReviewCard audience="provider" url={`/api/prestataire/missions/${mission.id}/review`} />}
-      {reviewed?.provider_to_restaurant && <p className="text-[13.5px] text-ink-muted">Ton avis sur ce restaurateur est enregistré. Merci.</p>}
-      {mission.status === "annule" && !quote && <p className="text-[13.5px] text-ink-muted">Cette mission est annulée.</p>}
+      {reviewed?.provider_to_restaurant && <p className="text-[13.5px] text-ink-muted">{t("mission.reviewDone")}</p>}
+      {mission.status === "annule" && !quote && <p className="text-[13.5px] text-ink-muted">{t("mission.cancelled")}</p>}
       {canCancel("provider", mission.status, mission.metier) &&
         (() => {
           const q = costNow(mission, "provider");
@@ -367,11 +370,11 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
               cancelUrl={`/api/prestataire/missions/${mission.id}/cancel`}
               body={{}}
               reasons={PROVIDER_REASONS}
-              costText={describeCost("provider", q, () => "")}
+              costText={describeCostT(tr, "provider", q, eur)}
               severity={q.band}
-              title="Je ne peux plus venir"
-              extraWarning="Le restaurateur compte sur cette date : il est remboursé en entier, et le jour redevient libre dans ton calendrier."
-              confirmLabel="Annuler le tournage"
+              title={t("mission.cancel.title")}
+              extraWarning={t("mission.cancel.warning")}
+              confirmLabel={t("mission.cancel.confirm")}
             />
           );
         })()}

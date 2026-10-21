@@ -1,8 +1,9 @@
 // English, informal (« you »). The reference language is French (fr.ts): every key is here, or `npm run type-check` fails.
 // Translated by Claude; have a native speaker proofread it before opening to English-speaking users.
-import type { Messages } from "./fr";
+import type { Messages, frBase } from "./fr";
+import { enMission } from "./en-mission";
 
-export const en: Messages = {
+const enBase: Record<keyof typeof frBase, string> = {
   "shell.brand": "Boosteats · provider space",
   "shell.logout": "Log out",
   "shell.nav.label": "Provider space",
@@ -96,3 +97,5 @@ export const en: Messages = {
   "avail.savedExcept.one": "Saved, except {n} day already booked by a restaurateur.",
   "avail.savedExcept.other": "Saved, except {n} days already booked by a restaurateur.",
 };
+
+export const en: Messages = { ...enBase, ...enMission };
