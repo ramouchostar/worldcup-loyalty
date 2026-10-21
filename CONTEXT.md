@@ -566,6 +566,14 @@ _Avoid_ : maquette, épreuve de validation, devis (réservé au prix du prestata
 Un métier sans date de tournage (graphiste, imprimeur) : le restaurateur indique pour quand il veut son travail, le prestataire commence quand il le décide (« Je commence »). Annulation gratuite avant le début, l'acompte reste au prestataire ensuite. S'oppose au **métier de tournage** (vidéaste, photographe), lié par une date.
 _Avoid_ : métier créatif, studio.
 
+**Revenus (du prestataire)** :
+L'écran où le prestataire voit ce qu'il **reçoit** (sa part figée, jamais le prix du devis comme gain) : à venir, en attente d'une décision, à verser, versé. Avant Stripe, Boosteats verse à la main.
+_Avoid_ : gains, salaire, facture (la facture est un autre document).
+
+**Profil (du prestataire)** :
+La fiche que le restaurateur lit avant de confier un brief : ce que le prestataire fait **et ne fait pas**, matériel, zone, langues, exemples de travaux. Sans coordonnées : tout passe par la plateforme.
+_Avoid_ : portfolio (réservé aux exemples de travaux), CV, annonce.
+
 **Demande de modification** :
 Un changement demandé par le restaurateur au brief verrouillé, après l'acceptation du devis et jusqu'à 7 jours avant le tournage. Le prestataire la chiffre (un **supplément**, éventuellement nul) ou la refuse avec sa raison ; le restaurateur accepte ou non. Une à la fois, deux au total ; refus ou silence : le brief d'origine tient.
 _Avoid_ : avenant, changement de dernière minute, retouche (réservé aux tours de retours après la livraison).

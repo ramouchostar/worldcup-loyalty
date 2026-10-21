@@ -236,6 +236,21 @@ personne** (aucun rappel ne signe, n'annule, ne valide ni ne sanctionne) :
 Chaque rappel part **une seule fois** (clé primaire de `mission_reminders`, réservée avant l'envoi). Le jour souhaité n'est
 **pas un engagement** du prestataire : son délai de devis fait foi, et le rappel de retard le dit.
 
+### 5 sexies. Les revenus et le profil du prestataire (amendé le 2026-10-21, PR S)
+
+**Revenus** (`/prestataire/revenus`) : ce que le prestataire **reçoit**, jamais le prix du devis comme gain. Quatre cases, additionnées
+en centimes sur les montants **figés** de la mission (aucune commission recalculée à l'écran) : *à venir* (acceptée, pas encore
+validée), *en attente d'une décision* (litige, ou part d'une annulation non réglée), *à verser* (validée, virement manuel à venir),
+*versé* (ce mois-ci à l'heure de Bruxelles, et au total). Pas d'IBAN ni de Stripe avant l'approbation des associés ; l'écran dit que
+Boosteats verse à la main pendant le pilote.
+
+**Profil** (`/prestataire/profil`, colonne `providers.profile`) : ce que le restaurateur lit avant de confier un brief — ce qu'il fait,
+**ce qu'il ne fait pas** (drone, voix off : dit d'avance, il évite le malentendu), matériel, zone, langues FR/NL/EN, jusqu'à huit
+exemples de travaux (liens https). Même règle que la messagerie : **aucun numéro, e-mail ni lien de messagerie** dans le profil, lu
+par tous les restaurateurs ; l'enregistrement est tout ou rien, chaque refus dit le champ. Le restaurateur le voit sur la page de sa
+mission (« À propos du prestataire ») ; le prestataire peut le prévisualiser tel quel (« Voir comme un restaurateur »). Un profil vide
+n'affiche aucune carte.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
