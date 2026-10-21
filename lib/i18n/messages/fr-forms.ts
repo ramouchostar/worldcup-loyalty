@@ -3,6 +3,7 @@
 export const frForms = {
   // ── Causes d'erreur connues des routes du prestataire ──────
   "err.too_early": "Tu pourras démarrer le jour du tournage.",
+  "err.no_provider": "Aucun prestataire n'est disponible pour ce métier pour le moment. Ton brief est gardé : réessaie bientôt.",
   "err.not_booked": "Cette mission n'a pas de tournage à démarrer.",
   "err.locked": "Le restaurateur a déjà répondu à ton compte-rendu : il ne se modifie plus.",
   "err.not_started": "Démarre d'abord le tournage (« Je suis arrivé »).",

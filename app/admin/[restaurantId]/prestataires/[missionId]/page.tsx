@@ -98,7 +98,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
     return (
       <div className="space-y-4">
         {back}
-        <PageHeader title={t("rest.mission.draftTitle", { metier: t(`metier.${mission.metier}` as MessageKey).toLowerCase() })} subtitle={t("rest.mission.draftSub")} />
+        <PageHeader title={t("rest.mission.draftTitle", { metier: t(`metier.${mission.metier}` as MessageKey).toLowerCase() })} subtitle={t(`rest.mission.draftSub.${mission.metier}` as MessageKey)} />
         <BriefWizard
           restaurantId={restaurantId}
           missionId={mission.id}
