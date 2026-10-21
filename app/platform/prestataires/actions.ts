@@ -8,6 +8,7 @@ import { acceptQuoteByPlatform } from "@/lib/missions-dates";
 import { cancelByPlatform, settleCancellation } from "@/lib/missions-cancel";
 import type { Fault } from "@/lib/mission-cancel-rules";
 import { markPaidOut, openDispute, resolveDispute } from "@/lib/missions-superadmin";
+import { setReviewHidden } from "@/lib/missions-reviews";
 import { RESOLVE_ISSUE_TEXT } from "@/lib/mission-dispute";
 import { SETTINGS_ISSUE_TEXT, saveTerms, validateSettings } from "@/lib/marketplace-settings";
 import { BUDGET_ISSUE_TEXT, saveBudgetConfig, validateBudgets, formatsOf } from "@/lib/marketplace-budgets";
@@ -167,4 +168,13 @@ export async function saveBudgetsAction(metier: Metier, payload: { floorEuros: s
   const ok = await saveBudgetConfig(metier, v.floorCents, v.ambitionCents, userId);
   revalidatePath("/platform/prestataires", "layout");
   return ok ? { ok: true } : { error: "Enregistrement impossible pour le moment : la migration du module est-elle appliquée ?" };
+}
+
+/** Masquer ou rétablir un avis : il sort (ou revient) de la moyenne et des commentaires lus par les restaurateurs. */
+export async function toggleReviewHiddenAction(reviewId: string, hidden: boolean): Promise<{ ok: boolean }> {
+  const userId = await requireSuperAdmin();
+  if (typeof reviewId !== "string" || reviewId.length < 10) return { ok: false };
+  const r = await setReviewHidden(reviewId, hidden, userId);
+  revalidatePath("/platform/prestataires", "layout");
+  return r;
 }

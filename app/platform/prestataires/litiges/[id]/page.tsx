@@ -11,6 +11,8 @@ import { dateLabelFr } from "@/lib/mission-team-message";
 import { SubNav } from "../../SubNav";
 import { listMessages } from "@/lib/missions-messages";
 import { listProofs } from "@/lib/missions-bat-state";
+import { listAllReviews } from "@/lib/missions-reviews";
+import { DIRECTION_LABEL } from "@/lib/mission-reviews";
 import { batChecklist } from "@/lib/mission-print";
 import { batDossier, type DossierProof } from "@/lib/mission-bat-dossier";
 import { OpenDisputeForm, ResolveDisputeForm } from "./DisputeControls";
@@ -44,6 +46,7 @@ export default async function DisputeFilePage({ params }: { params: Promise<{ id
   const { mission: m, restaurantName, providerName, providerWarnings, quote, deliveries, retouches, events } = loaded.file;
   const tpl = await loadTemplate(m.metier);
   const thread = await listMessages(m.id, "platform");
+  const reviewsRes = await listAllReviews(m.id);
   const proofsRes = m.metier === "impression" ? await listProofs(m.id) : null;
   const bat = proofsRes?.ok
     ? batDossier(
@@ -222,6 +225,20 @@ export default async function DisputeFilePage({ params }: { params: Promise<{ id
               ))}
             </>
           )}
+        </section>
+      )}
+
+      {reviewsRes.ok && reviewsRes.reviews.length > 0 && (
+        <section className={`${CARD} p-5 space-y-2`}>
+          <h2 className="font-semibold">Les avis</h2>
+          <ul className="space-y-1.5 text-sm">
+            {reviewsRes.reviews.map((r) => (
+              <li key={r.id}>
+                <span className="text-xs text-gray-500">{DIRECTION_LABEL[r.direction]} · {when(r.createdAt)}{r.hiddenAt ? " · masqué" : ""}</span>
+                <p>{r.rating}/5{r.comment ? ` · ${r.comment}` : ""}</p>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

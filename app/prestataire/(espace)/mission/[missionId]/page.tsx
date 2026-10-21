@@ -30,6 +30,9 @@ import { providerHasAccepted } from "@/lib/missions-rules";
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
 import { MessagesCard } from "@/components/missions/MessagesCard";
+import { ReviewCard } from "@/components/missions/ReviewCard";
+import { reviewedDirections } from "@/lib/missions-reviews";
+import { canReview } from "@/lib/mission-reviews";
 import { listMessages, unreadCounts } from "@/lib/missions-messages";
 import { canWrite as canWriteMessage, contactsUnlocked } from "@/lib/mission-messages";
 import { BatPanel } from "./BatPanel";
@@ -80,6 +83,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   // Les demandes de modification (PR M) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const changesRes = mission.status === "envoye" || mission.status === "devis" ? null : await listChanges(mission.id);
   const commissionBps = changesRes?.ok && changesRes.changes.some((c) => c.status === "proposed") ? (await getTerms()).terms.commissionBps : 0;
+  const reviewed = canReview(mission.status) ? await reviewedDirections(mission.id) : null;
   const proofsRes = mission.metier === "impression" && mission.status === "production" ? await listProofs(mission.id) : null;
   const thread = await listMessages(mission.id, "provider");
   const unread = (await unreadCounts([mission.id], "provider")).get(mission.id) ?? 0;
@@ -352,6 +356,8 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           </Card>
         ))}
 
+      {reviewed && !reviewed.provider_to_restaurant && <ReviewCard audience="provider" url={`/api/prestataire/missions/${mission.id}/review`} />}
+      {reviewed?.provider_to_restaurant && <p className="text-[13.5px] text-ink-muted">Ton avis sur ce restaurateur est enregistré. Merci.</p>}
       {mission.status === "annule" && !quote && <p className="text-[13.5px] text-ink-muted">Cette mission est annulée.</p>}
       {canCancel("provider", mission.status, mission.metier) &&
         (() => {

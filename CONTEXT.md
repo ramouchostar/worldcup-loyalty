@@ -574,6 +574,10 @@ _Avoid_ : gains, salaire, facture (la facture est un autre document).
 La fiche que le restaurateur lit avant de confier un brief : ce que le prestataire fait **et ne fait pas**, matériel, zone, langues, exemples de travaux. Sans coordonnées : tout passe par la plateforme.
 _Avoid_ : portfolio (réservé aux exemples de travaux), CV, annonce.
 
+**Avis (d'une mission)** :
+La note de 1 à 5 (et un mot) donnée une fois la livraison validée. Celle du restaurateur est publique, sans son nom, la moyenne n'apparaît qu'à partir de trois avis ; celle du prestataire est privée, lue par Boosteats seul. Définitif, masquable par la plateforme.
+_Avoid_ : témoignage, review, étoiles (ne pas confondre avec la note Google d'un restaurant).
+
 **Demande de modification** :
 Un changement demandé par le restaurateur au brief verrouillé, après l'acceptation du devis et jusqu'à 7 jours avant le tournage. Le prestataire la chiffre (un **supplément**, éventuellement nul) ou la refuse avec sa raison ; le restaurateur accepte ou non. Une à la fois, deux au total ; refus ou silence : le brief d'origine tient.
 _Avoid_ : avenant, changement de dernière minute, retouche (réservé aux tours de retours après la livraison).

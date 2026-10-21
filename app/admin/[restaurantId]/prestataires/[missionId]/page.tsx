@@ -40,6 +40,9 @@ import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard"
 import { listFiles } from "@/lib/missions-files";
 import { AttachmentList } from "@/components/missions/AttachmentList";
 import { MessagesCard } from "@/components/missions/MessagesCard";
+import { ReviewCard } from "@/components/missions/ReviewCard";
+import { providerReviewSummary, reviewedDirections } from "@/lib/missions-reviews";
+import { canReview } from "@/lib/mission-reviews";
 import { listMessages, unreadCounts } from "@/lib/missions-messages";
 import { canWrite as canWriteMessage, contactsUnlocked } from "@/lib/mission-messages";
 import { BatCard, type ProofView } from "./BatCard";
@@ -175,6 +178,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   // Le bon à tirer (impression) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const proofsRes = mission.metier === "impression" && ["production", "livre", "valide", "verse"].includes(mission.status) ? await listProofs(mission.id) : null;
   const profileRes = mission.provider_id ? await loadProfile(mission.provider_id) : null;
+  const reviewSummary = mission.provider_id ? await providerReviewSummary(mission.provider_id) : null;
+  const reviewed = canReview(mission.status) ? await reviewedDirections(mission.id) : null;
   const batSigned = !!proofsRes?.ok && proofsRes.proofs.some((p) => p.status === "signed");
 
   // Annuler : le devis se décline (carte « Décliner ce devis ») ; le reste s'annule ici, coût dit d'abord.
@@ -184,7 +189,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
     <div className="space-y-6 max-w-xl">
       {back}
       <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
-      {profileRes?.ok && <ProviderProfileCard name={providerName ?? "Le prestataire"} profile={profileRes.profile} />}
+      {profileRes?.ok && <ProviderProfileCard name={providerName ?? "Le prestataire"} profile={profileRes.profile} reviews={reviewSummary} />}
+      {!profileRes?.ok && reviewSummary && <ProviderProfileCard name={providerName ?? "Le prestataire"} profile={null} reviews={reviewSummary} />}
       {proofsRes?.ok && mission.status === "production" && (
         <BatCard
           restaurantId={restaurantId}
@@ -333,6 +339,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           canDecline
         />
       )}
+      {reviewed && !reviewed.restaurant_to_provider && <ReviewCard audience="restaurant" url={`/api/admin/missions/${mission.id}/review`} extra={{ restaurantId }} />}
+      {reviewed?.restaurant_to_provider && <p className="text-[13.5px] text-ink-muted">Ton avis est enregistré. Merci.</p>}
       {cancelQuote && (
         <CancelCard
           cancelUrl={`/api/admin/missions/${mission.id}/cancel`}
