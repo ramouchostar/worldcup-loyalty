@@ -5,7 +5,7 @@ import { requireProviderPage } from "@/lib/providers";
 import { getProviderLocale } from "@/lib/provider-locale";
 import { messagesFor, makeTranslator } from "@/lib/i18n";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
-import { LanguageSelect } from "./LanguageSelect";
+import { LanguageSelect } from "@/components/i18n/LanguageSelect";
 
 export const metadata: Metadata = { title: "Espace prestataire — Boosteats", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function ProviderLayout({ children }: { children: React.Rea
               <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-white/60">{t("shell.brand")}</p>
               <p className="font-display text-[17px] font-bold tracking-[-0.02em] truncate">{provider.display_name}</p>
             </Link>
-            <LanguageSelect current={locale} />
+            <LanguageSelect current={locale} endpoint="/api/prestataire/langue" tone="dark" />
             <form action="/api/auth/logout" method="post">
               <button type="submit" className="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-[13px] text-white/80 hover:text-white hover:bg-white/10">
                 <LogOut className="w-4 h-4" aria-hidden /> {t("shell.logout")}

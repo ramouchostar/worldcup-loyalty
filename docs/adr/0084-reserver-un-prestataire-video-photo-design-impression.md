@@ -342,7 +342,13 @@ Le module parle **français, néerlandais et anglais**. Principes :
   retrouvée **à l'envoi, d'après l'adresse du destinataire** (l'adresse d'un prestataire est unique), jamais passée par chaque appelant ;
   le jour limite est dit dans sa langue (`deadlineDay`, en plus du libellé français pour les anciens appelants). En français, le texte est
   identique à l'ancien (vérifié sur 357 696 combinaisons). Les e-mails du restaurateur et de la plateforme restent en français jusqu'au
-  côté restaurateur. Suivent : le côté restaurateur (espace, e-mails), puis les règles du jeu une fois validées par le juriste.
+  côté restaurateur ; (6) **le côté restaurateur, par étapes** : sa langue (colonne `profiles.locale`, nullable, **une langue par personne**,
+  choisie depuis un sélecteur en haut des pages « Prestataires » ; lue à part des gardes d'accès), un fournisseur de langue propre à ces
+  pages, puis la liste, le suivi d'une mission, le devis reçu, les annulations (les cartes partagées avec le prestataire prennent la
+  langue de celui qui les lit). **La console autour reste en français** : traduire seulement ces pages donne un restaurateur
+  néerlandophone qui lit un morceau en néerlandais dans une console française ; la console entière est un autre chantier. Suivent : l'assistant de brief, les
+  cartes du jour J, des idées, du bon à tirer et des modifications, puis les e-mails du restaurateur, puis les règles du jeu une fois
+  validées par le juriste.
 
 ### 6. États d'une mission
 

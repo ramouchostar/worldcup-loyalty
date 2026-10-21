@@ -2,8 +2,9 @@ import { Check } from "lucide-react";
 import { Card, PageHeader, SectionLabel, StatusBadge } from "@/components/admin/ui";
 import type { BriefTemplate } from "@/lib/mission-brief";
 import type { MissionRow } from "@/lib/missions";
-import { METIER_LABELS, STATUS_VIEW, briefHeadline, briefRows, timeline } from "@/lib/mission-view";
-import { hasShoot, providerLabel } from "@/lib/mission-metier";
+import { STATUS_VIEW, briefHeadline, briefRows, timeline } from "@/lib/mission-view";
+import { hasShoot } from "@/lib/mission-metier";
+import { LOCALE_TAG, type MessageKey, type Translator } from "@/lib/i18n/core";
 
 // ADR 0084 — le suivi d'une mission envoyée : la frise (où ça en est, en mots
 // de restaurateur) et le brief verrouillé tel que le prestataire l'a reçu.
@@ -12,29 +13,33 @@ export function MissionTracker({
   mission,
   template,
   providerName,
+  tr,
 }: {
   mission: Pick<MissionRow, "metier" | "status" | "brief" | "brief_locked_at"> & Partial<Pick<MissionRow, "cancelled_by" | "cancellation_note">>;
   template: BriefTemplate;
   providerName: string | null;
+  /** La langue du restaurateur. */
+  tr: Translator;
 }) {
+  const { t, locale } = tr;
   const view = STATUS_VIEW[mission.status];
   const tl = timeline(mission.status, mission.metier);
-  const who = providerLabel(mission.metier, providerName);
-  const rows = briefRows(mission.brief ?? {}, template);
+  const who = providerName ?? t(`rest.whoCap.${mission.metier}` as MessageKey);
+  const rows = briefRows(mission.brief ?? {}, template, "brief", locale);
   const lockedOn = mission.brief_locked_at
-    ? new Date(mission.brief_locked_at).toLocaleDateString("fr-BE", { day: "numeric", month: "long", timeZone: "Europe/Brussels" })
+    ? new Date(mission.brief_locked_at).toLocaleDateString(LOCALE_TAG[locale], { day: "numeric", month: "long", timeZone: "Europe/Brussels" })
     : null;
 
   return (
     <>
       <PageHeader
-        title={`${METIER_LABELS[mission.metier]}${briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : ""}`}
-        subtitle={providerName ? `avec ${providerName}` : undefined}
-        action={<StatusBadge tone={view.tone}>{view.label}</StatusBadge>}
+        title={`${t(`metier.${mission.metier}` as MessageKey)}${briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : ""}`}
+        subtitle={providerName ? t("rest.tracker.with", { name: providerName }) : undefined}
+        action={<StatusBadge tone={view.tone}>{t(`status.restaurant.${mission.status}` as MessageKey)}</StatusBadge>}
       />
 
       <Card className="space-y-4">
-        <SectionLabel>Où en est ta mission</SectionLabel>
+        <SectionLabel>{t("rest.tracker.where")}</SectionLabel>
         <ol className="space-y-3">
           {tl.steps.map((s) => (
             <li key={s.key} className="flex items-center gap-3">
@@ -47,44 +52,42 @@ export function MissionTracker({
                 {s.state === "done" && <Check className="w-3.5 h-3.5" />}
               </span>
               <span className={`text-[14px] ${s.state === "todo" ? "text-ink-faint" : "text-ink font-semibold"}`}>
-                {s.label}
-                {s.state === "current" && <span className="sr-only"> (étape en cours)</span>}
+                {t(`rest.tl.${s.key === "production" && !hasShoot(mission.metier) ? "creation" : s.key}` as MessageKey)}
+                {s.state === "current" && <span className="sr-only">{t("rest.tracker.current")}</span>}
               </span>
             </li>
           ))}
         </ol>
         {mission.status === "devis" && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
-            {who} t&apos;a envoyé son devis : lis-le plus bas.{hasShoot(mission.metier) ? " La date du tournage se choisit après son acceptation." : " Le travail commence après son acceptation."}
+            {t("rest.tracker.devis", { who, next: t(hasShoot(mission.metier) ? "rest.tracker.devis.shoot" : "rest.tracker.devis.studio") })}
           </p>
         )}
         {mission.status === "accepte" && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
-            {hasShoot(mission.metier) ? "Devis accepté. Choisis maintenant ta date de tournage plus bas." : `Devis accepté. ${who} va commencer : tu seras prévenu par e-mail. Tant qu'il n'a pas commencé, tu peux annuler sans frais.`}
+            {hasShoot(mission.metier) ? t("rest.tracker.accepte.shoot") : t("rest.tracker.accepte.studio", { who })}
           </p>
         )}
         {mission.status === "envoye" && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
-            {who} lit ton brief et te répond avec un devis. Son prix sera ferme. Tu ne paies rien tant que tu n&apos;as pas accepté.
+            {t("rest.tracker.envoye", { who })}
           </p>
         )}
         {tl.stopped && (
           <p className="text-[13.5px] text-ink-muted border-t border-paper-border pt-3">
             {mission.status === "annule" && mission.cancelled_by === "provider"
-              ? `${who} ne peut pas faire cette mission${mission.cancellation_note ? ` : ${mission.cancellation_note}` : ""}. Rien n'a été payé : tu peux faire un nouveau brief.`
+              ? t("rest.tracker.cancelledByProvider", { who, note: mission.cancellation_note ? t("rest.tracker.cancelledByProvider.note", { note: mission.cancellation_note }) : "" })
               : mission.status === "annule" && mission.cancelled_by === "restaurant"
-                ? "Tu as annulé cette mission. Rien n'a été payé."
-                : `Cette mission est arrêtée : ${view.label.toLowerCase()}.`}
+                ? t("rest.tracker.cancelledByYou")
+                : t("rest.tracker.stopped", { status: t(`status.restaurant.${mission.status}` as MessageKey).toLowerCase() })}
           </p>
         )}
       </Card>
 
       <Card padding="p-0">
         <div className="px-5 pt-4">
-          <SectionLabel>Ton brief</SectionLabel>
-          <p className="text-ink-muted text-[13px] mt-1">
-            Verrouillé{lockedOn ? ` le ${lockedOn}` : ""}. Un changement passe par une demande de modification.
-          </p>
+          <SectionLabel>{t("rest.tracker.brief")}</SectionLabel>
+          <p className="text-ink-muted text-[13px] mt-1">{t("rest.tracker.locked", { on: lockedOn ? t("rest.tracker.lockedOn", { date: lockedOn }) : "" })}</p>
         </div>
         <dl className="mt-2">
           {rows.map((r, i) => (

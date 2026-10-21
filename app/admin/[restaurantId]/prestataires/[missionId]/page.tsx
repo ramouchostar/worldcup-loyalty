@@ -5,8 +5,9 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
 import { getMission, getProviderName, loadTemplate, marketplaceEnabled } from "@/lib/missions";
 import { stepsFor } from "@/lib/mission-brief";
-import { hasShoot, providerLabel } from "@/lib/mission-metier";
-import { METIER_LABELS } from "@/lib/mission-view";
+import { hasShoot } from "@/lib/mission-metier";
+import { getUserLocale } from "@/lib/user-locale";
+import { dayLabel, formatEurosL, getT, type MessageKey } from "@/lib/i18n";
 import { EmptyState, PageHeader } from "@/components/admin/ui";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { BriefWizard } from "./BriefWizard";
@@ -22,8 +23,8 @@ import { restaurantView } from "@/lib/mission-quote";
 import { ShootPlanner } from "./ShootPlanner";
 import { CancelCard } from "@/components/missions/CancelCard";
 import { costNow } from "@/lib/missions-cancel";
-import { RESTAURANT_REASONS, canCancel, describeCost } from "@/lib/mission-cancel-rules";
-import { formatEuros, priceBreakdown } from "@/lib/mission-money";
+import { RESTAURANT_REASONS, canCancel, describeCostT } from "@/lib/mission-cancel-rules";
+import { priceBreakdown } from "@/lib/mission-money";
 import { DeliveryReview, ReportReview, type ReportView } from "./DayOfReview";
 import { listDeliveries, listRetouches } from "@/lib/missions-dayof";
 import { RetouchForm } from "./RetouchForm";
@@ -33,7 +34,7 @@ import { loadBlocked } from "@/lib/missions-dates";
 import { buildCalendar, teamNoticeState } from "@/lib/mission-dates";
 import { judgeConfirm } from "@/lib/mission-reminders";
 import { PresenceCard } from "@/components/missions/PresenceCard";
-import { conceptMessage, dateLabelFr, teamMessage } from "@/lib/mission-team-message";
+import { conceptMessage, teamMessage } from "@/lib/mission-team-message";
 import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals-state";
 import { judgeReject } from "@/lib/mission-proposals";
 import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard";
@@ -62,14 +63,18 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   if (!user) redirect("/login");
   const access = await getAdminAccess(user.id, restaurantId);
   if (!marketplaceEnabled(access.isSuperAdmin)) notFound();
+  const locale = await getUserLocale(user.id);
+  const tr = getT(locale);
+  const { t } = tr;
+  const eur = (cents: number) => formatEurosL(cents, locale);
 
   const found = await getMission(missionId, restaurantId);
   if (!found.ok) {
     return (
       <div className="space-y-6 max-w-xl">
-        <PageHeader title="Prestataires" />
-        <EmptyState icon={Hourglass} title="Le service n'est pas encore ouvert">
-          Reviens bientôt : on finit de le mettre en place.
+        <PageHeader title={t("rest.list.title")} />
+        <EmptyState icon={Hourglass} title={t("mission.notOpen.title")}>
+          {t("mission.notOpen.body")}
         </EmptyState>
       </div>
     );
@@ -80,9 +85,11 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const tpl = await loadTemplate(mission.metier);
   if (!tpl) notFound();
   const providerName = await getProviderName(mission.provider_id);
+  // Le nom du prestataire, ou « le vidéaste » / « le graphiste »… dans les mots du restaurateur.
+  const fallbackName = providerName ?? t(`rest.whoCap.${mission.metier}` as MessageKey);
   const back = (
     <Link href={`/admin/${restaurantId}/prestataires`} className="inline-flex items-center gap-1 text-[13px] text-ink-muted hover:text-ink min-h-[44px]">
-      <ChevronLeft className="w-4 h-4" aria-hidden /> Prestataires
+      <ChevronLeft className="w-4 h-4" aria-hidden /> {t("rest.back")}
     </Link>
   );
 
@@ -91,7 +98,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
     return (
       <div className="space-y-4">
         {back}
-        <PageHeader title={`Ton brief ${METIER_LABELS[mission.metier].toLowerCase()}`} subtitle="Dis-nous ce que tu veux filmer. Quelques questions, et tout se sauvegarde tout seul." />
+        <PageHeader title={t("rest.mission.draftTitle", { metier: t(`metier.${mission.metier}` as MessageKey).toLowerCase() })} subtitle={t("rest.mission.draftSub")} />
         <BriefWizard
           restaurantId={restaurantId}
           missionId={mission.id}
@@ -188,14 +195,14 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   return (
     <div className="space-y-6 max-w-xl">
       {back}
-      <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
-      {profileRes?.ok && <ProviderProfileCard name={providerName ?? "Le prestataire"} profile={profileRes.profile} reviews={reviewSummary} />}
-      {!profileRes?.ok && reviewSummary && <ProviderProfileCard name={providerName ?? "Le prestataire"} profile={null} reviews={reviewSummary} />}
+      <MissionTracker mission={mission} template={tpl.template} providerName={providerName} tr={tr} />
+      {profileRes?.ok && <ProviderProfileCard name={fallbackName} profile={profileRes.profile} reviews={reviewSummary} tr={tr} />}
+      {!profileRes?.ok && reviewSummary && <ProviderProfileCard name={fallbackName} profile={null} reviews={reviewSummary} tr={tr} />}
       {proofsRes?.ok && mission.status === "production" && (
         <BatCard
           restaurantId={restaurantId}
           missionId={mission.id}
-          providerName={providerLabel(mission.metier, providerName)}
+          providerName={fallbackName}
           phase={batPhase(proofsRes.proofs)}
           proofs={proofsRes.proofs.map((p): ProofView => ({ id: p.id, round: p.round, status: p.status, links: p.links, message: p.message, corrections: p.corrections, signedName: p.signed_name, signedAt: p.signed_at }))}
           checklist={batChecklist(mission.brief)}
@@ -205,22 +212,22 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
       )}
       {!hasShoot(mission.metier) && !(mission.metier === "impression" && mission.status === "production" && proofsRes?.ok) && (mission.status === "accepte" || mission.status === "production") && (
         <Card className="space-y-1">
-          <SectionLabel>{mission.status === "accepte" ? "Bientôt au travail" : "En cours de création"}</SectionLabel>
+          <SectionLabel>{mission.status === "accepte" ? t("rest.mission.soon") : t("rest.mission.inCreation")}</SectionLabel>
           <p className="text-[13.5px] text-ink-muted">
-            {mission.status === "accepte" ? `${providerLabel(mission.metier, providerName)} va commencer. Tu seras prévenu par e-mail dès qu'il s'y met, puis à la livraison.` : `${providerLabel(mission.metier, providerName)} travaille sur ton brief. Tu seras prévenu à la livraison : tu auras alors deux tours de retours.`}
-            {typeof mission.brief?.deadline === "string" ? ` Livraison souhaitée : ${dateLabelFr(mission.brief.deadline)}.` : ""}
+            {mission.status === "accepte" ? t("rest.mission.soonBody", { who: fallbackName }) : t("rest.mission.inCreationBody", { who: fallbackName })}
+            {typeof mission.brief?.deadline === "string" ? t("rest.mission.wishedDelivery", { date: dayLabel(mission.brief.deadline, locale) }) : ""}
           </p>
         </Card>
       )}
       {files.some((f) => f.scope === "brief") && (
         <Card className="space-y-2">
-          <SectionLabel>Pièces jointes du brief</SectionLabel>
-          <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} query={filesQuery} />
+          <SectionLabel>{t("rest.mission.briefFiles")}</SectionLabel>
+          <AttachmentList locale={locale} files={files.filter((f) => f.scope === "brief")} base={filesBase} query={filesQuery} />
         </Card>
       )}
       <MessagesCard
         me="restaurant"
-        otherName={providerLabel(mission.metier, providerName)}
+        otherName={fallbackName}
         messages={thread}
         sendUrl={`/api/admin/missions/${mission.id}/messages`}
         readUrl={`/api/admin/missions/${mission.id}/messages/read`}
@@ -262,33 +269,33 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
         <RetouchForm restaurantId={restaurantId} missionId={mission.id} categories={categoriesFor(mission.metier)} roundsLeft={retouch.left} withTimecode={mission.metier === "video"} />
       )}
       {mission.status === "livre" && !retouch.can && retouch.reason === "print" && (
-        <p className="text-[13.5px] text-ink-muted">Les corrections se font sur le bon à tirer, avant l&apos;impression. Si ce que tu reçois ne correspond pas à ce que tu as signé, écris à Boosteats.</p>
+        <p className="text-[13.5px] text-ink-muted">{t("rest.mission.printRetouch")}</p>
       )}
       {mission.status === "livre" && !retouch.can && retouch.reason === "no_rounds_left" && (
-        <p className="text-[13.5px] text-ink-muted">Tu as utilisé tes deux tours de retours : tu peux valider la livraison, ou écrire à Boosteats.</p>
+        <p className="text-[13.5px] text-ink-muted">{t("rest.mission.noRounds")}</p>
       )}
       {mission.status === "retouche" && (
         <Card className="space-y-2">
-          <SectionLabel>Retouche en cours</SectionLabel>
-          <p className="text-[13.5px] text-ink-muted">{providerName ?? "Le prestataire"} a reçu tes remarques ({retouches.at(-1)?.notes.length ?? 0}) et te livre la version suivante. Tu seras prévenu par e-mail.</p>
+          <SectionLabel>{t("rest.mission.retouchRunning")}</SectionLabel>
+          <p className="text-[13.5px] text-ink-muted">{t("rest.mission.retouchRunningBody", { name: fallbackName, count: retouches.at(-1)?.notes.length ?? 0 })}</p>
         </Card>
       )}
       {mission.status === "accepte" && calendar && <ShootPlanner restaurantId={restaurantId} missionId={mission.id} providerName={providerName} days={calendar} />}
-      {calendarDown && <p className="text-[13.5px] text-ink-muted">Le calendrier n&apos;est pas disponible pour le moment. Réessaie dans un instant.</p>}
+      {calendarDown && <p className="text-[13.5px] text-ink-muted">{t("rest.mission.calendarDown")}</p>}
       {hasDate && teamMsg && (
         <>
           <Card className="space-y-1">
-            <SectionLabel>Ton tournage</SectionLabel>
-            <p className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">{dateLabelFr(mission.shoot_date!)} à {mission.shoot_start}</p>
-            <p className="text-[13.5px] text-ink-muted">avec {providerName ?? "ton prestataire"} · contact sur place : {[contact.name, contact.phone].filter(Boolean).join(" · ") || "à confirmer"}</p>
+            <SectionLabel>{t("rest.mission.shoot")}</SectionLabel>
+            <p className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">{t("rest.mission.shootWhen", { date: dayLabel(mission.shoot_date!, locale), time: mission.shoot_start ?? "" })}</p>
+            <p className="text-[13.5px] text-ink-muted">{t("rest.mission.shootWith", { name: providerName ?? t("rest.mission.yourProvider"), contact: [contact.name, contact.phone].filter(Boolean).join(" · ") || t("rest.mission.contactTbd") })}</p>
           </Card>
           {pview && pstate?.ok && (pview.phase === "choose" || pview.phase === "choose_second") && pview.deadline && (
             <ProposalsChoose
               restaurantId={restaurantId}
               missionId={mission.id}
               ideas={pview.current.map(toIdea)}
-              providerName={providerName ?? "Le prestataire"}
-              deadlineLabel={dateLabelFr(pview.deadline.day)}
+              providerName={fallbackName}
+              deadlineLabel={dayLabel(pview.deadline.day, locale)}
               canReject={judgeReject(rulesState(mission, pstate.state), today) === "ok"}
               second={pview.phase === "choose_second"}
               filesBase={filesBase}
@@ -297,9 +304,9 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           )}
           {pview && (pview.phase === "awaiting_proposals" || pview.phase === "awaiting_second") && pview.deadline && (
             <Card className="space-y-1">
-              <SectionLabel>Ton idée de tournage</SectionLabel>
+              <SectionLabel>{t("rest.mission.ideaTitle")}</SectionLabel>
               <p className="text-[13.5px] text-ink-muted">
-                {providerName ?? "Le prestataire"} prépare {pview.phase === "awaiting_second" ? "une nouvelle série d'idées, d'après tes raisons" : "ses idées de tournage"} : tu les recevras par e-mail, avant {dateLabelFr(pview.deadline.day)}.
+                {t("rest.mission.ideaPreparing", { name: fallbackName, what: t(pview.phase === "awaiting_second" ? "rest.mission.ideaWhat.second" : "rest.mission.ideaWhat.first"), date: dayLabel(pview.deadline.day, locale) })}
               </p>
             </Card>
           )}
@@ -320,7 +327,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
               verdict={judgeConfirm(mission.shoot_date, today)}
               selfConfirmed={!!mission.j2_confirmed_restaurant_at}
               otherConfirmed={!!mission.j2_confirmed_provider_at}
-              otherName={providerName ?? "Le prestataire"}
+              otherName={fallbackName}
             />
           )}
           {mission.status === "date_bloquee" && (
@@ -340,16 +347,16 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
         />
       )}
       {reviewed && !reviewed.restaurant_to_provider && <ReviewCard audience="restaurant" url={`/api/admin/missions/${mission.id}/review`} extra={{ restaurantId }} />}
-      {reviewed?.restaurant_to_provider && <p className="text-[13.5px] text-ink-muted">Ton avis est enregistré. Merci.</p>}
+      {reviewed?.restaurant_to_provider && <p className="text-[13.5px] text-ink-muted">{t("rest.mission.reviewDone")}</p>}
       {cancelQuote && (
         <CancelCard
           cancelUrl={`/api/admin/missions/${mission.id}/cancel`}
           body={{ restaurantId }}
           reasons={RESTAURANT_REASONS}
-          costText={describeCost("restaurant", cancelQuote, formatEuros)}
+          costText={describeCostT(tr, "restaurant", cancelQuote, eur)}
           severity={cancelQuote.band}
-          title={mission.status === "envoye" ? "Retirer ma demande" : "Annuler cette mission"}
-          confirmLabel="Annuler la mission"
+          title={mission.status === "envoye" ? t("rest.mission.cancelWithdraw") : t("rest.mission.cancelTitle")}
+          confirmLabel={t("rest.mission.cancelConfirm")}
         />
       )}
     </div>
