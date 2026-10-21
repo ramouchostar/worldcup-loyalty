@@ -5,7 +5,7 @@ import { PROVIDER_BRAND_LINE } from "./provider-invite";
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
 // montant (le prix dépend du plan) et jamais le contenu d'un compte-rendu (c'est dans l'espace).
 
-export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "work_started" | "message_received" | "bat_submitted" | "bat_corrections" | "bat_signed" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
+export type MissionUpdateKind = "report_submitted" | "delivered" | "validated" | "report_contested" | "retouch_requested" | "validation_reminder" | "auto_validated" | "cancelled" | "dispute_opened" | "dispute_resolved" | "paid_out" | "proposals_received" | "proposals_again" | "proposal_chosen" | "proposal_auto" | "proposals_due" | "proposals_choose" | "proposals_missing" | "work_started" | "studio_start" | "studio_start_late" | "studio_deliver" | "studio_overdue" | "bat_review" | "bat_review_again" | "bat_corrections_due" | "message_received" | "bat_submitted" | "bat_corrections" | "bat_signed" | "change_requested" | "change_quoted" | "change_provider_declined" | "change_accepted" | "change_restaurant_declined" | "change_withdrawn" | "change_expired";
 
 export type MissionUpdateInput = {
   kind: MissionUpdateKind;
@@ -102,6 +102,70 @@ function copyFor(i: MissionUpdateInput): Copy {
         paragraphs: [i.audience === "provider" ? `${i.restaurantName} n'a pas répondu en 7 jours malgré deux rappels : la livraison est validée et Boosteats prépare ton versement.` : `Tu n'as pas répondu en 7 jours malgré deux rappels : la livraison de ${i.providerName} est validée et la mission est terminée.`],
         cta: "Voir la mission",
         note: "Un doute ? Écris à Boosteats.",
+      };
+    case "studio_start":
+      return {
+        subject: `${i.restaurantName} attend que tu commences`,
+        preheader: i.deadlineLabel ? `Livraison souhaitée : ${i.deadlineLabel}.` : "Touche « Je commence » quand tu démarres.",
+        title: "Tu n'as pas encore commencé",
+        paragraphs: [`Le devis de ${i.restaurantName} est accepté${i.deadlineLabel ? ` et il souhaite son travail pour ${i.deadlineLabel}` : ""}. Touche « Je commence » dès que tu démarres : tant que tu ne l'as pas fait, il peut encore annuler sans frais.`, "Si tu ne peux pas tenir ce jour, dis-le-lui dans la messagerie plutôt que de te taire."],
+        cta: "Ouvrir la mission",
+        note: "Un rappel ne change rien à ta mission : il te prévient, c'est tout.",
+      };
+    case "studio_start_late":
+      return {
+        subject: `Pas encore commencé : ${i.providerName} chez ${i.restaurantName}`,
+        preheader: i.deadlineLabel ? `Livraison souhaitée : ${i.deadlineLabel}.` : "Le jour souhaité approche.",
+        title: "Le travail n'a pas commencé",
+        paragraphs: [`${i.providerName} n'a toujours pas commencé le travail de ${i.restaurantName}${i.deadlineLabel ? `, attendu pour ${i.deadlineLabel}` : ""}. Appelle le prestataire : s'il ne peut pas tenir le jour, le restaurateur doit le savoir avant, pas après.`],
+        cta: "Voir la mission",
+        note: "Rien n'est annulé ni sanctionné automatiquement : c'est à toi de décider.",
+      };
+    case "studio_deliver":
+      return {
+        subject: `${i.restaurantName} attend ta livraison`,
+        preheader: i.deadlineLabel ? `Livraison souhaitée : ${i.deadlineLabel}.` : "La livraison souhaitée approche.",
+        title: "La livraison souhaitée approche",
+        paragraphs: [`${i.restaurantName} souhaite son travail pour ${i.deadlineLabel ?? "bientôt"}. Si tu es dans les temps, tu n'as rien à faire de plus que livrer ; sinon, préviens-le dans la messagerie.`],
+        cta: "Ouvrir la mission",
+        note: "Un rappel ne change rien à ta mission.",
+      };
+    case "studio_overdue":
+      return i.audience === "platform"
+        ? {
+            subject: `Jour souhaité dépassé : ${i.providerName} chez ${i.restaurantName}`,
+            preheader: "Le travail n'est pas livré et le jour souhaité est passé.",
+            title: "Un travail est en retard",
+            paragraphs: [`${i.providerName} n'a pas livré le travail de ${i.restaurantName}${i.deadlineLabel ? ` attendu pour ${i.deadlineLabel}` : ""}. Appelle les deux parties : un retard sans nouvelle est la première cause de désaccord.`],
+            cta: "Voir la mission",
+            note: "Rien n'est sanctionné automatiquement : le jour souhaité n'est pas un engagement, le délai du devis fait foi.",
+          }
+        : {
+            subject: `Le jour souhaité par ${i.restaurantName} est passé`,
+            preheader: "Dis-lui où tu en es.",
+            title: "Ta livraison est en retard",
+            paragraphs: [`${i.restaurantName} attendait son travail${i.deadlineLabel ? ` pour ${i.deadlineLabel}` : ""}. Livre dès que possible, ou dis-lui dans la messagerie quand ce sera prêt : un retard annoncé se règle, un retard silencieux se transforme en litige.`],
+            cta: "Ouvrir la mission",
+            note: "Le délai de ton devis fait foi ; le jour souhaité ne t'engage pas.",
+          };
+    case "bat_review":
+    case "bat_review_again":
+      return {
+        subject: i.kind === "bat_review" ? `Ton bon à tirer t'attend` : `Ton bon à tirer attend toujours ta réponse`,
+        preheader: "Signe-le ou demande des corrections : rien n'est imprimé sans toi.",
+        title: i.kind === "bat_review" ? "Ton épreuve attend ta réponse" : "Ton épreuve n'a toujours pas de réponse",
+        paragraphs: [`${i.providerName} t'a envoyé l'épreuve de ton impression et attend ta réponse pour imprimer. Vérifie-la point par point, puis signe-la ou demande des corrections.`, "Rien ne sera imprimé tant que tu n'as pas signé, et rien ne se signe tout seul."],
+        cta: "Voir l'épreuve",
+        note: "Une fois signée, c'est exactement ce qui sera imprimé : prends le temps de bien vérifier.",
+      };
+    case "bat_corrections_due":
+      return {
+        subject: `${i.restaurantName} attend ton épreuve corrigée`,
+        preheader: "Ses corrections sont dans l'espace.",
+        title: "Des corrections t'attendent",
+        paragraphs: [`${i.restaurantName} t'a envoyé ses corrections sur l'épreuve et attend la nouvelle version pour signer. Corrige-les, puis envoie une nouvelle épreuve.`],
+        cta: "Lire les corrections",
+        note: "Après la troisième épreuve, il ne reste qu'à signer.",
       };
     case "message_received":
       return {
