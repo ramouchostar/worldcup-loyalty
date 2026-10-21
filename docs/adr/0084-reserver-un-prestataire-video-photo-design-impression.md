@@ -250,6 +250,13 @@ exemples de travaux (liens https). Même règle que la messagerie : **aucun num�
 par tous les restaurateurs ; l'enregistrement est tout ou rien, chaque refus dit le champ. Le restaurateur le voit sur la page de sa
 mission (« À propos du prestataire ») ; le prestataire peut le prévisualiser tel quel (« Voir comme un restaurateur »). Un profil vide
 n'affiche aucune carte.
+### 5 septies. Le bon à tirer dans le dossier de litige (amendé le 2026-10-21, PR T)
+
+Pour une impression, le dossier de la plateforme montre le bon à tirer **tel que l'arbitre doit le lire** : chaque épreuve (tour,
+date d'envoi, liens, message de l'imprimeur, corrections demandées une à une) et, si elle est signée, **qui a signé, quand, et chaque
+point de la liste de contrôle coché ou non** (un point non coché est en rouge). Une phrase de tête dit où en est le dossier (aucune
+épreuve · en attente · corrections · signée). Lecture seule : le dossier n'ajoute aucune règle, la décision reste à l'arbitre ; une
+épreuve signée garde le sens de §5 ter (c'est ce qui devait être imprimé).
 
 ### 6. États d'une mission
 
