@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { acceptQuote, cancelAsPlatform, inviteProvider, reissueInvite, settleCancellationAction, toggleProviderStatus, type InviteActionResult } from "./actions";
 import { FAULT_LABELS, type Fault } from "@/lib/mission-cancel-rules";
+import { LOCALES, LOCALE_LABEL } from "@/lib/i18n/core";
 
 const INPUT = "w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2.5 py-1.5 text-sm";
 const BTN = "rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold text-xs px-3 py-2 disabled:opacity-50";
@@ -61,6 +62,16 @@ export function InviteForm() {
           <input name="email" type="email" required placeholder="studio@exemple.be" className={INPUT} />
         </label>
       </div>
+      <label className="block space-y-1 text-xs font-medium sm:max-w-xs">
+        Langue de son espace et de ses e-mails
+        <select name="locale" defaultValue="fr" className={INPUT}>
+          {LOCALES.map((l) => (
+            <option key={l} value={l}>
+              {LOCALE_LABEL[l]}
+            </option>
+          ))}
+        </select>
+      </label>
       <fieldset className="flex flex-wrap gap-4 text-sm">
         <legend className="text-xs font-medium mb-1">Métiers</legend>
         {METIERS.map(([value, label]) => (

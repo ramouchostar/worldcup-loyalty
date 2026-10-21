@@ -8,6 +8,8 @@ import { isValidInviteToken } from "./provider-invite-token";
 import { judgeInvite, normalizeEmail, type InviteVerdict } from "./provider-invite-rules";
 import type { Metier } from "./mission-money";
 import { SITE_ORIGIN } from "@/lib/site";
+import { isLocale } from "./i18n/core";
+import { saveProviderLocale } from "./provider-locale";
 
 // ============================================================
 // Réserver un prestataire (ADR 0084, PR D) — le prestataire, son accès, son invitation.
@@ -148,6 +150,8 @@ export async function createProvider(input: {
   displayName: string;
   metiers: string[];
   createdBy: string;
+  /** La langue de son espace et de ses e-mails (fr par défaut). Écrite à part : sans la migration 20261021-1300, le prestataire est créé quand même. */
+  locale?: string;
 }): Promise<{ ok: true; provider: ProviderRow } | { ok: false; error: string }> {
   const email = normalizeEmail(input.email);
   const displayName = input.displayName.trim().slice(0, 120);
@@ -166,6 +170,7 @@ export async function createProvider(input: {
       if (isMissingTable(error)) return { ok: false, error: "Le module n'est pas encore disponible : applique d'abord les migrations." };
       throw error;
     }
+    if (isLocale(input.locale) && input.locale !== "fr") await saveProviderLocale((data as ProviderRow).id, input.locale);
     return { ok: true, provider: data as ProviderRow };
   } catch (e) {
     console.error("[providers] createProvider failed:", (e as Error).message);

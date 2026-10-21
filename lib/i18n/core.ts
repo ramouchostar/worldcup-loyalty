@@ -50,7 +50,7 @@ export type Translator = {
   err: (body: { reason?: unknown; error?: unknown } | null | undefined, fallback: MessageKey) => string;
 };
 
-export type CanonKind = "included" | "refuse" | "cancel" | "report" | "changeRefuse";
+export type CanonKind = "included" | "refuse" | "cancel" | "report" | "changeRefuse" | "language";
 
 export function makeTranslator(locale: Locale, messages: Messages): Translator {
   const t = (key: MessageKey, vars?: Vars) => interpolate(messages[key] ?? fr[key] ?? key, vars);

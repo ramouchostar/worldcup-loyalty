@@ -38,6 +38,7 @@ export async function inviteProvider(_prev: InviteActionResult | null, formData:
     displayName: String(formData.get("name") ?? ""),
     metiers: formData.getAll("metiers").map(String),
     createdBy: userId,
+    locale: String(formData.get("locale") ?? "fr"),
   });
   if (!created.ok) return { error: created.error };
 
