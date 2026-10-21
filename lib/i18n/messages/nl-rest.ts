@@ -94,7 +94,10 @@ export const nlRest: Record<keyof typeof frRest, string> = {
   "rest.quote.declineDo": "Weigeren",
 
   "rest.mission.draftTitle": "Je briefing {metier}",
-  "rest.mission.draftSub": "Zeg ons wat je wilt laten filmen. Een paar vragen, en alles wordt vanzelf bewaard.",
+  "rest.mission.draftSub.video": "Zeg ons wat je wilt laten filmen. Een paar vragen, en alles wordt vanzelf bewaard.",
+  "rest.mission.draftSub.photo": "Zeg ons wat je wilt laten fotograferen. Een paar vragen, en alles wordt vanzelf bewaard.",
+  "rest.mission.draftSub.design": "Zeg ons wat je wilt laten ontwerpen. Een paar vragen, en alles wordt vanzelf bewaard.",
+  "rest.mission.draftSub.impression": "Zeg ons wat je wilt laten drukken. Een paar vragen, en alles wordt vanzelf bewaard.",
   "rest.mission.soon": "Bijna aan het werk",
   "rest.mission.inCreation": "In uitvoering",
   "rest.mission.soonBody": "{who} gaat beginnen. Je krijgt een e-mail zodra het werk start, en nog een bij de levering.",

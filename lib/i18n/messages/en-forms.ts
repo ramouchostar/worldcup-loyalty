@@ -3,6 +3,7 @@ import type { frForms } from "./fr-forms";
 
 export const enForms: Record<keyof typeof frForms, string> = {
   "err.too_early": "You can start on the day of the shoot.",
+  "err.no_provider": "No provider is available for this trade right now. Your brief is saved: try again soon.",
   "err.not_booked": "This job has no shoot to start.",
   "err.locked": "The restaurateur has already answered your report: it can no longer be changed.",
   "err.not_started": "Start the shoot first (“I've arrived”).",

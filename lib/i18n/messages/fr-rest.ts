@@ -101,7 +101,10 @@ export const frRest = {
 
   // ── Page d'une mission (restaurateur) ──────────────────────
   "rest.mission.draftTitle": "Ton brief {metier}",
-  "rest.mission.draftSub": "Dis-nous ce que tu veux filmer. Quelques questions, et tout se sauvegarde tout seul.",
+  "rest.mission.draftSub.video": "Dis-nous ce que tu veux filmer. Quelques questions, et tout se sauvegarde tout seul.",
+  "rest.mission.draftSub.photo": "Dis-nous ce que tu veux photographier. Quelques questions, et tout se sauvegarde tout seul.",
+  "rest.mission.draftSub.design": "Dis-nous ce que tu veux faire créer. Quelques questions, et tout se sauvegarde tout seul.",
+  "rest.mission.draftSub.impression": "Dis-nous ce que tu veux faire imprimer. Quelques questions, et tout se sauvegarde tout seul.",
   "rest.mission.soon": "Bientôt au travail",
   "rest.mission.inCreation": "En cours de création",
   "rest.mission.soonBody": "{who} va commencer. Tu seras prévenu par e-mail dès qu'il s'y met, puis à la livraison.",

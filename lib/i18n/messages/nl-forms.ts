@@ -3,6 +3,7 @@ import type { frForms } from "./fr-forms";
 
 export const nlForms: Record<keyof typeof frForms, string> = {
   "err.too_early": "Je kunt starten op de dag van de opnames.",
+  "err.no_provider": "Er is momenteel geen dienstverlener beschikbaar voor dit vak. Je briefing wordt bewaard: probeer het binnenkort opnieuw.",
   "err.not_booked": "Voor deze opdracht zijn er geen opnames om te starten.",
   "err.locked": "De restauranthouder heeft al op je verslag gereageerd: het kan niet meer worden gewijzigd.",
   "err.not_started": "Start eerst de opnames (« Ik ben aangekomen »).",

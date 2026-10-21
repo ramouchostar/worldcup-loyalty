@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: RULES_REFUSAL_TEXT[r.rules ?? "not_accepted"], reason: r.reason }, { status: 422 });
     case "no_provider":
       return NextResponse.json(
-        { error: "Aucun vidéaste n'est disponible pour le moment. Ton brief est gardé : réessaie bientôt.", reason: r.reason },
+        { error: "Aucun prestataire n'est disponible pour ce métier pour le moment. Ton brief est gardé : réessaie bientôt.", reason: r.reason },
         { status: 409 }
       );
     case "not_a_draft":

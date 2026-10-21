@@ -94,7 +94,10 @@ export const enRest: Record<keyof typeof frRest, string> = {
   "rest.quote.declineDo": "Decline",
 
   "rest.mission.draftTitle": "Your {metier} brief",
-  "rest.mission.draftSub": "Tell us what you want filmed. A few questions, and everything saves itself.",
+  "rest.mission.draftSub.video": "Tell us what you want filmed. A few questions, and everything saves itself.",
+  "rest.mission.draftSub.photo": "Tell us what you want photographed. A few questions, and everything saves itself.",
+  "rest.mission.draftSub.design": "Tell us what you want designed. A few questions, and everything saves itself.",
+  "rest.mission.draftSub.impression": "Tell us what you want printed. A few questions, and everything saves itself.",
   "rest.mission.soon": "About to start",
   "rest.mission.inCreation": "In progress",
   "rest.mission.soonBody": "{who} is going to start. You'll be emailed as soon as they begin, then again at delivery.",
