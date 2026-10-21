@@ -55,11 +55,7 @@ test("le prestataire lit son e-mail dans sa langue, et le français reste celui 
   assert.notEqual(missionUpdateEmail({ ...base, kind: "validated", locale: "nl" }).html, fr.html);
 });
 
-test("un e-mail qui n'est pas pour le prestataire reste en français, quelle que soit la langue demandée", () => {
-  const a = missionUpdateEmail({ ...base, audience: "restaurant", kind: "delivered", locale: "nl" });
-  const b = missionUpdateEmail({ ...base, audience: "restaurant", kind: "delivered" });
-  assert.equal(a.subject, b.subject);
-  assert.match(a.subject, /a livré ton travail/);
+test("l'alerte de la plateforme reste en français, quelle que soit la langue demandée", () => {
   const platform = missionUpdateEmail({ ...base, audience: "platform", kind: "bat_signed", locale: "en" });
   assert.match(platform.subject, /Bon à tirer signé/);
 });
@@ -95,7 +91,7 @@ test("invitation, nouveau brief, date réservée : complets dans les trois langu
   assert.match(providerDateBookedEmail({ providerName: "S", restaurantName: "Chez Nour", dateLabel: "mardi 20 octobre", dateISO: "2026-10-20", startTime: "09:30", contact: "K", missionUrl: "https://x", locale: "en" }).subject, /Tuesday 20 October/);
 });
 
-test("rappels de tournage : le prestataire dans sa langue, le restaurateur et la plateforme en français", () => {
+test("rappels de tournage : le prestataire et le restaurateur dans leur langue, la plateforme en français", () => {
   const input = (key: MissionReminderInput["key"], audience: MissionReminderInput["audience"], extra: Partial<MissionReminderInput> = {}): MissionReminderInput => ({ key, audience, recipientName: "Studio", otherName: "Chez Nour", restaurantName: "Chez Nour", dateLabel: "mardi 20 octobre", dateISO: "2026-10-20", startTime: "09:30", contact: "Karim", url: "https://x", ...extra });
   for (const locale of LOCALES) {
     for (const m of [missionReminderEmail({ ...input("j2", "provider"), locale }), missionReminderEmail({ ...input("veille", "provider", { selfConfirmed: true, otherConfirmed: true }), locale }), missionReminderEmail({ ...input("veille", "provider"), locale })]) {
@@ -104,7 +100,8 @@ test("rappels de tournage : le prestataire dans sa langue, le restaurateur et la
   }
   assert.match(missionReminderEmail({ ...input("j2", "provider"), locale: "nl" }).subject, /Bevestig je aanwezigheid/);
   assert.match(missionReminderEmail({ ...input("j2", "provider") }).subject, /Confirme ta présence/);
-  assert.match(missionReminderEmail({ ...input("j7", "restaurant"), locale: "nl" }).subject, /Préviens ton équipe/);
+  assert.match(missionReminderEmail({ ...input("j7", "restaurant"), locale: "nl" }).subject, /Verwittig je team/);
+  assert.match(missionReminderEmail({ ...input("j7", "restaurant") }).subject, /Préviens ton équipe/);
   assert.match(missionReminderEmail({ ...input("alerte", "platform", { missing: ["Chez Nour"] }), locale: "en" }).subject, /Présence non confirmée/);
 });
 
@@ -112,8 +109,67 @@ test("la langue est retrouvée À L'ENVOI d'après l'adresse du prestataire, san
   const send = readFileSync("lib/email.ts", "utf8");
   assert.match(send, /sendProviderInviteEmail[\s\S]{0,300}getProviderLocaleByEmail\(to\)/);
   assert.match(send, /providerBriefReceivedEmail\([^)]*getProviderLocaleByEmail\(to\)/);
-  assert.match(send, /input\.audience === "provider" && !input\.locale \? await getProviderLocaleByEmail\(to\)/g);
+  assert.match(send, /input\.audience === "provider" \? await getProviderLocaleByEmail\(to\) : input\.audience === "restaurant" \? await getUserLocaleByEmail\(to\)/g);
+  assert.match(send, /providerQuoteReceivedEmail\([^)]*getUserLocaleByEmail\(to\)/);
   const loc = readFileSync("lib/provider-locale.ts", "utf8");
   assert.match(loc, /\.eq\("email", email\.trim\(\)\.toLowerCase\(\)\)/);
   assert.doesNotMatch(loc, /ilike/);
+});
+
+// ── Lot 9 : les e-mails que reçoit le restaurateur ──
+import { copyFor } from "../email-templates/mission-update";
+import { restaurantCopy } from "../email-templates/mission-update-restaurant";
+import { makeTranslator } from "./index";
+import { fr } from "./messages/fr";
+
+const RESTAURANT_KINDS: MissionUpdateKind[] = [
+  "report_submitted", "delivered", "validation_reminder", "auto_validated", "bat_review", "bat_review_again", "bat_submitted", "message_received", "work_started", "cancelled",
+  "dispute_opened", "dispute_resolved", "proposals_received", "proposal_auto", "proposals_choose", "change_quoted", "change_provider_declined", "change_expired",
+];
+
+function restaurantVariants(kind: MissionUpdateKind): MissionUpdateInput[] {
+  const common = { ...base, audience: "restaurant" as const, kind, title: "Le geste du chef", count: 3, deadlineDay: "2026-10-22", providerPct: 40 };
+  const none = { ...common, deadlineDay: undefined, title: undefined, count: undefined };
+  if (kind === "cancelled") {
+    const out: MissionUpdateInput[] = [];
+    for (const cancelledBy of ["restaurant", "provider", "platform"] as const) for (const band of ["free", "half", "full", "deposit"] as const) for (const studio of [false, true]) out.push({ ...common, cancelledBy, band, studio });
+    return out;
+  }
+  if (kind === "dispute_resolved") return (["pay", "refund", "split"] as const).map((decision) => ({ ...common, decision }));
+  if (kind === "proposal_auto") return (["auto", "fallback"] as const).map((auto) => ({ ...common, auto }));
+  if (kind === "validation_reminder") return ([1, 2] as const).map((round) => ({ ...common, round }));
+  if (kind === "change_quoted") return [true, false].map((free) => ({ ...common, free }));
+  if (kind === "delivered") return [true, false].map((print) => ({ ...common, print }));
+  if (kind === "bat_submitted") return [1, 3].map((count) => ({ ...common, count }));
+  return [common, none];
+}
+
+test("e-mails du restaurateur : le français par clés est celui d'avant, cas par cas", () => {
+  const trFr = makeTranslator("fr", fr);
+  let n = 0;
+  for (const kind of RESTAURANT_KINDS) {
+    for (const input of restaurantVariants(kind)) {
+      // L'ancien texte reçoit le jour limite déjà formaté, comme l'appelant d'avant.
+      const legacy = copyFor({ ...input, deadlineLabel: input.deadlineDay ? "jeudi 22 octobre" : undefined });
+      const keyed = restaurantCopy(input, trFr);
+      assert.deepEqual(keyed, legacy, `${kind} ${JSON.stringify(input)}`);
+      n++;
+    }
+  }
+  assert.ok(n > 40, `seulement ${n} cas`);
+});
+
+test("e-mails du restaurateur : complets dans les trois langues, sans variable oubliée", () => {
+  for (const kind of RESTAURANT_KINDS) {
+    for (const input of restaurantVariants(kind)) {
+      for (const locale of LOCALES) {
+        const m = missionUpdateEmail({ ...input, locale });
+        for (const part of [m.subject, m.preheader, m.html, m.text]) {
+          assert.ok(part.trim().length > 0, `${kind}/${locale} vide`);
+          assert.ok(!unresolved(part), `${kind}/${locale} : variable oubliée dans « ${part.slice(0, 80)} »`);
+        }
+      }
+    }
+  }
+  assert.notEqual(missionUpdateEmail({ ...base, audience: "restaurant", kind: "delivered", locale: "nl" }).subject, missionUpdateEmail({ ...base, audience: "restaurant", kind: "delivered" }).subject);
 });

@@ -1,4 +1,5 @@
 import { getProviderLocaleByEmail } from "./provider-locale";
+import { getUserLocaleByEmail } from "./user-locale";
 import { Resend } from "resend";
 import { createAdminClient } from "./supabase";
 import { getRestaurantBranding, logoPublicUrl } from "./restaurant";
@@ -346,7 +347,7 @@ export async function sendProviderBriefReceivedEmail(
 
 // ADR 0084 — le devis du prestataire est arrivé : le restaurateur en est prévenu.
 export async function sendProviderQuoteReceivedEmail(to: string, restaurantName: string, providerName: string, missionUrl: string, restaurantId: string): Promise<boolean> {
-  return dispatch(to, providerQuoteReceivedEmail(restaurantName, providerName, missionUrl), { key: "provider_quote_received", audience: "restaurant", restaurantId });
+  return dispatch(to, providerQuoteReceivedEmail(restaurantName, providerName, missionUrl, await getUserLocaleByEmail(to)), { key: "provider_quote_received", audience: "restaurant", restaurantId });
 }
 
 // ADR 0084 — le restaurateur a réservé sa date : le prestataire en est prévenu.
@@ -358,15 +359,15 @@ export async function sendProviderDateBookedEmail(to: string, input: Parameters<
 // le rappel (1 = J-7, 2 = J-2, 3 = veille, 4 = alerte) dans le journal des envois.
 const REMINDER_STEP = { j7: 1, j2: 2, veille: 3, alerte: 4 } as const;
 export async function sendMissionReminderEmail(to: string, input: MissionReminderInput, restaurantId: string): Promise<boolean> {
-  // Seul le rappel destiné au prestataire se lit dans sa langue (les autres destinataires restent en français).
-  const locale = input.audience === "provider" && !input.locale ? await getProviderLocaleByEmail(to) : input.locale;
+  // Le prestataire et le restaurateur lisent leur rappel dans leur langue ; l'alerte de la plateforme reste en français.
+  const locale = input.locale ?? (input.audience === "provider" ? await getProviderLocaleByEmail(to) : input.audience === "restaurant" ? await getUserLocaleByEmail(to) : undefined);
   return dispatch(to, missionReminderEmail({ ...input, locale }), { key: "mission_reminder", audience: "restaurant", restaurantId, step: REMINDER_STEP[input.key] });
 }
 
 // ADR 0084 §5 — le jour J et après : compte-rendu prêt, livraison, validation, contestation.
 export async function sendMissionUpdateEmail(to: string, input: MissionUpdateInput, restaurantId: string): Promise<boolean> {
-  // Seul l'e-mail destiné au prestataire se lit dans sa langue (les autres destinataires restent en français).
-  const locale = input.audience === "provider" && !input.locale ? await getProviderLocaleByEmail(to) : input.locale;
+  // Le prestataire et le restaurateur lisent leur e-mail dans leur langue ; la plateforme reste en français.
+  const locale = input.locale ?? (input.audience === "provider" ? await getProviderLocaleByEmail(to) : input.audience === "restaurant" ? await getUserLocaleByEmail(to) : undefined);
   return dispatch(to, missionUpdateEmail({ ...input, locale }), { key: "mission_update", audience: "restaurant", restaurantId });
 }
 

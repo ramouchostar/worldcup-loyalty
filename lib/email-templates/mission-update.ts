@@ -1,6 +1,7 @@
 import { button, esc, eyebrow, heading, paragraph, proShell, small, type RenderedEmail } from "./kit";
 import { getT, type Locale } from "../i18n";
 import { providerCopy } from "./mission-update-provider";
+import { restaurantCopy } from "./mission-update-restaurant";
 
 // Le jour J et après (ADR 0084 §5) : le compte-rendu est prêt, la livraison est arrivée, elle est
 // validée, le compte-rendu est contesté. Courts : un fait, le lien, ce qu'on attend. Jamais un
@@ -34,7 +35,7 @@ export type MissionUpdateInput = {
   free?: boolean;
   /** Le jour limite en ISO (« 2026-10-22 ») : il est dit dans la langue du destinataire ; sans lui, `deadlineLabel` (français) est repris tel quel. */
   deadlineDay?: string;
-  /** La langue du destinataire PRESTATAIRE (français par défaut). Les e-mails du restaurateur et de la plateforme restent en français. */
+  /** La langue du destinataire, prestataire ou restaurateur (français par défaut). Les e-mails de la plateforme restent en français. */
   locale?: Locale;
   /** Impression : la livraison est un objet (livré ou prêt au retrait), pas des liens à télécharger ni des retouches à demander. */
   print?: boolean;
@@ -42,7 +43,7 @@ export type MissionUpdateInput = {
 
 type Copy = { subject: string; preheader: string; title: string; paragraphs: string[]; cta: string; note: string };
 
-function copyFor(i: MissionUpdateInput): Copy {
+export function copyFor(i: MissionUpdateInput): Copy {
   switch (i.kind) {
     case "report_submitted":
       return {
@@ -481,16 +482,17 @@ export function missionUpdateEmail(i: MissionUpdateInput): RenderedEmail {
   // Pour le prestataire : le texte vient des dictionnaires (sa langue) ; pour les autres destinataires, de `copyFor` ci-dessous.
   const tr = getT(i.locale);
   const fromProvider = i.audience === "provider";
-  const c = providerCopy(i, tr) ?? copyFor(i);
-  const body = [eyebrow(fromProvider ? tr.t("em.eyebrow") : "Mise à jour"), heading(c.title), ...c.paragraphs.map((p) => paragraph(esc(p))), button(c.cta, i.url, "#0C1509"), small(esc(c.note))];
+  const translated = fromProvider || (i.audience === "restaurant" && restaurantCopy(i, tr) !== null);
+  const c = providerCopy(i, tr) ?? restaurantCopy(i, tr) ?? copyFor(i);
+  const body = [eyebrow(translated ? tr.t("em.eyebrow") : "Mise à jour"), heading(c.title), ...c.paragraphs.map((p) => paragraph(esc(p))), button(c.cta, i.url, "#0C1509"), small(esc(c.note))];
   const html = proShell({
     restaurantName: i.audience === "restaurant" ? i.restaurantName : "Boosteats",
     logoUrl: null,
-    kicker: fromProvider ? tr.t("em.kicker") : "Ta mission",
+    kicker: translated ? tr.t("em.kicker") : "Ta mission",
     subject: c.subject,
     preheader: c.preheader,
     body: body.join("\n"),
-    footer: { reason: i.audience === "platform" ? "Tu reçois cette alerte en tant que plateforme Boosteats." : fromProvider ? tr.t("em.footer") : "Tu reçois cet e-mail parce qu'une mission est en cours sur Boosteats." },
+    footer: { reason: i.audience === "platform" ? "Tu reçois cette alerte en tant que plateforme Boosteats." : translated ? tr.t("em.footer") : "Tu reçois cet e-mail parce qu'une mission est en cours sur Boosteats." },
     ...(fromProvider ? { brandLine: tr.t("em.brand") } : {}),
   });
   const text = `${c.title}\n\n${c.paragraphs.join("\n\n")}\n\n${c.cta} : ${i.url}\n\n${c.note}`;
