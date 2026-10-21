@@ -132,6 +132,7 @@ export const nlMission: Record<keyof typeof frMission, string> = {
   "msg.platform": "Boosteats",
   "msg.masked": "contactgegevens verborgen",
   "msg.locked": "Telefoonnummers en e-mailadressen blijven verborgen zolang het werk niet is begonnen: alles loopt hier. Het contact ter plaatse voor de opnames verschijnt zodra de datum is vastgelegd.",
+  "msg.locked.studio": "Telefoonnummers en e-mailadressen blijven verborgen zolang het werk niet is begonnen: alles loopt hier.",
   "msg.label": "Je bericht",
   "msg.placeholder": "Je bericht voor {name}",
   "msg.maskedNotice": "Een nummer, e-mailadres of link naar een berichtendienst is verborgen: alles loopt hier.",

@@ -138,6 +138,7 @@ export const frMission = {
   "msg.platform": "Boosteats",
   "msg.masked": "contact masqué",
   "msg.locked": "Les numéros de téléphone et les adresses e-mail sont masqués tant que le travail n'a pas commencé : tout passe ici. Le contact sur place du tournage s'affiche à la réservation de la date.",
+  "msg.locked.studio": "Les numéros de téléphone et les adresses e-mail sont masqués tant que le travail n'a pas commencé : tout passe ici.",
   "msg.label": "Ton message",
   "msg.placeholder": "Ton message pour {name}",
   "msg.maskedNotice": "Un numéro, une adresse e-mail ou un lien de messagerie a été masqué : tout passe ici.",

@@ -163,6 +163,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
       )}
 
       <MessagesCard
+        studio={!hasShoot(mission.metier)}
         me="provider"
         otherName={mission.restaurant_name}
         messages={thread}

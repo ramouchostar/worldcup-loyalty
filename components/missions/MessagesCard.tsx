@@ -25,6 +25,7 @@ export function MessagesCard({
   extra,
   canWrite,
   contactsLocked,
+  studio = false,
   unread,
 }: {
   me: "restaurant" | "provider";
@@ -36,6 +37,8 @@ export function MessagesCard({
   extra?: Record<string, unknown>;
   canWrite: boolean;
   contactsLocked: boolean;
+  /** Design, impression : pas de tournage, donc rien à dire du contact sur place. */
+  studio?: boolean;
   unread: number;
 }) {
   const router = useRouter();
@@ -110,7 +113,7 @@ export function MessagesCard({
         <div className="space-y-2">
           {contactsLocked && (
             <p className="text-[12.5px] text-ink-muted inline-flex items-start gap-1.5">
-              <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden /> {t("msg.locked")}
+              <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden /> {t(studio ? "msg.locked.studio" : "msg.locked")}
             </p>
           )}
           <label htmlFor="msg-body" className="sr-only">
