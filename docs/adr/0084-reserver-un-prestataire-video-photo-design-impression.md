@@ -289,6 +289,15 @@ Le commentaire n'accepte ni numéro, ni e-mail, ni lien de messagerie (même rè
 **masquer** un avis (il sort de la moyenne et des commentaires affichés, reste lisible pour elle, avec qui l'a masqué). Pas de réponse du
 prestataire à un avis, pas de modification : on ne réécrit pas après un désaccord. Un litige ouvert ferme l'avis jusqu'à la décision.
 
+### 5 undecies. Les chiffres du module (amendé le 2026-10-21, PR X)
+
+Un onglet **Chiffres** dans la console plateforme répond à « le module vaut-il le coup ? » : l'**entonnoir** (briefs envoyés → devis reçus
+→ devis acceptés → livrées → validées, chacun avec sa part des briefs envoyés), le **volume** (prix des devis des missions validées ou
+versées), la **part des prestataires**, la **commission** que Boosteats garde, les annulations (par qui) et les litiges (en cours ou
+passés). Total, puis un bloc par métier. L'entonnoir compte les missions qui **ont atteint** une étape d'après le journal des
+changements d'état (une mission validée a bien été devisée), pas celles qui y sont aujourd'hui. Lecture seule, plateforme seule,
+2 000 missions au plus (la page le dit au-delà).
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
