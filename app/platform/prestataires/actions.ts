@@ -9,6 +9,8 @@ import { cancelByPlatform, settleCancellation } from "@/lib/missions-cancel";
 import type { Fault } from "@/lib/mission-cancel-rules";
 import { markPaidOut, openDispute, resolveDispute } from "@/lib/missions-superadmin";
 import { setReviewHidden } from "@/lib/missions-reviews";
+import { saveTemplateEdits } from "@/lib/marketplace-templates";
+import { EDIT_ISSUE_TEXT } from "@/lib/mission-template-edit";
 import { RESOLVE_ISSUE_TEXT } from "@/lib/mission-dispute";
 import { SETTINGS_ISSUE_TEXT, saveTerms, validateSettings } from "@/lib/marketplace-settings";
 import { BUDGET_ISSUE_TEXT, saveBudgetConfig, validateBudgets, formatsOf } from "@/lib/marketplace-budgets";
@@ -177,4 +179,18 @@ export async function toggleReviewHiddenAction(reviewId: string, hidden: boolean
   const r = await setReviewHidden(reviewId, hidden, userId);
   revalidatePath("/platform/prestataires", "layout");
   return r;
+}
+
+/** Enregistrer une nouvelle version du questionnaire d'un métier (libellés, aides, options) : l'ancienne version est gardée, désactivée. */
+export async function saveQuestionnaireAction(metier: Metier, edits: unknown): Promise<{ ok?: boolean; error?: string; version?: number }> {
+  const userId = await requireSuperAdmin();
+  if (!BUDGET_METIERS.includes(metier)) return { error: "Métier inconnu." };
+  const r = await saveTemplateEdits(metier, edits, userId);
+  if (r.ok) {
+    revalidatePath("/platform/prestataires", "layout");
+    return { ok: true, version: r.version };
+  }
+  if (r.reason === "invalid") return { error: r.issues.slice(0, 3).map((i) => `${i.key} : ${EDIT_ISSUE_TEXT[i.code]}`).join(" ") };
+  if (r.reason === "nothing_changed") return { error: "Rien n'a changé." };
+  return { error: "Enregistrement impossible pour le moment : la migration du module est-elle appliquée ?" };
 }
