@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { SETTINGS_ISSUE_TEXT, bpsToPct, exampleBreakdown, pctToBps, termsFromRow, validateSettings } from "./marketplace-settings-rules";
 import { BUDGET_ISSUE_TEXT, ambitionHint, budgetInputFrom, floorHint, formatsOf, validateBudgets } from "./marketplace-budgets-rules";
 import { DEFAULT_TERMS } from "./mission-money";
@@ -119,4 +120,24 @@ test("les phrases que lit le restaurateur", () => {
   assert.match(ambitionHint("Film", euros, 150_000), /« Film » demande en général au moins 1500 €/);
   assert.match(ambitionHint("Film", euros, 150_000), /Tu peux envoyer ton brief tel quel/);
   for (const k of ["invalid", "too_high", "below_floor"] as const) assert.ok(BUDGET_ISSUE_TEXT[k].length > 15, k);
+});
+
+test("les budgets se règlent pour chaque métier : plancher seul là où il n'y a pas de formats", async () => {
+  const { defaultTemplate } = await import("./mission-brief");
+  const { formatsOf, validateBudgets } = await import("./marketplace-budgets-rules");
+  assert.deepEqual(formatsOf(defaultTemplate("video")!), ["Reels", "Film", "Pack mois", "Face cam"]);
+  for (const m of ["photo", "design", "impression"] as const) {
+    const t = defaultTemplate(m);
+    assert.ok(t, m);
+    assert.deepEqual(formatsOf(t), [], m);
+    const v = validateBudgets({ floorEuros: "250", ambitionEuros: {} }, formatsOf(t));
+    assert.deepEqual(v, { ok: true, floorCents: 25_000, ambitionCents: {} }, m);
+  }
+});
+
+test("l'action des budgets exige un métier connu et enregistre le métier demandé, pas toujours la vidéo", () => {
+  const ACTIONS = readFileSync("app/platform/prestataires/actions.ts", "utf8");
+  assert.match(ACTIONS, /saveBudgetsAction\(metier: Metier,/);
+  assert.match(ACTIONS, /saveBudgetConfig\(metier, v\.floorCents/);
+  assert.doesNotMatch(ACTIONS, /saveBudgetConfig\("video"/);
 });

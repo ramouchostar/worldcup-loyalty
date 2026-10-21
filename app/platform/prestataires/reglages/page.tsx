@@ -2,13 +2,22 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { bpsToPct, getTerms } from "@/lib/marketplace-settings";
 import { budgetInputFrom, formatsOf, loadBudgetConfig } from "@/lib/marketplace-budgets";
-import { VIDEO_TEMPLATE } from "@/lib/mission-brief";
+import { defaultTemplate } from "@/lib/mission-brief";
+import { METIER_LABELS } from "@/lib/mission-view";
+import type { Metier } from "@/lib/mission-money";
 import { listOpenDisputes } from "@/lib/missions-superadmin";
 import { SubNav } from "../SubNav";
 import { BudgetsForm, SettingsForm } from "./SettingsForm";
 
 export const metadata = { title: "Réglages — Prestataires — Plateforme" };
 export const dynamic = "force-dynamic";
+
+const METIERS: readonly { metier: Metier; noun: string }[] = [
+  { metier: "video", noun: "vidéo" },
+  { metier: "photo", noun: "photo" },
+  { metier: "design", noun: "design" },
+  { metier: "impression", noun: "impression" },
+];
 
 const CARD = "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl";
 
@@ -22,8 +31,7 @@ export default async function PlatformSettingsPage() {
   const { data: profile } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
   if (!profile?.is_super_admin) redirect("/join?reason=platform-required");
 
-  const [{ terms, source }, budgets, disputes] = await Promise.all([getTerms(), loadBudgetConfig("video"), listOpenDisputes()]);
-  const formats = formatsOf(VIDEO_TEMPLATE);
+  const [{ terms, source }, disputes, ...budgets] = await Promise.all([getTerms(), listOpenDisputes(), ...METIERS.map((m) => loadBudgetConfig(m.metier))]);
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -38,15 +46,21 @@ export default async function PlatformSettingsPage() {
         <SettingsForm initial={{ commissionPct: bpsToPct(terms.commissionBps), proCommissionPct: bpsToPct(terms.proCommissionBps), depositPct: bpsToPct(terms.depositBps) }} />
       </section>
 
-      <section className={`${CARD} p-5 space-y-3`}>
-        <h2 className="font-semibold">Budgets (vidéo)</h2>
-        {!budgets.ok ? (
-          <p className="text-sm text-gray-500">Le module n&apos;est pas encore disponible : applique les migrations du module Prestataires.</p>
-        ) : (
-          <BudgetsForm formats={formats} initial={budgetInputFrom(budgets.floorCents, budgets.ambition, formats)} />
-        )}
-        <p className="text-xs text-gray-500">Photo, design et impression arrivent avec leurs questionnaires : leurs budgets se règlent alors ici.</p>
-      </section>
+      {METIERS.map(({ metier, noun }, i) => {
+        const b = budgets[i];
+        const template = defaultTemplate(metier);
+        const formats = template ? formatsOf(template) : [];
+        return (
+          <section key={metier} className={`${CARD} p-5 space-y-3`}>
+            <h2 className="font-semibold">Budgets ({METIER_LABELS[metier].toLowerCase()})</h2>
+            {!b.ok || !template ? (
+              <p className="text-sm text-gray-500">Le module n&apos;est pas encore disponible : applique les migrations du module Prestataires.</p>
+            ) : (
+              <BudgetsForm metier={metier} noun={noun} formats={formats} initial={budgetInputFrom(b.floorCents, b.ambition, formats)} />
+            )}
+          </section>
+        );
+      })}
 
       <section className={`${CARD} p-5 space-y-2`}>
         <h2 className="font-semibold">Ce qui ne se règle pas ici</h2>

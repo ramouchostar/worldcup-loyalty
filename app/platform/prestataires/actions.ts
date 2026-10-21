@@ -11,7 +11,8 @@ import { markPaidOut, openDispute, resolveDispute } from "@/lib/missions-superad
 import { RESOLVE_ISSUE_TEXT } from "@/lib/mission-dispute";
 import { SETTINGS_ISSUE_TEXT, saveTerms, validateSettings } from "@/lib/marketplace-settings";
 import { BUDGET_ISSUE_TEXT, saveBudgetConfig, validateBudgets, formatsOf } from "@/lib/marketplace-budgets";
-import { VIDEO_TEMPLATE } from "@/lib/mission-brief";
+import { defaultTemplate } from "@/lib/mission-brief";
+import type { Metier } from "@/lib/mission-money";
 
 // ADR 0084 — la plateforme invite, relance et suspend les prestataires. Réservé au super-admin :
 // chaque action se re-garde (une Server Action est une route publique).
@@ -155,11 +156,15 @@ export async function saveSettingsAction(payload: { commissionPct: string; proCo
   return ok ? { ok: true } : { error: "Enregistrement impossible pour le moment : la migration du module est-elle appliquée ?" };
 }
 
-export async function saveBudgetsAction(payload: { floorEuros: string; ambitionEuros: Record<string, string> }): Promise<{ error?: string; ok?: boolean }> {
+const BUDGET_METIERS: readonly Metier[] = ["video", "photo", "design", "impression"];
+
+export async function saveBudgetsAction(metier: Metier, payload: { floorEuros: string; ambitionEuros: Record<string, string> }): Promise<{ error?: string; ok?: boolean }> {
   const userId = await requireSuperAdmin();
-  const v = validateBudgets(payload, formatsOf(VIDEO_TEMPLATE));
+  const template = BUDGET_METIERS.includes(metier) ? defaultTemplate(metier) : null;
+  if (!template) return { error: "Métier inconnu." };
+  const v = validateBudgets(payload, formatsOf(template));
   if (!v.ok) return { error: v.issues.map((i) => `${i.field === "floor" ? "Plancher" : i.field} : ${BUDGET_ISSUE_TEXT[i.code]}`).join(" ") };
-  const ok = await saveBudgetConfig("video", v.floorCents, v.ambitionCents, userId);
+  const ok = await saveBudgetConfig(metier, v.floorCents, v.ambitionCents, userId);
   revalidatePath("/platform/prestataires", "layout");
   return ok ? { ok: true } : { error: "Enregistrement impossible pour le moment : la migration du module est-elle appliquée ?" };
 }
