@@ -34,7 +34,7 @@ import { loadBlocked } from "@/lib/missions-dates";
 import { buildCalendar, teamNoticeState } from "@/lib/mission-dates";
 import { judgeConfirm } from "@/lib/mission-reminders";
 import { PresenceCard } from "@/components/missions/PresenceCard";
-import { conceptMessage, teamMessage } from "@/lib/mission-team-message";
+import { conceptMessageT, teamMessageT } from "@/lib/mission-team-message";
 import { loadProposalState, proposalView, rulesState } from "@/lib/missions-proposals-state";
 import { judgeReject } from "@/lib/mission-proposals";
 import { ProposalChosen, ProposalsChoose, type IdeaView } from "./ProposalsCard";
@@ -48,10 +48,10 @@ import { listMessages, unreadCounts } from "@/lib/missions-messages";
 import { canWrite as canWriteMessage, contactsUnlocked } from "@/lib/mission-messages";
 import { BatCard, type ProofView } from "./BatCard";
 import { listProofs } from "@/lib/missions-bat-state";
-import { batChecklist, batPhase, batSummary, correctionRoundsLeft } from "@/lib/mission-print";
+import { batChecklistT, batPhase, batSummaryT, correctionRoundsLeft } from "@/lib/mission-print";
 import { ChangesCard, type ChangeView } from "./ChangesCard";
 import { listChanges } from "@/lib/missions-changes-state";
-import { REQUEST_VERDICT_TEXT, judgeChangeRequest } from "@/lib/mission-changes";
+import { judgeChangeRequest } from "@/lib/mission-changes";
 import { Card, SectionLabel } from "@/components/admin/ui";
 
 // ADR 0084 — une mission : l'assistant de brief tant que c'est un brouillon,
@@ -161,10 +161,10 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const pview = pstate?.ok ? proposalView(mission, pstate.state) : null;
   const toIdea = (p: { id: string; rank: number; title: string; idea: string; onsite: string; example_link: string }): IdeaView => ({ id: p.id, rank: p.rank, title: p.title, idea: p.idea, onsite: p.onsite, link: p.example_link, files: files.filter((f) => f.scope === "proposal" && f.ref === p.id) });
   const teamMsg = hasDate
-    ? teamMessage({
+    ? teamMessageT(tr, {
         shootDate: mission.shoot_date!,
         startTime: mission.shoot_start!,
-        providerName: providerName ?? "le prestataire",
+        providerName: providerName ?? t("rest.yourProvider"),
         roles: Array.isArray(a.roles) ? (a.roles as string[]) : [],
         kitchen: typeof a.kitchen === "string" ? a.kitchen : undefined,
         contactName: contact.name,
@@ -205,8 +205,8 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
           providerName={fallbackName}
           phase={batPhase(proofsRes.proofs)}
           proofs={proofsRes.proofs.map((p): ProofView => ({ id: p.id, round: p.round, status: p.status, links: p.links, message: p.message, corrections: p.corrections, signedName: p.signed_name, signedAt: p.signed_at }))}
-          checklist={batChecklist(mission.brief)}
-          summary={batSummary(mission.brief)}
+          checklist={batChecklistT(mission.brief, tr)}
+          summary={batSummaryT(mission.brief, tr)}
           correctionsLeft={correctionRoundsLeft(proofsRes.proofs)}
         />
       )}
@@ -240,22 +240,22 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
         <ChangesCard
           restaurantId={restaurantId}
           missionId={mission.id}
-          providerName={providerName ?? "Le prestataire"}
+          providerName={fallbackName}
           changes={changeViews}
-          blocked={changeVerdict === "ok" ? null : REQUEST_VERDICT_TEXT[changeVerdict]}
+          blocked={changeVerdict === "ok" ? null : t(`rc.change.blocked.${changeVerdict}` as MessageKey)}
           filesBase={filesBase}
           filesQuery={filesQuery}
         />
       )}
       {report && mission.report_submitted_at && (
-        <ReportReview restaurantId={restaurantId} missionId={mission.id} providerName={providerName ?? "Le prestataire"} report={report} state={reportState} contestNote={mission.report_contest_note} />
+        <ReportReview restaurantId={restaurantId} missionId={mission.id} providerName={fallbackName} report={report} state={reportState} contestNote={mission.report_contest_note} />
       )}
       {[...deliveries].reverse().map((d, i) => (
         <DeliveryReview
           key={d.id}
           restaurantId={restaurantId}
           missionId={mission.id}
-          providerName={providerName ?? "Le prestataire"}
+          providerName={fallbackName}
           links={d.links}
           message={d.message}
           version={d.round}
@@ -316,7 +316,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
               by={pstate.state.chosenBy}
               filesBase={filesBase}
               filesQuery={filesQuery}
-              teamUpdate={conceptMessage({ shootDate: mission.shoot_date!, startTime: mission.shoot_start!, providerName: providerName ?? "le prestataire", title: pview.chosen.title, onsite: pview.chosen.onsite })}
+              teamUpdate={conceptMessageT(tr, { shootDate: mission.shoot_date!, startTime: mission.shoot_start!, providerName: providerName ?? t("rest.yourProvider"), title: pview.chosen.title, onsite: pview.chosen.onsite })}
             />
           )}
           {mission.status === "date_bloquee" && (

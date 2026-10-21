@@ -351,8 +351,11 @@ Le module parle **français, néerlandais et anglais**. Principes :
   question** (la clé d'une option est l'option en français, telle qu'enregistrée), pour le restaurateur qui remplit ET pour le prestataire qui
   lit. **Une question dont le libellé a été modifié en base n'est pas traduite** : on ne devine pas le sens d'un texte modifié (même
   règle pour l'aide et pour les écrans). Un test exige qu'aucune question, aide, option ni écran des quatre questionnaires par défaut ne manque.
-  Suivent : les cartes du jour J, des idées, du bon à tirer et des modifications côté restaurateur, le message à l'équipe, puis les e-mails
-  du restaurateur, puis les règles du jeu une fois validées par le juriste.
+  (8) **les cartes du restaurateur** : modifications, idées de tournage, planificateur de date, « prévenir mon équipe », retouches, bon à
+  tirer, compte-rendu et livraison. Les catégories (remarques, changements), les rôles et les créneaux sont des données françaises affichées
+  par `canon.*`. **Le message à l'équipe se génère dans la langue du restaurateur** (c'est son équipe qui le lit) ; en français il est
+  identique à l'ancien (test de parité). Le prestataire voit les catégories dans SA langue.
+  Suivent : les e-mails du restaurateur, puis les règles du jeu une fois validées par le juriste.
 
 ### 6. États d'une mission
 

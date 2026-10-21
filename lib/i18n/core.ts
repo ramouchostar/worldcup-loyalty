@@ -50,14 +50,15 @@ export type Translator = {
   err: (body: { reason?: unknown; error?: unknown } | null | undefined, fallback: MessageKey) => string;
 };
 
-export type CanonKind = "included" | "refuse" | "cancel" | "report" | "changeRefuse" | "language";
+export type CanonKind = "included" | "refuse" | "cancel" | "report" | "changeRefuse" | "language" | "noteCat" | "changeCat" | "role" | "slot";
 
 export function makeTranslator(locale: Locale, messages: Messages): Translator {
   const t = (key: MessageKey, vars?: Vars) => interpolate(messages[key] ?? fr[key] ?? key, vars);
   return {
     locale,
     t,
-    tp: (base, n, vars) => t(`${base}.${n === 1 ? "one" : "other"}` as MessageKey, { n, ...vars }),
+    // En français, 0 est singulier (« 0 message »).
+    tp: (base, n, vars) => t(`${base}.${n === 1 || (locale === "fr" && n === 0) ? "one" : "other"}` as MessageKey, { n, ...vars }),
     err: (body, fallback) => {
       const key = typeof body?.reason === "string" ? `err.${body.reason}` : "";
       if (key && key in fr) return t(key as MessageKey);

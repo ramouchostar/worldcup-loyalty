@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { Card, SectionLabel } from "@/components/admin/ui";
-import { RETOUCH_ISSUE_TEXT, roundsLabel, type RetouchIssue } from "@/lib/mission-retouch";
+import { roundsLabelT, type RetouchIssue } from "@/lib/mission-retouch";
+import { useT } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/core";
 import { checkRetouchNote } from "@/lib/mission-brief";
 import { FilePicker } from "@/components/missions/FilePicker";
 import { MAX_UNLINKED } from "@/lib/mission-files";
@@ -30,6 +32,10 @@ export function RetouchForm({
   withTimecode: boolean;
 }) {
   const router = useRouter();
+  const tr = useT();
+  const { t } = tr;
+  const issueText = (code: string) => t(`rc.retouch.issue.${code}` as MessageKey);
+  const rounds = roundsLabelT(tr, roundsLeft);
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [category, setCategory] = useState<string | null>(null);
@@ -44,8 +50,8 @@ export function RetouchForm({
 
   function add() {
     const issue = checkRetouchNote({ category, text }, categories);
-    if (issue) return setDraftError(RETOUCH_ISSUE_TEXT[issue]);
-    if (at && !/^\d{1,2}:[0-5]\d$/.test(at.trim())) return setDraftError(RETOUCH_ISSUE_TEXT.timecode_invalid);
+    if (issue) return setDraftError(issueText(issue));
+    if (at && !/^\d{1,2}:[0-5]\d$/.test(at.trim())) return setDraftError(issueText("timecode_invalid"));
     setNotes((n) => [...n, { category: category as string, text: text.trim(), at: at.trim() }]);
     setCategory(null);
     setText("");
@@ -63,10 +69,10 @@ export function RetouchForm({
       if (res.ok) return router.refresh();
       if (res.status === 422 && Array.isArray(body.problems)) setProblems(body.problems as RetouchIssue[]);
       setConfirming(false);
-      setError(body.error ?? "Impossible pour le moment. Réessaie.");
+      setError(tr.err(body, "err.generic"));
     } catch {
       setConfirming(false);
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     } finally {
       setBusy(false);
     }
@@ -75,10 +81,10 @@ export function RetouchForm({
   if (!open) {
     return (
       <Card className="space-y-2">
-        <SectionLabel>Quelque chose à changer ?</SectionLabel>
-        <p className="text-[13.5px] text-ink-muted">{roundsLabel(roundsLeft)}. Un tour, c&apos;est un seul envoi avec toutes tes remarques : réfléchis-y en regardant tout avant.</p>
+        <SectionLabel>{t("rc.retouch.title")}</SectionLabel>
+        <p className="text-[13.5px] text-ink-muted">{t("rc.retouch.intro", { rounds })}</p>
         <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center min-h-[44px] px-4 rounded-lg border border-paper-border bg-white text-[14px] font-semibold text-ink">
-          Demander une retouche
+          {t("rc.retouch.ask")}
         </button>
       </Card>
     );
@@ -87,9 +93,9 @@ export function RetouchForm({
   return (
     <Card className="space-y-5">
       <div>
-        <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">Tes remarques</h2>
-        <p className="text-ink-muted text-[13.5px] mt-1">Donne tout ce qui ne va pas <strong>d&apos;un seul coup</strong> : après l&apos;envoi, le tour est terminé. {roundsLabel(roundsLeft)}.</p>
-        <p className="text-ink-muted text-[13.5px] mt-1">Une retouche, ce n&apos;est pas refaire le travail : changer l&apos;idée de départ est une demande de modification, que le prestataire chiffre.</p>
+        <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-ink">{t("rc.retouch.heading")}</h2>
+        <p className="text-ink-muted text-[13.5px] mt-1">{t("rc.retouch.body1", { bold: t("rc.retouch.bold"), rounds })}</p>
+        <p className="text-ink-muted text-[13.5px] mt-1">{t("rc.retouch.body2")}</p>
       </div>
 
       {notes.length > 0 && (
@@ -101,13 +107,13 @@ export function RetouchForm({
                 <div className="flex items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-semibold text-ink-muted">
-                      {n.category}
+                      {tr.canon("noteCat", n.category)}
                       {n.at ? ` · ${n.at}` : ""}
                     </p>
                     <p className="text-[14px] text-ink whitespace-pre-line">{n.text}</p>
-                    {bad && <p role="alert" className="text-danger text-[12.5px] font-semibold mt-1">{RETOUCH_ISSUE_TEXT[bad.issue]}</p>}
+                    {bad && <p role="alert" className="text-danger text-[12.5px] font-semibold mt-1">{issueText(bad.issue)}</p>}
                   </div>
-                  <button type="button" onClick={() => setNotes((l) => l.filter((_, j) => j !== i))} aria-label={`Retirer la remarque ${i + 1}`} className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center hover:bg-boost-olive/10">
+                  <button type="button" onClick={() => setNotes((l) => l.filter((_, j) => j !== i))} aria-label={t("rc.retouch.removeN", { n: i + 1 })} className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center hover:bg-boost-olive/10">
                     <X className="w-4 h-4" aria-hidden />
                   </button>
                 </div>
@@ -118,27 +124,27 @@ export function RetouchForm({
       )}
 
       <fieldset className="space-y-3 rounded-xl border border-paper-border p-3">
-        <legend className="px-1 text-[13px] font-semibold text-ink">{notes.length === 0 ? "Ta première remarque" : "Une autre remarque"}</legend>
-        <div role="radiogroup" aria-label="Ce qui ne va pas" className="flex flex-wrap gap-2">
+        <legend className="px-1 text-[13px] font-semibold text-ink">{notes.length === 0 ? t("rc.retouch.first") : t("rc.retouch.another")}</legend>
+        <div role="radiogroup" aria-label={t("rc.retouch.whatWrong")} className="flex flex-wrap gap-2">
           {categories.map((c) => (
             <button key={c} type="button" role="radio" aria-checked={category === c} onClick={() => setCategory(c)} className={`min-h-[44px] px-4 rounded-xl border text-[14px] font-medium ${category === c ? "bg-boost-olive border-boost-olive text-white" : "bg-white border-paper-border text-ink"}`}>
-              {c}
+              {tr.canon("noteCat", c)}
             </button>
           ))}
         </div>
-        <textarea aria-label="Ce que tu veux changer, et pourquoi" value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={1000} placeholder="Par exemple : trop sombre, on ne voit pas la sauce couler." className="w-full border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive" />
-        {withTimecode && <input aria-label="Moment dans la vidéo (facultatif)" value={at} onChange={(e) => setAt(e.target.value)} placeholder="Moment : 0:08 (facultatif)" maxLength={12} className="w-48 border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive" />}
+        <textarea aria-label={t("rc.retouch.textLabel")} value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={1000} placeholder={t("rc.retouch.textPlaceholder")} className="w-full border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive" />
+        {withTimecode && <input aria-label={t("rc.retouch.atLabel")} value={at} onChange={(e) => setAt(e.target.value)} placeholder={t("rc.retouch.atPlaceholder")} maxLength={12} className="w-48 border border-paper-border rounded-xl px-3 py-2.5 text-[14px] text-ink bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-boost-olive" />}
         {draftError && <p role="alert" className="text-danger text-[13px] font-semibold">{draftError}</p>}
         <button type="button" onClick={add} className="inline-flex items-center gap-1 min-h-[44px] px-4 rounded-xl border border-paper-border bg-white text-ink text-[14px] font-semibold">
-          <Plus className="w-4 h-4" aria-hidden /> Ajouter cette remarque
+          <Plus className="w-4 h-4" aria-hidden /> {t("rc.retouch.addNote")}
         </button>
       </fieldset>
 
       <div className="space-y-1.5">
         <p className="text-[14px] font-semibold text-ink">
-          Captures ou références <span className="font-normal text-ink-faint">· facultatif</span>
+          {t("rc.retouch.captures")} <span className="font-normal text-ink-faint">· {t("quote.optional")}</span>
         </p>
-        <FilePicker endpoint={`/api/admin/missions/${missionId}/files`} extra={{ restaurantId }} scope="retouch" max={MAX_UNLINKED.retouch} onChange={(f) => setFileIds(f.map((x) => x.id))} label="Joindre une capture" />
+        <FilePicker endpoint={`/api/admin/missions/${missionId}/files`} extra={{ restaurantId }} scope="retouch" max={MAX_UNLINKED.retouch} onChange={(f) => setFileIds(f.map((x) => x.id))} label={t("rc.retouch.captureButton")} />
       </div>
 
       {error && <p role="alert" className="text-danger text-[13.5px] font-semibold">{error}</p>}
@@ -146,21 +152,21 @@ export function RetouchForm({
       {!confirming ? (
         <div className="flex gap-3">
           <button type="button" onClick={() => setOpen(false)} className="min-h-[44px] px-4 rounded-lg border border-paper-border bg-white text-[14px] font-semibold text-ink">
-            Annuler
+            {t("rc.retouch.cancel")}
           </button>
           <button type="button" disabled={notes.length === 0} onClick={() => setConfirming(true)} className="flex-1 min-h-[44px] px-4 rounded-xl bg-boost-olive text-white text-[14px] font-semibold shadow-[inset_0_-3px_0_#4F5C2D] disabled:opacity-50">
-            Envoyer mes {notes.length} remarque{notes.length > 1 ? "s" : ""}
+            {tr.tp("rc.retouch.send", notes.length)}
           </button>
         </div>
       ) : (
         <div className="rounded-xl bg-boost-cream border border-boost-olive/30 p-3 space-y-3">
-          <p className="text-[14px] font-semibold text-ink">C&apos;est tout ? Après l&apos;envoi, ce tour est consommé.</p>
+          <p className="text-[14px] font-semibold text-ink">{t("rc.retouch.confirm")}</p>
           <div className="flex gap-3">
             <button type="button" onClick={() => setConfirming(false)} className="min-h-[44px] px-4 rounded-lg border border-paper-border bg-white text-[14px] font-semibold text-ink">
-              J&apos;ai oublié quelque chose
+              {t("rc.retouch.forgot")}
             </button>
             <button type="button" disabled={busy} onClick={send} className="flex-1 min-h-[44px] px-4 rounded-lg bg-ink text-white text-[14px] font-semibold disabled:opacity-60">
-              {busy ? "Envoi…" : "Envoyer, c'est tout"}
+              {busy ? t("quote.sending") : t("rc.retouch.sendAll")}
             </button>
           </div>
         </div>

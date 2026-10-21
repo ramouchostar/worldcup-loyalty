@@ -148,7 +148,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
               .map((c) => (
                 <li key={c.id} className="rounded-xl border border-paper-border bg-white p-3 space-y-1.5">
                   <p className="text-[12.5px] font-semibold text-ink-muted">
-                    {t("mission.change.item", { seq: c.seq, categories: c.categories.join(" · ") })}
+                    {t("mission.change.item", { seq: c.seq, categories: c.categories.map((x) => tr.canon("changeCat", x)).join(" · ") })}
                   </p>
                   <p className="text-[14px] text-ink whitespace-pre-line">{c.description}</p>
                   <p className="text-[13px] text-ink">
@@ -332,7 +332,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
               {r.notes.map((n, i) => (
                 <li key={i} className="rounded-xl border border-paper-border bg-white p-3">
                   <p className="text-[12px] font-semibold text-ink-muted">
-                    {n.category}
+                    {tr.canon("noteCat", n.category)}
                     {n.at ? ` · ${n.at}` : ""}
                   </p>
                   <p className="text-[14px] text-ink whitespace-pre-line">{n.text}</p>
