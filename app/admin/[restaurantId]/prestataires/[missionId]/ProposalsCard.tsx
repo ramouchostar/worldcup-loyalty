@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Check, Copy, ExternalLink, Lightbulb } from "lucide-react";
 import { Card, SectionLabel } from "@/components/admin/ui";
 import { whatsappShareUrl } from "@/lib/mission-team-message";
-import { CHOSEN_BY_LABEL, REASON_ISSUE_TEXT, REASON_MAX, REASON_MIN, type ChosenBy, type ReasonIssue } from "@/lib/mission-proposals";
+import { REASON_MAX, REASON_MIN, type ChosenBy, type ReasonIssue } from "@/lib/mission-proposals";
+import { useT } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/core";
 import { linkHost } from "@/lib/mission-dayof";
 import { AttachmentList } from "@/components/missions/AttachmentList";
 import type { AttachmentView } from "@/lib/mission-files";
@@ -26,20 +28,21 @@ async function post(url: string, body: unknown) {
 }
 
 function Idea({ i, recommended, filesBase, filesQuery }: { i: IdeaView; recommended: boolean; filesBase: string; filesQuery: string }) {
+  const { t, locale } = useT();
   return (
     <div className="space-y-1.5">
       <p className="text-[15px] font-bold text-ink">
         {i.title}
-        {recommended && <span className="ml-2 text-[12px] font-semibold text-boost-olive">recommandée</span>}
+        {recommended && <span className="ml-2 text-[12px] font-semibold text-boost-olive">{t("rc.idea.recommended")}</span>}
       </p>
       <p className="text-[13.5px] text-ink whitespace-pre-line">{i.idea}</p>
       <p className="text-[13.5px] text-ink">
-        <span className="font-semibold">À prévoir sur place :</span> {i.onsite}
+        <span className="font-semibold">{t("rc.idea.onsite")}</span> {i.onsite}
       </p>
       <a href={i.link} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-[13px] font-semibold text-ink underline underline-offset-2 min-h-[32px]">
-        Voir l&apos;exemple ({linkHost(i.link)}) <ExternalLink className="w-3.5 h-3.5" aria-hidden />
+        {t("rc.idea.example", { host: linkHost(i.link) })} <ExternalLink className="w-3.5 h-3.5" aria-hidden />
       </a>
-      <AttachmentList files={i.files} base={filesBase} query={filesQuery} />
+      <AttachmentList locale={locale} files={i.files} base={filesBase} query={filesQuery} />
     </div>
   );
 }
@@ -66,6 +69,8 @@ export function ProposalsChoose({
   filesQuery: string;
 }) {
   const router = useRouter();
+  const tr = useT();
+  const { t } = tr;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [reasons, setReasons] = useState<Record<string, string>>({});
@@ -80,9 +85,9 @@ export function ProposalsChoose({
       const r = await post(url, { restaurantId, ...body });
       if (r.ok) return router.refresh();
       if (r.status === 422 && Array.isArray(r.data.issues)) setIssues(r.data.issues as ReasonIssue[]);
-      setError((r.data.error as string) ?? "Impossible pour le moment. Réessaie.");
+      setError(tr.err(r.data, "err.generic"));
     } catch {
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     } finally {
       setBusyId(null);
     }
@@ -90,16 +95,17 @@ export function ProposalsChoose({
 
   const problem = (id: string) => {
     const p = issues.find((x) => x.id === id);
-    return p ? REASON_ISSUE_TEXT[p.code] : null;
+    return p ? t(`rc.idea.issue.${p.code}` as MessageKey) : null;
   };
 
   return (
     <Card className="space-y-5">
       <div>
-        <SectionLabel>{second ? "La nouvelle série d'idées" : "Choisis ton idée de tournage"}</SectionLabel>
+        <SectionLabel>{second ? t("rc.idea.titleSecond") : t("rc.idea.titleFirst")}</SectionLabel>
         <p className="text-[13.5px] text-ink-muted mt-1">
-          {providerName} te propose {ideas.length} idées. Une fois ton choix fait, il est verrouillé.{" "}
-          <span className="font-semibold text-ink">Sans réponse avant {deadlineLabel}, la première (sa recommandation) est retenue d&apos;office</span> et tu en es prévenu.
+          {t("rc.idea.intro", { name: providerName, count: ideas.length })}
+          <span className="font-semibold text-ink">{t("rc.idea.introBold", { date: deadlineLabel })}</span>
+          {t("rc.idea.introEnd")}
         </p>
       </div>
       <ol className="space-y-4">
@@ -109,10 +115,10 @@ export function ProposalsChoose({
             {rejecting ? (
               <div className="space-y-1">
                 <label htmlFor={`r${i.id}`} className="block text-[13.5px] font-semibold text-ink">
-                  Pourquoi pas celle-ci ?
+                  {t("rc.idea.why")}
                 </label>
-                <textarea id={`r${i.id}`} value={reasons[i.id] ?? ""} onChange={(e) => setReasons((r) => ({ ...r, [i.id]: e.target.value }))} rows={2} maxLength={REASON_MAX} placeholder="Ex. : trop long à tourner, on n'a pas ces plats à la carte" className={input} />
-                <p className="text-[12px] text-ink-faint">{(reasons[i.id] ?? "").trim().length < REASON_MIN ? `${REASON_MIN} caractères au moins : le prestataire doit savoir quoi changer.` : " "}</p>
+                <textarea id={`r${i.id}`} value={reasons[i.id] ?? ""} onChange={(e) => setReasons((r) => ({ ...r, [i.id]: e.target.value }))} rows={2} maxLength={REASON_MAX} placeholder={t("rc.idea.whyPlaceholder")} className={input} />
+                <p className="text-[12px] text-ink-faint">{(reasons[i.id] ?? "").trim().length < REASON_MIN ? t("rc.idea.whyMin", { min: REASON_MIN }) : " "}</p>
                 {problem(i.id) && (
                   <p role="alert" className="text-danger text-[13px] font-semibold">
                     {problem(i.id)}
@@ -121,7 +127,7 @@ export function ProposalsChoose({
               </div>
             ) : (
               <button type="button" disabled={busyId !== null} onClick={() => run(i.id, `/api/admin/missions/${missionId}/proposals/choose`, { proposalId: i.id })} className={primary}>
-                {busyId === i.id ? "…" : "Choisir cette idée"}
+                {busyId === i.id ? "…" : t("rc.idea.choose")}
               </button>
             )}
           </li>
@@ -134,41 +140,42 @@ export function ProposalsChoose({
       )}
       {canReject && !rejecting && (
         <button type="button" onClick={() => setRejecting(true)} className={ghost}>
-          Aucune ne me plaît
+          {t("rc.idea.none")}
         </button>
       )}
       {canReject && rejecting && (
         <div className="space-y-2">
-          <p className="text-[13px] text-ink-muted">Tu ne peux demander qu&apos;UNE nouvelle série : dis pourquoi pour chaque idée, {providerName} en proposera de nouvelles.</p>
+          <p className="text-[13px] text-ink-muted">{t("rc.idea.rejectNote", { name: providerName })}</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busyId !== null} onClick={() => run(null, `/api/admin/missions/${missionId}/proposals/reject`, { reasons })} className={primary}>
-              {busyId === "reject" ? "…" : "Demander une nouvelle série"}
+              {busyId === "reject" ? "…" : t("rc.idea.askNew")}
             </button>
             <button type="button" disabled={busyId !== null} onClick={() => setRejecting(false)} className={ghost}>
-              Revenir aux idées
+              {t("rc.idea.back")}
             </button>
           </div>
         </div>
       )}
-      {!canReject && !second && <p className="text-[12.5px] text-ink-muted">Il est trop tard pour demander une nouvelle série : choisis parmi ces idées.</p>}
-      {second && <p className="text-[12.5px] text-ink-muted">C&apos;est la dernière série : choisis l&apos;une de ces idées.</p>}
+      {!canReject && !second && <p className="text-[12.5px] text-ink-muted">{t("rc.idea.tooLate")}</p>}
+      {second && <p className="text-[12.5px] text-ink-muted">{t("rc.idea.last")}</p>}
     </Card>
   );
 }
 
 export function ProposalChosen({ idea, by, teamUpdate, filesBase, filesQuery }: { idea: IdeaView; by: ChosenBy; teamUpdate: string; filesBase: string; filesQuery: string }) {
+  const { t } = useT();
   const [copied, setCopied] = useState(false);
   return (
     <Card className="space-y-4">
       <div>
-        <SectionLabel>Ton idée de tournage</SectionLabel>
+        <SectionLabel>{t("rc.idea.chosenTitle")}</SectionLabel>
         <p className="text-[12.5px] text-ink-muted mt-1 inline-flex items-center gap-1.5">
-          <Lightbulb className="w-3.5 h-3.5" aria-hidden /> {CHOSEN_BY_LABEL[by]} · verrouillée
+          <Lightbulb className="w-3.5 h-3.5" aria-hidden /> {t("rc.idea.chosenLocked", { who: t(`mission.chosenBy.${by}` as MessageKey) })}
         </p>
       </div>
       <Idea i={idea} recommended={false} filesBase={filesBase} filesQuery={filesQuery} />
       <div className="space-y-2 border-t border-paper-border pt-4">
-        <p className="text-[13.5px] font-semibold text-ink">Dis à ton équipe ce qu&apos;on va tourner</p>
+        <p className="text-[13.5px] font-semibold text-ink">{t("rc.idea.tellTeam")}</p>
         <pre className="whitespace-pre-wrap font-sans text-[13.5px] text-ink bg-paper-subtle rounded-xl p-3 border border-paper-border">{teamUpdate}</pre>
         <div className="flex flex-wrap gap-2">
           <button
@@ -179,10 +186,10 @@ export function ProposalChosen({ idea, by, teamUpdate, filesBase, filesQuery }: 
             }}
             className={ghost}
           >
-            {copied ? <Check className="w-4 h-4 mr-1.5" aria-hidden /> : <Copy className="w-4 h-4 mr-1.5" aria-hidden />} {copied ? "Copié" : "Copier"}
+            {copied ? <Check className="w-4 h-4 mr-1.5" aria-hidden /> : <Copy className="w-4 h-4 mr-1.5" aria-hidden />} {copied ? t("rc.idea.copied") : t("rc.idea.copy")}
           </button>
           <a href={whatsappShareUrl(teamUpdate)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-[44px] px-4 rounded-lg bg-[#25D366] text-white text-[14px] font-semibold">
-            Partager par WhatsApp
+            {t("rc.idea.whatsapp")}
           </a>
         </div>
       </div>

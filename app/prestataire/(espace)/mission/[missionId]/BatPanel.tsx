@@ -120,7 +120,7 @@ function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }:
 }
 
 export function BatPanel({ missionId, phase, proofs, qrUrl }: { missionId: string; phase: BatPhase; proofs: ProviderProof[]; qrUrl: string | null }) {
-  const { t } = useT();
+  const { t, canon } = useT();
   const last = proofs.at(-1) ?? null;
   const signed = proofs.find((p) => p.status === "signed") ?? null;
 
@@ -158,7 +158,7 @@ export function BatPanel({ missionId, phase, proofs, qrUrl }: { missionId: strin
           <ol className="space-y-2">
             {corrections.map((c, i) => (
               <li key={i} className="rounded-xl border border-paper-border bg-white p-3">
-                <p className="text-[12px] font-semibold text-ink-muted">{c.category}</p>
+                <p className="text-[12px] font-semibold text-ink-muted">{canon("noteCat", c.category)}</p>
                 <p className="text-[14px] text-ink whitespace-pre-line">{c.text}</p>
               </li>
             ))}

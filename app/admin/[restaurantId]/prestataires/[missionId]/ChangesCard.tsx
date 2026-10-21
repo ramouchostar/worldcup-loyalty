@@ -6,8 +6,9 @@ import { Card, SectionLabel } from "@/components/admin/ui";
 import { AttachmentList } from "@/components/missions/AttachmentList";
 import { FilePicker } from "@/components/missions/FilePicker";
 import { MAX_UNLINKED, type AttachmentView } from "@/lib/mission-files";
-import { CHANGE_CATEGORIES, CHANGE_STATUS_LABEL, DESCRIPTION_MAX, DESCRIPTION_MIN, MAX_CHANGES, REQUEST_ISSUE_TEXT, type ChangeStatus, type RequestIssue } from "@/lib/mission-changes";
-import { formatEuros } from "@/lib/mission-money";
+import { CHANGE_CATEGORIES, DESCRIPTION_MAX, DESCRIPTION_MIN, MAX_CHANGES, type ChangeStatus, type RequestIssue } from "@/lib/mission-changes";
+import { useT } from "@/components/i18n/I18nProvider";
+import { formatEurosL, type MessageKey } from "@/lib/i18n/core";
 
 // ADR 0084 §3 règle 9 — « Tout changement après verrouillage est une demande de modification que le prestataire chiffre
 // ou refuse ». Le restaurateur décrit ce qui change (catégories + explication, pièces jointes possibles) ; le prestataire
@@ -56,6 +57,9 @@ export function ChangesCard({
   filesQuery: string;
 }) {
   const router = useRouter();
+  const tr = useT();
+  const { t, locale } = tr;
+  const eur = (cents: number) => formatEurosL(cents, locale);
   const [open, setOpen] = useState(false);
   const [cats, setCats] = useState<string[]>([]);
   const [text, setText] = useState("");
@@ -72,9 +76,9 @@ export function ChangesCard({
       const r = await post(url, { restaurantId, ...body });
       if (r.ok) return router.refresh();
       if (r.status === 422 && Array.isArray(r.data.issues)) setIssues(r.data.issues as RequestIssue[]);
-      setError((r.data.error as string) ?? "Impossible pour le moment. Réessaie.");
+      setError(tr.err(r.data, "err.generic"));
     } catch {
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     } finally {
       setBusy(null);
     }
@@ -82,17 +86,15 @@ export function ChangesCard({
 
   const problem = (f: RequestIssue["field"]) => {
     const p = issues.find((i) => i.field === f);
-    return p ? REQUEST_ISSUE_TEXT[p.code] : null;
+    return p ? t(`rc.change.issue.${p.code}` as MessageKey) : null;
   };
   const used = changes.filter((c) => ["proposed", "quoted", "accepted", "declined_by_restaurant"].includes(c.status)).length;
 
   return (
     <Card className="space-y-5">
       <div>
-        <SectionLabel>Modifier le brief</SectionLabel>
-        <p className="text-[13.5px] text-ink-muted mt-1">
-          Le brief est verrouillé : un changement est une <strong>demande de modification</strong> que {providerName} chiffre (un supplément, parfois nul) ou refuse. Si ça ne se fait pas, le brief d&apos;origine tient. Une demande à la fois, {MAX_CHANGES} au total ({used} utilisée{used > 1 ? "s" : ""}), jusqu&apos;à 7 jours avant le tournage.
-        </p>
+        <SectionLabel>{t("rc.change.title")}</SectionLabel>
+        <p className="text-[13.5px] text-ink-muted mt-1">{t("rc.change.intro", { name: providerName, max: MAX_CHANGES, used: tr.tp("rc.change.used", used) })}</p>
       </div>
 
       {changes.length > 0 && (
@@ -100,36 +102,36 @@ export function ChangesCard({
           {changes.map((c) => (
             <li key={c.id} className="rounded-2xl border border-paper-border p-4 space-y-2">
               <p className="text-[12px] font-semibold text-ink-muted">
-                Demande {c.seq} · {CHANGE_STATUS_LABEL[c.status]}
+                {t("rc.change.item", { seq: c.seq, status: t(`rc.change.status.${c.status}` as MessageKey) })}
               </p>
-              <p className="text-[13px] text-ink-muted">{c.categories.join(" · ")}</p>
+              <p className="text-[13px] text-ink-muted">{c.categories.map((x) => tr.canon("changeCat", x)).join(" · ")}</p>
               <p className="text-[14px] text-ink whitespace-pre-line">{c.description}</p>
-              <AttachmentList files={c.files} base={filesBase} query={filesQuery} />
+              <AttachmentList locale={locale} files={c.files} base={filesBase} query={filesQuery} />
               {c.status === "declined_by_provider" && c.declineReason && (
                 <p className="text-[13.5px] text-ink">
-                  <span className="font-semibold">Sa raison :</span> {c.declineReason}
+                  <span className="font-semibold">{t("rc.change.reason")}</span> {c.declineReason}
                 </p>
               )}
               {(c.status === "quoted" || c.status === "accepted" || c.status === "declined_by_restaurant") && c.paidCents !== null && (
                 <p className="text-[14px] text-ink">
-                  <span className="font-semibold">{c.paidCents === 0 ? "Sans supplément" : `Supplément : ${formatEuros(c.paidCents)}`}</span>
-                  {c.deltaDays ? ` · livraison ${c.deltaDays} jour${c.deltaDays > 1 ? "s" : ""} plus tard` : ""}
+                  <span className="font-semibold">{c.paidCents === 0 ? t("rc.change.noSupplement") : t("rc.change.supplement", { amount: eur(c.paidCents) })}</span>
+                  {c.deltaDays ? tr.tp("mission.change.delay", c.deltaDays) : ""}
                 </p>
               )}
               {c.providerNote && <p className="text-[13.5px] text-ink-muted whitespace-pre-line">{c.providerNote}</p>}
               {c.status === "quoted" && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button type="button" disabled={busy !== null} onClick={() => run(`a${c.id}`, `/api/admin/missions/${missionId}/changes/${c.id}/answer`, { answer: "accept" })} className={primary}>
-                    {busy === `a${c.id}` ? "…" : c.paidCents === 0 ? "Confirmer la modification" : "Accepter le supplément"}
+                    {busy === `a${c.id}` ? "…" : c.paidCents === 0 ? t("rc.change.confirm") : t("rc.change.accept")}
                   </button>
                   <button type="button" disabled={busy !== null} onClick={() => run(`d${c.id}`, `/api/admin/missions/${missionId}/changes/${c.id}/answer`, { answer: "decline" })} className={ghost}>
-                    {busy === `d${c.id}` ? "…" : "Garder le brief d'origine"}
+                    {busy === `d${c.id}` ? "…" : t("rc.change.keep")}
                   </button>
                 </div>
               )}
               {(c.status === "proposed" || c.status === "quoted") && (
                 <button type="button" disabled={busy !== null} onClick={() => run(`w${c.id}`, `/api/admin/missions/${missionId}/changes/${c.id}/answer`, { answer: "withdraw" })} className="text-[13px] font-semibold text-ink underline underline-offset-2 min-h-[44px]">
-                  {busy === `w${c.id}` ? "…" : "Retirer ma demande"}
+                  {busy === `w${c.id}` ? "…" : t("rc.change.withdraw")}
                 </button>
               )}
             </li>
@@ -147,18 +149,18 @@ export function ChangesCard({
         <p className="text-[13.5px] text-ink-muted">{blocked}</p>
       ) : !open ? (
         <button type="button" onClick={() => setOpen(true)} className={ghost}>
-          Demander une modification
+          {t("rc.change.ask")}
         </button>
       ) : (
         <div className="space-y-4 rounded-2xl border border-paper-border p-4">
           <div className="space-y-2">
-            <p className="text-[14px] font-semibold text-ink">Qu&apos;est-ce qui change ?</p>
-            <div role="group" aria-label="Ce qui change" className="flex flex-wrap gap-2">
+            <p className="text-[14px] font-semibold text-ink">{t("rc.change.what")}</p>
+            <div role="group" aria-label={t("rc.change.whatGroup")} className="flex flex-wrap gap-2">
               {CHANGE_CATEGORIES.map((c) => {
                 const on = cats.includes(c);
                 return (
                   <button key={c} type="button" aria-pressed={on} onClick={() => setCats((l) => (on ? l.filter((x) => x !== c) : [...l, c]))} className={`min-h-[44px] px-4 rounded-xl border text-[14px] font-medium ${on ? "bg-boost-olive border-boost-olive text-white" : "bg-white border-paper-border text-ink"}`}>
-                    {c}
+                    {tr.canon("changeCat", c)}
                   </button>
                 );
               })}
@@ -167,27 +169,27 @@ export function ChangesCard({
           </div>
           <div className="space-y-1">
             <label htmlFor="chg-text" className="block text-[14px] font-semibold text-ink">
-              Explique précisément le changement
+              {t("rc.change.explain")}
             </label>
-            <textarea id="chg-text" value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={DESCRIPTION_MAX} placeholder="Ex. : on ajoute 3 plats à la carte du tournage, dont la nouvelle salade, et on ne montre plus la cuisine." className={field} />
-            <p className="text-[12px] text-ink-faint">{text.trim().length < DESCRIPTION_MIN ? `${DESCRIPTION_MIN} caractères au moins : le prestataire doit pouvoir chiffrer sans t'appeler.` : `${text.trim().length} / ${DESCRIPTION_MAX}`}</p>
+            <textarea id="chg-text" value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={DESCRIPTION_MAX} placeholder={t("rc.change.placeholder")} className={field} />
+            <p className="text-[12px] text-ink-faint">{text.trim().length < DESCRIPTION_MIN ? t("rc.change.min", { min: DESCRIPTION_MIN }) : t("rc.change.count", { n: text.trim().length, max: DESCRIPTION_MAX })}</p>
             {problem("description") && <p role="alert" className="text-danger text-[13px] font-semibold">{problem("description")}</p>}
           </div>
           <div className="space-y-1.5">
             <p className="text-[14px] font-semibold text-ink">
-              Une image ou un PDF <span className="font-normal text-ink-faint">· facultatif</span>
+              {t("rc.change.file")} <span className="font-normal text-ink-faint">· {t("quote.optional")}</span>
             </p>
-            <FilePicker endpoint={`/api/admin/missions/${missionId}/files`} extra={{ restaurantId }} scope="change" max={MAX_UNLINKED.change} onChange={(f) => setFileIds(f.map((x) => x.id))} label="Joindre un fichier" />
+            <FilePicker endpoint={`/api/admin/missions/${missionId}/files`} extra={{ restaurantId }} scope="change" max={MAX_UNLINKED.change} onChange={(f) => setFileIds(f.map((x) => x.id))} label={t("rc.change.fileButton")} />
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy !== null} onClick={() => run("req", `/api/admin/missions/${missionId}/changes`, { categories: cats, description: text, attachmentIds: fileIds })} className={primary}>
-              {busy === "req" ? "Envoi…" : `Envoyer à ${providerName}`}
+              {busy === "req" ? t("quote.sending") : t("rc.change.sendTo", { name: providerName })}
             </button>
             <button type="button" disabled={busy !== null} onClick={() => setOpen(false)} className={ghost}>
-              Annuler
+              {t("refuse.cancel")}
             </button>
           </div>
-          <p className="text-[12.5px] text-ink-muted">Tu ne paies rien maintenant : le supplément, s&apos;il y en a un, t&apos;est proposé et tu l&apos;acceptes ou non.</p>
+          <p className="text-[12.5px] text-ink-muted">{t("rc.change.nothingNow")}</p>
         </div>
       )}
     </Card>

@@ -38,8 +38,8 @@ test("chaque pluriel a ses deux formes dans les trois langues", () => {
 test("rien n'est resté en français dans les autres langues (hors mots identiques connus)", () => {
   // Mots qui s'écrivent pareil dans deux langues (Design, Photo, Boosteats, « message(s) », Montage…).
   const SAME: Record<string, string[]> = {
-    nl: ["metier.design", "msg.platform", "canon.included.Montage", "proposals.field.ideaCount", "em.brief.title"],
-    en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other", "mission.version", "msg.title", "msg.platform", "proposals.field.ideaCount", "em.invite.eyebrow", "em.brief.title"],
+    nl: ["metier.design", "msg.platform", "canon.included.Montage", "proposals.field.ideaCount", "em.brief.title", "canon.noteCat.Retouche", "canon.noteCat.Logo", "canon.role.Barman", "rc.change.count", "rc.bat.sum.paper", "dur.min"],
+    en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other", "mission.version", "msg.title", "msg.platform", "proposals.field.ideaCount", "em.invite.eyebrow", "em.brief.title", "canon.noteCat.Logo", "canon.noteCat.Photo", "canon.noteCat.QR code", "canon.noteCat.Format", "rc.change.count", "rc.plan.advice.ok", "dur.min", "dur.h", "dur.hm"],
   };
   for (const [name, d] of [["nl", nl], ["en", en]] as const) {
     const same = KEYS.filter((k) => (d as Record<string, string>)[k] === (fr as Record<string, string>)[k]);
@@ -48,7 +48,7 @@ test("rien n'est resté en français dans les autres langues (hors mots identiqu
 });
 
 test("pas de tutoiement oublié ni de « vous » en français", () => {
-  for (const k of KEYS) assert.doesNotMatch((fr as Record<string, string>)[k], /\bvous\b/i, k);
+  for (const k of KEYS.filter((k) => !k.startsWith("rc.msg."))) assert.doesNotMatch((fr as Record<string, string>)[k], /\bvous\b/i, k);
 });
 
 test("une langue inconnue donne le français", () => {
@@ -227,4 +227,38 @@ test("la carte « À propos » parle la langue du lecteur et le français reste 
   assert.equal(getT("fr").t("card.title"), "À propos du prestataire");
   assert.equal(getT("nl").t("card.rating", { avg: "4,5", count: 7 }), "4,5 op 5 · 7 beoordelingen");
   assert.equal(getT("en").t("card.rating", { avg: "4.5", count: 7 }), "4.5 out of 5 · 7 reviews");
+});
+
+// ── Lot 8 : cartes du restaurateur ──
+import { CHANGE_CATEGORIES } from "../mission-changes";
+import { BAT_NOTE_CATEGORIES, batChecklist, batChecklistT } from "../mission-print";
+import { DESIGN_NOTE_CATEGORIES, PHOTO_NOTE_CATEGORIES, VIDEO_NOTE_CATEGORIES } from "../mission-brief";
+import { conceptMessage, conceptMessageT, teamMessage, teamMessageT } from "../mission-team-message";
+import { roundsLabel, roundsLabelT } from "../mission-retouch";
+import { formatDuration, formatDurationT } from "../mission-dayof";
+
+test("chaque catégorie de remarque et de changement a sa traduction", () => {
+  const nlT = makeTranslator("nl", nl);
+  const enT = makeTranslator("en", en);
+  for (const c of CHANGE_CATEGORIES) for (const tr of [nlT, enT]) assert.ok(tr.canon("changeCat", c).length > 0, `changeCat:${c}`);
+  for (const c of [...VIDEO_NOTE_CATEGORIES, ...PHOTO_NOTE_CATEGORIES, ...DESIGN_NOTE_CATEGORIES, ...BAT_NOTE_CATEGORIES]) {
+    for (const tr of [nlT, enT]) assert.ok(`canon.noteCat.${c}` in (tr.locale === "nl" ? nl : en), `noteCat:${c}`);
+  }
+  for (const c of CHANGE_CATEGORIES) assert.ok(`canon.changeCat.${c}` in nl && `canon.changeCat.${c}` in en, `changeCat:${c}`);
+});
+
+test("le message à l'équipe, le BAT, la durée et les tours : le français par clés est celui d'avant", () => {
+  const trFr = makeTranslator("fr", fr);
+  const base = { shootDate: "2026-11-03", startTime: "14:00", providerName: "Léa", roles: ["Gérant", "Chef"], kitchen: "Oui", contactName: "Omar", contactPhone: "0470 00 00 00" };
+  assert.equal(teamMessageT(trFr, base), teamMessage(base));
+  assert.equal(conceptMessageT(trFr, { shootDate: "2026-11-03", startTime: "14:00", providerName: "Léa", title: "Le burger", onsite: "3 burgers" }), conceptMessage({ shootDate: "2026-11-03", startTime: "14:00", providerName: "Léa", title: "Le burger", onsite: "3 burgers" }));
+  for (const n of [0, 1, 2]) assert.equal(roundsLabelT(trFr, n), roundsLabel(n));
+  for (const m of [5, 60, 95]) assert.equal(formatDurationT(trFr, m), formatDuration(m));
+  assert.deepEqual(batChecklistT({}, trFr).map((c) => c.key), batChecklist({}).map((c) => c.key));
+});
+
+test("le message à l'équipe parle la langue du restaurateur", () => {
+  const input = { shootDate: "2026-11-03", startTime: "14:00", providerName: "Léa", roles: ["Chef"], contactName: "Omar", contactPhone: "0470 00 00 00" };
+  assert.notEqual(teamMessageT(makeTranslator("nl", nl), input), teamMessage(input));
+  assert.notEqual(teamMessageT(makeTranslator("en", en), input), teamMessage(input));
 });

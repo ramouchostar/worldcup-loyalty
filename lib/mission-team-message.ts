@@ -10,6 +10,9 @@
 // restaurant, pas un surface de plateforme). Fonction PURE.
 // ============================================================
 
+import { dayLabel, makeTranslator, type Translator } from "./i18n/core";
+import { fr } from "./i18n/messages/fr";
+
 const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"] as const;
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"] as const;
 
@@ -34,28 +37,34 @@ export type TeamMessageInput = {
 };
 
 export function teamMessage(i: TeamMessageInput): string {
-  const roles = i.roles.length ? i.roles.map((r) => r.toLowerCase()).join(", ") : "[à choisir]";
+  return teamMessageT(makeTranslator("fr", fr), i);
+}
+
+/** Le message à partager avec l'équipe, dans la langue du restaurateur (c'est SON équipe qui le lit). Fonction PURE. */
+export function teamMessageT(tr: Translator, i: TeamMessageInput): string {
+  const { t } = tr;
+  const roles = i.roles.length ? i.roles.map((r) => tr.canon("role", r).toLowerCase()).join(", ") : t("rc.msg.rolesTbd");
   const lines: string[] = [
-    "Salut l'équipe !",
+    t("rc.msg.hello"),
     "",
-    `Tournage le ${dateLabelFr(i.shootDate)} à ${i.startTime} avec ${i.providerName}.`,
+    t("rc.msg.shoot", { date: dayLabel(i.shootDate, tr.locale), time: i.startTime, name: i.providerName }),
     "",
-    `Qui doit être là : ${roles}.`,
+    t("rc.msg.who", { roles }),
     "",
-    "On prévoit :",
-    "– uniforme propre et repassé",
-    "– plats prêts et conformes à la carte, assiettes un peu plus remplies que d'habitude (tout paraît plus petit à la caméra)",
-    "– vaisselle propre",
-    "– salle rangée : tables propres, déco en place",
+    t("rc.msg.plan"),
+    t("rc.msg.uniform"),
+    t("rc.msg.dishes"),
+    t("rc.msg.dishware"),
+    t("rc.msg.room"),
   ];
-  if (i.concept) lines.push(`– on tourne « ${i.concept.title} » : prévoir ${i.concept.onsite}`);
-  if (i.kitchen === "Non") lines.push("– aucun plan en cuisine");
-  else if (i.kitchen === "Oui") lines.push("– cuisine propre et rangée : elle sera filmée");
-  else if (i.kitchen === "Partiellement") lines.push("– cuisine : on vous dira quelles zones sont filmées, tout le reste est propre aussi");
+  if (i.concept) lines.push(t("rc.msg.concept", { title: i.concept.title, onsite: i.concept.onsite }));
+  if (i.kitchen === "Non") lines.push(t("rc.msg.kitchen.no"));
+  else if (i.kitchen === "Oui") lines.push(t("rc.msg.kitchen.yes"));
+  else if (i.kitchen === "Partiellement") lines.push(t("rc.msg.kitchen.partly"));
   lines.push("");
-  lines.push(`Contact sur place : ${i.contactName?.trim() || "[prénom]"} · ${i.contactPhone?.trim() || "[téléphone]"}`);
+  lines.push(t("rc.msg.contact", { name: i.contactName?.trim() || t("rc.msg.nameTbd"), phone: i.contactPhone?.trim() || t("rc.msg.phoneTbd") }));
   lines.push("");
-  lines.push("Prévenez-moi dès maintenant si vous avez un empêchement ce jour-là.");
+  lines.push(t("rc.msg.warn"));
   return lines.join("\n");
 }
 
@@ -66,14 +75,19 @@ export type ConceptMessageInput = { shootDate: string; startTime: string; provid
  * ce qu'on filme et ce qu'il faut prévoir. Texte sortant : aucun montant. Fonction PURE.
  */
 export function conceptMessage(i: ConceptMessageInput): string {
+  return conceptMessageT(makeTranslator("fr", fr), i);
+}
+
+export function conceptMessageT(tr: Translator, i: ConceptMessageInput): string {
+  const { t } = tr;
   return [
-    "Salut l'équipe !",
+    t("rc.msg.hello"),
     "",
-    `Une précision pour le tournage du ${dateLabelFr(i.shootDate)} à ${i.startTime} avec ${i.providerName} : on tourne « ${i.title} ».`,
+    t("rc.msg.conceptIntro", { date: dayLabel(i.shootDate, tr.locale), time: i.startTime, name: i.providerName, title: i.title }),
     "",
-    `À prévoir : ${i.onsite}.`,
+    t("rc.msg.conceptTodo", { onsite: i.onsite }),
     "",
-    "Dites-moi tout de suite si quelque chose pose problème.",
+    t("rc.msg.conceptWarn"),
   ].join("\n");
 }
 

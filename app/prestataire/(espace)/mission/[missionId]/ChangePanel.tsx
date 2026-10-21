@@ -74,7 +74,7 @@ export function ChangePanel({ missionId, change, commissionBps, filesBase }: { m
         <p className="text-[13.5px] text-ink-muted mt-1">{t("change.intro", { days: PROVIDER_ANSWER_DAYS })}</p>
       </div>
       <div className="rounded-xl border border-paper-border bg-white p-3 space-y-2">
-        <p className="text-[12.5px] font-semibold text-ink-muted">{change.categories.join(" · ")}</p>
+        <p className="text-[12.5px] font-semibold text-ink-muted">{change.categories.map((x) => tr.canon("changeCat", x)).join(" · ")}</p>
         <p className="text-[14px] text-ink whitespace-pre-line">{change.description}</p>
         <AttachmentList locale={locale} files={change.files} base={filesBase} />
       </div>

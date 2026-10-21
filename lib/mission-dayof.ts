@@ -32,6 +32,8 @@ export const REPORT_MISSING_OPTIONS = [
   "Autre",
 ] as const;
 
+import type { Translator } from "./i18n/core";
+
 export type ReportInput = { arrival: string; end: string; missing: string[]; note: string };
 export type ReportIssueCode = "arrival_invalid" | "end_invalid" | "end_before_arrival" | "too_long" | "missing_unknown" | "note_too_long" | "note_required";
 export type ReportIssue = { field: "arrival" | "end" | "missing" | "note"; code: ReportIssueCode };
@@ -81,6 +83,12 @@ export function overrun(durationMinutes: number | null, quotedHours: number | nu
   if (durationMinutes === null || !quotedHours || quotedHours <= 0) return { over: false, extraMinutes: 0 };
   const extra = durationMinutes - Math.round(quotedHours * 60);
   return { over: extra > 30, extraMinutes: Math.max(0, extra) };
+}
+
+export function formatDurationT(tr: Translator, minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h === 0 ? tr.t("dur.min", { m }) : m === 0 ? tr.t("dur.h", { h }) : tr.t("dur.hm", { h, m: String(m).padStart(2, "0") });
 }
 
 export function formatDuration(minutes: number): string {

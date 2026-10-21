@@ -8,6 +8,8 @@
 // Fonctions PURES : l'état du BAT se déduit de la liste des épreuves.
 // ============================================================
 
+import type { MessageKey, Translator } from "./i18n/core";
+import { optionText } from "./i18n/questionnaire";
 import type { BriefAnswers } from "./mission-brief";
 import { MAX_LINKS, MAX_DELIVERY_MESSAGE, validateDelivery, type DeliveryInput, type DeliveryIssue } from "./mission-dayof";
 import { MAX_NOTES, MAX_NOTE_TEXT } from "./mission-retouch";
@@ -47,6 +49,21 @@ export function batChecklist(brief: BriefAnswers | null | undefined): BatCheck[]
     ...(hasQr ? [{ key: "qr", label: "Le QR code mène au bon endroit", sub: "Scanne-le avec ton téléphone depuis l'épreuve" }] : []),
     { key: "spec", label: "La quantité et le format sont corrects", sub: spec || "Quantité, format, papier" },
   ];
+}
+
+/** La liste de contrôle du bon à tirer dans la langue du restaurateur (mêmes clés que `batChecklist`). */
+export function batChecklistT(brief: BriefAnswers | null | undefined, tr: Translator): BatCheck[] {
+  const { t, locale } = tr;
+  const a = brief ?? {};
+  const spec = [
+    ["quantity", a.quantity],
+    ["product", a.product],
+    ["size", a.size],
+  ]
+    .filter((x): x is [string, string] => typeof x[1] === "string" && x[1].length > 0)
+    .map(([key, v]) => optionText(locale, "impression", key, v))
+    .join(" · ");
+  return batChecklist(brief).map((c) => ({ key: c.key, label: t(`rc.bat.check.${c.key}` as MessageKey), sub: c.key === "spec" ? spec || t("rc.bat.check.spec.default") : t(`rc.bat.check.${c.key}.sub` as MessageKey) }));
 }
 
 export type SignInput = { checks: Record<string, boolean>; name: string };
@@ -173,6 +190,25 @@ export const PRINT_DELIVERY_ISSUE_TEXT: Record<"no_link", string> = { no_link: "
 export { MAX_LINKS };
 
 // ── Ce que le restaurateur relit sur le BAT ──────────────────
+
+/** Ce que le restaurateur relit sur le BAT, dans sa langue. */
+export function batSummaryT(brief: BriefAnswers | null | undefined, tr: Translator): { label: string; value: string }[] {
+  const { t, locale } = tr;
+  const a = brief ?? {};
+  const s = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const o = (key: string) => {
+    const v = s(a[key]);
+    return v ? optionText(locale, "impression", key, v) : null;
+  };
+  const rows: [string, string | null][] = [
+    [t("rc.bat.sum.product"), o("product")],
+    [t("rc.bat.sum.quantity"), o("quantity")],
+    [t("rc.bat.sum.size"), o("size")],
+    [t("rc.bat.sum.paper"), [o("paper"), o("finish")?.toLowerCase()].filter(Boolean).join(", ") || null],
+    [t("rc.bat.sum.delivery"), o("delivery_mode")],
+  ];
+  return rows.filter((r): r is [string, string] => !!r[1]).map(([label, value]) => ({ label, value }));
+}
 
 export function batSummary(brief: BriefAnswers | null | undefined): { label: string; value: string }[] {
   const a = brief ?? {};

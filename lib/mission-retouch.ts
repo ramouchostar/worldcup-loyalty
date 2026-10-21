@@ -9,6 +9,7 @@
 import { MAX_RETOUCH_ROUNDS, roundsLeft, type MissionStatus } from "./mission-states";
 import { checkRetouchNote, DESIGN_NOTE_CATEGORIES, PHOTO_NOTE_CATEGORIES, VIDEO_NOTE_CATEGORIES, type NoteIssue } from "./mission-brief";
 import type { Metier } from "./mission-money";
+import type { Translator } from "./i18n/core";
 
 export const MAX_NOTES = 20;
 export const MAX_NOTE_TEXT = 1_000;
@@ -86,6 +87,10 @@ export function nextDeliveryRound(status: MissionStatus, roundsUsed: number): { 
 
 export function versionLabel(round: number): string {
   return `Version ${round}`;
+}
+
+export function roundsLabelT(tr: Translator, left: number): string {
+  return left <= 0 ? tr.t("rc.retouch.rounds.none") : tr.tp("rc.retouch.rounds", left);
 }
 
 export function roundsLabel(left: number): string {
