@@ -236,6 +236,14 @@ personne** (aucun rappel ne signe, n'annule, ne valide ni ne sanctionne) :
 Chaque rappel part **une seule fois** (clé primaire de `mission_reminders`, réservée avant l'envoi). Le jour souhaité n'est
 **pas un engagement** du prestataire : son délai de devis fait foi, et le rappel de retard le dit.
 
+### 5 septies. Le bon à tirer dans le dossier de litige (amendé le 2026-10-21, PR T)
+
+Pour une impression, le dossier de la plateforme montre le bon à tirer **tel que l'arbitre doit le lire** : chaque épreuve (tour,
+date d'envoi, liens, message de l'imprimeur, corrections demandées une à une) et, si elle est signée, **qui a signé, quand, et chaque
+point de la liste de contrôle coché ou non** (un point non coché est en rouge). Une phrase de tête dit où en est le dossier (aucune
+épreuve · en attente · corrections · signée). Lecture seule : le dossier n'ajoute aucune règle, la décision reste à l'arbitre ; une
+épreuve signée garde le sens de §5 ter (c'est ce qui devait être imprimé).
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →

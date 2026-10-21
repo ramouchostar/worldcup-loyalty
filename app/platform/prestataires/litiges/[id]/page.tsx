@@ -10,6 +10,9 @@ import { formatEuros } from "@/lib/mission-money";
 import { dateLabelFr } from "@/lib/mission-team-message";
 import { SubNav } from "../../SubNav";
 import { listMessages } from "@/lib/missions-messages";
+import { listProofs } from "@/lib/missions-bat-state";
+import { batChecklist } from "@/lib/mission-print";
+import { batDossier, type DossierProof } from "@/lib/mission-bat-dossier";
 import { OpenDisputeForm, ResolveDisputeForm } from "./DisputeControls";
 
 export const metadata = { title: "Dossier — Prestataires — Plateforme" };
@@ -41,6 +44,13 @@ export default async function DisputeFilePage({ params }: { params: Promise<{ id
   const { mission: m, restaurantName, providerName, providerWarnings, quote, deliveries, retouches, events } = loaded.file;
   const tpl = await loadTemplate(m.metier);
   const thread = await listMessages(m.id, "platform");
+  const proofsRes = m.metier === "impression" ? await listProofs(m.id) : null;
+  const bat = proofsRes?.ok
+    ? batDossier(
+        proofsRes.proofs.map((p): DossierProof => ({ round: p.round, status: p.status, links: p.links, message: p.message, corrections: p.corrections, signedName: p.signed_name, checks: p.checks, sentAt: p.created_at, decidedAt: p.decided_at, signedAt: p.signed_at })),
+        batChecklist(m.brief)
+      )
+    : null;
   const rows = tpl ? briefRows(m.brief ?? {}, tpl.template) : [];
   const v = STATUS_VIEW[m.status];
   const report = m.report as { arrival?: string; end?: string; durationMinutes?: number | null; missing?: string[]; note?: string; overrunMinutes?: number } | null;
@@ -171,6 +181,49 @@ export default async function DisputeFilePage({ params }: { params: Promise<{ id
           </div>
         ))}
       </section>
+
+      {proofsRes && (
+        <section className={`${CARD} p-5 space-y-3`}>
+          <h2 className="font-semibold">Le bon à tirer</h2>
+          {!bat ? (
+            <p className="text-sm text-gray-500">Les épreuves ne sont pas disponibles : applique la migration du bon à tirer.</p>
+          ) : (
+            <>
+              <p className={`text-sm ${bat.phase === "signed" ? "font-medium" : "text-gray-500"}`}>{bat.summary}</p>
+              {bat.proofs.map((p) => (
+                <div key={p.round} className="text-sm space-y-1 border-t border-gray-100 dark:border-gray-800 pt-2">
+                  <p className="font-medium">Épreuve {p.round} · envoyée {when(p.sentAt)} · {p.statusText}</p>
+                  <ul className="text-xs text-gray-600">
+                    {p.links.map((l) => (
+                      <li key={l}>
+                        <a href={l} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{linkHost(l)}</a>
+                      </li>
+                    ))}
+                  </ul>
+                  {p.message && <p className="text-xs text-gray-500 whitespace-pre-line">{p.message}</p>}
+                  {p.corrections && p.corrections.length > 0 && (
+                    <ol className="list-decimal pl-5 text-xs text-gray-600 space-y-0.5">
+                      {p.corrections.map((c, i) => (
+                        <li key={i}><strong>{c.category}</strong> : {c.text}</li>
+                      ))}
+                    </ol>
+                  )}
+                  {p.signature && (
+                    <div className="text-xs space-y-0.5">
+                      <p><strong>Signée par {p.signature.name}</strong> le {when(p.signature.at)}</p>
+                      <ul>
+                        {p.signature.ticked.map((t) => (
+                          <li key={t.label} className={t.done ? "" : "text-red-600"}>{t.done ? "✓" : "✗ non coché :"} {t.label}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+        </section>
+      )}
 
       <section className={`${CARD} p-5 space-y-2`}>
         <h2 className="font-semibold">Les messages ({thread.length})</h2>
