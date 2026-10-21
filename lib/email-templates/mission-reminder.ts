@@ -25,7 +25,7 @@ export type MissionReminderInput = {
   missing?: string[];
   /** Le jour en ISO : dit dans la langue du destinataire PRESTATAIRE (sinon `dateLabel`, en français). */
   dateISO?: string;
-  /** La langue du destinataire PRESTATAIRE (français par défaut). */
+  /** La langue du destinataire, prestataire ou restaurateur (français par défaut). */
   locale?: Locale;
 };
 
@@ -41,36 +41,6 @@ function copyFor(i: MissionReminderInput): Copy {
       paragraphs: [`${i.restaurantName} et ${i.otherName} tournent ${when}. Il manque la confirmation de : ${(i.missing ?? []).join(", ")}.`, "À rappeler aujourd'hui : un tournage annulé à la dernière minute est dû en entier."],
       cta: "Voir la mission",
       note: "Alerte envoyée une seule fois, la veille du tournage.",
-    };
-  }
-  if (i.audience === "restaurant") {
-    if (i.key === "j7") {
-      return {
-        subject: `Préviens ton équipe : tournage ${i.dateLabel}`,
-        preheader: "C'est dans 7 jours : le bon moment pour prévenir tout le monde.",
-        title: "Ton équipe est-elle prévenue ?",
-        paragraphs: [`Le tournage avec ${i.otherName} a lieu ${when}, dans 7 jours. Certains de tes employés (les étudiants surtout) ne travaillent pas toute la semaine : à deux jours, c'est trop tard.`, "Le message est prêt à partager (copier ou WhatsApp) dans ta console."],
-        cta: "Prévenir mon équipe",
-        note: "Tu reçois ce rappel une seule fois, tant que l'équipe n'est pas marquée comme prévenue.",
-      };
-    }
-    if (i.key === "j2") {
-      return {
-        subject: `Confirme ta présence : tournage ${i.dateLabel}`,
-        preheader: "Dans 2 jours. Un clic suffit.",
-        title: "Tu seras là ?",
-        paragraphs: [`Le tournage avec ${i.otherName} a lieu ${when}, dans 2 jours. Confirme que tout est prêt : équipe prévenue, plats, vaisselle propre, contact sur place joignable.`],
-        cta: "Confirmer ma présence",
-        note: "Un tournage annulé à moins de 48 h est dû en entier.",
-      };
-    }
-    return {
-      subject: `Demain, ${when} : ${i.otherName} vient filmer`,
-      preheader: `Contact sur place : ${i.contact}`,
-      title: "C'est demain",
-      paragraphs: [`${i.otherName} arrive demain, ${when}. Ton contact sur place : ${i.contact}.`, i.selfConfirmed ? (i.otherConfirmed ? "Vous avez tous les deux confirmé. Bon tournage." : `${i.otherName} n'a pas encore confirmé sa présence : on le relance.`) : "Tu n'as pas encore confirmé ta présence : un clic suffit.", "Rappel : assiettes un peu plus remplies que d'habitude, uniformes propres, vaisselle propre."],
-      cta: i.selfConfirmed ? "Voir la mission" : "Confirmer ma présence",
-      note: "Dernier rappel avant le tournage.",
     };
   }
   // Prestataire : voir `providerCopy` (dictionnaires).
@@ -91,6 +61,28 @@ function copyFor(i: MissionReminderInput): Copy {
     paragraphs: [`${i.restaurantName}, ${when}. Contact sur place : ${i.contact}.`, i.selfConfirmed ? (i.otherConfirmed ? "Le restaurateur a confirmé : tout est prêt." : "Le restaurateur n'a pas encore confirmé : on le relance.") : "Tu n'as pas encore confirmé ta présence : un clic suffit."],
     cta: i.selfConfirmed ? "Voir la mission" : "Confirmer ma présence",
     note: "Dernier rappel avant le tournage.",
+  };
+}
+
+/** Le rappel que reçoit le restaurateur (J-7, J-2, veille), dans sa langue. */
+function restaurantCopy(i: MissionReminderInput, tr: Translator): Copy {
+  const { t } = tr;
+  const date = i.dateISO ? dayLabel(i.dateISO, tr.locale) : i.dateLabel;
+  const when = t("emrm.when", { date, time: i.startTime });
+  const v = { date, when, other: i.otherName, contact: i.contact };
+  if (i.key === "j7") {
+    return { subject: t("emrm.j7.subject", v), preheader: t("emrm.j7.pre"), title: t("emrm.j7.title"), paragraphs: [t("emrm.j7.p1", v), t("emrm.j7.p2")], cta: t("emrm.j7.cta"), note: t("emrm.j7.note") };
+  }
+  if (i.key === "j2") {
+    return { subject: t("emrm.j2.subject", v), preheader: t("emrm.j2.pre"), title: t("emrm.j2.title"), paragraphs: [t("emrm.j2.p1", v)], cta: t("emrm.j2.cta"), note: t("emrm.j2.note") };
+  }
+  return {
+    subject: t("emrm.veille.subject", v),
+    preheader: t("emrm.veille.pre", v),
+    title: t("emrm.veille.title"),
+    paragraphs: [t("emrm.veille.p1", v), i.selfConfirmed ? (i.otherConfirmed ? t("emrm.veille.p2.both") : t("emrm.veille.p2.selfOnly", v)) : t("emrm.veille.p2.none"), t("emrm.veille.p3")],
+    cta: i.selfConfirmed ? t("emrm.veille.cta.view") : t("emrm.veille.cta.confirm"),
+    note: t("emrm.veille.note"),
   };
 }
 
@@ -123,9 +115,10 @@ function providerCopy(i: MissionReminderInput, tr: Translator): Copy {
 export function missionReminderEmail(i: MissionReminderInput): RenderedEmail {
   const fromProvider = i.audience === "provider" && i.key !== "alerte" && i.key !== "j7";
   const tr = getT(i.locale);
-  const c = fromProvider ? providerCopy(i, tr) : copyFor(i);
+  const fromRestaurant = i.audience === "restaurant" && i.key !== "alerte";
+  const c = fromProvider ? providerCopy(i, tr) : fromRestaurant ? restaurantCopy(i, tr) : copyFor(i);
   const body = [
-    eyebrow(fromProvider ? tr.t("em.reminder.eyebrow") : "Rappel"),
+    eyebrow(fromProvider || fromRestaurant ? tr.t("em.reminder.eyebrow") : "Rappel"),
     heading(c.title),
     ...c.paragraphs.map((p) => paragraph(esc(p))),
     button(c.cta, i.url, "#0C1509"),
@@ -134,11 +127,11 @@ export function missionReminderEmail(i: MissionReminderInput): RenderedEmail {
   const html = proShell({
     restaurantName: i.audience === "restaurant" ? i.restaurantName : "Boosteats",
     logoUrl: null,
-    kicker: fromProvider ? tr.t("em.reminder.kicker") : "Rappel de tournage",
+    kicker: fromProvider || fromRestaurant ? tr.t("em.reminder.kicker") : "Rappel de tournage",
     subject: c.subject,
     preheader: c.preheader,
     body: body.join("\n"),
-    footer: { reason: i.audience === "platform" ? "Tu reçois cette alerte en tant que plateforme Boosteats." : fromProvider ? tr.t("em.reminder.footer") : `Tu reçois ce rappel parce qu'un tournage est réservé sur Boosteats${i.audience === "restaurant" ? ` pour ${i.restaurantName}` : ""}.` },
+    footer: { reason: i.audience === "platform" ? "Tu reçois cette alerte en tant que plateforme Boosteats." : fromProvider ? tr.t("em.reminder.footer") : fromRestaurant ? tr.t("emrm.footer", { restaurant: i.restaurantName }) : "Tu reçois ce rappel parce qu'un tournage est réservé sur Boosteats." },
     ...(fromProvider ? { brandLine: tr.t("em.brand") } : {}),
   });
   const text = `${c.title}

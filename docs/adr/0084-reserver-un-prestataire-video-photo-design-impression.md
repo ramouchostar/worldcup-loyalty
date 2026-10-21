@@ -355,7 +355,10 @@ Le module parle **français, néerlandais et anglais**. Principes :
   tirer, compte-rendu et livraison. Les catégories (remarques, changements), les rôles et les créneaux sont des données françaises affichées
   par `canon.*`. **Le message à l'équipe se génère dans la langue du restaurateur** (c'est son équipe qui le lit) ; en français il est
   identique à l'ancien (test de parité). Le prestataire voit les catégories dans SA langue.
-  Suivent : les e-mails du restaurateur, puis les règles du jeu une fois validées par le juriste.
+  (9) **les e-mails du restaurateur** : mises à jour d'une mission (18 sortes), devis reçu, rappels de tournage (J-7, J-2, veille). La langue
+  est retrouvée à l'envoi d'après l'adresse (`getUserLocaleByEmail`), comme pour le prestataire. En français, le texte est identique à l'ancien
+  (test de parité cas par cas sur `copyFor`). **Les alertes de la plateforme restent en français** (Boosteats les lit).
+  Suivent : les règles du jeu une fois validées par le juriste, la relecture des traductions par des natifs.
 
 ### 6. États d'une mission
 

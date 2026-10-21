@@ -48,7 +48,7 @@ test("rien n'est resté en français dans les autres langues (hors mots identiqu
 });
 
 test("pas de tutoiement oublié ni de « vous » en français", () => {
-  for (const k of KEYS.filter((k) => !k.startsWith("rc.msg."))) assert.doesNotMatch((fr as Record<string, string>)[k], /\bvous\b/i, k);
+  for (const k of KEYS.filter((k) => !k.startsWith("rc.msg.") && k !== "emrm.veille.p2.both")) assert.doesNotMatch((fr as Record<string, string>)[k], /\bvous\b/i, k);
 });
 
 test("une langue inconnue donne le français", () => {
