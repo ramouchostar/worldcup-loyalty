@@ -35,7 +35,7 @@ export const nlRest: Record<keyof typeof frRest, string> = {
   "rest.tl.livre": "Levering",
   "rest.tl.valide": "Goedgekeurd",
   "rest.tl.accepte": "Offerte aanvaard",
-  "rest.tl.creation": "Ontwerp bezig",
+  "rest.tl.creation": "Werk bezig",
 
   "rest.list.title": "Dienstverleners",
   "rest.list.subtitle": "Betrouwbare professionals voor je video's, foto's en drukwerk. Een duidelijke briefing, een vaste offerte, geen heen-en-weer.",

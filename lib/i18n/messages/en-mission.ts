@@ -132,6 +132,7 @@ export const enMission: Record<keyof typeof frMission, string> = {
   "msg.platform": "Boosteats",
   "msg.masked": "contact hidden",
   "msg.locked": "Phone numbers and email addresses stay hidden until the work has started: everything goes through here. The on-site contact for the shoot appears once the date is booked.",
+  "msg.locked.studio": "Phone numbers and email addresses stay hidden until the work has started: everything goes through here.",
   "msg.label": "Your message",
   "msg.placeholder": "Your message for {name}",
   "msg.maskedNotice": "A number, email address or messaging link was hidden: everything goes through here.",

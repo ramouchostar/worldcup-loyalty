@@ -226,6 +226,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
         </Card>
       )}
       <MessagesCard
+        studio={!hasShoot(mission.metier)}
         me="restaurant"
         otherName={fallbackName}
         messages={thread}
