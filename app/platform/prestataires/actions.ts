@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { createProvider, createProviderInvite, setProviderStatus } from "@/lib/providers";
+import { clearTestSet, seedTestSet } from "@/lib/missions-test-set";
 import { acceptQuoteByPlatform } from "@/lib/missions-dates";
 import { cancelByPlatform, settleCancellation } from "@/lib/missions-cancel";
 import type { Fault } from "@/lib/mission-cancel-rules";
@@ -194,4 +195,23 @@ export async function saveQuestionnaireAction(metier: Metier, edits: unknown): P
   if (r.reason === "invalid") return { error: r.issues.slice(0, 3).map((i) => `${i.key} : ${EDIT_ISSUE_TEXT[i.code]}`).join(" ") };
   if (r.reason === "nothing_changed") return { error: "Rien n'a changé." };
   return { error: "Enregistrement impossible pour le moment : la migration du module est-elle appliquée ?" };
+}
+
+// ADR 0084 §5 quindecies — le jeu de test : 4 prestataires « [TEST] » et une mission chez chacun, sur un établissement de démonstration.
+export type TestSetResult = { error?: string; message?: string };
+
+export async function generateTestSet(_prev: TestSetResult | null, formData: FormData): Promise<TestSetResult> {
+  const userId = await requireSuperAdmin();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const result = await seedTestSet({ userId, userEmail: user?.email ?? null, restaurantId: String(formData.get("restaurantId") ?? "") });
+  revalidatePath("/platform/prestataires/test");
+  return result.ok ? { message: `${result.created} missions de test créées.` } : { error: result.error };
+}
+
+export async function eraseTestSet(): Promise<TestSetResult> {
+  await requireSuperAdmin();
+  const result = await clearTestSet();
+  revalidatePath("/platform/prestataires/test");
+  return result.ok ? { message: `Effacé : ${result.providers} prestataires, ${result.missions} missions, ${result.files} fichiers.` } : { error: result.error };
 }

@@ -370,6 +370,14 @@ et ne supprime RIEN (le code ne contient aucune suppression ; un test le vérifi
 et preuves). Les avis publics restent aussi : question posée au juriste (anonymiser plutôt qu'effacer ?). Pour allumer la vraie purge : une PR
 dédiée, après la réponse du juriste, avec fichiers du stockage et sauvegarde préalable.
 
+### 5 quindecies. Le jeu de test (amendé le 2026-10-21)
+
+Pour parcourir le module de bout en bout sans inviter de vrais prestataires, `/platform/prestataires/test` (super-admin) génère **quatre prestataires
+« [TEST] »** (un par métier ; alias `toi+test-<métier>@…` de l'adresse du super-admin ; photo en NL, design en EN) et **une mission envoyée chez chacun**,
+avec un brief complet, sur un **établissement de démonstration uniquement** (refus net sur un vrai client). Le marqueur « [TEST] » dans le nom est
+la SEULE clé de « Tout effacer » (prestataires, missions, pièces jointes du stockage) ; un prestataire « [TEST] » ne reçoit jamais le brief d'un
+établissement qui n'est pas une démo (`sendBrief`). Les réponses de test passent la validation du brief pour les quatre modèles (test).
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →

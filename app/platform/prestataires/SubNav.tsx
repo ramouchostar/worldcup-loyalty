@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-// ADR 0084 — la navigation du module Prestataires dans la console plateforme : sept pages, une seule barre.
+// ADR 0084 — la navigation du module Prestataires dans la console plateforme : huit pages, une seule barre.
 const TABS = [
   { key: "prestataires", href: "/platform/prestataires", label: "Prestataires" },
   { key: "missions", href: "/platform/prestataires/missions", label: "Missions" },
@@ -9,6 +9,7 @@ const TABS = [
   { key: "chiffres", href: "/platform/prestataires/chiffres", label: "Chiffres" },
   { key: "questionnaires", href: "/platform/prestataires/questionnaires", label: "Questionnaires" },
   { key: "reglages", href: "/platform/prestataires/reglages", label: "Réglages" },
+  { key: "test", href: "/platform/prestataires/test", label: "Jeu de test" },
 ] as const;
 
 export type SubNavKey = (typeof TABS)[number]["key"];
