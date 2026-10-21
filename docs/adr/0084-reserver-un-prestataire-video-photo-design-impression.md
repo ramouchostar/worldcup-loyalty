@@ -275,6 +275,20 @@ réaliste** (un avertissement, jamais un refus) reste propre au métier qui a un
 Un métier sans modèle de questions ne peut pas être enregistré. Le premier enregistrement d'un métier fige son questionnaire du code en
 base (comme pour la vidéo) : pour changer ensuite une question, il faut passer par la base.
 
+### 5 decies. Les avis (amendé le 2026-10-21, PR W)
+
+Une fois la mission **validée ou versée**, chaque côté peut donner **un avis, définitif** (un par mission et par sens ; la base refuse le
+doublon) :
+
+| Sens | Contenu | Qui le lit |
+|---|---|---|
+| Restaurateur → prestataire | note de 1 à 5, commentaire facultatif (obligatoire en une phrase pour 1 ou 2) | **public** aux restaurateurs, sans nom de restaurant : la moyenne à partir de **3 avis**, les 3 derniers commentaires |
+| Prestataire → restaurateur | note de 1 à 5, commentaire | **privé** : la plateforme seule (dossier de litige, page « Avis ») |
+
+Le commentaire n'accepte ni numéro, ni e-mail, ni lien de messagerie (même règle que la messagerie et le profil). La plateforme peut
+**masquer** un avis (il sort de la moyenne et des commentaires affichés, reste lisible pour elle, avec qui l'a masqué). Pas de réponse du
+prestataire à un avis, pas de modification : on ne réécrit pas après un désaccord. Un litige ouvert ferme l'avis jusqu'à la décision.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
