@@ -298,6 +298,18 @@ passés). Total, puis un bloc par métier. L'entonnoir compte les missions qui *
 changements d'état (une mission validée a bien été devisée), pas celles qui y sont aujourd'hui. Lecture seule, plateforme seule,
 2 000 missions au plus (la page le dit au-delà).
 
+### 5 duodecies. Modifier un questionnaire depuis la plateforme (amendé le 2026-10-21, PR Y)
+
+Un onglet **Questionnaires** de la console plateforme règle, pour chaque métier, le **libellé**, l'**aide** et les **options** d'une
+question à choix. Ce qui ne se règle jamais là : les clés, le type, le caractère obligatoire, la phase, l'ordre, le nombre de questions
+(le code en dépend). Les options des questions que le code lit en dur sont **verrouillées** (la cuisine, l'état du fichier, les formats
+liés aux budgets, l'attestation des décideurs). Pas de numéro, d'e-mail ni de lien de messagerie dans un questionnaire. Tout se
+valide d'un bloc : au moindre refus, rien ne change.
+
+Chaque enregistrement crée une **nouvelle version** (`brief_templates`, UNIQUE (métier, version)) : l'ancienne est gardée, désactivée
+(si l'insertion échoue, elle est réactivée). Le plancher de budget et le seuil d'ambition passent d'une version à l'autre. Les briefs
+déjà envoyés gardent leurs réponses. Une fois un questionnaire enregistré en base, les changements du code ne s'y appliquent plus.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
