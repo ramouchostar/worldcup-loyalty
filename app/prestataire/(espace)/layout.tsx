@@ -3,6 +3,13 @@ import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 import { requireProviderPage } from "@/lib/providers";
 
+const NAV = [
+  { href: "/prestataire", label: "Missions" },
+  { href: "/prestataire/revenus", label: "Revenus" },
+  { href: "/prestataire/profil", label: "Profil" },
+  { href: "/prestataire/disponibilites", label: "Disponibilités" },
+] as const;
+
 export const metadata: Metadata = { title: "Espace prestataire — Boosteats", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
@@ -27,6 +34,13 @@ export default async function ProviderLayout({ children }: { children: React.Rea
             </button>
           </form>
         </div>
+        <nav aria-label="Espace prestataire" className="mx-auto max-w-3xl px-4 flex gap-1 overflow-x-auto">
+          {NAV.map((n) => (
+            <Link key={n.href} href={n.href} className="inline-flex items-center min-h-[44px] px-3 text-[13.5px] font-semibold text-white/80 hover:text-white whitespace-nowrap">
+              {n.label}
+            </Link>
+          ))}
+        </nav>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
     </div>
