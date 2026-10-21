@@ -1,0 +1,103 @@
+// The questions of the four default questionnaires, in English, informal. An option's key is the option in French, as stored in the answers.
+// To be proofread by a native speaker. A question edited in the database (different label) is NOT translated: it is shown as is.
+import type { QTable, StepTable, QText } from "./types";
+
+const roles: Record<string, string> = { Cuisinier: "Cook", Serveur: "Waiter", Barman: "Bartender" };
+const common: Record<string, QText> = {
+  deciders: { label: "Who decides with you?", hint: "Partner, spouse… Everyone must have agreed." },
+  deciders_attested: { label: "Everyone has approved this brief" },
+  budget_cents: { label: "Budget" },
+  notes: { label: "Additional details" },
+  files: { label: "Attachments" },
+};
+const shoot = (date: string): Record<string, QText> => ({
+  shoot_date: { label: date, hint: "At least 7 days ahead: your team must be told." },
+  shoot_slot: { label: "Time slot" },
+  roles: { label: "Who needs to be there", options: roles },
+  contact: { label: "On-site contact", hint: "One person, reachable on the day." },
+  access: { label: "Access and unloading" },
+});
+
+export const EN_Q: QTable = {
+  video: {
+    ...common,
+    ...shoot("Shoot date"),
+    goal: { label: "What for?", options: { "Réseaux sociaux": "Social media", "Nouveau plat": "New dish", Promotion: "Promotion", Recrutement: "Recruitment", "Ambiance du lieu": "Atmosphere of the place" } },
+    format: { label: "Which format?", options: { Reels: "Reels", Film: "Film", "Pack mois": "Monthly pack", "Face cam": "Face cam" } },
+    idea: { label: "Your idea in two sentences", hint: "The provider will give you 2 to 3 suggestions: describe the goal, not the editing." },
+    dishes: { label: "Dishes to show" },
+    kitchen: { label: "Show the kitchen?", hint: "If not, no shots in the kitchen.", options: { Oui: "Yes", Non: "No", Partiellement: "Partly" } },
+    highlights: { label: "To highlight in the dining room", options: { Entrée: "Entrance", Salle: "Dining room", Tables: "Tables", Bar: "Bar", Toilettes: "Toilets", "Nouvelle décoration": "New decoration" } },
+    promo: { label: "Promotion to show" },
+    extras_count: { label: "Extras" },
+    sound: { label: "Record sound?", options: { Oui: "Yes", Non: "No" } },
+    noisy: { label: "Noisy appliances to switch off" },
+    tone: { label: "Tone", options: { Chaleureux: "Warm", Dynamique: "Dynamic", Sobre: "Understated", Gourmand: "Mouth-watering" } },
+    avoid: { label: "To avoid" },
+  },
+  photo: {
+    ...common,
+    ...shoot("Session date"),
+    goal: { label: "What for?", options: { "Carte et menu": "Menu and carte", "Réseaux sociaux": "Social media", "Site et Google": "Website and Google", "Livraison (Uber Eats, Deliveroo)": "Delivery (Uber Eats, Deliveroo)", "Presse et communication": "Press and communication", "Ambiance du lieu": "Atmosphere of the place" } },
+    shots: { label: "What do you want photographed?", hint: "Tick everything you want in this session.", options: { Plats: "Dishes", Boissons: "Drinks", Salle: "Dining room", "Façade et terrasse": "Facade and terrace", Équipe: "Team", "Cuisine en action": "Kitchen in action", Portraits: "Portraits" } },
+    count: { label: "How many retouched images?", hint: "The photographer takes more and delivers the best ones, retouched.", options: { "10": "10", "20": "20", "40": "40", "60 ou plus": "60 or more" } },
+    idea: { label: "Your idea in two sentences", hint: "The photographer will give you 2 to 3 session suggestions: describe the goal, not the technique." },
+    dishes: { label: "Dishes to photograph", hint: "Write “none” if you don't want any dishes." },
+    people: { label: "People in the photos?", hint: "Customers in the dining room are never recognisable.", options: { Non: "No", "L'équipe seulement": "The team only", "Équipe et clients": "Team and customers" } },
+    extras_count: { label: "Extras" },
+    style: { label: "Which style?", options: { Naturel: "Natural", Chaleureux: "Warm", Sobre: "Understated", Gourmand: "Mouth-watering", Éditorial: "Editorial" } },
+    avoid: { label: "To avoid" },
+    roles: { label: "Who needs to be there", options: { ...roles, Gérant: "Manager" } },
+  },
+  design: {
+    ...common,
+    what: { label: "What are we designing?", hint: "Tick everything you want in this order.", options: { "Carte ou menu": "Menu or carte", "Menu du jour": "Menu of the day", Flyer: "Flyer", Affiche: "Poster", "Logo et charte": "Logo and brand guidelines", "Visuels réseaux sociaux": "Social media visuals" } },
+    use: { label: "For which use?", hint: "The designer picks the right formats and resolution.", options: { Salle: "Dining room", Vitrine: "Shop window", "Réseaux sociaux": "Social media", "Livraison et emporter": "Delivery and takeaway", Impression: "Print" } },
+    charte: { label: "Do you already have brand guidelines?", hint: "Logo, colours, fonts. Nothing chosen yet? The designer sends you a link to choose colours, fonts and a template. What you choose there commits you.", options: { "J'ai une charte": "I have brand guidelines", "Je n'ai rien choisi": "I haven't chosen anything" } },
+    languages: { label: "In which languages?", options: { Français: "French", Néerlandais: "Dutch", Anglais: "English" } },
+    style: { label: "Which style?", options: { Moderne: "Modern", Chaleureux: "Warm", Sobre: "Understated", Gourmand: "Mouth-watering", Authentique: "Authentic" } },
+    likes: { label: "What you like", hint: "Give links (or attach images in the next step) and say why in one sentence for each." },
+    dislikes: { label: "What you don't like", hint: "For each example, say why in one sentence." },
+    content: { label: "The final content", hint: "Dishes and prices, opening hours, address, legal mentions: everything that must appear." },
+    content_final: { label: "This is the final version of the content", hint: "Adding a dish later = change request, which the designer prices." },
+    deadline: { label: "By when?", hint: "The day you want the design. The designer tells you in their quote if it's feasible." },
+  },
+  impression: {
+    ...common,
+    product: { label: "What are we printing?", options: { Menus: "Menus", Flyers: "Flyers", Affiches: "Posters", Banderoles: "Banners", "Chevalets de table": "Table stands", "Sets de table": "Placemats", "Sacs et emballages": "Bags and packaging", Autocollants: "Stickers", "Cartes de visite": "Business cards" } },
+    quantity: { label: "What quantity?", hint: "More than 1000: give the exact number in the additional details.", options: { "100": "100", "250": "250", "500": "500", "1000": "1000", "Plus de 1000": "More than 1000" } },
+    size: { label: "Which size?", hint: "Other size: give the dimensions in the additional details.", options: { A6: "A6", A5: "A5", A4: "A4", A3: "A3", DL: "DL", "Autre format": "Other size" } },
+    paper: { label: "Which paper?", options: { Standard: "Standard", Épais: "Thick", Recyclé: "Recycled" } },
+    finish: { label: "Which finish?", options: { Mat: "Matte", Brillant: "Glossy", Pelliculé: "Laminated" } },
+    file_state: { label: "Your file", hint: "Print-ready: attach the PDF in the last step. No file? First do a brief with a designer, then come back here.", options: { "Prêt à imprimer": "Print-ready", "À faire faire": "Needs to be made" } },
+    qr_url: { label: "The QR code address", hint: "If your print carries a QR code: paste the address it should open, then test it. The printer retests the scan on the print proof." },
+    qr_tested: { label: "The QR code is tested" },
+    delivery_mode: { label: "How do you receive the print job?", options: { "Livraison au restaurant": "Delivery to the restaurant", "Retrait chez l'imprimeur": "Pickup at the printer" } },
+    deadline: { label: "Received by", hint: "The printer confirms in their quote whether it's feasible." },
+  },
+};
+
+export const EN_STEPS: StepTable = {
+  "video.idee": { title: "Your idea", subtitle: "What for, and in what form." },
+  "video.image": { title: "What's seen on screen", subtitle: "The dishes, the dining room, the kitchen, the people." },
+  "video.ton": { title: "The tone", subtitle: "You set the frame, the videographer gives you 2 to 3 suggestions." },
+  "video.decideurs": { title: "Who decides?", subtitle: "Once the brief is sent, the decision is made." },
+  "video.budget": { title: "Budget and details", subtitle: "Just a guide: you pay nothing now." },
+  "photo.idee": { title: "Your idea", subtitle: "What for, and what gets photographed." },
+  "photo.image": { title: "What's seen in the photos", subtitle: "The dishes, the people, what to avoid." },
+  "photo.ton": { title: "The style", subtitle: "You set the frame, the photographer gives you 2 to 3 suggestions." },
+  "photo.decideurs": { title: "Who decides?", subtitle: "Once the brief is sent, the decision is made." },
+  "photo.budget": { title: "Budget and details", subtitle: "Just a guide: you pay nothing now." },
+  "design.quoi": { title: "What are we designing?", subtitle: "One or more items, and what they're for." },
+  "design.style": { title: "Your style", subtitle: "Your brand guidelines, your languages, the mood." },
+  "design.gouts": { title: "What you like, what you don't", subtitle: "Examples say more than a long speech." },
+  "design.contenu": { title: "The final content", subtitle: "This is the final version: a dish added later is a change." },
+  "design.decideurs": { title: "Who decides?", subtitle: "Once the brief is sent, the decision is made." },
+  "design.budget": { title: "Budget and deadline", subtitle: "Just a guide: you pay nothing now." },
+  "impression.produit": { title: "What are we printing?", subtitle: "The product, the quantity and the size." },
+  "impression.papier": { title: "Paper and finish", subtitle: "How it feels in your hands." },
+  "impression.fichier": { title: "Your file and your QR code", subtitle: "A QR code that doesn't work is costly: test it now." },
+  "impression.reception": { title: "Delivery", subtitle: "Where and by when." },
+  "impression.decideurs": { title: "Who decides?", subtitle: "Once the brief is sent, the decision is made." },
+  "impression.budget": { title: "Budget and details", subtitle: "Just a guide: you pay nothing now." },
+};

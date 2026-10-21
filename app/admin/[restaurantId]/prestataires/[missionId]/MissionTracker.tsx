@@ -33,7 +33,7 @@ export function MissionTracker({
   return (
     <>
       <PageHeader
-        title={`${t(`metier.${mission.metier}` as MessageKey)}${briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : ""}`}
+        title={`${t(`metier.${mission.metier}` as MessageKey)}${briefHeadline(mission.brief, locale, mission.metier) ? ` · ${briefHeadline(mission.brief, locale, mission.metier)}` : ""}`}
         subtitle={providerName ? t("rest.tracker.with", { name: providerName }) : undefined}
         action={<StatusBadge tone={view.tone}>{t(`status.restaurant.${mission.status}` as MessageKey)}</StatusBadge>}
       />

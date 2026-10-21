@@ -6,6 +6,7 @@ import { enForms } from "./en-forms";
 import { enProfile } from "./en-profile";
 import { enEmail } from "./en-email";
 import { enRest } from "./en-rest";
+import { enBrief } from "./en-brief";
 
 const enBase: Record<keyof typeof frBase, string> = {
   "shell.brand": "Boosteats · provider space",
@@ -102,4 +103,4 @@ const enBase: Record<keyof typeof frBase, string> = {
   "avail.savedExcept.other": "Saved, except {n} days already booked by a restaurateur.",
 };
 
-export const en: Messages = { ...enBase, ...enMission, ...enForms, ...enProfile, ...enEmail, ...enRest };
+export const en: Messages = { ...enBase, ...enMission, ...enForms, ...enProfile, ...enEmail, ...enRest, ...enBrief };

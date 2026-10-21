@@ -10,6 +10,7 @@
 // ============================================================
 
 import { dayLabel, formatEurosL, type Locale } from "./i18n/core";
+import { optionText, questionText } from "./i18n/questionnaire";
 import { formatEuros, type Metier } from "./mission-money";
 import type { BriefAnswers, BriefIssueCode, BriefQuestion, BriefTemplate } from "./mission-brief";
 import type { MissionStatus } from "./mission-states";
@@ -117,23 +118,24 @@ export function timeline(status: MissionStatus, metier?: Metier): { steps: { key
 
 const YES: Record<Locale, string> = { fr: "Oui", nl: "Ja", en: "Yes" };
 
-function renderValue(q: BriefQuestion, v: BriefAnswers[string], locale: Locale): string | null {
+function renderValue(q: BriefQuestion, v: BriefAnswers[string], locale: Locale, metier: Metier): string | null {
   if (v === null || v === undefined) return null;
   if (q.kind === "files") return null; // les pièces jointes ont leur propre zone
   if (q.kind === "flag") return v === true ? YES[locale] : null;
   if (q.key === "budget_cents" && typeof v === "number") return locale === "fr" ? formatEuros(v) : formatEurosL(v, locale);
   if (q.kind === "date" && typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return dayLabel(v, locale);
-  if (Array.isArray(v)) return v.length ? v.join(", ") : null;
+  if (Array.isArray(v)) return v.length ? v.map((x) => (q.kind === "multi" ? optionText(locale, metier, q.key, x) : x)).join(", ") : null;
   if (typeof v === "object") return [v.name, v.phone].filter(Boolean).join(" · ") || null;
-  if (typeof v === "string") return v.trim() || null;
+  if (typeof v === "string") return (q.kind === "choice" ? optionText(locale, metier, q.key, v.trim()) : v.trim()) || null;
   return String(v);
 }
 
 /** Le titre court d'un brief : son but (vidéo) ou ce qu'on dessine (design). */
-export function briefHeadline(answers: BriefAnswers | null | undefined): string | null {
+export function briefHeadline(answers: BriefAnswers | null | undefined, locale: Locale = "fr", metier?: Metier): string | null {
   const a = answers ?? {};
-  if (typeof a.goal === "string" && a.goal.trim()) return a.goal.trim();
-  if (Array.isArray(a.what) && a.what.length > 0) return a.what.join(", ");
+  const t = (key: string, v: string) => (metier ? optionText(locale, metier, key, v) : v);
+  if (typeof a.goal === "string" && a.goal.trim()) return t("goal", a.goal.trim());
+  if (Array.isArray(a.what) && a.what.length > 0) return a.what.map((x) => t("what", x)).join(", ");
   return null;
 }
 
@@ -143,8 +145,8 @@ export function briefRows(answers: BriefAnswers, template: BriefTemplate, phase:
   const rows: { label: string; value: string }[] = [];
   for (const q of template.questions) {
     if ((q.phase ?? "brief") !== phase) continue;
-    const value = renderValue(q, answers[q.key], locale);
-    if (value) rows.push({ label: q.label, value });
+    const value = renderValue(q, answers[q.key], locale, template.metier);
+    if (value) rows.push({ label: questionText(locale, template.metier, q).label, value });
   }
   return rows;
 }

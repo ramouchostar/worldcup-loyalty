@@ -11,6 +11,7 @@ import { frForms } from "./fr-forms";
 import { frProfile } from "./fr-profile";
 import { frEmail } from "./fr-email";
 import { frRest } from "./fr-rest";
+import { frBrief } from "./fr-brief";
 
 export const frBase = {
   // ── Coque de l'espace prestataire ──────────────────────────
@@ -113,7 +114,7 @@ export const frBase = {
   "avail.savedExcept.other": "Enregistré, sauf {n} jours déjà réservés par un restaurateur.",
 } as const;
 
-export const fr = { ...frBase, ...frMission, ...frForms, ...frProfile, ...frEmail, ...frRest } as const;
+export const fr = { ...frBase, ...frMission, ...frForms, ...frProfile, ...frEmail, ...frRest, ...frBrief } as const;
 
 export type MessageKey = keyof typeof fr;
 export type Messages = Record<MessageKey, string>;

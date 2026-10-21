@@ -77,7 +77,7 @@ function Section({ tr, title, missions, unread, emptyText }: { tr: Translator; t
                     <p className="font-semibold text-ink text-[14px] truncate">{m.restaurant_name}</p>
                     <p className="text-[12.5px] text-ink-faint truncate">
                       {tr.t(`metier.${m.metier}` as MessageKey)}
-                      {briefHeadline(m.brief) ? ` · ${briefHeadline(m.brief)}` : ""}
+                      {briefHeadline(m.brief, tr.locale, m.metier) ? ` · ${briefHeadline(m.brief, tr.locale, m.metier)}` : ""}
                       {typeof m.brief?.format === "string" ? ` · ${m.brief.format}` : ""}
                     </p>
                   </div>

@@ -75,7 +75,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
   if (!mission || !template) notFound();
 
   const view = PROVIDER_STATUS_VIEW[mission.status];
-  const rows = briefRows(mission.brief ?? {}, template);
+  const rows = briefRows(mission.brief ?? {}, template, "brief", locale);
   const budget = typeof mission.brief?.budget_cents === "number" ? mission.brief.budget_cents : null;
   // Les idées de tournage (PR K) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const files = await listFiles(mission.id);
@@ -100,7 +100,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
       {back}
       <PageHeader
         title={mission.restaurant_name}
-        subtitle={t("mission.subtitle", { metier: t(`metier.${mission.metier}` as MessageKey), headline: briefHeadline(mission.brief) ? ` · ${briefHeadline(mission.brief)}` : "", date: received })}
+        subtitle={t("mission.subtitle", { metier: t(`metier.${mission.metier}` as MessageKey), headline: briefHeadline(mission.brief, locale, mission.metier) ? ` · ${briefHeadline(mission.brief, locale, mission.metier)}` : "", date: received })}
         action={<StatusBadge tone={view.tone}>{t(`status.provider.${mission.status}` as MessageKey)}</StatusBadge>}
       />
 

@@ -6,6 +6,7 @@ import { nlForms } from "./nl-forms";
 import { nlProfile } from "./nl-profile";
 import { nlEmail } from "./nl-email";
 import { nlRest } from "./nl-rest";
+import { nlBrief } from "./nl-brief";
 
 const nlBase: Record<keyof typeof frBase, string> = {
   "shell.brand": "Boosteats · ruimte voor dienstverleners",
@@ -102,4 +103,4 @@ const nlBase: Record<keyof typeof frBase, string> = {
   "avail.savedExcept.other": "Opgeslagen, behalve {n} dagen die al door een restauranthouder zijn geboekt.",
 };
 
-export const nl: Messages = { ...nlBase, ...nlMission, ...nlForms, ...nlProfile, ...nlEmail, ...nlRest };
+export const nl: Messages = { ...nlBase, ...nlMission, ...nlForms, ...nlProfile, ...nlEmail, ...nlRest, ...nlBrief };

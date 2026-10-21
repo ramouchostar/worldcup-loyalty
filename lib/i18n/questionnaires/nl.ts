@@ -1,0 +1,103 @@
+// De vragen van de vier standaardvragenlijsten, in het Nederlands (België), informeel. De sleutel van een optie is de optie in het Frans, zoals ze in de antwoorden bewaard wordt.
+// Door een Nederlandstalige te laten nalezen. Een vraag die in de database aangepast is (ander label) wordt NIET vertaald: ze wordt getoond zoals ze is.
+import type { QTable, StepTable, QText } from "./types";
+
+const roles: Record<string, string> = { Cuisinier: "Kok", Serveur: "Bediende", Barman: "Barman" };
+const common: Record<string, QText> = {
+  deciders: { label: "Wie beslist met jou?", hint: "Vennoot, partner… Iedereen moet akkoord zijn." },
+  deciders_attested: { label: "Iedereen heeft deze briefing goedgekeurd" },
+  budget_cents: { label: "Budget" },
+  notes: { label: "Toelichting" },
+  files: { label: "Bijlagen" },
+};
+const shoot = (date: string): Record<string, QText> => ({
+  shoot_date: { label: date, hint: "Minstens 7 dagen vooraf: je team moet verwittigd worden." },
+  shoot_slot: { label: "Tijdslot" },
+  roles: { label: "Wie moet er zijn", options: roles },
+  contact: { label: "Contact ter plaatse", hint: "Eén persoon, bereikbaar op de dag zelf." },
+  access: { label: "Toegang en lossen" },
+});
+
+export const NL_Q: QTable = {
+  video: {
+    ...common,
+    ...shoot("Datum van de opnames"),
+    goal: { label: "Waarvoor?", options: { "Réseaux sociaux": "Sociale media", "Nouveau plat": "Nieuw gerecht", Promotion: "Promotie", Recrutement: "Werving", "Ambiance du lieu": "Sfeer van de zaak" } },
+    format: { label: "Welk formaat?", options: { Reels: "Reels", Film: "Film", "Pack mois": "Maandpakket", "Face cam": "Face cam" } },
+    idea: { label: "Je idee in twee zinnen", hint: "De dienstverlener doet je 2 tot 3 voorstellen: beschrijf het doel, niet de montage." },
+    dishes: { label: "Te tonen gerechten" },
+    kitchen: { label: "De keuken tonen?", hint: "Zo niet, dan geen beelden in de keuken.", options: { Oui: "Ja", Non: "Nee", Partiellement: "Gedeeltelijk" } },
+    highlights: { label: "Te benadrukken in de zaal", options: { Entrée: "Ingang", Salle: "Zaal", Tables: "Tafels", Bar: "Bar", Toilettes: "Toiletten", "Nouvelle décoration": "Nieuwe inrichting" } },
+    promo: { label: "Te tonen promotie" },
+    extras_count: { label: "Figuranten" },
+    sound: { label: "Geluid opnemen?", options: { Oui: "Ja", Non: "Nee" } },
+    noisy: { label: "Lawaaierige toestellen om uit te zetten" },
+    tone: { label: "Toon", options: { Chaleureux: "Warm", Dynamique: "Dynamisch", Sobre: "Sober", Gourmand: "Smakelijk" } },
+    avoid: { label: "Te vermijden" },
+  },
+  photo: {
+    ...common,
+    ...shoot("Datum van de fotosessie"),
+    goal: { label: "Waarvoor?", options: { "Carte et menu": "Kaart en menu", "Réseaux sociaux": "Sociale media", "Site et Google": "Website en Google", "Livraison (Uber Eats, Deliveroo)": "Levering (Uber Eats, Deliveroo)", "Presse et communication": "Pers en communicatie", "Ambiance du lieu": "Sfeer van de zaak" } },
+    shots: { label: "Wat wil je laten fotograferen?", hint: "Vink alles aan wat je in deze sessie wilt.", options: { Plats: "Gerechten", Boissons: "Dranken", Salle: "Zaal", "Façade et terrasse": "Gevel en terras", Équipe: "Team", "Cuisine en action": "Keuken in actie", Portraits: "Portretten" } },
+    count: { label: "Hoeveel bewerkte beelden?", hint: "De fotograaf neemt er meer en levert je de beste, bewerkt.", options: { "10": "10", "20": "20", "40": "40", "60 ou plus": "60 of meer" } },
+    idea: { label: "Je idee in twee zinnen", hint: "De fotograaf doet je 2 tot 3 voorstellen voor de sessie: beschrijf het doel, niet de techniek." },
+    dishes: { label: "Te fotograferen gerechten", hint: "Schrijf « geen » als je geen gerechten wilt." },
+    people: { label: "Personen op de foto's?", hint: "Klanten in de zaal zijn nooit herkenbaar.", options: { Non: "Nee", "L'équipe seulement": "Alleen het team", "Équipe et clients": "Team en klanten" } },
+    extras_count: { label: "Figuranten" },
+    style: { label: "Welke stijl?", options: { Naturel: "Natuurlijk", Chaleureux: "Warm", Sobre: "Sober", Gourmand: "Smakelijk", Éditorial: "Editoriaal" } },
+    avoid: { label: "Te vermijden" },
+    roles: { label: "Wie moet er zijn", options: { ...roles, Gérant: "Zaakvoerder" } },
+  },
+  design: {
+    ...common,
+    what: { label: "Wat ontwerpen we?", hint: "Vink alles aan wat je in deze bestelling wilt.", options: { "Carte ou menu": "Kaart of menu", "Menu du jour": "Dagmenu", Flyer: "Flyer", Affiche: "Affiche", "Logo et charte": "Logo en huisstijl", "Visuels réseaux sociaux": "Visuals voor sociale media" } },
+    use: { label: "Voor welk gebruik?", hint: "De ontwerper kiest de juiste formaten en resolutie.", options: { Salle: "Zaal", Vitrine: "Etalage", "Réseaux sociaux": "Sociale media", "Livraison et emporter": "Levering en afhaling", Impression: "Drukwerk" } },
+    charte: { label: "Heb je al een huisstijl?", hint: "Logo, kleuren, lettertypes. Nog niets gekozen? De ontwerper stuurt je een link om kleuren, lettertypes en model te kiezen. Wat je daar kiest, verbindt je.", options: { "J'ai une charte": "Ik heb een huisstijl", "Je n'ai rien choisi": "Ik heb nog niets gekozen" } },
+    languages: { label: "In welke talen?", options: { Français: "Frans", Néerlandais: "Nederlands", Anglais: "Engels" } },
+    style: { label: "Welke stijl?", options: { Moderne: "Modern", Chaleureux: "Warm", Sobre: "Sober", Gourmand: "Smakelijk", Authentique: "Authentiek" } },
+    likes: { label: "Wat je mooi vindt", hint: "Geef links (of voeg afbeeldingen toe in de volgende stap) en zeg in één zin waarom, voor elk." },
+    dislikes: { label: "Wat je niet mooi vindt", hint: "Zeg bij elk voorbeeld in één zin waarom." },
+    content: { label: "De definitieve inhoud", hint: "De gerechten en prijzen, de openingsuren, het adres, de vermeldingen: alles wat erop moet staan." },
+    content_final: { label: "Dit is de definitieve versie van de inhoud", hint: "Een gerecht achteraf toevoegen = wijzigingsverzoek, dat de ontwerper prijst." },
+    deadline: { label: "Tegen wanneer?", hint: "De dag waarop je het ontwerp wilt hebben. De ontwerper zegt in zijn offerte of het haalbaar is." },
+  },
+  impression: {
+    ...common,
+    product: { label: "Wat drukken we?", options: { Menus: "Menu's", Flyers: "Flyers", Affiches: "Affiches", Banderoles: "Spandoeken", "Chevalets de table": "Tafelstandaards", "Sets de table": "Placemats", "Sacs et emballages": "Zakken en verpakkingen", Autocollants: "Stickers", "Cartes de visite": "Visitekaartjes" } },
+    quantity: { label: "Welke hoeveelheid?", hint: "Meer dan 1000: geef het exacte aantal in de toelichting.", options: { "100": "100", "250": "250", "500": "500", "1000": "1000", "Plus de 1000": "Meer dan 1000" } },
+    size: { label: "Welk formaat?", hint: "Ander formaat: geef de afmetingen in de toelichting.", options: { A6: "A6", A5: "A5", A4: "A4", A3: "A3", DL: "DL", "Autre format": "Ander formaat" } },
+    paper: { label: "Welk papier?", options: { Standard: "Standaard", Épais: "Dik", Recyclé: "Gerecycleerd" } },
+    finish: { label: "Welke afwerking?", options: { Mat: "Mat", Brillant: "Glanzend", Pelliculé: "Gelamineerd" } },
+    file_state: { label: "Je bestand", hint: "Drukklaar: voeg de pdf toe in de laatste stap. Geen bestand? Maak eerst een briefing met een ontwerper en kom dan terug.", options: { "Prêt à imprimer": "Drukklaar", "À faire faire": "Moet nog gemaakt worden" } },
+    qr_url: { label: "Het adres van de QR-code", hint: "Draagt je drukwerk een QR-code: plak het adres dat hij moet openen en test het. De drukker test de scan opnieuw op de drukproef." },
+    qr_tested: { label: "De QR-code is getest" },
+    delivery_mode: { label: "Hoe ontvang je het drukwerk?", options: { "Livraison au restaurant": "Levering aan het restaurant", "Retrait chez l'imprimeur": "Afhaling bij de drukker" } },
+    deadline: { label: "Uiterlijk ontvangen op", hint: "De drukker bevestigt in zijn offerte of het haalbaar is." },
+  },
+};
+
+export const NL_STEPS: StepTable = {
+  "video.idee": { title: "Je idee", subtitle: "Waarvoor, en in welke vorm." },
+  "video.image": { title: "Wat je op het beeld ziet", subtitle: "De gerechten, de zaal, de keuken, de mensen." },
+  "video.ton": { title: "De toon", subtitle: "Jij kadert, de videograaf doet je 2 tot 3 voorstellen." },
+  "video.decideurs": { title: "Wie beslist?", subtitle: "Eens de briefing verstuurd is, is de beslissing genomen." },
+  "video.budget": { title: "Budget en toelichting", subtitle: "Enkel een richtlijn: je betaalt nu niets." },
+  "photo.idee": { title: "Je idee", subtitle: "Waarvoor, en wat er gefotografeerd wordt." },
+  "photo.image": { title: "Wat je op de foto's ziet", subtitle: "De gerechten, de mensen, wat vermeden moet worden." },
+  "photo.ton": { title: "De stijl", subtitle: "Jij kadert, de fotograaf doet je 2 tot 3 voorstellen." },
+  "photo.decideurs": { title: "Wie beslist?", subtitle: "Eens de briefing verstuurd is, is de beslissing genomen." },
+  "photo.budget": { title: "Budget en toelichting", subtitle: "Enkel een richtlijn: je betaalt nu niets." },
+  "design.quoi": { title: "Wat ontwerpen we?", subtitle: "Eén of meer dragers, en waarvoor ze dienen." },
+  "design.style": { title: "Je stijl", subtitle: "Je huisstijl, je talen, de sfeer." },
+  "design.gouts": { title: "Wat je mooi vindt, wat niet", subtitle: "Voorbeelden zeggen meer dan een lang verhaal." },
+  "design.contenu": { title: "De definitieve inhoud", subtitle: "Dit is de definitieve versie: een gerecht achteraf toevoegen is een wijziging." },
+  "design.decideurs": { title: "Wie beslist?", subtitle: "Eens de briefing verstuurd is, is de beslissing genomen." },
+  "design.budget": { title: "Budget en termijn", subtitle: "Enkel een richtlijn: je betaalt nu niets." },
+  "impression.produit": { title: "Wat drukken we?", subtitle: "Het product, de hoeveelheid en het formaat." },
+  "impression.papier": { title: "Papier en afwerking", subtitle: "Hoe het aanvoelt in je handen." },
+  "impression.fichier": { title: "Je bestand en je QR-code", subtitle: "Een QR-code die niet werkt, kost veel geld: test hem nu." },
+  "impression.reception": { title: "Ontvangst", subtitle: "Waar en tegen wanneer." },
+  "impression.decideurs": { title: "Wie beslist?", subtitle: "Eens de briefing verstuurd is, is de beslissing genomen." },
+  "impression.budget": { title: "Budget en toelichting", subtitle: "Enkel een richtlijn: je betaalt nu niets." },
+};

@@ -34,8 +34,8 @@ test("le brief se lit dans la langue du lecteur : dates, « oui », budget", () 
   const nl = briefRows(answers, VIDEO_TEMPLATE, "brief", "nl");
   const en = briefRows(answers, VIDEO_TEMPLATE, "brief", "en");
   assert.equal(flat(fr, "Tous ont validé ce brief"), "Oui");
-  assert.equal(flat(nl, "Tous ont validé ce brief"), "Ja");
-  assert.equal(flat(en, "Tous ont validé ce brief"), "Yes");
+  assert.equal(flat(nl, "Iedereen heeft deze briefing goedgekeurd"), "Ja");
+  assert.equal(flat(en, "Everyone has approved this brief"), "Yes");
   assert.equal(flat(fr, "Budget"), "800 €");
   assert.equal(flat(en, "Budget"), "€800");
   // Appel sans langue (anciens appelants) : le français, comme avant.
