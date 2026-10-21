@@ -2,6 +2,7 @@
 // Translated by Claude; have a native speaker proofread it before opening to English-speaking users.
 import type { Messages, frBase } from "./fr";
 import { enMission } from "./en-mission";
+import { enForms } from "./en-forms";
 
 const enBase: Record<keyof typeof frBase, string> = {
   "shell.brand": "Boosteats · provider space",
@@ -98,4 +99,4 @@ const enBase: Record<keyof typeof frBase, string> = {
   "avail.savedExcept.other": "Saved, except {n} days already booked by a restaurateur.",
 };
 
-export const en: Messages = { ...enBase, ...enMission };
+export const en: Messages = { ...enBase, ...enMission, ...enForms };

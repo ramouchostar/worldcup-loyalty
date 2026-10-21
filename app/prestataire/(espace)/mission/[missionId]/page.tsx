@@ -122,7 +122,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
       {files.some((f) => f.scope === "brief") && (
         <Card className="space-y-2">
           <SectionLabel>{t("mission.brief.files")}</SectionLabel>
-          <AttachmentList files={files.filter((f) => f.scope === "brief")} base={filesBase} />
+          <AttachmentList locale={locale} files={files.filter((f) => f.scope === "brief")} base={filesBase} />
         </Card>
       )}
 
@@ -155,7 +155,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
                     {c.provider_cents ? t("mission.change.extra", { amount: eur(c.provider_cents) }) : t("mission.change.noExtra")}
                     {c.delta_days ? tr.tp("mission.change.delay", c.delta_days) : ""}
                   </p>
-                  <AttachmentList files={changeFiles(c.seq)} base={filesBase} />
+                  <AttachmentList locale={locale} files={changeFiles(c.seq)} base={filesBase} />
                 </li>
               ))}
           </ol>
@@ -275,7 +275,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
           <p className="text-[13.5px] text-ink">
             <span className="font-semibold">{t("mission.ideas.onsite")}</span> {pview.chosen.onsite}
           </p>
-          <AttachmentList files={files.filter((f) => f.scope === "proposal" && f.ref === pview.chosen!.id)} base={filesBase} />
+          <AttachmentList locale={locale} files={files.filter((f) => f.scope === "proposal" && f.ref === pview.chosen!.id)} base={filesBase} />
         </Card>
       )}
 
@@ -339,7 +339,7 @@ export default async function ProviderMissionPage({ params }: { params: Promise<
                 </li>
               ))}
             </ol>
-            <AttachmentList files={files.filter((f) => f.scope === "retouch" && f.ref === `round-${r.round}`)} base={filesBase} />
+            <AttachmentList locale={locale} files={files.filter((f) => f.scope === "retouch" && f.ref === `round-${r.round}`)} base={filesBase} />
           </Card>
         ))}
       {mission.status === "retouche" && <DeliveryForm missionId={mission.id} title={t("mission.deliver.version", { version: t("mission.version", { n: mission.retouch_rounds_used + 1 }) })} />}

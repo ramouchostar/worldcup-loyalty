@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileCheck2, Plus, X } from "lucide-react";
 import { Card, SectionLabel } from "@/components/admin/ui";
-import { DELIVERY_ISSUE_TEXT, type DeliveryIssue } from "@/lib/mission-dayof";
-import { MAX_BAT_ROUNDS, PRINT_DELIVERY_ISSUE_TEXT, type BatPhase } from "@/lib/mission-print";
+import type { DeliveryIssue } from "@/lib/mission-dayof";
+import { MAX_BAT_ROUNDS, type BatPhase } from "@/lib/mission-print";
+import { useT } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/core";
 
 // ADR 0084 §5 bis — l'imprimeur : envoie l'épreuve (bon à tirer), corrige si le restaurateur le demande (deux tours), imprime APRÈS
 // la signature, puis dit où et quand c'est livré. Il reteste le QR code sur l'épreuve avant de l'envoyer.
@@ -22,6 +24,8 @@ async function post(url: string, body: unknown) {
 
 function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }: { url: string; title: string; help: string; messageLabel: string; linksOptional: boolean; cta: string }) {
   const router = useRouter();
+  const tr = useT();
+  const { t } = tr;
   const [links, setLinks] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [message, setMessage] = useState("");
@@ -30,9 +34,9 @@ function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }:
   const [busy, setBusy] = useState(false);
 
   function add() {
-    const t = draft.trim();
-    if (!t || links.length >= 10) return;
-    setLinks((l) => (l.includes(t) ? l : [...l, t]));
+    const link = draft.trim();
+    if (!link || links.length >= 10) return;
+    setLinks((l) => (l.includes(link) ? l : [...l, link]));
     setDraft("");
   }
 
@@ -45,9 +49,9 @@ function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }:
       const r = await post(url, { links: all, message });
       if (r.ok) return router.refresh();
       if (r.status === 422 && Array.isArray(r.data.issues)) setIssues(r.data.issues as DeliveryIssue[]);
-      setError((r.data.error as string) ?? "Impossible pour le moment. Réessaie.");
+      setError(tr.err(r.data, "err.generic"));
     } catch {
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     } finally {
       setBusy(false);
     }
@@ -64,7 +68,7 @@ function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }:
           {links.map((l, i) => (
             <li key={l} className="flex items-center gap-2 bg-boost-cream border border-boost-olive/30 rounded-xl pl-3 pr-1 min-h-[44px]">
               <span className="flex-1 min-w-0 truncate text-[13.5px] text-ink">{l}</span>
-              <button type="button" onClick={() => setLinks((x) => x.filter((_, j) => j !== i))} aria-label="Retirer ce lien" className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-boost-olive/10">
+              <button type="button" onClick={() => setLinks((x) => x.filter((_, j) => j !== i))} aria-label={t("deliver.removeLink")} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-boost-olive/10">
                 <X className="w-4 h-4" aria-hidden />
               </button>
             </li>
@@ -73,7 +77,7 @@ function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }:
       )}
       <div className="flex gap-2">
         <input
-          aria-label={linksOptional ? "Lien de suivi (facultatif)" : "Lien de l'épreuve"}
+          aria-label={linksOptional ? t("bat.link.tracking") : t("bat.link.proof")}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -87,13 +91,13 @@ function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }:
           className={`${input} flex-1 min-w-0`}
         />
         <button type="button" onClick={add} className="inline-flex items-center gap-1 min-h-[44px] px-4 rounded-xl border border-paper-border bg-white text-ink text-[14px] font-semibold">
-          <Plus className="w-4 h-4" aria-hidden /> Ajouter
+          <Plus className="w-4 h-4" aria-hidden /> {t("deliver.add")}
         </button>
       </div>
       {issues.length > 0 && (
         <ul role="alert" className="text-danger text-[13px] font-semibold space-y-0.5">
           {issues.map((i, k) => (
-            <li key={k}>{linksOptional && i.code === "no_link" ? PRINT_DELIVERY_ISSUE_TEXT.no_link : `${i.index !== undefined ? `Lien ${i.index + 1} : ` : ""}${DELIVERY_ISSUE_TEXT[i.code]}`}</li>
+            <li key={k}>{linksOptional && i.code === "no_link" ? t("bat.print.noLink") : `${i.index !== undefined ? t("deliver.linkN", { n: i.index + 1 }) : ""}${t(`deliver.issue.${i.code}` as MessageKey)}`}</li>
           ))}
         </ul>
       )}
@@ -109,13 +113,14 @@ function LinksAndMessage({ url, title, help, messageLabel, linksOptional, cta }:
         </p>
       )}
       <button type="button" disabled={busy} onClick={send} className={primary}>
-        {busy ? "Envoi…" : cta}
+        {busy ? t("quote.sending") : cta}
       </button>
     </Card>
   );
 }
 
 export function BatPanel({ missionId, phase, proofs, qrUrl }: { missionId: string; phase: BatPhase; proofs: ProviderProof[]; qrUrl: string | null }) {
+  const { t } = useT();
   const last = proofs.at(-1) ?? null;
   const signed = proofs.find((p) => p.status === "signed") ?? null;
 
@@ -123,13 +128,13 @@ export function BatPanel({ missionId, phase, proofs, qrUrl }: { missionId: strin
     return (
       <>
         <Card className="space-y-1.5">
-          <SectionLabel>Bon à tirer signé</SectionLabel>
+          <SectionLabel>{t("bat.signed.title")}</SectionLabel>
           <p className="text-[14px] text-good font-semibold inline-flex items-center gap-1.5">
-            <FileCheck2 className="w-4 h-4" aria-hidden /> Signé par {signed.signedName}
+            <FileCheck2 className="w-4 h-4" aria-hidden /> {t("bat.signed.by", { name: signed.signedName ?? "" })}
           </p>
-          <p className="text-[13.5px] text-ink-muted">Tu peux imprimer. Ce que tu imprimes doit correspondre à l&apos;épreuve signée : plus personne ne peut annuler ni corriger.</p>
+          <p className="text-[13.5px] text-ink-muted">{t("bat.signed.note")}</p>
         </Card>
-        <LinksAndMessage url={`/api/prestataire/missions/${missionId}/deliver`} title="Livrer l'impression" help="Dis où et quand c'est livré, ou que c'est prêt au retrait. Le restaurateur confirmera la réception." messageLabel="Où et quand" linksOptional cta="Dire que c'est livré" />
+        <LinksAndMessage url={`/api/prestataire/missions/${missionId}/deliver`} title={t("bat.print.title")} help={t("bat.print.help")} messageLabel={t("bat.print.message")} linksOptional cta={t("bat.print.cta")} />
       </>
     );
   }
@@ -137,8 +142,8 @@ export function BatPanel({ missionId, phase, proofs, qrUrl }: { missionId: strin
   if (phase === "awaiting_review") {
     return (
       <Card className="space-y-1">
-        <SectionLabel>Bon à tirer</SectionLabel>
-        <p className="text-[13.5px] text-ink-muted">Ton épreuve {last?.round ?? 1} est chez le restaurateur : il la signe ou demande des corrections. Tu es prévenu par e-mail.</p>
+        <SectionLabel>{t("bat.awaiting.title")}</SectionLabel>
+        <p className="text-[13.5px] text-ink-muted">{t("bat.awaiting.body", { round: last?.round ?? 1 })}</p>
       </Card>
     );
   }
@@ -148,8 +153,8 @@ export function BatPanel({ missionId, phase, proofs, qrUrl }: { missionId: strin
     <>
       {corrections.length > 0 && (
         <Card className="space-y-3">
-          <SectionLabel>Corrections demandées · épreuve {last?.round}</SectionLabel>
-          <p className="text-[13px] text-ink-muted">Toutes ses corrections, d&apos;un seul envoi. Une correction ne refait pas le projet.</p>
+          <SectionLabel>{t("bat.corrections.title", { round: last?.round ?? 1 })}</SectionLabel>
+          <p className="text-[13px] text-ink-muted">{t("bat.corrections.note")}</p>
           <ol className="space-y-2">
             {corrections.map((c, i) => (
               <li key={i} className="rounded-xl border border-paper-border bg-white p-3">
@@ -162,11 +167,11 @@ export function BatPanel({ missionId, phase, proofs, qrUrl }: { missionId: strin
       )}
       <LinksAndMessage
         url={`/api/prestataire/missions/${missionId}/proof`}
-        title={phase === "corrections" ? `Envoyer l'épreuve ${(last?.round ?? 0) + 1}` : "Envoyer l'épreuve (bon à tirer)"}
-        help={`Colle le lien https de l'épreuve (PDF). ${qrUrl ? "Reteste le QR code sur l'épreuve avant de l'envoyer. " : ""}${MAX_BAT_ROUNDS} épreuves au plus : l'originale et deux corrections. Tu n'imprimes qu'après la signature.`}
-        messageLabel="Un mot pour le restaurateur (facultatif)"
+        title={phase === "corrections" ? t("bat.send.titleN", { n: (last?.round ?? 0) + 1 }) : t("bat.send.title")}
+        help={t("bat.send.help", { qr: qrUrl ? t("bat.send.qr") : "", max: MAX_BAT_ROUNDS })}
+        messageLabel={t("bat.send.message")}
         linksOptional={false}
-        cta="Envoyer l'épreuve"
+        cta={t("bat.send.cta")}
       />
     </>
   );

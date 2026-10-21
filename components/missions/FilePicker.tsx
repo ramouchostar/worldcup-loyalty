@@ -2,7 +2,9 @@
 
 import { useId, useRef, useState } from "react";
 import { FileText, Image as ImageIcon, Loader2, Paperclip, X } from "lucide-react";
-import { ACCEPTED_TEXT, ACCEPT_ATTR, FILE_ISSUE_TEXT, humanSize, judgeUploadRequest, type AttachmentView, type FileIssue, type FileScope } from "@/lib/mission-files";
+import { ACCEPT_ATTR, judgeUploadRequest, type AttachmentView, type FileIssue, type FileScope } from "@/lib/mission-files";
+import { useT } from "@/components/i18n/I18nProvider";
+import { humanSizeL, type MessageKey } from "@/lib/i18n/core";
 
 // ADR 0084 §3 règle 7 — joindre des fichiers. Le fichier ne passe pas par nos fonctions : on demande un lien d'envoi
 // signé, on envoie directement dans l'espace privé, puis le serveur juge le CONTENU réel avant de l'accepter.
@@ -17,7 +19,7 @@ export function FilePicker({
   initial,
   max,
   onChange,
-  label = "Joindre des fichiers",
+  label,
   disabled = false,
 }: {
   /** Ex. `/api/admin/missions/<id>/files` : le même chemin sert à demander, confirmer (`/<fichier>/confirm`) et retirer. */
@@ -32,6 +34,8 @@ export function FilePicker({
   label?: string;
   disabled?: boolean;
 }) {
+  const tr = useT();
+  const { t, locale } = tr;
   const input = useRef<HTMLInputElement>(null);
   const uid = useId();
   const [items, setItems] = useState<Item[]>((initial ?? []).map((f) => ({ ...f, state: "ready" as const, key: f.id })));
@@ -51,7 +55,7 @@ export function FilePicker({
     const key = `${file.name}-${file.size}-${Math.random()}`;
     const local = judgeUploadRequest({ name: file.name, size: file.size, type: file.type });
     if (!local.ok) {
-      setError(`${file.name} : ${FILE_ISSUE_TEXT[local.issue]}`);
+      setError(`${file.name} : ${t(`file.issue.${local.issue}` as MessageKey)}`);
       return current;
     }
     const start: Item = { id: key, name: local.name, size: file.size, family: "document", state: "uploading", key };
@@ -64,22 +68,22 @@ export function FilePicker({
     };
     try {
       const asked = await post(endpoint, { scope, name: file.name, size: file.size, type: file.type });
-      if (!asked.ok) return fail((asked.data.error as string) ?? "Envoi impossible pour le moment.");
+      if (!asked.ok) return fail(asked.data.issue ? t(`file.issue.${String(asked.data.issue)}` as MessageKey) : tr.err(asked.data, "file.sendFailed"));
       const id = String(asked.data.id);
       // Même forme que le client officiel de Supabase pour un envoi signé : un champ de cache puis le fichier.
       const form = new FormData();
       form.append("cacheControl", "3600");
       form.append("", file);
       const sent = await fetch(String(asked.data.uploadUrl), { method: "PUT", body: form });
-      if (!sent.ok) return fail("L'envoi n'est pas arrivé jusqu'au bout. Réessaie.");
+      if (!sent.ok) return fail(t("file.cut"));
       const done = await post(`${endpoint}/${id}/confirm`, {});
-      if (!done.ok) return fail((done.data.error as string) ?? "Ce fichier n'a pas pu être vérifié.");
+      if (!done.ok) return fail(done.data.issue ? t(`file.issue.${String(done.data.issue)}` as MessageKey) : tr.err(done.data, "file.verifyFailed"));
       const f = done.data.file as AttachmentView;
       list = list.map((i) => (i.key === key ? { ...f, state: "ready" as const, key: f.id } : i));
       publish(list);
       return list;
     } catch {
-      return fail("Pas de connexion. Réessaie dans un instant.");
+      return fail(t("err.network"));
     }
   }
 
@@ -89,7 +93,7 @@ export function FilePicker({
     let list = items;
     const room = max - list.filter((i) => i.state !== "error").length;
     const chosen = Array.from(files).slice(0, Math.max(0, room));
-    if (files.length > chosen.length) setError(`${max} fichiers au plus ici.`);
+    if (files.length > chosen.length) setError(t("file.tooMany", { max }));
     for (const f of chosen) list = await addOne(f, list);
     if (input.current) input.current.value = "";
   }
@@ -100,11 +104,11 @@ export function FilePicker({
       const res = await fetch(`${endpoint}/${item.id}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...extra }) });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        return setError((data as { error?: string }).error ?? "Impossible de retirer ce fichier.");
+        return setError(tr.err(data as { reason?: unknown; error?: unknown }, "file.removeFailed"));
       }
       publish(items.filter((i) => i.key !== item.key));
     } catch {
-      setError("Pas de connexion. Réessaie dans un instant.");
+      setError(t("err.network"));
     }
   }
 
@@ -118,10 +122,10 @@ export function FilePicker({
               {i.state === "uploading" ? <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden /> : i.family === "image" ? <ImageIcon className="w-4 h-4 shrink-0" aria-hidden /> : <FileText className="w-4 h-4 shrink-0" aria-hidden />}
               <span className="flex-1 min-w-0">
                 <span className="block truncate text-[13.5px] text-ink">{i.name}</span>
-                <span className={`block text-[12px] ${i.state === "error" ? "text-danger font-semibold" : "text-ink-muted"}`}>{i.state === "uploading" ? "Envoi en cours…" : i.state === "error" ? i.message : humanSize(i.size)}</span>
+                <span className={`block text-[12px] ${i.state === "error" ? "text-danger font-semibold" : "text-ink-muted"}`}>{i.state === "uploading" ? t("file.uploading") : i.state === "error" ? i.message : humanSizeL(i.size, locale)}</span>
               </span>
               {i.state !== "uploading" && (
-                <button type="button" onClick={() => remove(i)} aria-label={`Retirer ${i.name}`} disabled={disabled} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-boost-olive/10 disabled:opacity-50">
+                <button type="button" onClick={() => remove(i)} aria-label={t("file.remove", { name: i.name })} disabled={disabled} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-boost-olive/10 disabled:opacity-50">
                   <X className="w-4 h-4" aria-hidden />
                 </button>
               )}
@@ -134,9 +138,9 @@ export function FilePicker({
         htmlFor={uid}
         className={`inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-xl border border-paper-border bg-white text-ink text-[14px] font-semibold cursor-pointer ${disabled || count >= max ? "opacity-50 pointer-events-none" : ""}`}
       >
-        <Paperclip className="w-4 h-4" aria-hidden /> {label}
+        <Paperclip className="w-4 h-4" aria-hidden /> {label ?? t("file.default")}
       </label>
-      <p className="text-[12px] text-ink-muted">{ACCEPTED_TEXT}</p>
+      <p className="text-[12px] text-ink-muted">{t("file.accepted")}</p>
       {error && (
         <p role="alert" className="text-danger text-[13px] font-semibold">
           {error}

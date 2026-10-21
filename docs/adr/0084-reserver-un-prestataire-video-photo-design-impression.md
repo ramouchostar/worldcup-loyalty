@@ -333,8 +333,9 @@ Le module parle **français, néerlandais et anglais**. Principes :
 - **Les messages d'erreur du serveur** : une cause connue (`reason`) a sa phrase dans la langue de l'utilisateur (`err.*`) ; en français
   on garde le texte précis du serveur ; sinon un repli traduit.
 - Lots : (1) la coque, la boîte de réception, les revenus, les disponibilités ; (2) la page d'une mission, le devis, le refus, les
-  règles (écran seulement, texte en français), la messagerie, l'annulation, la présence, l'avis. Suivent : les formulaires du jour J,
-  du bon à tirer, des modifications et des idées, le profil, l'invitation, les e-mails du prestataire, puis le côté restaurateur.
+  règles (écran seulement, texte en français), la messagerie, l'annulation, la présence, l'avis ; (3) les formulaires du jour J
+  (arrivée, compte-rendu, livraison), du bon à tirer, des demandes de modification, des idées de tournage, et les pièces jointes (tailles
+  de fichier comprises). Suivent : le profil, l'invitation, les e-mails du prestataire, puis le côté restaurateur.
 
 ### 6. États d'une mission
 
