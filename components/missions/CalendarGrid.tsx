@@ -1,6 +1,7 @@
 "use client";
 
-import { dateLabelFr } from "@/lib/mission-team-message";
+import { useT } from "@/components/i18n/I18nProvider";
+import { dayLabel, monthLabel, weekdayShort } from "@/lib/i18n/core";
 
 // ADR 0084 §5 — la grille de calendrier partagée par le restaurateur (il choisit UN jour) et le
 // prestataire (il en bloque plusieurs). Mobile d'abord : sept colonnes, des cibles de 44 px,
@@ -20,9 +21,6 @@ export type GridDay = {
   struck?: boolean;
 };
 
-const WEEKDAYS = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
-const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
 function weeksOf(days: GridDay[]): GridDay[][] {
   const weeks: GridDay[][] = [];
   for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
@@ -30,18 +28,20 @@ function weeksOf(days: GridDay[]): GridDay[][] {
 }
 
 export function CalendarGrid({ days, selected, onPick }: { days: GridDay[]; selected: ReadonlySet<string>; onPick: (date: string) => void }) {
+  const { t, locale } = useT();
+  const weekdays = weekdayShort(locale);
   let lastMonth = "";
   return (
-    <div className="space-y-1" role="group" aria-label="Calendrier">
+    <div className="space-y-1" role="group" aria-label={t("avail.calendar")}>
       <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-mono uppercase tracking-wider text-ink-faint" aria-hidden>
-        {WEEKDAYS.map((w) => (
+        {weekdays.map((w) => (
           <span key={w}>{w}</span>
         ))}
       </div>
       {weeksOf(days).map((week) => {
         const monday = week[0];
         const month = monday.date.slice(0, 7);
-        const heading = month !== lastMonth ? `${MONTHS[Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}` : null;
+        const heading = month !== lastMonth ? monthLabel(month, locale) : null;
         lastMonth = month;
         return (
           <div key={monday.date} className="space-y-1">
@@ -55,7 +55,7 @@ export function CalendarGrid({ days, selected, onPick }: { days: GridDay[]; sele
                     type="button"
                     disabled={d.disabled}
                     aria-pressed={on}
-                    aria-label={`${dateLabelFr(d.date)} : ${d.label}`}
+                    aria-label={`${dayLabel(d.date, locale)} : ${d.label}`}
                     onClick={() => onPick(d.date)}
                     className={`min-h-[44px] rounded-lg border text-[14px] font-medium transition-colors ${
                       on
