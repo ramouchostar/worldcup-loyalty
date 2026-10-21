@@ -90,14 +90,15 @@ export function revenueTotals(missions: readonly RevenueMission[], now: Date): R
   return t;
 }
 
-export const BUCKET_LABEL: Record<RevenueBucket, { label: string; tone: "neutral" | "good" | "warn" }> = {
-  upcoming: { label: "À venir", tone: "neutral" },
-  on_hold: { label: "En médiation : rien n'est versé", tone: "warn" },
-  to_pay: { label: "Validée : à verser", tone: "good" },
-  paid: { label: "Versé", tone: "good" },
-  cancel_due: { label: "Annulée : ta part est due", tone: "warn" },
-  cancel_paid: { label: "Annulée : ta part est versée", tone: "good" },
-  none: { label: "", tone: "neutral" },
+/** La teinte de chaque case ; les mots sont dans les dictionnaires (`revenue.bucket.*`), dans la langue du prestataire. */
+export const BUCKET_TONE: Record<RevenueBucket, "neutral" | "good" | "warn"> = {
+  upcoming: "neutral",
+  on_hold: "warn",
+  to_pay: "good",
+  paid: "good",
+  cancel_due: "warn",
+  cancel_paid: "good",
+  none: "neutral",
 };
 
 /** Les missions qui comptent dans l'écran (les autres n'ont encore aucun montant), de la plus récente à la plus ancienne. */
@@ -112,5 +113,3 @@ export function revenueRows(missions: readonly RevenueMission[]): (RevenueMissio
 export function autoValidationDay(deliveredAtIso: string): string {
   return addDays(deliveredAtIso.slice(0, 10), 7);
 }
-
-export const PAYOUT_NOTE = "Tu es payé après la validation de ta livraison (par le restaurateur, ou automatiquement au bout de 7 jours). Pendant la phase pilote, Boosteats te verse le montant par virement.";

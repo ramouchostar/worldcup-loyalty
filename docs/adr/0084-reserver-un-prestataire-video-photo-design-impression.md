@@ -310,6 +310,26 @@ Chaque enregistrement crée une **nouvelle version** (`brief_templates`, UNIQUE 
 (si l'insertion échoue, elle est réactivée). Le plancher de budget et le seuil d'ambition passent d'une version à l'autre. Les briefs
 déjà envoyés gardent leurs réponses. Une fois un questionnaire enregistré en base, les changements du code ne s'y appliquent plus.
 
+### 5 terdecies. Les trois langues (amendé le 2026-10-21, PR Z1)
+
+Le module parle **français, néerlandais et anglais**. Principes :
+
+- **Une langue par utilisateur**, jamais devinée : le prestataire choisit la sienne depuis son espace (colonne `providers.locale`, défaut
+  français, lue à part de la fiche pour que son absence ne fasse pas tomber l'espace) ; elle vaudra aussi pour ses e-mails. La langue du
+  restaurateur viendra avec son espace (PR suivantes).
+- **Le français est la référence et le repli** : une clé introuvable ou une langue inconnue rend le français, jamais une clé nue.
+- **Un dictionnaire par langue** (`lib/i18n/messages/{fr,nl,en}.ts`), typé : une clé qui manque en NL ou en EN fait échouer le
+  `type-check`. Un test vérifie en plus que les `{variables}` sont identiques dans les trois langues, qu'aucun texte n'est resté en
+  français, que chaque pluriel a ses deux formes. Tutoiement partout.
+- **Le navigateur ne reçoit qu'une langue** (`I18nProvider`, `lib/i18n/core.ts` ne charge que le français de repli) ; un test interdit à un
+  composant client d'importer l'index des trois dictionnaires.
+- **Dates et montants suivent la langue** (`dayLabel`, `monthLabel`, `formatEurosL`), le français restant identique à l'ancien rendu.
+- **Les règles du jeu ne sont pas traduites tant que le juriste n'a pas validé le texte français** (traduire un texte qui va changer =
+  le refaire, et une traduction non relue d'un texte juridique peut engager Boosteats). Mes traductions NL et EN sont à faire relire
+  par un locuteur natif avant l'ouverture à des utilisateurs de ces langues.
+- Premier lot : la coque de l'espace prestataire, la boîte de réception, les revenus et les disponibilités. Suivent : la page d'une
+  mission et ses formulaires, le profil, l'invitation, les e-mails du prestataire, puis le côté restaurateur.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
