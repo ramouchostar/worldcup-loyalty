@@ -13,6 +13,8 @@ import { BriefWizard } from "./BriefWizard";
 import { MissionTracker } from "./MissionTracker";
 import { QuoteCard } from "./QuoteCard";
 import { getCurrentQuote } from "@/lib/provider-missions";
+import { loadProfile } from "@/lib/providers-profile";
+import { ProviderProfileCard } from "@/components/missions/ProviderProfileCard";
 import { getPlan } from "@/lib/entitlements";
 import { getTerms } from "@/lib/marketplace-settings";
 import { ambitionHint, floorHint } from "@/lib/marketplace-budgets";
@@ -172,6 +174,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
   const unread = (await unreadCounts([mission.id], "restaurant")).get(mission.id) ?? 0;
   // Le bon à tirer (impression) : migration absente → rien d'affiché, le reste de la mission fonctionne.
   const proofsRes = mission.metier === "impression" && ["production", "livre", "valide", "verse"].includes(mission.status) ? await listProofs(mission.id) : null;
+  const profileRes = mission.provider_id ? await loadProfile(mission.provider_id) : null;
   const batSigned = !!proofsRes?.ok && proofsRes.proofs.some((p) => p.status === "signed");
 
   // Annuler : le devis se décline (carte « Décliner ce devis ») ; le reste s'annule ici, coût dit d'abord.
@@ -181,6 +184,7 @@ export default async function MissionPage({ params }: { params: Promise<{ restau
     <div className="space-y-6 max-w-xl">
       {back}
       <MissionTracker mission={mission} template={tpl.template} providerName={providerName} />
+      {profileRes?.ok && <ProviderProfileCard name={providerName ?? "Le prestataire"} profile={profileRes.profile} />}
       {proofsRes?.ok && mission.status === "production" && (
         <BatCard
           restaurantId={restaurantId}
