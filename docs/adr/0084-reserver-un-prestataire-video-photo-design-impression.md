@@ -219,6 +219,23 @@ plateforme lit avec le **texte d'origine**.
   minutes** ; un compteur « n messages » dans les listes. Pas de temps réel : le fil se recharge à l'envoi.
 - **Limite** : 30 messages par heure et par personne et par mission, 1 500 caractères au plus.
 
+### 5 quinquies. Les rappels d'atelier (amendé le 2026-10-21, PR R)
+
+Un métier d'atelier n'a pas de J-7 ni de J-2 ; le cron quotidien réveille pourtant ce qui dort, **sans jamais décider à la place de
+personne** (aucun rappel ne signe, n'annule, ne valide ni ne sanctionne) :
+
+| Situation | Qui est prévenu | Quand |
+|---|---|---|
+| Devis accepté, travail non commencé | le prestataire | de J-6 à J-3 du jour souhaité |
+| idem | la **plateforme** | dès J-2 |
+| En cours, rien livré | le prestataire | J-2 à J |
+| Jour souhaité passé sans livraison | le prestataire **et** la plateforme | J+1 |
+| Épreuve (BAT) sans réponse | le restaurateur | 2 jours, puis encore à 5 jours |
+| Corrections sans nouvelle épreuve | le prestataire | 2 jours |
+
+Chaque rappel part **une seule fois** (clé primaire de `mission_reminders`, réservée avant l'envoi). Le jour souhaité n'est
+**pas un engagement** du prestataire : son délai de devis fait foi, et le rappel de retard le dit.
+
 ### 6. États d'une mission
 
 `brief` → `envoye` → `devis` → `accepte` (acompte payé) → `date_bloquee` → `production` →
