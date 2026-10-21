@@ -21,7 +21,7 @@ async function party(missionId: string): Promise<Party | null> {
 }
 
 /** Les compléments dont un e-mail a besoin (jamais un montant : le prix dépend du plan). */
-export type MailExtras = Pick<MissionUpdateInput, "title" | "count" | "deadlineLabel" | "auto" | "free" | "print">;
+export type MailExtras = Pick<MissionUpdateInput, "title" | "count" | "deadlineLabel" | "deadlineDay" | "auto" | "free" | "print">;
 
 export async function mailMission(missionId: string, to: "restaurant" | "provider" | "platform", kind: MissionUpdateInput["kind"], extras: MailExtras = {}): Promise<boolean> {
   try {

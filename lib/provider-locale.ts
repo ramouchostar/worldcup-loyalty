@@ -38,3 +38,18 @@ export async function saveProviderLocale(providerId: string, raw: unknown): Prom
     return { ok: false, reason: "unavailable" };
   }
 }
+
+/**
+ * La langue d'un prestataire d'après son adresse e-mail : les e-mails du module sont tous envoyés « à une adresse », et l'adresse d'un prestataire est
+ * unique. Retrouver la langue ICI (à l'envoi) évite de la faire passer par chaque appelant. Introuvable ou colonne absente : le français.
+ */
+export async function getProviderLocaleByEmail(email: string): Promise<Locale> {
+  try {
+    const { data, error } = await createAdminClient().from("providers").select("locale").eq("email", email.trim().toLowerCase()).maybeSingle();
+    if (error) throw error;
+    return normalizeLocale((data as { locale?: unknown } | null)?.locale);
+  } catch (e) {
+    if (!missing(e)) console.error("[provider-locale] lecture par adresse impossible:", (e as Error).message);
+    return DEFAULT_LOCALE;
+  }
+}

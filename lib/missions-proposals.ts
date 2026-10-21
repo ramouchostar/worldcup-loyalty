@@ -96,7 +96,7 @@ export async function submitProposals(missionId: string, provider: ProviderRow, 
     const late = round === 1 && today > d.providerDue;
     await logEvent(missionId, { kind: "proposals_submitted", actorKind: "provider", actorId: provider.user_id ?? undefined, meta: { round, count: input.length, late } });
     const lastDay = round === 1 ? addDays(d.autoFirst, -1) : addDays(d.autoSecond, -1);
-    await mail(missionId, "restaurant", "proposals_received", { count: input.length, deadlineLabel: dateLabelFr(lastDay) });
+    await mail(missionId, "restaurant", "proposals_received", { count: input.length, deadlineLabel: dateLabelFr(lastDay), deadlineDay: lastDay });
     return { ok: true, round };
   } catch (e) {
     if (!isMissingTable(e as DbError)) console.error("[missions-proposals] submitProposals failed:", (e as Error).message);
@@ -204,7 +204,7 @@ export async function rejectProposals(missionId: string, restaurantId: string, u
       throw failed.error;
     }
     await logEvent(missionId, { kind: "proposals_rejected", actorKind: "restaurant", actorId: userId, meta: { round: 1, count: series.length } });
-    await mail(missionId, "provider", "proposals_again", { deadlineLabel: dateLabelFr(proposalDeadlines(m.shoot_date!).secondLast) });
+    await mail(missionId, "provider", "proposals_again", { deadlineLabel: dateLabelFr(proposalDeadlines(m.shoot_date!).secondLast), deadlineDay: proposalDeadlines(m.shoot_date!).secondLast });
     return { ok: true };
   } catch (e) {
     if (!isMissingTable(e as DbError)) console.error("[missions-proposals] rejectProposals failed:", (e as Error).message);
@@ -311,7 +311,7 @@ async function remind(d: DueProposalReminder, r: CronRow): Promise<"sent" | "fai
   // 2. ENVOYER, sinon LIBÉRER : le passage suivant réessaie tant que la fenêtre du rappel est ouverte.
   const deadline = d.key === "propose" ? proposalDeadlines(r.shoot_date).providerLast : addDays(proposalDeadlines(r.shoot_date).autoFirst, -1);
   const count = d.key === "choisir" ? await currentCount(r.id) : undefined;
-  const sent = await mail(d.missionId, d.audience, REMINDER_KIND[d.key], { deadlineLabel: dateLabelFr(d.key === "sans_proposition" ? r.shoot_date : deadline), ...(count ? { count } : {}) });
+  const sent = await mail(d.missionId, d.audience, REMINDER_KIND[d.key], { deadlineLabel: dateLabelFr(d.key === "sans_proposition" ? r.shoot_date : deadline), deadlineDay: d.key === "sans_proposition" ? r.shoot_date : deadline, ...(count ? { count } : {}) });
   if (sent) {
     await logEvent(d.missionId, { kind: "reminder_sent", actorKind: "system", meta: { key: d.key, audience: d.audience } });
     return "sent";

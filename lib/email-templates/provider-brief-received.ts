@@ -1,44 +1,41 @@
 import { button, esc, eyebrow, heading, paragraph, proShell, small, type RenderedEmail } from "./kit";
-import { PROVIDER_BRAND_LINE } from "./provider-invite";
+import { getT, type Locale, type MessageKey } from "../i18n";
 import type { Metier } from "../mission-money";
 
 // Prestataire — un brief vient d'arriver (ADR 0084). Court : ce que c'est, de
 // qui, et le bouton. Le détail du brief vit dans l'espace (jamais dans un
 // e-mail : il contient des pièces et des décisions du restaurateur).
+// ADR 0084 §5 terdecies — dans la langue du prestataire (français par défaut).
 
-const WANTS: Record<Metier, string> = { video: "veut une vidéo", photo: "veut des photos", design: "veut un visuel", impression: "veut une impression" };
+export function providerBriefReceivedEmail(providerName: string, restaurantName: string, goal: string | null, missionUrl: string, metier: Metier = "video", locale: Locale = "fr"): RenderedEmail {
+  const { t } = getT(locale);
+  const subject = t("em.brief.subject", { restaurant: restaurantName });
+  const preheader = goal ? t("em.brief.pre.goal", { goal }) : t("em.brief.pre.nogoal");
+  const p1 = t("em.brief.p1", { name: providerName, goal: goal ? t("em.brief.goal", { goal }) : "" });
+  const note = t("em.brief.note");
+  const cta = t("em.brief.cta");
+  const title = t("em.brief.title", { restaurant: restaurantName, wants: t(`em.brief.wants.${metier}` as MessageKey) });
 
-export function providerBriefReceivedEmail(providerName: string, restaurantName: string, goal: string | null, missionUrl: string, metier: Metier = "video"): RenderedEmail {
-  const subject = `Nouveau brief de ${restaurantName}`;
-  const preheader = goal ? `${goal} — à chiffrer.` : "À chiffrer.";
-
-  const body = [
-    eyebrow("Nouveau brief"),
-    heading(`${restaurantName} ${WANTS[metier]}`),
-    paragraph(esc(`Bonjour ${providerName}, un brief complet et verrouillé t'attend${goal ? ` : « ${goal} »` : ""}. Lis-le, puis fais ton devis ou dis-nous pourquoi tu ne peux pas.`)),
-    button("Lire le brief", missionUrl, "#0C1509"),
-    small(esc("Ton prix sera ferme pour ce brief. Si le restaurateur le change ensuite, c'est une demande de modification que tu chiffres ou refuses.")),
-  ];
+  const body = [eyebrow(t("em.brief.eyebrow")), heading(title), paragraph(esc(p1)), button(cta, missionUrl, "#0C1509"), small(esc(note))];
 
   const html = proShell({
     restaurantName: "Boosteats",
     logoUrl: null,
-    kicker: "Nouveau brief",
+    kicker: t("em.brief.eyebrow"),
     subject,
     preheader,
     body: body.join("\n"),
-    footer: { reason: "Tu reçois cet e-mail parce qu'un restaurateur t'a envoyé un brief sur Boosteats." },
-    brandLine: PROVIDER_BRAND_LINE,
+    footer: { reason: t("em.brief.footer") },
+    brandLine: t("em.brand"),
   });
 
-  const text = `Nouveau brief de ${restaurantName}
+  const text = `${subject}
 
-Bonjour ${providerName}, un brief complet et verrouillé t'attend${goal ? ` : « ${goal} »` : ""}.
-Lis-le, puis fais ton devis ou dis-nous pourquoi tu ne peux pas.
+${p1}
 
-Lire le brief : ${missionUrl}
+${cta} : ${missionUrl}
 
-Ton prix sera ferme pour ce brief.`;
+${note}`;
 
   return { subject, preheader, html, text };
 }

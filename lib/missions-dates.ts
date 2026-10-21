@@ -259,6 +259,7 @@ async function notifyDateBooked(mission: MissionRow, answers: BriefAnswers, date
       providerName,
       restaurantName: (restaurant as { name: string } | null)?.name ?? "Un restaurateur",
       dateLabel: dateLabelFr(date),
+      dateISO: date,
       startTime: slotStart,
       contact: [c?.name, c?.phone].filter(Boolean).join(" · ") || "à confirmer",
       missionUrl: providerMissionUrl(mission.id),
