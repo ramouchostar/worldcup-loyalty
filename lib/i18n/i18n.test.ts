@@ -203,3 +203,28 @@ test("les tailles de fichier suivent la langue", () => {
   assert.equal(humanSizeL(1_572_864, "nl"), "1,5 MB");
   assert.equal(humanSizeL(1_572_864, "en"), "1.5 MB");
 });
+
+// ── Profil et invitation ──
+import { PROFILE_ISSUE_TEXT, PROFILE_LANGUAGES } from "../provider-profile";
+import { URL_ISSUE_TEXT } from "../safe-url";
+
+test("chaque refus du profil, chaque motif d'adresse et chaque langue ont leur texte dans les trois langues", () => {
+  for (const code of Object.keys(PROFILE_ISSUE_TEXT)) assert.ok(`profile.issue.${code}` in fr, `profile.issue.${code}`);
+  for (const code of Object.keys(URL_ISSUE_TEXT)) assert.ok(`profile.url.${code}` in fr, `profile.url.${code}`);
+  for (const l of PROFILE_LANGUAGES) assert.ok(`canon.language.${l}` in fr, l);
+  assert.equal(getT("nl").canon("language", "Anglais"), "Engels");
+  assert.equal(getT("en").canon("language", "Néerlandais"), "Dutch");
+});
+
+test("la page d'invitation a un texte pour chaque cause d'échec, dans les trois langues", () => {
+  for (const state of ["expired", "accepted", "revoked", "not-found", "email-mismatch", "already-provider", "error"]) {
+    assert.ok(`invite.error.${state}` in fr, state);
+    for (const l of LOCALES) assert.ok(getT(l).t(`invite.error.${state}` as never).length > 5);
+  }
+});
+
+test("la carte « À propos » parle la langue du lecteur et le français reste celui d'avant", () => {
+  assert.equal(getT("fr").t("card.title"), "À propos du prestataire");
+  assert.equal(getT("nl").t("card.rating", { avg: "4,5", count: 7 }), "4,5 op 5 · 7 beoordelingen");
+  assert.equal(getT("en").t("card.rating", { avg: "4.5", count: 7 }), "4.5 out of 5 · 7 reviews");
+});

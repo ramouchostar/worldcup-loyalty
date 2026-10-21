@@ -15,7 +15,7 @@ export async function PUT(req: Request) {
   const r = await saveProfile(guard.provider.id, body);
   if (r.ok) return NextResponse.json({ ok: true, profile: r.profile });
   if (r.reason === "invalid") {
-    return NextResponse.json({ error: "Certains champs sont à corriger.", issues: r.issues.map((i) => ({ field: i.field, index: i.index ?? null, text: profileIssueText(i) })) }, { status: 422 });
+    return NextResponse.json({ error: "Certains champs sont à corriger.", issues: r.issues.map((i) => ({ field: i.field, index: i.index ?? null, code: i.code, url: i.url ?? null, text: profileIssueText(i) })) }, { status: 422 });
   }
   return NextResponse.json({ error: "Le profil n'est pas disponible pour le moment. Réessaie plus tard." }, { status: 503 });
 }

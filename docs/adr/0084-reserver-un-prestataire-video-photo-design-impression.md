@@ -335,7 +335,10 @@ Le module parle **français, néerlandais et anglais**. Principes :
 - Lots : (1) la coque, la boîte de réception, les revenus, les disponibilités ; (2) la page d'une mission, le devis, le refus, les
   règles (écran seulement, texte en français), la messagerie, l'annulation, la présence, l'avis ; (3) les formulaires du jour J
   (arrivée, compte-rendu, livraison), du bon à tirer, des demandes de modification, des idées de tournage, et les pièces jointes (tailles
-  de fichier comprises). Suivent : le profil, l'invitation, les e-mails du prestataire, puis le côté restaurateur.
+  de fichier comprises) ; (4) le profil du prestataire et la carte « À propos » qu'en lit le restaurateur (la carte prend la langue de
+  celui qui lit), la page d'invitation (publique : langue choisie par un lien `?lang=`, sinon celle fixée par la plateforme à
+  l'invitation, sinon le français) et le choix de la langue à l'invitation dans la console plateforme. Suivent : les e-mails du
+  prestataire, puis le côté restaurateur.
 
 ### 6. États d'une mission
 
