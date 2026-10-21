@@ -106,6 +106,7 @@ async function sendOne(d: DueReminder, row: Row): Promise<"sent" | "failed" | "s
       audience: d.audience,
       restaurantName,
       dateLabel: dateLabelFr(row.shoot_date!),
+      dateISO: row.shoot_date!,
       startTime: row.shoot_start ?? "",
       contact,
     } as const;

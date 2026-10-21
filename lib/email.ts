@@ -1,3 +1,4 @@
+import { getProviderLocaleByEmail } from "./provider-locale";
 import { Resend } from "resend";
 import { createAdminClient } from "./supabase";
 import { getRestaurantBranding, logoPublicUrl } from "./restaurant";
@@ -328,7 +329,7 @@ export async function sendOwnerInviteEmail(
 // ADR 0084 — lien d'invitation prestataire généré depuis /platform. Boosteats signe (audience
 // « restaurant » = expéditeur Boosteats) ; la copie plateforme des e-mails pro suit.
 export async function sendProviderInviteEmail(to: string, name: string, inviteUrl: string, expiresAt: string): Promise<boolean> {
-  return dispatch(to, providerInviteEmail(name, inviteUrl, expiresAt, to), { key: "provider_invite", audience: "restaurant" });
+  return dispatch(to, providerInviteEmail(name, inviteUrl, expiresAt, to, await getProviderLocaleByEmail(to)), { key: "provider_invite", audience: "restaurant" });
 }
 
 // ADR 0084 — un brief vient d'être envoyé au prestataire : sans e-mail, il ne le saurait pas.
@@ -340,7 +341,7 @@ export async function sendProviderBriefReceivedEmail(
   missionUrl: string,
   metier?: Metier
 ): Promise<boolean> {
-  return dispatch(to, providerBriefReceivedEmail(providerName, restaurantName, goal, missionUrl, metier), { key: "provider_brief_received", audience: "restaurant" });
+  return dispatch(to, providerBriefReceivedEmail(providerName, restaurantName, goal, missionUrl, metier, await getProviderLocaleByEmail(to)), { key: "provider_brief_received", audience: "restaurant" });
 }
 
 // ADR 0084 — le devis du prestataire est arrivé : le restaurateur en est prévenu.
@@ -350,19 +351,23 @@ export async function sendProviderQuoteReceivedEmail(to: string, restaurantName:
 
 // ADR 0084 — le restaurateur a réservé sa date : le prestataire en est prévenu.
 export async function sendProviderDateBookedEmail(to: string, input: Parameters<typeof providerDateBookedEmail>[0]): Promise<boolean> {
-  return dispatch(to, providerDateBookedEmail(input), { key: "provider_date_booked", audience: "restaurant" });
+  return dispatch(to, providerDateBookedEmail({ locale: await getProviderLocaleByEmail(to), ...input }), { key: "provider_date_booked", audience: "restaurant" });
 }
 
 // ADR 0084 §5 — rappel de tournage (J-7, J-2, veille) ou alerte plateforme. L'étape (`step`) porte
 // le rappel (1 = J-7, 2 = J-2, 3 = veille, 4 = alerte) dans le journal des envois.
 const REMINDER_STEP = { j7: 1, j2: 2, veille: 3, alerte: 4 } as const;
 export async function sendMissionReminderEmail(to: string, input: MissionReminderInput, restaurantId: string): Promise<boolean> {
-  return dispatch(to, missionReminderEmail(input), { key: "mission_reminder", audience: "restaurant", restaurantId, step: REMINDER_STEP[input.key] });
+  // Seul le rappel destiné au prestataire se lit dans sa langue (les autres destinataires restent en français).
+  const locale = input.audience === "provider" && !input.locale ? await getProviderLocaleByEmail(to) : input.locale;
+  return dispatch(to, missionReminderEmail({ ...input, locale }), { key: "mission_reminder", audience: "restaurant", restaurantId, step: REMINDER_STEP[input.key] });
 }
 
 // ADR 0084 §5 — le jour J et après : compte-rendu prêt, livraison, validation, contestation.
 export async function sendMissionUpdateEmail(to: string, input: MissionUpdateInput, restaurantId: string): Promise<boolean> {
-  return dispatch(to, missionUpdateEmail(input), { key: "mission_update", audience: "restaurant", restaurantId });
+  // Seul l'e-mail destiné au prestataire se lit dans sa langue (les autres destinataires restent en français).
+  const locale = input.audience === "provider" && !input.locale ? await getProviderLocaleByEmail(to) : input.locale;
+  return dispatch(to, missionUpdateEmail({ ...input, locale }), { key: "mission_update", audience: "restaurant", restaurantId });
 }
 
 export async function sendOnboardingReminderEmail(

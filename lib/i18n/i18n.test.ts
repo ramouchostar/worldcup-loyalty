@@ -38,8 +38,8 @@ test("chaque pluriel a ses deux formes dans les trois langues", () => {
 test("rien n'est resté en français dans les autres langues (hors mots identiques connus)", () => {
   // Mots qui s'écrivent pareil dans deux langues (Design, Photo, Boosteats, « message(s) », Montage…).
   const SAME: Record<string, string[]> = {
-    nl: ["metier.design", "msg.platform", "canon.included.Montage", "proposals.field.ideaCount"],
-    en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other", "mission.version", "msg.title", "msg.platform", "proposals.field.ideaCount"],
+    nl: ["metier.design", "msg.platform", "canon.included.Montage", "proposals.field.ideaCount", "em.brief.title"],
+    en: ["metier.design", "metier.photo", "inbox.unread.one", "inbox.unread.other", "mission.version", "msg.title", "msg.platform", "proposals.field.ideaCount", "em.invite.eyebrow", "em.brief.title"],
   };
   for (const [name, d] of [["nl", nl], ["en", en]] as const) {
     const same = KEYS.filter((k) => (d as Record<string, string>)[k] === (fr as Record<string, string>)[k]);

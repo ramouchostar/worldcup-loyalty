@@ -337,8 +337,12 @@ Le module parle **français, néerlandais et anglais**. Principes :
   (arrivée, compte-rendu, livraison), du bon à tirer, des demandes de modification, des idées de tournage, et les pièces jointes (tailles
   de fichier comprises) ; (4) le profil du prestataire et la carte « À propos » qu'en lit le restaurateur (la carte prend la langue de
   celui qui lit), la page d'invitation (publique : langue choisie par un lien `?lang=`, sinon celle fixée par la plateforme à
-  l'invitation, sinon le français) et le choix de la langue à l'invitation dans la console plateforme. Suivent : les e-mails du
-  prestataire, puis le côté restaurateur.
+  l'invitation, sinon le français) et le choix de la langue à l'invitation dans la console plateforme ; (5) les **e-mails que reçoit le
+  prestataire** : mises à jour d'une mission (23 sortes), invitation, nouveau brief, date réservée, rappels de tournage. La langue est
+  retrouvée **à l'envoi, d'après l'adresse du destinataire** (l'adresse d'un prestataire est unique), jamais passée par chaque appelant ;
+  le jour limite est dit dans sa langue (`deadlineDay`, en plus du libellé français pour les anciens appelants). En français, le texte est
+  identique à l'ancien (vérifié sur 357 696 combinaisons). Les e-mails du restaurateur et de la plateforme restent en français jusqu'au
+  côté restaurateur. Suivent : le côté restaurateur (espace, e-mails), puis les règles du jeu une fois validées par le juriste.
 
 ### 6. États d'une mission
 

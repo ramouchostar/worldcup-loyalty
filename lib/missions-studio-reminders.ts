@@ -84,7 +84,7 @@ async function sendOne(d: DueStudioReminder, deadline: string | null): Promise<"
     return "failed";
   }
   // 2. ENVOYER, sinon LIBÉRER : le passage suivant réessaie tant que la fenêtre du rappel est ouverte.
-  const sent = await mailMission(d.missionId, d.audience, d.key, deadline ? { deadlineLabel: dateLabelFr(deadline) } : {});
+  const sent = await mailMission(d.missionId, d.audience, d.key, deadline ? { deadlineLabel: dateLabelFr(deadline), deadlineDay: deadline } : {});
   if (sent) {
     await logEvent(d.missionId, { kind: "reminder_sent", actorKind: "system", reason: reminderLabel[d.key], meta: { key: d.key, audience: d.audience } });
     return "sent";
