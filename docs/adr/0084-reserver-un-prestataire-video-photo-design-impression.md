@@ -346,9 +346,13 @@ Le module parle **français, néerlandais et anglais**. Principes :
   choisie depuis un sélecteur en haut des pages « Prestataires » ; lue à part des gardes d'accès), un fournisseur de langue propre à ces
   pages, puis la liste, le suivi d'une mission, le devis reçu, les annulations (les cartes partagées avec le prestataire prennent la
   langue de celui qui les lit). **La console autour reste en français** : traduire seulement ces pages donne un restaurateur
-  néerlandophone qui lit un morceau en néerlandais dans une console française ; la console entière est un autre chantier. Suivent : l'assistant de brief, les
-  cartes du jour J, des idées, du bon à tirer et des modifications, puis les e-mails du restaurateur, puis les règles du jeu une fois
-  validées par le juriste.
+  néerlandophone qui lit un morceau en néerlandais dans une console française ; la console entière est un autre chantier ; (7) **l'assistant
+  de brief et les questions** : les questionnaires sont des données en français ; un calque `lib/i18n/questionnaire.ts` les traduit **question par
+  question** (la clé d'une option est l'option en français, telle qu'enregistrée), pour le restaurateur qui remplit ET pour le prestataire qui
+  lit. **Une question dont le libellé a été modifié en base n'est pas traduite** : on ne devine pas le sens d'un texte modifié (même
+  règle pour l'aide et pour les écrans). Un test exige qu'aucune question, aide, option ni écran des quatre questionnaires par défaut ne manque.
+  Suivent : les cartes du jour J, des idées, du bon à tirer et des modifications côté restaurateur, le message à l'équipe, puis les e-mails
+  du restaurateur, puis les règles du jeu une fois validées par le juriste.
 
 ### 6. États d'une mission
 

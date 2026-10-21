@@ -85,7 +85,7 @@ export default async function PrestatairesPage({ params }: { params: Promise<{ r
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-ink text-[14px] truncate">
                         {t(`metier.${m.metier}` as MessageKey)}
-                        {briefHeadline(m.brief) ? ` · ${briefHeadline(m.brief)}` : ""}
+                        {briefHeadline(m.brief, locale, m.metier) ? ` · ${briefHeadline(m.brief, locale, m.metier)}` : ""}
                       </p>
                       <p className="text-[12.5px] text-ink-faint">
                         {t(m.status === "brief" ? "rest.list.draftOn" : "rest.list.createdOn", { date: new Date(m.created_at).toLocaleDateString(LOCALE_TAG[locale], { day: "numeric", month: "long", timeZone: "Europe/Brussels" }) })}
