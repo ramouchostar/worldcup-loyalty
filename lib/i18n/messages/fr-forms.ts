@@ -3,6 +3,18 @@
 export const frForms = {
   // ── Causes d'erreur connues des routes du prestataire ──────
   "err.too_early": "Tu pourras démarrer le jour du tournage.",
+  "err.qr_empty": "Colle l'adresse que le QR code doit ouvrir.",
+  "err.qr_too_long": "Cette adresse est trop longue (500 caractères au plus).",
+  "err.qr_invalid": "Ce n'est pas une adresse valide.",
+  "err.qr_not_https": "L'adresse doit commencer par https://",
+  "err.qr_credentials": "Retire l'identifiant et le mot de passe de l'adresse.",
+  "err.qr_ip_literal": "Utilise un nom de site (par exemple monrestaurant.be), pas une adresse en chiffres.",
+  "err.qr_no_dot": "Cette adresse n'est pas celle d'un site.",
+  "err.qr_blocked_host": "Cette adresse n'est pas celle d'un site public.",
+  "err.qr_unreachable": "Ce site ne répond pas pour le moment. Vérifie l'adresse, ou réessaie dans un instant.",
+  "err.qr_bad_status": "Cette adresse mène à une page d'erreur. Vérifie qu'elle est exacte.",
+  "err.qr_too_many_redirects": "Cette adresse renvoie trop de fois ailleurs. Donne l'adresse finale.",
+  "err.qr_private_address": "Cette adresse n'est pas celle d'un site public.",
   "err.no_provider": "Aucun prestataire n'est disponible pour ce métier pour le moment. Ton brief est gardé : réessaie bientôt.",
   "err.not_booked": "Cette mission n'a pas de tournage à démarrer.",
   "err.locked": "Le restaurateur a déjà répondu à ton compte-rendu : il ne se modifie plus.",

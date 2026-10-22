@@ -3,6 +3,18 @@ import type { frForms } from "./fr-forms";
 
 export const nlForms: Record<keyof typeof frForms, string> = {
   "err.too_early": "Je kunt starten op de dag van de opnames.",
+  "err.qr_empty": "Plak het adres dat de QR-code moet openen.",
+  "err.qr_too_long": "Dit adres is te lang (maximaal 500 tekens).",
+  "err.qr_invalid": "Dit is geen geldig adres.",
+  "err.qr_not_https": "Het adres moet beginnen met https://",
+  "err.qr_credentials": "Verwijder de gebruikersnaam en het wachtwoord uit het adres.",
+  "err.qr_ip_literal": "Gebruik een sitenaam (bijvoorbeeld monrestaurant.be), geen adres in cijfers.",
+  "err.qr_no_dot": "Dit is niet het adres van een site.",
+  "err.qr_blocked_host": "Dit is niet het adres van een openbare site.",
+  "err.qr_unreachable": "Deze site antwoordt momenteel niet. Controleer het adres of probeer het zo opnieuw.",
+  "err.qr_bad_status": "Dit adres leidt naar een foutpagina. Controleer of het klopt.",
+  "err.qr_too_many_redirects": "Dit adres verwijst te vaak door. Geef het uiteindelijke adres.",
+  "err.qr_private_address": "Dit is niet het adres van een openbare site.",
   "err.no_provider": "Er is momenteel geen dienstverlener beschikbaar voor dit vak. Je briefing wordt bewaard: probeer het binnenkort opnieuw.",
   "err.not_booked": "Voor deze opdracht zijn er geen opnames om te starten.",
   "err.locked": "De restauranthouder heeft al op je verslag gereageerd: het kan niet meer worden gewijzigd.",
