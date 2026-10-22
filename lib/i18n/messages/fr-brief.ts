@@ -20,6 +20,7 @@ export const frBrief = {
   "wz.next.2": "Son prix est ferme pour ce brief : ce que tu as écrit, il le chiffre.",
   "wz.next.3": "Tu changes d'avis après l'envoi ? C'est une demande de modification, qu'il chiffre ou refuse.",
   "wz.next.4": "Tu ne paies rien maintenant. La date du tournage se choisit après le devis, dans ses disponibilités.",
+  "wz.next.4.studio": "Tu ne paies rien maintenant. Le travail commence après l'acceptation du devis.",
   "wz.rules.intro": "Elles protègent le prestataire et toi. Lis-les : en envoyant ce brief, tu t'y engages.",
   "wz.rules.accept": "J'ai lu les règles et je les accepte pour ce brief.",
   "wz.rules.notAccepted": "Coche la case pour accepter les règles.",

@@ -1,5 +1,6 @@
 "use client";
 
+import { hasShoot } from "@/lib/mission-metier";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
@@ -268,7 +269,7 @@ export function BriefWizard({
               <li>{t("wz.next.1", { who: providerName ?? t(`rest.whoCap.${metier}` as MessageKey) })}</li>
               <li>{t("wz.next.2")}</li>
               <li>{t("wz.next.3")}</li>
-              <li>{t("wz.next.4")}</li>
+              <li>{t(hasShoot(metier) ? "wz.next.4" : "wz.next.4.studio")}</li>
             </ul>
           </Card>
 

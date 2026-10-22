@@ -21,6 +21,7 @@ export const nlBrief: Record<keyof typeof frBrief, string> = {
   "wz.next.2": "De prijs ligt vast voor deze briefing: wat je geschreven hebt, wordt geprijsd.",
   "wz.next.3": "Bedenk je je na het versturen? Dat is een wijzigingsverzoek, dat hij prijst of weigert.",
   "wz.next.4": "Je betaalt nu niets. De datum van de opnames kies je na de offerte, in zijn beschikbaarheid.",
+  "wz.next.4.studio": "Je betaalt nu niets. Het werk begint na de aanvaarding van de offerte.",
   "wz.rules.intro": "Ze beschermen de dienstverlener en jou. Lees ze: door deze briefing te versturen, verbind je je ertoe.",
   "wz.rules.accept": "Ik heb de regels gelezen en aanvaard ze voor deze briefing.",
   "wz.rules.notAccepted": "Vink het vakje aan om de regels te aanvaarden.",
