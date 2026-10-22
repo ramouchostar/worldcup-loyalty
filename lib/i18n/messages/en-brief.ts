@@ -21,6 +21,7 @@ export const enBrief: Record<keyof typeof frBrief, string> = {
   "wz.next.2": "Their price is firm for this brief: what you wrote is what they price.",
   "wz.next.3": "Change your mind after sending? That's a change request, which they price or decline.",
   "wz.next.4": "You pay nothing now. The shoot date is chosen after the quote, among their availability.",
+  "wz.next.4.studio": "You pay nothing now. The work starts once you accept the quote.",
   "wz.rules.intro": "They protect the provider and you. Read them: by sending this brief, you commit to them.",
   "wz.rules.accept": "I have read the rules and I accept them for this brief.",
   "wz.rules.notAccepted": "Tick the box to accept the rules.",
