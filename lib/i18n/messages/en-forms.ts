@@ -3,6 +3,18 @@ import type { frForms } from "./fr-forms";
 
 export const enForms: Record<keyof typeof frForms, string> = {
   "err.too_early": "You can start on the day of the shoot.",
+  "err.qr_empty": "Paste the address the QR code should open.",
+  "err.qr_too_long": "This address is too long (500 characters at most).",
+  "err.qr_invalid": "That isn't a valid address.",
+  "err.qr_not_https": "The address must start with https://",
+  "err.qr_credentials": "Remove the username and password from the address.",
+  "err.qr_ip_literal": "Use a site name (for example monrestaurant.be), not a numeric address.",
+  "err.qr_no_dot": "That isn't a website address.",
+  "err.qr_blocked_host": "That isn't a public website address.",
+  "err.qr_unreachable": "This site isn't responding right now. Check the address, or try again in a moment.",
+  "err.qr_bad_status": "This address leads to an error page. Check that it's correct.",
+  "err.qr_too_many_redirects": "This address redirects too many times. Give the final address.",
+  "err.qr_private_address": "That isn't a public website address.",
   "err.no_provider": "No provider is available for this trade right now. Your brief is saved: try again soon.",
   "err.not_booked": "This job has no shoot to start.",
   "err.locked": "The restaurateur has already answered your report: it can no longer be changed.",

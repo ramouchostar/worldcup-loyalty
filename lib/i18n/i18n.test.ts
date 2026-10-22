@@ -262,3 +262,14 @@ test("le message à l'équipe parle la langue du restaurateur", () => {
   assert.notEqual(teamMessageT(makeTranslator("nl", nl), input), teamMessage(input));
   assert.notEqual(teamMessageT(makeTranslator("en", en), input), teamMessage(input));
 });
+
+// ── Test du QR : chaque cause a sa phrase, dans les trois langues (le code `invalid` ne doit pas tomber sur le message générique) ──
+import { QR_REASON_TEXT } from "../qr-check";
+
+test("chaque cause du test QR a sa phrase, et le français est celui d'avant", () => {
+  for (const [reason, text] of Object.entries(QR_REASON_TEXT)) {
+    assert.equal((fr as Record<string, string>)[`err.qr_${reason}`], text, reason);
+    assert.ok(`err.qr_${reason}` in nl && `err.qr_${reason}` in en, reason);
+  }
+  assert.match(readFileSync("app/api/admin/missions/[id]/qr-check/route.ts", "utf8"), /reason: `qr_\$\{r\.reason\}`/);
+});

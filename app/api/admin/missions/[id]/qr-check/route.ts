@@ -32,5 +32,5 @@ export async function POST(req: Request) {
   const url = typeof body?.url === "string" ? body.url : "";
   const r = await checkQrUrl(url);
   if (r.ok) return NextResponse.json({ ok: true, finalHost: r.finalHost, redirected: r.redirected });
-  return NextResponse.json({ error: QR_REASON_TEXT[r.reason], reason: r.reason }, { status: r.reason === "unreachable" || r.reason === "bad_status" ? 502 : 422 });
+  return NextResponse.json({ error: QR_REASON_TEXT[r.reason], reason: `qr_${r.reason}` }, { status: r.reason === "unreachable" || r.reason === "bad_status" ? 502 : 422 });
 }
