@@ -22,6 +22,7 @@ import {
   Users,
   X,
   type LucideIcon,
+  MapPin,
 } from "lucide-react";
 import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
 
@@ -42,6 +43,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/platform/audit", label: "Audit", icon: ClipboardCheck },
   { href: "/platform/crm", label: "Outbound", icon: Handshake },
   { href: "/platform/prestataires", label: "Prestataires", icon: Clapperboard },
+  { href: "/platform/pub", label: "Pub", icon: MapPin },
 ];
 
 const COLLAPSE_KEY = "platform-sidebar-collapsed";

@@ -152,6 +152,9 @@ AUDIT_PUBLIC_DAILY_MAX=             # ADR 0071 — analyses gratuites par jour p
 AUDIT_IP_SALT=                      # ADR 0071 — sel de l'empreinte IP des demandes d'audit (jamais l'IP en clair)
 AUDIT_SHARE_SECRET=                 # ADR 0069 §6 — secret HMAC des liens /audit/<nom>/v<N>-<jeton> (à défaut : clé service-role ; le changer rend les anciens liens non réaffichables en console, ils s'ouvrent toujours)
 BZZOIRO_API_KEY=                   # signal foot (lib/signals/football-source.ts) — serveur uniquement : clé gratuite de sports.bzzoiro.com, en-tête « Authorization: Token … ». Vide = aucune lecture, dite dans le résultat (jamais silencieuse)
+META_ADS_SYSTEM_USER_TOKEN=          # ADR 0085 — jeton du System User Meta (serveur, sensible) ; META_ADS_ACCOUNT_ID_BE = act_…
+PUB_ALERT_EMAIL=                     # ADR 0086 — alertes Pub à Mehdi ; INVOICE_VAT_RATE (0 en franchise) ; PUB_PAYMENT_HOLDER/IBAN/BIC (virement)
+PUB_RESTAURANTS=                     # ADR 0086 amendé 2026-10-23 — établissements ouverts à la Pub (ids séparés par des virgules, ou *) ; super-admin toujours
 MARKETPLACE_ENABLED=               # ADR 0084 — « true » ouvre le module Prestataires aux restaurateurs (lien « Prestataires » de la console, pages /admin/[id]/prestataires, routes /api/admin/missions). Vide = fermé : 404 partout, sauf pour le super-admin, qui le voit toujours
 ```
 

@@ -31,8 +31,9 @@ export function parseConsoleView(raw: string | undefined): ConsoleView {
 /**
  * `marketplace` : le module « Prestataires » (ADR 0084) est ouvert pour ce restaurateur
  * (MARKETPLACE_ENABLED, ou super-admin). Fermé = le lien n'existe pas.
+ * `pub` : la Pub (ADR 0086) est ouverte pour cet établissement (PUB_RESTAURANTS, ou super-admin).
  */
-export function consoleSections(base: string, canManage: boolean, marketplace = false): AdminNavSection[] {
+export function consoleSections(base: string, canManage: boolean, marketplace = false, pub = false): AdminNavSection[] {
   return [
     {
       title: "Au quotidien",
@@ -53,12 +54,13 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
         { href: `${base}/referrals`, label: "Parrainages", icon: "referrals", hint: "Les clients qui en amènent d'autres" },
       ],
     },
-    ...(marketplace
+    ...(marketplace || pub
       ? [
           {
-            title: "Contenus",
+            title: "Contenus et pub",
             links: [
-              { href: `${base}/prestataires`, label: "Prestataires", icon: "prestataires", hint: "Un vidéaste, un photographe, un graphiste ou un imprimeur — brief clair, devis ferme" },
+              ...(pub ? [{ href: `${base}/pub`, label: "Pub", icon: "pub", hint: "Une pub Facebook et Instagram autour du resto, payée d'avance, chiffres chaque matin" }] : []),
+              ...(marketplace ? [{ href: `${base}/prestataires`, label: "Prestataires", icon: "prestataires", hint: "Un vidéaste, un photographe, un graphiste ou un imprimeur — brief clair, devis ferme" }] : []),
             ],
           },
         ]

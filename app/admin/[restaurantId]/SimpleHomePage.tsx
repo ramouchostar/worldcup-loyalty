@@ -9,6 +9,7 @@ import { buildGrowthView } from "@/lib/growth-game";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { GrowthHero, GrowthStepper } from "@/components/admin/simple/GrowthHero";
 import { GrowthMissions } from "@/components/admin/simple/GrowthMissions";
+import { pubEnabledFor } from "@/lib/ads/config";
 import { getEntitlement, getPlan } from "@/lib/entitlements";
 import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
 import { buildRevenueTracker } from "@/lib/revenue-tracker";
@@ -112,6 +113,7 @@ export async function SimpleHomePage({
           restaurantId={restaurantId}
           plan={plan}
           pending={pendingServices}
+          pubHref={pubEnabledFor(restaurantId, access.isSuperAdmin) ? `${base}/pub/nouvelle` : null}
           source={growth.stage === "machine" ? "accueil_etape1" : "accueil_etape2"}
         />
       }

@@ -10,6 +10,17 @@ backlog plateforme du 2026-09-28 (« Pub autour du resto »). Amende l'[ADR 0074
 **budget publicitaire** d'un restaurateur (jamais une commande de repas, jamais un membre).
 N'amende **ni l'ADR 0007 ni l'ADR 0028** : tout se passe en console et sur la plateforme.
 Appliqué avec le bouclier de l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md).
+**Amendé le 2026-10-23** (porteur, en session, au lancement avec le premier client, Houba) :
+§1 et §3 — **virement seul** pour l'instant, pas de lien Revolut : la communication structurée
+belge (`+++002/0000/00156+++` pour BE002, demande n° 1) relie le virement à la demande, un QR EPC
+la pré-remplit, et un complément de budget réutilise la communication de sa demande ;
+§1 — **trois objectifs ouverts** au formulaire (`TRAFIC`, `NOTORIETE`, `VIDEO`), les autres restent
+lus et rattachés (ADR 0085 §2) ; ciblage **tous âges (18-65+), sans réglage**, rayon 1/3/5/10 km
+autour des coordonnées de l'établissement ; la Pub s'ouvre établissement par établissement
+(`PUB_RESTAURANTS`). §6 — la page Facebook et le compte Instagram qui signent la pub d'un client
+se choisissent sur `/platform/pub` (`restaurant_ad_identities`). §4 — le compte Meta est payé
+par carte (prélèvement après dépense) : l'alerte « fonds Meta bas » attend un compte prépayé ;
+le risque à surveiller est le plafond de la carte.
 
 ## Contexte
 
