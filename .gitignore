@@ -34,6 +34,7 @@ scripts/tmp-*
 !.claude/skills/ship/
 !.claude/skills/new-migration/
 !.claude/skills/new-adr/
+!.claude/skills/point-associes/
 .claude/skills/run-worldcup-loyalty/node_modules/
 .claude/skills/run-worldcup-loyalty/sessions/
 
