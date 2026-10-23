@@ -8,6 +8,7 @@ import { getAdminRestaurantIds } from "@/lib/restaurant-admins";
 import { getRestaurantBranding } from "@/lib/restaurant";
 import { CONSOLE_VIEW_COOKIE, consoleSections, parseConsoleView, simpleTabs } from "@/lib/admin-nav";
 import { marketplaceEnabled } from "@/lib/missions";
+import { pubEnabledFor } from "@/lib/ads/config";
 import { NAV_ICONS } from "@/components/admin/AdminNavIcons";
 import { ModeButtons } from "@/components/account/ModeButtons";
 import { Card, PageHeader, SectionLabel } from "@/components/admin/ui";
@@ -36,7 +37,7 @@ export default async function AdminPlusPage({ params }: { params: Promise<{ rest
 
   // Les onglets sont déjà sous le pouce : les relister ici serait du bruit.
   const tabHrefs = new Set(simpleTabs(base).map((t) => t.href));
-  const sections = consoleSections(base, canManage, marketplaceEnabled(access.isSuperAdmin))
+  const sections = consoleSections(base, canManage, marketplaceEnabled(access.isSuperAdmin), pubEnabledFor(restaurantId, access.isSuperAdmin))
     .map((s) => ({ ...s, links: s.links.filter((l) => !tabHrefs.has(l.href)) }))
     .filter((s) => s.links.length > 0);
 

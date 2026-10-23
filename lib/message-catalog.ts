@@ -54,6 +54,8 @@ export const MESSAGES: MessageDef[] = [
   { key: "provider_date_booked", label: "Date réservée (prestataire)", audience: "restaurant", kind: "transactionnel", when: "Le restaurateur choisit sa date de tournage", channels: "E-mail" },
   { key: "mission_reminder", label: "Rappel de tournage", audience: "restaurant", kind: "transactionnel", when: "J-7 (équipe), J-2 (confirmer), la veille (récap) ; alerte plateforme si une présence manque", channels: "E-mail" },
   { key: "mission_update", label: "Mission : jour J et livraison", audience: "restaurant", kind: "transactionnel", when: "Compte-rendu prêt, livraison reçue, livraison validée, compte-rendu contesté", channels: "E-mail" },
+  { key: "pub_update", label: "Pub : chaque étape", audience: "restaurant", kind: "transactionnel", when: "Demande reçue (virement), virement reçu, pub en ligne, à corriger, budget bientôt épuisé, pub terminée", channels: "E-mail" },
+  { key: "pub_alert", label: "Pub : alerte plateforme", audience: "restaurant", kind: "transactionnel", when: "Vers PUB_ALERT_EMAIL : virement attendu, à lancer, facture à émettre, refus Meta, dépense non rattachée, appel Meta en échec", channels: "E-mail" },
   { key: "test", label: "E-mail de test", audience: "member", kind: "transactionnel", when: "Envoyé depuis cette page", channels: "E-mail" },
 
   // ── Notifications (notification_log) ─────────────────────────────────────

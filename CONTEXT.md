@@ -357,7 +357,7 @@ Clic d'un restaurateur sur une mission « Une pub dans ta zone » ou « Des vid�
 _Avoid_ : « commande » de pub (rien n'est acheté ni lancé au clic) ; « demande de plan » (autre table, `plan_requests`).
 
 **Demande de pub** *(ADR 0086)* :
-Une campagne publicitaire demandée et payée par le restaurateur depuis sa console (`ad_requests`) : objectif, budget (≥ 100 €), budget par jour, dates, zone, création (une de ses 5 à 10 meilleures publications Instagram, ou un fichier envoyé). États : paiement attendu → payée → préparée (créée en pause chez Meta) ⇄ à corriger → en diffusion ⇄ en pause → terminée. Deux gestes humains, ceux du porteur : **confirmer le paiement** (tant que Revolut n'a pas d'API) et **valider le lancement** ; pause, relance, alertes et rapports sont automatiques. Remplace, pour la pub, la demande de rappel (`service_requests`).
+Une campagne publicitaire demandée et payée par le restaurateur depuis sa console (`ad_requests`) : objectif, budget (≥ 100 €), budget par jour, dates, zone, création (une de ses 5 à 10 meilleures publications Instagram, ou un fichier envoyé). États : paiement attendu → payée → préparée (créée en pause chez Meta) ⇄ à corriger → en diffusion ⇄ en pause → terminée. Deux gestes humains, ceux du porteur : **confirmer le paiement** (tant que Revolut n'a pas d'API) et **valider le lancement** ; pause, relance, alertes et rapports sont automatiques. Remplace, pour la pub, la demande de rappel (`service_requests`). Paiement par **virement** avec la communication structurée de la demande (amendé le 2026-10-23) ; objectifs ouverts au formulaire : `TRAFIC`, `NOTORIETE`, `VIDEO` ; ouverte par établissement (`PUB_RESTAURANTS`).
 _Avoid_ : commande de pub ; « recharge » pour une première demande (une recharge relève le plafond d'une campagne existante).
 
 **Crédit pub** *(ADR 0086)* :
@@ -379,6 +379,10 @@ _Avoid_ : l'« objectif » de campagne de Meta (le réglage de la régie, autre 
 **Campagne non rattachée** *(ADR 0085)* :
 Campagne publicitaire dont le nom ne permet pas de trouver le client (illisible, code inconnu, code et établissement incohérents). Listée sur `/platform` avec sa dépense jusqu'à rattachement manuel — jamais ignorée : sa dépense n'est refacturée à personne. La dépense non rattachée sur 7 jours doit rester à 0.
 _Avoid_ : campagne orpheline, campagne inconnue.
+
+**Identité publicitaire** *(ADR 0086, amendé le 2026-10-23)* :
+La page Facebook et le compte Instagram qui **signent** la pub d'un établissement (`restaurant_ad_identities`), choisis sur `/platform/pub` parmi ceux que le System User Boosteats peut utiliser (page partagée en partenaire). Sans page, aucune campagne ne se prépare. La pub déclare l'établissement **bénéficiaire** et Boosteats **payeur** (DSA).
+_Avoid_ : « compte pub » du restaurant (il n'y en a pas : un seul compte publicitaire, celui de Boosteats).
 
 **Suivi du CA** *(ADR 0081 §7)* :
 Carte « Ton chiffre d'affaires » de l'accueil console (forfaits Croissance et Pro, fonction `revenue_tracker`) : dernier jour noté face aux mêmes jours de la semaine, semaine jusqu'à hier, 14 derniers jours, **part du programme** (CA des tickets validés ÷ CA de caisse des jours notés) et **taux de capture** (tickets du programme ÷ tickets de caisse, quand la caisse les donne). Alimentée par le CA du jour (ADR 0078) et les ventes importées. Console seulement (ADR 0007).

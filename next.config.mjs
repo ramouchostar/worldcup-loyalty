@@ -45,7 +45,11 @@ const ContentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   // *.googleusercontent.com : photos des fiches Google dans le rapport d'audit
   // (ADR 0069, /platform/audit) — images seulement, aucun script.
-  `img-src 'self' data: blob: https://*.supabase.co${sbImgSrc} https://cdn.jsdelivr.net https://*.googleusercontent.com${gaImgSrc}`,
+  // *.cdninstagram.com / *.fbcdn.net : vignettes des publications Instagram du
+  // restaurateur à promouvoir (ADR 0086 §6, console Pub) — images seulement.
+  `img-src 'self' data: blob: https://*.supabase.co${sbImgSrc} https://cdn.jsdelivr.net https://*.googleusercontent.com https://*.cdninstagram.com https://*.fbcdn.net${gaImgSrc}`,
+  // Aperçu d'une publicité tel que Meta l'affichera (/platform/pub, ADR 0086 §2).
+  "frame-src https://www.facebook.com https://business.facebook.com",
   "font-src 'self' data:",
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co${sbConnectSrc}${gaConnectSrc}`,
   "worker-src 'self' blob:",

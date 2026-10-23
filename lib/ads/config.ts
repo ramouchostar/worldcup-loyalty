@@ -49,3 +49,13 @@ export function pubConfig(): PubConfig {
     missing,
   };
 }
+
+/**
+ * La Pub est-elle ouverte à cet établissement ? `PUB_RESTAURANTS` = identifiants séparés par
+ * des virgules, ou « * » pour tous. Le super-admin la voit partout (test, support).
+ */
+export function pubEnabledFor(restaurantId: string, isSuperAdmin: boolean): boolean {
+  if (isSuperAdmin) return true;
+  const allowed = (process.env.PUB_RESTAURANTS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return allowed.includes("*") || allowed.includes(restaurantId);
+}

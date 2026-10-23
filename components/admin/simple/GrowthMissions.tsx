@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Check, Clapperboard, MapPin, type LucideIcon } from "lucide-react";
 import type { Plan } from "@/lib/entitlements";
 import { AD_FEE_PCT } from "@/lib/service-offers";
@@ -36,11 +37,14 @@ export function GrowthMissions({
   plan,
   pending,
   source,
+  pubHref = null,
 }: {
   restaurantId: string;
   plan: Plan;
   pending: ServiceKind[];
   source: "accueil_etape1" | "accueil_etape2";
+  /** La Pub est ouverte pour cet établissement (ADR 0086) : la mission mène au formulaire, plus à une demande de rappel. */
+  pubHref?: string | null;
 }) {
   const [status, setStatus] = useState<Record<ServiceKind, Status>>({
     pub: pending.includes("pub") ? "sent" : "idle",
@@ -79,7 +83,14 @@ export function GrowthMissions({
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-semibold text-ink">{m.title}</p>
                 <p className="text-[13px] text-ink-muted mt-0.5">{m.text(AD_FEE_PCT[plan])}</p>
-                {st === "sent" ? (
+                {m.service === "pub" && pubHref ? (
+                  <Link
+                    href={pubHref}
+                    className="mt-3 inline-flex min-h-[44px] items-center px-4 rounded-xl bg-boost-olive text-white text-[14px] font-semibold shadow-[inset_0_-3px_0_#4F5C2D] hover:bg-boost-olive-dark transition-colors"
+                  >
+                    {m.cta}
+                  </Link>
+                ) : st === "sent" ? (
                   <p className="flex items-center gap-1.5 text-[13.5px] font-semibold text-boost-olive-dark mt-3" role="status">
                     <Check size={16} strokeWidth={2.6} aria-hidden="true" />
                     Demande envoyée : notre équipe te rappelle.

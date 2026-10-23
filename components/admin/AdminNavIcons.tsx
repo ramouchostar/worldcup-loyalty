@@ -20,6 +20,7 @@ import {
   House,
   LayoutGrid,
   Clapperboard,
+  MapPin,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
   access: UserCog,
   prestataires: Clapperboard,
+  pub: MapPin,
   // Vue simple (ADR 0064) — l'accueil et l'onglet qui mène à tout le reste.
   home: House,
   more: LayoutGrid,
