@@ -12,8 +12,9 @@
   - « Ce jour-là » sous un écart inhabituel : météo photographiée chaque soir après 23 h, matchs, événements, vacances, fériés (#363) ;
   - accueil « Ta performance » semaine après semaine (14 jours notés) et 7 prochains jours (28) (#364).
   - Toutes les migrations sont appliquées, dont `service_requests`, oubliée depuis le 2026-10-08.
-  - Pub Meta en ligne le 2026-10-23 (#357) : virement seul, Houba en test.
+  - Pub Meta en ligne le 2026-10-23 (#357), virement seul. Le 2026-10-24 : coordonnées de paiement posées sur Vercel (`PUB_PAYMENT_*`, compte Revolut, BIC REVOBEB2), **Pub ouverte à Houba seul** (`PUB_RESTAURANTS=houba`), production redéployée.
 - **En cours** :
+  - Pub à Houba : choisir sa page Facebook et son Instagram sur `/platform/pub` (aucune identité en base), « Lire Meta maintenant », puis la première demande de bout en bout (virement → confirmation → lancement → facture dans Accountable) ;
   - suivre le taux de saisie à Houba et De Bue (`daily_revenue_entries.source = 'console'`, `daily_revenue_reminders`) ; seuil de révision : moins de la moitié des jours notés après 2 semaines ;
   - allumer Kraainem ensuite.
 - **Bloqué par** :
