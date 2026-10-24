@@ -4,7 +4,7 @@
 l'[ADR 0027](0027-sales-import-and-forecast.md) §3 (le CSV n'est plus la seule source des ventes de
 caisse). Reste dans le cadre de l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
 (mesurer, jamais se brancher sur la caisse) et applique l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md) (tester la
-scène avant de construire). **Amendé le 2026-10-08** : issue « De lui-même » (§6).
+scène avant de construire). **Amendé le 2026-10-08** : issue « De lui-même » (§6). **§5 réalisé par l'[ADR 0087](0087-ca-du-jour-saisi-dans-la-console.md)** (2026-10-24) : saisie dans la console, rappels automatiques.
 
 ## Contexte
 
