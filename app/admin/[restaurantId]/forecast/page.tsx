@@ -2,20 +2,13 @@ import { redirect } from "next/navigation";
 import { Lightbulb } from "lucide-react";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
-import {
-  computeForecast,
-  type SaleRow,
-  type RefCalRow,
-  type LocalEventRow,
-  type DayForecast,
-  type Factor,
-} from "@/lib/forecast";
+import { type DayForecast, type Factor } from "@/lib/forecast";
+import { forecastFrom, loadForecastInputs } from "@/lib/forecast-data";
 import SalesImport from "@/components/admin/SalesImport";
 import LocalEventManager, { type EventItem } from "@/components/admin/LocalEventManager";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
 import { detectGranularity, summarizeTrend } from "@/lib/sales-granularity";
-import { getSchoolCalendars } from "@/lib/school-calendar";
 import { PageHeader } from "@/components/admin/ui";
 
 // Prévisions de CA (ADR 0027). Surface ADMIN uniquement — le restaurateur a
@@ -47,31 +40,9 @@ export default async function ForecastPage({
   const admin = createAdminClient();
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
-  const since = new Date(now.getTime() - 182 * 86_400_000).toISOString().slice(0, 10); // ~26 semaines
-  const in7 = new Date(now.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
 
-  const [communities, dailyRes, refCalRes, eventsRes, promoRes, importRes] = await Promise.all([
-    getSchoolCalendars(admin, restaurantId),
-    admin.rpc("daily_sales_totals", { p_restaurant_id: restaurantId, p_since: since }),
-    admin
-      .from("reference_calendar")
-      .select("kind, community, starts_on, ends_on, label, expected_effect")
-      // Les `exam_session` (signal blocus) ne sont pas des facteurs du forecast.
-      .in("kind", ["school_holiday", "national_event"])
-      .gte("ends_on", since),
-    admin
-      .from("restaurant_events")
-      .select("id, label, starts_on, ends_on, expected_effect")
-      .eq("restaurant_id", restaurantId)
-      .gte("ends_on", since)
-      .order("starts_on", { ascending: true }),
-    admin
-      .from("scheduled_broadcasts")
-      .select("promo_on")
-      .eq("restaurant_id", restaurantId)
-      .not("promo_on", "is", null)
-      .gte("promo_on", today)
-      .lte("promo_on", in7),
+  const [inputs, importRes] = await Promise.all([
+    loadForecastInputs(restaurantId, now),
     admin
       .from("sales_imports")
       .select("filename, row_count, date_min, date_max, imported_at")
@@ -81,8 +52,7 @@ export default async function ForecastPage({
       .maybeSingle(),
   ]);
 
-  const daily = (dailyRes.data ?? []) as { sold_on: string; total: number }[];
-  const sales: SaleRow[] = daily.map((r) => ({ sold_on: r.sold_on, sold_at: null, amount: Number(r.total) }));
+  const daily = inputs.daily;
   // Rapport déposé tel quel (2026-08-22) : s'il est hebdomadaire ou mensuel,
   // chaque ligne est un TOTAL de période — le moteur jour-par-jour n'a pas de
   // sens ; on donne une lecture de tendance honnête à la place.
@@ -91,21 +61,9 @@ export default async function ForecastPage({
   const trend = nonDaily
     ? summarizeTrend(daily.map((r) => ({ sold_on: r.sold_on, amount: Number(r.total) })), gran.kind as "weekly" | "monthly")
     : null;
-  const events = (eventsRes.data ?? []) as EventItem[];
+  const events = inputs.events as EventItem[];
 
-  const forecast = computeForecast({
-    today,
-    sales,
-    referenceCalendar: (refCalRes.data ?? []) as RefCalRow[],
-    localEvents: events.map<LocalEventRow>((e) => ({
-      starts_on: e.starts_on,
-      ends_on: e.ends_on,
-      label: e.label,
-      expected_effect: e.expected_effect,
-    })),
-    promoDates: ((promoRes.data ?? []) as { promo_on: string }[]).map((p) => p.promo_on),
-    schoolCommunities: communities,
-  });
+  const forecast = forecastFrom(inputs, today);
 
   // ADR 0029 §5 — l'essai démarre quand la fonction devient data-ready (le
   // forecast peut impressionner), puis paywall doux à l'expiration. L'import
@@ -119,7 +77,7 @@ export default async function ForecastPage({
     <div className="space-y-6">
       <PageHeader
         title={<>Prévisions de chiffre d&apos;affaires</>}
-        subtitle={<>Ce que ta caisse va probablement faire dans les 7 prochains jours — calculé sur tes ventes importées,
+        subtitle={<>Ce que ta caisse va probablement faire dans les 7 prochains jours — calculé sur ton CA noté chaque jour (ou tes ventes importées),
           la saisonnalité (paye, vacances, jours fériés) et tes événements. Une aide à la décision, pas une
           garantie. Vue réservée à toi.</>}
       />

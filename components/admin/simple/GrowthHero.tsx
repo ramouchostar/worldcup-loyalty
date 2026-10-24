@@ -68,7 +68,8 @@ export function GrowthHero({
         ticketsWeek={growth.ticketsWeek}
         contactsWeek={growth.contactsWeek}
         notedDays={growth.notedDays}
-        salesHref={`${base}/sales`}
+        // ADR 0087 — le CA se note dans la console (la page Ventes, elle, parle des plats).
+        salesHref={`${base}/ca/${addDays(today, -1)}`}
         salesIncomplete={salesIncomplete}
       />
     );
@@ -120,8 +121,8 @@ export function GrowthHero({
       <p className="text-[12.5px] text-white/75 mt-4 pt-4 border-t border-white/15">
         Chiffre d&apos;affaires noté : <strong className="text-white tabular-nums">{Math.min(growth.notedDays, BASELINE_DAYS)} jours sur {BASELINE_DAYS}</strong>.
         Il servira de point de départ.{" "}
-        <Link href={`${base}/sales`} className="underline underline-offset-2 text-white hover:text-boost-light">
-          Mes ventes
+        <Link href={`${base}/ca/${addDays(today, -1)}`} className="underline underline-offset-2 text-white hover:text-boost-light">
+          Noter mon CA
         </Link>
         {salesIncomplete && <span className="block mt-1 text-white/75">Lecture des ventes incomplète : le compte peut être en dessous du réel.</span>}
       </p>

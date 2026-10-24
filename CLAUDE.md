@@ -8,10 +8,11 @@
   - ADR (#359) ;
   - push console du gérant (#360) ;
   - saisie `/admin/[id]/ca/[jour]` par canal ou total, retour comparé avec taux de pénétration, jours manquants dans « À faire », retour après connexion, « Connecter ma caisse » (#361) ;
-  - rappels soir / 10 h / 15 h / 18 h / dimanche 15 h (#362), **allumés pour Houba et De Bue** le 2026-10-24.
+  - rappels soir / 10 h / 15 h / 18 h / dimanche 15 h (#362), **allumés pour Houba et De Bue** le 2026-10-24 ;
+  - « Ce jour-là » sous un écart inhabituel : météo photographiée chaque soir après 23 h, matchs, événements, vacances, fériés (#363).
   - Toutes les migrations sont appliquées, dont `service_requests`, oubliée depuis le 2026-10-08.
   - Pub Meta en ligne le 2026-10-23 (#357) : virement seul, Houba en test.
-- **En cours** : CA du jour étape 5 (la raison d'un écart inhabituel : météo photographiée chaque soir, matchs, événements, vacances, fériés), puis étape 6 (graphique après 14 jours notés, prévision après 28).
+- **En cours** : CA du jour étape 6. Accueil : « Ta performance » semaine après semaine dès 14 jours notés, 7 prochains jours dès 28 (même moteur que Prévisions). Textes « envoie à l'équipe » / « importe tes ventes » remplacés par la saisie.
 - **Bloqué par** :
   - TVA et facturation de la Pub et des Prestataires : question au comptable (depuis le 2026-10-19) ;
   - validation de Revolut Business ;

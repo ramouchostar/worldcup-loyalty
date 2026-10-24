@@ -175,7 +175,7 @@ function NoBaseline({ notedDays, salesHref }: { notedDays: number; salesHref: st
       <p className="text-[14px] text-white/80 mt-3">
         Encore {Math.max(0, BASELINE_DAYS - notedDays)} jours de chiffre d&apos;affaires notés et ton premier palier s&apos;allume.{" "}
         <Link href={salesHref} className="underline underline-offset-2 text-white hover:text-boost-light">
-          Mes ventes
+          Noter mon CA
         </Link>
       </p>
     </div>
