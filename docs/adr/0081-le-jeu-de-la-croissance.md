@@ -6,7 +6,7 @@ https://claude.ai/artifact/VTogc8MVMSSk7AwGwULUMf). Amende l'[ADR 0064](0064-la-
 §4 (les trois étapes deviennent deux) et §8 (le niveau est un palier de chiffre d'affaires),
 et l'[ADR 0054](0054-console-restaurateur-un-seul-jeu-de-primitives.md) (couleurs de la charte
 Boosteats et bandeau par forfait). S'appuie sur l'[ADR 0078](0078-ca-du-jour-saisi-a-la-main.md)
-(le CA du jour est la matière des paliers). La publicité lancée depuis l'app et le service vidéo
+(le CA du jour est la matière des paliers). **Complété par l'[ADR 0087](0087-ca-du-jour-saisi-dans-la-console.md)** (2026-10-24) : saisie par canal, graphique à 14 jours notés, prévision à 28. La publicité lancée depuis l'app et le service vidéo
 feront l'objet d'un ADR à part (frais, commission et paiement encore ouverts) : le **service
 vidéo** est traité par l'[ADR 0084](0084-reserver-un-prestataire-video-photo-design-impression.md)
 (proposé), la **publicité gérée** par l'[ADR 0085](0085-campagnes-publicitaires-gerees-code-client-et-nommage.md)
