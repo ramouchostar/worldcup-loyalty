@@ -62,6 +62,11 @@ ajoute la fidélité :
   ou semaine à **±15 %** de la précédente. La remarque cherche une raison dans les signaux
   (météo, match, événement local, vacances scolaires, grève) et dit ce qu'elle a trouvé ; sans
   raison trouvée, elle constate l'écart sans l'inventer.
+  *Précisé le 2026-10-24 (PR 5)* : on dit des **faits** (« Soir : pluie, 2,6 mm », « Match Anderlecht – Club
+  Brugge à 20 h 45 »), jamais une cause supposée. Google Weather ne sert que 24 h d'historique : la météo est
+  **photographiée chaque soir après 23 h** pour chaque établissement en ligne (`restaurant_day_weather`, résumée
+  par service midi / soir). Les grèves ne se lisent qu'en direct : pas de fait « grève » pour un jour passé. Une
+  source muette est **dite** (« pas d'information sur : matchs »), jamais lue comme « rien ce jour-là ».
 
 ### 4. Les rappels : quatre au plus par jour, arrêtés dès la saisie
 

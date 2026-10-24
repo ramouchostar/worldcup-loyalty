@@ -8,6 +8,7 @@ import { APP_URL } from "./email-templates/kit";
 import { sendCaReminderEmail } from "./email";
 import { addDays } from "./daily-revenue-model";
 import { isPlacesConfigured, placeOpeningPeriods } from "./audit/places";
+import { hasDayWeather, snapshotDayWeather } from "./day-reasons-data";
 import {
   CA_REMINDER_KEY,
   closingFromPeriods,
@@ -26,6 +27,8 @@ import {
 // (un rappel renverrait à chaque passage) et la réponse le dit.
 
 const HOURS_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+/** Après 23 h : les services du midi et du soir sont dans les 24 dernières heures de Google. */
+const WEATHER_SNAPSHOT_MIN = 23 * 60;
 /** Les sièges qui reçoivent le rappel : le propriétaire, le gérant et le manager — pas l'équipe en salle. */
 const RECIPIENT_ROLES = ["gerant", "manager"];
 
@@ -37,6 +40,8 @@ export type ReminderReport = {
   emails: number;
   pushes: number;
   failed: number;
+  /** Photos météo du jour prises à ce passage. */
+  weather: number;
   skipped: string[];
 };
 
@@ -55,7 +60,7 @@ export function brusselsNow(now: Date): { today: string; minutes: number } {
   return { today: `${get("year")}-${get("month")}-${get("day")}`, minutes: Number(get("hour")) * 60 + Number(get("minute")) };
 }
 
-type Restaurant = { id: string; name: string; owner_id: string | null; google_place_id: string | null; closing_times: ClosingTimes | null; hours_synced_at: string | null };
+type Restaurant = { id: string; name: string; owner_id: string | null; google_place_id: string | null; lat: number | null; lng: number | null; closing_times: ClosingTimes | null; hours_synced_at: string | null };
 
 /** Les horaires de la fiche, relus chaque semaine. Une panne garde les anciens (ou l'heure par défaut). */
 async function closingTimesFor(r: Restaurant, now: Date): Promise<ClosingTimes | null> {
@@ -152,12 +157,12 @@ async function send(r: Restaurant, rem: PlannedReminder, report: ReminderReport)
 }
 
 export async function runCaReminders(now = new Date()): Promise<ReminderReport> {
-  const report: ReminderReport = { restaurants: 0, enabled: 0, planned: 0, sent: 0, emails: 0, pushes: 0, failed: 0, skipped: [] };
+  const report: ReminderReport = { restaurants: 0, enabled: 0, planned: 0, sent: 0, emails: 0, pushes: 0, failed: 0, weather: 0, skipped: [] };
   const { today, minutes } = brusselsNow(now);
   const admin = createAdminClient();
-  const restaurants = await listLiveRestaurants<Restaurant>(admin, "id, name, owner_id, google_place_id, closing_times, hours_synced_at").catch(async () =>
+  const restaurants = await listLiveRestaurants<Restaurant>(admin, "id, name, owner_id, google_place_id, lat, lng, closing_times, hours_synced_at").catch(async () =>
     // Sans la migration 20261024-1800 (closing_times absente) : sans horaires, l'heure par défaut.
-    (await listLiveRestaurants<Omit<Restaurant, "closing_times" | "hours_synced_at">>(admin, "id, name, owner_id, google_place_id")).map((r) => ({
+    (await listLiveRestaurants<Omit<Restaurant, "closing_times" | "hours_synced_at">>(admin, "id, name, owner_id, google_place_id, lat, lng")).map((r) => ({
       ...r,
       closing_times: null,
       hours_synced_at: new Date(now).toISOString(),
@@ -166,6 +171,13 @@ export async function runCaReminders(now = new Date()): Promise<ReminderReport> 
   report.restaurants = restaurants.length;
 
   for (const r of restaurants) {
+    // ADR 0087 §3 — la météo du jour, photographiée le soir même (Google n'en
+    // garde que 24 h) pour expliquer un CA inhabituel saisi plus tard. Pour tous
+    // les établissements en ligne, rappels allumés ou non : une lecture par jour.
+    if (minutes >= WEATHER_SNAPSHOT_MIN && !(await hasDayWeather(r.id, today).catch(() => true))) {
+      const kept = await snapshotDayWeather(r, today).catch(() => null);
+      if (kept) report.weather++;
+    }
     if (!(await isMessageEnabled(CA_REMINDER_KEY, r.id))) continue;
     report.enabled++;
     const state = await knownState(r.id, today);
