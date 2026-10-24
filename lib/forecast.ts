@@ -172,7 +172,8 @@ export function isPaydayWindow(ymd: string): boolean {
 // ── Moteur ───────────────────────────────────────────────────────────────────
 
 const MSG_INSUFFICIENT =
-  "Importe encore quelques semaines de ventes pour débloquer tes prévisions — il faut au moins 4 semaines d'historique pour prévoir sérieusement.";
+  // ADR 0087 — le CA se note chaque jour dans la console ; l'import reste possible.
+  "Note ton CA chaque jour (ou importe tes ventes) pour débloquer tes prévisions : il faut au moins 4 semaines d'historique pour prévoir sérieusement.";
 
 export function computeForecast(input: ForecastInput): ForecastResult {
   const { today, sales } = input;

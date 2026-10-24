@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Lock, TrendingDown, TrendingUp } from "lucide-react";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { dayLabel } from "@/lib/daily-revenue-model";
@@ -19,10 +20,13 @@ export function RevenueTrackerCard({
   tracker,
   allowed,
   restaurantId,
+  yesterday,
 }: {
   tracker: RevenueTracker;
   allowed: boolean;
   restaurantId: string;
+  /** Jour proposé à la saisie quand rien n'est encore noté (ADR 0087). */
+  yesterday: string;
 }) {
   if (!allowed) return <LockedCard notedDays={tracker.notedDays} restaurantId={restaurantId} />;
   const t = tracker;
@@ -38,8 +42,11 @@ export function RevenueTrackerCard({
 
       {t.last === null ? (
         <p className="text-[14px] text-ink-muted mt-3">
-          Pas encore de chiffre d&apos;affaires noté. Envoie le chiffre de ta caisse à l&apos;équipe Boosteats chaque soir : il
-          s&apos;affiche ici dès le lendemain.
+          Pas encore de chiffre d&apos;affaires noté. Note celui d&apos;hier en 30 secondes, par canal ou le total : il
+          s&apos;affiche ici tout de suite.{" "}
+          <Link href={`/admin/${restaurantId}/ca/${yesterday}`} className="font-semibold text-ink underline underline-offset-4">
+            Noter le CA d&apos;hier
+          </Link>
         </p>
       ) : (
         <>

@@ -497,15 +497,16 @@ export default async function AdminDashboardPage({
           </Card>
         ) : (
           <Link
-            href={r("/forecast")}
+            href={r(`/ca/${addDays(today, -1)}`)}
             className="flex items-center justify-between gap-3 bg-white border border-dashed border-paper-border rounded-xl px-5 py-3.5 hover:bg-paper transition-colors"
           >
+            {/* ADR 0087 — le CA se note chaque jour dans la console ; l'import CSV reste sur la page Prévisions. */}
             <p className="text-[13px] text-ink-muted">
               {value.sales.status === "insufficient"
-                ? "Continue d'importer tes ventes de caisse (4 semaines minimum) pour voir la part du programme dans ton CA total."
-                : "Importe ton rapport de caisse pour voir ton CA total et la part qu'y prennent tes clients du programme."}
+                ? "Continue de noter ton CA chaque jour (4 semaines minimum) pour voir la part du programme dans ton CA total."
+                : "Note ton CA chaque jour, en 30 secondes, pour voir ton CA total et la part qu'y prennent tes clients du programme."}
             </p>
-            <span className="text-ink text-[12.5px] font-bold shrink-0">Importer →</span>
+            <span className="text-ink text-[12.5px] font-bold shrink-0">Noter mon CA →</span>
           </Link>
         )}
 

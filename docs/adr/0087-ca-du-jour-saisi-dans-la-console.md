@@ -92,6 +92,11 @@ ajoute la fidélité :
 - **Après 14 jours notés** : le graphique de la performance (jours notés, fermés, manquants).
 - **Après 28 jours notés** : la prévision des 7 prochains jours (ADR 0027, `computeForecast`),
   qui se nourrit des mêmes ventes.
+- *Précisé le 2026-10-24 (PR 6)* : la carte « Ta performance » lit chaque semaine passée en **CA moyen par
+  jour noté** (une semaine trouée ne passe pas pour un effondrement ; au moins 3 jours notés, comme les paliers
+  de l'ADR 0081), huit semaines au plus, chacune comparée à la précédente si elle la suit. Avant les seuils,
+  elle dit combien de jours manquent. La prévision de l'accueil sort du **même chargement** que la page
+  Prévisions (`lib/forecast-data.ts`) : les deux ne peuvent pas annoncer deux chiffres différents.
 
 ### 6. « Connecter ma caisse » : une demande, pas une connexion
 

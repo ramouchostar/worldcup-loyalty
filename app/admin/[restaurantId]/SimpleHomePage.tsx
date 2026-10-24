@@ -18,6 +18,9 @@ import { getEntitlement, getPlan } from "@/lib/entitlements";
 import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
 import { buildRevenueTracker } from "@/lib/revenue-tracker";
 import { RevenueTrackerCard } from "@/components/admin/simple/RevenueTrackerCard";
+import { RevenueWeeksCard } from "@/components/admin/simple/RevenueWeeksCard";
+import { FORECAST_MIN_NOTED_DAYS, weeklyPerformance } from "@/lib/revenue-weeks";
+import { forecastFrom, loadForecastInputs } from "@/lib/forecast-data";
 import { pendingServicesFor } from "@/lib/service-requests";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { SimpleHome } from "@/components/admin/simple/SimpleHome";
@@ -56,6 +59,11 @@ export async function SimpleHomePage({
   const notesCa = revenueRaw.days.some((d) => d.day >= addDays(today, -28)) || (await isMessageEnabled(CA_REMINDER_KEY, restaurantId));
   const caMissing = notesCa ? missingDays(new Set(revenueRaw.days.map((d) => d.day)), today) : [];
   const view = buildSimpleHomeView({ ...raw, caMissing });
+  // ADR 0087 §5 — la performance semaine après semaine (14 jours notés) et les
+  // 7 prochains jours (28). Même moteur que la page Prévisions (lib/forecast-data).
+  const weeks = weeklyPerformance(revenueRaw.days, today);
+  const forecastAccess = notesCa && weeks.notedDays >= FORECAST_MIN_NOTED_DAYS ? await getEntitlement(restaurantId, "forecast") : null;
+  const forecast = forecastAccess?.allowed ? forecastFrom(await loadForecastInputs(restaurantId), new Date().toISOString().slice(0, 10)) : null;
   // ADR 0081 — le jeu de la croissance : deux jauges, puis le palier de CA.
   const growth = buildGrowthView(growthRaw);
 
@@ -117,7 +125,12 @@ export async function SimpleHomePage({
       stepper={<GrowthStepper stage={growth.stage} />}
       hero={<GrowthHero growth={growth} base={base} today={today} salesIncomplete={growthRaw.salesIncomplete} />}
       growthStage={growth.stage}
-      revenue={<RevenueTrackerCard tracker={tracker} allowed={revenueAccess.allowed} restaurantId={restaurantId} />}
+      revenue={
+        <>
+          <RevenueTrackerCard tracker={tracker} allowed={revenueAccess.allowed} restaurantId={restaurantId} yesterday={addDays(today, -1)} />
+          {revenueAccess.allowed && notesCa && <RevenueWeeksCard view={weeks} forecast={forecast} forecastHref={`${base}/forecast`} />}
+        </>
+      }
       missions={
         <GrowthMissions
           restaurantId={restaurantId}
