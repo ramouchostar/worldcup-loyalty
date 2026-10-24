@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarX, CircleCheck, TrendingDown, TrendingUp } from "lucide-react";
-import { createServerSupabaseClient } from "@/lib/supabase";
+import { createAdminClient, createServerSupabaseClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
@@ -9,6 +9,8 @@ import { getDayChannels } from "@/lib/daily-revenue";
 import { dayLabel, weekdayName, type DailyEntry } from "@/lib/daily-revenue-model";
 import { dayFeedback, isEditableDay, missingDays, shortDayLabel, type DayFeedback } from "@/lib/daily-revenue-entry";
 import { pendingServicesFor } from "@/lib/service-requests";
+import { loadDayReasons } from "@/lib/day-reasons-data";
+import type { DayReasons } from "@/lib/day-reasons";
 import { Card, EmptyState, PageHeader, SectionLabel } from "@/components/admin/ui";
 import { CaEntryForm } from "@/components/admin/ca/CaEntryForm";
 import { CaisseRequestButton } from "@/components/admin/ca/CaisseRequestButton";
@@ -70,6 +72,16 @@ export default async function CaDayPage({
     replied_at: null,
     note: null,
   }));
+  // Ce que ça donne, et — seulement si l'écart est inhabituel — ce qui s'est passé ce jour-là.
+  const feedback =
+    current && !current.closed && current.amount !== null
+      ? dayFeedback(entries, jour, current.amount, current.tickets, program[jour] ?? { amount: 0, tickets: 0 })
+      : null;
+  let reasons: DayReasons | null = null;
+  if (!editing && feedback && (feedback.sameDays?.unusual || feedback.week.unusual)) {
+    const { data: place } = await createAdminClient().from("restaurants").select("id, lat, lng").eq("id", restaurantId).maybeSingle();
+    reasons = await loadDayReasons((place as { id: string; lat: number | null; lng: number | null } | null) ?? { id: restaurantId, lat: null, lng: null }, jour, today).catch(() => null);
+  }
   const stillMissing = missingDays(new Set(days.map((d) => d.day)), today).filter((d) => d !== jour);
   const name = weekdayName(jour);
   const title = cap(dayLabel(jour));
@@ -103,7 +115,7 @@ export default async function CaDayPage({
           <Link href={`?modifier=1`} className="inline-block mt-3 text-[13.5px] font-semibold text-ink underline underline-offset-4">Modifier</Link>
         </Card>
       ) : (
-        <Feedback f={dayFeedback(entries, jour, current?.amount ?? 0, current?.tickets ?? null, program[jour] ?? { amount: 0, tickets: 0 })} justSaved={ok === "1"} name={name} />
+        <Feedback f={feedback as DayFeedback} reasons={reasons} justSaved={ok === "1"} name={name} />
       )}
 
       {!editing && stillMissing.length > 0 && (
@@ -145,7 +157,7 @@ function Delta({ pct, children }: { pct: number; children: React.ReactNode }) {
   );
 }
 
-function Feedback({ f, justSaved, name }: { f: DayFeedback; justSaved: boolean; name: string }) {
+function Feedback({ f, reasons, justSaved, name }: { f: DayFeedback; reasons: DayReasons | null; justSaved: boolean; name: string }) {
   const p = f.program;
   const unusual: string[] = [];
   if (f.sameDays?.unusual) unusual.push(`${cap(name)} à ${signed(f.sameDays.pct)} par rapport à ${f.sameDays.n > 1 ? `tes ${f.sameDays.n} derniers ${name}s` : `${name} dernier`}.`);
@@ -225,6 +237,24 @@ function Feedback({ f, justSaved, name }: { f: DayFeedback; justSaved: boolean; 
               <li key={u} className="border-l-[3px] border-warn pl-3 text-[13.5px] text-ink-body">{u}</li>
             ))}
           </ul>
+          {reasons && reasons.facts.length > 0 && (
+            <>
+              <p className="text-[13px] font-semibold text-ink mt-3 mb-1">Ce jour-là</p>
+              <ul className="space-y-1 text-[13.5px] text-ink-body list-disc pl-5">
+                {reasons.facts.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {reasons && reasons.facts.length === 0 && (
+            <p className="text-[13px] text-ink-muted mt-3">
+              Rien de particulier trouvé ce jour-là{reasons.unknown.length ? ` (${reasons.unknown.join(", ")} : pas d'information)` : " : ni météo marquante, ni match, ni événement proche, ni vacances"}.
+            </p>
+          )}
+          {reasons && reasons.facts.length > 0 && reasons.unknown.length > 0 && (
+            <p className="text-[12px] text-ink-muted mt-2">Pas d&apos;information sur : {reasons.unknown.join(", ")}.</p>
+          )}
         </Card>
       )}
     </div>
