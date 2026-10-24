@@ -7,6 +7,7 @@
 import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable } from "@/lib/audit/store";
 import type { DailyEntry, Outcome } from "@/lib/daily-revenue-model";
+import { CHANNELS, channelsNote, type Channels } from "@/lib/daily-revenue-entry";
 
 export type EntriesListing = { missing: true } | { missing: false; rows: DailyEntry[] };
 
@@ -55,4 +56,78 @@ export async function deleteDailyEntry(restaurantId: string, day: string): Promi
     p_day: day,
   });
   if (error) throw new Error(`delete_daily_revenue : ${error.message}`);
+}
+
+// ── ADR 0087 — la saisie du restaurateur dans la console ─────────────────────
+
+
+export type ConsoleEntry = { closed: true } | { closed: false; amount: number; tickets: number | null; channels: Channels | null };
+
+/** Fonction ou colonne absente : la migration 20261024-1530 n'est pas encore passée. */
+function isMissingMigration(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "PGRST202" || error.code === "42883" || error.code === "42703" || /could not find the function|does not exist/i.test(error.message ?? "");
+}
+
+/**
+ * Écrit le jour ET sa vente de caisse (save_daily_revenue_console). Repli
+ * fail-open sans la migration : save_daily_revenue avec l'issue « de lui-même »
+ * (envoyé sans qu'on le demande, le plus proche de « saisi »), le détail des
+ * canaux recopié dans la note. `fallback` le dit à l'appelant, qui le journalise.
+ */
+export async function saveConsoleEntry(restaurantId: string, day: string, entry: ConsoleEntry, userId: string): Promise<{ fallback: boolean }> {
+  const admin = createAdminClient();
+  const ch = !entry.closed ? entry.channels : null;
+  const { error } = await admin.rpc("save_daily_revenue_console", {
+    p_restaurant_id: restaurantId,
+    p_day: day,
+    p_closed: entry.closed,
+    p_amount: entry.closed ? null : entry.amount,
+    p_tickets: entry.closed ? null : entry.tickets,
+    p_uber: ch?.uber ?? null,
+    p_deliveroo: ch?.deliveroo ?? null,
+    p_takeaway: ch?.takeaway ?? null,
+    p_emporter: ch?.emporter ?? null,
+    p_sur_place: ch?.sur_place ?? null,
+    p_entered_by: userId,
+  });
+  if (!error) return { fallback: false };
+  if (!isMissingMigration(error)) throw new Error(`save_daily_revenue_console : ${error.message}`);
+
+  console.error("[daily-revenue] migration 20261024-1530 absente : repli sur save_daily_revenue");
+  const now = new Date().toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Brussels" });
+  await saveDailyEntry(
+    restaurantId,
+    {
+      sales_day: day,
+      outcome: entry.closed ? "ferme" : "spontane",
+      amount: entry.closed ? null : entry.amount,
+      tickets: entry.closed ? null : entry.tickets,
+      asked_at: null,
+      replied_at: entry.closed ? null : now,
+      note: ["Saisi dans la console", channelsNote(ch)].filter(Boolean).join(" — "),
+    },
+    userId,
+  );
+  return { fallback: true };
+}
+
+/** Le détail par canal d'un jour, pour pré-remplir (fail-open : null sans les colonnes). */
+export async function getDayChannels(restaurantId: string, day: string): Promise<Channels | null> {
+  const { data, error } = await createAdminClient()
+    .from("daily_revenue_entries")
+    .select(CHANNELS.map((c) => c.key).join(", "))
+    .eq("restaurant_id", restaurantId)
+    .eq("sales_day", day)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as unknown as Record<string, number | string | null>;
+  const out = {} as Channels;
+  let any = false;
+  for (const c of CHANNELS) {
+    const v = row[c.key];
+    out[c.key] = v === null || v === undefined ? null : Number(v);
+    if (out[c.key] !== null) any = true;
+  }
+  return any ? out : null;
 }

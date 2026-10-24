@@ -6,8 +6,10 @@ import { createAdminClient } from "./supabase";
 // restaurateur demande, l'équipe voit la demande sur /platform et rappelle.
 // Table `service_requests` (migration 20261008-1053), service-role only.
 
-export type ServiceKind = "pub" | "video";
-export const SERVICE_KINDS: readonly ServiceKind[] = ["pub", "video"];
+// « caisse » (ADR 0087 §6) : « Connecter ma caisse » sous la saisie du CA — une
+// demande, jamais une connexion automatique (ADR 0074).
+export type ServiceKind = "pub" | "video" | "caisse";
+export const SERVICE_KINDS: readonly ServiceKind[] = ["pub", "video", "caisse"];
 
 export type ServiceRequest = {
   id: string;

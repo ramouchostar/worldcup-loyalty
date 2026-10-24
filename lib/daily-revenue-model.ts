@@ -11,13 +11,15 @@
 
 import { normalizeAmount } from "@/lib/sales-import";
 
-export const OUTCOMES = ["repondu", "relance", "spontane", "sans_reponse", "ferme", "historique"] as const;
+export const OUTCOMES = ["repondu", "relance", "spontane", "saisi", "sans_reponse", "ferme", "historique"] as const;
 export type Outcome = (typeof OUTCOMES)[number];
 
 export const OUTCOME_LABEL: Record<Outcome, string> = {
   repondu: "Répondu",
   relance: "Après relance",
   spontane: "De lui-même",
+  // ADR 0087 — le restaurateur a saisi lui-même dans la console.
+  saisi: "Saisi dans la console",
   sans_reponse: "Pas de réponse",
   ferme: "Fermé",
   historique: "Historique",
@@ -25,7 +27,7 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
 
 /** Les issues qui portent un montant (une réponse, ou un chiffre d'avant le test). */
 export function outcomeHasAmount(o: Outcome): boolean {
-  return o === "repondu" || o === "relance" || o === "spontane" || o === "historique";
+  return o === "repondu" || o === "relance" || o === "spontane" || o === "saisi" || o === "historique";
 }
 
 /** Les issues où l'on a demandé le chiffre (heure d'envoi du message utile). */
@@ -228,7 +230,8 @@ export function testStats(entries: DailyEntry[], today: string): TestStats {
   const byDay = new Map(testEntries.map((e) => [e.sales_day, e]));
   const inTest = days.map((d) => byDay.get(d)).filter((e): e is DailyEntry => !!e);
   const open = inTest.filter((e) => e.outcome !== "ferme");
-  const answered = open.filter((e) => e.outcome === "repondu" || e.outcome === "relance" || e.outcome === "spontane");
+  // ADR 0087 — un jour saisi dans la console est une réponse (après rappel ou non : les rappels ont leur propre journal).
+  const answered = open.filter((e) => e.outcome === "repondu" || e.outcome === "relance" || e.outcome === "spontane" || e.outcome === "saisi");
   const firstTry = open.filter((e) => e.outcome === "repondu" || e.outcome === "spontane");
   const spontaneous = open.filter((e) => e.outcome === "spontane");
   // Délai envoi → réponse : seulement quand on a demandé (un envoi spontané n'a pas d'envoi).

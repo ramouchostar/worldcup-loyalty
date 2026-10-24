@@ -49,6 +49,8 @@ export function GrowthMissions({
   const [status, setStatus] = useState<Record<ServiceKind, Status>>({
     pub: pending.includes("pub") ? "sent" : "idle",
     video: pending.includes("video") ? "sent" : "idle",
+    // Pas une mission de l'accueil : demandée sous la saisie du CA (ADR 0087 §6).
+    caisse: pending.includes("caisse") ? "sent" : "idle",
   });
 
   async function ask(service: ServiceKind) {

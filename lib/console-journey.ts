@@ -17,6 +17,7 @@
 // remonte jamais vers un membre (ADR 0007).
 // ============================================================
 
+import { shortDayLabel } from "./daily-revenue-entry";
 import { crossedMilestone, nextMilestone, type MilestoneKind } from "./email-templates/pro-milestone";
 
 // ── Étapes ──────────────────────────────────────────────────────────────────
@@ -324,6 +325,40 @@ export function staffTodo(base: string, staff: { label: string; isActive: boolea
   };
 }
 
+// ── Le CA du jour à saisir (ADR 0087 §5) ────────────────────────────────────
+//
+// Un jour non noté = une ligne et un bouton « Saisir » qui ouvre la saisie de
+// CE jour. Au-delà de trois, une seule ligne de plus mène au plus ancien : une
+// liste de sept boutons noierait le reste de « À faire ».
+
+export const CA_TODO_MAX = 3;
+
+export function caTodos(base: string, missing: string[]): TodoItem[] {
+  const shown = missing.slice(0, CA_TODO_MAX);
+  const items: TodoItem[] = shown.map((day) => ({
+    key: `ca:${day}`,
+    title: `CA de ${shortDayLabel(day)} à saisir`,
+    hint: "30 secondes : par canal ou le total. C'est ce qui permet de suivre ta semaine.",
+    href: `${base}/ca/${day}`,
+    count: 1,
+    tone: "warn",
+    cta: "Saisir",
+  }));
+  const rest = missing.slice(CA_TODO_MAX);
+  if (rest.length > 0) {
+    const oldest = rest[rest.length - 1];
+    items.push({
+      key: "ca:autres",
+      title: `Encore ${rest.length} jour${rest.length > 1 ? "s" : ""} sans CA cette semaine`,
+      hint: "Complète-les pour que ta comparaison soit juste.",
+      href: `${base}/ca/${oldest}`,
+      count: rest.length,
+      tone: "warn",
+    });
+  }
+  return items;
+}
+
 // ── Assemblage de l'accueil ─────────────────────────────────────────────────
 
 export type SimpleHomeRaw = {
@@ -343,6 +378,11 @@ export type SimpleHomeRaw = {
   /** null : migration des codes salle absente (ADR 0053) — la carte se tait. */
   staff: { label: string; signups30d: number; isActive: boolean }[] | null;
   todo: { flagged: number; pending: number; claims: number; catalogGaps: number };
+  /**
+   * ADR 0087 §5 — jours des 7 derniers sans CA noté (hier d'abord). Absent ou
+   * vide : rien. La page ne le remplit que pour un établissement qui note son CA.
+   */
+  caMissing?: string[];
   month: { revenue: number; rewardsCost: number };
   budgetPct: number;
 };
@@ -427,6 +467,7 @@ export function buildSimpleHomeView(raw: SimpleHomeRaw): SimpleHomeView {
   const todo: TodoItem[] = [];
   const staffItem = staffTodo(raw.base, raw.staff);
   if (staffItem) todo.push(staffItem);
+  todo.push(...caTodos(raw.base, raw.caMissing ?? []));
   const t = raw.todo;
   if (t.flagged > 0) {
     todo.push({

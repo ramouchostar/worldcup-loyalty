@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { getCurrentConsents, recordConsents } from "@/lib/consent";
 import { sendWelcomeEmail } from "@/lib/email";
 import { resolvePostLoginDestination } from "@/lib/post-login";
+import { consoleReturnPath, POST_LOGIN_NEXT_COOKIE } from "@/lib/post-login-next";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 import { reactivateIfAnonymized } from "@/lib/gdpr";
 import { createRestaurantsFromDraft, partnerNextStep } from "@/lib/partner-signup";
@@ -174,6 +175,11 @@ export async function GET(request: NextRequest) {
             : `${origin}/r/${pendingRestaurantId}`
         );
       }
+
+      // ADR 0087 §1 — un lien de rappel vers la console (saisie du CA) y ramène.
+      const returnTo = consoleReturnPath(cookieStore.get(POST_LOGIN_NEXT_COOKIE)?.value);
+      if (cookieStore.get(POST_LOGIN_NEXT_COOKIE)) cookieStore.set(POST_LOGIN_NEXT_COOKIE, "", { maxAge: 0, path: "/" });
+      if (returnTo) return NextResponse.redirect(`${origin}${returnTo}`);
 
       // ADR 0030 §1 — destination par rôle (plateforme > console > membre).
       return NextResponse.redirect(`${origin}${await resolvePostLoginDestination(user.id)}`);

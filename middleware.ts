@@ -1,3 +1,4 @@
+import { consoleReturnPath, POST_LOGIN_NEXT_COOKIE, POST_LOGIN_NEXT_MAX_AGE } from "@/lib/post-login-next";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getRestaurantId } from "@/lib/restaurant";
@@ -259,6 +260,18 @@ export async function middleware(request: NextRequest) {
     // au lieu du formulaire partenaire. Même mécanique que pending_restaurant_id
     // ci-dessous — cookie consommé par auth/callback et register/actions (le
     // param `as=resto` ci-dessus ne survit pas au aller-retour magic-link/OAuth).
+    // ADR 0087 §1 — un lien de rappel vers une page de la console (la saisie du
+    // CA) y ramène après la connexion, au lieu de l'accueil.
+    const returnTo = isAdminRoute ? consoleReturnPath(`${path}${request.nextUrl.search}`) : null;
+    if (returnTo) {
+      response.cookies.set(POST_LOGIN_NEXT_COOKIE, returnTo, {
+        httpOnly: true,
+        maxAge: POST_LOGIN_NEXT_MAX_AGE,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    }
     if (isBecomePartnerRoute) {
       response.cookies.set("pending_become_partner", "1", {
         httpOnly: true,

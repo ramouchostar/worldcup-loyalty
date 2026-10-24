@@ -303,7 +303,7 @@ export default async function PlatformPage() {
         </div>
       )}
 
-      {/* Demandes de pub et de vidéo (ADR 0081 §6 — missions de la console) */}
+      {/* Demandes de services (pub, vidéo, caisse) (ADR 0081 §6 — missions de la console) */}
       {serviceRequests.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h2 className="font-bold text-gray-900 mb-4">
@@ -321,7 +321,7 @@ export default async function PlatformPage() {
                     <p className="font-semibold text-gray-900">
                       {resto?.name ?? req.restaurant_id}
                       <span className="ml-2 text-xs font-bold text-platform-accent uppercase">
-                        → {req.service === "pub" ? "pub dans sa zone" : "vidéos"}
+                        → {req.service === "pub" ? "pub dans sa zone" : req.service === "caisse" ? "connecter sa caisse" : "vidéos"}
                       </span>
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">

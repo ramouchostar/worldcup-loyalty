@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { resolvePostLoginDestination } from "@/lib/post-login";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
+import { consoleReturnPath, POST_LOGIN_NEXT_COOKIE } from "@/lib/post-login-next";
 
 export async function signIn(
   _prevState: { error: string } | null,
@@ -65,6 +66,11 @@ export async function signIn(
         : `/r/${pendingRestaurantId}`
     );
   }
+
+  // ADR 0087 §1 — un lien de rappel vers la console (saisie du CA) y ramène.
+  const returnTo = consoleReturnPath(cookieStore.get(POST_LOGIN_NEXT_COOKIE)?.value);
+  if (cookieStore.get(POST_LOGIN_NEXT_COOKIE)) cookieStore.set(POST_LOGIN_NEXT_COOKIE, "", { maxAge: 0, path: "/" });
+  if (returnTo) redirect(returnTo);
 
   // ADR 0030 §1 — destination par rôle (plateforme > console > membre),
   // `as=resto` (Espace restaurateur) force la console.

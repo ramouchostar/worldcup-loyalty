@@ -224,3 +224,24 @@ test("accueil : un établissement tout neuf commence par la liste de lancement",
   assert.equal(v.goal.target, 3);
   assert.equal(v.milestone?.next, 10); // 10 membres : le premier cap à portée
 });
+
+// ── ADR 0087 §5 — le CA du jour à saisir ────────────────────────────────────
+
+test("caTodos : une ligne et un bouton par jour manquant, trois au plus", async () => {
+  const { caTodos } = await import("./console-journey");
+  const items = caTodos("/admin/houba", ["2026-10-26", "2026-10-25", "2026-10-24", "2026-10-22", "2026-10-21"]);
+  assert.equal(items.length, 4);
+  assert.deepEqual(items[0], {
+    key: "ca:2026-10-26",
+    title: "CA de lundi 26 à saisir",
+    hint: "30 secondes : par canal ou le total. C'est ce qui permet de suivre ta semaine.",
+    href: "/admin/houba/ca/2026-10-26",
+    count: 1,
+    tone: "warn",
+    cta: "Saisir",
+  });
+  assert.equal(items[3].title, "Encore 2 jours sans CA cette semaine");
+  assert.equal(items[3].href, "/admin/houba/ca/2026-10-21");
+  assert.equal(items[3].cta, undefined);
+  assert.deepEqual(caTodos("/admin/houba", []), []);
+});
