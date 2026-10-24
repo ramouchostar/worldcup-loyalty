@@ -4,19 +4,22 @@
 
 > Réécrite (jamais empilée) à chaque commit ou déploiement — l'agent « cerveau » la lit. L'historique vit dans les PR et dans Supabase `memories`.
 
-- **Fait récemment (2026-10-24)** — CA du jour, ADR 0087 :
+- **Fait récemment (2026-10-24)** — CA du jour, ADR 0087, terminé (6 PR) :
   - ADR (#359) ;
   - push console du gérant (#360) ;
   - saisie `/admin/[id]/ca/[jour]` par canal ou total, retour comparé avec taux de pénétration, jours manquants dans « À faire », retour après connexion, « Connecter ma caisse » (#361) ;
-  - rappels soir / 10 h / 15 h / 18 h / dimanche 15 h (#362), **allumés pour Houba et De Bue** le 2026-10-24 ;
-  - « Ce jour-là » sous un écart inhabituel : météo photographiée chaque soir après 23 h, matchs, événements, vacances, fériés (#363).
+  - rappels soir / 10 h / 15 h / 18 h / dimanche 15 h (#362), **allumés pour Houba et De Bue** ; premiers e-mails partis le 2026-10-24 à 11 h 05 ;
+  - « Ce jour-là » sous un écart inhabituel : météo photographiée chaque soir après 23 h, matchs, événements, vacances, fériés (#363) ;
+  - accueil « Ta performance » semaine après semaine (14 jours notés) et 7 prochains jours (28) (#364).
   - Toutes les migrations sont appliquées, dont `service_requests`, oubliée depuis le 2026-10-08.
   - Pub Meta en ligne le 2026-10-23 (#357) : virement seul, Houba en test.
-- **En cours** : CA du jour étape 6. Accueil : « Ta performance » semaine après semaine dès 14 jours notés, 7 prochains jours dès 28 (même moteur que Prévisions). Textes « envoie à l'équipe » / « importe tes ventes » remplacés par la saisie.
+- **En cours** :
+  - suivre le taux de saisie à Houba et De Bue (`daily_revenue_entries.source = 'console'`, `daily_revenue_reminders`) ; seuil de révision : moins de la moitié des jours notés après 2 semaines ;
+  - allumer Kraainem ensuite.
 - **Bloqué par** :
   - TVA et facturation de la Pub et des Prestataires : question au comptable (depuis le 2026-10-19) ;
   - validation de Revolut Business ;
-  - aucun gérant n'a encore activé les notifications : les rappels partent par e-mail seulement.
+  - aucun gérant n'a encore activé les notifications (carte « Recevoir les alertes » de l'accueil) : les rappels partent par e-mail seulement.
 - **Échéances** : 2026-11-02, relancer Houba (passage payant) et faire le point sur De Bue (offre Croissance à 150 €/mois du 2026-10-21).
 
 ---
