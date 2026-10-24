@@ -6,6 +6,8 @@ import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { loadSimpleHomeRaw } from "@/lib/console-journey-data";
 import { addDays, buildSimpleHomeView } from "@/lib/console-journey";
 import { missingDays } from "@/lib/daily-revenue-entry";
+import { isMessageEnabled } from "@/lib/message-log";
+import { CA_REMINDER_KEY } from "@/lib/daily-revenue-reminders";
 import { loadGrowthRaw } from "@/lib/growth-game-data";
 import { buildGrowthView } from "@/lib/growth-game";
 import { todayInBrussels } from "@/lib/qr-funnel";
@@ -49,9 +51,9 @@ export async function SimpleHomePage({
   // ADR 0081 §7 — le CA jour par jour, dès qu'il est noté (Croissance et Pro).
   const tracker = buildRevenueTracker({ today, ...revenueRaw });
   // ADR 0087 §5 — les jours sans CA, seulement pour un établissement qui note
-  // son CA (un jour noté sur les 28 derniers) : jamais sept tâches d'un coup à
-  // quelqu'un à qui on n'a encore rien demandé.
-  const notesCa = revenueRaw.days.some((d) => d.day >= addDays(today, -28));
+  // son CA (un jour noté sur les 28 derniers) ou dont les rappels sont allumés :
+  // jamais sept tâches d'un coup à quelqu'un à qui on n'a encore rien demandé.
+  const notesCa = revenueRaw.days.some((d) => d.day >= addDays(today, -28)) || (await isMessageEnabled(CA_REMINDER_KEY, restaurantId));
   const caMissing = notesCa ? missingDays(new Set(revenueRaw.days.map((d) => d.day)), today) : [];
   const view = buildSimpleHomeView({ ...raw, caMissing });
   // ADR 0081 — le jeu de la croissance : deux jauges, puis le palier de CA.

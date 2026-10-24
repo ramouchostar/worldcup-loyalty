@@ -1,4 +1,6 @@
 import { getProviderLocaleByEmail } from "./provider-locale";
+import { caReminderEmail } from "./email-templates/ca-reminder";
+import type { PlannedReminder } from "./daily-revenue-reminders";
 import { getUserLocaleByEmail } from "./user-locale";
 import { Resend } from "resend";
 import { createAdminClient } from "./supabase";
@@ -398,6 +400,26 @@ export async function sendPendingRequestsReminderEmail(
   );
   if (sent) await logEmailSent("restaurant", restaurantId, "pending_requests_reminder", restaurantId);
   return sent;
+}
+
+// ADR 0087 §4 — rappel du CA du jour (soir, 10 h, 15 h, 18 h, dimanche).
+const CA_REMINDER_STEP: Record<PlannedReminder["slot"], number> = { soir: 1, "10h": 2, "15h": 3, "18h": 4, semaine: 5 };
+
+export async function sendCaReminderEmail(
+  to: string,
+  restaurantName: string,
+  restaurantId: string,
+  reminder: PlannedReminder,
+  userId: string
+): Promise<boolean> {
+  const logoUrl = await getRestaurantLogoUrl(restaurantId);
+  return dispatch(to, caReminderEmail(restaurantName, restaurantId, reminder, logoUrl), {
+    key: "ca_du_jour",
+    audience: "restaurant",
+    restaurantId,
+    userId,
+    step: CA_REMINDER_STEP[reminder.slot],
+  });
 }
 
 // ADR 0046 — rappel « articles de tickets absents du catalogue ».

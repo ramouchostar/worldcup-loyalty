@@ -33,6 +33,8 @@ export const MESSAGES: MessageDef[] = [
   { key: "install_app", label: "Installe l'app", audience: "member", kind: "sequence", when: "≥ 1 ticket, app jamais ouverte · J+3, J+30", channels: "E-mail", success: "App ouverte installée" },
   { key: "milestone", label: "Cap franchi", audience: "restaurant", kind: "sequence", when: "Membres, tickets ou CA programme · au passage de 18 h", channels: "E-mail", success: "Console ouverte" },
   { key: "weekly_recap", label: "Ta semaine", audience: "restaurant", kind: "sequence", when: "Lundi 8 h", channels: "E-mail", success: "Annonce programmée" },
+  // ADR 0087 §4 — rappels du CA du jour, éteints par défaut, allumés par établissement.
+  { key: "ca_du_jour", label: "CA du jour", audience: "restaurant", kind: "sequence", when: "Soir 30 min après la fermeture, lendemain 10 h · 15 h · 18 h, dimanche 15 h · jusqu'à la saisie", channels: "Push, e-mail", success: "CA noté" },
   { key: "weekly_idea", label: "L'idée de la semaine", audience: "restaurant", kind: "sequence", when: "Jeudi 10 h, si une idée tient", channels: "E-mail", success: "Annonce programmée" },
 
   // ── E-mails transactionnels (toujours actifs) ────────────────────────────

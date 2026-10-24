@@ -19,6 +19,8 @@ import { todayInBrussels } from "@/lib/qr-funnel";
 import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
 import { addDays, caTodos } from "@/lib/console-journey";
 import { missingDays } from "@/lib/daily-revenue-entry";
+import { isMessageEnabled } from "@/lib/message-log";
+import { CA_REMINDER_KEY } from "@/lib/daily-revenue-reminders";
 
 // Dashboard admin (redesign m54) — priorise ce qui demande une action
 // aujourd'hui avant les chiffres. Un restaurateur débordé doit comprendre en
@@ -84,7 +86,7 @@ export default async function AdminDashboardPage({
   // ADR 0087 §5 — les jours sans CA noté, même règle que la vue simple.
   const today = todayInBrussels();
   const revenue = await loadRevenueTracker(restaurantId, today);
-  const caMissing = revenue.days.some((d) => d.day >= addDays(today, -28))
+  const caMissing = revenue.days.some((d) => d.day >= addDays(today, -28)) || (await isMessageEnabled(CA_REMINDER_KEY, restaurantId))
     ? missingDays(new Set(revenue.days.map((d) => d.day)), today)
     : [];
 
