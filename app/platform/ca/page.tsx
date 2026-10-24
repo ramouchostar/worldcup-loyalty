@@ -43,6 +43,8 @@ const VERDICT_CLS = {
 const DAY_CLS: Record<Outcome | "a_noter" | "futur", string> = {
   repondu: "bg-emerald-50 dark:bg-emerald-950/40 border-transparent text-emerald-800 dark:text-emerald-300",
   spontane: "bg-emerald-50 dark:bg-emerald-950/40 border-transparent text-emerald-800 dark:text-emerald-300",
+  // ADR 0087 — saisi par le restaurateur lui-même dans la console.
+  saisi: "bg-emerald-50 dark:bg-emerald-950/40 border-transparent text-emerald-800 dark:text-emerald-300",
   relance: "bg-amber-50 dark:bg-amber-950/40 border-transparent text-amber-800 dark:text-amber-300",
   sans_reponse: "bg-red-50 dark:bg-red-950/40 border-transparent text-red-800 dark:text-red-300",
   ferme: "border-gray-200 dark:border-gray-800 text-gray-500",

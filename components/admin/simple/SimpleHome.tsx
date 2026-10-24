@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
+  CalendarDays,
   Check,
   ChevronRight,
   CircleCheck,
@@ -288,7 +289,7 @@ function LaunchCard({ view }: { view: SimpleHomeView }) {
 
 const GESTURE_COUNT: Record<number, string> = { 3: "Trois gestes", 4: "Quatre gestes" };
 
-const TODO_ICONS: Record<string, LucideIcon> = { staff: Users, flagged: Receipt, pending: Receipt, claims: Star, catalog: ListPlus };
+const TODO_ICONS: Record<string, LucideIcon> = { staff: Users, flagged: Receipt, pending: Receipt, claims: Star, catalog: ListPlus, ca: CalendarDays };
 
 function TodoCard({ view }: { view: SimpleHomeView }) {
   if (view.todo.length === 0) {
@@ -309,7 +310,8 @@ function TodoCard({ view }: { view: SimpleHomeView }) {
         <SectionLabel tone="muted">À faire</SectionLabel>
       </div>
       {view.todo.map((t) => {
-        const Icon = TODO_ICONS[t.key] ?? Receipt;
+        // « ca:<jour> » (ADR 0087) : une ligne par jour, une seule icône.
+        const Icon = TODO_ICONS[t.key] ?? TODO_ICONS[t.key.split(":")[0]] ?? Receipt;
         // La tâche sur laquelle on insiste (le QR de l'équipe en salle) : un
         // vrai bouton dans la ligne, qui ouvre directement le formulaire de
         // création — pas une ligne de plus qu'on survole.

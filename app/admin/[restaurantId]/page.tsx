@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Award, ChevronRight, CircleCheck, Hourglass, Lightbulb, ListPlus, Receipt, Rocket, Star, TriangleAlert, Trophy, type LucideIcon } from "lucide-react";
+import { Award, CalendarDays, ChevronRight, CircleCheck, Hourglass, Lightbulb, ListPlus, Receipt, Rocket, Star, TriangleAlert, Trophy, type LucideIcon } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { redirect } from "next/navigation";
@@ -15,6 +15,10 @@ import { PageHeader, Card, SectionLabel, StatTile, StatusBadge } from "@/compone
 import { cookies } from "next/headers";
 import { CONSOLE_VIEW_COOKIE, parseConsoleView } from "@/lib/admin-nav";
 import { SimpleHomePage } from "./SimpleHomePage";
+import { todayInBrussels } from "@/lib/qr-funnel";
+import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
+import { addDays, caTodos } from "@/lib/console-journey";
+import { missingDays } from "@/lib/daily-revenue-entry";
 
 // Dashboard admin (redesign m54) — priorise ce qui demande une action
 // aujourd'hui avant les chiffres. Un restaurateur débordé doit comprendre en
@@ -77,6 +81,12 @@ export default async function AdminDashboardPage({
   const scanUsage = await getScanUsage(restaurantId, plan);
   // ADR 0046 — libellés récurrents des tickets absents du catalogue.
   const catalogGaps = await getCatalogGaps(restaurantId);
+  // ADR 0087 §5 — les jours sans CA noté, même règle que la vue simple.
+  const today = todayInBrussels();
+  const revenue = await loadRevenueTracker(restaurantId, today);
+  const caMissing = revenue.days.some((d) => d.day >= addDays(today, -28))
+    ? missingDays(new Set(revenue.days.map((d) => d.day)), today)
+    : [];
 
   const thRows = (thresholdHistory ?? []) as {
     period_label: string;
@@ -181,6 +191,9 @@ export default async function AdminDashboardPage({
       sub: "Nom et prix déjà pré-remplis — il ne manque que ton prix de revient",
       count: catalogGaps.length,
     });
+  }
+  for (const t of caTodos(r(""), caMissing)) {
+    actionItems.push({ href: t.href, icon: CalendarDays, tone: "warn", title: t.title, sub: t.hint, count: t.count });
   }
 
   // « Pour aller plus loin » listait cinq liens dont QUATRE étaient déjà dans
