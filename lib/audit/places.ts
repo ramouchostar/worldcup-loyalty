@@ -217,6 +217,18 @@ export async function placeDetails(placeId: string, sessionToken?: string | null
   return toDetails(p);
 }
 
+// ADR 0087 §4 — les seules périodes d'ouverture, pour l'heure du rappel du soir
+// (CA du jour). null : la fiche n'a pas d'horaires.
+export type OpeningPeriod = { open?: { day?: number; hour?: number; minute?: number }; close?: { day?: number; hour?: number; minute?: number } };
+
+export async function placeOpeningPeriods(placeId: string): Promise<OpeningPeriod[] | null> {
+  if (!/^[\w-]{10,300}$/.test(placeId)) throw new PlacesError("identifiant de fiche invalide");
+  const p = await call<{ regularOpeningHours?: { periods?: OpeningPeriod[] } }>(`/places/${encodeURIComponent(placeId)}`, {
+    fieldMask: "regularOpeningHours.periods",
+  });
+  return p.regularOpeningHours?.periods?.length ? p.regularOpeningHours.periods : null;
+}
+
 // Fiche réduite pour l'inscription (ADR 0075) : pas d'avis, de photos ni
 // d'horaires — seulement ce qui pré-remplit l'établissement.
 const SIGNUP_FIELDS = [
