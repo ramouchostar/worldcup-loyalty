@@ -10,6 +10,7 @@ import { getCatalogGaps } from "@/lib/catalog-gaps";
 import { getProgramValue } from "@/lib/program-value";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { ConsolePushCard } from "@/components/admin/ConsolePushCard";
 import { PageHeader, Card, SectionLabel, StatTile, StatusBadge } from "@/components/admin/ui";
 import { cookies } from "next/headers";
 import { CONSOLE_VIEW_COOKIE, parseConsoleView } from "@/lib/admin-nav";
@@ -201,6 +202,9 @@ export default async function AdminDashboardPage({
         surface={bienvenue ? "console_premiere_visite" : "console_admin"}
         ton={bienvenue ? "accueil" : "discret"}
       />
+
+      {/* ADR 0077 §2 — alertes de la console sur ce téléphone. */}
+      <ConsolePushCard restaurantId={restaurantId} />
 
       {/* ADR 0041 — le rôle proposé sur l'invitation a été rétrogradé en
           équipe (quota gérant/manager déjà atteint) : le dire une fois,

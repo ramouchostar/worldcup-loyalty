@@ -43,7 +43,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title ?? "Belchicken", {
       body: data.body,
-      icon: "/api/icons/192",
+      // La console restaurateur envoie sa propre icône (ADR 0077) ; les membres gardent la leur.
+      icon: data.icon ?? "/api/icons/192",
       badge: "/api/icons/192",
       data: { url: data.url ?? "/dashboard" },
     })
