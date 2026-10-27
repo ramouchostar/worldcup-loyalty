@@ -1,6 +1,6 @@
 # ADR 0013 — Catalogue menu & prix de revient soumis par l'établissement
 
-**Statut** : Accepté — §1 amendé par l'[ADR 0083](0083-le-catalogue-menu-s-importe.md) (2026-10-08) : le catalogue s'importe aussi d'un lien, d'une capture ou d'un PDF ; le prix de revient reste saisi par le restaurateur.
+**Statut** : Accepté — §1 amendé par l'[ADR 0083](0083-le-catalogue-menu-s-importe.md) (2026-10-08) : le catalogue s'importe aussi d'un lien, d'une capture ou d'un PDF ; le prix de revient reste saisi par le restaurateur. Le 2026-10-27, la « table éditable » prévue ci-dessous (§ Conséquences) est livrée : prix de vente et prix de revient se corrigent ligne par ligne depuis `/admin/[id]/menu` (`PATCH /api/admin/menu/item`), sous les mêmes plafonds de coût que les paliers (ADR 0017).
 
 ## Contexte
 

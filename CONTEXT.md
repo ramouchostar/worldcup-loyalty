@@ -197,7 +197,7 @@ Lecture d'une carte existante (lien — le site de la fiche Google pré-rempli �
 _Avoid_ : scraping, « on récupère ton menu Uber Eats ».
 
 **Article** :
-Une ligne du catalogue menu (`menu_items`) — un produit vendu par l'établissement. Possède un nom, une catégorie, un prix de vente et un prix de revient. Marqué `reward_eligible` s'il peut être proposé en cadeau. Re-téléverser le catalogue met à jour les articles existants (upsert sur le nom) et désactive ceux absents du nouveau fichier — jamais de suppression (préserve l'historique des récompenses).
+Une ligne du catalogue menu (`menu_items`) — un produit vendu par l'établissement. Possède un nom, une catégorie, un prix de vente et un prix de revient. Marqué `reward_eligible` s'il peut être proposé en cadeau. Re-téléverser le catalogue met à jour les articles existants (upsert sur le nom) et désactive ceux absents du nouveau fichier — jamais de suppression (préserve l'historique des récompenses). Prix de vente et prix de revient d'un article se corrigent aussi un par un dans le tableau (« Modifier »), sans re-téléverser.
 _Avoid_ : produit, item (anglicisme), plat (exclut à tort boissons et accompagnements).
 
 **Catégorie** :
