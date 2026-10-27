@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Gem, Lightbulb, TriangleAlert } from "lucide-react";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
@@ -20,6 +20,16 @@ Coca 33cl;Boisson;2,50;0,30`;
 const euro = (n: number) =>
   Number(n).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
+// Saisie d'un montant dans le tableau : virgule décimale acceptée, comme le CSV.
+const parseEuro = (s: string): number | null => {
+  const t = s.replace(/€/g, "").replace(/\s/g, "").replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
+  return Number(t);
+};
+const draftOf = (n: number | null) => (n == null ? "" : Number(n).toFixed(2).replace(".", ","));
+
+type EditDraft = { id: string; price: string; cost: string; error?: string; details?: string[] };
+
 type Msg = { kind: "ok" | "err"; text: string; details?: string[] };
 type TierRow = { layer: string; min_threshold: number; menu_item_id: string | null; is_active: boolean };
 type Suggestion = { layer: string; threshold: number; item_name: string | null; rationale: string };
@@ -35,6 +45,8 @@ export default function AdminMenuPage() {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
   const [photoBusy, setPhotoBusy] = useState<string | null>(null);
+  const [edit, setEdit] = useState<EditDraft | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
@@ -237,6 +249,45 @@ export default function AdminMenuPage() {
     }
   }
 
+  // ADR 0013 — corriger le prix de vente et le prix de revient d'un article
+  // sans re-téléverser tout le CSV. Le serveur refuse un coût qui ferait
+  // dépasser le plafond d'un cadeau qui utilise l'article (ADR 0017).
+  function startEdit(item: MenuItem) {
+    setMsg(null);
+    setEdit({ id: item.id, price: draftOf(item.menu_price), cost: draftOf(item.cost_price) });
+  }
+
+  async function saveEdit(item: MenuItem) {
+    if (!edit || savingEdit) return;
+    const menuPrice = parseEuro(edit.price);
+    const costPrice = parseEuro(edit.cost);
+    if (menuPrice === null || costPrice === null) {
+      setEdit({ ...edit, error: "Écris un montant, ex. 9,50.", details: undefined });
+      return;
+    }
+    setSavingEdit(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/menu/item", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId, menuItemId: item.id, menuPrice, costPrice }),
+    });
+    const body = (await readJsonSafe<{ error?: string; details?: string[] }>(res)).data;
+    setSavingEdit(false);
+    if (!res.ok) {
+      setEdit({ ...edit, error: describeHttpFailure(res.status, body?.error ?? null), details: body?.details });
+      return;
+    }
+    const costChanged = costPrice !== (item.cost_price == null ? null : Number(item.cost_price));
+    setMsg({
+      kind: "ok",
+      text: `Prix de « ${item.name} » enregistrés.` +
+        (costChanged && item.reward_eligible ? " Son prix en points au catalogue est recalculé." : ""),
+    });
+    setEdit(null);
+    await loadAll();
+  }
+
   async function removePhoto(item: MenuItem) {
     setPhotoBusy(item.id);
     setMsg(null);
@@ -398,8 +449,14 @@ export default function AdminMenuPage() {
                     const isFlop = flopIds.has(it.id);
                     const photo = menuImageUrl(it.image_path);
                     const busy = photoBusy === it.id;
+                    const editing = edit?.id === it.id;
+                    const onEditKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === "Enter") void saveEdit(it);
+                      if (e.key === "Escape") setEdit(null);
+                    };
                     return (
-                      <tr key={it.id} className={`${it.is_active ? "" : "opacity-50"} ${isTop ? "bg-good/10/60" : isFlop ? "bg-warn/10/60" : ""}`}>
+                      <Fragment key={it.id}>
+                      <tr className={`group ${it.is_active ? "" : "opacity-50"} ${isTop ? "bg-good/10/60" : isFlop ? "bg-warn/10/60" : ""}`}>
                         <td className="px-4 py-2.5">
                           {/* La miniature ouvre la photo en grand (vérifier
                               qu'elle colle à l'article) ; le lien dessous
@@ -485,9 +542,58 @@ export default function AdminMenuPage() {
                           </button>
                         </td>
                         <td className="px-4 py-2.5 text-ink-body">{it.category}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-ink-body">{euro(it.menu_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-ink-body align-middle">
+                          {editing ? (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="flex items-center gap-2 text-xs">
+                                <button type="button" onClick={() => void saveEdit(it)} disabled={savingEdit}
+                                  className="font-semibold text-ink underline hover:opacity-80 disabled:opacity-50">
+                                  {savingEdit ? "…" : "Enregistrer"}
+                                </button>
+                                <button type="button" onClick={() => setEdit(null)} disabled={savingEdit}
+                                  className="text-ink-muted underline hover:text-ink-body disabled:opacity-50">
+                                  Annuler
+                                </button>
+                              </span>
+                              <input
+                                aria-label={`Prix de vente de ${it.name}`}
+                                inputMode="decimal"
+                                autoFocus
+                                value={edit!.price}
+                                onChange={(e) => setEdit({ ...edit!, price: e.target.value, error: undefined })}
+                                onKeyDown={onEditKey}
+                                className="w-20 border border-paper-border rounded-md px-2 py-1 text-right text-sm bg-white"
+                              />
+                            </div>
+                          ) : (
+                            // « Modifier » au-dessus du prix : au survol de la
+                            // ligne, toujours visible au doigt (pas de survol)
+                            // et au clavier.
+                            <div className="flex flex-col items-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => startEdit(it)}
+                                disabled={edit !== null}
+                                className="text-xs font-medium text-ink-muted underline hover:text-ink opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 disabled:hidden"
+                              >
+                                Modifier
+                              </button>
+                              <span>{euro(it.menu_price)}</span>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-ink-body">
-                          {costKnown ? euro(it.cost_price!) : (
+                          {editing ? (
+                            <input
+                              aria-label={`Prix de revient de ${it.name}`}
+                              inputMode="decimal"
+                              placeholder="ex. 0,90"
+                              value={edit!.cost}
+                              onChange={(e) => setEdit({ ...edit!, cost: e.target.value, error: undefined })}
+                              onKeyDown={onEditKey}
+                              className="mt-5 w-20 border border-paper-border rounded-md px-2 py-1 text-right text-sm bg-white"
+                            />
+                          ) : costKnown ? euro(it.cost_price!) : (
                             <span className="text-xs bg-warn/10 text-warn px-1.5 py-0.5 rounded-full" title="Prix de revient inconnu — cet article est exclu des cadeaux et sa marge n'est pas calculée">
                               coût manquant
                             </span>
@@ -508,6 +614,21 @@ export default function AdminMenuPage() {
                           </span>
                         </td>
                       </tr>
+                      {editing && edit!.error && (
+                        <tr>
+                          <td colSpan={7} className="px-4 pb-3 pt-0">
+                            <div className="rounded-lg p-2.5 text-sm border bg-danger/10 border-danger/30 text-danger">
+                              <p className="font-medium">{edit!.error}</p>
+                              {edit!.details && edit!.details.length > 0 && (
+                                <ul className="mt-1 list-disc list-inside text-xs opacity-80">
+                                  {edit!.details.map((d, i) => <li key={i}>{d}</li>)}
+                                </ul>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
