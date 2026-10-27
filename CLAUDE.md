@@ -4,7 +4,7 @@
 
 > Réécrite (jamais empilée) à chaque commit ou déploiement — l'agent « cerveau » la lit. L'historique vit dans les PR et dans Supabase `memories`.
 
-- **Fait récemment (2026-10-27)** — Menu & coûts : prix de vente et prix de revient modifiables ligne par ligne (« Modifier » au survol, au-dessus du prix), sans re-téléverser le CSV ; un coût relevé qui ferait dépasser le plafond d'un palier ou du cadeau des jetons est refusé (ADR 0017). Demande de Mounir.
+- **Fait récemment (2026-10-27)** — Menu & coûts : prix de vente et prix de revient modifiables ligne par ligne (« Modifier » au survol, au-dessus du prix de vente et au-dessus du prix de revient, #367 + suivante), sans re-téléverser le CSV ; un coût relevé qui ferait dépasser le plafond d'un palier ou du cadeau des jetons est refusé (ADR 0017). Demande de Mounir.
 - **Fait (2026-10-24)** — CA du jour, ADR 0087, terminé (6 PR) :
   - ADR (#359) ;
   - push console du gérant (#360) ;

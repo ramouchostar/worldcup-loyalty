@@ -28,7 +28,7 @@ const parseEuro = (s: string): number | null => {
 };
 const draftOf = (n: number | null) => (n == null ? "" : Number(n).toFixed(2).replace(".", ","));
 
-type EditDraft = { id: string; price: string; cost: string; error?: string; details?: string[] };
+type EditDraft = { id: string; focus: "price" | "cost"; price: string; cost: string; error?: string; details?: string[] };
 
 type Msg = { kind: "ok" | "err"; text: string; details?: string[] };
 type TierRow = { layer: string; min_threshold: number; menu_item_id: string | null; is_active: boolean };
@@ -252,9 +252,9 @@ export default function AdminMenuPage() {
   // ADR 0013 — corriger le prix de vente et le prix de revient d'un article
   // sans re-téléverser tout le CSV. Le serveur refuse un coût qui ferait
   // dépasser le plafond d'un cadeau qui utilise l'article (ADR 0017).
-  function startEdit(item: MenuItem) {
+  function startEdit(item: MenuItem, focus: "price" | "cost") {
     setMsg(null);
-    setEdit({ id: item.id, price: draftOf(item.menu_price), cost: draftOf(item.cost_price) });
+    setEdit({ id: item.id, focus, price: draftOf(item.menu_price), cost: draftOf(item.cost_price) });
   }
 
   async function saveEdit(item: MenuItem) {
@@ -558,7 +558,7 @@ export default function AdminMenuPage() {
                               <input
                                 aria-label={`Prix de vente de ${it.name}`}
                                 inputMode="decimal"
-                                autoFocus
+                                autoFocus={edit!.focus === "price"}
                                 value={edit!.price}
                                 onChange={(e) => setEdit({ ...edit!, price: e.target.value, error: undefined })}
                                 onKeyDown={onEditKey}
@@ -572,7 +572,7 @@ export default function AdminMenuPage() {
                             <div className="flex flex-col items-end gap-1">
                               <button
                                 type="button"
-                                onClick={() => startEdit(it)}
+                                onClick={() => startEdit(it, "price")}
                                 disabled={edit !== null}
                                 className="text-xs font-medium text-ink-muted underline hover:text-ink opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 disabled:hidden"
                               >
@@ -588,15 +588,30 @@ export default function AdminMenuPage() {
                               aria-label={`Prix de revient de ${it.name}`}
                               inputMode="decimal"
                               placeholder="ex. 0,90"
+                              autoFocus={edit!.focus === "cost"}
                               value={edit!.cost}
                               onChange={(e) => setEdit({ ...edit!, cost: e.target.value, error: undefined })}
                               onKeyDown={onEditKey}
                               className="mt-5 w-20 border border-paper-border rounded-md px-2 py-1 text-right text-sm bg-white"
                             />
-                          ) : costKnown ? euro(it.cost_price!) : (
-                            <span className="text-xs bg-warn/10 text-warn px-1.5 py-0.5 rounded-full" title="Prix de revient inconnu — cet article est exclu des cadeaux et sa marge n'est pas calculée">
-                              coût manquant
-                            </span>
+                          ) : (
+                            // Même « Modifier » au-dessus du coût : il ouvre la
+                            // ligne, curseur dans le prix de revient.
+                            <div className="flex flex-col items-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => startEdit(it, "cost")}
+                                disabled={edit !== null}
+                                className="text-xs font-medium text-ink-muted underline hover:text-ink opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 disabled:hidden"
+                              >
+                                Modifier
+                              </button>
+                              {costKnown ? <span>{euro(it.cost_price!)}</span> : (
+                                <span className="text-xs bg-warn/10 text-warn px-1.5 py-0.5 rounded-full" title="Prix de revient inconnu — cet article est exclu des cadeaux et sa marge n'est pas calculée">
+                                  coût manquant
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
