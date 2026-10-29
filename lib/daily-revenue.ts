@@ -7,7 +7,7 @@
 import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable } from "@/lib/audit/store";
 import type { DailyEntry, Outcome } from "@/lib/daily-revenue-model";
-import { CHANNELS, channelsNote, type Channels } from "@/lib/daily-revenue-entry";
+import { CHANNELS, channelsNote, type Channels, type LegacySplit } from "@/lib/daily-revenue-entry";
 
 export type EntriesListing = { missing: true } | { missing: false; rows: DailyEntry[] };
 
@@ -63,7 +63,7 @@ export async function deleteDailyEntry(restaurantId: string, day: string): Promi
 
 export type ConsoleEntry = { closed: true } | { closed: false; amount: number; tickets: number | null; channels: Channels | null };
 
-/** Fonction ou colonne absente : la migration 20261024-1530 n'est pas encore passée. */
+/** Fonction ou colonne absente : la migration 20261029-1200 (ou 20261024-1530) n'est pas encore passée. */
 function isMissingMigration(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
   return error.code === "PGRST202" || error.code === "42883" || error.code === "42703" || /could not find the function|does not exist/i.test(error.message ?? "");
@@ -84,17 +84,18 @@ export async function saveConsoleEntry(restaurantId: string, day: string, entry:
     p_closed: entry.closed,
     p_amount: entry.closed ? null : entry.amount,
     p_tickets: entry.closed ? null : entry.tickets,
+    p_carte: ch?.carte ?? null,
+    p_cash: ch?.cash ?? null,
+    p_internet: ch?.internet ?? null,
     p_uber: ch?.uber ?? null,
     p_deliveroo: ch?.deliveroo ?? null,
     p_takeaway: ch?.takeaway ?? null,
-    p_emporter: ch?.emporter ?? null,
-    p_sur_place: ch?.sur_place ?? null,
     p_entered_by: userId,
   });
   if (!error) return { fallback: false };
   if (!isMissingMigration(error)) throw new Error(`save_daily_revenue_console : ${error.message}`);
 
-  console.error("[daily-revenue] migration 20261024-1530 absente : repli sur save_daily_revenue");
+  console.error("[daily-revenue] migration 20261029-1200 absente : repli sur save_daily_revenue");
   const now = new Date().toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Brussels" });
   await saveDailyEntry(
     restaurantId,
@@ -112,22 +113,27 @@ export async function saveConsoleEntry(restaurantId: string, day: string, entry:
   return { fallback: true };
 }
 
-/** Le détail par canal d'un jour, pour pré-remplir (fail-open : null sans les colonnes). */
-export async function getDayChannels(restaurantId: string, day: string): Promise<Channels | null> {
+/**
+ * Le détail d'un jour, pour pré-remplir : les deux blocs, et l'ancien découpage sur
+ * place / à emporter s'il a été noté avant le 2026-10-29 (rappelé, jamais repris tel
+ * quel). Fail-open : rien sans les colonnes.
+ */
+export async function getDayChannels(restaurantId: string, day: string): Promise<{ channels: Channels | null; legacy: LegacySplit | null }> {
   const { data, error } = await createAdminClient()
     .from("daily_revenue_entries")
-    .select(CHANNELS.map((c) => c.key).join(", "))
+    .select([...CHANNELS.map((c) => c.key), "emporter", "sur_place"].join(", "))
     .eq("restaurant_id", restaurantId)
     .eq("sales_day", day)
     .maybeSingle();
-  if (error || !data) return null;
+  if (error || !data) return { channels: null, legacy: null };
   const row = data as unknown as Record<string, number | string | null>;
+  const num = (v: number | string | null | undefined) => (v === null || v === undefined ? null : Number(v));
   const out = {} as Channels;
   let any = false;
   for (const c of CHANNELS) {
-    const v = row[c.key];
-    out[c.key] = v === null || v === undefined ? null : Number(v);
+    out[c.key] = num(row[c.key]);
     if (out[c.key] !== null) any = true;
   }
-  return any ? out : null;
+  const legacy = { surPlace: num(row.sur_place), emporter: num(row.emporter) };
+  return { channels: any ? out : null, legacy: legacy.surPlace !== null || legacy.emporter !== null ? legacy : null };
 }

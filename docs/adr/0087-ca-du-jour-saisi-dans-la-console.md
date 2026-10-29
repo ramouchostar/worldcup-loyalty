@@ -36,13 +36,21 @@ e-mail ou la tâche « À faire » de l'accueil. Admin d'établissement (même g
 Un lien vers cette page **survit à la connexion** : le middleware garde la destination
 (`/login?next=…`, chemin interne seulement), la page de connexion y renvoie.
 
-### 2. Deux façons de saisir, montrées à égalité
+### 2. Deux blocs, un total qui se calcule
 
-- **Par canal** : Uber Eats, Deliveroo, Takeaway, À emporter, Sur place. On remplit ceux qu'on
-  connaît ; le total se calcule.
-- **Le total directement**, dans le même format, juste en dessous.
-- Remplir l'un vide l'autre : **un seul chiffre fait foi** (le total, qui est la vente de caisse
-  de l'ADR 0078 §4). Les canaux sont un détail du total, jamais une seconde source.
+*Amendé le 2026-10-29 (démo avec De Bue, la veille)* : la première version proposait « par canal
+(Uber Eats, Deliveroo, Takeaway, À emporter, Sur place) **ou** le total directement », et taper l'un
+vidait l'autre — vécu comme un bug (« saisir le total efface les lignes »). Le restaurateur lit sa
+caisse par **moyen de paiement**, pas par sur place / à emporter. Désormais :
+
+- **Caisse** : carte, cash, commandes internet (sans commission) — avec son sous-total ;
+- **Plateformes** : Uber Eats, Deliveroo, Takeaway — avec son sous-total ;
+- **le total de la journée = caisse + plateformes**, toujours calculé, jamais tapé ; au moins une
+  ligne remplie. Il reste le seul chiffre qui fait foi (la vente de caisse de l'ADR 0078 §4), et la
+  base refuse un total différent de la somme des deux blocs (`save_daily_revenue_console`,
+  migration `20261029-1200`).
+- Sur place / à emporter ne se saisissent plus ; un jour déjà noté ainsi garde ses valeurs, et la
+  console les rappelle quand on le rouvre (resaisir le jour les efface).
 - **Nombre de commandes facultatif.** « Le restaurant était fermé ce jour-là » note un jour
   fermé : jamais une vente à 0 € (ADR 0078 §4).
 - TVA comprise, toute la journée. On peut saisir ou corriger **les 14 derniers jours**, jamais le

@@ -338,7 +338,7 @@ export function caTodos(base: string, missing: string[]): TodoItem[] {
   const items: TodoItem[] = shown.map((day) => ({
     key: `ca:${day}`,
     title: `CA de ${shortDayLabel(day)} à saisir`,
-    hint: "30 secondes : par canal ou le total. C'est ce qui permet de suivre ta semaine.",
+    hint: "30 secondes : ta caisse et tes plateformes. C'est ce qui permet de suivre ta semaine.",
     href: `${base}/ca/${day}`,
     count: 1,
     tone: "warn",

@@ -2,21 +2,30 @@
 // PURES (aucune base, aucune horloge — « aujourd'hui » est injecté), testées
 // dans daily-revenue-entry.test.ts.
 //
-// Deux façons de saisir, à égalité : par canal (le total se calcule) ou le
-// total directement. Un seul chiffre fait foi — le total, qui devient la vente
-// de caisse du jour (ADR 0078 §4). Les canaux n'en sont que le détail.
+// Amendé le 2026-10-29 (démo De Bue) : deux blocs — la CAISSE par moyen de
+// paiement (carte, cash, commandes internet sans commission) et les PLATEFORMES
+// (Uber Eats, Deliveroo, Takeaway). Le total de la journée se CALCULE toujours :
+// plus de total tapé à part, qui effaçait le détail. Ce total devient la vente
+// de caisse du jour (ADR 0078 §4).
 
 import { addDays, isDay, parseAmount, weekdayName, type DailyEntry, outcomeHasAmount } from "@/lib/daily-revenue-model";
 
-export const CHANNELS = [
+export const CAISSE = [
+  { key: "carte", label: "Carte" },
+  { key: "cash", label: "Cash" },
+  { key: "internet", label: "Commandes internet", hint: "sans commission" },
+] as const;
+export const PLATEFORMES = [
   { key: "uber", label: "Uber Eats" },
   { key: "deliveroo", label: "Deliveroo" },
   { key: "takeaway", label: "Takeaway" },
-  { key: "emporter", label: "À emporter" },
-  { key: "sur_place", label: "Sur place" },
 ] as const;
+export const CHANNELS = [...CAISSE, ...PLATEFORMES] as const;
 export type ChannelKey = (typeof CHANNELS)[number]["key"];
 export type Channels = Record<ChannelKey, number | null>;
+
+/** L'ancien découpage (avant le 2026-10-29), lu seulement pour le rappeler quand on rouvre un jour. */
+export type LegacySplit = { surPlace: number | null; emporter: number | null };
 
 /** On saisit ou corrige les 14 derniers jours, aujourd'hui compris (le rappel du soir vise le jour même). */
 export const EDITABLE_DAYS = 14;
@@ -39,24 +48,24 @@ export type EntryInput = {
   closed: boolean;
   /** Montants tapés par canal (texte brut, vide = non renseigné). */
   channels: Partial<Record<ChannelKey, string>>;
-  total: string;
   orders: string;
 };
 
 export type ParsedEntry =
   | { ok: true; closed: true }
-  | { ok: true; closed: false; amount: number; tickets: number | null; channels: Channels | null }
+  | { ok: true; closed: false; amount: number; tickets: number | null; channels: Channels }
   | { ok: false; error: string };
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-/**
- * Le total direct gagne s'il est rempli ; sinon la somme des canaux remplis.
- * Les deux remplis à la fois ne peut venir que d'un formulaire bricolé : le
- * total fait foi, les canaux sont ignorés plutôt que de produire un détail faux.
- */
+/** Somme d'un bloc (les canaux vides valent 0). */
+export function blockTotal(channels: Channels, block: readonly { key: ChannelKey }[]): number {
+  return round2(block.reduce((s, c) => s + (channels[c.key] ?? 0), 0));
+}
+
+/** Le total de la journée = caisse + plateformes ; au moins un canal rempli. */
 export function parseEntry(input: EntryInput): ParsedEntry {
   if (input.closed) return { ok: true, closed: true };
 
@@ -66,14 +75,6 @@ export function parseEntry(input: EntryInput): ParsedEntry {
     const n = Number(ordersRaw.replace(/\s/g, ""));
     if (!Number.isInteger(n) || n < 0 || n > MAX_ORDERS) return { ok: false, error: "Nombre de commandes illisible : tape un nombre entier, par exemple 57." };
     tickets = n > 0 ? n : null;
-  }
-
-  const totalRaw = input.total.trim();
-  if (totalRaw) {
-    const amount = parseAmount(totalRaw);
-    if (amount === null || amount <= 0) return { ok: false, error: "Total illisible : tape par exemple 1527 ou 1 527,50." };
-    if (amount > MAX_DAY_AMOUNT) return { ok: false, error: "Ce total paraît trop élevé pour une journée. Vérifie le chiffre." };
-    return { ok: true, closed: false, amount: round2(amount), tickets, channels: null };
   }
 
   const channels = {} as Channels;
@@ -89,9 +90,9 @@ export function parseEntry(input: EntryInput): ParsedEntry {
     channels[c.key] = round2(v);
     filled++;
   }
-  if (filled === 0) return { ok: false, error: "Remplis au moins un canal, ou le total de la journée." };
-  const amount = round2(CHANNELS.reduce((s, c) => s + (channels[c.key] ?? 0), 0));
-  if (amount <= 0) return { ok: false, error: "Le total des canaux est à 0 € : si le restaurant était fermé, utilise « fermé ce jour-là »." };
+  if (filled === 0) return { ok: false, error: "Remplis au moins une ligne de la caisse ou des plateformes." };
+  const amount = round2(blockTotal(channels, CAISSE) + blockTotal(channels, PLATEFORMES));
+  if (amount <= 0) return { ok: false, error: "Le total de la journée est à 0 € : si le restaurant était fermé, utilise « fermé ce jour-là »." };
   if (amount > MAX_DAY_AMOUNT) return { ok: false, error: "Ce total paraît trop élevé pour une journée. Vérifie les chiffres." };
   return { ok: true, closed: false, amount, tickets, channels };
 }
