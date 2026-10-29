@@ -1,7 +1,7 @@
 import { createAdminClient } from "../supabase";
 import { campaignName, freeSegment } from "./naming";
 import { adAccount, describeMetaError, metaDelete, metaGet, metaPost, type CallContext } from "./meta-api";
-import { META_SPEC, buildTargeting, dailyBudgetCents, isOpenObjective, metaTimes, type Creative } from "./meta-spec";
+import { META_SPEC, buildTargeting, dailyBudgetCents, isOpenObjective, metaTimes, offerLine, type Creative } from "./meta-spec";
 import { spendCapCents } from "./money";
 
 // ADR 0086 §2, §4, §6 — les écritures chez Meta. Tout est créé EN PAUSE : seul le geste
@@ -25,6 +25,10 @@ export type RequestRow = {
   targeting: { radiusKm?: number };
   creative: Creative | null;
   ad_text: string | null;
+  offer_text?: string | null;
+  offer_keyword?: string | null;
+  offer_from?: string | null;
+  offer_to?: string | null;
   requested_by: string | null;
 };
 
@@ -183,7 +187,7 @@ export async function prepareCampaign(requestId: string, actor: string): Promise
     } else {
       const up = await uploadCreativeFile(account, req.creative, ctx());
       if (!up.ok) return { ok: false, error: up.error };
-      const message = req.ad_text ?? "";
+      const message = [req.ad_text ?? "", req.offer_text && req.offer_keyword && req.offer_from && req.offer_to ? offerLine({ text: req.offer_text, keyword: req.offer_keyword, from: req.offer_from, to: req.offer_to }) : ""].filter(Boolean).join("\n\n");
       const story = up.videoId
         ? { page_id: ident.meta_page_id, ...(ident.instagram_user_id ? { instagram_user_id: ident.instagram_user_id } : {}), video_data: { video_id: up.videoId, image_url: up.thumbnail, message, call_to_action: cta ?? { type: "LEARN_MORE", value: { link } } } }
         : { page_id: ident.meta_page_id, ...(ident.instagram_user_id ? { instagram_user_id: ident.instagram_user_id } : {}), link_data: { image_hash: up.imageHash, link, message, call_to_action: cta ?? { type: "LEARN_MORE", value: { link } } } };

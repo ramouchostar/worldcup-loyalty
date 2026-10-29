@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess, isEstablishmentAdmin } from "@/lib/admin-guard";
-import { cancelRequest, createRequest, pubAvailability, requestCreativeUpload, requestRecharge, resubmit, setPaused } from "@/lib/ads/requests";
+import { cancelRequest, createRequest, estimateFor, pubAvailability, requestCreativeUpload, requestRecharge, resubmit, setPaused } from "@/lib/ads/requests";
 
 // ADR 0086 §1 — les gestes du restaurateur sur SA pub. Chaque action se re-garde
 // (une Server Action est une route publique) : membre de la console de CET établissement,
@@ -68,4 +68,12 @@ export async function correct(restaurantId: string, requestId: string, raw: { ad
   const r = await resubmit(restaurantId, requestId, raw, g.userId);
   done(restaurantId);
   return r;
+}
+
+/** Ce que la pub peut donner, recalculé quand l'objectif, la zone ou le budget changent. */
+export async function estimate(restaurantId: string, objective: string, radiusKm: number, budgetEuros: number): Promise<{ ok: true; estimate: import("@/lib/ads/estimate").Estimate } | { ok: false }> {
+  const g = await guard(restaurantId);
+  if ("error" in g) return { ok: false };
+  if (!Number.isFinite(budgetEuros) || budgetEuros < 1 || budgetEuros > 100_000 || ![1, 3, 5, 10].includes(radiusKm)) return { ok: false };
+  return estimateFor(restaurantId, objective, radiusKm, Math.round(budgetEuros) * 100);
 }

@@ -29,11 +29,11 @@ export type PlatformPub = {
     lastRun: { at: string; ok: boolean | null; read: number; errors: number } | null;
   };
   notices: { id: string; restaurantName: string; clientCode: string | null; kind: string; ref: string; budgetCents: number; feeCents: number; expectedCents: number; createdAt: string; requestStatus: string; objective: string }[];
-  toLaunch: { requestId: string; restaurantName: string; campaignName: string | null; objective: string; startsOn: string | null; endsOn: string | null; radiusKm: number | null; dailyCents: number | null; capCents: number | null; paidCents: number; adText: string | null; preview: string | null; status: string; adStatus: string | null }[];
+  toLaunch: { requestId: string; restaurantName: string; campaignName: string | null; objective: string; startsOn: string | null; endsOn: string | null; radiusKm: number | null; dailyCents: number | null; capCents: number | null; paidCents: number; adText: string | null; offer: string | null; preview: string | null; status: string; adStatus: string | null }[];
   stuck: { requestId: string; restaurantName: string; status: string; objective: string }[];
   invoices: { id: string; restaurantName: string; clientCode: string | null; legalName: string | null; vat: string | null; address: string | null; budgetCents: number; feeCents: number; vatCents: number; expectedCents: number; receivedCents: number | null; receivedOn: string | null; ref: string; confirmedAt: string }[];
   unattached: { id: string; name: string; problem: string | null; spend7dCents: number }[];
-  campaigns: { id: string; name: string; restaurantName: string | null; status: string | null; paidCents: number | null; spentCents: number; capCents: number | null; results: number; resultKind: string | null; warnings: string[]; adStatus: string | null }[];
+  campaigns: { id: string; name: string; restaurantName: string | null; status: string | null; paidCents: number | null; spentCents: number; capCents: number | null; results: number; resultKind: string | null; warnings: string[]; adStatus: string | null; estimate: { kind: string; lo: number; hi: number } | null; actual: number | null; estimateVerdict: "dans" | "sous" | "au-dessus" | null }[];
   restaurants: { id: string; name: string; clientCode: string; pageName: string | null; igUsername: string | null }[];
   failures: { at: string; path: string; error: string | null }[];
 };
@@ -61,9 +61,9 @@ export async function loadPlatformPub(): Promise<PlatformPub | { ok: false }> {
     return { ok: false };
   }
 
-  type Req = { id: string; restaurant_id: string; objective: string; status: string; starts_on: string | null; ends_on: string | null; budget_cents: number; targeting: { radiusKm?: number } | null; ad_text: string | null; paid_at: string | null; launched_at: string | null };
+  type Req = { id: string; restaurant_id: string; objective: string; status: string; starts_on: string | null; ends_on: string | null; budget_cents: number; targeting: { radiusKm?: number } | null; ad_text: string | null; paid_at: string | null; launched_at: string | null; offer_text?: string | null; offer_keyword?: string | null; offer_from?: string | null; offer_to?: string | null; estimate?: { kind: string; lo: number; hi: number } | null };
   type Notice = { id: string; request_id: string; restaurant_id: string; kind: string; budget_cents: number; fee_cents: number; vat_cents: number; expected_cents: number; structured_ref: string; received_cents: number | null; received_on: string | null; confirmed_at: string | null; invoice_number: string | null; created_at: string };
-  type Camp = { id: string; name: string; restaurant_id: string | null; request_id: string | null; status: string | null; effective_status: string | null; spend_cap_cents: number | null; attach_problem: string | null; warnings: string[]; ad_external_id: string | null; ad_status: string | null };
+  type Camp = { id: string; name: string; restaurant_id: string | null; request_id: string | null; status: string | null; effective_status: string | null; spend_cap_cents: number | null; attach_problem: string | null; warnings: string[]; ad_external_id: string | null; ad_status: string | null; lifetime?: { reach: number; impressions: number; clicks: number } | null };
 
   const R = (reqs.data ?? []) as Req[];
   const N = (notices.data ?? []) as Notice[];
@@ -104,6 +104,7 @@ export async function loadPlatformPub(): Promise<PlatformPub | { ok: false }> {
         capCents: c?.spend_cap_cents ?? null,
         paidCents: paid.get(r.id) ?? 0,
         adText: r.ad_text,
+        offer: r.offer_text && r.offer_keyword ? `${r.offer_text} — mot clé ${r.offer_keyword} (${r.offer_from} → ${r.offer_to})` : null,
         preview: c?.ad_external_id ? await adPreview(c.ad_external_id) : null,
         status: r.status,
         adStatus: c?.ad_status ?? null,
@@ -144,7 +145,12 @@ export async function loadPlatformPub(): Promise<PlatformPub | { ok: false }> {
     unattached,
     campaigns: C.map((c) => {
       const s = S.filter((x) => x.campaign_id === c.id);
-      return { id: c.id, name: c.name, restaurantName: c.restaurant_id ? nameOf(c.restaurant_id) : null, status: c.effective_status ?? c.status, paidCents: c.request_id ? (paid.get(c.request_id) ?? 0) : null, spentCents: s.reduce((n, x) => n + x.spend_cents, 0), capCents: c.spend_cap_cents, results: s.reduce((n, x) => n + x.results, 0), resultKind: s.find((x) => x.result_kind)?.result_kind ?? null, warnings: c.warnings ?? [], adStatus: c.ad_status };
+      const est = c.request_id ? (reqById.get(c.request_id)?.estimate ?? null) : null;
+      const actual = est && c.lifetime ? (est.kind === "reach" ? c.lifetime.reach : est.kind === "clicks" ? c.lifetime.clicks : c.lifetime.impressions) : null;
+      // Le verdict n'a de sens qu'une fois la campagne terminée (budget dépensé).
+      const ended = c.request_id ? reqById.get(c.request_id)?.status === "terminee" : false;
+      const estimateVerdict = est && actual !== null && ended ? (actual < est.lo ? "sous" : actual > est.hi ? "au-dessus" : "dans") : null;
+      return { id: c.id, name: c.name, restaurantName: c.restaurant_id ? nameOf(c.restaurant_id) : null, status: c.effective_status ?? c.status, paidCents: c.request_id ? (paid.get(c.request_id) ?? 0) : null, spentCents: s.reduce((n, x) => n + x.spend_cents, 0), capCents: c.spend_cap_cents, results: s.reduce((n, x) => n + x.results, 0), resultKind: s.find((x) => x.result_kind)?.result_kind ?? null, warnings: c.warnings ?? [], adStatus: c.ad_status, estimate: est ? { kind: est.kind, lo: est.lo, hi: est.hi } : null, actual, estimateVerdict };
     }),
     restaurants: ((rests.data ?? []) as { id: string; name: string; client_code: string }[]).map((r) => ({ id: r.id, name: r.name, clientCode: r.client_code, pageName: ident.get(r.id)?.meta_page_name ?? null, igUsername: ident.get(r.id)?.instagram_username ?? null })),
     failures: (fails.data ?? []) as { at: string; path: string; error: string | null }[],

@@ -7,9 +7,11 @@ import {
   dayCount,
   dayStatFromInsight,
   epcPayload,
+  judgeOffer,
   judgeRequest,
   metaTimes,
   normalizeVat,
+  offerLine,
   rankInstagramPosts,
   statusFromMeta,
   type IgMedia,
@@ -118,4 +120,18 @@ test("QR EPC : montant au point, communication structurée en ligne libre", () =
   assert.equal(p[0], "BCD");
   assert.equal(p[7], "EUR230.00");
   assert.equal(p[10], "+++002/0000/00156+++");
+});
+
+test("offre : facultative, sinon texte + mot clé + dates", () => {
+  assert.equal(judgeOffer({}).ok, true);
+  assert.deepEqual(judgeOffer({ text: "", keyword: "" }), { ok: true, offer: null });
+  const ok = judgeOffer({ text: "Family Bucket = 5 Junior Burgers offerts", keyword: "crousti", from: "2026-11-07", to: "2026-11-21" });
+  assert.deepEqual(ok, { ok: true, offer: { text: "Family Bucket = 5 Junior Burgers offerts", keyword: "CROUSTI", from: "2026-11-07", to: "2026-11-21" } });
+  assert.deepEqual(judgeOffer({ text: "Family Bucket", keyword: "deux mots", from: "2026-11-07", to: "2026-11-21" }), { ok: false, issue: "offer_keyword" });
+  assert.deepEqual(judgeOffer({ text: "Family Bucket", keyword: "CROUSTI", from: "2026-11-21", to: "2026-11-07" }), { ok: false, issue: "offer_dates" });
+  assert.deepEqual(judgeRequest({ ...VALID, offer: { text: "x" } }, "2026-10-23"), { ok: false, issue: "offer" });
+});
+
+test("offre : la ligne ajoutée au texte de la pub", () => {
+  assert.equal(offerLine({ text: "Family Bucket = 5 Junior Burgers offerts", keyword: "CROUSTI", from: "2026-11-07", to: "2026-11-21" }), "🎁 Family Bucket = 5 Junior Burgers offerts avec le mot CROUSTI, du 7/11 au 21/11.");
 });
