@@ -90,6 +90,9 @@ export type RequestIssue =
   | "billing_name"
   | "billing_vat"
   | "billing_address"
+  | "offer"
+  | "offer_keyword"
+  | "offer_dates"
   | "terms";
 
 export const REQUEST_ISSUE_TEXT: Record<RequestIssue, string> = {
@@ -105,6 +108,9 @@ export const REQUEST_ISSUE_TEXT: Record<RequestIssue, string> = {
   billing_name: "Indique la raison sociale à mettre sur la facture.",
   billing_vat: "Le numéro de TVA a la forme BE0123456789.",
   billing_address: "Indique l'adresse de facturation.",
+  offer: "Décris l'offre en une phrase (140 caractères au plus), ou laisse les trois champs vides.",
+  offer_keyword: "Le mot clé : 2 à 24 lettres ou chiffres, sans espace (par exemple CROUSTI).",
+  offer_dates: "Indique les dates de validité de l'offre, la fin après le début.",
   terms: "Accepte les conditions de la Pub pour continuer.",
 };
 
@@ -121,7 +127,31 @@ export type RequestInput = {
   adText: string;
   creative: Creative;
   billing: { legalName: string; vatNumber: string | null; address: string };
+  /** Facultative : l'offre que la pub annonce et le mot clé à dire au comptoir. */
+  offer: Offer | null;
 };
+
+export type Offer = { text: string; keyword: string; from: string; to: string };
+
+/** Juge l'offre : tout vide = pas d'offre ; sinon texte, mot clé et dates sont exigés. */
+export function judgeOffer(raw: unknown): { ok: true; offer: Offer | null } | { ok: false; issue: RequestIssue } {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const text = String(o.text ?? "").trim();
+  const keyword = String(o.keyword ?? "").trim().toUpperCase();
+  const from = String(o.from ?? "");
+  const to = String(o.to ?? "");
+  if (!text && !keyword) return { ok: true, offer: null };
+  if (text.length < 3 || text.length > 140) return { ok: false, issue: "offer" };
+  if (!/^[A-Z0-9-]{2,24}$/.test(keyword)) return { ok: false, issue: "offer_keyword" };
+  if (!DATE.test(from) || !DATE.test(to) || to < from) return { ok: false, issue: "offer_dates" };
+  return { ok: true, offer: { text, keyword, from, to } };
+}
+
+/** La ligne ajoutée au texte d'une pub (fichier envoyé) : « 🎁 … avec le mot CROUSTI, du 7/11 au 21/11. » */
+export function offerLine(o: Offer): string {
+  const d = (s: string) => `${Number(s.slice(8, 10))}/${Number(s.slice(5, 7))}`;
+  return `🎁 ${o.text} avec le mot ${o.keyword}, du ${d(o.from)} au ${d(o.to)}.`;
+}
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -185,9 +215,12 @@ export function judgeRequest(raw: Record<string, unknown>, today: string): { ok:
   if (vatNumber !== null && !/^[A-Z]{2}[0-9A-Z]{8,12}$/.test(vatNumber)) return { ok: false, issue: "billing_vat" };
   if (address.length < 5 || address.length > 300) return { ok: false, issue: "billing_address" };
 
+  const offer = judgeOffer(raw.offer);
+  if (!offer.ok) return offer;
+
   if (raw.termsAccepted !== true) return { ok: false, issue: "terms" };
 
-  return { ok: true, input: { objective, budgetCents: euros * 100, startsOn, endsOn, radiusKm, adText, creative, billing: { legalName, vatNumber, address } } };
+  return { ok: true, input: { objective, budgetCents: euros * 100, startsOn, endsOn, radiusKm, adText, creative, billing: { legalName, vatNumber, address }, offer: offer.offer } };
 }
 
 // ── Ce que Meta renvoie ──────────────────────────────────────

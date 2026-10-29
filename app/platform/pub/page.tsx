@@ -102,6 +102,7 @@ export default async function PlatformPubPage() {
                   <p className="text-gray-600 dark:text-gray-400">{c.radiusKm} km · tous âges · {c.startsOn} → {c.endsOn}</p>
                   <p className="text-gray-600 dark:text-gray-400">{c.dailyCents !== null ? `${formatEur(c.dailyCents)}/jour · ` : ""}plafond {c.capCents !== null ? formatEur(c.capCents) : "—"} · payé {formatEur(c.paidCents)}</p>
                   {c.adText && <p className="text-gray-600 dark:text-gray-400 italic">« {c.adText} »</p>}
+                  {c.offer && <p className="text-gray-600 dark:text-gray-400">Offre : {c.offer}</p>}
                   <p className="text-xs text-gray-500">Bénéficiaire {c.restaurantName} · payeur Boosteats{c.adStatus ? ` · Meta : ${c.adStatus}` : ""}</p>
                   {c.capCents !== null && c.capCents > c.paidCents && <p className="text-xs text-red-700">Plafond au-dessus du payé : ne lance pas.</p>}
                   <LaunchControls requestId={c.requestId} canLaunch={c.capCents !== null && c.capCents <= c.paidCents} />
@@ -160,7 +161,7 @@ export default async function PlatformPubPage() {
         <h2 className={H2}>Toutes les campagnes</h2>
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-gray-500">
-            <tr><th className="py-1 pr-3">Campagne</th><th className="pr-3">Client</th><th className="pr-3">État</th><th className="pr-3">Payé</th><th className="pr-3">Dépensé</th><th className="pr-3">Plafond</th><th className="pr-3">Résultat</th><th>Signalements</th></tr>
+            <tr><th className="py-1 pr-3">Campagne</th><th className="pr-3">Client</th><th className="pr-3">État</th><th className="pr-3">Payé</th><th className="pr-3">Dépensé</th><th className="pr-3">Plafond</th><th className="pr-3">Résultat</th><th className="pr-3">Estimé → réel</th><th>Signalements</th></tr>
           </thead>
           <tbody>
             {d.campaigns.map((c) => (
@@ -172,6 +173,9 @@ export default async function PlatformPubPage() {
                 <td className="pr-3 tabular-nums">{formatEur(c.spentCents)}</td>
                 <td className={`pr-3 tabular-nums ${c.paidCents !== null && (c.capCents ?? 0) > c.paidCents ? "text-red-700" : ""}`}>{c.capCents === null ? "aucun" : formatEur(c.capCents)}</td>
                 <td className="pr-3 tabular-nums">{c.results} {c.resultKind ?? ""}</td>
+                <td className={`pr-3 tabular-nums text-xs ${c.estimateVerdict && c.estimateVerdict !== "dans" ? "text-amber-700" : ""}`}>
+                  {c.estimate ? `${c.estimate.lo.toLocaleString("fr-BE")}–${c.estimate.hi.toLocaleString("fr-BE")} → ${c.actual === null ? "…" : c.actual.toLocaleString("fr-BE")}${c.estimateVerdict ? ` (${c.estimateVerdict})` : ""}` : "—"}
+                </td>
                 <td className="text-xs text-gray-500">{c.warnings.join(", ")}</td>
               </tr>
             ))}

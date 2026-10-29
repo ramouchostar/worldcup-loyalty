@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { OBJECTIVE_RESULT } from "@/lib/ads/objectives";
 import { META_SPEC, OPEN_OBJECTIVES, RADII_KM, dayCount, type OpenObjective } from "@/lib/ads/meta-spec";
 import { formatEur } from "@/lib/ads/money";
 import { Card } from "@/components/admin/ui";
-import { askUpload, submitRequest } from "../actions";
+import { DAILY_ADVICE_TEXT, dailyAdvice, periodPresets, type Estimate } from "@/lib/ads/estimate";
+import { askUpload, estimate as estimateAction, submitRequest } from "../actions";
 
 export type PostOption = { id: string; mediaType: "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM"; likes: number; comments: number; thumbnail: string | null; permalink: string | null; caption: string | null };
 type Billing = { legalName: string; vatNumber: string | null; address: string } | null;
@@ -39,6 +40,12 @@ export function NewAdForm(p: { restaurantId: string; today: string; posts: PostO
   const [vatNumber, setVatNumber] = useState(p.billing?.vatNumber ?? "");
   const [billAddress, setBillAddress] = useState(p.billing?.address ?? "");
   const [terms, setTerms] = useState(false);
+  const [offerText, setOfferText] = useState("");
+  const [offerKeyword, setOfferKeyword] = useState("");
+  const [offerFrom, setOfferFrom] = useState("");
+  const [offerTo, setOfferTo] = useState("");
+  const [est, setEst] = useState<Estimate | null>(null);
+  const [estLoading, setEstLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -51,6 +58,28 @@ export function NewAdForm(p: { restaurantId: string; today: string; posts: PostO
     const vat = Math.round(((b + fee) * p.vatRate) / 100);
     return { b, fee, vat, total: b + fee + vat };
   }, [budget, p.feePct, p.vatRate]);
+
+  // L'estimation suit l'objectif, la zone et le budget ; un court délai évite un appel par touche.
+  useEffect(() => {
+    if (!(budget >= 100)) return setEst(null);
+    let alive = true;
+    setEstLoading(true);
+    const t = setTimeout(async () => {
+      const r = await estimateAction(p.restaurantId, objective, radiusKm, budget).catch(() => ({ ok: false as const }));
+      if (alive) {
+        setEst(r.ok ? r.estimate : null);
+        setEstLoading(false);
+      }
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [p.restaurantId, objective, radiusKm, budget]);
+
+  const presets = useMemo(() => periodPresets(p.today), [p.today]);
+  const daily = days > 0 ? Math.floor(q.b / days) : 0;
+  const advice = days > 0 ? dailyAdvice(daily) : null;
 
   async function onFile(f: File | null) {
     if (!f) return;
@@ -91,6 +120,7 @@ export function NewAdForm(p: { restaurantId: string; today: string; posts: PostO
         adText,
         creative,
         billing: { legalName, vatNumber, address: billAddress },
+        offer: { text: offerText, keyword: offerKeyword, from: offerFrom, to: offerTo },
         termsAccepted: terms,
       });
       if (!r.ok) return setError(r.error ?? "Réessaie.");
@@ -155,6 +185,22 @@ export function NewAdForm(p: { restaurantId: string; today: string; posts: PostO
           ))}
         </div>
         <p className="text-[13px] text-ink-muted">Autour de : {p.address ?? "ton restaurant"} · tous les âges</p>
+        <div className="flex flex-wrap gap-1.5">
+          {presets.map((x) => (
+            <button
+              key={x.label}
+              type="button"
+              aria-pressed={startsOn === x.startsOn && endsOn === x.endsOn}
+              onClick={() => {
+                setStartsOn(x.startsOn);
+                setEndsOn(x.endsOn);
+              }}
+              className={`rounded-full px-3 py-1.5 text-[13px] ${startsOn === x.startsOn && endsOn === x.endsOn ? "bg-ink text-white" : "border border-paper-border bg-white text-ink-body"}`}
+            >
+              {x.label}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <label className="flex-1 text-[13px] text-ink-body">
             Début
@@ -184,13 +230,56 @@ export function NewAdForm(p: { restaurantId: string; today: string; posts: PostO
           </label>
         )}
         <p className="text-[13px] text-ink-muted">
-          {days > 0 ? `Soit environ ${formatEur(Math.floor(q.b / days))} par jour sur ${days} jour${days > 1 ? "s" : ""}. ` : ""}Minimum 100 €.
+          {days > 0 ? `Soit environ ${formatEur(daily)} par jour sur ${days} jour${days > 1 ? "s" : ""}. ` : ""}Minimum 100 €.
+        </p>
+        {advice && <p className={`text-[13px] ${advice === "too_low" ? "font-semibold text-warn" : advice === "ok" ? "text-good" : "text-ink-muted"}`}>{advice === "ok" ? "✓ " : ""}{DAILY_ADVICE_TEXT[advice]}</p>}
+        <div className="rounded-xl border border-paper-border bg-white p-4" aria-live="polite">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Ce que ça peut donner</p>
+          {est ? (
+            <>
+              <p className="mt-1 text-[15px] font-semibold text-ink">
+                Environ {est.lo.toLocaleString("fr-BE")} à {est.hi.toLocaleString("fr-BE")}{" "}
+                {est.kind === "reach" ? "personnes touchées dans ta zone" : est.kind === "clicks" ? "clics vers ton restaurant" : "affichages de ta vidéo"}
+                {est.frequency ? `, vues environ ${String(est.frequency).replace(".", ",")} fois` : ""}
+              </p>
+              {est.audience && <p className="text-[13px] text-ink-muted">{est.audience.toLocaleString("fr-BE")} personnes vivent ou passent dans les {radiusKm} km.</p>}
+              <p className="mt-1 text-[12px] text-ink-faint">Estimation, pas une promesse : Meta décide de la diffusion.{est.calibrated ? " Calculée sur les pubs déjà diffusées." : ""}</p>
+            </>
+          ) : (
+            <p className="mt-1 text-[13px] text-ink-muted">{estLoading ? "Calcul…" : "Choisis un budget d'au moins 100 € pour voir l'estimation."}</p>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <p className={STEP}>5. Une offre ? <span className="text-[13px] font-normal text-ink-muted">(facultatif)</span></p>
+        <label className="block text-[13px] text-ink-body">
+          Offre
+          <input value={offerText} onChange={(e) => setOfferText(e.target.value)} maxLength={140} placeholder="Family Bucket = 5 Junior Burgers offerts" className={INPUT} />
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          <label className="text-[13px] text-ink-body">
+            Mot clé
+            <input value={offerKeyword} onChange={(e) => setOfferKeyword(e.target.value.toUpperCase().replace(/\s/g, ""))} maxLength={24} placeholder="CROUSTI" className={INPUT} />
+          </label>
+          <label className="text-[13px] text-ink-body">
+            Du
+            <input type="date" value={offerFrom} onChange={(e) => setOfferFrom(e.target.value)} className={INPUT} />
+          </label>
+          <label className="text-[13px] text-ink-body">
+            Au
+            <input type="date" min={offerFrom || undefined} value={offerTo} onChange={(e) => setOfferTo(e.target.value)} className={INPUT} />
+          </label>
+        </div>
+        <p className="text-[12px] text-ink-faint">
+          On te rappelle le mot clé dans tes e-mails pour prévenir tes équipes.{" "}
+          {upload ? "Il est ajouté au texte de la pub." : postId ? "Avec une publication Instagram, Meta garde sa légende : mets le mot clé dans la vidéo." : ""}
         </p>
       </section>
 
       <section className="space-y-2">
         <p className={STEP}>
-          5. Facturation {!p.billing && <span className="text-[13px] font-normal text-ink-muted">(une seule fois)</span>}
+          6. Facturation {!p.billing && <span className="text-[13px] font-normal text-ink-muted">(une seule fois)</span>}
         </p>
         <label className="block text-[13px] text-ink-body">
           Raison sociale

@@ -176,6 +176,25 @@ export async function runAdsSync(now: Date = new Date()): Promise<SyncSummary> {
     }
   }
 
+  // 3 bis. Totaux depuis le début de chaque campagne (portée sans double compte) : la base
+  // de comparaison de l'estimation faite avant paiement (ADR 0086 amendé le 2026-10-29).
+  const life = await metaGetAll<{ campaign_id: string; reach?: string; impressions?: string; inline_link_clicks?: string; spend?: string; frequency?: string }>(`${account}/insights`, {
+    level: "campaign",
+    date_preset: "maximum",
+    fields: "campaign_id,reach,impressions,inline_link_clicks,spend,frequency",
+  });
+  if (!life.ok) {
+    summary.errors.push({ step: "insights cumulés", message: describeMetaError(life.error) });
+  } else {
+    for (const row of life.data) {
+      const camp = local.get(row.campaign_id);
+      if (!camp) continue;
+      const lifetime = { reach: Number(row.reach ?? 0), impressions: Number(row.impressions ?? 0), clicks: Number(row.inline_link_clicks ?? 0), spendCents: Math.round(Number(row.spend ?? 0) * 100), frequency: Number(row.frequency ?? 0), at: new Date().toISOString() };
+      const { error } = await db.from("ad_campaigns").update({ lifetime }).eq("id", camp.id);
+      if (error && !/lifetime/.test(error.message)) summary.errors.push({ step: `cumul ${camp.name}`, message: error.message });
+    }
+  }
+
   // 4. L'avis de Meta sur les publicités que Boosteats a créées.
   for (const r of rows.filter((x) => x.ad_external_id)) {
     const ad = await metaGet<MetaAd>(r.ad_external_id as string, { fields: "id,effective_status,ad_review_feedback" }, { actor: "system", campaignId: r.id });

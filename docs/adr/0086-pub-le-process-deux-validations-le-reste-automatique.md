@@ -21,6 +21,18 @@ autour des coordonnées de l'établissement ; la Pub s'ouvre établissement par 
 se choisissent sur `/platform/pub` (`restaurant_ad_identities`). §4 — le compte Meta est payé
 par carte (prélèvement après dépense) : l'alerte « fonds Meta bas » attend un compte prépayé ;
 le risque à surveiller est le plafond de la carte.
+**Amendé le 2026-10-29** (démo avec De Bue, la veille) : le formulaire **estime ce que la pub peut
+donner avant le paiement** — personnes touchées (notoriété), clics (visites) ou affichages (vidéo),
+**en fourchette** et jamais comme une promesse. Meta ne donne plus de courbe budget → résultats par
+l'API (constaté : `delivery_estimate` ne renvoie que l'audience de la zone) ; on calcule donc à
+partir de coûts constatés — au départ la campagne notoriété réelle de Houba (avril-mai 2026, CPM
+0,75 €, fréquence 4,1), puis nos propres campagnes dès 50 € dépensés par objectif (`lib/ads/estimate.ts`).
+L'estimation est conservée sur la demande (`ad_requests.estimate`) et comparée sur `/platform/pub` au
+résultat réel cumulé (`ad_campaigns.lifetime`) : une estimation hors fourchette deux fois de suite
+recale les coûts de départ. Aussi : **repère 10 à 15 € par jour** (alerte sous 5 €), raccourcis de
+période (« Les 2 prochaines semaines », « Semaines 2 et 3 de <mois> »), **offre + mot clé** facultatifs
+(rappelés au restaurateur pour ses équipes, ajoutés au texte d'une pub faite d'un fichier ; une
+publication Instagram garde sa légende), fichiers limités à **50 Mo** (limite globale du stockage).
 
 ## Contexte
 

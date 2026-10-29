@@ -4,9 +4,10 @@ import { isMissingTable } from "../funnel";
 import { pubConfig, pubEnabledFor } from "./config";
 import { alertPlatform, notifyRestaurant } from "./alerts";
 import { CREATIVES_BUCKET, prepareCampaign, raiseCap, resetCreative, setDelivery } from "./campaigns";
-import { metaGet } from "./meta-api";
+import { adAccount, metaGet } from "./meta-api";
+import { DEFAULT_BENCHMARKS, calibrate, estimateResults, type Estimate, type Observed } from "./estimate";
 import { OBJECTIVE_RESULT, type Objective } from "./objectives";
-import { isOpenObjective, judgeContent, judgeRequest, rankInstagramPosts, REQUEST_ISSUE_TEXT, type IgMedia, type OpenObjective, type RequestStatus } from "./meta-spec";
+import { META_SPEC, buildTargeting, isOpenObjective, judgeContent, judgeRequest, rankInstagramPosts, REQUEST_ISSUE_TEXT, type IgMedia, type OpenObjective, type RequestStatus } from "./meta-spec";
 import { formatEur, isLowCredit, MIN_BUDGET_CENTS, quote, daysLeft } from "./money";
 import { structuredRef } from "./structured-ref";
 import { todayBrussels } from "./sync";
@@ -147,15 +148,53 @@ export async function instagramPosts(restaurantId: string): Promise<{ ok: true; 
   return { ok: true, posts: rankInstagramPosts(r.data.data ?? [], new Date()) };
 }
 
+// ── Ce que la pub peut donner (avant de payer) ───────────────
+
+/** Personnes qui vivent ou passent dans la zone, selon Meta (lecture seule, aucune création). */
+async function zoneAudience(restaurantId: string, objective: OpenObjective, radiusKm: number): Promise<{ lo: number; hi: number } | null> {
+  const account = adAccount();
+  if (!account) return null;
+  const { data } = await createAdminClient().from("restaurants").select("lat, lng").eq("id", restaurantId).single();
+  const geo = data as { lat: number | null; lng: number | null } | null;
+  if (!geo || geo.lat === null || geo.lng === null) return null;
+  const r = await metaGet<{ data: { estimate_mau_lower_bound?: number; estimate_mau_upper_bound?: number }[] }>(
+    `${account}/delivery_estimate`,
+    { targeting_spec: buildTargeting({ lat: geo.lat, lng: geo.lng, radiusKm }), optimization_goal: META_SPEC[objective].optimizationGoal },
+    { actor: "system" },
+  );
+  const d = r.ok ? r.data.data?.[0] : undefined;
+  return d?.estimate_mau_lower_bound && d.estimate_mau_upper_bound ? { lo: d.estimate_mau_lower_bound, hi: d.estimate_mau_upper_bound } : null;
+}
+
+/** Ce que nos propres campagnes de cet objectif ont coûté sur 90 jours (pour recaler les coûts de départ). */
+async function observedCosts(objective: OpenObjective): Promise<Observed | null> {
+  const db = createAdminClient();
+  const camps = await db.from("ad_campaigns").select("id").eq("objective", objective).not("restaurant_id", "is", null);
+  const ids = ((camps.data ?? []) as { id: string }[]).map((c) => c.id);
+  if (!ids.length) return null;
+  const since = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
+  const st = await db.from("ad_daily_stats").select("spend_cents, impressions, clicks").in("campaign_id", ids).gte("day", since);
+  const rows = (st.data ?? []) as { spend_cents: number; impressions: number; clicks: number }[];
+  return rows.reduce((o, r) => ({ spendCents: o.spendCents + r.spend_cents, impressions: o.impressions + r.impressions, clicks: o.clicks + r.clicks }), { spendCents: 0, impressions: 0, clicks: 0 });
+}
+
+export async function estimateFor(restaurantId: string, objective: string, radiusKm: number, budgetCents: number): Promise<{ ok: true; estimate: Estimate } | { ok: false }> {
+  if (!isOpenObjective(objective) || !(budgetCents > 0)) return { ok: false };
+  const [audience, observed] = await Promise.all([zoneAudience(restaurantId, objective, radiusKm).catch(() => null), observedCosts(objective).catch(() => null)]);
+  const { benchmark, calibrated } = calibrate(DEFAULT_BENCHMARKS[objective], observed);
+  return { ok: true, estimate: estimateResults({ objective, budgetCents, audience, benchmark, calibrated }) };
+}
+
 // ── Le restaurateur demande ──────────────────────────────────
 
 const UPLOAD_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "video/mp4": "mp4", "video/quicktime": "mov" };
-export const MAX_CREATIVE_BYTES = 100 * 1024 * 1024;
+/** La limite globale de Supabase Storage du projet (50 Mo, constatée le 2026-10-29) passe avant celle du bucket. */
+export const MAX_CREATIVE_BYTES = 50 * 1024 * 1024;
 
 export async function requestCreativeUpload(restaurantId: string, type: string, size: number): Promise<{ ok: true; path: string; uploadUrl: string } | { ok: false; error: string }> {
   const ext = UPLOAD_TYPES[type];
   if (!ext) return { ok: false, error: "Envoie une photo (JPG, PNG, WebP) ou une vidéo (MP4, MOV)." };
-  if (!(size > 0 && size <= MAX_CREATIVE_BYTES)) return { ok: false, error: "Le fichier dépasse 100 Mo." };
+  if (!(size > 0 && size <= MAX_CREATIVE_BYTES)) return { ok: false, error: "Le fichier dépasse 50 Mo : envoie une version plus légère (une vidéo envoyée par WhatsApp est déjà compressée)." };
   const path = `${restaurantId}/${crypto.randomUUID()}.${ext}`;
   const signed = await createAdminClient().storage.from(CREATIVES_BUCKET).createSignedUploadUrl(path);
   if (signed.error || !signed.data) return { ok: false, error: "Envoi indisponible pour le moment." };
@@ -216,6 +255,11 @@ export async function createRequest(restaurantId: string, userId: string, raw: R
       targeting: { radiusKm: input.radiusKm },
       creative: input.creative,
       ad_text: input.adText,
+      offer_text: input.offer?.text ?? null,
+      offer_keyword: input.offer?.keyword ?? null,
+      offer_from: input.offer?.from ?? null,
+      offer_to: input.offer?.to ?? null,
+      estimate: await estimateFor(restaurantId, input.objective, input.radiusKm, input.budgetCents).then((e) => (e.ok ? e.estimate : null)),
       structured_ref: ref,
       terms_accepted_at: new Date().toISOString(),
       requested_by: userId,
@@ -242,13 +286,22 @@ export async function createRequest(restaurantId: string, userId: string, raw: R
       ["IBAN", pay.iban.replace(/(.{4})/g, "$1 ").trim()],
       ["BIC", pay.bic],
     ],
-    note: "Recopie la communication telle quelle : c'est elle qui relie ton virement à ta pub.",
+    note: input.offer
+      ? `Recopie la communication telle quelle : c'est elle qui relie ton virement à ta pub. Ton offre : « ${input.offer.text} », mot clé ${input.offer.keyword}, du ${dateFr(input.offer.from)} au ${dateFr(input.offer.to)} — préviens tes équipes.`
+      : "Recopie la communication telle quelle : c'est elle qui relie ton virement à ta pub.",
   });
   await alertPlatform("payment_expected", requestId, {
     subject: `Pub — ${r.client_code} ${r.name} : virement attendu ${formatEur(q.totalCents)}`,
     title: "Nouvelle demande de pub",
     lines: [`${r.name} demande une pub « ${OBJECTIVE_LABEL(input.objective)} ». Virement attendu.`],
-    rows: [["Communication", ref], ["Montant", formatEur(q.totalCents)], ["Budget", formatEur(q.budgetCents)], ["Frais", `${formatEur(q.feeCents)} (${q.feePct} %)`], ["Dates", `${dateFr(input.startsOn)} → ${dateFr(input.endsOn)}`]],
+    rows: [
+      ["Communication", ref],
+      ["Montant", formatEur(q.totalCents)],
+      ["Budget", formatEur(q.budgetCents)],
+      ["Frais", `${formatEur(q.feeCents)} (${q.feePct} %)`],
+      ["Dates", `${dateFr(input.startsOn)} → ${dateFr(input.endsOn)}`],
+      ...(input.offer ? ([["Offre", `${input.offer.text} — mot clé ${input.offer.keyword} (${dateFr(input.offer.from)} → ${dateFr(input.offer.to)})`]] as [string, string][]) : []),
+    ],
   });
   return { ok: true, requestId };
 }
@@ -414,8 +467,8 @@ export async function retryPrepare(requestId: string, userId: string): Promise<{
 /** Geste 2a : « Lancer » — les trois niveaux passent en diffusion. */
 export async function launchRequest(requestId: string, userId: string): Promise<{ ok: boolean; error?: string }> {
   const db = createAdminClient();
-  const { data } = await db.from("ad_requests").select("id, status, restaurant_id, requested_by, objective, starts_on").eq("id", requestId).single();
-  const q = data as { id: string; status: RequestStatus; restaurant_id: string; requested_by: string | null; objective: string; starts_on: string } | null;
+  const { data } = await db.from("ad_requests").select("id, status, restaurant_id, requested_by, objective, starts_on, offer_text, offer_keyword, offer_from, offer_to").eq("id", requestId).single();
+  const q = data as { id: string; status: RequestStatus; restaurant_id: string; requested_by: string | null; objective: string; starts_on: string; offer_text: string | null; offer_keyword: string | null; offer_from: string | null; offer_to: string | null } | null;
   if (!q || q.status !== "preparee") return { ok: false, error: "Cette demande n'est pas prête à lancer." };
   const r = await setDelivery(requestId, true, userId);
   if (!r.ok) return { ok: false, error: r.error };
@@ -425,6 +478,12 @@ export async function launchRequest(requestId: string, userId: string): Promise<
     subject: `${rest.name} — ta pub est validée`,
     title: "Ta pub est validée",
     intro: `Elle part en diffusion le ${dateFr(q.starts_on)}, après le dernier contrôle de Meta. Tes chiffres arrivent dans ta console chaque matin.`,
+    ...(q.offer_text && q.offer_keyword
+      ? {
+          rows: [["Offre", q.offer_text], ["Mot clé à dire au comptoir", q.offer_keyword], ["Valable", `du ${dateFr(q.offer_from)} au ${dateFr(q.offer_to)}`]] as [string, string][],
+          note: "Préviens tes équipes en salle : des clients vont venir avec ce mot clé.",
+        }
+      : {}),
   });
   return { ok: true };
 }
