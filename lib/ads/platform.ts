@@ -157,13 +157,24 @@ export async function loadPlatformPub(): Promise<PlatformPub | { ok: false }> {
   };
 }
 
-/** Pages Facebook et comptes Instagram que le System User peut utiliser pour signer une pub. */
+/**
+ * Pages Facebook et comptes Instagram que le System User peut utiliser pour signer une pub.
+ * Les pages : celles où il a le droit ADVERTISE (`me/accounts`) — `promote_pages` du compte
+ * publicitaire n'en listait qu'une sur trois (constaté le 2026-10-29 : Uccle absente alors que
+ * la page est partagée avec le droit « Ads »). Les comptes Instagram : ceux du compte
+ * publicitaire et ceux reliés à une page. Une page sans Instagram signe seule : Meta diffuse
+ * alors sur Instagram au nom de la page.
+ */
 export async function metaIdentities(): Promise<{ pages: { id: string; name: string }[]; instagram: { id: string; username: string }[] }> {
   const account = adAccount();
   if (!account) return { pages: [], instagram: [] };
   const [pages, ig] = await Promise.all([
-    metaGetAll<{ id: string; name: string }>(`${account}/promote_pages`, { fields: "id,name" }),
+    metaGetAll<{ id: string; name: string; tasks?: string[]; instagram_business_account?: { id: string; username: string } }>("me/accounts", { fields: "id,name,tasks,instagram_business_account{id,username}" }),
     metaGetAll<{ id: string; username: string }>(`${account}/instagram_accounts`, { fields: "id,username" }),
   ]);
-  return { pages: pages.ok ? pages.data : [], instagram: ig.ok ? ig.data : [] };
+  const usable = pages.ok ? pages.data.filter((p) => !p.tasks || p.tasks.includes("ADVERTISE")) : [];
+  const instagram = new Map<string, { id: string; username: string }>();
+  for (const a of ig.ok ? ig.data : []) instagram.set(a.id, a);
+  for (const p of usable) if (p.instagram_business_account) instagram.set(p.instagram_business_account.id, p.instagram_business_account);
+  return { pages: usable.map((p) => ({ id: p.id, name: p.name.trim() })), instagram: [...instagram.values()] };
 }
