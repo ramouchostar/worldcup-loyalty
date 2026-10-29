@@ -32,7 +32,7 @@ résultat réel cumulé (`ad_campaigns.lifetime`) : une estimation hors fourchet
 recale les coûts de départ. Aussi : **repère 10 à 15 € par jour** (alerte sous 5 €), raccourcis de
 période (« Les 2 prochaines semaines », « Semaines 2 et 3 de <mois> »), **offre + mot clé** facultatifs
 (rappelés au restaurateur pour ses équipes, ajoutés au texte d'une pub faite d'un fichier ; une
-publication Instagram garde sa légende), fichiers limités à **50 Mo** (limite globale du stockage).
+publication Instagram garde sa légende), fichiers limités à **200 Mo** (relevé le 2026-10-29 : une vidéo de tournage passe telle quelle ; limite globale du stockage Supabase et bucket `ad-creatives` au même niveau).
 
 ## Contexte
 
