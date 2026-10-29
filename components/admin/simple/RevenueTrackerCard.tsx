@@ -42,7 +42,7 @@ export function RevenueTrackerCard({
 
       {t.last === null ? (
         <p className="text-[14px] text-ink-muted mt-3">
-          Pas encore de chiffre d&apos;affaires noté. Note celui d&apos;hier en 30 secondes, par canal ou le total : il
+          Pas encore de chiffre d&apos;affaires noté. Note celui d&apos;hier en 30 secondes, ta caisse et tes plateformes : il
           s&apos;affiche ici tout de suite.{" "}
           <Link href={`/admin/${restaurantId}/ca/${yesterday}`} className="font-semibold text-ink underline underline-offset-4">
             Noter le CA d&apos;hier

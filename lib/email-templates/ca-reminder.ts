@@ -29,7 +29,7 @@ export function caReminderEmail(restaurantName: string, restaurantId: string, r:
     body.push(
       heading(`Ton chiffre du ${dayLabel(r.day)}`),
       paragraph(esc(t.body)),
-      softCard(esc("Par canal (Uber Eats, Deliveroo, Takeaway, à emporter, sur place) ou le total directement : comme tu préfères. Tu vois tout de suite ta semaine comparée à la précédente.")),
+      softCard(esc("Ta caisse (carte, cash, commandes internet) et tes plateformes (Uber Eats, Deliveroo, Takeaway) : le total se calcule tout seul. Tu vois tout de suite ta semaine comparée à la précédente.")),
       button(`Noter le CA du ${dayLabel(r.day)}`, url, "#0C1509"),
     );
     textLines.push(t.title, "", t.body, "", `Noter le CA : ${url}`);

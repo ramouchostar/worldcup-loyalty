@@ -53,7 +53,7 @@ export default async function CaDayPage({
     );
   }
 
-  const [{ days, program }, channels, pending] = await Promise.all([
+  const [{ days, program }, detail, pending] = await Promise.all([
     loadRevenueTracker(restaurantId, today),
     getDayChannels(restaurantId, jour),
     pendingServicesFor(restaurantId),
@@ -103,7 +103,7 @@ export default async function CaDayPage({
             restaurantId={restaurantId}
             day={jour}
             dayName={name}
-            initial={{ amount: current?.amount ?? null, tickets: current?.tickets ?? null, channels }}
+            initial={{ tickets: current?.tickets ?? null, channels: detail.channels, legacy: detail.legacy }}
           />
         </>
       ) : current?.closed ? (

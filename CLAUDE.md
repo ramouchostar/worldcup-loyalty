@@ -4,20 +4,14 @@
 
 > Réécrite (jamais empilée) à chaque commit ou déploiement — l'agent « cerveau » la lit. L'historique vit dans les PR et dans Supabase `memories`.
 
-- **Fait récemment (2026-10-27)** — Menu & coûts : prix de vente et prix de revient modifiables ligne par ligne (« Modifier » au survol, au-dessus du prix de vente et au-dessus du prix de revient, #367 + suivante), sans re-téléverser le CSV ; un coût relevé qui ferait dépasser le plafond d'un palier ou du cadeau des jetons est refusé (ADR 0017). Demande de Mounir.
-- **Fait (2026-10-24)** — CA du jour, ADR 0087, terminé (6 PR) :
-  - ADR (#359) ;
-  - push console du gérant (#360) ;
-  - saisie `/admin/[id]/ca/[jour]` par canal ou total, retour comparé avec taux de pénétration, jours manquants dans « À faire », retour après connexion, « Connecter ma caisse » (#361) ;
-  - rappels soir / 10 h / 15 h / 18 h / dimanche 15 h (#362), **allumés pour Houba et De Bue** ; premiers e-mails partis le 2026-10-24 à 11 h 05 ;
-  - « Ce jour-là » sous un écart inhabituel : météo photographiée chaque soir après 23 h, matchs, événements, vacances, fériés (#363) ;
-  - accueil « Ta performance » semaine après semaine (14 jours notés) et 7 prochains jours (28) (#364).
-  - Toutes les migrations sont appliquées, dont `service_requests`, oubliée depuis le 2026-10-08.
-  - Pub Meta en ligne le 2026-10-23 (#357), virement seul. Le 2026-10-24 : coordonnées de paiement posées sur Vercel (`PUB_PAYMENT_*`, compte Revolut, BIC REVOBEB2), **Pub ouverte à Houba seul** (`PUB_RESTAURANTS=houba`), production redéployée.
+- **Fait récemment (2026-10-29)** — CA du jour en **deux blocs** (ADR 0087 §2 amendé, demande de la démo De Bue du 2026-10-28) : caisse (carte, cash, commandes internet) + plateformes (Uber Eats, Deliveroo, Takeaway), sous-totaux, total toujours calculé (plus de total tapé qui effaçait les lignes), sur place / à emporter retirés (rappelés sur les 7 jours déjà notés par Houba). Migration `20261029-1200`.
+- **Fait (2026-10-27)** — Menu & coûts : prix de vente et prix de revient modifiables ligne par ligne, coût refusé s'il dépasse le plafond d'un palier ou des jetons (ADR 0017). Demande de Mounir.
+- **Fait (2026-10-24)** — CA du jour, ADR 0087 (6 PR, #359 à #364) : saisie console, rappels **allumés pour Houba et De Bue**, « Ce jour-là », « Ta performance ». Pub Meta en ligne (#357), virement seul, **ouverte à Houba seul** (`PUB_RESTAURANTS=houba`), paiement configuré sur Vercel.
 - **En cours** :
-  - Pub à Houba : choisir sa page Facebook et son Instagram sur `/platform/pub` (aucune identité en base), « Lire Meta maintenant », puis la première demande de bout en bout (virement → confirmation → lancement → facture dans Accountable) ;
-  - suivre le taux de saisie à Houba et De Bue (`daily_revenue_entries.source = 'console'`, `daily_revenue_reminders`) ; seuil de révision : moins de la moitié des jours notés après 2 semaines ;
-  - allumer Kraainem ensuite.
+  - Pub, suite de la démo du 2026-10-28 avec « BCK Uccle » = **De Bue (BE003)** : campagne notoriété 200 € semaines 2-3 de novembre (~14 €/j, 3 km), promo Family Bucket + mot clé (du 7 au 21), vidéos du tournage à intégrer. Avant : attribuer la page « Belchicken Uccle » au compte pub et au System User + relier son Instagram (Business Manager), `PUB_RESTAURANTS=houba,de-bue`, choisir la page sur `/platform/pub`. Améliorations à faire : estimation des résultats avant paiement, repère 10-15 €/jour, raccourcis de période, offre + mot clé ; puis « Visites » en reciblage et « Vidéo » optimisée sur les impressions. Frais Croissance **15 %** (le « 10 % » dit en démo est faux, à corriger auprès du client) ;
+  - Pub à Houba : page Facebook + Instagram sur `/platform/pub`, puis première demande de bout en bout ;
+  - suivre le taux de saisie du CA à Houba et De Bue ; seuil de révision : moins de la moitié des jours notés après 2 semaines ;
+  - idées de la démo, plus tard : export caisse par e-mail, Uber Eats automatisé, vidéo de fidélité en modèle par établissement (via Prestataires).
 - **Bloqué par** :
   - TVA et facturation de la Pub et des Prestataires : question au comptable (depuis le 2026-10-19) ;
   - validation de Revolut Business ;

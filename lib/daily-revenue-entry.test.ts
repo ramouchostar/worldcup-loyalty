@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { channelsNote, dayFeedback, isEditableDay, missingDays, parseEntry, shortDayLabel } from "./daily-revenue-entry";
+import { CAISSE, PLATEFORMES, blockTotal, channelsNote, dayFeedback, isEditableDay, missingDays, parseEntry, shortDayLabel } from "./daily-revenue-entry";
 import type { DailyEntry } from "./daily-revenue-model";
 
 const entry = (sales_day: string, amount: number | null, outcome: DailyEntry["outcome"] = "saisi"): DailyEntry => ({
@@ -13,50 +13,50 @@ const entry = (sales_day: string, amount: number | null, outcome: DailyEntry["ou
   note: null,
 });
 
-const blank = { closed: false, channels: {}, total: "", orders: "" };
+const blank = { closed: false, channels: {}, orders: "" };
 
-test("parseEntry : le total des canaux remplis, les vides ignorés", () => {
-  const r = parseEntry({ ...blank, channels: { uber: "266", takeaway: "112", emporter: "380", sur_place: "769" }, orders: "57" });
+test("parseEntry : caisse + plateformes, les vides ignorés", () => {
+  const r = parseEntry({ ...blank, channels: { carte: "812,40", cash: "236", internet: "58", uber: "266", deliveroo: "94,5" }, orders: "57" });
   assert.deepEqual(r, {
     ok: true,
     closed: false,
-    amount: 1527,
+    amount: 1466.9,
     tickets: 57,
-    channels: { uber: 266, deliveroo: null, takeaway: 112, emporter: 380, sur_place: 769 },
+    channels: { carte: 812.4, cash: 236, internet: 58, uber: 266, deliveroo: 94.5, takeaway: null },
   });
 });
 
-test("parseEntry : le total direct fait foi, milliers belges compris", () => {
-  const r = parseEntry({ ...blank, total: "1.527,50" });
-  assert.deepEqual(r, { ok: true, closed: false, amount: 1527.5, tickets: null, channels: null });
+test("parseEntry : un seul bloc suffit, milliers belges compris", () => {
+  const r = parseEntry({ ...blank, channels: { carte: "1.527,50" } });
+  assert.equal(r.ok && !r.closed && r.amount, 1527.5);
 });
 
-test("parseEntry : total ET canaux remplis → le total gagne, pas de détail faux", () => {
-  const r = parseEntry({ ...blank, total: "1500", channels: { uber: "266" } });
-  assert.equal(r.ok && !r.closed && r.channels, null);
-  assert.equal(r.ok && !r.closed && r.amount, 1500);
+test("blockTotal : sous-totaux caisse et plateformes", () => {
+  const ch = { carte: 800, cash: 200, internet: null, uber: 100, deliveroo: null, takeaway: 50.5 };
+  assert.equal(blockTotal(ch, CAISSE), 1000);
+  assert.equal(blockTotal(ch, PLATEFORMES), 150.5);
 });
 
 test("parseEntry : fermé ne demande rien d'autre", () => {
-  assert.deepEqual(parseEntry({ ...blank, closed: true, total: "abc" }), { ok: true, closed: true });
+  assert.deepEqual(parseEntry({ ...blank, closed: true, channels: { carte: "abc" } }), { ok: true, closed: true });
 });
 
 test("parseEntry : refus parlants", () => {
   assert.equal(parseEntry(blank).ok, false);
   const bad = parseEntry({ ...blank, channels: { uber: "deux cents" } });
   assert.ok(!bad.ok && bad.error.startsWith("Uber Eats"));
-  assert.equal(parseEntry({ ...blank, channels: { uber: "0" } }).ok, false); // 0 € ouvert → « fermé »
-  assert.equal(parseEntry({ ...blank, total: "250000" }).ok, false);
-  assert.equal(parseEntry({ ...blank, total: "1200", orders: "12,5" }).ok, false);
+  assert.equal(parseEntry({ ...blank, channels: { cash: "0" } }).ok, false); // 0 € ouvert → « fermé »
+  assert.equal(parseEntry({ ...blank, channels: { carte: "250000" } }).ok, false);
+  assert.equal(parseEntry({ ...blank, channels: { carte: "1200" }, orders: "12,5" }).ok, false);
 });
 
 test("parseEntry : 0 commande = non renseigné", () => {
-  const r = parseEntry({ ...blank, total: "900", orders: "0" });
+  const r = parseEntry({ ...blank, channels: { carte: "900" }, orders: "0" });
   assert.equal(r.ok && !r.closed && r.tickets, null);
 });
 
 test("channelsNote : le détail lisible pour le repli sans colonnes", () => {
-  assert.equal(channelsNote({ uber: 266, deliveroo: null, takeaway: 112, emporter: null, sur_place: 769 }), "Par canal : Uber Eats 266 · Takeaway 112 · Sur place 769");
+  assert.equal(channelsNote({ carte: 812, cash: null, internet: null, uber: 266, deliveroo: null, takeaway: 112 }), "Par canal : Carte 812 · Uber Eats 266 · Takeaway 112");
   assert.equal(channelsNote(null), null);
 });
 

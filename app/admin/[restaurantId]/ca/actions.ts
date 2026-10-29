@@ -29,7 +29,6 @@ export async function saveCaDay(formData: FormData) {
   const parsed = parseEntry({
     closed: formData.get("ferme") === "1",
     channels,
-    total: text(formData.get("total")),
     orders: text(formData.get("commandes"), 10),
   });
   if (!parsed.ok) redirect(`${page}?${new URLSearchParams({ modifier: "1", erreur: parsed.error })}`);

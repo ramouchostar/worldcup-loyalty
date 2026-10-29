@@ -234,7 +234,7 @@ test("caTodos : une ligne et un bouton par jour manquant, trois au plus", async 
   assert.deepEqual(items[0], {
     key: "ca:2026-10-26",
     title: "CA de lundi 26 à saisir",
-    hint: "30 secondes : par canal ou le total. C'est ce qui permet de suivre ta semaine.",
+    hint: "30 secondes : ta caisse et tes plateformes. C'est ce qui permet de suivre ta semaine.",
     href: "/admin/houba/ca/2026-10-26",
     count: 1,
     tone: "warn",
