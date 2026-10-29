@@ -188,13 +188,13 @@ export async function estimateFor(restaurantId: string, objective: string, radiu
 // ── Le restaurateur demande ──────────────────────────────────
 
 const UPLOAD_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "video/mp4": "mp4", "video/quicktime": "mov" };
-/** La limite globale de Supabase Storage du projet (50 Mo, constatée le 2026-10-29) passe avant celle du bucket. */
-export const MAX_CREATIVE_BYTES = 50 * 1024 * 1024;
+/** 200 Mo = une vidéo de tournage telle quelle (30 s en 4K) ; la limite globale de Supabase Storage et celle du bucket sont réglées pareil (2026-10-29). */
+export const MAX_CREATIVE_BYTES = 200 * 1024 * 1024;
 
 export async function requestCreativeUpload(restaurantId: string, type: string, size: number): Promise<{ ok: true; path: string; uploadUrl: string } | { ok: false; error: string }> {
   const ext = UPLOAD_TYPES[type];
   if (!ext) return { ok: false, error: "Envoie une photo (JPG, PNG, WebP) ou une vidéo (MP4, MOV)." };
-  if (!(size > 0 && size <= MAX_CREATIVE_BYTES)) return { ok: false, error: "Le fichier dépasse 50 Mo : envoie une version plus légère (une vidéo envoyée par WhatsApp est déjà compressée)." };
+  if (!(size > 0 && size <= MAX_CREATIVE_BYTES)) return { ok: false, error: "Le fichier dépasse 200 Mo : envoie une version plus légère (une vidéo envoyée par WhatsApp est déjà compressée)." };
   const path = `${restaurantId}/${crypto.randomUUID()}.${ext}`;
   const signed = await createAdminClient().storage.from(CREATIVES_BUCKET).createSignedUploadUrl(path);
   if (signed.error || !signed.data) return { ok: false, error: "Envoi indisponible pour le moment." };
