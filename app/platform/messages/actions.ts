@@ -6,6 +6,7 @@ import { isSequenceKey } from "@/lib/message-catalog";
 import { setMessageEnabled } from "@/lib/message-log";
 import { sendTestEmail } from "@/lib/email";
 import { defaultImage, previewEntries } from "@/lib/email-templates/fixtures";
+import { judgeAnnouncement, sendAnnouncement, sendAnnouncementPreview, type AnnouncementInput, type AnnouncementOutcome } from "@/lib/pro-announcements";
 
 // Même garde locale que les autres Server Actions de /platform : un layout ne
 // protège pas une action, chaque action revérifie le super-admin.
@@ -46,4 +47,25 @@ export async function sendTestEmailAction(entryId: string): Promise<{ ok: boolea
   return sent
     ? { ok: true, message: `Parti vers ${user.email}. Il apparaît dans le journal ci-dessous.` }
     : { ok: false, message: "Pas parti — la raison est dans « Dernier échec » et dans le journal." };
+}
+
+// Annonce aux restaurateurs : l'aperçu part vers le super-admin qui clique, l'envoi
+// vers le propriétaire de chaque établissement choisi (réel et actif uniquement).
+export async function announcementAction(
+  input: AnnouncementInput,
+  mode: "preview" | "send"
+): Promise<{ ok: boolean; message: string; outcomes?: AnnouncementOutcome[] }> {
+  const user = await requireSuperAdmin();
+  if (!user?.email) return { ok: false, message: "Réservé à la plateforme." };
+  const invalid = judgeAnnouncement(input);
+  if (invalid) return { ok: false, message: invalid };
+  if (mode === "preview") {
+    const sent = await sendAnnouncementPreview(input, user.email, user.id);
+    revalidatePath("/platform/messages");
+    return sent ? { ok: true, message: `Aperçu parti vers ${user.email}.` } : { ok: false, message: "Aperçu pas parti — la raison est dans « Dernier échec »." };
+  }
+  const outcomes = await sendAnnouncement(input);
+  revalidatePath("/platform/messages");
+  const sent = outcomes.filter((o) => o.status === "sent").length;
+  return { ok: sent > 0 && outcomes.every((o) => o.status === "sent" || o.status === "already_sent"), message: `${sent} e-mail${sent > 1 ? "s" : ""} parti${sent > 1 ? "s" : ""}.`, outcomes };
 }
