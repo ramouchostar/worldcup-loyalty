@@ -10,6 +10,8 @@ import { previewMemberSequences, type SequencePreview } from "@/lib/sequence-run
 import { MEMBER_SEQUENCE_KEYS } from "@/lib/sequence-rules";
 import { SequenceSwitch } from "./SequenceSwitch";
 import { TestEmailForm } from "./TestEmailForm";
+import { AnnouncementForm } from "./AnnouncementForm";
+import { ANNOUNCEMENT_DRAFT } from "@/lib/pro-announcement-draft";
 
 export const metadata = { title: "Messages — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -193,6 +195,12 @@ export default async function PlatformMessagesPage() {
           <TestEmailForm options={testOptions} to={user.email ?? null} />
           <p className="text-xs text-gray-500 mt-2">Gabarit réel, rendu sur l&apos;établissement fictif des maquettes ; objet préfixé « [Test] ».</p>
         </div>
+      </section>
+
+      {/* ── Écrire aux restaurateurs ───────────────────────────────────── */}
+      <section className="bg-white border border-gray-200 rounded-2xl p-5">
+        {sectionTitle("Écrire aux restaurateurs", "Une nouveauté de la console : un e-mail au propriétaire de chaque établissement choisi, journalisé ci-dessous (« Annonce aux restaurateurs »).")}
+        <AnnouncementForm restaurants={o.restaurants} draft={ANNOUNCEMENT_DRAFT} to={user.email ?? null} />
       </section>
 
       {/* ── Ce qui part ───────────────────────────────────────────────────── */}

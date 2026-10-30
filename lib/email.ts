@@ -228,7 +228,7 @@ export async function wasEmailSentRecently(
 // Logo de l'établissement pour l'en-tête des e-mails. `restaurants.logo_url`
 // est un CHEMIN dans le bucket (« kraainem/logo-….png ») : il faut l'URL
 // publique, sinon l'image est cassée dans toutes les boîtes de réception.
-async function getRestaurantLogoUrl(restaurantId: string): Promise<string | null> {
+export async function getRestaurantLogoUrl(restaurantId: string): Promise<string | null> {
   try {
     const branding = await getRestaurantBranding(restaurantId);
     return logoPublicUrl(branding.logo_url);

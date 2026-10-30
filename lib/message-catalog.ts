@@ -58,6 +58,7 @@ export const MESSAGES: MessageDef[] = [
   { key: "mission_update", label: "Mission : jour J et livraison", audience: "restaurant", kind: "transactionnel", when: "Compte-rendu prêt, livraison reçue, livraison validée, compte-rendu contesté", channels: "E-mail" },
   { key: "pub_update", label: "Pub : chaque étape", audience: "restaurant", kind: "transactionnel", when: "Demande reçue (virement), virement reçu, pub en ligne, à corriger, budget bientôt épuisé, pub terminée", channels: "E-mail" },
   { key: "pub_alert", label: "Pub : alerte plateforme", audience: "restaurant", kind: "transactionnel", when: "Vers PUB_ALERT_EMAIL : virement attendu, à lancer, facture à émettre, refus Meta, dépense non rattachée, appel Meta en échec", channels: "E-mail" },
+  { key: "pro_announcement", label: "Annonce aux restaurateurs", audience: "restaurant", kind: "transactionnel", when: "Écrite et envoyée depuis /platform/messages (une nouveauté de la console)", channels: "E-mail" },
   { key: "test", label: "E-mail de test", audience: "member", kind: "transactionnel", when: "Envoyé depuis cette page", channels: "E-mail" },
 
   // ── Notifications (notification_log) ─────────────────────────────────────
