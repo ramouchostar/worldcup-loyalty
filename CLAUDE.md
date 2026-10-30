@@ -4,21 +4,25 @@
 
 > Réécrite (jamais empilée) à chaque commit ou déploiement — l'agent « cerveau » la lit. L'historique vit dans les PR et dans Supabase `memories`.
 
-- **Fait récemment (2026-10-30)** — « Écrire aux restaurateurs » sur `/platform/messages` : annonce par e-mail au propriétaire de chaque établissement réel choisi (`lib/pro-announcements.ts`, gabarit `pro-announcement.ts`, clé `pro_announcement` journalisée), aperçu d'abord, même objet jamais renvoyé dans les 24 h ; brouillon préparé dans `lib/pro-announcement-draft.ts` (nouveautés Pub + CA du jour, Houba et De Bue).
-- **Fait (2026-10-29)** — Pub, premier temps des demandes de la démo De Bue (ADR 0086 amendé) : estimation en fourchette avant paiement (personnes touchées / clics / affichages, audience de la zone lue chez Meta, coûts de départ = campagne réelle de Houba puis nos campagnes ≥ 50 €), comparée au réel cumulé sur `/platform/pub` ; repère 10-15 €/jour ; raccourcis « Semaines 2 et 3 de <mois> » ; offre + mot clé ; fichiers jusqu'à 200 Mo (limite globale Supabase relevée, migration `20261029-1700`). Migration `20261029-1500`.
-- **Fait (2026-10-29)** — CA du jour en **deux blocs** (ADR 0087 §2 amendé, demande de la démo De Bue du 2026-10-28) : caisse (carte, cash, commandes internet) + plateformes (Uber Eats, Deliveroo, Takeaway), sous-totaux, total toujours calculé (plus de total tapé qui effaçait les lignes), sur place / à emporter retirés (rappelés sur les 7 jours déjà notés par Houba). Migration `20261029-1200`.
-- **Fait (2026-10-27)** — Menu & coûts : prix de vente et prix de revient modifiables ligne par ligne, coût refusé s'il dépasse le plafond d'un palier ou des jetons (ADR 0017). Demande de Mounir.
-- **Fait (2026-10-24)** — CA du jour, ADR 0087 (6 PR, #359 à #364) : saisie console, rappels **allumés pour Houba et De Bue**, « Ce jour-là », « Ta performance ». Pub Meta en ligne (#357), virement seul, **ouverte à Houba seul** (`PUB_RESTAURANTS=houba`), paiement configuré sur Vercel.
-- **En cours** :
-  - Pub, suite de la démo du 2026-10-28 avec « BCK Uccle » = **De Bue (BE003)** : campagne notoriété 200 € semaines 2-3 de novembre (~14 €/j, 3 km), promo Family Bucket + mot clé (du 7 au 21), vidéos du tournage à intégrer. La page « Belchicken Uccle » est partagée avec le droit « Ads » (vérifié le 2026-10-29) ; **pas de compte Instagram** : la pub est signée par la page seule (Meta diffuse sur Instagram au nom de la page, testé en pause), donc création par fichier envoyé, pas de publication Instagram à choisir. Reste : `PUB_RESTAURANTS=houba,de-bue`, puis choisir la page (« Sans Instagram ») sur `/platform/pub`. Reste : « Visites » en reciblage et « Vidéo » optimisée sur les impressions. Frais Croissance **15 %** (le « 10 % » dit en démo est faux, à corriger auprès du client) ;
-  - Pub à Houba : page Facebook + Instagram sur `/platform/pub`, puis première demande de bout en bout ;
+- **Fait récemment (2026-10-30)** — « Écrire aux restaurateurs » sur `/platform/messages` (PR #373) : annonce par e-mail au propriétaire de chaque établissement réel choisi (`lib/pro-announcements.ts`, gabarit `pro-announcement.ts`, clé `pro_announcement` journalisée), aperçu d'abord, même objet jamais renvoyé dans les 24 h ; brouillon dans `lib/pro-announcement-draft.ts`. **Première annonce envoyée le 2026-10-30** à Houba et De Bue (nouveautés Pub + CA du jour, « parti » au journal).
+- **Fait (2026-10-29)** — Pub : fichiers jusqu'à **200 Mo** (PR #372 ; limite globale Supabase Storage et bucket `ad-creatives` relevés, migration `20261029-1700` appliquée) ; liste des pages par `me/accounts` (PR #371) ; identités en base : Houba = page + @belchickenhouba, De Bue = page « Belchicken Uccle » sans Instagram.
+- **Fait (2026-10-29)** — Pub, premier temps des demandes de la démo De Bue (PR #370, ADR 0086 amendé) : estimation en fourchette avant paiement (audience de la zone lue chez Meta, coûts de départ = campagne réelle de Houba puis nos campagnes ≥ 50 €), comparée au réel cumulé sur `/platform/pub` ; repère 10-15 €/jour ; raccourcis « Semaines 2 et 3 de <mois> » ; offre + mot clé. Migration `20261029-1500`.
+- **Fait (2026-10-29)** — CA du jour en **deux blocs** (PR #369, ADR 0087 §2 amendé) : caisse (carte, cash, commandes internet) + plateformes (Uber Eats, Deliveroo, Takeaway), total toujours calculé, sur place / à emporter retirés. Migration `20261029-1200`.
+- **Fait (2026-10-27)** — Menu & coûts : prix de vente et prix de revient modifiables ligne par ligne, coût refusé s'il dépasse le plafond d'un palier ou des jetons (ADR 0017).
+- **Décidé (2026-10-30, Mehdi)** — **pas de renommage des plats** pour l'instant (demande restaurateurs) : trop risqué (rattachement des tickets par le nom, taille « (n) » de l'ADR 0067, réimport CSV par nom, nom vu des membres). Mehdi annonce d'abord les risques et demande **pourquoi** ils veulent renommer ; selon la réponse : renommage protégé (ancien nom en alias), nom d'affichage séparé, ou rapprochement manuel existant.
+- **En cours (2026-10-30)** :
+  - Pub De Bue (= « BCK Uccle », BE003) : campagne notoriété 200 € du 9 au 22 novembre (~14 €/j, 3 km), promo Family Bucket + mot clé (du 7 au 21), vidéos du tournage du 1er novembre (envoyables telles quelles ≤ 200 Mo, de préférence en wifi). Frais Croissance **15 %** (le « 10 % » dit en démo est faux, à corriger auprès du client) ;
+  - `PUB_RESTAURANTS` : Mehdi a ajouté `de-bue` dans Vercel ; vérifier que la valeur **Production** est `houba,de-bue` et redéployer si besoin (la console De Bue ne doit plus dire « Bientôt chez toi ») ;
+  - Pub, second temps : « Visites » en reciblage, « Vidéo » optimisée sur les impressions ; Kraainem pas ouvert à la Pub (pas de page choisie) ;
   - suivre le taux de saisie du CA à Houba et De Bue ; seuil de révision : moins de la moitié des jours notés après 2 semaines ;
   - idées de la démo, plus tard : export caisse par e-mail, Uber Eats automatisé, vidéo de fidélité en modèle par établissement (via Prestataires).
 - **Bloqué par** :
   - TVA et facturation de la Pub et des Prestataires : question au comptable (depuis le 2026-10-19) ;
   - validation de Revolut Business ;
-  - aucun gérant n'a encore activé les notifications (carte « Recevoir les alertes » de l'accueil) : les rappels partent par e-mail seulement.
-- **Échéances** : 2026-11-02, relancer Houba (passage payant) et faire le point sur De Bue (offre Croissance à 150 €/mois du 2026-10-21).
+  - renommage des plats : réponse des restaurateurs sur le pourquoi (depuis le 2026-10-30) ;
+  - aucun gérant n'a encore activé les notifications (carte « Recevoir les alertes » de l'accueil) : les rappels partent par e-mail seulement ;
+  - sur le PC Euronet, Zscaler bloque le JavaScript du site : tout clic console/plateforme se fait depuis le téléphone (4G).
+- **Échéances** : 2026-11-02, relancer Houba (passage payant) et faire le point sur De Bue (offre Croissance à 150 €/mois du 2026-10-21) ; 2026-11-09, lancement de la pub De Bue.
 
 ---
 
