@@ -379,11 +379,11 @@ export async function sendMissionUpdateEmail(to: string, input: MissionUpdateInp
 // Le journal (message_sends, user_id + step) EST le compteur des relances.
 export async function sendOnboardingReminderEmail(
   to: string,
-  params: { ownerId: string; establishments: EstablishmentProgress[]; step: 1 | 2 }
+  params: { ownerId: string; establishments: EstablishmentProgress[]; step: number; last: boolean }
 ): Promise<boolean> {
   const firstId = params.establishments[0]?.id ?? null;
   const logoUrl = params.establishments.length === 1 && firstId ? await getRestaurantLogoUrl(firstId) : null;
-  return dispatch(to, onboardingReminderEmail({ establishments: params.establishments, step: params.step, logoUrl }), {
+  return dispatch(to, onboardingReminderEmail({ establishments: params.establishments, step: params.step, last: params.last, logoUrl }), {
     key: "onboarding_reminder",
     audience: "restaurant",
     restaurantId: firstId,

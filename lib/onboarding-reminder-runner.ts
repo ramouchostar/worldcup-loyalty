@@ -7,15 +7,15 @@ import { brusselsHour, decideOnboardingReminder, type OnboardingDecision } from 
 // Relance d'inscription restaurateur — lecture, décision (règles pures),
 // envoi. SERVEUR UNIQUEMENT. Les comptes démo ne sont jamais lus. Le compteur
 // des relances est le journal des envois (message_sends : clé
-// onboarding_reminder, user_id = propriétaire, step 1 ou 2) : illisible, on
-// n'envoie rien.
+// onboarding_reminder, user_id = propriétaire, step = numéro de la relance) :
+// illisible, on n'envoie rien.
 
 export type OnboardingRunResult = {
   ok: boolean;
   brusselsHour: number;
   owners: number;
-  sent: { ownerId: string; step: 1 | 2; restaurants: string[]; ok: boolean }[];
-  /** Deux relances sans effet depuis 48 h : à reprendre par l'équipe (Field management). */
+  sent: { ownerId: string; step: number; restaurants: string[]; ok: boolean }[];
+  /** Trois relances ou plus sans effet : à reprendre aussi par l'équipe (appel, WhatsApp). */
   escalate: { ownerId: string; email: string | null; restaurants: string[] }[];
   waiting: Record<string, number>;
   skipped: { noOwner: number; noEmail: number };
@@ -79,9 +79,8 @@ export async function runOnboardingReminders(now = new Date()): Promise<Onboardi
       hour,
     );
     const restaurants = entry.establishments.map((e) => e.id);
-    if (decision.action === "escalate") {
+    if (decision.action !== "complete" && decision.escalate) {
       result.escalate.push({ ownerId, email: emails.get(ownerId) ?? null, restaurants });
-      continue;
     }
     if (decision.action !== "send") {
       const k = decision.action === "wait" ? `wait_${decision.reason}` : decision.action;
@@ -93,7 +92,7 @@ export async function runOnboardingReminders(now = new Date()): Promise<Onboardi
       result.skipped.noEmail++;
       continue;
     }
-    const ok = await sendOnboardingReminderEmail(email, { ownerId, establishments: entry.establishments, step: decision.step });
+    const ok = await sendOnboardingReminderEmail(email, { ownerId, establishments: entry.establishments, step: decision.step, last: decision.last });
     result.sent.push({ ownerId, step: decision.step, restaurants, ok });
   }
   return result;

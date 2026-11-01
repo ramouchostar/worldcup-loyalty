@@ -2,9 +2,13 @@ import { appLink, button, esc, eyebrow, heading, linkButton, paragraph, proShell
 import { missingSteps, type EstablishmentProgress } from "../partner-progress";
 
 // Restaurateur — inscription arrêtée avant la carte ou le ticket (ADR 0075).
-// Un seul e-mail pour tous ses établissements, deux relances au plus
-// (règles : lib/onboarding-reminder-rules.ts). Deux boutons : finir, ou
-// écrire à l'équipe sur WhatsApp si quelque chose bloque.
+// Un seul e-mail pour tous ses établissements ; J+2, J+7, J+14 puis toutes les
+// deux semaines, six au plus (règles : lib/onboarding-reminder-rules.ts). Deux
+// boutons : finir, ou écrire à l'équipe sur WhatsApp si quelque chose bloque.
+// Carte manquante : on dit qu'une estimation du prix de revient suffit (Krusty
+// bloqué des semaines sur ses coûts, constaté le 2026-11-01), arrondie vers le
+// haut en cas de doute — un coût surestimé rend les cadeaux plus prudents,
+// jamais plus chers pour le restaurant (ADR 0017).
 
 // WhatsApp de l'équipe Boosteats (Mehdi) — jamais celui d'un restaurant.
 export const TEAM_WHATSAPP_URL = "https://wa.me/qr/JOTKDLJ4QGQ2G1";
@@ -25,7 +29,10 @@ function establishmentLine(e: Pick<EstablishmentProgress, "name" | "sector" | "h
 
 export function onboardingReminderEmail(input: {
   establishments: Pick<EstablishmentProgress, "name" | "sector" | "hasMenu" | "hasTicket">[];
-  step: 1 | 2;
+  /** Numéro de la relance (1 = la première). */
+  step: number;
+  /** Dernière relance par e-mail (la 6e). */
+  last?: boolean;
   logoUrl?: string | null;
 }): RenderedEmail {
   const list = input.establishments;
@@ -43,31 +50,49 @@ export function onboardingReminderEmail(input: {
       ? "Tant que l'inscription n'est pas terminée, ton établissement reste invisible pour tes clients."
       : "Tant que l'inscription n'est pas terminée, tes établissements restent invisibles pour tes clients.";
   const url = appLink(FINISH_PATH);
+  const first1 = input.step === 1;
+  const menuMissing = list.some((e) => missingSteps(e).includes("menu"));
+  const finishLabel = menuMissing && !first1 ? "Terminer ma carte" : "Finaliser mon inscription";
+  const costLines = [
+    "Pour ta carte, tu n'as pas besoin de tes prix de revient au centime près : un ordre de grandeur suffit (« ce burger me coûte environ 3 € »). Tu pourras les corriger quand tu veux dans Menu & coûts.",
+    "En cas de doute, arrondis vers le haut : tes cadeaux restent prudents et ne te coûteront jamais plus que prévu.",
+  ];
+  const costPrivacy = "Tes prix de revient ne sont jamais montrés à tes clients : ils servent seulement à calculer des cadeaux qui restent rentables pour toi.";
 
-  const subject =
-    input.step === 1 ? "Ton compte Boosteats est presque prêt" : `Il ne manque presque rien pour lancer ${oneName ? first.name : "tes établissements"}`;
-  const preheader =
-    input.step === 1
-      ? "Il ne nous manque plus que quelques informations de ta part."
+  const name = oneName ? first.name : "tes établissements";
+  const subject = first1
+    ? "Ton compte Boosteats est presque prêt"
+    : menuMissing
+      ? `${oneName ? `${first.name} — ta` : "Ta"} carte, sans chercher le centime`
+      : `Il ne manque presque rien pour lancer ${name}`;
+  const preheader = first1
+    ? "Il ne nous manque plus que quelques informations de ta part."
+    : menuMissing
+      ? "Une estimation suffit pour tes prix de revient."
       : "Un souci pour finir ? Écris-moi sur WhatsApp, je t'aide.";
+  const title = first1
+    ? "Termine la configuration de ton compte"
+    : menuMissing
+      ? "Une estimation suffit pour tes prix de revient"
+      : "Besoin d'un coup de main pour finir ?";
 
   const intro = (b: string) =>
-    input.step === 1
+    first1
       ? `Ton compte Boosteats est quasiment prêt. Il ne nous manque plus que quelques informations de ta part pour lancer le programme de fidélité de ${b}.`
       : `Le programme de fidélité de ${b} n'attend plus que toi : il reste quelques minutes de configuration.`;
+  const help = first1
+    ? `Clique sur « ${finishLabel} » : ça prend quelques minutes.`
+    : "Si quelque chose te bloque (la carte, le ticket ou autre chose), écris-moi sur WhatsApp : on finit ensemble.";
 
   const body = [
-    eyebrow(input.step === 1 ? "Inscription · presque fini" : "Inscription · dernier rappel"),
-    heading(input.step === 1 ? "Termine la configuration de ton compte" : "Besoin d'un coup de main pour finir ?"),
+    eyebrow(first1 ? "Inscription · presque fini" : input.last ? "Inscription · dernier rappel" : "Inscription · rappel"),
+    heading(title),
     paragraph("Bonjour,"),
     paragraph(esc(intro("{{nom}}")).replace("{{nom}}", strong(brand))),
     paragraph(lines.map((l) => `• ${esc(l)}`).join("<br />")),
-    paragraph(
-      input.step === 1
-        ? `Clique sur ${strong("Finaliser mon inscription")} : ça prend quelques minutes.`
-        : `Si quelque chose te bloque (la carte, le ticket ou autre chose), écris-moi sur WhatsApp : on finit ensemble.`
-    ),
-    button("Finaliser mon inscription", url, "#0C1509"),
+    ...(menuMissing ? [...costLines.map((l) => paragraph(esc(l))), small(esc(costPrivacy))] : []),
+    paragraph(first1 ? `Clique sur ${strong(finishLabel)} : ça prend quelques minutes.` : esc(help)),
+    button(finishLabel, url, "#0C1509"),
     linkButton("Un souci ? Écris-moi sur WhatsApp", TEAM_WHATSAPP_URL),
     small(esc(invisible)),
     paragraph(`— Mehdi, l'équipe Boosteats`),
@@ -80,18 +105,22 @@ export function onboardingReminderEmail(input: {
     subject,
     preheader,
     body: body.join("\n"),
-    footer: { reason: `Tu reçois cet e-mail parce que l'inscription de ${oneName ? first.name : "tes établissements"} sur Boosteats n'est pas terminée. Deux rappels au plus.` },
+    footer: {
+      reason: `Tu reçois cet e-mail parce que l'inscription de ${name} sur Boosteats n'est pas terminée. ${input.last ? "C'est le dernier rappel par e-mail." : "Un rappel toutes les deux semaines au plus, six en tout."}`,
+    },
   });
 
-  const text = `${input.step === 1 ? "Termine la configuration de ton compte" : "Besoin d'un coup de main pour finir ?"}
+  const text = `${title}
 
 Bonjour,
 
 ${intro(brand)}
 
 ${lines.map((l) => `- ${l}`).join("\n")}
+${menuMissing ? `\n${costLines.join("\n\n")}\n\n${costPrivacy}\n` : ""}
+${help}
 
-Finaliser mon inscription : ${url}
+${finishLabel} : ${url}
 Un souci ? Écris-moi sur WhatsApp : ${TEAM_WHATSAPP_URL}
 
 ${invisible}
