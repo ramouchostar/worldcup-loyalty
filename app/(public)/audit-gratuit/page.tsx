@@ -6,7 +6,8 @@ import { AuditGratuit } from "@/components/audit-gratuit/AuditGratuit";
 // restaurateurs : l'établissement, l'analyse en direct, la note, puis le
 // numéro WhatsApp qui débloque le rapport complet (ADR 0069).
 export const metadata = {
-  title: "Audit gratuit de votre établissement",
+  title: "Analyse gratuite de votre restaurant : note sur 100",
+  alternates: { canonical: "/audit-gratuit" },
   description:
     "Fiche Google, avis, concurrents à 600 m, site et mobile : une note sur 100 en moins d'une minute, puis le rapport complet et cinq priorités sur WhatsApp.",
 };

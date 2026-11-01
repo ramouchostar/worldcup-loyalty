@@ -47,13 +47,16 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 // n'apparaît que sur ses propres surfaces, jamais dans les métadonnées
 // globales partagées par tous les restos.
 export const metadata: Metadata = {
+  // Adresse de base : les URL relatives (canonical, images) deviennent absolues.
+  metadataBase: new URL(APP_URL),
   title: {
     default: "Boosteats",
     template: "%s — Boosteats",
   },
+  // Défaut neutre (2026-11-01) : les pages publiques posent leur propre texte,
+  // les pages membre aussi ; celui-ci ne parle plus de l'ancien produit.
   description:
-    "Programme de fidélité communautaire par équipes. Commandez directement chez vos restaurants préférés, faites progresser votre équipe, gagnez des récompenses ensemble.",
-  keywords: ["fidélité", "restaurants", "Bruxelles", "récompenses", "communauté"],
+    "Boosteats aide les restaurants à faire revenir leurs clients et à en faire venir de nouveaux : fidélité sans rien brancher, pub de quartier, chiffre du jour.",
   authors: [{ name: "Boosteats" }],
   creator: "Boosteats",
   manifest: "/manifest.webmanifest",
@@ -69,12 +72,12 @@ export const metadata: Metadata = {
     siteName: "Boosteats",
     title: "Boosteats",
     description:
-      "Rejoins ton équipe et commande directement chez tes restaurants préférés. Programme de fidélité communautaire par équipes.",
+      "Faites revenir vos clients et faites venir le quartier. Rien à brancher : le ticket de caisse suffit.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Boosteats",
-    description: "Rejoins ton équipe et gagne des cadeaux en commandant directement.",
+    description: "Faites revenir vos clients et faites venir le quartier. Rien à brancher : le ticket de caisse suffit.",
   },
   robots: {
     index: true,

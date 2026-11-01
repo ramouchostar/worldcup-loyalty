@@ -28,21 +28,61 @@ import { SITE_ORIGIN } from "@/lib/site";
 
 export const revalidate = 300;
 
-const TITLE = "Le copilote marketing des restaurants";
+// Titre et description (2026-11-01, docs/strategie/seo-et-pages.md) : les mots
+// que tapent les restaurateurs, et seulement des fonctions livrées.
+const TITLE = "Programme de fidélité et pub pour restaurants";
 const DESCRIPTION =
-  "Inscrire les clients avec une fidélité gratuite à vie, les faire revenir avec des campagnes prêtes en un clic, soigner ses avis et sa place sur Google. Chaque mois, ce que cela a rapporté.";
+  "Faites revenir vos clients et faites venir le quartier. Rien à brancher : le ticket de caisse suffit. Analyse gratuite de votre restaurant en une minute.";
 
 // L'aperçu de partage (WhatsApp, LinkedIn) reprenait sinon celui du layout
 // racine, écrit pour les membres (« Rejoins ton équipe… ») : la landing
 // prospects a le sien, en impersonnel (CONTEXT.md, registre de la landing).
 export const metadata = {
-  title: TITLE,
+  title: { absolute: `${TITLE} — Boosteats` },
   description: DESCRIPTION,
+  alternates: { canonical: "/" },
   // `images` est redonné : un openGraph de page remplace celui du layout, image comprise.
   openGraph: { title: `Boosteats — ${TITLE}`, description: DESCRIPTION, url: SITE_ORIGIN, siteName: "Boosteats", locale: "fr_BE", type: "website", images: ["/opengraph-image"] },
   twitter: { card: "summary_large_image", title: `Boosteats — ${TITLE}`, description: DESCRIPTION, images: ["/opengraph-image"] },
 };
 
+// Données structurées (schema.org) : qui nous sommes et ce qu'on vend, prix
+// HTVA par établissement (Croissance 150 € depuis le 2026-11-01). Aucune note
+// ni avis inventé : on n'en ajoute qu'avec de vrais avis publiés.
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_ORIGIN}/#organisation`,
+      name: "Boosteats",
+      url: SITE_ORIGIN,
+      logo: `${SITE_ORIGIN}/icons/icon-boosteats.png`,
+      areaServed: { "@type": "City", name: "Bruxelles" },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Boosteats",
+      url: SITE_ORIGIN,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      inLanguage: "fr-BE",
+      description: DESCRIPTION,
+      publisher: { "@id": `${SITE_ORIGIN}/#organisation` },
+      offers: [
+        { "@type": "Offer", name: "Gratuit", price: "0", priceCurrency: "EUR" },
+        { "@type": "Offer", name: "Croissance", price: "150", priceCurrency: "EUR", description: "Par mois et par établissement, HTVA, sans engagement" },
+        { "@type": "Offer", name: "Pro", price: "500", priceCurrency: "EUR", description: "Par mois et par établissement, HTVA, 3 mois minimum" },
+      ],
+    },
+  ],
+};
+
 export default function RestaurateursLandingPage() {
-  return <RestaurateursLanding />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
+      <RestaurateursLanding />
+    </>
+  );
 }
