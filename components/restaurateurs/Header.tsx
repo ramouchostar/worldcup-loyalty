@@ -20,9 +20,9 @@ export function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-7">
           <NavLink href="/audit-gratuit">Audit gratuit</NavLink>
-          <NavLink href="#fonctionnalites">Fonctionnalités</NavLink>
-          <NavLink href="#plans">Plans</NavLink>
-          <NavLink href="#questions">Questions</NavLink>
+          <NavLink href="/#fonctionnalites">Fonctionnalités</NavLink>
+          <NavLink href="/#plans">Plans</NavLink>
+          <NavLink href="/#questions">Questions</NavLink>
           <NavLink href="/login?as=resto">Connexion</NavLink>
           <TrackedLink
             ctaId="devenir_partenaire"

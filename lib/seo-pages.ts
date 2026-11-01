@@ -18,6 +18,17 @@ export type SeoPage = {
 export const SEO_PAGES: SeoPage[] = [
   { path: "/", updated: "2026-11-01", priority: 1, changeFrequency: "weekly" },
   { path: "/audit-gratuit", updated: "2026-11-01", priority: 0.9, changeFrequency: "monthly" },
+  // Pages d'analyse (aimant à contacts) et pages de fonction : lib/marketing-pages.ts.
+  { path: "/analyse-fiche-google-restaurant", updated: "2026-11-01", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/analyse-avis-google-restaurant", updated: "2026-11-01", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/visibilite-restaurant", updated: "2026-11-01", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/programme-fidelite-restaurant", updated: "2026-11-01", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/cadeaux-calcules-sur-vos-couts", updated: "2026-11-01", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/relancer-vos-clients", updated: "2026-11-01", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/publicite-restaurant", updated: "2026-11-01", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/fiche-google-restaurant", updated: "2026-11-01", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/chiffre-affaires-restaurant", updated: "2026-11-01", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/food-cost-restaurant", updated: "2026-11-01", priority: 0.8, changeFrequency: "monthly" },
   { path: "/become-a-partner", updated: "2026-11-01", priority: 0.7, changeFrequency: "monthly" },
   { path: "/membres", updated: "2026-11-01", priority: 0.4, changeFrequency: "monthly" },
   { path: "/conditions-restaurateurs", updated: "2026-11-01", priority: 0.2, changeFrequency: "yearly" },
