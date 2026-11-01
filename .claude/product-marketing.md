@@ -31,8 +31,8 @@
 | **Pro** | 500 €/mois, 3 mois minimum puis au mois | Celui qui veut qu'on s'en occupe | 5 % du budget |
 
 Contenu réellement livré par plan : voir « Ce que contient chaque plan » plus bas. **Croissance à
-150 €/mois** (décision du porteur, 2026-11-01) : la landing (`components/restaurateurs/PlansSection.tsx`,
-encore à 99 € avec son calcul « environ 10 tickets ») et `docs/strategie/positionnement.md` sont à aligner.
+150 €/mois** (décision du porteur, 2026-11-01), aligné sur la landing (`PlansSection.tsx` : « 150 €, c'est
+environ 16 tickets de plus dans le mois ») et dans `docs/strategie/positionnement.md`.
 
 ### Ce que contient chaque plan (livré au 2026-11-01)
 

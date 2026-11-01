@@ -15,7 +15,7 @@ import { SITE_ORIGIN } from "@/lib/site";
 // (visite guidée au défilement, components/restaurateurs/FeatureTour.tsx).
 // - Refonte de copie 2026-08-29, offre repositionnée 2026-09-29 (ADR 0074 :
 //   outil marketing, pas d'exploitation) : Gratuit (≤ 500 tickets/mois),
-//   Croissance 99 €/mois, Pro 500 €/mois (copilote, Google, site de commande
+//   Croissance 150 €/mois (2026-11-01), Pro 500 €/mois (copilote, Google, site de commande
 //   d'un partenaire), 3 mois minimum — voir PlansSection.tsx. Les fonctions
 //   payantes ne sont pas encore livrées : présentées en « places pilotes ».
 // - ADR 0007 ne s'applique pas ici (page B2B, pas client) — euros et
