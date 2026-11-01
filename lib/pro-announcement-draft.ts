@@ -12,27 +12,29 @@ export type AnnouncementDraft = {
 
 export const ANNOUNCEMENT_DRAFT: AnnouncementDraft = {
   restaurantIds: ["houba", "de-bue"],
-  subject: "Du nouveau dans ta console : la Pub et le CA du jour",
-  title: "Deux nouveautés dans ta console",
+  subject: "Ton établissement passe au plan Croissance",
+  title: "Bienvenue dans le plan Croissance",
   body: `Bonjour,
 
-## Pub : vois ce que ton budget peut donner, avant de payer
-- **Une estimation** : combien de personnes de ta zone verront ta pub, ou combien de clics vers ton restaurant.
-- **Un repère de budget** : 10 à 15 € par jour donnent de bons résultats.
-- **Des raccourcis de dates**, par exemple « Semaines 2 et 3 de novembre ».
-- **Une offre et un mot clé** à dire au comptoir (ex. « Family Bucket = 5 Junior Burgers offerts ») : on te les rappelle pour que tu préviennes tes équipes.
-- **Les vidéos jusqu'à 200 Mo** : envoie celles du tournage telles quelles, de préférence en wifi.
+À partir d'aujourd'hui, ton établissement est au plan **Croissance**. Tu gardes tout ce que tu utilises déjà dans ta console.
 
-Pour essayer : Console → Pub → Nouvelle demande.
+## Ce que tu as avec Croissance
+- **Tickets illimités** pour tes clients.
+- **Ton CA du jour** comparé jour par jour, avec la part qui vient des clients du programme.
+- **Les ventes par plat** et **les prévisions**.
+- **Les annonces programmées** vers tes clients.
+- **Ta pub** : frais de service à **10 %** du budget, un tarif négocié pour toi.
 
-## CA du jour : deux blocs, le total se calcule tout seul
-- **Caisse** : carte, cash, internet.
-- **Plateformes** : Uber Eats, Deliveroo, Takeaway.
-- Et le nombre de commandes.
+## Le prix
+- **150 € HTVA par mois**, sans engagement.
+- **Ta facture arrive dans la semaine** : ton account manager te l'envoie.
+
+## Le plus utile cette semaine
+**Note ton CA chaque soir** (deux blocs, 30 secondes). C'est ce qui rend les comparaisons et les prévisions justes.
 
 Une question ? Réponds simplement à cet e-mail.
 
 L'équipe Boosteats`,
-  buttonLabel: "Essayer la Pub",
-  path: "pub/nouvelle",
+  buttonLabel: "Noter mon CA",
+  path: "",
 };

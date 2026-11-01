@@ -30,9 +30,9 @@ test("le bouton mène à une page de la console de CET établissement", () => {
   assert.equal(consolePath("houba", ""), "/admin/houba");
 });
 
-test("le brouillon : console restaurateur, aucun mot interdit côté client n'est en jeu, lien vers la Pub", () => {
+test("le brouillon : console restaurateur, lien vers l accueil (carte du CA du jour)", () => {
   const e = proAnnouncementEmail({ restaurantName: "Belchicken De Bue", restaurantId: "de-bue", ...ANNOUNCEMENT_DRAFT });
-  assert.ok(e.html.includes("/admin/de-bue/pub/nouvelle"));
-  assert.ok(e.text.includes("Essayer la Pub"));
+  assert.ok(e.html.includes("/admin/de-bue\""));
+  assert.ok(e.text.includes("Noter mon CA"));
   assert.ok(e.preheader.length > 0 && e.preheader.length <= 120);
 });
