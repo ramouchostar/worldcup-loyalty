@@ -88,7 +88,7 @@ export default function ProgrammeFidelitePage() {
               {[
                 ["Rien à brancher", "le ticket suffit"],
                 ["10 points", "par euro dépensé"],
-                ["0 €", "jusqu'à 500 tickets/mois"],
+                ["Forfait gratuit", "jusqu'à 500 tickets/mois"],
               ].map(([a, b]) => (
                 <li key={a} className="rounded-xl border border-paper-border bg-paper px-3 py-3">
                   <p className="font-display font-bold text-[16px] text-ink m-0">{a}</p>
