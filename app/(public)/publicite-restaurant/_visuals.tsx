@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Bookmark, Heart, MessageCircle, MoreHorizontal, Pause, Plus, Send, Store } from "lucide-react";
 
 // Maquettes de la page « Pub de quartier ». Établissement IMAGINAIRE (Smashly,
@@ -27,21 +28,15 @@ export function InstagramAdScreen() {
         </div>
         <MoreHorizontal className="w-4 h-4 text-ink-faint" aria-hidden />
       </div>
-      <div className="relative aspect-square overflow-hidden" style={{ background: `radial-gradient(circle at 30% 25%, ${SMASH.orange}, ${SMASH.dark} 70%)` }}>
-        <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/95 p-3.5 shadow-lg">
-          <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-ink-faint m-0">Du 7 au 21 · à 600 m de chez vous</p>
-          <p className="font-display text-[19px] font-bold leading-tight mt-1 m-0">Les frites offertes avec le menu Smash</p>
-          <p className="text-[11.5px] mt-1.5 m-0">
-            Dites <span className="font-black px-1.5 py-0.5 rounded" style={{ background: SMASH.yellow }}>SMASH</span> au comptoir
-          </p>
-        </div>
-        <svg viewBox="0 0 120 80" className="absolute right-4 top-6 w-[46%] opacity-95" aria-hidden>
-          <ellipse cx="60" cy="22" rx="46" ry="18" fill="#E8A33A" />
-          <rect x="16" y="34" width="88" height="7" rx="3.5" fill="#4CAF50" />
-          <rect x="12" y="41" width="96" height="11" rx="5" fill="#6B3A1E" />
-          <rect x="14" y="51" width="92" height="5" rx="2.5" fill="#FFCC00" />
-          <ellipse cx="60" cy="64" rx="46" ry="12" fill="#D98E2B" />
-        </svg>
+      {/* Visuel fourni par Mehdi (2026-11-01), cadré en 4:5 comme un post Instagram. */}
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#3a1d17]">
+        <Image
+          src="/marketing/pub-burger-premium.jpg"
+          alt="Exemple de pub : burger premium, 25 % de réduction"
+          fill
+          sizes="300px"
+          className="object-cover object-top"
+        />
       </div>
       <div className="flex items-center justify-between px-3 py-2" style={{ background: SMASH.yellow }}>
         <span className="text-[12px] font-bold" style={{ color: SMASH.dark }}>Itinéraire</span>
@@ -54,7 +49,7 @@ export function InstagramAdScreen() {
         <Bookmark className="w-[19px] h-[19px] ml-auto" />
       </div>
       <p className="px-3 pt-1.5 text-[11.5px] leading-snug m-0">
-        <span className="font-bold">smashly.ixelles</span> Deux semaines pour goûter le nouveau Smash. Dites le mot au comptoir, les frites sont pour nous.
+        <span className="font-bold">smashly.ixelles</span> Notre burger premium à −25 % pendant deux semaines. Dites SMASH au comptoir.
       </p>
     </div>
   );
@@ -183,7 +178,7 @@ export function ConsolePubScreen() {
       </div>
       <div className="mt-5 rounded-xl border border-dashed border-ink/20 bg-white p-3.5">
         <p className="text-[12px] font-bold m-0">Rappel pour l&apos;équipe</p>
-        <p className="text-[12.5px] text-ink-muted m-0 mt-0.5">Offre : frites offertes avec le menu Smash · mot clé : SMASH · du 7 au 21</p>
+        <p className="text-[12.5px] text-ink-muted m-0 mt-0.5">Offre : −25 % sur le burger premium · mot clé : SMASH · du 7 au 21</p>
       </div>
     </div>
   );
