@@ -146,6 +146,11 @@ export function MenuUploadForm({ restaurantId, siblings = [] }: { restaurantId: 
           <code className="mx-1 bg-gray-100 px-1 rounded">prix_revient</code>
           = coût matière réel (ce que ça te coûte à produire), pas le prix affiché en caisse.
         </p>
+        <p className="text-xs text-gray-700">
+          <strong>Une estimation suffit</strong>, pas besoin du centime près (« ce burger me coûte environ 3 € ») : tu pourras
+          la corriger quand tu veux dans Menu &amp; coûts. En cas de doute, <strong>arrondis vers le haut</strong> : tes
+          cadeaux restent prudents et ne te coûteront jamais plus que prévu.
+        </p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
