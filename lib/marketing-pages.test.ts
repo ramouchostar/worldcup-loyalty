@@ -29,7 +29,15 @@ test("chaque page du registre a son fichier, est dans le sitemap et n'est pas pr
 test("le texte des pages respecte les règles (fichier de page et registre)", () => {
   for (const p of MARKETING_PAGES) {
     const file = `app/(public)/${p.slug}/page.tsx`;
-    const text = JSON.stringify(p) + (existsSync(file) ? readFileSync(file, "utf8") : "");
+    // Texte visible seulement : sans commentaires ni lignes d'import (un chemin
+    // comme « seo-pages » n'est pas un mot lu par le restaurateur).
+    const source = existsSync(file) ? readFileSync(file, "utf8") : "";
+    const visible = source
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, " ")
+      .replace(/^\s*\/\/.*$/gm, " ")
+      .replace(/^\s*import .*$/gm, " ");
+    const text = JSON.stringify(p) + visible;
     assert.deepEqual(banned(text), [], `${p.slug} contient des mots interdits`);
   }
 });
