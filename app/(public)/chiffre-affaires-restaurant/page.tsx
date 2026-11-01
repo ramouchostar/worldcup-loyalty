@@ -78,7 +78,7 @@ export default function ChiffreAffairesPage() {
             <Heading
               as="h1"
               eyebrow="Garder la main"
-              title="Combien avez-vous fait hier, et c'était un bon jour ?"
+              title="Combien avez-vous fait hier, combien ferez-vous demain ?"
               intro="Notez votre chiffre du jour en un écran : la caisse d'un côté, les plateformes de l'autre. Vous le voyez aussitôt face aux mêmes jours de la semaine, avec la part qui vient de vos clients inscrits."
             />
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
