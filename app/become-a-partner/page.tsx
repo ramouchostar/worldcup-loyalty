@@ -7,6 +7,13 @@ import { PartnerSignup } from "./PartnerSignup";
 // les étapes suivantes (/become-a-partner/<id>/…) restent réservées au compte.
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Inscrire votre restaurant gratuitement",
+  description:
+    "Créez le programme de fidélité de votre restaurant en quelques minutes, sans carte bancaire ni engagement. Rien à brancher : le ticket de caisse suffit.",
+  alternates: { canonical: "/become-a-partner" },
+};
+
 export default async function BecomeAPartnerPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
