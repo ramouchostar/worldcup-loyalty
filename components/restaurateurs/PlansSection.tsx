@@ -5,7 +5,8 @@ import { Reveal } from "./motion";
 
 // ADR 0074 §7 (2026-09-29, prix de départ à tester sur pilotes) — trois
 // plans, prix HTVA par établissement, plus aucune commission :
-// Gratuit (≤ 500 tickets/mois) · Croissance 99 € · Pro 500 € (copilote,
+// Gratuit (≤ 500 tickets/mois) · Croissance 150 € (décidé le 2026-11-01,
+// .claude/product-marketing.md) · Pro 500 € (copilote,
 // Google, site de commande d'un partenaire relié à la caisse), 3 mois minimum.
 // Les fonctions payantes ne sont pas encore livrées : les plans se réservent
 // en « place pilote » (e-mail), pas par un paiement en ligne.
@@ -82,7 +83,7 @@ export function PlansSection() {
           <Reveal delay={160}>
             <PlanCard
               name="Croissance"
-              price="99 €"
+              price="150 €"
               priceNote="/mois"
               commission="Sans engagement, sans commission."
               pitch="Pour relancer les clients soi-même, en un clic."
@@ -90,8 +91,8 @@ export function PlansSection() {
               features={GROWTH_FEATURES}
               pilot
               roi={{
-                title: "99 €, c'est environ 10 tickets de plus dans le mois.",
-                sub: "Un client de plus tous les trois jours.",
+                title: "150 €, c'est environ 16 tickets de plus dans le mois.",
+                sub: "Un client de plus tous les deux jours.",
               }}
               cta={
                 <TrackedLink

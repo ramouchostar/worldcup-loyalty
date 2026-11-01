@@ -85,10 +85,13 @@ annuaires (Malou), intégrations caisse maison (tous les « mastodontes »).
 
 ## 8. Offre et prix (à tester, ADR 0074 §7)
 
+> **2026-11-01** : Croissance fixé à **150 €/mois** par le porteur (au lieu de ≈ 99 €), prix présentés en
+> commençant par le Gratuit. Fiche marketing à jour : [`.claude/product-marketing.md`](../../.claude/product-marketing.md).
+
 | Plan | Pour qui | Contenu | Prix de départ |
 |---|---|---|---|
 | **Gratuit** | Tous | Capter + fiche membre + annonces à la main + 500 tickets/mois | 0 € |
-| **Croissance** | Le propriétaire qui veut agir lui-même | Segments, relance au rythme de chaque client, campagnes en un clic, centre des avis, page de résultats | ≈ 99 €/mois |
+| **Croissance** | Le propriétaire qui veut agir lui-même | Segments, relance au rythme de chaque client, campagnes en un clic, centre des avis, page de résultats | 150 €/mois |
 | **Pro** | Celui qui veut qu'on s'en occupe | Croissance + copilote du lundi + fiche Google gérée + référencement + site de commande d'un partenaire (installation, gestion, optimisation) + rapport et point mensuels | 500 €/mois |
 | **Publicité gérée** (option) | Celui qui veut plus de nouveaux clients | Campagnes Meta et Google gérées, visites en salle mesurées | Sur devis |
 
