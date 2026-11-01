@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check, Clapperboard, MapPin, type LucideIcon } from "lucide-react";
-import type { Plan } from "@/lib/entitlements";
-import { AD_FEE_PCT } from "@/lib/service-offers";
 import type { ServiceKind } from "@/lib/service-requests";
 
 // Missions pour aller plus vite (ADR 0081 §6) — dès l'étape 1, on propose
@@ -34,13 +32,14 @@ const MISSIONS: { service: ServiceKind; icon: LucideIcon; title: string; text: (
 
 export function GrowthMissions({
   restaurantId,
-  plan,
+  feePct,
   pending,
   source,
   pubHref = null,
 }: {
   restaurantId: string;
-  plan: Plan;
+  /** Frais Pub de l'établissement (forfait ou taux négocié — `getAdFee`). */
+  feePct: number;
   pending: ServiceKind[];
   source: "accueil_etape1" | "accueil_etape2";
   /** La Pub est ouverte pour cet établissement (ADR 0086) : la mission mène au formulaire, plus à une demande de rappel. */
@@ -84,7 +83,7 @@ export function GrowthMissions({
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-semibold text-ink">{m.title}</p>
-                <p className="text-[13px] text-ink-muted mt-0.5">{m.text(AD_FEE_PCT[plan])}</p>
+                <p className="text-[13px] text-ink-muted mt-0.5">{m.text(feePct)}</p>
                 {m.service === "pub" && pubHref ? (
                   <Link
                     href={pubHref}

@@ -2,8 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
-import { getPlan } from "@/lib/entitlements";
-import { AD_FEE_PCT } from "@/lib/service-offers";
+import { getAdFee } from "@/lib/ads/fee";
 import { pubConfig } from "@/lib/ads/config";
 import { getBilling, instagramPosts, pubAvailability } from "@/lib/ads/requests";
 import { todayBrussels } from "@/lib/ads/sync";
@@ -26,8 +25,8 @@ export default async function NewPubPage({ params }: { params: Promise<{ restaur
   const av = await pubAvailability(restaurantId, access.isSuperAdmin);
   if (!av.open) notFound();
 
-  const [plan, billing, ig, rest] = await Promise.all([
-    getPlan(restaurantId),
+  const [fee, billing, ig, rest] = await Promise.all([
+    getAdFee(restaurantId),
     getBilling(restaurantId),
     instagramPosts(restaurantId),
     createAdminClient().from("restaurants").select("address").eq("id", restaurantId).single(),
@@ -49,8 +48,8 @@ export default async function NewPubPage({ params }: { params: Promise<{ restaur
         today={todayBrussels()}
         posts={posts}
         address={(rest.data as { address: string | null } | null)?.address ?? null}
-        feePct={AD_FEE_PCT[plan]}
-        planLabel={PLAN_LABEL[plan]}
+        feePct={fee.feePct}
+        planLabel={fee.negotiated ? "tarif négocié" : PLAN_LABEL[fee.plan]}
         vatRate={pubConfig().vatRate}
         billing={billing}
       />

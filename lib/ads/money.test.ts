@@ -1,29 +1,37 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { AD_FEE_PCT } from "../service-offers";
 import { daysLeft, formatEur, isLowCredit, MIN_BUDGET_CENTS, paidCents, quote, spendCapCents } from "./money";
 
 test("montant : budget + frais du forfait, sans TVA en franchise", () => {
-  assert.deepEqual(quote({ budgetCents: 200_00, plan: "croissance", vatRate: 0 }), {
+  assert.deepEqual(quote({ budgetCents: 200_00, feePct: AD_FEE_PCT.croissance, vatRate: 0 }), {
     budgetCents: 200_00, feePct: 15, feeCents: 30_00, netCents: 230_00, vatRate: 0, vatCents: 0, totalCents: 230_00,
   });
-  assert.equal(quote({ budgetCents: 100_00, plan: "gratuit", vatRate: 0 }).totalCents, 120_00);
-  assert.equal(quote({ budgetCents: 100_00, plan: "pro", vatRate: 0 }).totalCents, 105_00);
+  assert.equal(quote({ budgetCents: 100_00, feePct: AD_FEE_PCT.gratuit, vatRate: 0 }).totalCents, 120_00);
+  assert.equal(quote({ budgetCents: 100_00, feePct: AD_FEE_PCT.pro, vatRate: 0 }).totalCents, 105_00);
 });
 
 test("montant : la TVA s'ajoute le jour où l'émetteur sort de la franchise", () => {
-  const q = quote({ budgetCents: 200_00, plan: "croissance", vatRate: 21 });
+  const q = quote({ budgetCents: 200_00, feePct: AD_FEE_PCT.croissance, vatRate: 21 });
   assert.equal(q.vatCents, 48_30);
   assert.equal(q.totalCents, 278_30);
 });
 
 test("montant : frais arrondis au centime", () => {
-  assert.equal(quote({ budgetCents: 123_45, plan: "croissance", vatRate: 0 }).feeCents, 18_52);
+  assert.equal(quote({ budgetCents: 123_45, feePct: AD_FEE_PCT.croissance, vatRate: 0 }).feeCents, 18_52);
 });
 
 test("budget sous 100 € ou non entier : refusé", () => {
-  assert.throws(() => quote({ budgetCents: 99_99, plan: "pro", vatRate: 0 }), RangeError);
-  assert.throws(() => quote({ budgetCents: 150.5, plan: "pro", vatRate: 0 }), RangeError);
-  assert.equal(quote({ budgetCents: MIN_BUDGET_CENTS, plan: "pro", vatRate: 0 }).budgetCents, 100_00);
+  assert.throws(() => quote({ budgetCents: 99_99, feePct: AD_FEE_PCT.pro, vatRate: 0 }), RangeError);
+  assert.throws(() => quote({ budgetCents: 150.5, feePct: AD_FEE_PCT.pro, vatRate: 0 }), RangeError);
+  assert.equal(quote({ budgetCents: MIN_BUDGET_CENTS, feePct: AD_FEE_PCT.pro, vatRate: 0 }).budgetCents, 100_00);
+});
+
+test("montant : un taux négocié remplace celui du forfait", () => {
+  const q = quote({ budgetCents: 200_00, feePct: 10, vatRate: 0 });
+  assert.equal(q.feePct, 10);
+  assert.equal(q.totalCents, 220_00);
+  assert.throws(() => quote({ budgetCents: 200_00, feePct: 51, vatRate: 0 }), RangeError);
 });
 
 test("affichage en euros", () => {
