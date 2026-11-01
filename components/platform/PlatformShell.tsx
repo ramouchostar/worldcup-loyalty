@@ -23,6 +23,7 @@ import {
   X,
   type LucideIcon,
   MapPin,
+  BookOpen,
 } from "lucide-react";
 import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
 
@@ -42,6 +43,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/platform/messages", label: "Messages", icon: Mail },
   { href: "/platform/audit", label: "Audit", icon: ClipboardCheck },
   { href: "/platform/crm", label: "Outbound", icon: Handshake },
+  { href: "/platform/kit", label: "Kit de visite", icon: BookOpen },
   { href: "/platform/prestataires", label: "Prestataires", icon: Clapperboard },
   { href: "/platform/pub", label: "Pub", icon: MapPin },
 ];
