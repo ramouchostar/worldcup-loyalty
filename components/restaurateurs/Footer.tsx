@@ -29,6 +29,13 @@ export function Footer() {
                     </Link>
                   </li>
                 )}
+                {c.title === "Analyse gratuite" && (
+                  <li>
+                    <Link href="/blog" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
+                      Le blog
+                    </Link>
+                  </li>
+                )}
                 {c.pages.map((m) => (
                   <li key={m.slug}>
                     <Link href={`/${m.slug}`} className="text-night-faint text-[13px] hover:text-night-text transition-colors">

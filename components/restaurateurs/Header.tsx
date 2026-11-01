@@ -23,6 +23,7 @@ export function Header() {
           <NavLink href="/#fonctionnalites">Fonctionnalités</NavLink>
           <NavLink href="/#plans">Plans</NavLink>
           <NavLink href="/#questions">Questions</NavLink>
+          <NavLink href="/blog">Blog</NavLink>
           <NavLink href="/login?as=resto">Connexion</NavLink>
           <TrackedLink
             ctaId="devenir_partenaire"
