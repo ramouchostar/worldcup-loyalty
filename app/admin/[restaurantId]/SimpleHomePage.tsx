@@ -14,7 +14,8 @@ import { todayInBrussels } from "@/lib/qr-funnel";
 import { GrowthHero, GrowthStepper } from "@/components/admin/simple/GrowthHero";
 import { GrowthMissions } from "@/components/admin/simple/GrowthMissions";
 import { pubEnabledFor } from "@/lib/ads/config";
-import { getEntitlement, getPlan } from "@/lib/entitlements";
+import { getEntitlement } from "@/lib/entitlements";
+import { getAdFee } from "@/lib/ads/fee";
 import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
 import { buildRevenueTracker } from "@/lib/revenue-tracker";
 import { RevenueTrackerCard } from "@/components/admin/simple/RevenueTrackerCard";
@@ -43,10 +44,10 @@ export async function SimpleHomePage({
   const base = `/admin/${restaurantId}`;
   const [access, restaurant] = await Promise.all([getAdminAccess(userId, restaurantId), getRestaurant(restaurantId)]);
   const today = todayInBrussels();
-  const [raw, growthRaw, plan, pendingServices, revenueRaw, revenueAccess] = await Promise.all([
+  const [raw, growthRaw, adFee, pendingServices, revenueRaw, revenueAccess] = await Promise.all([
     loadSimpleHomeRaw(restaurantId, { canManage: canManageEstablishment(access) }),
     loadGrowthRaw(restaurantId, today),
-    getPlan(restaurantId),
+    getAdFee(restaurantId),
     pendingServicesFor(restaurantId),
     loadRevenueTracker(restaurantId, today),
     getEntitlement(restaurantId, "revenue_tracker"),
@@ -134,7 +135,7 @@ export async function SimpleHomePage({
       missions={
         <GrowthMissions
           restaurantId={restaurantId}
-          plan={plan}
+          feePct={adFee.feePct}
           pending={pendingServices}
           pubHref={pubEnabledFor(restaurantId, access.isSuperAdmin) ? `${base}/pub/nouvelle` : null}
           source={growth.stage === "machine" ? "accueil_etape1" : "accueil_etape2"}

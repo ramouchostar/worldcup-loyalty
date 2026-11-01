@@ -1,5 +1,5 @@
 import { createAdminClient } from "../supabase";
-import { getPlan } from "../entitlements";
+import { getAdFee } from "./fee";
 import { isMissingTable } from "../funnel";
 import { pubConfig, pubEnabledFor } from "./config";
 import { alertPlatform, notifyRestaurant } from "./alerts";
@@ -228,8 +228,8 @@ export async function createRequest(restaurantId: string, userId: string, raw: R
   const { error: eb } = await db.from("restaurant_billing").upsert({ restaurant_id: restaurantId, legal_name: input.billing.legalName, vat_number: input.billing.vatNumber, address: input.billing.address, updated_by: userId, updated_at: new Date().toISOString() });
   if (eb) return { ok: false, error: "Coordonnées de facturation non enregistrées." };
 
-  const plan = await getPlan(restaurantId);
-  const q = quote({ budgetCents: input.budgetCents, plan, vatRate: cfg.vatRate });
+  const fee = await getAdFee(restaurantId);
+  const q = quote({ budgetCents: input.budgetCents, feePct: fee.feePct, vatRate: cfg.vatRate });
   const prev = await db.from("ad_requests").select("seq, objective").eq("restaurant_id", restaurantId);
   if (prev.error) return { ok: false, error: "La Pub n'est pas encore disponible." };
   const rows = (prev.data ?? []) as { seq: number; objective: string }[];

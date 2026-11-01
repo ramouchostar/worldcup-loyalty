@@ -90,7 +90,12 @@ dépense, appel Meta en échec. **Aucune attente sans e-mail, aucun e-mail sans 
 
 - **Montant demandé = budget + frais de service** du forfait (`AD_FEE_PCT` : Gratuit 20 %,
   Croissance 15 %, Pro 5 %, inchangés — ADR 0081 §6). Les frais couvrent aussi les frais de
-  paiement. **Pas de TVA** tant que l'émetteur est en franchise ; le taux est une configuration
+  paiement. **Amendé le 2026-11-01** : un établissement peut avoir un **taux négocié**
+  (`restaurant_subscriptions.ad_fee_pct`, migration `20261101-2215`), qui remplace celui du
+  forfait (`getAdFee`, `lib/ads/fee.ts`) ; la console l'affiche « tarif négocié ». Le taux se
+  pose à la main en base, jamais dans le dépôt (public). Chaque demande garde le taux appliqué
+  (`ad_requests.fee_pct`), et les recharges reprennent celui de la demande. Premiers cas :
+  Houba et De Bue, passés en Croissance le même jour. **Pas de TVA** tant que l'émetteur est en franchise ; le taux est une configuration
   (`INVOICE_VAT_RATE`, 0 aujourd'hui), pas une constante.
 - **Budget minimum : 100 € par campagne** (le plancher du plafond Meta).
 - **Deux moyens, au choix du restaurateur** :

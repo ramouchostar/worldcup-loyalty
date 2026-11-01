@@ -1,5 +1,3 @@
-import type { Plan } from "../entitlements";
-import { AD_FEE_PCT } from "../service-offers";
 
 // ADR 0086 §3-4 — l'argent de la Pub. Module PUR et testé, tout en centimes
 // entiers : jamais de flottant pour un montant facturé.
@@ -23,15 +21,17 @@ export type Quote = {
 };
 
 /**
- * Montant demandé pour une campagne : budget + frais du forfait (+ TVA si
- * l'émetteur n'est plus en franchise — `vatRate` en %, 0 aujourd'hui).
+ * Montant demandé pour une campagne : budget + frais (taux du forfait ou taux
+ * négocié — `getAdFee`) (+ TVA si l'émetteur n'est plus en franchise — `vatRate`
+ * en %, 0 aujourd'hui).
  */
-export function quote(p: { budgetCents: number; plan: Plan; vatRate: number }): Quote {
+export function quote(p: { budgetCents: number; feePct: number; vatRate: number }): Quote {
   if (!Number.isInteger(p.budgetCents) || p.budgetCents < MIN_BUDGET_CENTS) {
     throw new RangeError(`budget minimum ${MIN_BUDGET_CENTS / 100} € (reçu ${p.budgetCents / 100} €)`);
   }
   if (!(p.vatRate >= 0 && p.vatRate <= 100)) throw new RangeError(`taux de TVA invalide : ${p.vatRate}`);
-  const feePct = AD_FEE_PCT[p.plan];
+  if (!(p.feePct >= 0 && p.feePct <= 50)) throw new RangeError(`taux de frais invalide : ${p.feePct}`);
+  const feePct = p.feePct;
   const feeCents = Math.round((p.budgetCents * feePct) / 100);
   const netCents = p.budgetCents + feeCents;
   const vatCents = Math.round((netCents * p.vatRate) / 100);

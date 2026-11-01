@@ -46,7 +46,7 @@ export const MESSAGES: MessageDef[] = [
   { key: "order_rejected", label: "Ticket non retenu", audience: "member", kind: "transactionnel", when: "Refus en file", channels: "Push" },
   { key: "partner_application_received", label: "Candidature reçue", audience: "restaurant", kind: "transactionnel", when: "Inscription partenaire", channels: "E-mail" },
   { key: "restaurant_activated", label: "Mise en ligne", audience: "restaurant", kind: "transactionnel", when: "Validation plateforme", channels: "E-mail" },
-  { key: "onboarding_reminder", label: "Inscription inachevée", audience: "restaurant", kind: "transactionnel", when: "Bloqué 48 h à l'étape 2 ou 3", channels: "E-mail" },
+  { key: "onboarding_reminder", label: "Inscription inachevée", audience: "restaurant", kind: "transactionnel", when: "Inscription sans carte ou ticket : J+2, J+7, J+14 puis toutes les 2 semaines à 11 h, six au plus ; signalé à l'équipe dès la 3e", channels: "E-mail" },
   { key: "pending_requests_reminder", label: "Demandes en attente", audience: "restaurant", kind: "transactionnel", when: "> 15 demandes ou une de plus de 48 h", channels: "E-mail" },
   { key: "catalog_gaps_reminder", label: "Catalogue incomplet", audience: "restaurant", kind: "transactionnel", when: "Articles récurrents sans fiche depuis 7 j", channels: "E-mail" },
   { key: "owner_invite", label: "Invitation restaurateur", audience: "restaurant", kind: "transactionnel", when: "Lien d'invitation généré", channels: "E-mail" },
