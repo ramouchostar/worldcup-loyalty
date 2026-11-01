@@ -1,6 +1,6 @@
 # Product Marketing Context — Boosteats
 
-**Document version:** v1
+**Document version:** v2
 **Last updated:** 2026-11-01
 
 > Fiche de base lue par tous les skills marketing (texte, offre, prospection, landing).
@@ -50,6 +50,7 @@ environ 16 tickets de plus dans le mois ») et dans `docs/strategie/positionneme
 - Tickets illimités
 - Suivi du chiffre d'affaires : jour par jour, comparé aux mêmes jours, **part du CA venue des clients du programme**
 - Ventes par plat, prévisions de fréquentation, opportunités, annonces programmées, baromètre avancé
+- **Réponse à vos avis Google** par Boosteats (service, sur invitation comme gestionnaire de la fiche — décision du 2026-11-01, aussi en Pro)
 - Pub de quartier à 15 % de frais
 
 **Pro — « On s'en occupe »** = Croissance, plus :
@@ -58,7 +59,7 @@ environ 16 tickets de plus dans le mois ») et dans `docs/strategie/positionneme
 - Accompagnement humain : fiche Google tenue à jour (sur invitation), rapport et point mensuels — **livré en partie à la main**, à dire tel quel
 
 **Pas encore livré — ne jamais présenter comme disponible** (ADR 0070 §Conséquences) : copilote du
-lundi, centre des avis Google avec réponses proposées, relance automatique au rythme de chaque client,
+lundi, centre des avis automatisé dans la console (la réponse aux avis par l'équipe, elle, est livrée en Croissance et Pro), relance automatique au rythme de chaque client,
 site de commande partenaire, référencement. Si on en parle : « en préparation », jamais au présent.
 
 ## Target Audience
@@ -229,4 +230,5 @@ Pub de quartier gérée **pour les restaurants clients** (pas d'acquisition Boos
 ## Changelog
 
 *Les plus récentes en haut. Une ligne par révision : quoi et pourquoi.*
+- v2 (2026-11-01) — Plans : la réponse aux avis Google par Boosteats est livrée en Croissance et Pro (décision de Mehdi) ; le centre des avis automatisé reste en préparation.
 - v1 (2026-11-01) — Contexte initial, rédigé depuis le code, les ADR 0070/0074/0081/0086 et docs/strategie, après les décisions du porteur (message, cible, prix Gratuit d'abord, Croissance à 150 €, tournures « rien à brancher » et « calculé sur ce qu'il vous coûte »).

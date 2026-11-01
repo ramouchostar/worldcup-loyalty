@@ -49,6 +49,10 @@ const FAQ: Faq[] = [
     a: "Oui, un mot suffit. Une fiche où le gérant répond montre aux futurs clients qu'il y a quelqu'un derrière le comptoir. L'analyse regarde la part d'avis qui ont reçu une réponse sur les douze derniers mois.",
   },
   {
+    q: "Boosteats peut-il répondre à mes avis à ma place ?",
+    a: "Oui, avec les forfaits Croissance et Pro. On répond à vos avis Google, positifs comme négatifs, dans le ton de votre restaurant. Vous nous invitez comme gestionnaire de votre fiche : elle reste à vous.",
+  },
+  {
     q: "Ma note est de 4,6, j'ai besoin de l'analyse ?",
     a: "Une bonne note peut cacher un sujet qui monte depuis quelques mois. Le rapport compare les six derniers mois au reste, et montre l'évolution de votre note sur deux ans.",
   },
@@ -311,6 +315,18 @@ export default function AnalyseAvisGooglePage() {
             </p>
             <p className="text-[13.5px] text-ink-muted mt-3">Elle remercie, reconnaît, dit ce qui change, et invite à revenir. En quelques jours, pas en quelques semaines.</p>
           </div>
+        </div>
+        {/* Décision de Mehdi (2026-11-01) : la réponse aux avis est un service livré,
+            réservé aux forfaits Croissance et Pro. */}
+        <div className="mt-10 rounded-2xl border border-good/30 bg-white p-6 sm:p-8 grid md:grid-cols-[1fr_auto] gap-6 items-center">
+          <div>
+            <span className="inline-block rounded-full bg-good/10 text-good text-[12.5px] font-bold px-3 py-1">Forfaits Croissance et Pro</span>
+            <p className="font-display text-[22px] font-bold text-ink leading-tight mt-3">Pas le temps de répondre ? Boosteats répond à vos avis pour vous.</p>
+            <p className="font-landing text-[15.5px] leading-[1.7] text-ink-muted mt-2">
+              Avec les forfaits Croissance et Pro, on répond à vos avis Google, aux bons comme aux mauvais, dans le ton de votre restaurant et dans les jours qui suivent. Vous gardez la main sur votre fiche : vous nous invitez comme gestionnaire, jamais comme propriétaire.
+            </p>
+          </div>
+          <WhatsAppLink location={`${WHERE}_reponses`} variant="solid" label="En parler sur WhatsApp" message="Bonjour, je voudrais que Boosteats réponde aux avis Google de mon restaurant." />
         </div>
         <div className="mt-10 rounded-2xl bg-ink p-6 sm:p-8 grid md:grid-cols-[1fr_auto] gap-6 items-center">
           <div>

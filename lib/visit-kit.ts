@@ -17,7 +17,7 @@ export const VISIT_RULES = [
   "On vient montrer SON restaurant, pas notre logiciel.",
   "Un chiffre vérifiable plutôt qu'un superlatif. Jamais « faire exploser vos ventes », jamais un pourcentage de hausse promis, jamais « grâce à nous ».",
   "On ne parle pas de technique : le client prend son ticket en photo, point. C'est notre secret de fabrication.",
-  "Ce qui n'est pas livré se dit « en préparation » : copilote du lundi, centre des avis, relance automatique, site de commande, référencement.",
+  "Ce qui n'est pas livré se dit « en préparation » : copilote du lundi, relance automatique au rythme de chaque client, site de commande, référencement.",
   "On vouvoie, on parle comme au comptoir, une idée par phrase.",
 ];
 
@@ -159,7 +159,7 @@ export const PLANS: { name: string; tagline: string; price: string; content: str
     name: "Croissance",
     tagline: "Suivez vos chiffres",
     price: "150 €/mois, sans engagement",
-    content: "Tickets illimités, CA comparé jour par jour et part qui vient des clients du programme, ventes par plat, prévisions, annonces programmées",
+    content: "Tickets illimités, CA comparé jour par jour et part qui vient des clients du programme, ventes par plat, prévisions, annonces programmées, et on répond à vos avis Google",
     adFee: "15 % du budget",
   },
   {
