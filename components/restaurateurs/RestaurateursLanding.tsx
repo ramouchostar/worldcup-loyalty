@@ -4,7 +4,6 @@ import { ScrollProgressBar } from "./motion";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
 import { FeatureTour } from "./FeatureTour";
-import { SignalsBand } from "./SignalsBand";
 import { StepsSection } from "./StepsSection";
 import { PlansSection } from "./PlansSection";
 import { FaqSection } from "./FaqSection";
@@ -25,7 +24,6 @@ export function RestaurateursLanding() {
       <Header />
       <Hero />
       <FeatureTour />
-      <SignalsBand />
       <StepsSection />
       <PlansSection />
       <FaqSection />

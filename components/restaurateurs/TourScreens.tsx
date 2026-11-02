@@ -1,4 +1,4 @@
-import { Camera, ChevronRight, CloudRain, Gift, MessageSquareReply, Send, Star, Trophy, UserMinus } from "lucide-react";
+import { Camera, ChevronRight, Gift, MessageSquareReply, Send, Star } from "lucide-react";
 
 // Écrans de la visite guidée (FeatureTour). Données d'illustration figées.
 //
@@ -7,9 +7,10 @@ import { Camera, ChevronRight, CloudRain, Gift, MessageSquareReply, Send, Star, 
 //   - Nonna Ottavia (pizzeria)    → écran fidélité (côté client, tutoyé)
 //   - Smashly (burgers, Ixelles)  → écrans console (impersonnels)
 //
-// ADR 0074 (2026-09-29) : la visite montre un outil marketing — copilote du
-// lundi, relance, avis, Google, résultats. Plus d'écran site de commande ni
-// équipes. Aucun euro sur l'écran de fidélité (ADR 0007/0028). Côté console :
+// Remise à plat du 2026-11-02 : seulement des fonctions livrées — fidélité,
+// relance, pub de quartier, avis, chiffre du jour (copilote, place sur Google et
+// résultats contre groupe témoin retirés, non livrés). Plus d'écran site de
+// commande ni équipes. Aucun euro sur l'écran de fidélité (ADR 0007/0028). Côté console :
 // couleurs Boosteats (ADR 0054). Jamais « grâce à nous » (ADR 0064) : on
 // compare au groupe témoin, on ne revendique pas un chiffre d'affaires.
 
@@ -117,43 +118,6 @@ function ConsoleHeader({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-/* ---------- 2. Copilote du lundi — console ---------- */
-const WEEK_ACTIONS = [
-  { icon: CloudRain, signal: "Pluie jeudi et vendredi soir", action: "Relancer l'emporter · 140 habitués" },
-  { icon: Trophy, signal: "Belgique–France samedi 21 h", action: "Offre menu partagé avant le match" },
-  { icon: UserMinus, signal: "38 clients ont décroché", action: "Relance au rythme de chacun" },
-];
-
-export function CopilotScreen() {
-  return (
-    <div className="h-full flex flex-col">
-      <ConsoleHeader title="La semaine" sub="Trois actions prêtes · lundi 6 h" />
-      <div className="px-4 flex flex-col gap-2.5">
-        {WEEK_ACTIONS.map((a) => (
-          <div key={a.signal} className="bg-white border border-paper-border rounded-xl px-3.5 py-3">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 shrink-0 rounded-md bg-moss-tint flex items-center justify-center">
-                <a.icon className="w-3.5 h-3.5 text-moss-dark" strokeWidth={2.2} />
-              </span>
-              <p className="text-[10.5px] text-ink-faint m-0">{a.signal}</p>
-            </div>
-            <div className="flex items-center justify-between gap-2 mt-2">
-              <p className="text-[12px] font-semibold text-ink m-0 leading-tight">{a.action}</p>
-              <span className="shrink-0 text-[10.5px] font-bold text-white bg-ink rounded-md px-2.5 py-1.5">Envoyer</span>
-            </div>
-          </div>
-        ))}
-        <div className="bg-ink rounded-xl px-3.5 py-3">
-          <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-moss-light m-0">Semaine dernière</p>
-          <p className="text-white text-[12.5px] font-semibold m-0 mt-1">61 clients revenus après les campagnes</p>
-          <p className="text-white/60 text-[10.5px] m-0 mt-0.5">12 dans le groupe non relancé</p>
-        </div>
-      </div>
-      <ConsoleTabs active={0} />
-    </div>
-  );
-}
-
 /* ---------- 3. Relance — console ---------- */
 export function RelaunchScreen() {
   return (
@@ -244,93 +208,73 @@ export function ReviewsScreen() {
   );
 }
 
-/* ---------- 5. Google — console ---------- */
-const RANKS = [9, 8, 8, 6, 5, 5, 4, 3];
-const KEYWORDS = [
-  { k: "burger Ixelles", r: "3ᵉ" },
-  { k: "smash burger Bruxelles", r: "5ᵉ" },
-  { k: "burger près de moi", r: "8ᵉ" },
-];
-
-export function GoogleScreen() {
+/* ---------- Pub de quartier — côté console (2026-11-02) ---------- */
+// Visuel de pub fourni par Mehdi (public/marketing/pub-burger-premium.jpg).
+// Chiffres d'illustration ; l'offre et le mot clé suivent la page /publicite-restaurant.
+export function PubScreen() {
   return (
     <div className="h-full flex flex-col">
-      <ConsoleHeader title="Place sur Google" sub="Suivie chaque semaine" />
+      <ConsoleHeader title="Pub de quartier" sub="Du 7 au 21 · 3 km autour de Smashly" />
       <div className="px-4 flex flex-col gap-2.5">
-        <div className="bg-white border border-paper-border rounded-xl px-3.5 py-3">
-          <div className="flex items-baseline justify-between">
-            <span className="font-display text-[30px] font-bold text-ink leading-none">3ᵉ</span>
-            <span className="text-[11px] font-bold text-moss-dark bg-moss-tint rounded-full px-2 py-0.5">+6 places</span>
+        <div className="relative rounded-xl overflow-hidden h-[190px] bg-[#3a1d17]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/marketing/pub-burger-premium.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-top" />
+          <span className="absolute left-2 top-2 rounded-md bg-white/90 text-[9.5px] font-bold text-ink px-2 py-1">Sponsorisé · Instagram</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-white border border-paper-border rounded-xl p-3">
+            <p className="font-display text-[18px] font-bold text-ink m-0">12 400</p>
+            <p className="text-[10px] text-ink-faint m-0">personnes touchées</p>
           </div>
-          <p className="text-[10.5px] text-ink-faint m-0 mt-1">« burger Ixelles » · 2 mois</p>
-          <div className="flex items-end gap-1.5 h-16 mt-3">
-            {RANKS.map((r, i) => (
-              <div
-                key={i}
-                className={`flex-1 rounded-t ${i === RANKS.length - 1 ? "bg-moss" : "bg-moss-tint"}`}
-                style={{ height: `${((10 - r) / 7) * 100}%` }}
-              />
-            ))}
+          <div className="bg-white border border-paper-border rounded-xl p-3">
+            <p className="font-display text-[18px] font-bold text-ink m-0">96 €</p>
+            <p className="text-[10px] text-ink-faint m-0">dépensés sur 200 €</p>
           </div>
         </div>
-        <div className="bg-white border border-paper-border rounded-xl px-3.5 py-1.5">
-          {KEYWORDS.map((w) => (
-            <div key={w.k} className="flex items-center justify-between py-2 border-b border-paper-border last:border-b-0">
-              <span className="text-[11.5px] text-ink">{w.k}</span>
-              <span className="font-display text-[13px] font-bold text-ink">{w.r}</span>
-            </div>
-          ))}
-        </div>
-        <div className="bg-white border border-paper-border rounded-xl px-3.5 py-2.5 flex items-center gap-2">
-          <Star className="w-4 h-4 text-moss-dark" fill="currentColor" />
-          <span className="text-[11.5px] text-ink">
-            <span className="font-bold">4,6</span> · 12 nouveaux avis ce mois
-          </span>
+        <div className="bg-moss-tint rounded-xl p-3">
+          <p className="text-[11px] font-bold text-moss-dark m-0">Mot clé au comptoir : SMASH</p>
+          <p className="text-[10.5px] text-ink m-0 mt-0.5">−25 % sur le burger premium. Vous comptez qui vient par la pub.</p>
         </div>
       </div>
-      <ConsoleTabs active={3} />
+      <ConsoleTabs active={0} />
     </div>
   );
 }
 
-/* ---------- 6. Résultats — console ---------- */
-const RESULTS = [
-  { label: "Relance pluie · jeudi", n: "21", ctrl: "4" },
-  { label: "Clients qui décrochaient", n: "17", ctrl: "3" },
-  { label: "Match Belgique–France", n: "23", ctrl: "5" },
-];
-
-export function ResultsScreen() {
+/* ---------- Chiffre du jour — côté console (2026-11-02) ---------- */
+export function RevenueScreen() {
+  const days = [62, 70, 58, 0, 74, 92, 100, 66, 72, 61, 0, 79, 95, 98];
   return (
     <div className="h-full flex flex-col">
-      <ConsoleHeader title="Ce qu'ont rapporté les campagnes" sub="Septembre · clients revenus" />
+      <ConsoleHeader title="Votre chiffre du jour" sub="Hier, et les jours qui viennent" />
       <div className="px-4 flex flex-col gap-2.5">
-        <div className="bg-ink rounded-xl px-3.5 py-3">
-          <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-moss-light m-0">Ce mois-ci</p>
-          <p className="text-white text-[13px] font-semibold m-0 mt-1">61 clients revenus après une campagne</p>
-          <p className="text-white/60 text-[10.5px] m-0 mt-0.5">contre 12 dans le groupe non relancé</p>
+        <div className="bg-white border border-paper-border rounded-xl p-3.5">
+          <p className="text-[10.5px] text-ink-faint m-0">Hier, samedi</p>
+          <p className="font-display text-[24px] font-bold text-ink m-0 leading-tight">1 240 €</p>
+          <p className="text-[10.5px] text-good font-semibold m-0">Au-dessus de vos 4 derniers samedis</p>
+          <div className="flex items-end gap-[3px] h-16 mt-3" aria-hidden>
+            {days.map((v, i) => (
+              <span
+                key={i}
+                className={`flex-1 rounded-t-[2px] ${v === 0 ? "bg-paper-border" : i === days.length - 2 ? "bg-moss" : "bg-moss/45"}`}
+                style={{ height: `${v === 0 ? 8 : v}%` }}
+              />
+            ))}
+          </div>
         </div>
-        <div className="bg-white border border-paper-border rounded-xl px-3.5 py-1.5">
-          {RESULTS.map((r) => (
-            <div key={r.label} className="flex items-center justify-between gap-2 py-2 border-b border-paper-border last:border-b-0">
-              <span className="text-[11.5px] text-ink">{r.label}</span>
-              <span className="text-[11px] text-ink-muted whitespace-nowrap">
-                <span className="font-display text-[13px] font-bold text-ink">{r.n}</span> vs {r.ctrl}
-              </span>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-white border border-paper-border rounded-xl p-3">
+            <p className="text-[10px] text-ink-faint m-0">Caisse</p>
+            <p className="font-display text-[15px] font-bold text-ink m-0">980 €</p>
+          </div>
+          <div className="bg-white border border-paper-border rounded-xl p-3">
+            <p className="text-[10px] text-ink-faint m-0">Plateformes</p>
+            <p className="font-display text-[15px] font-bold text-ink m-0">260 €</p>
+          </div>
         </div>
-        <div className="bg-white border border-paper-border rounded-xl px-3.5 py-2.5">
-          <p className="text-[10px] text-ink-faint m-0">Pub Instagram</p>
-          <p className="text-[11.5px] text-ink m-0 mt-0.5">
-            <span className="font-bold">84 clients</span> venus au comptoir après la campagne
-          </p>
-        </div>
-        <div className="bg-white border border-paper-border rounded-xl px-3.5 py-2.5 flex items-center gap-2">
-          <Star className="w-4 h-4 text-moss-dark" fill="currentColor" />
-          <span className="text-[11.5px] text-ink">
-            <span className="font-bold">+23 avis</span> · <span className="font-bold">+140</span> abonnés Instagram
-          </span>
+        <div className="bg-ink rounded-xl p-3 text-white">
+          <p className="text-[10px] text-night-text m-0">Demain, dimanche</p>
+          <p className="text-[12px] font-bold m-0 mt-0.5">Entre 900 et 1 100 € · vacances scolaires</p>
         </div>
       </div>
       <ConsoleTabs active={0} />
