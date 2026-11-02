@@ -1,16 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { PhoneFrame } from "./PhoneFrame";
-import {
-  CopilotScreen,
-  GoogleScreen,
-  LoyaltyScreen,
-  RelaunchScreen,
-  ResultsScreen,
-  ReviewsScreen,
-} from "./TourScreens";
+import { LoyaltyScreen, PubScreen, RelaunchScreen, RevenueScreen, ReviewsScreen } from "./TourScreens";
 
 // Visite guidée (2026-09-26) : un iPhone reste fixe pendant qu'on défile, et
 // l'écran + le titre changent à chaque fonctionnalité. Peu de texte : c'est
@@ -33,65 +27,60 @@ type Step = {
   title: string;
   line: string;
   Screen: ComponentType;
+  /** La page qui explique la fonction en détail (stratégie SEO, 2026-11-01). */
+  href: string;
   lightStatus?: boolean;
-  /** Pas encore livré (ADR 0074) : ouverture en places pilotes. */
-  pilot?: boolean;
 };
 
+// Remise à plat du 2026-11-02 : seulement des fonctions LIVRÉES, chacune reliée
+// à sa page. Copilote, place sur Google et résultats contre groupe témoin
+// retirés (pas livrés, ADR 0070/0074).
 const STEPS: Step[] = [
   {
     id: "fidelite",
-    plan: "Gratuit",
+    plan: "Forfait gratuit",
     who: "Côté client",
     title: "Chaque ticket inscrit un client.",
-    line: "Il photographie son ticket, gagne des points, et l'établissement récupère son contact.",
+    line: "Il prend son ticket de caisse en photo, gagne des points, et vous récupérez son contact. Rien à brancher.",
     Screen: LoyaltyScreen,
+    href: "/programme-fidelite-restaurant",
     lightStatus: true,
   },
   {
-    id: "copilote",
-    pilot: true,
-    plan: "Pro",
+    id: "relance",
+    plan: "Forfait gratuit",
     who: "Côté console",
-    title: "Chaque lundi, trois actions prêtes.",
-    line: "Météo, matchs, clients qui décrochent : le marketing de la semaine est déjà pensé.",
-    Screen: CopilotScreen,
+    title: "Un habitué décroche ? Il reçoit un message.",
+    line: "Un rappel part tout seul quand un habitué laisse passer son rythme. Et vous écrivez à vos clients quand vous voulez.",
+    Screen: RelaunchScreen,
+    href: "/relancer-vos-clients",
   },
   {
-    id: "relance",
-    pilot: true,
-    plan: "Croissance",
+    id: "pub",
+    plan: "Tous les forfaits",
     who: "Côté console",
-    title: "Un client décroche ? Il est relancé.",
-    line: "Au bon moment pour lui, avec un message déjà écrit. Un clic suffit.",
-    Screen: RelaunchScreen,
+    title: "Une pub dans votre quartier, montée pour vous.",
+    line: "Facebook et Instagram à 3 km autour de chez vous. Une estimation avant de payer, un mot clé à dire au comptoir.",
+    Screen: PubScreen,
+    href: "/publicite-restaurant",
   },
   {
     id: "avis",
-    pilot: true,
-    plan: "Croissance",
+    plan: "Croissance et Pro",
     who: "Côté console",
-    title: "Chaque avis a sa réponse.",
-    line: "Une réponse proposée, à publier en un geste. Et ce qui revient dans les avis.",
+    title: "Chaque avis Google a sa réponse.",
+    line: "On répond à vos avis pour vous, et vous voyez ce qui revient dans ce que disent vos clients.",
     Screen: ReviewsScreen,
+    href: "/analyse-avis-google-restaurant",
   },
   {
-    id: "google",
-    pilot: true,
-    plan: "Pro",
-    who: "Côté console",
-    title: "Plus haut sur Google.",
-    line: "Fiche et référencement pris en charge, la place suivie chaque mois.",
-    Screen: GoogleScreen,
-  },
-  {
-    id: "resultats",
-    pilot: true,
+    id: "chiffre",
     plan: "Croissance",
     who: "Côté console",
-    title: "Ce que rapporte chaque campagne, enfin chiffré.",
-    line: "Clients revenus, comparés à ceux qui n'ont rien reçu.",
-    Screen: ResultsScreen,
+    title: "Combien hier, combien demain.",
+    line: "Votre chiffre du jour en un écran, comparé aux mêmes jours, et les jours qui viennent prévus.",
+    Screen: RevenueScreen,
+    href: "/chiffre-affaires-restaurant",
   },
 ];
 
@@ -180,12 +169,18 @@ export function FeatureTour() {
                 >
                   <span className="inline-block font-mono text-[10px] tracking-[0.1em] uppercase text-moss-dark bg-moss-tint rounded-full px-2.5 py-1">
                     {s.who} · {s.plan}
-                    {s.pilot && " · pilote"}
                   </span>
                   <h2 className="font-display text-[26px] sm:text-[34px] lg:text-[48px] leading-[1.1] tracking-[-0.02em] font-bold text-ink mt-3 mb-0 text-pretty">
                     {s.title}
                   </h2>
                   <p className="text-[15px] sm:text-base text-ink-muted mt-2 mb-0">{s.line}</p>
+                  <Link
+                    href={s.href}
+                    tabIndex={i === active ? 0 : -1}
+                    className="inline-block mt-3 text-[14.5px] font-bold text-moss-dark hover:underline"
+                  >
+                    Voir en détail →
+                  </Link>
                 </div>
               ))}
             </div>

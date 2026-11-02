@@ -35,7 +35,7 @@ export function Hero() {
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
-              ▶ Le copilote marketing des restaurateurs
+              ▶ Fidélité, pub et chiffres pour les restaurants
             </p>
           </Reveal>
           <Reveal delay={80}>
@@ -44,6 +44,10 @@ export function Hero() {
               <br />
               <RotatingWords words={PROBLEMS} className="text-moss-dark" />
             </h1>
+            {/* Promesse (2026-11-01, .claude/product-marketing.md) : faire revenir + faire venir. */}
+            <p className="font-landing text-[17px] sm:text-[19px] leading-[1.6] text-ink-muted mt-5 mb-0 max-w-[620px] mx-auto text-pretty">
+              Faites revenir vos clients et faites venir le quartier. Rien à brancher : le ticket de caisse suffit.
+            </p>
           </Reveal>
           {/* ADR 0071 — premier geste de la page : chercher son établissement, puis l'audit gratuit.
               Le z-index se pose sur le Reveal : son transform en fait un contexte d'empilement,
@@ -52,7 +56,7 @@ export function Hero() {
             <div className="relative z-20 mt-7 mx-auto max-w-[640px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.12)] border border-paper-border p-2">
               <RestaurantSearchBar location="hero" />
             </div>
-            <p className="text-[13px] text-ink-faint mt-3 mb-0">Note sur 100 en moins d&apos;une minute · gratuit, sans engagement</p>
+            <p className="text-[13px] text-ink-faint mt-3 mb-0">Analysez votre restaurant gratuitement · note sur 100 en moins d&apos;une minute</p>
           </Reveal>
         </div>
 

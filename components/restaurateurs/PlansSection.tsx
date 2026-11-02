@@ -2,47 +2,43 @@
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { Reveal } from "./motion";
+import { whatsappUrl } from "@/lib/contact";
 
-// ADR 0074 §7 (2026-09-29, prix de départ à tester sur pilotes) — trois
-// plans, prix HTVA par établissement, plus aucune commission :
-// Gratuit (≤ 500 tickets/mois) · Croissance 150 € (décidé le 2026-11-01,
-// .claude/product-marketing.md) · Pro 500 € (copilote,
-// Google, site de commande d'un partenaire relié à la caisse), 3 mois minimum.
-// Les fonctions payantes ne sont pas encore livrées : les plans se réservent
-// en « place pilote » (e-mail), pas par un paiement en ligne.
-// Rentabilité : ticket moyen 14,80 € × marge brute 65 % ≈ 9,62 € par ticket.
+// Plans, prix HTVA par établissement (remise à plat du 2026-11-02,
+// .claude/product-marketing.md) : Forfait gratuit (≤ 500 tickets/mois, le
+// client n'est jamais bloqué) · Croissance 150 €/mois sans engagement · Pro
+// 500 €/mois, 3 mois minimum. Seulement des fonctions LIVRÉES (ADR 0070) ; plus
+// de calcul « X € = N tickets » (décision du 2026-11-01). Les forfaits payants
+// se prennent en parlant avec nous (WhatsApp), pas par un paiement en ligne.
 
 const FREE_FEATURES = [
   "Un programme de fidélité au nom et aux couleurs de l'établissement",
-  "La liste des clients inscrits, qui reste à l'établissement",
+  "Rien à brancher : le ticket de caisse suffit",
+  "Des cadeaux calculés sur ce qu'ils vous coûtent, au taux que vous choisissez",
+  "La liste de vos clients inscrits",
+  "Des messages à vos clients, et deux qui partent tout seuls (anniversaire, habitué qui décroche)",
+  "Parrainage par WhatsApp, QR et affiches prêts à imprimer",
+  "Votre chiffre du jour et le coût de chaque plat",
   "Jusqu'à 500 tickets par mois",
-  "Des cadeaux calculés pour protéger la marge",
-  "Parrainage par WhatsApp, sans limite",
-  "Des messages aux clients, envoyés par l'établissement",
-  "QR codes et affiches prêts à imprimer",
 ];
 
 const GROWTH_FEATURES = [
   "Tickets illimités",
-  "Les clients rangés tout seuls : nouveaux, habitués, ceux qui décrochent",
-  "Relance automatique, au rythme de chaque client",
-  "Des campagnes prêtes à partir en un clic",
-  "Les avis Google au même endroit, avec une réponse proposée",
-  "Chaque mois, les clients revenus après une campagne, comparés à ceux qui n'ont rien reçu",
+  "Votre chiffre comparé jour par jour, et la part qui vient de vos clients inscrits",
+  "Les prévisions des jours à venir et les ventes par plat",
+  "Des messages programmés à l'avance",
+  "On répond à vos avis Google pour vous",
+  "Pub de quartier à 15 % de frais (au lieu de 20 %)",
 ];
 
 const PRO_FEATURES = [
-  "Le copilote : chaque lundi, trois actions prêtes (météo, matchs, clients qui décrochent, concurrents)",
-  "La fiche Google tenue à jour, et le référencement pris en charge",
-  "Le site de commande installé et optimisé, chez un partenaire relié à la caisse",
-  "Appels, itinéraires, abonnés : les chiffres de Google et d'Instagram réunis",
-  "Un rapport clair chaque mois, et un point avec nous",
+  "Votre fiche Google tenue à jour, sur invitation",
+  "Un rapport chaque mois, et un point avec nous",
   "Comparaison anonyme avec les restaurants du secteur",
-  "Tous les établissements au même endroit",
+  "Tous vos établissements au même endroit",
+  "Pub de quartier à 5 % de frais",
 ];
 
-const PILOT_MAILTO = (plan: string) =>
-  `mailto:contact@boosteats.be?subject=${encodeURIComponent(`Place pilote — plan ${plan}`)}`;
 
 export function PlansSection() {
   return (
@@ -58,7 +54,7 @@ export function PlansSection() {
         <div className="grid lg:grid-cols-3 gap-6 mt-10 items-stretch">
           <Reveal delay={80}>
             <PlanCard
-              name="Gratuit"
+              name="Forfait gratuit"
               price="0 €"
               priceNote="pour toujours"
               commission="Aucune carte bancaire"
@@ -85,24 +81,19 @@ export function PlansSection() {
               name="Croissance"
               price="150 €"
               priceNote="/mois"
-              commission="Sans engagement, sans commission."
-              pitch="Pour relancer les clients soi-même, en un clic."
-              intro="Tout le plan Gratuit, plus :"
+              commission="Sans engagement."
+              pitch="Pour suivre vos chiffres et ne plus laisser un avis sans réponse."
+              intro="Tout le forfait gratuit, plus :"
               features={GROWTH_FEATURES}
-              pilot
-              roi={{
-                title: "150 €, c'est environ 16 tickets de plus dans le mois.",
-                sub: "Un client de plus tous les deux jours.",
-              }}
               cta={
                 <TrackedLink
-                  ctaId="place_pilote"
+                  ctaId="whatsapp"
                   ctaLocation="plans_croissance"
                   audience="restaurateur"
-                  href={PILOT_MAILTO("Croissance")}
+                  href={whatsappUrl("Bonjour, je voudrais en savoir plus sur le forfait Croissance pour mon restaurant.")}
                   className="mt-6 text-center border-[1.5px] border-moss text-moss-dark text-sm font-bold rounded-lg px-5 py-3 hover:bg-moss-tint transition-colors"
                 >
-                  Réserver une place pilote
+                  En parler sur WhatsApp
                 </TrackedLink>
               }
             />
@@ -113,24 +104,19 @@ export function PlansSection() {
               name="Pro"
               price="500 €"
               priceNote="/mois"
-              commission="Sans commission. 3 mois minimum, puis au mois."
+              commission="3 mois minimum, puis au mois."
               pitch="Pour que le marketing soit pensé et fait à la place de l'établissement."
               intro="Tout le plan Croissance, plus :"
               features={PRO_FEATURES}
-              pilot
-              roi={{
-                title: "500 €, c'est environ 52 tickets de plus dans le mois.",
-                sub: "Moins de deux clients de plus par jour.",
-              }}
               cta={
                 <TrackedLink
-                  ctaId="place_pilote"
+                  ctaId="whatsapp"
                   ctaLocation="plans_pro"
                   audience="restaurateur"
-                  href={PILOT_MAILTO("Pro")}
+                  href={whatsappUrl("Bonjour, je voudrais en savoir plus sur le forfait Pro pour mon restaurant.")}
                   className="mt-6 text-center border-[1.5px] border-moss text-moss-dark text-sm font-bold rounded-lg px-5 py-3 hover:bg-moss-tint transition-colors"
                 >
-                  Réserver une place pilote
+                  En parler sur WhatsApp
                 </TrackedLink>
               }
             />
@@ -141,9 +127,8 @@ export function PlansSection() {
           <div className="bg-white border-[1.5px] border-moss-tint2 rounded-xl px-6 py-5 mt-8 max-w-[760px] mx-auto">
             <p className="font-display text-[15px] font-bold text-ink m-0 mb-1.5">Et le site de commande ?</p>
             <p className="text-[14.5px] leading-relaxed text-ink-body m-0">
-              Il reste celui de l&apos;établissement, relié à sa caisse. En Pro, on l&apos;installe chez un partenaire
-              s&apos;il n&apos;existe pas, puis on le fait vendre : bouton « Commander » sur Google et Instagram, et
-              chaque commande dit d&apos;où elle vient.
+              Il reste celui de l&apos;établissement, relié à sa caisse : Boosteats ne prend aucune commande et aucune
+              commission. On vérifie que le bouton « Commander » de votre fiche Google mène bien chez vous.
             </p>
           </div>
         </Reveal>
@@ -170,8 +155,6 @@ function PlanCard({
   features,
   cta,
   highlighted = false,
-  pilot = false,
-  roi,
 }: {
   name: string;
   price: string;
@@ -182,8 +165,6 @@ function PlanCard({
   features: string[];
   cta: React.ReactNode;
   highlighted?: boolean;
-  pilot?: boolean;
-  roi?: { title: string; sub: string };
 }) {
   return (
     <div
@@ -193,11 +174,6 @@ function PlanCard({
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-display text-[22px] font-bold m-0">{name}</h3>
-        {pilot && (
-          <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-moss-dark bg-moss-tint rounded-full px-2.5 py-1">
-            Places pilotes
-          </span>
-        )}
       </div>
       <p className="font-display text-3xl font-bold text-ink mt-2 mb-0">
         {price}
@@ -213,15 +189,6 @@ function PlanCard({
           </p>
         ))}
       </div>
-      {roi && (
-        <div className="bg-moss-tint rounded-lg px-4 py-3.5 mt-6">
-          <p className="text-[13.5px] font-semibold text-moss-dark m-0">{roi.title}</p>
-          <p className="text-[13px] text-ink-body mt-1 mb-0">{roi.sub}</p>
-          <p className="text-[11px] text-ink-faint mt-1.5 mb-0">
-            Sur la base d&apos;un ticket moyen de 14,80 € et d&apos;une marge brute de 65 %.
-          </p>
-        </div>
-      )}
       {cta}
     </div>
   );

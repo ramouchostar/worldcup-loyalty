@@ -41,27 +41,27 @@ const html = `<!doctype html>
 html, body { width: 210mm; height: 297mm; }
 body { font-family: Archivo, system-ui, sans-serif; color: var(--ink); background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .page { width: 210mm; height: 297mm; display: flex; flex-direction: column; overflow: hidden; }
-.top { background: var(--night); color: #fff; padding: 13mm 14mm 11mm; position: relative; }
+.top { background: var(--night); color: #fff; padding: 11mm 14mm 8mm; position: relative; }
 .top::after { content:""; position:absolute; right:-30mm; top:-30mm; width:95mm; height:95mm; border-radius:50%; background: radial-gradient(circle, rgba(162,197,35,.35), rgba(162,197,35,0) 70%); }
 .logo svg { height: 10mm; width: auto; }
 .logo svg text, .logo svg path[fill="#0C1509"] { }
-h1 { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 31pt; line-height: 1.04; letter-spacing: -0.03em; margin-top: 9mm; max-width: 165mm; }
+h1 { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 29pt; line-height: 1.04; letter-spacing: -0.03em; margin-top: 6mm; max-width: 165mm; }
 h1 em { font-style: normal; color: var(--moss); }
 .sub { margin-top: 4mm; font-size: 13pt; color: #D9DECB; font-weight: 500; }
 .sub b { color: #fff; }
-.body { padding: 9mm 14mm 0; flex: 1; display: flex; flex-direction: column; gap: 7mm; }
+.body { padding: 7mm 14mm 6mm; flex: 1; display: flex; flex-direction: column; gap: 4.5mm; }
 .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
-.pillar { border: 0.3mm solid var(--line); border-radius: 4mm; padding: 4.5mm; background: #FAFAF7; }
+.pillar { border: 0.3mm solid var(--line); border-radius: 4mm; padding: 3.8mm; background: #FAFAF7; }
 .pillar .n { display:inline-grid; place-items:center; width:7mm; height:7mm; border-radius:50%; background: var(--moss); color: var(--night); font-weight:700; font-size:10pt; }
 .pillar h2 { font-family: "Space Grotesk", sans-serif; font-size: 14pt; margin-top: 2.5mm; letter-spacing: -0.01em; }
-.pillar p { font-size: 9.4pt; line-height: 1.5; color: var(--muted); margin-top: 1.5mm; }
-.gifts { display: grid; grid-template-columns: auto 1fr; gap: 5mm; align-items: center; background: var(--cream); border-radius: 4mm; padding: 4.5mm 5mm; }
+.pillar p { font-size: 9pt; line-height: 1.45; color: var(--muted); margin-top: 1.5mm; }
+.gifts { display: grid; grid-template-columns: auto 1fr; gap: 5mm; align-items: center; background: var(--cream); border-radius: 4mm; padding: 3.5mm 5mm; }
 .calc { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 15pt; white-space: nowrap; color: var(--olive-dark); }
 .calc span { display:inline-block; background:#fff; border-radius: 2.5mm; padding: 1.2mm 2.5mm; color: var(--night); }
 .gifts p { font-size: 9.6pt; line-height: 1.5; }
 .gifts p b { font-size: 10.5pt; }
 .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
-.plan { border: 0.3mm solid var(--line); border-radius: 4mm; padding: 4.5mm; display:flex; flex-direction:column; }
+.plan { border: 0.3mm solid var(--line); border-radius: 4mm; padding: 3.8mm; display:flex; flex-direction:column; }
 .plan.free { border: 0.6mm solid var(--moss); background: #F6FAE8; }
 .plan .tag { font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--olive-dark); }
 .plan h3 { font-family: "Space Grotesk", sans-serif; font-size: 15pt; margin-top: 1mm; }
@@ -70,15 +70,20 @@ h1 em { font-style: normal; color: var(--moss); }
 .plan li { font-size: 9pt; line-height: 1.35; padding-left: 4mm; position: relative; color: var(--ink); }
 .plan li::before { content:"✓"; position:absolute; left:0; color: var(--good); font-weight:700; }
 .plan .fee { margin-top: 2.5mm; font-size: 8.4pt; color: var(--muted); border-top: 0.3mm dashed var(--line); padding-top: 2mm; }
-.ht { font-size: 8pt; color: var(--muted); margin-top: -4.5mm; }
-.cta { margin-top: auto; background: var(--night); color: #fff; padding: 8mm 14mm; display: grid; grid-template-columns: 1fr auto; gap: 8mm; align-items: center; }
-.cta h4 { font-family: "Space Grotesk", sans-serif; font-size: 19pt; line-height: 1.1; letter-spacing: -0.02em; }
+.ht { font-size: 8pt; color: var(--muted); margin-top: -3mm; }
+.proof { display:grid; grid-template-columns: auto 1fr; gap: 5mm; align-items:center; border: 0.4mm solid var(--moss); border-radius: 4mm; padding: 3mm 5mm; }
+.proof .nums { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 15pt; white-space: nowrap; color: var(--night); }
+.proof .nums b { color: var(--olive-dark); }
+.proof p { font-size: 9pt; line-height: 1.45; color: var(--muted); }
+.proof p strong { color: var(--ink); font-size: 9.6pt; }
+.cta { margin-top: auto; background: var(--night); color: #fff; padding: 6.5mm 14mm; display: grid; grid-template-columns: 1fr auto; gap: 8mm; align-items: center; }
+.cta h4 { font-family: "Space Grotesk", sans-serif; font-size: 17pt; line-height: 1.1; letter-spacing: -0.02em; }
 .cta h4 em { font-style: normal; color: var(--moss); }
 .cta p { font-size: 10pt; color: #C9CEBB; margin-top: 2.5mm; line-height: 1.5; }
 .contact { display:flex; gap: 6mm; margin-top: 4mm; font-size: 11pt; font-weight: 700; }
 .contact span small { display:block; font-size: 7.5pt; font-weight: 500; color: var(--light); text-transform: uppercase; letter-spacing: .08em; }
-.qr { background:#fff; border-radius: 3mm; padding: 3mm; width: 36mm; text-align:center; }
-.qr svg { width: 30mm; height: 30mm; display:block; }
+.qr { background:#fff; border-radius: 3mm; padding: 2.5mm; width: 32mm; text-align:center; }
+.qr svg { width: 27mm; height: 27mm; display:block; }
 .qr small { display:block; color: var(--night); font-size: 7.2pt; font-weight: 700; margin-top: 1.5mm; }
 </style></head>
 <body><div class="page">
@@ -95,6 +100,10 @@ h1 em { font-style: normal; color: var(--moss); }
     </div>
     <div class="plans">${plans.map(([name, price, tag, items, fee], i) => `<div class="plan${i === 0 ? " free" : ""}"><p class="tag">${tag}</p><h3>${name}</h3><p class="price">${price}</p><ul>${items.map((x) => `<li>${x}</li>`).join("")}</ul><p class="fee">${fee}</p></div>`).join("")}</div>
     <p class="ht">Prix HTVA, par établissement. On commence toujours par le forfait gratuit.</p>
+    <div class="proof">
+      <div class="nums">63 000 € → <b>123 000 €</b><br><span style="font-size:9pt;font-weight:500;color:#55554F">de CA par mois</span></div>
+      <p><strong>Belchicken Kraainem, client depuis plus d'un an.</strong> La fidélité dès le premier jour, des milliers de clients inscrits et relancés chaque semaine, les bonnes promos au bon moment, et de la pub dans le quartier toute l'année.</p>
+    </div>
   </div>
   <div class="cta">
     <div>

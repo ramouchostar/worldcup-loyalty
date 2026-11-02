@@ -9,7 +9,7 @@ const QUESTIONS = [
   },
   {
     q: "Faut-il valider les tickets ?",
-    a: "Non, la lecture est automatique. Seuls les cas douteux remontent.",
+    a: "Non, les tickets se valident seuls. Seuls les cas douteux remontent.",
   },
   {
     q: "Faut-il changer de caisse ?",
@@ -17,7 +17,7 @@ const QUESTIONS = [
   },
   {
     q: "Qui écrit les messages ?",
-    a: "Ils arrivent déjà écrits, adaptés à l'établissement. Rien ne part sans un clic de sa part.",
+    a: "L'établissement les écrit, en quelques lignes : une offre du soir, un nouveau plat, une fête. Deux messages partent tout seuls : l'anniversaire, et le rappel quand un habitué ne revient plus.",
   },
   {
     q: "Faut-il quitter Uber Eats ?",
@@ -25,11 +25,11 @@ const QUESTIONS = [
   },
   {
     q: "Les avis sont-ils récompensés ?",
-    a: "Jamais. Google l'interdit et peut sanctionner la fiche. La demande d'avis part après la visite, sans cadeau.",
+    a: "Jamais. Google interdit toute contrepartie à un avis et peut sanctionner la fiche. Avec Croissance et Pro, on répond à vos avis pour vous, sans jamais en acheter.",
   },
   {
     q: "Le référencement, c'est quoi ?",
-    a: "La place de l'établissement quand on cherche « snack près de moi » sur Google. On la fait monter, et son évolution s'affiche chaque mois.",
+    a: "La place de l'établissement quand on cherche « snack près de moi » sur Google. L'analyse gratuite la mesure depuis neuf points autour du restaurant et dit quoi corriger sur la fiche.",
   },
   {
     q: "Et au-delà de 500 tickets par mois ?",
