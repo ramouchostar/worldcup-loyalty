@@ -180,7 +180,9 @@ export const LEAVE_BEHIND = {
     { name: "Garder la main", body: "Votre chiffre du jour en un écran. Le prix de revient de chaque plat. La part de vos ventes qui vient de vos clients inscrits." },
   ],
   gifts: "Chaque cadeau est calculé sur ce qu'il vous coûte, au taux que vous choisissez (4 à 12 %). Exemple à 8 % : une boisson qui vous coûte 0,60 € se gagne après 7,50 € d'achats.",
-  cta: "Votre restaurant vu par vos clients sur Google : analyse gratuite en moins d'une minute — boosteats.be/audit-gratuit",
+  cta: "Analysez votre restaurant gratuitement, en une minute — boosteats.be/audit-gratuit · WhatsApp +32 490 11 31 67",
+  /** PDF imprimable (scripts/marketing/build-page-comptoir.mjs). */
+  pdf: "/marketing/boosteats-page-comptoir.pdf",
 };
 
 export const MESSAGES: { id: string; title: string; when: string; text: string }[] = [
