@@ -14,6 +14,7 @@ import {
   type Faq,
 } from "@/components/marketing/kit";
 import { marketingMetadata } from "@/lib/marketing-pages";
+import { CaseStudyBand } from "@/components/marketing/CaseStudyBand";
 import { ConsoleDashboard, HeroComposite, JOURNEY } from "./_visuals";
 
 // Page « programme de fidélité » (stratégie de référencement, retour de Mehdi du 2026-11-01) :
@@ -246,6 +247,9 @@ export default function ProgrammeFidelitePage() {
           ))}
         </ol>
       </Section>
+
+      {/* Preuve : le cas Kraainem (accord du propriétaire, 2026-11-02). */}
+      <CaseStudyBand />
 
       {/* 6. Les garde-fous. */}
       <Section tone="tint">

@@ -1,6 +1,6 @@
 # Product Marketing Context — Boosteats
 
-**Document version:** v2
+**Document version:** v3
 **Last updated:** 2026-11-01
 
 > Fiche de base lue par tous les skills marketing (texte, offre, prospection, landing).
@@ -191,9 +191,9 @@ Prospection, landing et e-mails restaurateurs : **vouvoiement**. Console du rest
 
 ## Proof Points
 
-**Metrics :** *à construire* — étude de cas d'un établissement réel (inscrits, taux de capture, clients revenus, effet d'une pub de quartier), en lecture seule sur la base, publiée avec l'accord du restaurant.
+**Metrics :** **Belchicken Kraainem : de 63 000 € à 123 000 € de chiffre d'affaires par mois**, client depuis plus d'un an (accord du propriétaire le 2026-11-02 ; source unique `lib/case-studies.ts`). Dire ce qu'on a fait ensemble, jamais « grâce à nous ».
 **Customers :** trois établissements Belchicken à Bruxelles (Kraainem, Houba, Uccle) ; noms cités seulement avec leur accord.
-**Testimonials :** *aucun recueilli à ce jour.*
+**Testimonials :** *aucune citation recueillie* — demander deux phrases à Aram ; n'en inventer aucune.
 
 **Value themes :**
 | Theme | Proof |
@@ -230,5 +230,6 @@ Pub de quartier gérée **pour les restaurants clients** (pas d'acquisition Boos
 ## Changelog
 
 *Les plus récentes en haut. Une ligne par révision : quoi et pourquoi.*
+- v3 (2026-11-02) — Preuve : cas Kraainem publiable (accord d'Aram).
 - v2 (2026-11-01) — Plans : la réponse aux avis Google par Boosteats est livrée en Croissance et Pro (décision de Mehdi) ; le centre des avis automatisé reste en préparation.
 - v1 (2026-11-01) — Contexte initial, rédigé depuis le code, les ADR 0070/0074/0081/0086 et docs/strategie, après les décisions du porteur (message, cible, prix Gratuit d'abord, Croissance à 150 €, tournures « rien à brancher » et « calculé sur ce qu'il vous coûte »).
