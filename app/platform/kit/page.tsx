@@ -208,7 +208,14 @@ export default async function PlatformKitPage() {
           </div>
           <p className={body}>{LEAVE_BEHIND.gifts}</p>
           <p className="font-semibold text-gray-900 dark:text-gray-100">{LEAVE_BEHIND.cta}</p>
-          <p className={muted}>À compléter avant impression : le numéro WhatsApp, et une phrase d&apos;un restaurateur client avec son accord.</p>
+          <a
+            href={LEAVE_BEHIND.pdf}
+            download
+            className="inline-flex items-center rounded-lg bg-emerald-700 text-white text-sm font-bold px-4 py-2.5"
+          >
+            Télécharger le PDF à imprimer (A4)
+          </a>
+          <p className={muted}>Le QR du PDF mène à l&apos;analyse gratuite (compté à part : utm_source=flyer). Le témoignage d&apos;un restaurateur viendra avec son accord.</p>
         </div>
       </section>
 
