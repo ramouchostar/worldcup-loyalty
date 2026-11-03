@@ -3,7 +3,7 @@
 **Statut** : Proposé (2026-11-03). Décidé par le porteur en session le 2026-11-02 (périmètre, plan,
 adresse, pilotes), sur la maquette « Site Houba — maquette SEO »
 (https://claude.ai/artifact/6qJgFMH7htrkc8XmtGgHzB : accueil, page d'un plat, rapport du mois).
-Le rendu reste à **valider sur maquette** avant tout code (ADR 0065). Précise l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
+Maquette **validée par le porteur le 2026-11-03**, avec deux ajouts (promo à la une, bouton Commander ou Appeler : §2 et §3). Précise l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
 §7 (le « référencement » du Pro prend forme) sans toucher à son §4 : **aucune commande ni aucun
 paiement chez nous**. Amende l'[ADR 0070](0070-plans-croissance-pro-commande-en-ligne-et-referencement.md)
 §2 sur l'adresse du site (sous-domaine Boosteats, plus le domaine du restaurant). S'appuie sur
@@ -61,6 +61,11 @@ pas vendu à part et n'entre pas dans Croissance. Il réunit trois choses :
   Laeken »), puis s'il est ouvert, la note Google, les boutons Commander, Itinéraire et
   Livraison, les plats les plus commandés, la carte, les horaires, l'accès, une FAQ locale et un
   encart vers le programme de fidélité (le site sert aussi à inscrire des membres).
+- **La promo à la une** : quand une offre est en cours, elle s'affiche en tête de l'accueil, juste
+  sous la photo (texte, mot clé à dire, date de fin), et sur la page du plat concerné. La source
+  est l'offre de la pub (`ad_requests.offer_text`, `offer_keyword`, `offer_from`, `offer_to`,
+  ADR 0086) : jamais saisie deux fois. Elle apparaît le premier jour et disparaît le lendemain de
+  sa date de fin, sans geste de personne. Sans offre en cours, rien ne s'affiche (pas de bloc vide).
 - **Une page par plat phare**, seulement si on a une vraie photo et une description validée par
   le restaurateur. **Jamais de page par commune avec le même texte** : Google les sanctionne.
   Aucune description de plat n'est inventée.
@@ -71,10 +76,17 @@ pas vendu à part et n'entre pas dans Croissance. Il réunit trois choses :
 
 ### 3. La commande reste ailleurs
 
-Le bouton « Commander » ouvre **la commande que le restaurant utilise déjà** : celle de sa
-caisse, Takeaway, Uber Eats, Deliveroo ou un partenaire (ADR 0074 §7). Nous ne prenons aucune
+Le bouton principal dépend de ce que le restaurant a :
+
+- **un vrai site de commande** (celui de sa caisse, Takeaway, Uber Eats, Deliveroo ou un
+  partenaire, ADR 0074 §7) → « Commander », qui ouvre ce site ;
+- **sinon** → « Appeler pour commander », qui lance l'appel (`tel:`) vers son numéro ;
+- **ni l'un ni l'autre** → le site n'est pas publié : on ne met pas en ligne une page dont le
+  bouton principal ne mène nulle part. La console dit ce qui manque.
+
+Le même choix vaut pour le bouton du haut, celui de la promo et celui de chaque page de plat. Nous ne prenons aucune
 commande, n'encaissons rien et ne touchons pas aux allergènes au-delà de ce que le restaurant
-nous fournit. Chaque clic sur « Commander » est **compté** (destination, page, jour) : c'est la
+nous fournit. Chaque clic sur « Commander » ou « Appeler » est **compté** (destination, page, jour) : c'est la
 seule chose qu'on mesure du parcours de commande.
 
 ### 4. L'adresse : un sous-domaine Boosteats
@@ -119,7 +131,7 @@ Mesurée le 1er de chaque mois, affichée dans la console :
 - **Place sur Google Maps** : si, sur les deux pilotes, la place moyenne sur la grille ne
   progresse pas après **3 mesures mensuelles** (point de départ compris), le site seul ne suffit
   pas : revoir le contenu ou l'offre avant de le vendre plus loin.
-- **Clics « Commander » et itinéraires** : s'ils restent à zéro alors que les visites montent,
+- **Clics « Commander » ou « Appeler » et itinéraires** : s'ils restent à zéro alors que les visites montent,
   la page attire sans convertir.
 - **Coût DataForSEO** par établissement et par mois, lu dans le champ `cost` déjà enregistré :
   au-delà de 5 € par mois et par établissement, réduire la grille ou les recherches suivies.
