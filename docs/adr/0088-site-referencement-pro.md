@@ -3,7 +3,7 @@
 **Statut** : Proposé (2026-11-03). Décidé par le porteur en session le 2026-11-02 (périmètre, plan,
 adresse, pilotes), sur la maquette « Site Houba — maquette SEO »
 (https://claude.ai/artifact/6qJgFMH7htrkc8XmtGgHzB : accueil, page d'un plat, rapport du mois).
-Maquette **validée par le porteur le 2026-11-03**, avec deux ajouts (promo à la une, bouton Commander ou Appeler : §2 et §3). Précise l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
+Maquette **validée par le porteur le 2026-11-03**, avec deux ajouts (promo à la une, bouton Commander, Appeler ou Itinéraire : §2 et §3). Amendé le 2026-11-03 : repli sur l'itinéraire (§3), sous-domaine et référencement à Boosteats sans redirection (§4), accord de Houba reçu (§7). Précise l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
 §7 (le « référencement » du Pro prend forme) sans toucher à son §4 : **aucune commande ni aucun
 paiement chez nous**. Amende l'[ADR 0070](0070-plans-croissance-pro-commande-en-ligne-et-referencement.md)
 §2 sur l'adresse du site (sous-domaine Boosteats, plus le domaine du restaurant). S'appuie sur
@@ -80,22 +80,25 @@ Le bouton principal dépend de ce que le restaurant a :
 
 - **un vrai site de commande** (celui de sa caisse, Takeaway, Uber Eats, Deliveroo ou un
   partenaire, ADR 0074 §7) → « Commander », qui ouvre ce site ;
-- **sinon** → « Appeler pour commander », qui lance l'appel (`tel:`) vers son numéro ;
-- **ni l'un ni l'autre** → le site n'est pas publié : on ne met pas en ligne une page dont le
-  bouton principal ne mène nulle part. La console dit ce qui manque.
+- **sinon, un numéro** → « Appeler pour commander », qui lance l'appel (`tel:`) ;
+- **ni l'un ni l'autre** → « Itinéraire jusqu'au restaurant », qui ouvre l'itinéraire Google Maps
+  vers ses coordonnées (`https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>`, lues
+  dans `restaurants.lat/lng`). C'est le cas de Houba (aucun lien de commande connu, aucun numéro
+  sur sa fiche Google). Un établissement sans coordonnées n'est pas publié, et la console le dit.
 
 Le même choix vaut pour le bouton du haut, celui de la promo et celui de chaque page de plat. Nous ne prenons aucune
 commande, n'encaissons rien et ne touchons pas aux allergènes au-delà de ce que le restaurant
-nous fournit. Chaque clic sur « Commander » ou « Appeler » est **compté** (destination, page, jour) : c'est la
+nous fournit. Chaque clic sur le bouton principal (« Commander », « Appeler » ou « Itinéraire ») est **compté** (destination, page, jour) : c'est la
 seule chose qu'on mesure du parcours de commande.
 
 ### 4. L'adresse : un sous-domaine Boosteats
 
 Le site vit sur `<établissement>.boosteats.be`. Rien à acheter, en ligne dès que le contenu est
-validé. Le prix de ce choix : le référencement gagné est rattaché à **notre** domaine. Pour que
-le restaurateur ne perde rien s'il part (ADR 0074 §6), on propose (**à valider**) : à la
-résiliation, le sous-domaine renvoie pendant 12 mois (redirection permanente) vers le site qu'il
-désigne, et on lui remet le contenu.
+validé. **Le sous-domaine et le référencement qu'il gagne appartiennent à Boosteats.** À la
+résiliation, le site est retiré ; il n'y a pas de redirection vers un autre site. Ce que l'ADR
+0074 §6 garantit au restaurateur (ses membres, ses données d'exploitation) reste inchangé. À ajouter
+aux conditions d'abonnement (`docs/legal/conditions-abonnement-restaurateur.md`, brouillon) : le
+site est un service fourni par Boosteats, sur un sous-domaine de Boosteats.
 
 ### 5. La preuve mensuelle
 
@@ -121,9 +124,7 @@ Mesurée le 1er de chaque mois, affichée dans la console :
 
 ### 7. Deux pilotes en parallèle
 
-- **Houba**, sous réserve de l'**accord de Belchicken** : un site local au nom d'un franchisé
-  peut être encadré par le contrat de franchise. Mehdi pose la question à la franchise. Un oui
-  ouvre aussi la porte à De Bue et Kraainem.
+- **Houba** : accord reçu le 2026-11-03. Pour De Bue et Kraainem, l'accord se demande à chacun.
 - **Un indépendant de Bruxelles**, la cible de la prospection, proposé en visite (kit de visite).
 
 ## Mesures (ce qui dira que cette décision est fausse)
@@ -131,7 +132,7 @@ Mesurée le 1er de chaque mois, affichée dans la console :
 - **Place sur Google Maps** : si, sur les deux pilotes, la place moyenne sur la grille ne
   progresse pas après **3 mesures mensuelles** (point de départ compris), le site seul ne suffit
   pas : revoir le contenu ou l'offre avant de le vendre plus loin.
-- **Clics « Commander » ou « Appeler » et itinéraires** : s'ils restent à zéro alors que les visites montent,
+- **Clics sur le bouton principal** : s'ils restent à zéro alors que les visites montent,
   la page attire sans convertir.
 - **Coût DataForSEO** par établissement et par mois, lu dans le champ `cost` déjà enregistré :
   au-delà de 5 € par mois et par établissement, réduire la grille ou les recherches suivies.
@@ -160,8 +161,8 @@ Mesurée le 1er de chaque mois, affichée dans la console :
 - **Reprendre Owner tel quel (site + commande + paiement)** : contredit l'ADR 0074 §4 et pose le
   problème de la caisse certifiée. Écartée par le porteur le 2026-11-02.
 - **Site sur le domaine du restaurant** (l'ADR 0070 §2) : meilleur pour lui s'il part, mais il
-  faut acheter un domaine et régler son DNS pour chaque restaurant. Écartée pour démarrer ; la
-  redirection de 12 mois (§4) limite ce qu'il perd.
+  faut acheter un domaine et régler son DNS pour chaque restaurant, et le référencement gagné
+  sortirait de chez nous. Écartée.
 - **Référencement sans site** (fiche gérée et rapport seulement) : laisse la fiche de Houba
   pointer vers belchicken.com, ce qui est justement le manque constaté.
 - **Module vendu à part, ou inclus dans Croissance** : écarté par le porteur ; le référencement
