@@ -40,3 +40,6 @@ scripts/tmp-*
 
 # Aperçu local des gabarits e-mail (scripts/email-preview.ts)
 .email-preview/
+
+# Profil client des démos Kraainem (chiffres client : dépôt public, jamais versionné)
+scripts/.demo-kraainem-profil.json
