@@ -4,13 +4,15 @@ import Link from "next/link";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { useScrolled } from "./motion";
 import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
+import { OfferMenu } from "./OfferMenu";
 
+// z-40 : au-dessus de la recherche du héros (z-30), sinon elle mord sur le menu « Notre offre ».
 export function Header() {
   const scrolled = useScrolled();
 
   return (
     <header
-      className={`sticky top-0 z-20 pt-safe bg-ink/[0.92] backdrop-blur-xl border-b transition-shadow duration-300 ${
+      className={`sticky top-0 z-40 pt-safe bg-ink/[0.92] backdrop-blur-xl border-b transition-shadow duration-300 ${
         scrolled ? "border-night-line shadow-[0_8px_24px_rgba(0,0,0,0.25)]" : "border-transparent"
       }`}
     >
@@ -20,7 +22,7 @@ export function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-7">
           <NavLink href="/audit-gratuit">Audit gratuit</NavLink>
-          <NavLink href="/#fonctionnalites">Fonctionnalités</NavLink>
+          <OfferMenu />
           <NavLink href="/#plans">Plans</NavLink>
           <NavLink href="/#questions">Questions</NavLink>
           <NavLink href="/blog">Blog</NavLink>

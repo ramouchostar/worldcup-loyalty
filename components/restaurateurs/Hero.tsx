@@ -35,7 +35,7 @@ export function Hero() {
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
-              ▶ Fidélité, pub et chiffres pour les restaurants
+              ▶ Google, pub, fidélité et chiffres pour les restaurants
             </p>
           </Reveal>
           <Reveal delay={80}>
