@@ -83,8 +83,11 @@ if (!Array.isArray(profil.octCaisse) || profil.octCaisse.length !== 31) { consol
 const { ticketMean: TICKET_MEAN, platformMonthly, regulars: REGULARS, pool: POOL } = profil;
 const PLATFORM_MEAN = platformMonthly / 30;                              // plateformes : HYPOTHÈSE de démo
 const PLATFORM_SPLIT = { uber: 0.45, deliveroo: 0.30, takeaway: 0.25 }; // HYPOTHÈSE de démo
-const OCT = new Map(profil.octCaisse.map((v, i) => [`2026-10-${String(i + 1).padStart(2, "0")}`, v]));
-const OCT_TOTAL = profil.octCaisse.reduce((s, v) => s + v, 0);
+// Les valeurs jour par jour peuvent être lues sur une capture : le profil donne alors le total officiel
+// de la caisse (octCaisseTotal) et les jours sont remis à l'échelle, pour que le mois somme au chiffre réel.
+const OCT_RAW = profil.octCaisse.reduce((s, v) => s + v, 0);
+const OCT_TOTAL = profil.octCaisseTotal ?? OCT_RAW;
+const OCT = new Map(profil.octCaisse.map((v, i) => [`2026-10-${String(i + 1).padStart(2, "0")}`, v * OCT_TOTAL / OCT_RAW]));
 const CA_TOTAL = OCT_TOTAL + platformMonthly;
 
 // ── Hypothèses (tableau validé le 2026-11-03) ───────────────────────────────
@@ -268,12 +271,16 @@ function simulate(key) {
   // CA du jour : caisse (profil réel d'octobre) + commandes additionnelles ; plateformes en hypothèse
   const ordersByDay = {};
   for (const o of orders) ordersByDay[o.day] = (ordersByDay[o.day] ?? 0) + 1;
-  const daily = DAYS.map((day) => {
+  const plat = DAYS.map((day) => PLATFORM_MEAN * (0.5 + 0.5 * dayWeight(day) / (HOLIDAY.includes(day) ? HOLIDAY_FACTOR : 1)) * (0.92 + rand() * 0.16));
+  // Octobre est le seul mois connu : ses plateformes somment exactement au chiffre réel.
+  const octPlat = DAYS.reduce((s, d, i) => (d.startsWith("2026-10") ? s + plat[i] : s), 0);
+  const platScale = octPlat > 0 ? platformMonthly / octPlat : 1;
+  const daily = DAYS.map((day, i) => {
     const base = OCT.get(day) ?? normalMean * dayWeight(day);
     const incOrders = (ordersByDay[day] ?? 0) * incShare;
     const caisse = round2(base + incOrders * TICKET_MEAN);
     const carte = round2(caisse * 0.72), cash = round2(caisse - carte);
-    const platTotal = PLATFORM_MEAN * (0.5 + 0.5 * dayWeight(day) / (HOLIDAY.includes(day) ? HOLIDAY_FACTOR : 1)) * (0.92 + rand() * 0.16);
+    const platTotal = plat[i] * (day.startsWith("2026-10") ? platScale : 1);
     const uber = round2(platTotal * PLATFORM_SPLIT.uber), deliveroo = round2(platTotal * PLATFORM_SPLIT.deliveroo), takeaway = round2(platTotal * PLATFORM_SPLIT.takeaway);
     const amount = round2(carte + cash + uber + deliveroo + takeaway);
     return { day, amount, tickets: Math.round(caisse / TICKET_MEAN), carte, cash, uber, deliveroo, takeaway, caisse };
