@@ -32,6 +32,7 @@ const GROWTH_FEATURES = [
 ];
 
 const PRO_FEATURES = [
+  "Votre site pensé pour Google, fait depuis votre carte (places pilotes)",
   "Votre fiche Google tenue à jour, sur invitation",
   "Un rapport chaque mois, et un point avec nous",
   "Comparaison anonyme avec les restaurants du secteur",
