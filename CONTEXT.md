@@ -33,6 +33,10 @@ _Avoid_ : freemium (jargon — on dit « plan ») ; abonnement du client (le cli
 **Analytique établissement** *(ADR 0029)* :
 Les fonctions payantes qui tournent sur les données **propres** du resto (forecast, ventes par plat, opportunités, broadcasts programmés, baromètre avancé) — le contenu du plan Croissance. À distinguer des **Repères secteur**.
 
+**Site de référencement** *(ADR 0088)* :
+Site public d'un établissement en plan **Pro**, sur `<établissement>.boosteats.be`, **généré depuis la base** (identité, carte, prix de vente, photos, horaires) pour être trouvé sur Google : accueil, une page par plat phare (vraie photo et description validée), données structurées, plan du site. Le bouton « Commander » ouvre la commande que le restaurant utilise déjà — **jamais de commande ni de paiement chez nous** (ADR 0074 §4). Va avec la fiche Google gérée (ADR 0082) et le **rapport mensuel** (place sur Google Maps mesurée sur une grille par DataForSEO, actions venues de Google).
+_Avoid_ : SEO (côté restaurateur, on dit « référencement »), site de commande (on ne prend pas de commande), « grâce à nous ».
+
 **Repères secteur** *(ADR 0029)* :
 Agrégats **anonymisés** de la donnée de **tous** les restos (Gratuit inclus contribue), consultables uniquement en plan **Pro** — « la médiane de ton secteur fait +18 % le jeudi ». Jamais de chiffres bruts identifiables ; **seuil plancher** (≥ N restos) anti-ré-identification (esprit ADR 0016) ; contribution actée en CGU.
 _Avoid_ : benchmark (anglicisme — « repères secteur ») ; données concurrents (ce ne sont jamais des chiffres identifiables d'un resto).
