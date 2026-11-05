@@ -14,7 +14,7 @@ export type BlogBlock =
   | { type: "table"; head: string[]; rows: string[][] }
   | { type: "cta"; kind: "analyse" | "whatsapp"; title: string; text: string };
 
-export type BlogCategory = "Google" | "Publicité" | "Chiffre d'affaires" | "Fidélité" | "Coûts";
+export type BlogCategory = "Google" | "Publicité" | "Chiffre d'affaires" | "Fidélité" | "Coûts" | "Comparatifs";
 
 export type BlogArticle = {
   slug: string;

@@ -145,6 +145,31 @@ layout, audit, inscription), données structurées `Organization` + `SoftwareApp
    « Remplir sa fiche Google quand on est un restaurant », « Comment attirer des clients dans son
    restaurant » ; puis les pages en néerlandais et /alternative-joyn.
 
+## 5 bis. Comparatifs avec les concurrents (décidé par Mehdi le 2026-11-05)
+
+Nommer les concurrents attire les restaurateurs qui cherchent « Joyn prix », « alternative à Malou »,
+« agence pub Facebook restaurant prix ». Donc :
+
+- **Section 3 de l'accueil** « Sept abonnements ailleurs. Un seul forfait chez nous. »
+  (`components/restaurateurs/ComparisonSection.tsx`) : chaque poste, 2 ou 3 marques avec leur prix public,
+  la moyenne retenue, et le total par forfait. Chaque marque mène à son article.
+- **12 articles « X ou Boosteats »** (catégorie « Comparatifs » du blog) + l'article pilier
+  « Combien coûte le marketing d'un restaurant ? ». Plan fixe : en bref (tableau), ce que X fait bien,
+  ce que Boosteats fait autrement, **ce que Boosteats ne fait pas**, le prix, quand choisir X.
+- **Une seule source** pour les prix : `lib/comparatif.ts` (marque, prix, page de relevé, article).
+
+Règles (publicité comparative, Code de droit économique art. VI.17 : objective, vérifiable, sans
+dénigrement) :
+- prix **publics**, HTVA, datés, arrondis, avec la source ; moyennes prudentes (fidélité à 50 €) ;
+- **relire les prix tous les six mois** : `lib/comparatif.test.ts` échoue 200 jours après
+  `COMPARISON_CHECKED` ;
+- dire les forces du concurrent et nos manques (pas de SMS, pas de branchement caisse, pas de
+  stocks, pas de réservation) ; Nina et Max « en pilote » ;
+- les petites agences belges sont citées dans le tableau, jamais dans un article « contre » elles :
+  l'article compare le modèle « agence » ;
+- pas d'Owner.com (absent d'Europe) : le site se compare à un développeur (≈ 700 € à la création,
+  hors total mensuel).
+
 ## 6. Ce qu'on ne fait pas
 
 - Des pages par commune au texte identique (« fidélité restaurant Ixelles », « … Uccle ») : sanctionné.
