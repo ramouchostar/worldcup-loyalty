@@ -9,6 +9,13 @@
 // une purge de cache fortuite.
 const CACHE_NAME = "worldcup-loyalty-v6";
 
+// En local (next dev), le service worker ne sert à rien et casse tout : il
+// rendait la landing depuis son cache, qui pointe vers les fichiers d'un
+// serveur arrêté ; Next rechargeait, le cache resservait la même page, et la
+// page « ne faisait que charger » (constaté le 2026-11-05). Sur localhost, il
+// n'intercepte donc rien, vide ses caches et se désinstalle.
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(self.location.hostname);
+
 // Ressources à mettre en cache lors de l'installation.
 // /membres (start_url de la PWA) en est volontairement absent : rien ne le
 // sert plus depuis le cache, une entrée précachée ne ferait que vieillir.
@@ -19,6 +26,10 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener("install", (event) => {
+  if (IS_LOCAL) {
+    self.skipWaiting();
+    return;
+  }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)).catch(() => {})
   );
@@ -26,6 +37,14 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  if (IS_LOCAL) {
+    event.waitUntil(
+      caches.keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .then(() => self.registration.unregister())
+    );
+    return;
+  }
   // Supprime les anciens caches
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -63,6 +82,7 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  if (IS_LOCAL) return;
   const { request } = event;
   const url = new URL(request.url);
 
