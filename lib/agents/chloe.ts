@@ -55,6 +55,7 @@ export type ChloeIdea = {
   lines: IdeaLines;
   estimate: IdeaEstimate | null; // null : pas assez de recul pour chiffrer, et on le dit
   decideBy: string; // au-delà, l'idée n'a plus de sens : elle expire (ISO, Europe/Brussels)
+  action: { kind: "relay"; to: "hugo"; label: string }; // le geste du contrat (ADR 0089) ; le détail est dans `relay`
   relay: HugoRelay;
   evidence: Record<string, number | string>; // les chiffres qui ont produit l'idée (trace)
 };
@@ -126,6 +127,7 @@ function quietDayIdea(input: ChloeInput): ChloeIdea | null {
       basis: `+${Math.round(UPLIFT_LOW * 100)} à ${Math.round(UPLIFT_HIGH * 100)} % sur ${round2(perDay)} articles un ${day}, remise déduite. Hypothèse de départ, mesurée ensuite.`,
     },
     decideBy: sendOn,
+    action: { kind: "relay", to: "hugo", label: "Demander à Hugo" },
     relay: {
       to: "hugo",
       nature: "promo",
@@ -166,6 +168,7 @@ function spotlightIdea(input: ChloeInput): ChloeIdea | null {
     },
     estimate: null, // aucune donnée pour chiffrer honnêtement un plat qu'on ne met jamais en avant
     decideBy: addDaysISO(input.todayISO, SPOTLIGHT_DECIDE_DAYS),
+    action: { kind: "relay", to: "hugo", label: "Demander à Hugo" },
     relay: {
       to: "hugo",
       nature: "promo",

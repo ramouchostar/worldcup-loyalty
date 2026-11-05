@@ -1,0 +1,151 @@
+# ADR 0089 — La brigade : des idées que le gérant valide
+
+**Statut** : Accepté (2026-11-05) — décidé par le porteur le 2026-11-04 sur la maquette de l'accueil
+(https://claude.ai/artifact/KjZz5nTT41bX8kP3a4furC) et le plan en 20 actions du backlog plateforme
+(« Brigade 01 » à « Brigade 20 », PR #390). Fixe le contrat que les modules d'Omar (Brigades 07 à 11
+et 14, PR #392 à #397, bilan `docs/brigade-bilan-modules-omar.md`) attendaient. S'appuie sur l'[ADR
+0064](0064-la-console-repond-a-trois-questions.md) (vue simple), l'[ADR
+0054](0054-console-restaurateur-un-seul-jeu-de-primitives.md) (primitives), l'[ADR
+0063](0063-sequences-de-messages-pilotees-par-la-plateforme.md) (envois journalisés, groupe témoin),
+l'[ADR 0070](0070-plans-croissance-pro-commande-en-ligne-et-referencement.md) (forfaits) et l'[ADR
+0086](0086-pub-le-process-deux-validations-le-reste-automatique.md) amendé le 2026-11-05 (Emma
+propose, le gérant puis Mehdi valident). Appliqué avec le bouclier de l'[ADR
+0065](0065-le-bouclier-scene-trace-echos.md).
+
+## Contexte
+
+La console sait déjà beaucoup faire : relancer des clients, annoncer une promo, demander une pub,
+trouver un jour creux, repérer un manque sur la fiche Google. Mais chaque geste attend que le gérant
+aille le chercher dans une page, et sur le terrain il ne le fait pas : à Houba et De Bue, le CA du jour
+ne s'est noté que tant qu'on le relançait (ADR 0087), et les pages Opportunités et Annonces se lisent peu.
+
+L'offre change de forme : sept assistants marketing — **la brigade** — préparent des idées toutes
+prêtes, et le gérant les valide **en cinq minutes par jour**. Le travail est fait avant qu'il ouvre
+l'écran ; lui ne fait que dire oui ou non.
+
+Le risque est connu : une machine à idées qui remplit l'écran pour avoir l'air utile, ou qui dépense
+sans qu'on l'ait voulu. Les règles ci-dessous existent pour l'empêcher.
+
+## Décision
+
+### 1. Sept assistants, un poste chacun
+
+| Assistant | Poste | Forfait |
+|---|---|---|
+| Léa | inscrit les clients et gère les cadeaux | Gratuit |
+| Hugo | relance les clients | Gratuit |
+| Chloé | suit les chiffres (le CA du jour ; plat par plat en Croissance) | Gratuit |
+| Emma | s'occupe de la pub dans le quartier | Gratuit (la Pub reste ouverte établissement par établissement, `PUB_RESTAURANTS`) |
+| Louis | répond aux avis Google | Croissance |
+| Nina | crée le site qui fait commander (ADR 0088) | Pro |
+| Max | fait trouver l'établissement sur Google | Pro |
+
+Un assistant que le forfait ne couvre pas **ne produit rien** pour cet établissement : jamais d'idée
+grisée pour vendre le forfait au-dessus. Les types d'idée qui demandent plus que le forfait de leur
+assistant sont listés dans le contrat (`IDEA_TYPE_PLAN` : les ventes plat par plat de Chloé et la
+promo qu'elle passe à Hugo sont de l'analytique Croissance, ADR 0070 §2).
+
+Les assistants sont des **personnages** présentés comme tels (« personnages fictifs » sur la landing) ;
+ils ne prétendent jamais être une personne de l'équipe. Leurs portraits sont créés pour nous (Brigade 18).
+
+### 2. Un seul objet : l'idée
+
+Tout ce que la brigade montre au gérant est une **idée**, enregistrée dans `agent_proposals` (Brigade
+02) : l'assistant, le type, le titre, la question, **trois lignes** (quoi · pour qui · combien),
+l'estimation, la date limite, le geste à jouer sur « Oui », les chiffres qui l'ont produite
+(`evidence`), qui l'a préparée (le système ou l'équipe), son statut et son résultat.
+
+Le contrat de code est **`lib/agents/types.ts`** (`Idea`, `IdeaAction`, `IdeaStatus`…), édité par
+Mehdi seul. Chaque assistant est un **module pur** `lib/agents/<prénom>.ts` (générateur testé, sans
+effet de bord) plus, s'il engage quelque chose, un **exécuteur** `execute-<prénom>.ts` qui appelle un
+chemin **qui existe déjà** (route, action serveur, écran) : la brigade n'ouvre jamais un second
+chemin vers un envoi, une dépense ou une modification. La conformité de chaque module au contrat est
+vérifiée à la compilation (`lib/agents/types.test.ts`).
+
+Le geste (`IdeaAction`) a huit formes : ouvrir un écran, appeler une route de la console, passer le
+relais à un autre assistant, envoyer aux membres choisis, programmer une annonce, créer la demande de
+pub, modifier la fiche Google, et le travail fait par l'équipe. Une forme nouvelle s'ajoute au
+contrat, jamais dans un seul module.
+
+### 3. Rien ne part sans « Oui »
+
+- **Aucun message, aucune modification, aucun euro** sans le « Oui » d'une personne qui a le droit de
+  la page que le geste touche (ADR 0041 §6) : l'exécuteur passe par la route existante, avec ses
+  gardes. Sinon la carte dit « à valider par le gérant ».
+- Ce qui engage de l'argent garde ses validations propres : le « Oui » à Emma **crée** la demande de
+  pub ; les conditions, le virement et la validation de Mehdi restent derrière (ADR 0086).
+- Ce qui écrit aux membres garde ses règles : consentement aux offres (ADR 0039), plafond par membre,
+  groupe témoin de 10 %, journal `message_sends` — **fail-closed** : sans journal, rien ne part.
+- Aucun euro côté membre (ADR 0007/0028) : les brouillons de messages d'Hugo n'en contiennent jamais.
+  Les euros ne figurent que sur la carte, côté gérant.
+
+### 4. Trois idées par jour, pas plus
+
+- **Au plus trois idées montrées par jour et par établissement** (`DAILY_IDEA_CAP`). Au-delà, l'idée
+  est **écartée** : enregistrée avec sa raison (`plafond_du_jour`), jamais montrée, comptée sur
+  `/platform`. Elle sera recalculée le lendemain si elle est toujours vraie.
+- Ordre quand il y a plus de trois candidates : la date limite la plus proche d'abord, puis celle qui
+  a une estimation, puis l'ordre d'arrivée.
+- **Une même idée** (même assistant, même type, même objet) n'est pas reproposée tant qu'elle attend
+  une décision ; **refusée**, elle ne revient pas avant 14 jours (`REFUSAL_COOLDOWN_DAYS`).
+- **Un jour sans bonne idée vaut mieux qu'une idée de remplissage** : en cas de doute un générateur ne
+  renvoie rien. L'écran dit alors « Rien pour aujourd'hui », et c'est un bon état.
+- L'estimation est **une fourchette** avec sa base (« +10 à 25 % sur 12 articles un jeudi »), ou rien
+  du tout. Jamais une promesse de gain ni « grâce à nous » (ADR 0064).
+
+### 5. Oui, Non, Plus tard
+
+- **Oui** : l'idée passe « acceptée », l'exécuteur joue le geste, puis « exécutée » avec son résultat.
+  Un échec d'exécution **reste visible** (l'idée garde « acceptée » et son erreur, à l'écran du gérant
+  et sur `/platform`) : jamais un « Oui » perdu en silence.
+- **Non** : en un geste, avec une raison au choix (pas le moment · trop cher · pas pour mon
+  établissement · déjà fait · autre). Jamais de texte obligatoire.
+- **Plus tard** : l'idée reste « proposée », disparaît jusqu'au lendemain, et garde sa date limite.
+- **Sans décision** à la date limite, l'idée **expire** sans rien faire.
+
+### 6. Où le gérant les voit
+
+- **« Idées du jour »** devient le premier onglet de la vue simple (Brigade 03), sans retirer aucune
+  page (ADR 0064 §1) ; primitives `components/admin/ui`, couleurs Boosteats (ADR 0054). Maquette
+  montrée et validée avant le code.
+- **Le message du matin** vers 9 h (Brigade 05) : un seul par gérant et par jour, seulement s'il a au
+  moins une idée, par e-mail via `dispatch` (journalisé), push console s'il l'a activé, WhatsApp quand
+  les modèles Meta sont validés (Brigade 16). Il mène à l'idée ; tout ce qui dépense exige la connexion.
+- **Préparée par l'équipe** (Brigade 04) : depuis `/platform`, une idée faite à la main pour un
+  établissement, avec la même carte. C'est ce qui tient la promesse dès le premier jour, avant que
+  tous les générateurs existent ; sur « Oui », l'équipe fait le travail et le note.
+
+### 7. La trace
+
+Chaque idée garde ce qui permet de dire que la règle est fausse (ADR 0065) : ses chiffres d'entrée
+(`evidence`), quand elle a été vue, quand et comment elle a été décidée, la raison d'un refus, la
+raison d'un écart, le résultat d'une exécution. Sur `/platform` (Brigade 06) : part des jours où le
+gérant ouvre ses idées, part des idées décidées, délai de décision, temps passé par jour (on promet
+cinq minutes), **taux de Oui par assistant — alerte sous 30 %**, raisons de refus, et l'effet des
+idées exécutées contre le groupe témoin (ADR 0063).
+
+Un assistant dont les idées sont refusées à plus de 70 % sur un mois est revu (seuils, textes) ou
+éteint : c'est la mesure qui décide s'il reste dans la brigade, pas le fait qu'il existe.
+
+## Conséquences
+
+- Les modules d'Omar n'ont plus de types à inventer : ils sont déjà conformes (vérifié par
+  `npm run type-check`). Seule Chloé reçoit un champ `action` (`relay` vers Hugo), son `relay` détaillé
+  reste lu par Hugo.
+- Ordre de construction : contrat (cet ADR) → table et `lib/agents/proposals.ts` (02) → écran (03) et
+  idées préparées à la main (04) → message du matin (05) → mesures (06). La landing de la brigade
+  (17) ne passe en ligne que quand l'écran tourne : jamais une fonction non livrée au présent (ADR 0070).
+- « Idée » désigne désormais l'objet de la brigade dans la console. La séquence restaurateur
+  « L'idée de la semaine » (ADR 0063) et la page Opportunités gardent leur nom ; les opportunités sont
+  une **source** des idées de Chloé, pas des idées.
+- Le texte membre ne change pas : un membre ne voit jamais un assistant, seulement le message que le
+  gérant a validé, au nom de son établissement.
+
+## Alternatives rejetées
+
+- **Un objet par assistant** (une table pour les relances, une pour les pubs…) : sept écrans et sept
+  mesures, et aucun plafond commun possible. Une idée, un écran, une mesure.
+- **Exécution automatique des idées sûres** (sans « Oui ») : c'est précisément ce que le gérant doit
+  garder en main, et ce qui rend la mesure honnête (taux de Oui). Pourra se rediscuter assistant par
+  assistant, avec un taux de Oui mesuré au-dessus de 90 %, dans un ADR qui l'amende.
+- **Pas de plafond, tri par score** : un écran qui s'allonge ne se lit plus en cinq minutes.
