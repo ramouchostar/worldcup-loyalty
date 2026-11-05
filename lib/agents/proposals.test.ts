@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  acceptanceScore,
+  buildProfile,
+  cleanRefusalNote,
+  EMPTY_PROFILE,
+  isTypeMuted,
   decideByInstant,
   decisionPatch,
   ideaKey,
@@ -11,7 +16,8 @@ import {
   selectIdeas,
   type SelectionContext,
 } from "./proposals";
-import type { Idea } from "./types";
+import { refusalLearnedText, type Idea } from "./types";
+import type { HistoryRow } from "./proposals";
 
 // Jeudi 5 novembre 2026, 9 h à Bruxelles (8 h UTC, heure d'hiver).
 const NOW = Date.parse("2026-11-05T08:00:00Z");
@@ -31,11 +37,18 @@ function idea(over: Partial<Idea> = {}): Idea {
   };
 }
 
+const DAY = 86_400_000;
+const daysAgo = (n: number) => new Date(NOW - n * DAY).toISOString();
+/** Une décision passée (type « refusee » par défaut, celui de la clé). */
+function refused(key: string, type: string, reason: HistoryRow["refusal_reason"], ago: number, status: HistoryRow["status"] = "refusee"): HistoryRow {
+  return { idea_key: key, assistant: "hugo", type, status, decided_at: daysAgo(ago), refusal_reason: status === "refusee" ? reason : null };
+}
+
 const ctx = (over: Partial<SelectionContext> = {}): SelectionContext => ({
   plan: "pro",
   shownToday: 0,
   openKeys: new Set(),
-  refusedKeys: new Set(),
+  profile: EMPTY_PROFILE,
   nowMs: NOW,
   ...over,
 });
@@ -95,7 +108,11 @@ test("forfait, idée déjà ouverte, refus récent, doublon dans le lot : chacun
       idea({ type: "deux_fois" }),
       idea({ type: "deux_fois" }),
     ],
-    ctx({ plan: "croissance", openKeys: new Set(["hugo:ouverte"]), refusedKeys: new Set(["hugo:refusee"]) })
+    ctx({
+      plan: "croissance",
+      openKeys: new Set(["hugo:ouverte"]),
+      profile: buildProfile([refused("hugo:refusee", "refusee", "pas_le_moment", 2)], NOW),
+    })
   );
   assert.deepEqual(s.show.map((i) => i.type), ["deux_fois"]);
   assert.deepEqual(
@@ -103,8 +120,8 @@ test("forfait, idée déjà ouverte, refus récent, doublon dans le lot : chacun
     [
       ["fiche_a_completer", "forfait"],
       ["ouverte", "deja_proposee"],
-      ["refusee", "refusee_recemment"],
       ["deux_fois", "deja_proposee"],
+      ["refusee", "refusee_recemment"], // un type déjà refusé passe après les autres (§8)
     ]
   );
 });
@@ -141,4 +158,69 @@ test("les décisions : Oui, Non avec raison, Plus tard ; rien sur une idée déc
   assert.equal(later?.snooze_count, 1);
   assert.equal(decisionPatch({ ...row, status: "refusee" }, { kind: "oui" }, c), null);
   assert.equal(decisionPatch({ ...row, decide_by: "2026-11-05T07:00:00Z" }, { kind: "oui" }, c), null);
+});
+
+test("chaque raison a son délai : pas le moment 7 j, déjà fait 30 j, pas pour moi 60 j", () => {
+  const sel = (reason: HistoryRow["refusal_reason"], ago: number) =>
+    selectIdeas([idea({ type: "t" })], ctx({ profile: buildProfile([refused("hugo:t", "t", reason, ago)], NOW) }));
+  assert.equal(sel("pas_le_moment", 6).discard[0]?.reason, "refusee_recemment");
+  assert.equal(sel("pas_le_moment", 8).show.length, 1);
+  assert.equal(sel("deja_fait", 20).discard[0]?.reason, "refusee_recemment");
+  assert.equal(sel("deja_fait", 31).show.length, 1);
+  assert.equal(sel("trop_cher", 20).discard[0]?.reason, "refusee_recemment");
+});
+
+test("un type refusé deux fois « pas pour mon établissement » se met en pause 30 jours, puis revient", () => {
+  const hist = (ago: number) => [refused("hugo:t:a", "t", "pas_pour_moi", ago + 5), refused("hugo:t:b", "t", "pas_pour_moi", ago)];
+  // Un AUTRE objet du même type est écarté aussi : c'est le type qui est appris.
+  const muted = selectIdeas([idea({ type: "t", evidence: { productId: "c" } })], ctx({ profile: buildProfile(hist(3), NOW) }));
+  assert.equal(muted.discard[0]?.reason, "appris");
+  const back = selectIdeas([idea({ type: "t", evidence: { productId: "c" } })], ctx({ profile: buildProfile(hist(31), NOW) }));
+  assert.equal(back.show.length, 1);
+});
+
+test("trois refus sans aucun Oui mettent le type en pause ; un seul Oui suffit à l'éviter", () => {
+  const three = [1, 2, 3].map((d) => refused(`hugo:t:${d}`, "t", "pas_le_moment", d));
+  assert.ok(isTypeMuted(buildProfile(three, NOW).types.get("hugo:t"), NOW));
+  const withYes = [...three, refused("hugo:t:ok", "t", null, 4, "executee")];
+  assert.ok(!isTypeMuted(buildProfile(withYes, NOW).types.get("hugo:t"), NOW));
+});
+
+test("au-delà de 90 jours, la brigade oublie", () => {
+  const old = [1, 2, 3].map((d) => refused(`hugo:t:${d}`, "t", "pas_pour_moi", 90 + d));
+  assert.equal(buildProfile(old, NOW).types.size, 0);
+});
+
+test("ce que l'établissement accepte passe devant, avant la date limite", () => {
+  const profile = buildProfile(
+    [
+      refused("hugo:aime:1", "aime", null, 2, "acceptee"),
+      refused("hugo:aime:2", "aime", null, 3, "executee"),
+      refused("hugo:boude:1", "boude", "trop_cher", 2),
+    ],
+    NOW
+  );
+  assert.ok(acceptanceScore(profile.types.get("hugo:aime")) > acceptanceScore(profile.types.get("hugo:boude")));
+  const urgentButDisliked = idea({ type: "boude", decideBy: "2026-11-06" });
+  const liked = idea({ type: "aime", decideBy: "2026-11-12" });
+  assert.deepEqual(rankIdeas([urgentButDisliked, liked], profile).map((i) => i.type), ["aime", "boude"]);
+});
+
+test("« Autre » : la saisie libre est gardée, nettoyée, jamais obligatoire", () => {
+  assert.equal(cleanRefusalNote("  mes clients   n'aiment pas\nles promos "), "mes clients n'aiment pas les promos");
+  assert.equal(cleanRefusalNote("   "), null);
+  assert.equal(cleanRefusalNote(undefined), null);
+  assert.equal(cleanRefusalNote("x".repeat(400))?.length, 280);
+  const row = { status: "proposee" as const, decide_by: "2026-11-10T22:59:59Z", snooze_count: 0 };
+  const p = decisionPatch(row, { kind: "non", reason: "autre", note: " trop de travail en cuisine " }, { userId: "u", nowMs: NOW });
+  assert.equal(p?.refusal_note, "trop de travail en cuisine");
+  assert.equal(decisionPatch(row, { kind: "non", reason: "trop_cher" }, { userId: "u", nowMs: NOW })?.refusal_note, null);
+});
+
+test("ce que le gérant lit après un refus", () => {
+  assert.equal(refusalLearnedText("hugo", "pas_le_moment", false), "Compris. Hugo ne te reproposera pas ça avant 7 jours.");
+  assert.match(refusalLearnedText("emma", "trop_cher", false), /Emma reviendra avec moins cher/);
+  assert.match(refusalLearnedText("chloe", "autre", false), /l'équipe lit ta réponse/);
+  assert.equal(refusalLearnedText("max", "pas_pour_moi", true), "Compris. Max arrête ce genre d'idée pendant 30 jours.");
+  for (const a of ["hugo", "emma", "lea"] as const) assert.doesNotMatch(refusalLearnedText(a, "trop_cher", false), /€/);
 });

@@ -1,6 +1,6 @@
 # ADR 0089 — La brigade : des idées que le gérant valide
 
-**Statut** : Accepté (2026-11-05) — décidé par le porteur le 2026-11-04 sur la maquette de l'accueil
+**Statut** : Accepté (2026-11-05), **amendé le 2026-11-05** (§8 : la brigade apprend des refus de chaque établissement, demande du porteur) — décidé par le porteur le 2026-11-04 sur la maquette de l'accueil
 (https://claude.ai/artifact/KjZz5nTT41bX8kP3a4furC) et le plan en 20 actions du backlog plateforme
 (« Brigade 01 » à « Brigade 20 », PR #390). Fixe le contrat que les modules d'Omar (Brigades 07 à 11
 et 14, PR #392 à #397, bilan `docs/brigade-bilan-modules-omar.md`) attendaient. S'appuie sur l'[ADR
@@ -87,7 +87,7 @@ contrat, jamais dans un seul module.
 - Ordre quand il y a plus de trois candidates : la date limite la plus proche d'abord, puis celle qui
   a une estimation, puis l'ordre d'arrivée.
 - **Une même idée** (même assistant, même type, même objet) n'est pas reproposée tant qu'elle attend
-  une décision ; **refusée**, elle ne revient pas avant 14 jours (`REFUSAL_COOLDOWN_DAYS`).
+  une décision ; **refusée**, elle ne revient pas avant le délai de la raison choisie (§8).
 - **Un jour sans bonne idée vaut mieux qu'une idée de remplissage** : en cas de doute un générateur ne
   renvoie rien. L'écran dit alors « Rien pour aujourd'hui », et c'est un bon état.
 - L'estimation est **une fourchette** avec sa base (« +10 à 25 % sur 12 articles un jeudi »), ou rien
@@ -98,8 +98,9 @@ contrat, jamais dans un seul module.
 - **Oui** : l'idée passe « acceptée », l'exécuteur joue le geste, puis « exécutée » avec son résultat.
   Un échec d'exécution **reste visible** (l'idée garde « acceptée » et son erreur, à l'écran du gérant
   et sur `/platform`) : jamais un « Oui » perdu en silence.
-- **Non** : en un geste, avec une raison au choix (pas le moment · trop cher · pas pour mon
-  établissement · déjà fait · autre). Jamais de texte obligatoire.
+- **Non** : en un geste, avec une raison à choisir dans une liste (pas le moment · trop cher · déjà
+  fait · pas pour mon établissement · autre). « Autre » ouvre une **saisie libre** (280 caractères),
+  jamais obligatoire. Ce choix règle ce que la brigade propose ensuite (§8).
 - **Plus tard** : l'idée reste « proposée », disparaît jusqu'au lendemain, et garde sa date limite.
 - **Sans décision** à la date limite, l'idée **expire** sans rien faire.
 
@@ -126,6 +127,31 @@ idées exécutées contre le groupe témoin (ADR 0063).
 
 Un assistant dont les idées sont refusées à plus de 70 % sur un mois est revu (seuils, textes) ou
 éteint : c'est la mesure qui décide s'il reste dans la brigade, pas le fait qu'il existe.
+
+### 8. La brigade apprend de chaque refus, établissement par établissement (amendement du 2026-11-05)
+
+Demande du porteur : les raisons de refus sont des **choix à sélectionner**, et ce que chaque
+établissement choisit doit changer ce qu'on lui propose. L'apprentissage reste **déterministe et
+explicable** (comme le forecast, ADR 0027 §5) : des compteurs et des délais, pas de modèle appris —
+on doit pouvoir dire au gérant, en une phrase, pourquoi une idée revient ou ne revient pas.
+
+- **Chaque raison a son délai** pour la même idée (même assistant, type et objet) : pas le moment
+  7 jours · autre 14 jours · trop cher 21 jours · déjà fait 30 jours · pas pour mon établissement
+  60 jours (`REFUSAL_COOLDOWN_DAYS`).
+- **Le type d'idée apprend**, par établissement, sur 90 jours : un type refusé deux fois « pas pour
+  mon établissement », ou trois fois sans aucun « Oui », est **mis en pause 30 jours** après le
+  dernier refus, puis retenté. Une idée ainsi écartée l'est avec la raison `appris`, comptée sur
+  `/platform`.
+- **Le tri suit les goûts** : ce qu'un établissement accepte le plus passe devant (part de « Oui »
+  lissée, un type jamais proposé vaut une chance sur deux) ; à goût égal, l'ordre du §4.
+- **« Trop cher »** est transmis aux assistants qui ont un levier de coût (Emma : budget par jour ;
+  Chloé : remise de la promo) pour qu'ils reviennent avec moins cher ; chaque module le lit à son
+  rythme.
+- **La saisie libre** est gardée telle quelle (`refusal_note`) et lue par l'équipe sur `/platform`
+  (Brigade 06) : c'est elle qui fait naître une raison de plus dans la liste, ou un réglage d'assistant.
+- **Le gérant voit ce qui a été retenu** juste après son refus, en une phrase (« Compris. Hugo ne te
+  reproposera pas ça avant 7 jours. »), jamais un chiffre de score.
+- Au-delà de 90 jours, la brigade oublie : un établissement change, ses goûts aussi.
 
 ## Conséquences
 
