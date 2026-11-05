@@ -7,6 +7,7 @@ import { todayInBrussels } from "@/lib/broadcast";
 import { getIdea, markExecuted, recordIdeas } from "@/lib/agents/proposals";
 import { buildTeamIdea, type TeamIdeaInput } from "@/lib/agents/team-ideas";
 import type { DiscardReason } from "@/lib/agents/types";
+import { runMorningIdeas, type MorningRestaurantResult } from "@/lib/agents/morning";
 
 // /platform/idees (ADR 0089 §6, Brigade 04) — les gestes de l'équipe : déposer
 // une idée préparée à la main chez un établissement, et noter « Fait » quand le
@@ -62,4 +63,20 @@ export async function markTeamDone(restaurantId: string, id: string, note: strin
   const done = await markExecuted(id, { doneBy: userId, note: note.replace(/\s+/g, " ").trim().slice(0, 500) || null, byTeam: true });
   revalidatePath("/platform/idees");
   return done ? { ok: true, message: "Noté : le gérant voit l'idée comme faite." } : { ok: false, message: "Elle a changé entre-temps : recharge la page." };
+}
+
+/**
+ * Faire passer la brigade maintenant pour UN établissement (essai, démo comprise) :
+ * même passage que celui de 9 h — génération, enregistrement, message si l'établissement
+ * est ouvert au message du matin et ne l'a pas déjà reçu aujourd'hui.
+ */
+export async function runBrigadeNow(restaurantId: string): Promise<{ ok: boolean; message?: string; result?: MorningRestaurantResult }> {
+  const userId = await superAdminId();
+  if (!userId) return { ok: false, message: "Accès réservé à la plateforme." };
+  if (!restaurantId) return { ok: false, message: "Choisis un établissement." };
+  const run = await runMorningIdeas(new Date(), { only: restaurantId });
+  revalidatePath("/platform/idees");
+  const result = run.restaurants[0];
+  if (!result) return { ok: false, message: "Établissement introuvable." };
+  return { ok: true, result };
 }

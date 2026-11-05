@@ -4,6 +4,7 @@ import { todayInBrussels } from "@/lib/broadcast";
 import { listPlatformIdeas, type ProposalRow } from "@/lib/agents/proposals";
 import { ASSISTANTS, REFUSAL_REASON_LABELS, type IdeaStatus } from "@/lib/agents/types";
 import { MarkDoneButton, TeamIdeaForm } from "./TeamIdeaForm";
+import { RunNowForm } from "./RunNowForm";
 
 export const metadata = { title: "Idées — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -113,6 +114,15 @@ export default async function PlatformIdeesPage() {
             })}
           </ul>
         )}
+      </section>
+
+      <section className={`${card} space-y-3`} aria-labelledby="passage">
+        <h2 id="passage" className={h2}>Le passage du matin</h2>
+        <p className={muted}>
+          Chaque jour vers 9 h, les assistants passent chez chaque établissement réel. Le gérant reçoit un message s&apos;il a au moins une idée
+          et si son établissement est dans <code>BRIGADE_EMAIL_RESTAURANTS</code>. Pour essayer tout de suite sur un établissement :
+        </p>
+        <RunNowForm restaurants={restaurants} />
       </section>
 
       <section className={`${card} space-y-4`} aria-labelledby="deposer">
