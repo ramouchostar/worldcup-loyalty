@@ -4,9 +4,10 @@ import { useState } from "react";
 import type { AssistantId } from "@/lib/agents/types";
 import { IPhone, PHOTOS } from "./IPhone";
 import { assistant } from "./brigade";
+import { Check, Close } from "@/components/icons";
 
 // « Votre part du travail ? 5 minutes par jour. » (Brigade 17, maquette du
-// 2026-11-04), au style de la maquette : photo de cuisine, étapes vitrées, et un
+// 2026-11-04), au style de la maquette : photo de cuisine, étapes en cartes pleines (charte anti-slop), et un
 // iPhone à essayer qui rejoue l'écran « Idées du jour » (ADR 0089 §2 : Oui / Non,
 // trois idées par jour au plus). Données d'illustration, marquées « exemple ».
 const STEPS = [
@@ -18,8 +19,8 @@ const STEPS = [
 const PROMISES = ["Rien ne part sans votre accord", "Aucun euro dépensé sans votre accord", "Trois idées par jour au plus"];
 
 const IDEAS: { id: AssistantId; text: string; meta: string; ok: string }[] = [
-  { id: "hugo", text: "340 clients ne sont pas revenus depuis 3 semaines. Je leur offre une boisson mardi soir ?", meta: "Coût maximum : 40 € · exemple", ok: "Hugo envoie mardi à 16 h" },
-  { id: "emma", text: "Pub « Family Bucket » à 3 km, 14 € par jour pendant 2 semaines.", meta: "8 000 à 12 000 personnes touchées · exemple", ok: "Emma prépare la pub" },
+  { id: "hugo", text: "340 clients ne sont pas revenus depuis 3 semaines. Je leur offre une boisson mardi soir ?", meta: "Coût maximum : 40 € (exemple)", ok: "Hugo envoie mardi à 16 h" },
+  { id: "emma", text: "Pub « Family Bucket » à 3 km, 14 € par jour pendant 2 semaines.", meta: "8 000 à 12 000 personnes touchées (exemple)", ok: "Emma prépare la pub" },
   { id: "louis", text: "Avis 2 étoiles : « frites froides ». Ma réponse est prête, je l'envoie ?", meta: "Vous pouvez la lire avant", ok: "Louis envoie la réponse" },
 ];
 
@@ -55,7 +56,7 @@ function IdeasDemo() {
       {done.map((yes, k) => (
         <div key={k} className="bx-done bx-glass">
           <i className={yes ? "" : "bx-refused"} aria-hidden>
-            {yes ? "✓" : "✕"}
+            {yes ? <Check size={14} /> : <Close size={14} />}
           </i>
           {yes ? IDEAS[k].ok : "Refusé, rien ne part"}
         </div>
@@ -83,15 +84,15 @@ function IdeasDemo() {
             </div>
           </div>
           {IDEAS.slice(i + 1).length > 0 && (
-            <small style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.6, padding: "6px 6px 0" }}>ENSUITE</small>
+            <small className="bx-next">Ensuite</small>
           )}
           {IDEAS.slice(i + 1).map((r) => {
             const b = assistant(r.id);
             return (
-              <div key={r.id} className="bx-done bx-glass" style={{ opacity: 0.85 }}>
+              <div key={r.id} className="bx-done bx-glass">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={b.photo} alt="" />
-                {b.name} · {b.post}
+                {b.name}, {b.post.charAt(0).toLowerCase() + b.post.slice(1)}
               </div>
             );
           })}
@@ -99,7 +100,7 @@ function IdeasDemo() {
       ) : (
         <div className="bx-empty bx-glass">
           <b>C&apos;est tout pour aujourd&apos;hui.</b>
-          <span style={{ fontSize: 14, opacity: 0.75 }}>3 décisions, environ 4 minutes.</span>
+          <span style={{ fontSize: 15, color: "var(--bx-muted)" }}>3 décisions, environ 4 minutes.</span>
           <button
             type="button"
             className="bx-linkbtn"
@@ -146,11 +147,11 @@ export function FiveMinutesSection() {
             </ul>
           </div>
           <div>
-            <IPhone width={310} wallpaper={{ background: "linear-gradient(160deg,#F4F7EA,#E6ECD3 45%,#D9E3BE)" }}>
+            <IPhone width={310} wallpaper={{ background: "#EFF1E4" }}>
               <IdeasDemo />
             </IPhone>
-            <p style={{ fontSize: 12.5, color: "rgba(239,241,228,0.75)", textAlign: "center", marginTop: 18 }}>
-              À essayer · exemple, établissement imaginaire
+            <p className="bx-five-note">
+              À essayer. Exemple, établissement imaginaire
             </p>
           </div>
         </div>

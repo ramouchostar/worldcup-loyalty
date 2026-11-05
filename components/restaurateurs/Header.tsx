@@ -12,22 +12,24 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-40 pt-safe bg-ink/[0.92] backdrop-blur-xl border-b transition-shadow duration-300 ${
-        scrolled ? "border-night-line shadow-[0_8px_24px_rgba(0,0,0,0.25)]" : "border-transparent"
+      className={`sticky top-0 z-40 pt-safe bg-ink border-b transition-colors duration-200 ${
+        scrolled ? "border-night-line" : "border-transparent"
       }`}
     >
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-6">
         <Link href="/" className="shrink-0">
           <BoosteatsLogo tone="light" className="h-8 w-auto" />
         </Link>
-        <nav className="hidden md:flex items-center gap-7">
+        <nav className="hidden md:flex items-center gap-4 xl:gap-6">
           <OfferMenu />
           <NavLink href="/audit-gratuit">Analyse gratuite</NavLink>
           <NavLink href="/#plans">Tarifs</NavLink>
           <span className="hidden lg:inline">
             <NavLink href="/#cas-client">Cas client</NavLink>
           </span>
-          <NavLink href="/#questions">Questions</NavLink>
+          <span className="hidden xl:inline">
+            <NavLink href="/#questions">Questions</NavLink>
+          </span>
           <span className="hidden lg:inline">
             <NavLink href="/blog">Blog</NavLink>
           </span>
@@ -37,14 +39,14 @@ export function Header() {
             ctaLocation="header_desktop"
             audience="restaurateur"
             href="/become-a-partner"
-            className="bg-moss text-white text-[13.5px] font-bold px-4 py-2.5 rounded-lg hover:bg-moss-dark transition-colors"
+            className="bg-boost-olive text-white text-[13px] xl:text-[15px] font-semibold whitespace-nowrap px-4 py-2.5 rounded-lg hover:bg-boost-olive-dark active:bg-boost-night transition-colors"
           >
             Devenir partenaire
           </TrackedLink>
         </nav>
         <Link
           href="/login?as=resto"
-          className="md:hidden bg-moss text-white text-[13px] font-bold px-3.5 py-2 rounded-lg hover:bg-moss-dark transition-colors"
+          className="md:hidden bg-boost-olive text-white text-[15px] font-semibold px-4 min-h-[44px] inline-flex items-center rounded-lg hover:bg-boost-olive-dark active:bg-boost-night transition-colors"
         >
           Connexion
         </Link>
@@ -55,7 +57,7 @@ export function Header() {
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="text-night-text text-[13.5px] font-medium hover:text-white transition-colors">
+    <Link href={href} className="text-night-text text-[13px] xl:text-[15px] font-medium whitespace-nowrap hover:text-white transition-colors">
       {children}
     </Link>
   );

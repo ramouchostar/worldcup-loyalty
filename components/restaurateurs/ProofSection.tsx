@@ -1,8 +1,8 @@
 import { KRAAINEM_CASE, euros } from "@/lib/case-studies";
 import { PHOTOS } from "./IPhone";
 
-// Le cas Kraainem sur la landing, au style de la maquette (photo de clients à
-// table, la hausse en grand, avant → aujourd'hui). Chiffres et accord : source
+// Le cas Kraainem sur la landing, au style de la maquette (la hausse en grand,
+// avant puis aujourd'hui). Photo : une vraie photo Belchicken (2026-11-05). Chiffres et accord : source
 // unique `lib/case-studies.ts` (accord d'Aram du 2026-11-02). Ce qu'on a fait
 // ENSEMBLE, jamais « grâce à nous » (ADR 0064). Pas de citation inventée.
 export function ProofSection() {
@@ -15,7 +15,7 @@ export function ProofSection() {
         <div className="bx-proof">
           <div className="bx-ph">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="bx-bgimg" src={PHOTOS.clients} alt="Des clients à table dans un restaurant" loading="lazy" />
+            <img className="bx-bgimg" src={PHOTOS.belchicken} alt="Tenders, frites et sauces servis chez Belchicken" loading="lazy" />
           </div>
           <div className="bx-tx">
             <span className="bx-kicker">

@@ -17,4 +17,4 @@ export const KRAAINEM_CASE = {
   ],
 } as const;
 
-export const euros = (n: number) => `${n.toLocaleString("fr-BE")} €`;
+export const euros = (n: number) => `${n.toLocaleString("fr-BE")}\u00a0€`;

@@ -1,16 +1,19 @@
 import type { CSSProperties, ReactNode } from "react";
 
-// Photos libres de droits de la maquette validée (Unsplash), dans
-// public/marketing/landing/. Établissements et plats d'illustration seulement.
+// Photos dans public/marketing/landing/. Toutes libres de droits (Unsplash,
+// établissements et plats d'illustration) sauf `belchicken`, une vraie photo
+// Belchicken (la photo d'en-tête des établissements en base), réservée au cas
+// client Kraainem (décision de Mehdi, 2026-11-05).
 export const PHOTOS = {
-  /** Salle pleine le soir (Unsplash, photo-1783447036642), fond du héros. */
-  sallePleine: "/marketing/landing/salle-pleine.webp",
-  fondEcran: "/marketing/landing/fond-ecran.webp",
   poulet: "/marketing/landing/poulet.webp",
   burger: "/marketing/landing/burger.webp",
   salle: "/marketing/landing/salle.webp",
   cuisine: "/marketing/landing/cuisine.webp",
   clients: "/marketing/landing/clients.webp",
+  /** Fond du héros : le patron sert deux habitués au comptoir (image d'illustration générée, fournie par Mehdi le 2026-11-05 ; à remplacer par une vraie photo). */
+  comptoir: "/marketing/landing/comptoir-habitues.webp",
+  /** Vraie photo Belchicken : tenders, frites, sauces et gobelets de la marque. */
+  belchicken: "/marketing/landing/belchicken-tenders.webp",
 } as const;
 
 function StatusBar({ color }: { color: string }) {

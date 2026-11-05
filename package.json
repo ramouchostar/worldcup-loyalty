@@ -12,6 +12,7 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "check:naming": "node scripts/check-naming.mjs",
+    "check:design": "node scripts/check-design.mjs",
     "test": "node scripts/run-tests.mjs",
     "audit:doublons": "tsx scripts/audit-doublons.mjs"
   },

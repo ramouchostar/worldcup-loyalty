@@ -2,8 +2,8 @@
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import type { AssistantId } from "@/lib/agents/types";
-import { Reveal } from "./motion";
 import { Portrait } from "./Portrait";
+import { Check } from "@/components/icons";
 import { whatsappUrl } from "@/lib/contact";
 
 // Plans, prix HTVA par établissement (remise à plat du 2026-11-02,
@@ -39,8 +39,8 @@ const GROWTH_FEATURES: Feature[] = [
 
 const PRO_FEATURES: Feature[] = [
   { text: "Toute la brigade" },
-  { who: "nina", text: "Nina crée le site qui fait commander", pilot: true },
-  { who: "max", text: "Max fait trouver l'établissement sur Google", pilot: true },
+  { who: "nina", text: "Nina crée un site qui donne envie de commander", pilot: true },
+  { who: "max", text: "Max améliore votre visibilité sur Google", pilot: true },
   { text: "Votre fiche Google tenue à jour, sur invitation" },
   { text: "Un rapport chaque mois, et un point avec nous" },
   { text: "Tous vos établissements au même endroit" },
@@ -49,17 +49,17 @@ const PRO_FEATURES: Feature[] = [
 
 export function PlansSection() {
   return (
-    <section id="plans" className="bg-paper-subtle py-20 sm:py-24 scroll-mt-16">
+    <section id="plans" className="bx-band py-16 sm:py-24 scroll-mt-16">
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8">
-        <Reveal>
-          <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Tarifs</p>
-          <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[720px] text-pretty">
+        <>
+          <p className="bx-kicker mb-4">Tarifs</p>
+          <h2 className="text-[32px] sm:text-[44px] leading-[1.1] tracking-[-0.025em] font-semibold text-ink max-w-[720px] text-balance m-0">
             Commencez gratuitement. Agrandissez la brigade quand vous voulez.
           </h2>
-        </Reveal>
+        </>
 
-        <div className="grid lg:grid-cols-3 gap-6 mt-10 items-stretch">
-          <Reveal delay={80}>
+        <div className="grid lg:grid-cols-3 gap-6 mt-12 items-stretch">
+          <>
             <PlanCard
               name="Gratuit"
               price="0 €"
@@ -75,15 +75,15 @@ export function PlansSection() {
                   ctaLocation="plans_gratuit"
                   audience="restaurateur"
                   href="/become-a-partner"
-                  className="mt-6 text-center bg-moss text-white text-sm font-bold rounded-lg px-5 py-3 hover:bg-moss-dark transition-colors"
+                  className="mt-8 text-center bg-boost-olive text-white text-[15px] font-semibold rounded-lg px-5 py-3 min-h-[48px] inline-flex items-center justify-center hover:bg-boost-olive-dark active:bg-boost-night transition-colors"
                 >
                   Commencer gratuitement
                 </TrackedLink>
               }
             />
-          </Reveal>
+          </>
 
-          <Reveal delay={160}>
+          <>
             <PlanCard
               name="Croissance"
               price="150 €"
@@ -91,6 +91,7 @@ export function PlansSection() {
               commission="Sans engagement."
               pitch="Pour suivre vos chiffres et ne plus laisser un avis sans réponse."
               intro="Tout le Gratuit, plus :"
+              includes={["lea", "hugo", "chloe", "emma"]}
               features={GROWTH_FEATURES}
               cta={
                 <TrackedLink
@@ -98,15 +99,15 @@ export function PlansSection() {
                   ctaLocation="plans_croissance"
                   audience="restaurateur"
                   href={whatsappUrl("Bonjour, je voudrais en savoir plus sur le forfait Croissance pour mon restaurant.")}
-                  className="mt-6 text-center border-[1.5px] border-moss text-moss-dark text-sm font-bold rounded-lg px-5 py-3 hover:bg-moss-tint transition-colors"
+                  className="mt-8 text-center border-[1.5px] border-boost-olive text-boost-olive-dark text-[15px] font-semibold rounded-lg px-5 py-3 min-h-[48px] inline-flex items-center justify-center hover:bg-boost-cream active:bg-[#e3e7d2] transition-colors"
                 >
                   En parler sur WhatsApp
                 </TrackedLink>
               }
             />
-          </Reveal>
+          </>
 
-          <Reveal delay={240}>
+          <>
             <PlanCard
               name="Pro"
               price="500 €"
@@ -114,6 +115,7 @@ export function PlansSection() {
               commission="3 mois minimum, puis au mois."
               pitch="Pour que le marketing soit pensé et fait à la place de l'établissement."
               intro="Tout Croissance, plus :"
+              includes={["lea", "hugo", "chloe", "emma", "louis"]}
               features={PRO_FEATURES}
               cta={
                 <TrackedLink
@@ -121,22 +123,22 @@ export function PlansSection() {
                   ctaLocation="plans_pro"
                   audience="restaurateur"
                   href={whatsappUrl("Bonjour, je voudrais en savoir plus sur le forfait Pro pour mon restaurant.")}
-                  className="mt-6 text-center border-[1.5px] border-moss text-moss-dark text-sm font-bold rounded-lg px-5 py-3 hover:bg-moss-tint transition-colors"
+                  className="mt-8 text-center border-[1.5px] border-boost-olive text-boost-olive-dark text-[15px] font-semibold rounded-lg px-5 py-3 min-h-[48px] inline-flex items-center justify-center hover:bg-boost-cream active:bg-[#e3e7d2] transition-colors"
                 >
                   En parler sur WhatsApp
                 </TrackedLink>
               }
             />
-          </Reveal>
+          </>
         </div>
 
-        <Reveal delay={340}>
-          <p className="text-[13px] text-ink-faint text-center max-w-[640px] mx-auto mt-8">
+        <>
+          <p className="text-[13px] text-ink-muted text-center max-w-[640px] mx-auto mt-8">
             Prix hors TVA, par établissement. Aucune commission, ni au comptoir ni en ligne. Les premiers
             restaurants du réseau bénéficient du tarif fondateur, conservé à vie. Aucune fonctionnalité
             gratuite d&apos;aujourd&apos;hui ne passera jamais derrière un paywall.
           </p>
-        </Reveal>
+        </>
       </div>
     </section>
   );
@@ -149,6 +151,7 @@ function PlanCard({
   commission,
   pitch,
   intro,
+  includes = [],
   features,
   cta,
   highlighted = false,
@@ -159,36 +162,49 @@ function PlanCard({
   commission: string;
   pitch: string;
   intro: string | null;
+  /** Assistants des forfaits inférieurs, compris dans celui-ci : montrés à côté de « Tout le …, plus ». */
+  includes?: AssistantId[];
   features: Feature[];
   cta: React.ReactNode;
   highlighted?: boolean;
 }) {
   return (
     <div
-      className={`bg-white rounded-xl p-8 h-full flex flex-col ${
-        highlighted ? "border-[1.5px] border-moss" : "border border-paper-border"
+      className={`bg-white rounded-lg p-8 h-full flex flex-col ${
+        highlighted ? "border-[1.5px] border-boost-olive" : "border border-paper-border"
       }`}
     >
-      <h3 className="font-display text-[22px] font-bold m-0">{name}</h3>
-      <p className="font-display text-3xl font-bold text-ink mt-2 mb-0">
+      <h3 className="text-[24px] font-semibold tracking-[-0.02em] text-ink m-0">{name}</h3>
+      <p className="text-[32px] font-semibold tracking-[-0.025em] tabular-nums text-ink mt-2 mb-0">
         {price}
-        <span className="text-sm font-normal text-ink-muted"> {priceNote}</span>
+        <span className="text-[15px] font-normal tracking-normal text-ink-muted"> {priceNote}</span>
       </p>
-      <p className="text-[13px] font-semibold text-moss-dark mt-1.5 mb-0">{commission}</p>
-      <p className="text-sm text-ink-muted mt-3 mb-5">{pitch}</p>
-      {intro && <p className="text-[13px] font-semibold text-ink mb-3 mt-0">{intro}</p>}
+      <p className="text-[15px] font-semibold text-boost-olive-dark mt-2 mb-0">{commission}</p>
+      <p className="text-[15px] text-ink-muted mt-4 mb-6">{pitch}</p>
+      {intro && (
+        <div className="flex items-center gap-3 mb-4">
+          {includes.length > 0 && (
+            <span className="flex shrink-0" aria-hidden>
+              {includes.map((id, k) => (
+                <Portrait key={id} id={id} size={28} className={`ring-2 ring-white ${k > 0 ? "-ml-2" : ""}`} />
+              ))}
+            </span>
+          )}
+          <p className="text-[15px] font-semibold text-ink m-0">{intro}</p>
+        </div>
+      )}
       <ul className="flex flex-col gap-3 flex-1 list-none p-0 m-0">
         {features.map((f) => (
-          <li key={f.text} className="flex items-start gap-2.5 text-[14.5px] text-ink-body">
+          <li key={f.text} className="flex items-start gap-3 text-[15px] text-ink-body">
             {f.who ? (
               <Portrait id={f.who} size={24} className="mt-px" />
             ) : (
-              <span className="font-mono text-moss w-6 text-center shrink-0">✓</span>
+              <Check size={20} className="text-boost-olive-dark shrink-0 mx-0.5 mt-px" />
             )}
             <span>
               {f.text}
               {f.pilot && (
-                <span className="ml-1.5 text-[11px] font-semibold text-white bg-ink rounded-full px-2 py-0.5 whitespace-nowrap">
+                <span className="ml-2 text-[13px] font-semibold text-white bg-ink rounded-md px-2 py-0.5 whitespace-nowrap">
                   En pilote
                 </span>
               )}

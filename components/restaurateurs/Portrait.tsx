@@ -21,7 +21,7 @@ export function Portrait({
       width={size}
       height={size}
       loading="lazy"
-      className={`rounded-full object-cover shrink-0 bg-moss-tint ${className}`}
+      className={`rounded-full object-cover shrink-0 bg-boost-cream ${className}`}
       style={{ width: size, height: size }}
     />
   );

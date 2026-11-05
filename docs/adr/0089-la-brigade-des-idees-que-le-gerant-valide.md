@@ -1,6 +1,6 @@
 # ADR 0089 — La brigade : des idées que le gérant valide
 
-**Statut** : Accepté (2026-11-05), **amendé le 2026-11-05** (§8 : la brigade apprend des refus de chaque établissement, demande du porteur) — décidé par le porteur le 2026-11-04 sur la maquette de l'accueil
+**Statut** : Accepté (2026-11-05), **style de la maquette remplacé par l'[ADR 0090](0090-charte-anti-slop.md)** (charte anti-slop : structure inchangée), **amendé le 2026-11-05** (§8 : la brigade apprend des refus de chaque établissement, demande du porteur) — décidé par le porteur le 2026-11-04 sur la maquette de l'accueil
 (https://claude.ai/artifact/KjZz5nTT41bX8kP3a4furC) et le plan en 20 actions du backlog plateforme
 (« Brigade 01 » à « Brigade 20 », PR #390). Fixe le contrat que les modules d'Omar (Brigades 07 à 11
 et 14, PR #392 à #397, bilan `docs/brigade-bilan-modules-omar.md`) attendaient. S'appuie sur l'[ADR
@@ -35,10 +35,10 @@ sans qu'on l'ait voulu. Les règles ci-dessous existent pour l'empêcher.
 | Léa | inscrit les clients et gère les cadeaux | Gratuit |
 | Hugo | relance les clients | Gratuit |
 | Chloé | suit les chiffres (le CA du jour ; plat par plat en Croissance) | Gratuit |
-| Emma | s'occupe de la pub dans le quartier | Gratuit (la Pub reste ouverte établissement par établissement, `PUB_RESTAURANTS`) |
+| Emma | lance et gère les publicités en ligne (libellé changé le 2026-11-05) | Gratuit (la Pub reste ouverte établissement par établissement, `PUB_RESTAURANTS`) |
 | Louis | répond aux avis Google | Croissance |
-| Nina | crée le site qui fait commander (ADR 0088) | Pro |
-| Max | fait trouver l'établissement sur Google | Pro |
+| Nina | crée un site qui donne envie de commander (ADR 0088 ; libellé du 2026-11-05) | Pro |
+| Max | améliore votre visibilité sur Google (libellé du 2026-11-05) | Pro |
 
 Un assistant que le forfait ne couvre pas **ne produit rien** pour cet établissement : jamais d'idée
 grisée pour vendre le forfait au-dessus. Les types d'idée qui demandent plus que le forfait de leur

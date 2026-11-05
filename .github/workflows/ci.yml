@@ -37,6 +37,8 @@ jobs:
       - run: npm ci
       - name: Nommage ADR / migrations
         run: node scripts/check-naming.mjs
+      - name: Charte anti-slop (ADR 0090)
+        run: node scripts/check-design.mjs
       - name: Type-check
         run: npm run type-check
       - name: Tests unitaires

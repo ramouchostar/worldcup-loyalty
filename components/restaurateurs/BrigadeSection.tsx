@@ -8,7 +8,7 @@ import { BRIGADE, PLAN_LABEL, assistant } from "./brigade";
 
 // « Votre brigade marketing » (Brigade 17, maquette du 2026-11-04, ADR 0089 §1),
 // au style de la maquette : un onglet par assistant (portrait, poste), puis une
-// fenêtre vitrée sur une photo qui montre ce qu'il propose. Personnages fictifs.
+// fenêtre (carte pleine, charte anti-slop) sur une photo qui montre ce qu'il propose. Personnages fictifs.
 // Vérité au 2026-11-05 (ADR 0070) : Nina et Max en pilote dans le Pro ; Louis
 // montre sa réponse avant qu'elle parte (ADR 0089 : rien sans « Oui ») ; le site
 // de Nina mesure les clics sur « Commander », jamais des commandes (ADR 0088).
@@ -18,7 +18,7 @@ const Bar = () => (
     <i />
     <i />
     <i />
-    <span>Boosteats · exemple</span>
+    <span>Exemple Boosteats</span>
   </div>
 );
 
@@ -138,7 +138,7 @@ const DETAILS: Record<AssistantId, Detail> = {
           <img src={PHOTOS.burger} alt="" loading="lazy" />
           <div className="bx-cta">
             <span>Family Bucket, ce week-end</span>
-            <span>Itinéraire →</span>
+            <span>Itinéraire</span>
           </div>
         </div>
         <Line k="Zone" v="3 km autour de vous" />
@@ -173,7 +173,7 @@ const DETAILS: Record<AssistantId, Detail> = {
     ),
   },
   nina: {
-    title: "Elle crée votre site qui fait commander.",
+    title: "Elle crée un site qui donne envie de commander.",
     list: [
       "Elle crée votre site à partir de votre carte, de vos photos et de vos horaires.",
       "Tout est pensé pour une chose : que le client appuie sur « Commander ».",
@@ -188,7 +188,7 @@ const DETAILS: Record<AssistantId, Detail> = {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={PHOTOS.poulet} alt="" loading="lazy" />
             <div className="bx-s-over">
-              <small>Ouvert jusqu&apos;à 23 h · 4,6 ★</small>
+              <small>Ouvert jusqu&apos;à 23 h, 4,6 ★</small>
               <b>Le meilleur poulet frit du quartier</b>
               <span className="bx-s-cta">Commander</span>
             </div>
@@ -202,7 +202,7 @@ const DETAILS: Record<AssistantId, Detail> = {
     ),
   },
   max: {
-    title: "Il vous fait trouver sur Google.",
+    title: "Il améliore votre visibilité sur Google.",
     list: [
       "Quand quelqu'un cherche « poulet frit près de moi », il fait apparaître votre restaurant.",
       "Il garde votre fiche Google propre et à jour : horaires, photos, carte.",
@@ -215,19 +215,19 @@ const DETAILS: Record<AssistantId, Detail> = {
         <div className="bx-maps">
           <div className="bx-q">poulet frit près de moi</div>
           <div className="bx-r bx-me">
-            <span>1 · Votre restaurant</span>
+            <span>1. Votre restaurant</span>
             <span>4,6 ★</span>
           </div>
           <div className="bx-r">
-            <span>2 · Le voisin</span>
+            <span>2. Le voisin</span>
             <span>4,2 ★</span>
           </div>
           <div className="bx-r">
-            <span>3 · Un autre</span>
+            <span>3. Un autre</span>
             <span>3,9 ★</span>
           </div>
         </div>
-        <Line k="Votre place ce mois-ci" v="3e → 1re" />
+        <Line k="Votre place ce mois-ci" v="de 3e à 1re" />
         <Line k="Les clics arrivent sur" v="votre site (Nina)" />
       </>
     ),
@@ -239,7 +239,7 @@ export function BrigadeSection() {
   const a = BRIGADE[current];
   const d = DETAILS[a.id];
   const badge = a.pilot
-    ? `En pilote · forfait ${PLAN_LABEL[a.plan]}`
+    ? `En pilote, forfait ${PLAN_LABEL[a.plan]}`
     : a.plan === "gratuit"
       ? "Dès le forfait Gratuit"
       : `Forfait ${PLAN_LABEL[a.plan]} et plus`;
@@ -251,12 +251,9 @@ export function BrigadeSection() {
           <div style={{ display: "grid", gap: 18 }}>
             <h2>Votre brigade marketing.</h2>
             <p className="bx-sub">
-              Comme en cuisine, chacun son poste. Pas besoin de connaître le marketing : il suffit de savoir qui fait
+              Comme en cuisine, chacun son poste. Vous ne perdez pas de temps : vous validez et vous savez qui fait
               quoi.
             </p>
-          </div>
-          <div className="bx-goal">
-            <b>1 seul objectif</b>faire monter votre chiffre d&apos;affaires
           </div>
         </div>
 
@@ -277,7 +274,7 @@ export function BrigadeSection() {
               <b>{b.name}</b>
               <span>
                 {b.post}
-                {b.pilot ? " · en pilote" : ""}
+                {b.pilot ? ", en pilote" : ""}
               </span>
             </button>
           ))}
@@ -302,8 +299,8 @@ export function BrigadeSection() {
             <p className="bx-quote">{d.quote}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
               <span className={`bx-badge ${a.pilot ? "bx-pilot" : ""}`}>{badge}</span>
-              <Link href={assistant(a.id).href} className="bx-focus" style={{ fontSize: 14, fontWeight: 600, color: "var(--bx-moss-ink)" }}>
-                En savoir plus →
+              <Link href={assistant(a.id).href} className="bx-more-link">
+                En savoir plus
               </Link>
             </div>
           </div>

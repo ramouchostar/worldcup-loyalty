@@ -3,6 +3,7 @@
 import type { AssistantId } from "@/lib/agents/types";
 import { IPhone, PHOTOS } from "./IPhone";
 import { assistant } from "./brigade";
+import { ArrowRight, Check } from "@/components/icons";
 
 // Le site de Nina (Brigade 17, maquette du 2026-11-04 ; ADR 0088), au style de
 // la maquette : la brigade qui envoie les clients, puis un iPhone posé sur une
@@ -25,11 +26,11 @@ export function SiteSection() {
       <div className="bx-wrap bx-direct">
         <div>
           <span className="bx-kicker">
-            <b>Nina · en pilote</b> Votre site internet
+            <b>Nina, en pilote</b> votre site internet
           </span>
           <h2 style={{ marginTop: 20 }}>Vos clients commandent chez vous. Pas chez Uber Eats.</h2>
           <p className="bx-sub" style={{ marginTop: 18 }}>
-            Nina crée votre site, pensé pour Google et pour faire commander, à partir de votre carte, de vos photos et de
+            Nina crée votre site, pensé pour Google et pour donner envie de commander, à partir de votre carte, de vos photos et de
             vos horaires. C&apos;est là que toute la brigade envoie les clients.
           </p>
           <ul className="bx-feeds" style={{ listStyle: "none", padding: 0 }}>
@@ -46,7 +47,7 @@ export function SiteSection() {
                     </b>
                     <span>{s.text}</span>
                   </div>
-                  <em aria-hidden>→</em>
+                  <em aria-hidden><ArrowRight size={20} /></em>
                 </li>
               );
             })}
@@ -57,7 +58,7 @@ export function SiteSection() {
                 <b>Votre site, par Nina</b>
                 <span>le client appuie sur « Commander » et arrive sur votre site de commande</span>
               </div>
-              <em aria-hidden>✓</em>
+              <em aria-hidden><Check size={20} /></em>
             </li>
           </ul>
           <div className="bx-compare">
@@ -92,12 +93,12 @@ export function SiteSection() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={PHOTOS.poulet} alt="" loading="lazy" />
                 <div className="bx-s-over" style={{ paddingTop: 60 }}>
-                  <small>Ouvert jusqu&apos;à 23 h · 4,6 ★ · 156 avis</small>
+                  <small>Ouvert jusqu&apos;à 23 h, 4,6 ★ (156 avis)</small>
                   <b style={{ fontSize: 24 }}>Le meilleur poulet frit du quartier</b>
                 </div>
               </div>
               <div className="bx-ps-body">
-                <div className="bx-s-promo" style={{ borderRadius: 14 }}>
+                <div className="bx-s-promo" style={{ borderRadius: 8 }}>
                   Ce week-end : la boisson offerte avec le Family Bucket
                 </div>
                 <div className="bx-ps-item">
@@ -121,7 +122,7 @@ export function SiteSection() {
               </div>
               <div className="bx-ps-cta">
                 <span>Commander</span>
-                <small>Appeler · Itinéraire</small>
+                <small>Appeler ou itinéraire</small>
               </div>
             </div>
           </IPhone>

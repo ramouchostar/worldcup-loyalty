@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Manrope, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black } from "next/font/google";
+import { Inter, Manrope, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { Analytics } from "@/components/analytics/Analytics";
@@ -39,7 +39,11 @@ const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700
 // — display du support imprimé, distinct d'Archivo (corps) et non exposé
 // dans FONT_OPTIONS (pas sélectionnable comme --brand-font).
 const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
-const brandFontVariables = `${inter.variable} ${manrope.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
+// Police unique de Boosteats (charte anti-slop, 2026-11-05) : d'abord la landing,
+// puis les pages publiques, la console et la plateforme. L'app membre garde la
+// police de l'établissement (ADR 0015).
+const instrumentSans = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-instrument", display: "swap" });
+const brandFontVariables = `${instrumentSans.variable} ${inter.variable} ${manrope.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
 

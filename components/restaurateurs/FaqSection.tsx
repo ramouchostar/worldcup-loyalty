@@ -1,6 +1,5 @@
 "use client";
 
-import { Reveal } from "./motion";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { whatsappUrl } from "@/lib/contact";
 
@@ -11,7 +10,7 @@ import { whatsappUrl } from "@/lib/contact";
 const QUESTIONS = [
   {
     q: "Qu'y a-t-il dans Boosteats ?",
-    a: "Une brigade de sept assistants marketing. Léa inscrit les clients et gère les cadeaux, Hugo les relance, Chloé suit les chiffres, Emma s'occupe de la pub dans le quartier, Louis répond aux avis Google. Nina (le site) et Max (Google) sont en pilote dans le forfait Pro. Le nombre d'assistants dépend du forfait.",
+    a: "Une brigade de sept assistants marketing. Léa inscrit les clients et gère les cadeaux, Hugo les relance, Chloé suit les chiffres, Emma lance et gère les publicités en ligne, Louis répond aux avis Google. Nina (le site) et Max (Google) sont en pilote dans le forfait Pro. Le nombre d'assistants dépend du forfait.",
   },
   {
     q: "Combien de temps cela prend-il vraiment ?",
@@ -61,35 +60,35 @@ const QUESTIONS = [
 
 export function FaqSection() {
   return (
-    <section id="questions" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-24 scroll-mt-16">
-      <Reveal>
-        <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Questions</p>
-        <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[640px] text-pretty">
+    <section id="questions" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-16 sm:py-24 scroll-mt-16">
+      <>
+        <p className="bx-kicker mb-4">Questions</p>
+        <h2 className="text-[32px] sm:text-[44px] leading-[1.1] tracking-[-0.025em] font-semibold text-ink max-w-[640px] text-balance m-0">
           Vos questions.
         </h2>
-        <p className="font-landing text-[16px] text-ink-muted mt-3 mb-0">
+        <p className="text-[17px] text-ink-muted mt-4 mb-0">
           Une autre question ?{" "}
           <TrackedLink
             ctaId="whatsapp"
             ctaLocation="faq"
             audience="restaurateur"
             href={whatsappUrl()}
-            className="font-semibold text-good hover:underline"
+            className="font-semibold text-boost-olive-dark underline decoration-transparent underline-offset-[3px] hover:decoration-current transition-colors"
           >
             Écrivez-nous sur WhatsApp
           </TrackedLink>
           , on répond vite.
         </p>
-      </Reveal>
+      </>
 
-      <div className="grid sm:grid-cols-2 gap-6 mt-10">
-        {QUESTIONS.map((item, i) => (
-          <Reveal key={item.q} delay={(i % 2) * 80}>
-            <div className="bg-white border border-paper-border rounded-xl p-6 h-full">
-              <p className="font-display text-[15px] font-bold text-ink mb-2">{item.q}</p>
-              <p className="text-sm leading-relaxed text-ink-muted m-0">{item.a}</p>
+      <div className="grid sm:grid-cols-2 gap-x-12 mt-12">
+        {QUESTIONS.map((item) => (
+          <div key={item.q}>
+            <div className="border-t border-paper-border py-6 h-full">
+              <h3 className="text-[17px] font-semibold text-ink m-0 mb-2">{item.q}</h3>
+              <p className="text-[15px] leading-relaxed text-ink-muted m-0">{item.a}</p>
             </div>
-          </Reveal>
+          </div>
         ))}
       </div>
     </section>

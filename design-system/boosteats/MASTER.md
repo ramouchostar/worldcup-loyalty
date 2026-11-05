@@ -1,5 +1,8 @@
 # Design System Master File
 
+> **2026-11-05 — la charte anti-slop ([ADR 0090](../../docs/adr/0090-charte-anti-slop.md), règles `.claude/rules/design.md`) prime sur ce fichier** :
+> olive `#6B7C3F` seul accent, Instrument Sans, Hugeicons, ni verre dépoli ni dégradé (les specs « Component Specs » et « Style Guidelines » ci-dessous, sorties du générateur, ne s'appliquent plus).
+
 > **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
 > If that file exists, its rules **override** this Master file.
 > If not, strictly follow the rules below.
