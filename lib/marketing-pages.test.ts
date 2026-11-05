@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { MARKETING_PAGES, getMarketingPage } from "./marketing-pages";
 import { SEO_PAGES, PRIVATE_PREFIXES } from "./seo-pages";
 import { BLOG_ARTICLES, getArticle } from "./blog";
@@ -40,6 +40,43 @@ test("le texte des pages respecte les règles (fichier de page et registre)", ()
     const text = JSON.stringify(p) + visible;
     assert.deepEqual(banned(text), [], `${p.slug} contient des mots interdits`);
   }
+});
+
+// Brigade 17 (2026-11-05) : la landing (`/`, components/restaurateurs/**) suit
+// les mêmes règles, plus celles de la brigade (CONTEXT.md, _Avoid_ de
+// « Brigade ») : jamais IA, robot, bot, agent ; pas de « roue » ; et plus
+// l'exemple « commande de 25 € : −7,50 € » de la maquette (décision du 2026-11-05).
+const LANDING_BANNED = [" robot", " bot ", " bots ", "agent", " roue", "7,50", "instantané"];
+const LANDING_DIR = "components/restaurateurs";
+
+const visibleText = (source: string) =>
+  source
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ")
+    .replace(/^\s*import .*$/gm, " ")
+    .replace(/^\s*\} from .*$/gm, " ")
+    // Les noms de classes Tailwind ne sont pas lus par le restaurateur.
+    .replace(/className=(\{`[^`]*`\}|"[^"]*")/g, " ");
+
+test("landing restaurateurs : mots interdits absents du texte visible", () => {
+  const files = readdirSync(LANDING_DIR).filter((f) => /\.tsx?$/.test(f));
+  assert.ok(files.length > 0);
+  for (const f of files) {
+    const text = visibleText(readFileSync(`${LANDING_DIR}/${f}`, "utf8"));
+    const lower = ` ${text.toLowerCase()} `;
+    assert.deepEqual(banned(text), [], `${f} contient des mots interdits`);
+    assert.deepEqual(LANDING_BANNED.filter((b) => lower.includes(b)), [], `${f} : mot interdit sur la landing`);
+    // « IA » en majuscules, mot entier (sans attraper « via », « médias »…).
+    assert.ok(!/\bIA\b/.test(text), `${f} : « IA » dans le texte`);
+  }
+});
+
+test("landing restaurateurs : Nina et Max restent présentés en pilote", async () => {
+  const { BRIGADE } = await import("../components/restaurateurs/brigade");
+  assert.equal(BRIGADE.length, 7);
+  assert.deepEqual(BRIGADE.filter((a) => a.pilot).map((a) => a.id).sort(), ["max", "nina"]);
+  for (const a of BRIGADE) assert.ok(existsSync(`public${a.photo}`), `${a.id} : portrait manquant`);
 });
 
 test("articles du blog : format, longueurs, liens, règles de texte", () => {

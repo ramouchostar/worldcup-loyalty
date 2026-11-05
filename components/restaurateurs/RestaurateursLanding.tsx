@@ -3,33 +3,36 @@
 import { ScrollProgressBar } from "./motion";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
-import { LoopSection } from "./LoopSection";
-import { FeatureTour } from "./FeatureTour";
+import { BrigadeSection } from "./BrigadeSection";
+import { FiveMinutesSection } from "./FiveMinutesSection";
+import { SiteSection } from "./SiteSection";
+import { AnalysisSection } from "./AnalysisSection";
 import { CaseStudyBand } from "@/components/marketing/CaseStudyBand";
-import { StepsSection } from "./StepsSection";
 import { PlansSection } from "./PlansSection";
 import { FaqSection } from "./FaqSection";
 import { FinalCtaSection } from "./FinalCtaSection";
 import { Footer } from "./Footer";
 
 // Landing publique restaurateurs. Refonte 2026-09-26 (inspirée d'owner.com),
-// repositionnée le 2026-09-29 (ADR 0074 : outil marketing, pas d'exploitation) :
-// peu de texte, l'illustration explique. Héros (titre, une phrase, console
-// dans un iPhone) → la méthode en roue (acquisition, rétention, optimisation,
-// 2026-11-03) → visite guidée (un iPhone fixe dont l'écran change à chaque
-// fonctionnalité) → le copilote en six signaux → démarrer → plans → questions
-// → appel final.
-// Contenu statique (pas de fetch) ; mockups = établissement fictif Belchicken.
+// repositionnée le 2026-09-29 (ADR 0074 : outil marketing, pas d'exploitation).
+// Brigade 17 (maquette validée par Mehdi le 2026-11-04, ADR 0089) : la page
+// présente la brigade. Héros (« Idées du jour » dans un iPhone) → les sept
+// assistants → cinq minutes par jour (une carte d'idée) → le site de Nina (en
+// pilote) → l'analyse gratuite → le cas Kraainem → tarifs par forfait →
+// questions → appel final. La méthode en trois étapes, la visite guidée et
+// « Prêt en quatre étapes » sont retirées : la maquette les remplace.
+// Contenu statique (pas de fetch) ; mockups = établissements IMAGINAIRES.
 export function RestaurateursLanding() {
   return (
     <div className="bg-paper font-landing">
       <ScrollProgressBar />
       <Header />
       <Hero />
-      <LoopSection />
-      <FeatureTour />
+      <BrigadeSection />
+      <FiveMinutesSection />
+      <SiteSection />
+      <AnalysisSection />
       <CaseStudyBand />
-      <StepsSection />
       <PlansSection />
       <FaqSection />
       <FinalCtaSection />

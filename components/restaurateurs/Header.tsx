@@ -21,11 +21,16 @@ export function Header() {
           <BoosteatsLogo tone="light" className="h-8 w-auto" />
         </Link>
         <nav className="hidden md:flex items-center gap-7">
-          <NavLink href="/audit-gratuit">Audit gratuit</NavLink>
           <OfferMenu />
-          <NavLink href="/#plans">Plans</NavLink>
+          <NavLink href="/audit-gratuit">Analyse gratuite</NavLink>
+          <NavLink href="/#plans">Tarifs</NavLink>
+          <span className="hidden lg:inline">
+            <NavLink href="/#cas-client">Cas client</NavLink>
+          </span>
           <NavLink href="/#questions">Questions</NavLink>
-          <NavLink href="/blog">Blog</NavLink>
+          <span className="hidden lg:inline">
+            <NavLink href="/blog">Blog</NavLink>
+          </span>
           <NavLink href="/login?as=resto">Connexion</NavLink>
           <TrackedLink
             ctaId="devenir_partenaire"
