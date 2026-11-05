@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess, isEstablishmentAdmin } from "@/lib/admin-guard";
 import { cancelRequest, createRequest, estimateFor, pubAvailability, requestCreativeUpload, requestRecharge, resubmit, setPaused } from "@/lib/ads/requests";
+import { todayBrussels } from "@/lib/ads/sync";
+import { acceptEmmaIdea, type EmmaAcceptance } from "@/lib/agents/execute-emma";
 
 // ADR 0086 §1 — les gestes du restaurateur sur SA pub. Chaque action se re-garde
 // (une Server Action est une route publique) : membre de la console de CET établissement,
@@ -11,7 +13,7 @@ import { cancelRequest, createRequest, estimateFor, pubAvailability, requestCrea
 
 export type ActionResult = { ok: boolean; error?: string; requestId?: string };
 
-async function guard(restaurantId: string): Promise<{ userId: string } | { error: string }> {
+async function guard(restaurantId: string): Promise<{ userId: string; isSuperAdmin: boolean } | { error: string }> {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Connecte-toi pour continuer." };
@@ -19,7 +21,7 @@ async function guard(restaurantId: string): Promise<{ userId: string } | { error
   const access = await getAdminAccess(user.id, restaurantId);
   const av = await pubAvailability(restaurantId, access.isSuperAdmin);
   if (!av.open) return { error: "La Pub n'est pas encore ouverte pour ton établissement." };
-  return { userId: user.id };
+  return { userId: user.id, isSuperAdmin: access.isSuperAdmin };
 }
 
 const done = (restaurantId: string) => revalidatePath(`/admin/${restaurantId}/pub`, "layout");
@@ -76,4 +78,17 @@ export async function estimate(restaurantId: string, objective: string, radiusKm
   if ("error" in g) return { ok: false };
   if (!Number.isFinite(budgetEuros) || budgetEuros < 1 || budgetEuros > 100_000 || ![1, 3, 5, 10].includes(radiusKm)) return { ok: false };
   return estimateFor(restaurantId, objective, radiusKm, Math.round(budgetEuros) * 100);
+}
+
+/**
+ * Le « Oui » du gérant à l'idée d'Emma (Brigade 10, ADR 0086 amendé le 2026-11-05) : crée la demande de
+ * pub proposée, par le MÊME chemin qu'une demande faite à la main. Le gérant coche lui-même les
+ * conditions de la Pub (`termsAccepted`) ; l'idée est recalculée ici, pas reprise du client.
+ */
+export async function acceptPubIdea(restaurantId: string, extras: EmmaAcceptance): Promise<ActionResult & { warning?: string }> {
+  const g = await guard(restaurantId);
+  if ("error" in g) return { ok: false, error: g.error };
+  const r = await acceptEmmaIdea({ restaurantId, userId: g.userId, isSuperAdmin: g.isSuperAdmin, todayISO: todayBrussels(), extras });
+  if (r.ok) done(restaurantId);
+  return r.ok ? { ok: true, requestId: r.requestId, ...(r.warning ? { warning: r.warning } : {}) } : { ok: false, error: r.error };
 }
