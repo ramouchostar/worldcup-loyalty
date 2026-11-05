@@ -451,6 +451,33 @@ export async function listTodayIdeas(restaurantId: string, nowMs = Date.now()): 
   };
 }
 
+/** Une idée de CET établissement ; `null` si introuvable, « indisponible » si la table manque. */
+export async function getIdea(restaurantId: string, id: string): Promise<ProposalRow | null | Unavailable> {
+  const { data, error } = await createAdminClient().from(TABLE).select("*").eq("restaurant_id", restaurantId).eq("id", id).maybeSingle();
+  if (error) {
+    if (isMissingProposals(error)) return UNAVAILABLE;
+    throw new Error(`agent_proposals (lecture) : ${error.message}`);
+  }
+  return (data as ProposalRow | null) ?? null;
+}
+
+/** Les idées décidées ou expirées ces `days` derniers jours, les plus récentes d'abord (« Décidé cette semaine »). */
+export async function listRecentDecisions(restaurantId: string, days = 7, nowMs = Date.now()): Promise<ProposalRow[] | Unavailable> {
+  const since = new Date(nowMs - days * 86_400_000).toISOString();
+  const admin = createAdminClient();
+  const rows = await readRows<ProposalRow>("agent_proposals (décidées)", (from, to) =>
+    admin
+      .from(TABLE)
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .in("status", ["executee", "refusee", "expiree"])
+      .gte("updated_at", since)
+      .order("updated_at", { ascending: false })
+      .range(from, to)
+  );
+  return rows ?? UNAVAILABLE;
+}
+
 /** Note la première fois que le gérant voit ses idées (mesure « ouvre ses idées », Brigade 06). */
 export async function markSeen(restaurantId: string, ids: string[], nowMs = Date.now()): Promise<void> {
   if (ids.length === 0) return;

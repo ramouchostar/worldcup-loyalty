@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   Clapperboard,
   MapPin,
+  ChartLine,
   type LucideIcon,
 } from "lucide-react";
 
@@ -53,4 +54,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   // Vue simple (ADR 0064) — l'accueil et l'onglet qui mène à tout le reste.
   home: House,
   more: LayoutGrid,
+  // La brigade (ADR 0089) : les idées du jour, et les chiffres (ancien accueil).
+  ideas: Lightbulb,
+  stats: ChartLine,
 };

@@ -1,6 +1,6 @@
 # ADR 0064 — La console répond à trois questions : une vue simple par étape, la vue pro intacte
 
-**Statut** : Accepté et en service (2026-09-21, PR #220) ; **§4 et §8 amendés par l'[ADR 0081](0081-le-jeu-de-la-croissance.md)** (2026-10-08 : deux étapes, tickets + contacts puis paliers de chiffre d'affaires) — demande du porteur du même jour ; §6 amendé le même jour (le QR de l'équipe en salle devient la première tâche « À faire », voir en fin de document). La PR qui porte cet ADR
+**Statut** : Accepté et en service (2026-09-21, PR #220) ; **§2 amendé le 2026-11-05 par l'[ADR 0089](0089-la-brigade-des-idees-que-le-gerant-valide.md)** (cinq onglets : Idées · Stats · Tickets · Annonces · Plus, voir en fin de document) ; **§4 et §8 amendés par l'[ADR 0081](0081-le-jeu-de-la-croissance.md)** (2026-10-08 : deux étapes, tickets + contacts puis paliers de chiffre d'affaires) — demande du porteur du même jour ; §6 amendé le même jour (le QR de l'équipe en salle devient la première tâche « À faire », voir en fin de document). La PR qui porte cet ADR
 livre la vue simple (§1 à §8) ; les questions au restaurateur (§9) et le message du soir (§10)
 sont décidés dans leur principe et feront chacun leur PR. Transpose côté restaurateur l'[ADR
 0059](0059-l-accueil-repond-a-trois-questions.md) (l'accueil membre répond à trois questions) ;
@@ -242,3 +242,20 @@ création des QR du personnel, avec un bouton qui mène directement à cette cr�
 - **Une action, un seul endroit** (ADR 0054 §5) : le QR de l'équipe quitte la liste de lancement
   (qui passe à quatre gestes) et la carte « prochaine étape » de l'étape « Prendre le rythme ».
 - Migration des codes salle absente : aucune tâche — on ne réclame pas un outil qui n'existe pas.
+
+## Amendement du 2026-11-05 — cinq onglets : Idées · Stats · Tickets · Annonces · Plus
+
+Décidé par le porteur sur la maquette validée le 2026-11-05
+(https://claude.ai/artifact/UVKGAsFoEdLxtNruZotYp1), avec la brigade de l'[ADR
+0089](0089-la-brigade-des-idees-que-le-gerant-valide.md).
+
+- **« Idées » devient le premier onglet** (`/admin/<id>/idees`) : les idées des assistants à valider
+  par Oui, Non ou Plus tard. C'est désormais là que vit « qu'est-ce que je fais » (§3, question 2).
+- **« Accueil » devient « Stats »**, à la même adresse. Le contenu actuel reste en place jusqu'à
+  l'espace Stats de Chloé (chantier du backlog du 2026-11-05) : tout sous les yeux pour piloter, des
+  graphiques, le flou doux des forfaits au-dessus (ADR 0029 §5, ADR 0081 §4).
+- **Cinq onglets** au lieu de quatre : chacun se touche encore au pouce sur un téléphone de 390 px
+  (78 px de large). « Plus » garde l'accès à tout, rien n'est retiré.
+- **Toujours un seul badge** (les tickets) : le nombre d'idées est dit dans le titre de l'écran, pas
+  dans la barre.
+

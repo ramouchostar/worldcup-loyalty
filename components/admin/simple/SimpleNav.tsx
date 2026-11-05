@@ -8,7 +8,7 @@ import type { AdminNavLink } from "@/lib/admin-nav";
 
 type Tab = AdminNavLink & { match: "exact" | "prefix" };
 
-// Navigation de la vue simple (ADR 0064) — quatre onglets, les mêmes partout :
+// Navigation de la vue simple (ADR 0064, cinq onglets depuis l'ADR 0089) — les mêmes partout :
 // en bas de l'écran sur téléphone (au pouce, toujours visibles, là où le
 // hamburger de la vue pro cachait 18 entrées derrière un bouton), en colonne
 // sur ordinateur. Une page qui n'est pas un onglet (Menu, QR code, Clients…)
@@ -28,7 +28,7 @@ export function SimpleNav({ tabs, ticketsBadge, proHref }: { tabs: Tab[]; ticket
 
   return (
     <>
-      {/* Ordinateur — colonne à gauche, mêmes quatre entrées */}
+      {/* Ordinateur — colonne à gauche, mêmes entrées */}
       <nav aria-label="Navigation de la console" className="hidden md:flex flex-col gap-0.5 w-[200px] shrink-0">
         {tabs.map((t) => {
           const Icon = NAV_ICONS[t.icon];
@@ -73,7 +73,7 @@ export function SimpleNav({ tabs, ticketsBadge, proHref }: { tabs: Tab[]; ticket
         aria-label="Navigation de la console"
         className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-white border-t border-paper-border pb-safe"
       >
-        <div className="grid grid-cols-4 max-w-md mx-auto">
+        <div className="grid grid-cols-5 max-w-md mx-auto">
           {tabs.map((t) => {
             const Icon = NAV_ICONS[t.icon];
             const active = t.href === current;
