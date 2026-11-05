@@ -6,7 +6,11 @@ import {
   ASSISTANTS,
   DAILY_IDEA_CAP,
   IDEA_TYPE_PLAN,
+  LEARNING_WINDOW_DAYS,
+  MUTE_DAYS,
   REFUSAL_COOLDOWN_DAYS,
+  REFUSAL_NOTE_MAX,
+  refusalLearnedText,
   type AssistantId,
   type DiscardReason,
   type Idea,
@@ -79,6 +83,90 @@ export function addDays(day: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// ─── Ce que la brigade apprend d'un établissement (ADR 0089 §8) ───────────────
+
+const DAY_MS = 86_400_000;
+
+/** Le type d'idée, tous objets confondus : c'est à ce niveau que la brigade apprend les goûts. */
+export function typeKey(idea: Pick<Idea, "assistant" | "type">): string {
+  return `${idea.assistant}:${idea.type}`;
+}
+
+export type TypeStats = {
+  oui: number;
+  non: number;
+  byReason: Record<RefusalReason, number>;
+  lastRefusalAt: number | null;
+};
+
+export type IdeaProfile = {
+  /** Par type d'idée (`typeKey`), sur LEARNING_WINDOW_DAYS. */
+  types: Map<string, TypeStats>;
+  /** Le dernier refus de chaque idée (`ideaKey`), pour le délai propre à sa raison. */
+  refusals: Map<string, { reason: RefusalReason; at: number }>;
+};
+
+export type HistoryRow = Pick<ProposalRow, "idea_key" | "assistant" | "type" | "status" | "decided_at" | "refusal_reason">;
+
+const emptyStats = (): TypeStats => ({
+  oui: 0,
+  non: 0,
+  byReason: { pas_le_moment: 0, trop_cher: 0, pas_pour_moi: 0, deja_fait: 0, autre: 0 },
+  lastRefusalAt: null,
+});
+
+/** Le profil d'un établissement, à partir de ses idées décidées (pur). */
+export function buildProfile(rows: HistoryRow[], nowMs: number): IdeaProfile {
+  const profile: IdeaProfile = { types: new Map(), refusals: new Map() };
+  const since = nowMs - LEARNING_WINDOW_DAYS * DAY_MS;
+  for (const r of rows) {
+    if (!r.decided_at) continue;
+    const at = Date.parse(r.decided_at);
+    if (!(at >= since)) continue;
+    const yes = r.status === "acceptee" || r.status === "executee";
+    const no = r.status === "refusee";
+    if (!yes && !no) continue;
+    const k = typeKey(r);
+    const st = profile.types.get(k) ?? emptyStats();
+    if (yes) st.oui++;
+    else {
+      const reason = r.refusal_reason ?? "autre";
+      st.non++;
+      st.byReason[reason]++;
+      st.lastRefusalAt = Math.max(st.lastRefusalAt ?? 0, at);
+      const prev = profile.refusals.get(r.idea_key);
+      if (!prev || prev.at < at) profile.refusals.set(r.idea_key, { reason, at });
+    }
+    profile.types.set(k, st);
+  }
+  return profile;
+}
+
+/** Le goût d'un établissement pour un type d'idée : part de Oui, lissée (un type jamais vu vaut 0,5). */
+export function acceptanceScore(stats: TypeStats | undefined): number {
+  return ((stats?.oui ?? 0) + 1) / ((stats?.oui ?? 0) + (stats?.non ?? 0) + 2);
+}
+
+/**
+ * Un type est en pause pour un établissement quand il l'a dit deux fois
+ * (« pas pour mon établissement ») ou l'a refusé trois fois sans jamais dire
+ * oui ; la pause dure MUTE_DAYS après le dernier refus, puis on retente.
+ */
+export function isTypeMuted(stats: TypeStats | undefined, nowMs: number): boolean {
+  if (!stats || stats.lastRefusalAt === null) return false;
+  const tired = stats.byReason.pas_pour_moi >= 2 || (stats.non >= 3 && stats.oui === 0);
+  return tired && nowMs - stats.lastRefusalAt < MUTE_DAYS * DAY_MS;
+}
+
+/** La même idée, refusée : elle ne revient pas avant le délai de SA raison. */
+export function refusalStillBlocks(refusal: { reason: RefusalReason; at: number } | undefined, nowMs: number): boolean {
+  return !!refusal && nowMs - refusal.at < REFUSAL_COOLDOWN_DAYS[refusal.reason] * DAY_MS;
+}
+
+export const EMPTY_PROFILE: IdeaProfile = { types: new Map(), refusals: new Map() };
+
+// ─── Le choix du jour ─────────────────────────────────────────────────────────
+
 export type Selection = {
   show: Idea[];
   discard: { idea: Idea; reason: DiscardReason }[];
@@ -90,8 +178,8 @@ export type SelectionContext = {
   shownToday: number;
   /** Clés des idées qui attendent une décision. */
   openKeys: Set<string>;
-  /** Clés des idées refusées depuis moins de REFUSAL_COOLDOWN_DAYS. */
-  refusedKeys: Set<string>;
+  /** Ce que la brigade a appris de cet établissement. */
+  profile: IdeaProfile;
   /** Clés déjà écartées aujourd'hui : un second passage ne les réécrit pas. */
   discardedTodayKeys?: Set<string>;
   nowMs: number;
@@ -99,13 +187,19 @@ export type SelectionContext = {
 };
 
 /**
- * Le tri entre les candidates (ADR 0089 §4) : la date limite la plus proche
- * d'abord, puis celle qui a une estimation, puis l'ordre d'arrivée.
+ * Le tri entre les candidates (ADR 0089 §4 amendé §8) : ce que l'établissement
+ * accepte le plus passe devant (part de Oui, au dixième) ; à goût égal, la date
+ * limite la plus proche, puis celle qui a une estimation, puis l'ordre d'arrivée.
  */
-export function rankIdeas(ideas: Idea[]): Idea[] {
+export function rankIdeas(ideas: Idea[], profile: IdeaProfile = EMPTY_PROFILE): Idea[] {
   return ideas
-    .map((idea, i) => ({ idea, i, by: decideByInstant(idea.decideBy).getTime() }))
-    .sort((a, b) => a.by - b.by || Number(b.idea.estimate !== null) - Number(a.idea.estimate !== null) || a.i - b.i)
+    .map((idea, i) => ({
+      idea,
+      i,
+      taste: Math.round(acceptanceScore(profile.types.get(typeKey(idea))) * 10),
+      by: decideByInstant(idea.decideBy).getTime(),
+    }))
+    .sort((a, b) => b.taste - a.taste || a.by - b.by || Number(b.idea.estimate !== null) - Number(a.idea.estimate !== null) || a.i - b.i)
     .map((x) => x.idea);
 }
 
@@ -120,13 +214,14 @@ export function selectIdeas(candidates: Idea[], ctx: SelectionContext): Selectio
   const seen = new Set<string>();
   const out: Selection = { show: [], discard: [] };
 
-  for (const idea of rankIdeas(candidates)) {
+  for (const idea of rankIdeas(candidates, ctx.profile)) {
     if (decideByInstant(idea.decideBy).getTime() <= ctx.nowMs) continue;
     const key = ideaKey(idea);
     let reason: DiscardReason | null = null;
     if (!planCovers(ctx.plan, requiredPlan(idea))) reason = "forfait";
+    else if (isTypeMuted(ctx.profile.types.get(typeKey(idea)), ctx.nowMs)) reason = "appris";
     else if (ctx.openKeys.has(key) || seen.has(key)) reason = "deja_proposee";
-    else if (ctx.refusedKeys.has(key)) reason = "refusee_recemment";
+    else if (refusalStillBlocks(ctx.profile.refusals.get(key), ctx.nowMs)) reason = "refusee_recemment";
     else if (slots <= 0) reason = "plafond_du_jour";
     seen.add(key);
     if (reason && ctx.discardedTodayKeys?.has(key)) continue;
@@ -146,7 +241,13 @@ export function isVisibleToday(row: Pick<ProposalRow, "status" | "snoozed_until"
   return !row.snoozed_until || row.snoozed_until <= today;
 }
 
-export type Decision = { kind: "oui" } | { kind: "non"; reason: RefusalReason } | { kind: "plus_tard" };
+export type Decision = { kind: "oui" } | { kind: "non"; reason: RefusalReason; note?: string | null } | { kind: "plus_tard" };
+
+/** La saisie libre : espaces retirés, coupée à REFUSAL_NOTE_MAX, `null` si vide. */
+export function cleanRefusalNote(note: string | null | undefined): string | null {
+  const t = (note ?? "").replace(/\s+/g, " ").trim().slice(0, REFUSAL_NOTE_MAX);
+  return t.length > 0 ? t : null;
+}
 
 /** Ce que la décision écrit (pur). `null` : la décision n'a plus de sens (déjà décidée, ou échue). */
 export function decisionPatch(
@@ -162,7 +263,7 @@ export function decisionPatch(
     case "oui":
       return { ...base, status: "acceptee", decided_at: now };
     case "non":
-      return { ...base, status: "refusee", decided_at: now, refusal_reason: decision.reason };
+      return { ...base, status: "refusee", decided_at: now, refusal_reason: decision.reason, refusal_note: cleanRefusalNote(decision.note) };
     case "plus_tard":
       // Reste « proposée » : ni decided_at ni décision, seulement cachée jusqu'à demain.
       return {
@@ -193,6 +294,7 @@ export type ProposalRow = {
   decided_at: string | null;
   decided_by: string | null;
   refusal_reason: RefusalReason | null;
+  refusal_note: string | null;
   discard_reason: DiscardReason | null;
   executed_at: string | null;
   execution_error: string | null;
@@ -224,6 +326,37 @@ async function readRows<T>(label: string, page: Parameters<typeof fetchAllRowsSt
 export type Unavailable = { unavailable: true };
 const UNAVAILABLE: Unavailable = { unavailable: true };
 
+type HistoryReadRow = HistoryRow & Pick<ProposalRow, "proposed_on">;
+
+/**
+ * Ce que la brigade sait d'un établissement : ses idées ouvertes, celles du jour
+ * (`includeToday`), et ses décisions des LEARNING_WINDOW_DAYS derniers jours.
+ * Filtrable par type d'idée. `null` si la table manque.
+ */
+async function readHistory(
+  restaurantId: string,
+  nowMs: number,
+  opts: { includeToday?: string; assistant?: AssistantId; type?: string } = {}
+): Promise<HistoryReadRow[] | null> {
+  const since = new Date(nowMs - LEARNING_WINDOW_DAYS * 86_400_000).toISOString();
+  const or = [
+    "status.eq.proposee",
+    `and(status.in.(acceptee,executee,refusee),decided_at.gte.${since})`,
+    ...(opts.includeToday ? [`proposed_on.eq.${opts.includeToday}`] : []),
+  ].join(",");
+  const admin = createAdminClient();
+  return readRows<HistoryReadRow>("agent_proposals (historique)", (from, to) => {
+    let q = admin
+      .from(TABLE)
+      .select("idea_key, assistant, type, status, proposed_on, decided_at, refusal_reason")
+      .eq("restaurant_id", restaurantId)
+      .or(or);
+    if (opts.assistant) q = q.eq("assistant", opts.assistant);
+    if (opts.type) q = q.eq("type", opts.type);
+    return q.order("created_at", { ascending: true }).range(from, to);
+  });
+}
+
 export type RecordResult = { unavailable: false; shown: ProposalRow[]; discarded: { idea: Idea; reason: DiscardReason }[] } | Unavailable;
 
 /**
@@ -242,25 +375,14 @@ export async function recordIdeas(
   const origin = opts.origin ?? "systeme";
   const admin = createAdminClient();
 
-  const since = addDays(today, -REFUSAL_COOLDOWN_DAYS);
-  const rows = await readRows<Pick<ProposalRow, "idea_key" | "status" | "proposed_on" | "decided_at">>(
-    "agent_proposals (avant enregistrement)",
-    (from, to) =>
-      admin
-        .from(TABLE)
-        .select("idea_key, status, proposed_on, decided_at")
-        .eq("restaurant_id", restaurantId)
-        .or(`status.eq.proposee,and(status.eq.refusee,decided_at.gte.${since}),proposed_on.eq.${today}`)
-        .order("created_at", { ascending: true })
-        .range(from, to)
-  );
+  const rows = await readHistory(restaurantId, nowMs, { includeToday: today });
   if (!rows) return UNAVAILABLE;
   const selection = selectIdeas(candidates, {
     plan: opts.plan,
     nowMs,
     shownToday: rows.filter((r) => r.proposed_on === today && r.status !== "ecartee").length,
     openKeys: new Set(rows.filter((r) => r.status === "proposee").map((r) => r.idea_key)),
-    refusedKeys: new Set(rows.filter((r) => r.status === "refusee").map((r) => r.idea_key)),
+    profile: buildProfile(rows, nowMs),
     discardedTodayKeys: new Set(rows.filter((r) => r.status === "ecartee" && r.proposed_on === today).map((r) => r.idea_key)),
   });
 
@@ -342,7 +464,7 @@ export async function markSeen(restaurantId: string, ids: string[], nowMs = Date
 }
 
 export type DecideResult =
-  | { ok: true; row: ProposalRow }
+  | { ok: true; row: ProposalRow; learned: string | null }
   | { ok: false; reason: "introuvable" | "deja_decidee" | "echue" | "indisponible" };
 
 /**
@@ -385,7 +507,13 @@ export async function decideIdea(
     .maybeSingle();
   if (upErr) throw new Error(`agent_proposals (décision) : ${upErr.message}`);
   if (!updated) return { ok: false, reason: "deja_decidee" };
-  return { ok: true, row: updated as ProposalRow };
+  const done = updated as ProposalRow;
+  if (decision.kind !== "non") return { ok: true, row: done, learned: null };
+
+  // Ce que ce refus apprend, dit tout de suite au gérant (ADR 0089 §8).
+  const history = await readHistory(restaurantId, nowMs, { assistant: done.assistant, type: done.type });
+  const muted = isTypeMuted(buildProfile(history ?? [], nowMs).types.get(typeKey(done)), nowMs);
+  return { ok: true, row: done, learned: refusalLearnedText(done.assistant, decision.reason, muted) };
 }
 
 /** L'exécuteur a joué le geste : « exécutée », avec ce qui s'est passé (envoi, demande créée…). */

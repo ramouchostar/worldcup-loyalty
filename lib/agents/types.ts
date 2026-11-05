@@ -106,8 +106,11 @@ export type IdeaStatus = "proposee" | "acceptee" | "refusee" | "expiree" | "exec
 /** Qui a préparé l'idée : un générateur, ou l'équipe à la main depuis /platform (Brigade 04). */
 export type IdeaOrigin = "systeme" | "equipe";
 
-/** Le refus en un geste : une raison au choix, jamais un texte obligatoire. */
+/** Le refus en un geste : une raison au choix ; « Autre » ouvre une saisie libre, jamais obligatoire. */
 export type RefusalReason = "pas_le_moment" | "trop_cher" | "pas_pour_moi" | "deja_fait" | "autre";
+
+/** Dans l'ordre où les choix s'affichent. */
+export const REFUSAL_REASONS: RefusalReason[] = ["pas_le_moment", "trop_cher", "deja_fait", "pas_pour_moi", "autre"];
 
 export const REFUSAL_REASON_LABELS: Record<RefusalReason, string> = {
   pas_le_moment: "Pas le moment",
@@ -117,11 +120,42 @@ export const REFUSAL_REASON_LABELS: Record<RefusalReason, string> = {
   autre: "Autre raison",
 };
 
-/** Pourquoi une idée produite n'a pas été montrée. */
-export type DiscardReason = "plafond_du_jour" | "deja_proposee" | "refusee_recemment" | "forfait";
+/** La saisie libre derrière « Autre » (ou en complément d'un choix) : lue par l'équipe sur /platform. */
+export const REFUSAL_NOTE_MAX = 280;
+
+/**
+ * Ce que chaque raison apprend à la brigade pour CET établissement (ADR 0089 §8) :
+ * la même idée ne revient pas avant ce délai.
+ */
+export const REFUSAL_COOLDOWN_DAYS: Record<RefusalReason, number> = {
+  pas_le_moment: 7,
+  trop_cher: 21,
+  autre: 14,
+  deja_fait: 30,
+  pas_pour_moi: 60,
+};
+
+/** Fenêtre sur laquelle la brigade apprend les goûts d'un établissement. */
+export const LEARNING_WINDOW_DAYS = 90;
+
+/** Un type d'idée mis en pause pour un établissement l'est pour ce délai, puis retenté. */
+export const MUTE_DAYS = 30;
+
+/** Ce que le gérant lit juste après son refus : ce qui a été retenu, sans jargon. */
+export function refusalLearnedText(assistant: AssistantId, reason: RefusalReason, typeMuted: boolean): string {
+  const name = ASSISTANTS[assistant].name;
+  if (typeMuted) return `Compris. ${name} arrête ce genre d'idée pendant ${MUTE_DAYS} jours.`;
+  const days = REFUSAL_COOLDOWN_DAYS[reason];
+  if (reason === "trop_cher") return `Compris. ${name} reviendra avec moins cher, pas avant ${days} jours.`;
+  if (reason === "autre") return `Merci, l'équipe lit ta réponse. ${name} ne te reproposera pas ça avant ${days} jours.`;
+  return `Compris. ${name} ne te reproposera pas ça avant ${days} jours.`;
+}
+
+/**
+ * Pourquoi une idée produite n'a pas été montrée. `appris` : ce type d'idée est
+ * en pause pour cet établissement, d'après ses refus (ADR 0089 §8).
+ */
+export type DiscardReason = "plafond_du_jour" | "deja_proposee" | "refusee_recemment" | "forfait" | "appris";
 
 /** Au plus trois idées montrées par jour et par établissement : « 5 minutes par jour, pas plus ». */
 export const DAILY_IDEA_CAP = 3;
-
-/** Une idée refusée ne revient pas avant ce délai (même assistant, même type, même objet). */
-export const REFUSAL_COOLDOWN_DAYS = 14;

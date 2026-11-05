@@ -624,6 +624,10 @@ _Avoid_ : employé, conseiller, coach.
 
 **Idée** :
 Une proposition toute prête d'un assistant (ou de l'équipe, « préparée par l'équipe »), enregistrée dans `agent_proposals` : trois lignes (quoi · pour qui · combien), une estimation en fourchette ou rien, une date limite, un geste joué sur « Oui ». Statuts : proposée, acceptée, refusée, expirée, exécutée, écartée (jamais montrée : plafond de 3 par jour, doublon). Rien ne part et aucun euro n'est dépensé sans « Oui ».
+
+**Raison du refus** :
+Le choix du gérant quand il dit « Non » à une idée, dans une liste : pas le moment · trop cher · déjà fait · pas pour mon établissement · autre (avec saisie libre, jamais obligatoire). Chaque raison règle ce que la brigade propose ensuite à CET établissement (ADR 0089 §8) : délai avant de reproposer la même idée, type d'idée mis en pause 30 jours, tri par goût. Le gérant lit en une phrase ce qui a été retenu.
+_Avoid_ : motif, feedback, commentaire.
 _Avoid_ : suggestion, recommandation, tâche, opportunité (la page Opportunités est une **source** des idées de Chloé).
 
 ## Example dialogue
