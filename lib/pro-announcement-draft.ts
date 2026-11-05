@@ -11,30 +11,39 @@ export type AnnouncementDraft = {
 };
 
 export const ANNOUNCEMENT_DRAFT: AnnouncementDraft = {
-  restaurantIds: ["houba", "de-bue"],
-  subject: "Ton établissement passe au plan Croissance",
-  title: "Bienvenue dans le plan Croissance",
+  restaurantIds: ["houba", "de-bue", "kraainem"],
+  subject: "Ta brigade marketing est arrivée",
+  title: "Sept assistants travaillent pour ton restaurant",
   body: `Bonjour,
 
-À partir d'aujourd'hui, ton établissement est au plan **Croissance**. Tu gardes tout ce que tu utilises déjà dans ta console.
+Boosteats change de forme. Une **brigade de sept assistants** prépare désormais pour toi des idées toutes prêtes pour faire monter ton chiffre d'affaires. Toi, tu n'as qu'à dire **oui** ou **non**. Comme en cuisine : chacun son poste.
 
-## Ce que tu as avec Croissance
-- **Tickets illimités** pour tes clients.
-- **Ton CA du jour** comparé jour par jour, avec la part qui vient des clients du programme.
-- **Les ventes par plat** et **les prévisions**.
-- **Les annonces programmées** vers tes clients.
-- **Ta pub** : frais de service à **10 %** du budget, un tarif négocié pour toi.
+## Comment ça marche
+- Ta console a un nouvel onglet, **Idées**. Chaque idée tient en trois lignes : quoi, pour qui, combien.
+- Tu réponds **Oui**, **Non** ou **Plus tard**. Trois idées par jour au plus : **5 minutes suffisent**.
+- **Rien ne part sans ton Oui**, et aucun euro n'est dépensé sans ton accord.
+- Quand tes assistants ont une idée pour toi, tu reçois un message le matin vers 9 h. Les jours sans bonne idée, ils ne te dérangent pas.
+- Quand tu dis Non, tu choisis la raison en un geste. Tes assistants s'en souviennent et s'adaptent à ton restaurant.
 
-## Le prix
-- **150 € HTVA par mois**, sans engagement.
-- **Ta facture arrive dans la semaine** : ton account manager te l'envoie.
+## Ta brigade
+- **Léa** inscrit tes clients et gère les cadeaux : les tickets à vérifier, le cadeau qui manque à ton catalogue.
+- **Hugo** relance tes clients : ceux qui ne sont plus revenus depuis trois semaines, la promo à annoncer.
+- **Chloé** suit tes chiffres : ton CA du jour, ton jour le plus calme, les plats qui rapportent.
+- **Emma** s'occupe de ta pub dans le quartier : elle te propose une pub toute prête, tu valides.
+- **Louis** répond à tes avis Google. Pour commencer, notre équipe prépare les réponses avec lui et tu les relis.
+- **Nina** crée ton site qui fait commander, et **Max** te fait trouver sur Google : ils sont dans le forfait Pro, en pilote.
 
-## Le plus utile cette semaine
-**Note ton CA chaque soir** (deux blocs, 30 secondes). C'est ce qui rend les comparaisons et les prévisions justes.
+Selon ton forfait, une partie ou toute la brigade travaille pour toi.
+
+## Ce qui ne change pas
+- Tes chiffres sont dans l'onglet **Stats**, juste à côté (c'est l'ancien Accueil).
+- Ton programme de fidélité reste le même pour tes clients.
+
+Ouvre tes **Idées** et réponds à la première : c'est tout ce qu'on te demande.
 
 Une question ? Réponds simplement à cet e-mail.
 
 L'équipe Boosteats`,
-  buttonLabel: "Noter mon CA",
-  path: "",
+  buttonLabel: "Voir mes idées",
+  path: "idees",
 };
