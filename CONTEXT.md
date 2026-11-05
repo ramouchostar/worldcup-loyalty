@@ -612,6 +612,20 @@ _Avoid_ : consigne, mémo.
 
 ---
 
+### La brigade *(ADR 0089)*
+
+**Brigade** :
+Les sept **assistants** marketing de Boosteats qui préparent des **idées** pour un établissement ; le gérant les valide en cinq minutes par jour. Le nombre d'assistants dépend du forfait (ADR 0070).
+_Avoid_ : IA, robot, bot, agent (côté restaurateur — « agent » ne vit que dans le code : `lib/agents/`).
+
+**Assistant** :
+Un personnage de la brigade, un poste chacun : **Léa** inscrit les clients et gère les cadeaux · **Hugo** relance les clients · **Chloé** suit les chiffres · **Emma** s'occupe de la pub dans le quartier (Gratuit) · **Louis** répond aux avis Google (Croissance) · **Nina** crée le site qui fait commander · **Max** fait trouver l'établissement sur Google (Pro). Jamais présenté comme une personne de l'équipe. Jamais vu par un membre.
+_Avoid_ : employé, conseiller, coach.
+
+**Idée** :
+Une proposition toute prête d'un assistant (ou de l'équipe, « préparée par l'équipe »), enregistrée dans `agent_proposals` : trois lignes (quoi · pour qui · combien), une estimation en fourchette ou rien, une date limite, un geste joué sur « Oui ». Statuts : proposée, acceptée, refusée, expirée, exécutée, écartée (jamais montrée : plafond de 3 par jour, doublon). Rien ne part et aucun euro n'est dépensé sans « Oui ».
+_Avoid_ : suggestion, recommandation, tâche, opportunité (la page Opportunités est une **source** des idées de Chloé).
+
 ## Example dialogue
 
 > ⚠️ *Dialogue d'époque Coupe du Monde — les échanges mentionnant « bonus de tour », « avancement », « Belgique en quarts » ou `round_reached` sont obsolètes (ADR 0014). Les notions de double verrou, de couches de récompense, de doublon (Bestelnummer) et de commande directe restent valables. À rafraîchir lors de l'implémentation du pivot.*
