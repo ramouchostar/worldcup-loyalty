@@ -7,6 +7,7 @@
 // Service-role uniquement, tout best-effort : la mesure ne casse jamais le
 // parcours client (même règle qu'ADR 0037).
 import { createAdminClient } from "./supabase";
+import { fetchAllRowsStrict } from "./paged-select";
 import { todayInBrussels } from "./qr-funnel";
 
 // Même alphabet et même longueur que les codes de parrainage : lisible,
@@ -191,15 +192,21 @@ export async function getStaffStats(restaurantId: string): Promise<StaffStats[] 
     // commande validée dans CET établissement.
     const userIds = Array.from(new Set(acqRows.map((a) => a.user_id)));
     const withOrder = new Set<string>();
-    if (userIds.length > 0) {
-      const { data: orders } = await admin
-        .from("orders")
-        .select("user_id")
-        .eq("restaurant_id", restaurantId)
-        .eq("status", "validated")
-        .in("user_id", userIds)
-        .limit(5000);
-      for (const o of (orders ?? []) as { user_id: string }[]) withOrder.add(o.user_id);
+    // Par lots de 200 recrutés (une URL `.in()` bornée) ET paginé : PostgREST tronque en silence
+    // à 1 000 lignes (lib/paged-select.ts), et un recruté oublié ferait baisser « ont envoyé un ticket ».
+    for (let i = 0; i < userIds.length; i += 200) {
+      const slice = userIds.slice(i, i + 200);
+      const orders = await fetchAllRowsStrict<{ user_id: string }>("Équipe en salle : tickets", (from, to) =>
+        admin
+          .from("orders")
+          .select("user_id")
+          .eq("restaurant_id", restaurantId)
+          .eq("status", "validated")
+          .in("user_id", slice)
+          .order("id")
+          .range(from, to)
+      );
+      for (const o of orders) withOrder.add(o.user_id);
     }
 
     const landingsByCode = new Map<string, number>();
@@ -220,7 +227,9 @@ export async function getStaffStats(restaurantId: string): Promise<StaffStats[] 
         withTicket: mine.filter((a) => withOrder.has(a.user_id)).length,
       };
     });
-  } catch {
+  } catch (e) {
+    // `null` = « migration absente » pour la console : une vraie erreur de lecture ne doit pas s'y confondre sans trace.
+    console.error("[staff-codes] getStaffStats :", (e as Error).message);
     return null;
   }
 }

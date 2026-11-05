@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { CalendarDays, Lightbulb, Microscope, Sprout } from "lucide-react";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { fetchAllRowsStrict } from "@/lib/paged-select";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
@@ -61,14 +62,19 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
   const admin = createAdminClient();
   const startDate = new Date(Date.now() - PERIOD_DAYS * 86_400_000).toISOString().slice(0, 10);
 
-  const [{ data: ordersRaw }, { data: menuRaw }, avgBasket] = await Promise.all([
-    admin
-      .from("orders")
-      .select("id, user_id, order_date, order_time")
-      .eq("restaurant_id", restaurantId)
-      .eq("status", "validated")
-      .gte("order_date", startDate)
-      .limit(5000),
+  // Lecture PAGINÉE : PostgREST tronque en silence à 1 000 lignes (lib/paged-select.ts). Un
+  // jour creux calculé sur un échantillon est faux sans que rien ne le dise.
+  const [orders, { data: menuRaw }, avgBasket] = await Promise.all([
+    fetchAllRowsStrict<OrderRow>("Opportunités : tickets", (from, to) =>
+      admin
+        .from("orders")
+        .select("id, user_id, order_date, order_time")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "validated")
+        .gte("order_date", startDate)
+        .order("id")
+        .range(from, to)
+    ),
     admin
       .from("menu_items")
       .select("id, name, menu_price, cost_price, is_active")
@@ -77,17 +83,24 @@ export default async function AdminInsightsPage({ params }: { params: Promise<{ 
     getAverageBasket(restaurantId),
   ]);
 
-  const orders = (ordersRaw ?? []) as OrderRow[];
   const menu = (menuRaw ?? []) as MenuRow[];
 
   // Type d'équipe de chaque membre (ADR 0014) — pour typer les créneaux.
-  const [{ data: membershipsRaw }, { data: teamsRaw }] = await Promise.all([
-    admin.from("memberships").select("user_id, team_id").eq("restaurant_id", restaurantId).not("team_id", "is", null),
+  const [memberships, { data: teamsRaw }] = await Promise.all([
+    fetchAllRowsStrict<{ user_id: string; team_id: string }>("Opportunités : adhésions", (from, to) =>
+      admin
+        .from("memberships")
+        .select("user_id, team_id")
+        .eq("restaurant_id", restaurantId)
+        .not("team_id", "is", null)
+        .order("user_id")
+        .range(from, to)
+    ),
     admin.from("teams").select("id, type").eq("restaurant_id", restaurantId),
   ]);
   const teamType = new Map(((teamsRaw ?? []) as { id: string; type: string }[]).map((t) => [t.id, t.type]));
   const userType = new Map(
-    ((membershipsRaw ?? []) as { user_id: string; team_id: string }[]).map((m) => [m.user_id, teamType.get(m.team_id) ?? "autre"])
+    memberships.map((m) => [m.user_id, teamType.get(m.team_id) ?? "autre"])
   );
 
   const items: ItemRow[] = [];
