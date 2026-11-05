@@ -1,5 +1,6 @@
 "use client";
 
+import "./landing.css";
 import { ScrollProgressBar } from "./motion";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
@@ -7,7 +8,7 @@ import { BrigadeSection } from "./BrigadeSection";
 import { FiveMinutesSection } from "./FiveMinutesSection";
 import { SiteSection } from "./SiteSection";
 import { AnalysisSection } from "./AnalysisSection";
-import { CaseStudyBand } from "@/components/marketing/CaseStudyBand";
+import { ProofSection } from "./ProofSection";
 import { PlansSection } from "./PlansSection";
 import { FaqSection } from "./FaqSection";
 import { FinalCtaSection } from "./FinalCtaSection";
@@ -21,10 +22,12 @@ import { Footer } from "./Footer";
 // pilote) → l'analyse gratuite → le cas Kraainem → tarifs par forfait →
 // questions → appel final. La méthode en trois étapes, la visite guidée et
 // « Prêt en quatre étapes » sont retirées : la maquette les remplace.
+// Style (2026-11-05, Mehdi) : celui de la maquette validée, photos libres de
+// droits (Unsplash) et verre dépoli — `landing.css`, classes « bx- ».
 // Contenu statique (pas de fetch) ; mockups = établissements IMAGINAIRES.
 export function RestaurateursLanding() {
   return (
-    <div className="bg-paper font-landing">
+    <div className="bx bg-paper font-landing">
       <ScrollProgressBar />
       <Header />
       <Hero />
@@ -32,7 +35,7 @@ export function RestaurateursLanding() {
       <FiveMinutesSection />
       <SiteSection />
       <AnalysisSection />
-      <CaseStudyBand />
+      <ProofSection />
       <PlansSection />
       <FaqSection />
       <FinalCtaSection />

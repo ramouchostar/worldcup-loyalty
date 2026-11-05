@@ -1,109 +1,159 @@
 "use client";
 
-import { Check } from "lucide-react";
-import { Reveal } from "./motion";
-import { Portrait } from "./Portrait";
+import { useState } from "react";
+import type { AssistantId } from "@/lib/agents/types";
+import { IPhone, PHOTOS } from "./IPhone";
 import { assistant } from "./brigade";
 
 // « Votre part du travail ? 5 minutes par jour. » (Brigade 17, maquette du
-// 2026-11-04) : une carte d'idée telle que la montre l'écran « Idées du jour »
-// de la console (ADR 0089 §2 et §5 : trois lignes quoi · pour qui · combien,
-// une estimation en fourchette avec sa base, Oui / Non / Plus tard). Données
-// d'illustration, marquées « exemple ». Jamais une promesse de gain (ADR 0064).
-
+// 2026-11-04), au style de la maquette : photo de cuisine, étapes vitrées, et un
+// iPhone à essayer qui rejoue l'écran « Idées du jour » (ADR 0089 §2 : Oui / Non,
+// trois idées par jour au plus). Données d'illustration, marquées « exemple ».
 const STEPS = [
-  { n: "1", title: "Une idée arrive sur le téléphone", desc: "Pas d'ordinateur, rien à installer." },
-  { n: "2", title: "Trois lignes à lire", desc: "Ce qu'on fait, pour qui, combien ça coûte." },
-  { n: "3", title: "Oui, Non ou Plus tard", desc: "Oui, c'est parti. Non, rien ne se passe, et la brigade retient pourquoi." },
+  { n: "1", title: "Une idée arrive sur votre téléphone", desc: "Pas d'ordinateur, rien à installer." },
+  { n: "2", title: "Vous lisez 3 lignes", desc: "Ce qu'on fait, pour qui, combien ça coûte." },
+  { n: "3", title: "Vous répondez oui ou non", desc: "Oui, c'est parti. Non, rien ne se passe, et la brigade retient pourquoi." },
 ];
 
-const PROMISES = [
-  "Rien ne part sans votre accord",
-  "Aucun euro dépensé sans votre accord",
-  "Trois idées par jour au plus",
+const PROMISES = ["Rien ne part sans votre accord", "Aucun euro dépensé sans votre accord", "Trois idées par jour au plus"];
+
+const IDEAS: { id: AssistantId; text: string; meta: string; ok: string }[] = [
+  { id: "hugo", text: "340 clients ne sont pas revenus depuis 3 semaines. Je leur offre une boisson mardi soir ?", meta: "Coût maximum : 40 € · exemple", ok: "Hugo envoie mardi à 16 h" },
+  { id: "emma", text: "Pub « Family Bucket » à 3 km, 14 € par jour pendant 2 semaines.", meta: "8 000 à 12 000 personnes touchées · exemple", ok: "Emma prépare la pub" },
+  { id: "louis", text: "Avis 2 étoiles : « frites froides ». Ma réponse est prête, je l'envoie ?", meta: "Vous pouvez la lire avant", ok: "Louis envoie la réponse" },
 ];
 
-export function FiveMinutesSection() {
-  const hugo = assistant("hugo");
+function IdeasDemo() {
+  const [i, setI] = useState(0);
+  const [done, setDone] = useState<boolean[]>([]);
+  const [leaving, setLeaving] = useState(false);
+
+  const answer = (yes: boolean) => {
+    const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setLeaving(true);
+    setTimeout(
+      () => {
+        setDone((d) => [...d, yes]);
+        setI((n) => n + 1);
+        setLeaving(false);
+      },
+      reduce ? 0 : 300,
+    );
+  };
+
+  const idea = IDEAS[i];
+  const a = idea ? assistant(idea.id) : null;
   return (
-    <section id="cinq-minutes" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-24 scroll-mt-16">
-      <div className="grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-16 items-center">
+    <div className="bx-scr-in" aria-live="polite">
+      <div className="bx-app-head">
         <div>
-          <Reveal>
-            <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Chaque matin</p>
-            <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[50px] leading-[1.15] tracking-[-0.02em] font-bold text-ink text-pretty">
-              Votre part du travail ? 5 minutes par jour.
-            </h2>
-            <p className="font-landing text-[17px] leading-[1.65] text-ink-muted mt-4 mb-0 max-w-[560px] text-pretty">
-              La brigade prépare tout. Vous lisez, vous répondez, vous retournez en cuisine.
-            </p>
-          </Reveal>
-
-          <ol className="mt-9 space-y-5 list-none p-0">
-            {STEPS.map((s, i) => (
-              <Reveal key={s.n} as="li" delay={i * 90}>
-                <div className="flex gap-4">
-                  <span className="grid place-items-center w-9 h-9 rounded-full bg-ink text-moss-light font-display text-[15px] font-bold shrink-0">
-                    {s.n}
-                  </span>
-                  <div>
-                    <p className="text-[17px] font-semibold text-ink m-0">{s.title}</p>
-                    <p className="text-[15px] text-ink-muted m-0 mt-0.5">{s.desc}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </ol>
-
-          <Reveal delay={300}>
-            <ul className="mt-8 flex flex-wrap gap-2.5 list-none p-0">
-              {PROMISES.map((p) => (
-                <li key={p} className="inline-flex items-center gap-1.5 bg-moss-tint text-ink text-[13.5px] font-semibold rounded-full px-3.5 py-1.5">
-                  <Check className="w-4 h-4 text-moss-dark" strokeWidth={2.6} aria-hidden />
-                  {p}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
+          <small>Mardi 12 novembre</small>
+          <b>Idées du jour</b>
         </div>
-
-        <Reveal delay={120} y={24}>
-          <div className="relative max-w-[440px] mx-auto">
-            <div className="absolute -inset-5 rounded-[28px] bg-gradient-to-br from-moss-dark via-moss to-moss-light opacity-90" aria-hidden />
-            <div className="relative bg-white rounded-2xl shadow-[0_24px_60px_rgba(10,10,10,0.2)] p-5 space-y-3.5">
-              <div className="flex items-center gap-2.5">
-                <Portrait id="hugo" size={40} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-ink m-0">{hugo.name}</p>
-                  <p className="text-[12px] text-ink-muted m-0 truncate">{hugo.post}</p>
-                </div>
-                <span className="text-[12px] text-ink-muted whitespace-nowrap">Avant mardi</span>
-              </div>
+        <span className="bx-pill">{IDEAS.length - i} à valider</span>
+      </div>
+      {done.map((yes, k) => (
+        <div key={k} className="bx-done bx-glass">
+          <i className={yes ? "" : "bx-refused"} aria-hidden>
+            {yes ? "✓" : "✕"}
+          </i>
+          {yes ? IDEAS[k].ok : "Refusé, rien ne part"}
+        </div>
+      ))}
+      {idea && a ? (
+        <>
+          <div className={`bx-card bx-glass ${leaving ? "bx-gone" : ""}`}>
+            <div className="bx-whom">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={a.photo} alt="" />
               <div>
-                <p className="text-[17px] font-semibold leading-snug text-ink m-0">Faire revenir 340 clients</p>
-                <p className="text-[15px] text-ink-body m-0 mt-1">On leur offre une boisson mardi ?</p>
-              </div>
-              <dl className="grid grid-cols-[76px_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-[13px] leading-snug m-0">
-                <dt className="text-ink-muted">Quoi</dt>
-                <dd className="text-ink-body m-0">Un message avec une boisson offerte mardi</dd>
-                <dt className="text-ink-muted">Pour qui</dt>
-                <dd className="text-ink-body m-0">Les clients pas revenus depuis un mois</dd>
-                <dt className="text-ink-muted">Combien</dt>
-                <dd className="text-ink-body m-0">Une boisson par client qui revient</dd>
-              </dl>
-              <div className="rounded-lg bg-moss-tint px-3 py-2.5">
-                <p className="text-[13px] font-semibold text-ink m-0">Entre 15 et 30 clients de retour</p>
-                <p className="text-[12px] text-ink-muted m-0">D&apos;après les relances déjà faites dans l&apos;établissement</p>
-              </div>
-              <div className="flex gap-2">
-                <span className="flex-1 grid place-items-center min-h-[44px] rounded-xl bg-ink text-white text-[15px] font-semibold">Oui</span>
-                <span className="grid place-items-center min-h-[44px] px-4 rounded-xl border border-paper-border text-[15px] font-medium text-ink">Non</span>
-                <span className="grid place-items-center min-h-[44px] px-3 text-[14px] font-medium text-ink-muted">Plus tard</span>
+                <b>{a.name}</b>
+                <span>{a.post}</span>
               </div>
             </div>
-            <p className="relative text-[12px] text-ink-faint text-center mt-9 mb-0">Exemple d&apos;idée, établissement imaginaire</p>
+            <p>{idea.text}</p>
+            <span className="bx-meta">{idea.meta}</span>
+            <div className="bx-yn">
+              <button type="button" className="bx-no" onClick={() => answer(false)} disabled={leaving}>
+                Non
+              </button>
+              <button type="button" className="bx-yes" onClick={() => answer(true)} disabled={leaving}>
+                Oui
+              </button>
+            </div>
           </div>
-        </Reveal>
+          {IDEAS.slice(i + 1).length > 0 && (
+            <small style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.6, padding: "6px 6px 0" }}>ENSUITE</small>
+          )}
+          {IDEAS.slice(i + 1).map((r) => {
+            const b = assistant(r.id);
+            return (
+              <div key={r.id} className="bx-done bx-glass" style={{ opacity: 0.85 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={b.photo} alt="" />
+                {b.name} · {b.post}
+              </div>
+            );
+          })}
+        </>
+      ) : (
+        <div className="bx-empty bx-glass">
+          <b>C&apos;est tout pour aujourd&apos;hui.</b>
+          <span style={{ fontSize: 14, opacity: 0.75 }}>3 décisions, environ 4 minutes.</span>
+          <button
+            type="button"
+            className="bx-linkbtn"
+            onClick={() => {
+              setI(0);
+              setDone([]);
+            }}
+          >
+            Revoir l&apos;exemple
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function FiveMinutesSection() {
+  return (
+    <section id="cinq-minutes" className="bx-sec bx-x scroll-mt-16" style={{ paddingTop: 0 }}>
+      <div className="bx-wrap">
+        <div className="bx-five">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="bx-bgimg" src={PHOTOS.cuisine} alt="" aria-hidden loading="lazy" />
+          <div>
+            <h2>Votre part du travail&#8239;? 5&nbsp;minutes par jour.</h2>
+            <p className="bx-sub" style={{ marginTop: 16 }}>
+              La brigade prépare tout. Vous lisez, vous répondez, vous retournez en cuisine.
+            </p>
+            <ol className="bx-steps">
+              {STEPS.map((s) => (
+                <li key={s.n} className="bx-step bx-glass-dark">
+                  <span className="bx-n">{s.n}</span>
+                  <div>
+                    <b>{s.title}</b>
+                    <span>{s.desc}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <ul className="bx-promise">
+              {PROMISES.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <IPhone width={310} wallpaper={{ background: "linear-gradient(160deg,#F4F7EA,#E6ECD3 45%,#D9E3BE)" }}>
+              <IdeasDemo />
+            </IPhone>
+            <p style={{ fontSize: 12.5, color: "rgba(239,241,228,0.75)", textAlign: "center", marginTop: 18 }}>
+              À essayer · exemple, établissement imaginaire
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );
