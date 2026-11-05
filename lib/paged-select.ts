@@ -10,7 +10,7 @@
 // incomplète, et signale explicitement le cas où le plafond de sécurité est
 // atteint plutôt que de rendre un total partiel présenté comme complet.
 
-type PageResult<T> = { data: T[] | null; error: { message: string } | null };
+export type PageResult<T> = { data: T[] | null; error: { message: string } | null };
 
 export async function fetchAllRows<T>(
   page: (from: number, to: number) => PromiseLike<PageResult<T>>,
@@ -28,4 +28,21 @@ export async function fetchAllRows<T>(
     if (batch.length < pageSize) return { rows, truncated: false };
   }
   return { rows, truncated: true };
+}
+
+/**
+ * Comme `fetchAllRows`, mais rend directement les lignes et REFUSE un résultat
+ * tronqué : une page de la console qui agrège (jour creux, dépense par membre,
+ * ventes par plat) ne doit jamais présenter un échantillon comme le tout. Si le
+ * plafond de sécurité est atteint, on échoue franchement avec le nom de la
+ * lecture, au lieu de calculer sur des chiffres partiels.
+ */
+export async function fetchAllRowsStrict<T>(
+  label: string,
+  page: (from: number, to: number) => PromiseLike<PageResult<T>>,
+  opts: { pageSize?: number; maxRows?: number } = {}
+): Promise<T[]> {
+  const { rows, truncated } = await fetchAllRows<T>(page, opts);
+  if (truncated) throw new Error(`${label} : plafond de lecture atteint (${rows.length} lignes), résultat refusé`);
+  return rows;
 }
