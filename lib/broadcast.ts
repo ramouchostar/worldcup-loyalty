@@ -12,7 +12,10 @@ const BROADCAST_MAX_PER_WEEK = 2;
 export type BroadcastTarget =
   | { kind: "all" }
   | { kind: "teams"; teamIds: string[] }
-  | { kind: "types"; types: TeamType[] };
+  | { kind: "types"; types: TeamType[] }
+  // Une liste de membres choisie par l'appelant (Hugo, Brigade 08) : toujours bornée aux membres de
+  // l'établissement, et soumise au même consentement et à la même enveloppe que les autres cibles.
+  | { kind: "users"; userIds: string[] };
 
 // ADR 0039 — nature du message, qui décide de sa base légale et de son public.
 //   service : information liée au programme auquel le membre a adhéré
@@ -21,7 +24,13 @@ export type BroadcastTarget =
 //   promo   : offre commerciale → consentement marketing exigé.
 export type BroadcastNature = "service" | "promo";
 
-export type BroadcastResult = { targeted: number; sent: number; skipped: number };
+export type BroadcastResult = {
+  targeted: number;
+  sent: number;
+  skipped: number;
+  // Qui l'a reçu : rendu seulement pour une cible `users`, afin que l'appelant puisse mesurer son envoi.
+  sentTo?: { userId: string; channel: "push" | "whatsapp" | "in_app" }[];
+};
 
 type Admin = ReturnType<typeof createAdminClient>;
 type Membre = { id: string; phone: string | null };
@@ -52,6 +61,22 @@ async function resolveAudience(
   restaurantId: string,
   target: BroadcastTarget
 ): Promise<Membre[]> {
+  if (target.kind === "users") {
+    // Par lots : une liste de plusieurs milliers d'identifiants dépasserait la longueur d'URL de PostgREST.
+    const out: Membre[] = [];
+    for (let i = 0; i < target.userIds.length; i += 200) {
+      const { data } = await admin
+        .from("memberships")
+        .select("user_id, profiles!inner(phone)")
+        .eq("restaurant_id", restaurantId)
+        .in("user_id", target.userIds.slice(i, i + 200));
+      for (const m of (data ?? []) as unknown as { user_id: string; profiles: { phone: string | null } }[]) {
+        out.push({ id: m.user_id, phone: m.profiles.phone });
+      }
+    }
+    return out;
+  }
+
   let query = admin
     .from("memberships")
     .select("user_id, profiles!inner(phone)")
@@ -215,6 +240,7 @@ export async function sendBroadcast(
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   let sent = 0;
   let skipped = 0;
+  const sentTo: { userId: string; channel: "push" | "whatsapp" | "in_app" }[] = [];
 
   // Deux enveloppes distinctes (ADR 0039 §3) : une promo ne doit pas consommer
   // le droit d'informer, et une information de service ne doit pas ouvrir un
@@ -262,7 +288,8 @@ export async function sendBroadcast(
       await admin.from("notification_log").insert({ ...ligne, trigger_type: "admin_broadcast" });
     }
     sent++;
+    sentTo.push({ userId: m.id, channel });
   }
 
-  return { targeted: members.length, sent, skipped };
+  return { targeted: members.length, sent, skipped, ...(target.kind === "users" ? { sentTo } : {}) };
 }

@@ -67,6 +67,8 @@ export const MESSAGES: MessageDef[] = [
   { key: "tier_approaching", label: "Palier d'équipe proche", audience: "member", kind: "notification", when: "Équipe à moins de 10 % du palier", channels: "Push, WhatsApp, in-app" },
   { key: "birthday", label: "Anniversaire", audience: "member", kind: "notification", when: "Le jour J", channels: "Push, WhatsApp, in-app" },
   { key: "winback", label: "Réactivation", audience: "member", kind: "notification", when: "Silence ≥ 2× son rythme", channels: "Push, WhatsApp, in-app" },
+  // Brigade 08 — Hugo : envoi validé par le gérant, 10 % de témoins (journal `message_sends`, jamais `notification_log`).
+  { key: "hugo_winback", label: "Réactivation proposée par Hugo", audience: "member", kind: "notification", when: "Validée par le gérant · 21 à 90 jours sans ticket · 10 % de témoins", channels: "Push, WhatsApp, in-app" },
   { key: "action_postpone_reminder", label: "Action reportée", audience: "member", kind: "notification", when: "7 j après un « plus tard »", channels: "Push, WhatsApp, in-app" },
   { key: "admin_service", label: "Annonce — information", audience: "member", kind: "notification", when: "Composée par le restaurateur", channels: "Push, WhatsApp, in-app" },
   { key: "admin_broadcast", label: "Annonce — offre", audience: "member", kind: "notification", when: "Composée par le restaurateur", channels: "Push, WhatsApp, in-app" },
