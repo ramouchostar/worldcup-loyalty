@@ -103,7 +103,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   {
     id: "emma",
     job: "Agence pub Facebook et Instagram",
-    post: "s'occupe de la pub",
+    post: "lance les publicités en ligne",
     from: "gratuit",
     avg: 400,
     unit: "mois",
@@ -138,7 +138,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   },
   {
     id: "nina",
-    job: "Site internet qui fait commander",
+    job: "Site internet qui donne envie de commander",
     post: "crée votre site",
     from: "pro",
     avg: 700,
@@ -158,7 +158,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   {
     id: "max",
     job: "Référencement local sur Google",
-    post: "vous fait trouver",
+    post: "améliore votre visibilité",
     from: "pro",
     avg: 500,
     unit: "mois",

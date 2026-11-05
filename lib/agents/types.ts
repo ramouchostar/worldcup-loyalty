@@ -28,10 +28,10 @@ export const ASSISTANTS: Record<AssistantId, Assistant> = {
   lea: { id: "lea", name: "Léa", post: "Inscrit les clients et gère les cadeaux", plan: "gratuit", photo: photo("lea") },
   hugo: { id: "hugo", name: "Hugo", post: "Relance les clients", plan: "gratuit", photo: photo("hugo") },
   chloe: { id: "chloe", name: "Chloé", post: "Suit les chiffres", plan: "gratuit", photo: photo("chloe") },
-  emma: { id: "emma", name: "Emma", post: "S'occupe de la pub dans le quartier", plan: "gratuit", photo: photo("emma") },
+  emma: { id: "emma", name: "Emma", post: "Lance et gère les publicités en ligne", plan: "gratuit", photo: photo("emma") },
   louis: { id: "louis", name: "Louis", post: "Répond aux avis Google", plan: "croissance", photo: photo("louis") },
-  nina: { id: "nina", name: "Nina", post: "Crée le site qui fait commander", plan: "pro", photo: photo("nina") },
-  max: { id: "max", name: "Max", post: "Fait trouver l'établissement sur Google", plan: "pro", photo: photo("max") },
+  nina: { id: "nina", name: "Nina", post: "Crée un site qui donne envie de commander", plan: "pro", photo: photo("nina") },
+  max: { id: "max", name: "Max", post: "Améliore votre visibilité sur Google", plan: "pro", photo: photo("max") },
 };
 
 /**

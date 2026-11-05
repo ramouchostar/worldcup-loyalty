@@ -21,24 +21,24 @@ export function Footer() {
           {COLUMNS.map((c) => (
             <div key={c.title}>
               <p className="text-night-text text-[13px] font-bold mb-2">{c.title}</p>
-              <ul className="space-y-1.5">
+              <ul className="md:space-y-2">
                 {c.title === "Analyse gratuite" && (
                   <li>
-                    <Link href="/audit-gratuit" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
+                    <Link href="/audit-gratuit" className="inline-flex items-center min-h-[44px] md:min-h-0 text-night-text text-[13px] hover:text-white transition-colors">
                       Analyser mon restaurant
                     </Link>
                   </li>
                 )}
                 {c.title === "Analyse gratuite" && (
                   <li>
-                    <Link href="/blog" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
+                    <Link href="/blog" className="inline-flex items-center min-h-[44px] md:min-h-0 text-night-text text-[13px] hover:text-white transition-colors">
                       Le blog
                     </Link>
                   </li>
                 )}
                 {c.pages.map((m) => (
                   <li key={m.slug}>
-                    <Link href={`/${m.slug}`} className="text-night-faint text-[13px] hover:text-night-text transition-colors">
+                    <Link href={`/${m.slug}`} className="inline-flex items-center min-h-[44px] md:min-h-0 text-night-text text-[13px] hover:text-white transition-colors">
                       {m.navLabel}
                     </Link>
                   </li>
@@ -50,7 +50,7 @@ export function Footer() {
         <div className="flex items-center justify-between gap-6 flex-wrap">
           <BoosteatsLogo tone="light" className="h-7 w-auto" />
           <div className="flex gap-6">
-            <Link href="/" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
+            <Link href="/" className="inline-flex items-center min-h-[44px] md:min-h-0 text-night-text text-[13px] hover:text-white transition-colors">
               Accueil
             </Link>
             <TrackedLink
@@ -58,23 +58,23 @@ export function Footer() {
               ctaLocation="footer"
               audience="restaurateur"
               href="/become-a-partner"
-              className="text-night-faint text-[13px] hover:text-night-text transition-colors"
+              className="inline-flex items-center min-h-[44px] md:min-h-0 text-night-text text-[13px] hover:text-white transition-colors"
             >
               Devenir partenaire
             </TrackedLink>
-            <Link href="/login?as=resto" className="text-night-faint text-[13px] hover:text-night-text transition-colors">
+            <Link href="/login?as=resto" className="inline-flex items-center min-h-[44px] md:min-h-0 text-night-text text-[13px] hover:text-white transition-colors">
               Connexion
             </Link>
           </div>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 pt-4 border-t border-night-line">
-          <Link href="/terms" className="text-night-faint text-xs hover:text-night-text transition-colors">
+          <Link href="/terms" className="text-night-text text-[13px] hover:text-white transition-colors">
             Conditions générales
           </Link>
-          <Link href="/privacy" className="text-night-faint text-xs hover:text-night-text transition-colors">
+          <Link href="/privacy" className="text-night-text text-[13px] hover:text-white transition-colors">
             Politique de confidentialité
           </Link>
-          <a href="mailto:contact@boosteats.be" className="text-night-faint text-xs hover:text-night-text transition-colors">
+          <a href="mailto:contact@boosteats.be" className="text-night-text text-[13px] hover:text-white transition-colors">
             contact@boosteats.be
           </a>
         </div>

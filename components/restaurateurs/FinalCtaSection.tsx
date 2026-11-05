@@ -22,7 +22,7 @@ export function FinalCtaSection() {
           </div>
           <p className="bx-links">
             <TrackedLink ctaId="devenir_partenaire" ctaLocation="cta_final" audience="restaurateur" href="/become-a-partner">
-              Ou commencer gratuitement →
+              Ou commencer gratuitement
             </TrackedLink>
           </p>
           <p className="bx-links">
@@ -33,7 +33,7 @@ export function FinalCtaSection() {
             ou <a href="mailto:contact@boosteats.be">contact@boosteats.be</a>.
           </p>
         </div>
-        <p className="bx-credits">Photos : Unsplash (licence libre). Personnages fictifs, créés pour Boosteats.</p>
+        <p className="bx-credits">Photos : Belchicken, Unsplash (licence libre) et images d&apos;illustration. Personnages fictifs, créés pour Boosteats.</p>
       </div>
     </section>
   );

@@ -6,7 +6,8 @@ import { HeroPhone } from "./HeroPhone";
 import { assistant } from "./brigade";
 
 // Héros (Brigade 17, maquette validée le 2026-11-04, ADR 0089 ; style de la
-// maquette : photo du restaurateur, iPhone vitré, notifications de la brigade).
+// maquette ; design de la charte anti-slop du 2026-11-05 : cartes pleines,
+// plus de verre dépoli ni de mot du titre en couleur).
 //
 // Titre (2026-11-05, Mehdi) : structure promesse → comment → quoi → qui, puis
 // l'analyse gratuite comme premier pas. « agents IA » autorisé ICI seulement
@@ -25,16 +26,16 @@ export function Hero() {
       <div className="bx-wrap bx-hero-grid">
         <div className="bx-hero-copy">
           <span className="bx-kicker">
-            <b>Nouveau</b> Votre brigade marketing, 7 j/7
+            <b>Nouveau</b> votre brigade marketing, 7 j/7
           </span>
           {/* Promesse */}
           <h1>
-            Faites grimper votre <em>chiffre d&apos;affaires</em>.
+            Faites grimper votre chiffre d&apos;affaires.
           </h1>
           {/* Comment + quoi (raccourci le 2026-11-05 : une phrase, puis les experts) */}
           <p className="bx-sub">
-            <b style={{ color: "var(--bx-ink)" }}>7 agents IA</b> analysent vos ventes et vos clients, et vous proposent
-            chaque jour les actions qui font vendre. <b style={{ color: "var(--bx-ink)" }}>De vrais experts vous accompagnent.</b>
+            7 agents IA analysent vos ventes et vos clients, et vous proposent
+            chaque jour les actions qui font vendre. De vrais experts vous accompagnent.
           </p>
           {/* Qui */}
           <p className="bx-who">Pour les restaurateurs ambitieux, prêts à passer un cap.</p>
@@ -66,7 +67,7 @@ export function Hero() {
         <div className="bx-stage">
           <div className="bx-photo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={PHOTOS.sallePleine} alt="Une salle de restaurant pleine, le soir" fetchPriority="high" />
+            <img src={PHOTOS.comptoir} alt="Le patron sert en riant deux habitués au comptoir de son restaurant" fetchPriority="high" />
           </div>
           <div className="bx-chips" aria-hidden>
             <div className="bx-chip bx-glass">

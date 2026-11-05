@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { Location } from "@/components/icons";
 import { track } from "@/lib/analytics";
 
 interface Suggestion {
@@ -83,7 +83,7 @@ export function RestaurantSearchBar({ location }: { location: string }) {
       className="relative w-full flex flex-col sm:flex-row items-stretch gap-2"
     >
       <div className="relative flex-1">
-        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint pointer-events-none" aria-hidden="true" />
+        <Location size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none" />
         <label htmlFor={`recherche-${location}`} className="sr-only">
           Chercher votre restaurant
         </label>
@@ -109,13 +109,13 @@ export function RestaurantSearchBar({ location }: { location: string }) {
           role="combobox"
           aria-expanded={open && items.length > 0}
           aria-controls={`suggestions-${location}`}
-          className="w-full h-full min-h-[52px] text-[16px] font-medium text-ink pl-12 pr-4 rounded-xl bg-paper border border-transparent focus:border-moss outline-none"
+          className="w-full h-full min-h-[52px] text-[16px] font-medium text-ink pl-12 pr-4 rounded-lg bg-white border border-[#8A8F88] focus:border-boost-olive focus:ring-2 focus:ring-boost-olive/25 outline-none"
         />
         {open && items.length > 0 && (
           <ul
             id={`suggestions-${location}`}
             role="listbox"
-            className="absolute z-30 left-0 right-0 top-[calc(100%+6px)] bg-white border border-paper-border rounded-xl shadow-[0_14px_34px_rgba(10,10,10,0.14)] overflow-hidden text-left"
+            className="absolute z-30 left-0 right-0 top-[calc(100%+6px)] bg-white border border-paper-border rounded-lg shadow-[0_8px_24px_rgba(12,21,9,0.1)] overflow-hidden text-left"
           >
             {items.map((s, i) => (
               <li key={s.placeId} role="option" aria-selected={i === active}>
@@ -124,9 +124,9 @@ export function RestaurantSearchBar({ location }: { location: string }) {
                   onMouseDown={(e) => e.preventDefault()}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => choose(s)}
-                  className={`w-full text-left grid grid-cols-[16px_1fr] gap-2.5 px-4 py-3 border-b border-paper-subtle ${i === active ? "bg-moss-tint" : ""}`}
+                  className={`w-full text-left grid grid-cols-[16px_1fr] gap-2.5 px-4 py-3 border-b border-paper-subtle ${i === active ? "bg-boost-cream" : ""}`}
                 >
-                  <MapPin className="w-4 h-4 text-moss-dark mt-0.5" aria-hidden="true" />
+                  <Location size={16} className="text-boost-olive-dark mt-0.5" />
                   <span>
                     <b className="block text-ink text-sm font-semibold">{s.name}</b>
                     <span className="text-[13px] text-ink-muted">{s.address}</span>
@@ -134,13 +134,13 @@ export function RestaurantSearchBar({ location }: { location: string }) {
                 </button>
               </li>
             ))}
-            <li className="px-4 py-2 text-[11.5px] text-ink-faint bg-paper">Recherche limitée aux 19 communes de Bruxelles</li>
+            <li className="px-4 py-2 text-[13px] text-ink-muted bg-paper">Recherche limitée aux 19 communes de Bruxelles</li>
           </ul>
         )}
       </div>
       <button
         type="submit"
-        className="shrink-0 bg-moss hover:bg-moss-dark text-white text-[15px] font-bold px-7 py-3.5 rounded-xl transition-colors"
+        className="shrink-0 bg-boost-olive hover:bg-boost-olive-dark active:bg-boost-night text-white text-[17px] font-semibold px-6 min-h-[52px] rounded-lg transition-colors disabled:opacity-60"
       >
         Audit gratuit
       </button>

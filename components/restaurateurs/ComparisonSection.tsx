@@ -15,6 +15,7 @@ import {
   isIncluded,
 } from "@/lib/comparatif";
 import { assistant } from "./brigade";
+import { Check } from "@/components/icons";
 
 // « Sept abonnements ailleurs. Un seul forfait chez nous. » (maquette validée
 // par Mehdi le 2026-11-05, https://claude.ai/artifact/Pkw8vEun7ryLSpZUwUjLyw).
@@ -32,7 +33,7 @@ export function ComparisonSection() {
       <div className="bx-wrap bx-vs">
         <div className="bx-vs-head">
           <span className="bx-kicker">
-            <b>Le calcul</b> Ce que vous payeriez ailleurs
+            <b>Le calcul</b> ce que vous payeriez ailleurs
           </span>
           <h2 id="comparatif-titre">Sept abonnements ailleurs. Un seul forfait chez nous.</h2>
           <p className="bx-sub">
@@ -45,7 +46,7 @@ export function ComparisonSection() {
           <span>Comparer avec le forfait</span>
           {PLANS.map((p) => (
             <button key={p} type="button" aria-pressed={p === plan} onClick={() => setPlan(p)} className={p === plan ? "bx-on" : ""}>
-              {PLAN_NAME[p]} · {euros(PLAN_PRICE_EUR[p])}
+              {PLAN_NAME[p]}, {euros(PLAN_PRICE_EUR[p])}
             </button>
           ))}
         </div>
@@ -69,7 +70,7 @@ export function ComparisonSection() {
                   <div>
                     <h3>{r.job}</h3>
                     <span>
-                      {a.name} · {r.post}
+                      {a.name}, {r.post}
                       {r.pilot && <em className="bx-vs-pilot">en pilote</em>}
                     </span>
                   </div>
@@ -80,11 +81,11 @@ export function ComparisonSection() {
                       <li key={b.name}>
                         {b.article ? (
                           <Link href={`/blog/${b.article}`} title={`Comparer ${b.name} et Boosteats`}>
-                            <b>{b.name}</b> · {b.price}
+                            <b>{b.name}</b> {b.price}
                           </Link>
                         ) : (
                           <span>
-                            <b>{b.name}</b> · {b.price}
+                            <b>{b.name}</b> {b.price}
                           </span>
                         )}
                       </li>
@@ -100,9 +101,7 @@ export function ComparisonSection() {
                   {inc ? (
                     <>
                       <span className="bx-vs-check" aria-hidden>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6 9 17l-5-5" />
-                        </svg>
+                        <Check size={18} />
                       </span>
                       <span>
                         <b>Inclus</b>

@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Calculator, ChevronDown, Gauge, MapPin, type LucideIcon } from "lucide-react";
+import { ArrowDown, Calculator, Gauge, Location, type IconProps } from "@/components/icons";
 import { KRAAINEM_CASE as C, euros } from "@/lib/case-studies";
 import type { Plan } from "@/lib/entitlements";
 import { Portrait } from "./Portrait";
 import { BRIGADE, PLAN_LABEL } from "./brigade";
+import { PHOTOS } from "./IPhone";
 
 // Menu « La brigade » de l'en-tête (ex-« Notre offre » du 2026-11-03, sur le
 // modèle d'owner.com). Brigade 17 (maquette du 2026-11-04) : les fonctions sont
@@ -15,11 +16,11 @@ import { BRIGADE, PLAN_LABEL } from "./brigade";
 // poste de personne restent sous « Et aussi ». À droite, le cas Kraainem
 // (accord du propriétaire) : jamais « grâce à nous ».
 
-type Tool = { label: string; href: string; Icon: LucideIcon };
+type Tool = { label: string; href: string; Icon: (p: IconProps) => React.ReactElement };
 
 const TOOLS: Tool[] = [
   { label: "Analyse gratuite", href: "/audit-gratuit", Icon: Gauge },
-  { label: "Fiche Google", href: "/fiche-google-restaurant", Icon: MapPin },
+  { label: "Fiche Google", href: "/fiche-google-restaurant", Icon: Location },
   { label: "Coût de chaque plat", href: "/food-cost-restaurant", Icon: Calculator },
 ];
 
@@ -29,6 +30,9 @@ export function OfferMenu() {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Moment de l'ouverture au survol : un clic qui suit de près ne doit pas
+  // refermer le menu que la souris vient d'ouvrir.
+  const hoveredAt = useRef(0);
 
   useEffect(() => {
     if (!open) return;
@@ -48,6 +52,7 @@ export function OfferMenu() {
   // descendre du bouton au panneau).
   const enter = () => {
     clearTimeout(closeTimer.current);
+    if (!open) hoveredAt.current = Date.now();
     setOpen(true);
   };
   const leave = () => {
@@ -61,35 +66,35 @@ export function OfferMenu() {
         type="button"
         aria-expanded={open}
         aria-controls="menu-offre"
-        onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1 text-[13.5px] font-medium transition-colors ${open ? "text-white" : "text-night-text hover:text-white"}`}
+        onClick={() => setOpen((o) => (o && Date.now() - hoveredAt.current < 600 ? true : !o))}
+        className={`flex items-center gap-1 text-[13px] xl:text-[15px] font-medium whitespace-nowrap transition-colors ${open ? "text-white" : "text-night-text hover:text-white"}`}
       >
         La brigade
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden />
+        <ArrowDown size={16} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       <div
         id="menu-offre"
-        className={`absolute left-0 top-full pt-4 -translate-x-[20%] transition-[opacity,transform] duration-200 ${
-          open ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-1 pointer-events-none"
+        className={`fixed left-1/2 top-16 -translate-x-1/2 pt-2 transition-[opacity,transform,visibility] duration-200 ${
+          open ? "visible opacity-100 translate-y-0 pointer-events-auto" : "invisible opacity-0 -translate-y-1 pointer-events-none"
         }`}
       >
-        <div className="w-[860px] bg-white rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.25)] border border-paper-border p-7 grid grid-cols-[1fr_1fr_250px] gap-8">
+        <div className="w-[min(880px,calc(100vw-32px))] bg-white rounded-lg shadow-[0_8px_24px_rgba(12,21,9,0.1)] border border-paper-border p-8 grid grid-cols-[1fr_1fr] lg:grid-cols-[1fr_1fr_256px] gap-8">
           <AssistantGroup plan="gratuit" onPick={close} />
           <div className="space-y-7 border-r border-paper-border pr-8">
             <AssistantGroup plan="croissance" onPick={close} />
             <AssistantGroup plan="pro" onPick={close} />
             <div>
-              <p className="text-[13px] font-medium text-ink-faint m-0 mb-2.5">Et aussi</p>
+              <p className="text-[13px] font-medium text-ink-muted m-0 mb-2">Et aussi</p>
               <ul className="space-y-0.5 list-none p-0 m-0">
                 {TOOLS.map(({ label, href, Icon }) => (
                   <li key={label}>
                     <Link
                       href={href}
                       onClick={close}
-                      className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-lg text-[14px] font-semibold text-ink hover:bg-paper-subtle transition-colors"
+                      className="flex items-center gap-3 -mx-2 px-2 py-2 rounded-lg text-[15px] font-semibold text-ink hover:bg-paper-subtle transition-colors"
                     >
-                      <Icon className="w-[18px] h-[18px] text-ink-muted shrink-0" strokeWidth={1.75} aria-hidden />
+                      <Icon size={20} className="text-boost-olive-dark shrink-0" />
                       {label}
                     </Link>
                   </li>
@@ -99,37 +104,28 @@ export function OfferMenu() {
             <Link
               href="/#plans"
               onClick={close}
-              className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink hover:text-moss-dark"
+              className="inline-flex items-center text-[15px] font-semibold text-boost-olive-dark underline decoration-transparent underline-offset-[3px] hover:decoration-current"
             >
-              Voir les tarifs <ArrowRight className="w-4 h-4" aria-hidden />
+              Voir les tarifs
             </Link>
           </div>
           <Link
             href="/#cas-client"
             onClick={close}
-            className="group relative rounded-2xl bg-ink overflow-hidden p-5 flex flex-col justify-end min-h-[260px]"
+            className="group relative rounded-lg bg-boost-night overflow-hidden hidden lg:flex flex-col"
           >
-            <div
-              className="absolute inset-0 opacity-90"
-              aria-hidden
-              style={{ background: "radial-gradient(circle at 80% 10%, rgba(162,197,35,0.45), transparent 60%)" }}
-            />
-            <div className="absolute top-5 left-5 right-5 flex items-end gap-2 h-[90px]" aria-hidden>
-              {[38, 58, 80, 100].map((h, i) => (
-                <span
-                  key={h}
-                  className="flex-1 rounded-t-md"
-                  style={{ height: `${h}%`, background: i === 3 ? "#A2C523" : `rgba(162,197,35,${0.25 + i * 0.18})` }}
-                />
-              ))}
-            </div>
-            <p className="relative text-[11.5px] font-bold uppercase tracking-[0.1em] text-moss-light m-0">Cas client</p>
-            <p className="relative font-display text-[18px] leading-[1.25] font-bold text-white mt-2 mb-0">
+            {/* Vraie photo Belchicken (la même que le cas client de la landing). */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={PHOTOS.belchicken} alt="" className="w-full h-[136px] object-cover" loading="lazy" />
+            <div className="p-6 pt-4">
+            <p className="relative text-[13px] font-semibold text-boost-light m-0">Cas client</p>
+            <p className="relative text-[20px] leading-[1.25] font-semibold text-white mt-2 mb-0">
               {C.restaurant} : de {euros(C.before)} à {euros(C.after)} par mois
             </p>
-            <span className="relative inline-flex items-center gap-1 text-[13px] font-semibold text-moss-light mt-3 group-hover:text-white">
-              Lire le cas <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+            <span className="relative inline-flex items-center text-[15px] font-semibold text-boost-light mt-4 underline decoration-transparent underline-offset-[3px] group-hover:decoration-current">
+              Lire le cas
             </span>
+            </div>
           </Link>
         </div>
       </div>
@@ -140,7 +136,7 @@ export function OfferMenu() {
 function AssistantGroup({ plan, onPick }: { plan: Plan; onPick: () => void }) {
   return (
     <div>
-      <p className="text-[13px] font-medium text-ink-faint m-0 mb-2.5">
+      <p className="text-[13px] font-medium text-ink-muted m-0 mb-2">
         {plan === "gratuit" ? "Dès le forfait Gratuit" : `Avec ${PLAN_LABEL[plan]}`}
       </p>
       <ul className="space-y-0.5 list-none p-0 m-0">
@@ -153,13 +149,13 @@ function AssistantGroup({ plan, onPick }: { plan: Plan; onPick: () => void }) {
             >
               <Portrait id={a.id} size={34} />
               <span className="min-w-0">
-                <span className="flex items-center gap-2 text-[14.5px] font-semibold text-ink">
+                <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
                   {a.name}
                   {a.pilot && (
-                    <span className="text-[11px] font-semibold text-white bg-ink rounded-full px-2 py-0.5">Pilote</span>
+                    <span className="text-[13px] font-semibold text-white bg-ink rounded-md px-2 py-0.5">Pilote</span>
                   )}
                 </span>
-                <span className="block text-[12.5px] text-ink-muted leading-snug">{a.post}</span>
+                <span className="block text-[13px] text-ink-muted leading-snug">{a.post}</span>
               </span>
             </Link>
           </li>
