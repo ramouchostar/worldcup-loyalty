@@ -616,7 +616,7 @@ _Avoid_ : consigne, mémo.
 
 **Brigade** :
 Les sept **assistants** marketing de Boosteats qui préparent des **idées** pour un établissement ; le gérant les valide en cinq minutes par jour. Le nombre d'assistants dépend du forfait (ADR 0070).
-_Avoid_ : IA, robot, bot, agent (côté restaurateur — « agent » ne vit que dans le code : `lib/agents/`).
+_Avoid_ : IA, robot, bot, agent (côté restaurateur — « agent » ne vit que dans le code : `lib/agents/`) ; seule exception, le titre de la landing (`components/restaurateurs/Hero.tsx`) dit « 7 agents IA », décidé par Mehdi le 2026-11-05.
 
 **Assistant** :
 Un personnage de la brigade, un poste chacun : **Léa** inscrit les clients et gère les cadeaux · **Hugo** relance les clients · **Chloé** suit les chiffres · **Emma** s'occupe de la pub dans le quartier (Gratuit) · **Louis** répond aux avis Google (Croissance) · **Nina** crée le site qui fait commander · **Max** fait trouver l'établissement sur Google (Pro). Jamais présenté comme une personne de l'équipe. Jamais vu par un membre.

@@ -1,65 +1,71 @@
 "use client";
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
+import type { AssistantId } from "@/lib/agents/types";
 import { Reveal } from "./motion";
+import { Portrait } from "./Portrait";
 import { whatsappUrl } from "@/lib/contact";
 
 // Plans, prix HTVA par établissement (remise à plat du 2026-11-02,
-// .claude/product-marketing.md) : Forfait gratuit (≤ 500 tickets/mois, le
-// client n'est jamais bloqué) · Croissance 150 €/mois sans engagement · Pro
-// 500 €/mois, 3 mois minimum. Seulement des fonctions LIVRÉES (ADR 0070) ; plus
-// de calcul « X € = N tickets » (décision du 2026-11-01). Les forfaits payants
-// se prennent en parlant avec nous (WhatsApp), pas par un paiement en ligne.
+// .claude/product-marketing.md) : Gratuit (≤ 500 tickets/mois, le client n'est
+// jamais bloqué) · Croissance 150 €/mois sans engagement · Pro 500 €/mois,
+// 3 mois minimum. Brigade 17 (maquette du 2026-11-04) : chaque forfait dit
+// quels assistants il met au travail (ADR 0089 §1). Nina et Max portent « en
+// pilote », Louis répond aux avis AVEC l'équipe (pas de publication
+// automatique) — ADR 0070, jamais une fonction non livrée au présent. Pas de
+// calcul « X € = N tickets » (décision du 2026-11-01). Les forfaits payants se
+// prennent en parlant avec nous (WhatsApp), pas par un paiement en ligne.
 
-const FREE_FEATURES = [
-  "Un programme de fidélité au nom et aux couleurs de l'établissement",
-  "Rien à brancher : le ticket de caisse suffit",
-  "Des cadeaux calculés sur ce qu'ils vous coûtent, au taux que vous choisissez",
-  "La liste de vos clients inscrits",
-  "Des messages à vos clients, et deux qui partent tout seuls (anniversaire, habitué qui décroche)",
-  "Parrainage par WhatsApp, QR et affiches prêts à imprimer",
-  "Votre chiffre du jour et le coût de chaque plat",
-  "Jusqu'à 500 tickets par mois",
+type Feature = { text: string; who?: AssistantId; pilot?: boolean };
+
+const FREE_FEATURES: Feature[] = [
+  { who: "lea", text: "Léa inscrit vos clients et gère les cadeaux" },
+  { who: "hugo", text: "Hugo relance vos clients" },
+  { who: "chloe", text: "Chloé suit votre chiffre du jour et le coût de chaque plat" },
+  { who: "emma", text: "Emma prépare une pub de quartier quand vous voulez (20 % de frais)" },
+  { text: "Rien à brancher : le ticket de caisse suffit" },
+  { text: "Des cadeaux calculés sur ce qu'ils vous coûtent, au taux que vous choisissez" },
+  { text: "Jusqu'à 500 tickets par mois" },
 ];
 
-const GROWTH_FEATURES = [
-  "Tickets illimités",
-  "Votre chiffre comparé jour par jour, et la part qui vient de vos clients inscrits",
-  "Les prévisions des jours à venir et les ventes par plat",
-  "Des messages programmés à l'avance",
-  "On répond à vos avis Google pour vous",
-  "Pub de quartier à 15 % de frais (au lieu de 20 %)",
+const GROWTH_FEATURES: Feature[] = [
+  { text: "Tickets illimités" },
+  { who: "louis", text: "Louis répond à vos avis Google, avec l'équipe" },
+  { who: "chloe", text: "Chloé suit vos ventes plat par plat et prévoit les jours à venir" },
+  { text: "Votre chiffre comparé jour par jour, et la part qui vient de vos clients inscrits" },
+  { text: "Des messages programmés à l'avance" },
+  { text: "Pub de quartier à 15 % de frais" },
 ];
 
-const PRO_FEATURES = [
-  "Votre site pensé pour Google, fait depuis votre carte (places pilotes)",
-  "Votre fiche Google tenue à jour, sur invitation",
-  "Un rapport chaque mois, et un point avec nous",
-  "Comparaison anonyme avec les restaurants du secteur",
-  "Tous vos établissements au même endroit",
-  "Pub de quartier à 5 % de frais",
+const PRO_FEATURES: Feature[] = [
+  { text: "Toute la brigade" },
+  { who: "nina", text: "Nina crée le site qui fait commander", pilot: true },
+  { who: "max", text: "Max fait trouver l'établissement sur Google", pilot: true },
+  { text: "Votre fiche Google tenue à jour, sur invitation" },
+  { text: "Un rapport chaque mois, et un point avec nous" },
+  { text: "Tous vos établissements au même endroit" },
+  { text: "Pub de quartier à 5 % de frais" },
 ];
-
 
 export function PlansSection() {
   return (
     <section id="plans" className="bg-paper-subtle py-20 sm:py-24 scroll-mt-16">
       <div className="max-w-[1200px] mx-auto px-5 sm:px-8">
         <Reveal>
-          <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Plans</p>
-          <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[680px] text-pretty">
-            Gratuit pour démarrer. Puis un prix simple, par établissement.
+          <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-moss-dark mb-3.5">▶ Tarifs</p>
+          <h2 className="font-display text-[34px] sm:text-[44px] lg:text-[54px] leading-[1.2] tracking-[-0.02em] font-bold text-ink max-w-[720px] text-pretty">
+            Commencez gratuitement. Agrandissez la brigade quand vous voulez.
           </h2>
         </Reveal>
 
         <div className="grid lg:grid-cols-3 gap-6 mt-10 items-stretch">
           <Reveal delay={80}>
             <PlanCard
-              name="Forfait gratuit"
+              name="Gratuit"
               price="0 €"
               priceNote="pour toujours"
               commission="Aucune carte bancaire"
-              pitch="Inscrire les clients et les faire revenir."
+              pitch="Quatre assistants pour inscrire les clients et les faire revenir."
               intro={null}
               features={FREE_FEATURES}
               highlighted
@@ -81,10 +87,10 @@ export function PlansSection() {
             <PlanCard
               name="Croissance"
               price="150 €"
-              priceNote="/mois"
+              priceNote="HTVA / mois"
               commission="Sans engagement."
               pitch="Pour suivre vos chiffres et ne plus laisser un avis sans réponse."
-              intro="Tout le forfait gratuit, plus :"
+              intro="Tout le Gratuit, plus :"
               features={GROWTH_FEATURES}
               cta={
                 <TrackedLink
@@ -104,10 +110,10 @@ export function PlansSection() {
             <PlanCard
               name="Pro"
               price="500 €"
-              priceNote="/mois"
+              priceNote="HTVA / mois"
               commission="3 mois minimum, puis au mois."
               pitch="Pour que le marketing soit pensé et fait à la place de l'établissement."
-              intro="Tout le plan Croissance, plus :"
+              intro="Tout Croissance, plus :"
               features={PRO_FEATURES}
               cta={
                 <TrackedLink
@@ -123,16 +129,6 @@ export function PlansSection() {
             />
           </Reveal>
         </div>
-
-        <Reveal delay={300}>
-          <div className="bg-white border-[1.5px] border-moss-tint2 rounded-xl px-6 py-5 mt-8 max-w-[760px] mx-auto">
-            <p className="font-display text-[15px] font-bold text-ink m-0 mb-1.5">Et le site de commande ?</p>
-            <p className="text-[14.5px] leading-relaxed text-ink-body m-0">
-              Il reste celui de l&apos;établissement, relié à sa caisse : Boosteats ne prend aucune commande et aucune
-              commission. On vérifie que le bouton « Commander » de votre fiche Google mène bien chez vous.
-            </p>
-          </div>
-        </Reveal>
 
         <Reveal delay={340}>
           <p className="text-[13px] text-ink-faint text-center max-w-[640px] mx-auto mt-8">
@@ -163,7 +159,7 @@ function PlanCard({
   commission: string;
   pitch: string;
   intro: string | null;
-  features: string[];
+  features: Feature[];
   cta: React.ReactNode;
   highlighted?: boolean;
 }) {
@@ -173,9 +169,7 @@ function PlanCard({
         highlighted ? "border-[1.5px] border-moss" : "border border-paper-border"
       }`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-display text-[22px] font-bold m-0">{name}</h3>
-      </div>
+      <h3 className="font-display text-[22px] font-bold m-0">{name}</h3>
       <p className="font-display text-3xl font-bold text-ink mt-2 mb-0">
         {price}
         <span className="text-sm font-normal text-ink-muted"> {priceNote}</span>
@@ -183,13 +177,25 @@ function PlanCard({
       <p className="text-[13px] font-semibold text-moss-dark mt-1.5 mb-0">{commission}</p>
       <p className="text-sm text-ink-muted mt-3 mb-5">{pitch}</p>
       {intro && <p className="text-[13px] font-semibold text-ink mb-3 mt-0">{intro}</p>}
-      <div className="flex flex-col gap-3 flex-1">
+      <ul className="flex flex-col gap-3 flex-1 list-none p-0 m-0">
         {features.map((f) => (
-          <p key={f} className="text-[14.5px] text-ink-body m-0">
-            <span className="font-mono text-moss">✓</span>&nbsp; {f}
-          </p>
+          <li key={f.text} className="flex items-start gap-2.5 text-[14.5px] text-ink-body">
+            {f.who ? (
+              <Portrait id={f.who} size={24} className="mt-px" />
+            ) : (
+              <span className="font-mono text-moss w-6 text-center shrink-0">✓</span>
+            )}
+            <span>
+              {f.text}
+              {f.pilot && (
+                <span className="ml-1.5 text-[11px] font-semibold text-white bg-ink rounded-full px-2 py-0.5 whitespace-nowrap">
+                  En pilote
+                </span>
+              )}
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
       {cta}
     </div>
   );

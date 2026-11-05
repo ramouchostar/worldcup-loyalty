@@ -11,8 +11,8 @@ import { SITE_ORIGIN } from "@/lib/site";
 // redirige ici en 308 (next.config.mjs) pour ne pas casser les liens existants.
 //
 // Redesign m55 (2026-08-08), refondu le 2026-09-26 sur le modèle
-// d'owner.com : peu de texte, un iPhone qui montre chaque fonctionnalité
-// (visite guidée au défilement, components/restaurateurs/FeatureTour.tsx).
+// d'owner.com : peu de texte, un iPhone qui montre le produit. Depuis le
+// 2026-11-05 (Brigade 17), la page présente la brigade (ADR 0089).
 // - Refonte de copie 2026-08-29, offre repositionnée 2026-09-29 (ADR 0074 :
 //   outil marketing, pas d'exploitation) : Gratuit (≤ 500 tickets/mois),
 //   Croissance 150 €/mois (2026-11-01), Pro 500 €/mois (copilote, Google, site de commande

@@ -1,100 +1,91 @@
 "use client";
 
-import { TrackedLink } from "@/components/analytics/TrackedLink";
-import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
-import { HeroPhoneMockup } from "./HeroPhoneMockup";
 import { RestaurantSearchBar } from "@/components/audit-gratuit/RestaurantSearchBar";
+import { PHOTOS } from "./IPhone";
+import { HeroPhone } from "./HeroPhone";
+import { assistant } from "./brigade";
 
-// Héros resserré (2026-09-26, sur le modèle d'owner.com) : le titre, une
-// phrase, puis la console dans un iPhone posé sur un panneau vert. Le bouton
-// principal flotte sur le bas du téléphone, comme la barre de recherche
-// d'Owner — il reste le premier geste de la page.
+// Héros (Brigade 17, maquette validée le 2026-11-04, ADR 0089 ; style de la
+// maquette : photo du restaurateur, iPhone vitré, notifications de la brigade).
 //
-// Titre (2026-09-26, demande du porteur) : on ne vend plus des fonctions
-// (fidélité, commande…) mais la fin d'un problème que le restaurateur vit
-// déjà. Chaque mot tournant est une douleur concrète, dite comme il la dit.
-const PROBLEMS = [
-  "la salle vide.",
-  "le jeudi soir creux.",
-  "le chiffre d'affaires qui baisse.",
-  "les clients qui ne reviennent pas.",
-];
+// Titre (2026-11-05, Mehdi) : structure promesse → comment → quoi → qui, puis
+// l'analyse gratuite comme premier pas. « agents IA » autorisé ICI seulement
+// (décision de Mehdi, test `lib/marketing-pages.test.ts`) ; partout ailleurs la
+// brigade reste des « assistants ». Jamais « 24 h/24 » : les idées arrivent
+// chaque matin (cron 9 h), d'où « 7 j/7 ».
+//
+// Texte raccourci et photo de salle pleine (Mehdi, 2026-11-05). Le téléphone
+// animé est dans HeroPhone.tsx.
+const FACES = ["lea", "hugo", "chloe", "emma"] as const;
+
 
 export function Hero() {
-  const blobRef = useParallaxOffset(0.12);
-
   return (
-    <section className="relative bg-paper overflow-hidden">
-      <div
-        ref={blobRef}
-        className="absolute -top-[220px] -right-40 w-[760px] h-[760px] pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(162,197,35,0.18), transparent 60%)" }}
-      />
-
-      <div className="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-14 sm:pt-20 pb-16 sm:pb-20">
-        <div className="max-w-[800px] mx-auto text-center">
-          <Reveal>
-            <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
-              ▶ Google, pub, fidélité et chiffres pour les restaurants
-            </p>
-          </Reveal>
-          <Reveal delay={80}>
-            <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
-              Fini
-              <br />
-              <RotatingWords words={PROBLEMS} className="text-moss-dark" />
-            </h1>
-            {/* Promesse (2026-11-01, .claude/product-marketing.md) : faire revenir + faire venir. */}
-            <p className="font-landing text-[17px] sm:text-[19px] leading-[1.6] text-ink-muted mt-5 mb-0 max-w-[620px] mx-auto text-pretty">
-              Faites revenir vos clients et faites venir le quartier. Rien à brancher : le ticket de caisse suffit.
-            </p>
-          </Reveal>
-          {/* ADR 0071 — premier geste de la page : chercher son établissement, puis l'audit gratuit.
-              Le z-index se pose sur le Reveal : son transform en fait un contexte d'empilement,
-              sans quoi les suggestions passent sous le téléphone (Reveal suivant). */}
-          <Reveal delay={150} className="relative z-30">
-            <div className="relative z-20 mt-7 mx-auto max-w-[640px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.12)] border border-paper-border p-2">
-              <RestaurantSearchBar location="hero" />
+    <section className="bx-hero bx-x">
+      <div className="bx-wrap bx-hero-grid">
+        <div className="bx-hero-copy">
+          <span className="bx-kicker">
+            <b>Nouveau</b> Votre brigade marketing, 7 j/7
+          </span>
+          {/* Promesse */}
+          <h1>
+            Faites grimper votre <em>chiffre d&apos;affaires</em>.
+          </h1>
+          {/* Comment + quoi (raccourci le 2026-11-05 : une phrase, puis les experts) */}
+          <p className="bx-sub">
+            <b style={{ color: "var(--bx-ink)" }}>7 agents IA</b> analysent vos ventes et vos clients, et vous proposent
+            chaque jour les actions qui font vendre. <b style={{ color: "var(--bx-ink)" }}>De vrais experts vous accompagnent.</b>
+          </p>
+          {/* Qui */}
+          <p className="bx-who">Pour les restaurateurs ambitieux, prêts à passer un cap.</p>
+          {/* Premier pas : l'analyse gratuite (ADR 0071) */}
+          <p className="bx-step1">Première étape : l&apos;analyse gratuite de votre restaurant</p>
+          <div className="bx-search">
+            <RestaurantSearchBar location="hero" />
+          </div>
+          <p className="bx-hint">
+            En 1 minute, un aperçu gratuit : comment vous vous situez face aux restaurants autour de vous sur Google, et ce
+            qu&apos;il faut corriger en premier.
+          </p>
+          <div className="bx-crew">
+            <div className="bx-faces" aria-hidden>
+              {FACES.map((id) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={id} src={assistant(id).photo} alt="" />
+              ))}
+              <span className="bx-more">+3</span>
             </div>
-            <p className="text-[13px] text-ink-faint mt-3 mb-0">Analysez votre restaurant gratuitement · note sur 100 en moins d&apos;une minute</p>
-          </Reveal>
+            <span>
+              <b>Léa, Hugo, Chloé, Emma et 3 autres</b>
+              <br />
+              votre brigade, pilotée par notre équipe
+            </span>
+          </div>
         </div>
 
-        <Reveal delay={200} y={28}>
-          <div className="relative mt-10 sm:mt-12 max-w-[1000px] mx-auto">
-            {/* Panneau vert : le téléphone déborde en haut, coupé en bas */}
-            <div className="relative h-[480px] sm:h-[540px] [clip-path:inset(-120px_-120px_0_-120px_round_0_0_28px_28px)]">
-              <div
-                className="absolute inset-x-0 bottom-0 top-[72px] rounded-[28px] bg-gradient-to-br from-moss-dark via-moss to-moss-light"
-                aria-hidden
-              >
-                <div
-                  className="absolute inset-0 rounded-[28px] opacity-20"
-                  style={{
-                    backgroundImage:
-                      "repeating-linear-gradient(135deg, rgba(255,255,255,0.35) 0 1px, transparent 1px 22px)",
-                  }}
-                />
-              </div>
-              <div className="relative flex justify-center">
-                <HeroPhoneMockup />
-              </div>
+        <div className="bx-stage">
+          <div className="bx-photo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={PHOTOS.sallePleine} alt="Une salle de restaurant pleine, le soir" fetchPriority="high" />
+          </div>
+          <div className="bx-chips" aria-hidden>
+            <div className="bx-chip bx-glass">
+              <span className="bx-dot" />
+              <span>
+                <b>3 idées</b>
+                <br />à valider ce matin
+              </span>
             </div>
-
-            {/* Le plan gratuit, en second : sous le téléphone. */}
-            <div className="relative -mt-8 mx-auto w-fit bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.14)] border border-paper-border px-5 py-3 text-center">
-              <TrackedLink
-                ctaId="devenir_partenaire"
-                ctaLocation="hero"
-                audience="restaurateur"
-                href="/become-a-partner"
-                className="text-[15px] font-semibold text-ink hover:text-moss-dark transition-colors"
-              >
-                Pas besoin d&apos;audit ? Commencer gratuitement →
-              </TrackedLink>
+            <div className="bx-chip bx-glass-dark">
+              <span>
+                <b>5 min</b>
+                <br />
+                par jour, pas plus
+              </span>
             </div>
           </div>
-        </Reveal>
+          <HeroPhone />
+        </div>
       </div>
     </section>
   );
