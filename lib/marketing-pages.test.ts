@@ -48,6 +48,7 @@ test("le texte des pages respecte les règles (fichier de page et registre)", ()
 // l'exemple « commande de 25 € : −7,50 € » de la maquette (décision du 2026-11-05).
 const LANDING_BANNED = [" robot", " bot ", " bots ", "agent", " roue", "7,50", "instantané"];
 const LANDING_DIR = "components/restaurateurs";
+const HERO_FILE = "Hero.tsx";
 
 const visibleText = (source: string) =>
   source
@@ -65,6 +66,16 @@ test("landing restaurateurs : mots interdits absents du texte visible", () => {
   for (const f of files) {
     const text = visibleText(readFileSync(`${LANDING_DIR}/${f}`, "utf8"));
     const lower = ` ${text.toLowerCase()} `;
+    // Exception décidée par Mehdi le 2026-11-05 : le héros dit « 7 agents IA »
+    // (promesse → comment → quoi → qui). Ailleurs, la brigade reste des assistants.
+    if (f === HERO_FILE) {
+      const rest = text.replace(/agents IA/g, " ");
+      assert.deepEqual(banned(rest), [], `${f} contient des mots interdits`);
+      assert.deepEqual(LANDING_BANNED.filter((b) => ` ${rest.toLowerCase()} `.includes(b)), [], `${f} : mot interdit sur la landing`);
+      assert.ok(!/\bIA\b/.test(rest), `${f} : « IA » hors de « agents IA »`);
+      assert.ok(!/24\s*h?\s*\/\s*24/.test(text), `${f} : « 24/24 » promet plus que l'idée du matin`);
+      continue;
+    }
     assert.deepEqual(banned(text), [], `${f} contient des mots interdits`);
     assert.deepEqual(LANDING_BANNED.filter((b) => lower.includes(b)), [], `${f} : mot interdit sur la landing`);
     // « IA » en majuscules, mot entier (sans attraper « via », « médias »…).

@@ -1,7 +1,7 @@
 "use client";
 
 import { TrackedLink } from "@/components/analytics/TrackedLink";
-import { Reveal, RotatingWords, useParallaxOffset } from "./motion";
+import { Reveal, useParallaxOffset } from "./motion";
 import { HeroPhoneMockup } from "./HeroPhoneMockup";
 import { Portrait } from "./Portrait";
 import { BRIGADE } from "./brigade";
@@ -11,19 +11,14 @@ import { RestaurantSearchBar } from "@/components/audit-gratuit/RestaurantSearch
 // phrase, puis un iPhone posé sur un panneau vert. Le bouton principal reste
 // la recherche de l'établissement (analyse gratuite, ADR 0071).
 //
-// Titre (2026-09-26, demande du porteur) : la fin d'un problème que le
-// restaurateur vit déjà. Chaque mot tournant est une douleur concrète.
-//
 // Brigade 17 (maquette validée le 2026-11-04, ADR 0089) : la promesse devient
-// la brigade — sept assistants, un seul objectif (le chiffre d'affaires), cinq
-// minutes par jour pour valider leurs idées. Le téléphone montre « Idées du jour ».
-const PROBLEMS = [
-  "le jeudi soir creux.",
-  "la salle vide.",
-  "le chiffre d'affaires qui baisse.",
-  "les clients qui ne reviennent pas.",
-];
-
+// la brigade. Le téléphone montre « Idées du jour ».
+//
+// Titre (2026-11-05, Mehdi) : structure promesse → comment → quoi → qui, puis
+// l'analyse gratuite comme premier pas. « agents IA » autorisé ICI seulement
+// (décision de Mehdi, test `lib/marketing-pages.test.ts`) ; partout ailleurs la
+// brigade reste des « assistants ». Jamais « 24 h/24 » : les idées arrivent
+// chaque matin (cron 9 h), d'où « 7 j/7 ».
 const FIRST_FOUR = BRIGADE.slice(0, 4);
 
 export function Hero() {
@@ -41,29 +36,37 @@ export function Hero() {
         <div className="max-w-[800px] mx-auto text-center">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.12em] uppercase text-moss-dark mb-5">
-              ▶ Nouveau · votre brigade marketing
+              ▶ Votre brigade marketing, 7 j/7
             </p>
           </Reveal>
           <Reveal delay={80}>
+            {/* Promesse */}
             <h1 className="font-display text-[38px] sm:text-[48px] lg:text-[58px] leading-[1.05] tracking-[-0.04em] font-bold text-ink text-pretty">
-              Fini
-              <br />
-              <RotatingWords words={PROBLEMS} className="text-moss-dark" />
+              Faites grimper votre <span className="text-moss-dark">chiffre d&apos;affaires</span>.
             </h1>
-            <p className="font-landing text-[17px] sm:text-[19px] leading-[1.6] text-ink-muted mt-5 mb-0 max-w-[660px] mx-auto text-pretty">
-              Sept assistants marketing travaillent pour une seule chose :{" "}
-              <strong className="font-semibold text-ink">faire monter votre chiffre d&apos;affaires</strong>. Ils font
-              venir de nouveaux clients et font revenir les anciens. Vous validez leurs idées en 5 minutes par jour.
+            {/* Comment + quoi */}
+            <p className="font-landing text-[17px] sm:text-[19px] leading-[1.6] text-ink-muted mt-5 mb-0 max-w-[680px] mx-auto text-pretty">
+              Chaque jour, une brigade de <strong className="font-semibold text-ink">7 agents IA</strong> épluche vos
+              ventes, vos clients et votre quartier, puis vous propose les actions qui font vendre.{" "}
+              <strong className="font-semibold text-ink">De vrais experts la pilotent</strong> et passent à l&apos;action
+              avec vous. Vous dites « Oui », c&apos;est lancé.
+            </p>
+            {/* Qui */}
+            <p className="font-landing text-[15px] sm:text-[16px] leading-[1.5] font-semibold text-ink mt-4 mb-0 max-w-[600px] mx-auto text-pretty">
+              Pour les restaurateurs aguerris qui ont touché un plafond et sont prêts à tout donner pour le dépasser.
             </p>
           </Reveal>
           {/* ADR 0071 — premier geste de la page : chercher son établissement, puis l'audit gratuit.
               Le z-index se pose sur le Reveal : son transform en fait un contexte d'empilement,
               sans quoi les suggestions passent sous le téléphone (Reveal suivant). */}
           <Reveal delay={150} className="relative z-30">
-            <div className="relative z-20 mt-7 mx-auto max-w-[640px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.12)] border border-paper-border p-2">
+            <p className="text-[15px] font-semibold text-ink mt-8 mb-0">
+              Première étape : l&apos;analyse gratuite de votre restaurant
+            </p>
+            <div className="relative z-20 mt-3 mx-auto max-w-[640px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(10,10,10,0.12)] border border-paper-border p-2">
               <RestaurantSearchBar location="hero" />
             </div>
-            <p className="text-[13px] text-ink-faint mt-3 mb-0">Analysez votre restaurant gratuitement · note sur 100 en moins d&apos;une minute</p>
+            <p className="text-[13px] text-ink-faint mt-3 mb-0">Votre note sur 100 en moins d&apos;une minute · ce qui vous coûte des clients sur Google · sans engagement</p>
             <div className="mt-6 flex items-center justify-center gap-3">
               <div className="flex -space-x-2.5 shrink-0" aria-hidden>
                 {FIRST_FOUR.map((a) => (
@@ -71,7 +74,7 @@ export function Hero() {
                 ))}
               </div>
               <p className="text-[13.5px] text-ink-muted m-0 text-left">
-                {FIRST_FOUR.map((a) => a.name).join(", ")} et 3 autres, prêts à travailler pour vous
+                {FIRST_FOUR.map((a) => a.name).join(", ")} et 3 autres : votre brigade, pilotée par notre équipe
               </p>
             </div>
           </Reveal>
