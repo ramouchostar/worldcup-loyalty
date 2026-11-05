@@ -34,6 +34,17 @@ période (« Les 2 prochaines semaines », « Semaines 2 et 3 de <mois> »), **o
 (rappelés au restaurateur pour ses équipes, ajoutés au texte d'une pub faite d'un fichier ; une
 publication Instagram garde sa légende), fichiers limités à **200 Mo** (relevé le 2026-10-29 : une vidéo de tournage passe telle quelle ; limite globale du stockage Supabase et bucket `ad-creatives` au même niveau).
 
+**Amendé le 2026-11-05** (Brigade 10, Emma) : **qui propose** change, pas **qui valide**. Une idée de la
+brigade (Emma) peut PROPOSER une demande de pub toute prête (offre du jour creux de Chloé, Visites, deux
+semaines, 3 km, 10 à 15 € par jour, estimation en fourchette) ; le gérant la DÉCIDE ; Boosteats la VÉRIFIE
+comme toujours. Le « Oui » à l'idée **crée la demande existante** (`createRequest`) : virement, communication
+structurée, e-mails d'attente et validation avant mise en ligne (§ 2) sont inchangés. Deux choses ne viennent
+jamais de l'idée : les **conditions de la Pub** (§ 4, crédit non remboursable) que le gérant coche lui-même,
+et ses **coordonnées de facturation**. Une seule demande à la fois : pas de proposition tant qu'une pub est
+demandée, payée ou en diffusion. Chaque demande garde son **origine** (`ad_requests.origin`,
+`origin_evidence`, migration `20261105-0300`) pour comparer les pubs d'Emma à celles des gérants. Emma ne
+touche à aucun argent et ne lance rien chez Meta.
+
 ## Contexte
 
 Le 2026-10-17, la chaîne Meta est en place et vérifiée par l'API : application, System User
