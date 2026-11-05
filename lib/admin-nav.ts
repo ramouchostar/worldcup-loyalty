@@ -3,7 +3,7 @@
 //
 // Vue pro : les quatre sections de l'ADR 0030 §9 (Au quotidien = le comptoir,
 // Fidélisation = faire revenir, Pilotage = comprendre, Configuration = réglé
-// une fois). Vue simple : quatre onglets, ce qu'on touche tous les jours —
+// une fois). Vue simple : cinq onglets, ce qu'on touche tous les jours —
 // tout le reste reste à un tap, dans « Plus ».
 //
 // Des clés d'icône (components/admin/AdminNavIcons.tsx) plutôt que des
@@ -39,6 +39,7 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
       title: "Au quotidien",
       links: [
         { href: base, label: "Dashboard", icon: "dashboard", hint: "Tes chiffres du mois et ce qu'il y a à faire" },
+        { href: `${base}/idees`, label: "Idées du jour", icon: "ideas", hint: "Ce que tes assistants te proposent aujourd'hui : oui ou non" },
         // ADR 0052 — la file des doublons ambigus est un ONGLET de Commandes.
         { href: `${base}/orders`, label: "Commandes", icon: "orders", hint: "Les tickets de tes clients, à vérifier ou déjà validés" },
         { href: `${base}/pending-rewards`, label: "Cadeaux", icon: "gifts", hint: "Les cadeaux que tes clients viendront chercher" },
@@ -93,13 +94,16 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
 }
 
 /**
- * Les quatre onglets de la vue simple — bas d'écran sur téléphone, colonne
- * sur ordinateur. Quatre et pas cinq : chaque onglet doit se toucher au
- * pouce sans viser, et « Plus » garde l'accès à tout (règle `bottom-nav-limit`).
+ * Les onglets de la vue simple — bas d'écran sur téléphone, colonne sur
+ * ordinateur. Cinq depuis la brigade (ADR 0089, ADR 0064 amendé le 2026-11-05) :
+ * « Idées » en tête — les idées des assistants à valider —, puis « Stats »,
+ * l'ancien accueil (l'espace Stats de Chloé le remplacera, même adresse).
+ * « Plus » garde l'accès à tout.
  */
 export function simpleTabs(base: string): (AdminNavLink & { match: "exact" | "prefix" })[] {
   return [
-    { href: base, label: "Accueil", icon: "home", hint: "", match: "exact" },
+    { href: `${base}/idees`, label: "Idées", icon: "ideas", hint: "", match: "prefix" },
+    { href: base, label: "Stats", icon: "stats", hint: "", match: "exact" },
     { href: `${base}/orders`, label: "Tickets", icon: "orders", hint: "", match: "prefix" },
     { href: `${base}/broadcast`, label: "Annonces", icon: "broadcasts", hint: "", match: "prefix" },
     { href: `${base}/plus`, label: "Plus", icon: "more", hint: "", match: "prefix" },
