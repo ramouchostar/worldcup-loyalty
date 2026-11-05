@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase";
+import { fetchAllRowsStrict, type PageResult } from "@/lib/paged-select";
 import { ClientsTable, type ClientRow } from "@/components/admin/ClientsTable";
 import { getAppInstallsByUser } from "@/lib/app-install";
 import { PageHeader } from "@/components/admin/ui";
@@ -23,21 +24,28 @@ export default async function ClientsPage({ params }: { params: Promise<{ restau
   const { restaurantId } = await params;
   const admin = createAdminClient();
 
-  const [{ data: membershipsRaw }, { data: ordersRaw }] = await Promise.all([
-    admin
-      .from("memberships")
-      .select("user_id, joined_at, profiles!inner(display_name), teams(name, flag_emoji)")
-      .eq("restaurant_id", restaurantId),
-    admin
-      .from("orders")
-      .select("user_id, amount, order_date")
-      .eq("restaurant_id", restaurantId)
-      .eq("status", "validated")
-      .limit(10000),
+  // Lectures PAGINÉES : PostgREST tronque en silence à 1 000 lignes (lib/paged-select.ts), et
+  // une liste de clients ou une dépense par membre sur un échantillon seraient fausses sans le dire.
+  const [memberships, orders] = await Promise.all([
+    fetchAllRowsStrict<MembershipRow>("Mes clients : adhésions", (from, to) =>
+      admin
+        .from("memberships")
+        .select("user_id, joined_at, profiles!inner(display_name), teams(name, flag_emoji)")
+        .eq("restaurant_id", restaurantId)
+        .order("user_id")
+        // Relation 1-1 que l'inférence de Supabase type en tableau : on garde le typage voulu (`MembershipRow`).
+        .range(from, to) as unknown as PromiseLike<PageResult<MembershipRow>>
+    ),
+    fetchAllRowsStrict<OrderRow>("Mes clients : tickets", (from, to) =>
+      admin
+        .from("orders")
+        .select("user_id, amount, order_date")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "validated")
+        .order("id")
+        .range(from, to)
+    ),
   ]);
-
-  const memberships = (membershipsRaw as unknown as MembershipRow[]) ?? [];
-  const orders = ((ordersRaw as OrderRow[] | null) ?? []);
   // App installée (complément ADR 0038) — indicateur pseudonymisé, fail-open.
   const installs = await getAppInstallsByUser(memberships.map((m) => m.user_id));
 

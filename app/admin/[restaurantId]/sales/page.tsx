@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
+import { fetchAllRowsStrict } from "@/lib/paged-select";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
@@ -63,18 +64,22 @@ export default async function AdminSalesPage({
 
   const admin = createAdminClient();
 
-  const [{ data: ordersRaw }, { data: menuRaw }] = await Promise.all([
-    admin
-      .from("orders")
-      .select("id, order_date, order_time, amount")
-      .eq("restaurant_id", restaurantId)
-      .eq("status", "validated")
-      .gte("order_date", startDate)
-      .limit(5000),
+  // Lecture PAGINÉE (PostgREST tronque en silence à 1 000 lignes, lib/paged-select.ts) :
+  // des ventes par plat calculées sur un échantillon seraient fausses sans le dire.
+  const [orders, { data: menuRaw }] = await Promise.all([
+    fetchAllRowsStrict<OrderRow>("Ventes par plat : tickets", (from, to) =>
+      admin
+        .from("orders")
+        .select("id, order_date, order_time, amount")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "validated")
+        .gte("order_date", startDate)
+        .order("id")
+        .range(from, to)
+    ),
     admin.from("menu_items").select("id, name, menu_price, cost_price").eq("restaurant_id", restaurantId),
   ]);
 
-  const orders = (ordersRaw ?? []) as OrderRow[];
   const menuById = new Map(((menuRaw ?? []) as MenuRow[]).map((m) => [m.id, m]));
 
   // Lignes d'articles des commandes de la période (par lots — .in() borné)

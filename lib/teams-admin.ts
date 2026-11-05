@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase";
+import { fetchAllRowsStrict, type PageResult } from "./paged-select";
 import { normalizeSuggestionName } from "./team-suggestions";
 
 // ADR 0035 — gestion des équipes depuis la console restaurateur.
@@ -39,22 +40,38 @@ export type AdminTeam = {
 export async function listTeamsForAdmin(restaurantId: string): Promise<AdminTeam[]> {
   const admin = createAdminClient();
 
-  const [{ data: teamsRaw }, { data: memsRaw }, { data: ordersRaw }, { data: scoresRaw }, { data: suggRaw }] =
+  // Jointure `profiles!inner` : relation 1-1 que l'inférence de Supabase type en tableau ; on garde le typage voulu.
+  type MemRow = {
+    user_id: string; team_id: string | null; joined_at: string | null;
+    profiles: { display_name: string | null } | null;
+  };
+  // Adhésions et tickets en lecture PAGINÉE : PostgREST tronque en silence à 1 000 lignes
+  // (lib/paged-select.ts), et les membres d'une équipe ou leur dépense seraient faux sans le dire.
+  const [{ data: teamsRaw }, mems, orders, { data: scoresRaw }, { data: suggRaw }] =
     await Promise.all([
       admin
         .from("teams")
         .select("id, name, type, flag_emoji, join_code, is_active, created_at")
         .eq("restaurant_id", restaurantId)
         .order("created_at"),
-      admin
-        .from("memberships")
-        .select("user_id, team_id, joined_at, profiles!inner(display_name)")
-        .eq("restaurant_id", restaurantId),
-      admin
-        .from("orders")
-        .select("user_id, team_id, amount, status")
-        .eq("restaurant_id", restaurantId)
-        .limit(10000),
+      fetchAllRowsStrict<MemRow>("Équipes : adhésions", (from, to) =>
+        admin
+          .from("memberships")
+          .select("user_id, team_id, joined_at, profiles!inner(display_name)")
+          .eq("restaurant_id", restaurantId)
+          .order("user_id")
+          .range(from, to) as unknown as PromiseLike<PageResult<MemRow>>
+      ),
+      fetchAllRowsStrict<{ user_id: string; team_id: string | null; amount: number; status: string }>(
+        "Équipes : tickets",
+        (from, to) =>
+          admin
+            .from("orders")
+            .select("user_id, team_id, amount, status")
+            .eq("restaurant_id", restaurantId)
+            .order("id")
+            .range(from, to)
+      ),
       admin.from("community_scores").select("team_id, member_count, total_spent").eq("restaurant_id", restaurantId),
       admin.from("team_suggestions").select("name, team_id").eq("restaurant_id", restaurantId).eq("is_active", true),
     ]);
@@ -63,11 +80,6 @@ export async function listTeamsForAdmin(restaurantId: string): Promise<AdminTeam
     id: string; name: string; type: string; flag_emoji: string | null;
     join_code: string | null; is_active: boolean; created_at: string;
   }[];
-  const mems = (memsRaw ?? []) as unknown as {
-    user_id: string; team_id: string | null; joined_at: string | null;
-    profiles: { display_name: string | null } | null;
-  }[];
-  const orders = (ordersRaw ?? []) as { user_id: string; team_id: string | null; amount: number; status: string }[];
   const scores = (scoresRaw ?? []) as { team_id: string; member_count: number; total_spent: number }[];
   const suggestions = (suggRaw ?? []) as { name: string; team_id: string | null }[];
 

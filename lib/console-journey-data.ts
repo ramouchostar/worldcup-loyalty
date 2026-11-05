@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase";
+import { fetchAllRows } from "./paged-select";
 import { getRestaurantBranding } from "./restaurant";
 import { getStaffStats } from "./staff-codes";
 import { getCatalogGaps } from "./catalog-gaps";
@@ -55,14 +56,27 @@ export async function loadSimpleHomeRaw(restaurantId: string, opts: { canManage:
   ] = await Promise.all([
     // Tickets reçus : validés ET en attente — l'objectif mesure ce que le
     // comptoir a déclenché, pas la vitesse de la file de vérification.
-    admin
-      .from("orders")
-      .select("submitted_at")
-      .eq("restaurant_id", restaurantId)
-      .in("status", ["validated", "pending"])
-      .gte("submitted_at", since)
-      .limit(5000)
-      .then((r) => ((r.data ?? []) as { submitted_at: string }[]).map((o) => o.submitted_at), () => [] as string[]),
+    // Lecture PAGINÉE (PostgREST tronque en silence à 1 000 lignes, lib/paged-select.ts). L'accueil
+    // reste fail-open, mais un échec ou un plafond atteint est TRACÉ au lieu de passer pour un zéro.
+    fetchAllRows<{ submitted_at: string }>((from, to) =>
+      admin
+        .from("orders")
+        .select("submitted_at")
+        .eq("restaurant_id", restaurantId)
+        .in("status", ["validated", "pending"])
+        .gte("submitted_at", since)
+        .order("id")
+        .range(from, to)
+    ).then(
+      (r) => {
+        if (r.truncated) console.error("[console-journey] tickets reçus : plafond de lecture atteint, décompte partiel");
+        return r.rows.map((o) => o.submitted_at);
+      },
+      (e) => {
+        console.error("[console-journey] tickets reçus :", (e as Error).message);
+        return [] as string[];
+      }
+    ),
     count(admin.from("orders").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId).eq("status", "validated")),
     // Même fenêtre et même colonne que la page Opportunités (order_date,
     // 90 jours) : l'étape « Faire grandir » s'ouvre quand les idées ont de
