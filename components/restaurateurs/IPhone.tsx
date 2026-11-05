@@ -3,7 +3,8 @@ import type { CSSProperties, ReactNode } from "react";
 // Photos libres de droits de la maquette validée (Unsplash), dans
 // public/marketing/landing/. Établissements et plats d'illustration seulement.
 export const PHOTOS = {
-  restaurateur: "/marketing/landing/restaurateur.webp",
+  /** Salle pleine le soir (Unsplash, photo-1783447036642), fond du héros. */
+  sallePleine: "/marketing/landing/salle-pleine.webp",
   fondEcran: "/marketing/landing/fond-ecran.webp",
   poulet: "/marketing/landing/poulet.webp",
   burger: "/marketing/landing/burger.webp",

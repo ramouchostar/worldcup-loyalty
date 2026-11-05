@@ -60,7 +60,7 @@
 
 .bx-stage { position: relative; height: 660px; }
 .bx-stage .bx-photo { position: absolute; inset: 0; border-radius: var(--bx-r-xl); overflow: hidden; background: #ddd; }
-.bx-stage .bx-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 70% 15%; display: block; }
+.bx-stage .bx-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
 .bx-stage .bx-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(12, 21, 9, 0.35), transparent 55%), linear-gradient(180deg, transparent 60%, rgba(12, 21, 9, 0.3)); }
 .bx-stage .bx-iphone { --w: 290px; position: absolute; left: 36px; top: 50%; transform: translateY(-50%); z-index: 3; }
 .bx-chips { position: absolute; right: 24px; top: 24px; display: grid; gap: 10px; justify-items: end; z-index: 4; }
@@ -290,6 +290,23 @@
 
 a.bx-focus:focus-visible, .bx button:focus-visible { outline: 3px solid var(--bx-moss); outline-offset: 2px; }
 
+/* Téléphone animé du héros (HeroPhone.tsx) : opacité et déplacements seulement. */
+.bx-layer { transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bx-layer-off { opacity: 0; pointer-events: none; }
+.bx-app { background: linear-gradient(160deg, #f4f7ea, #e6ecd3 45%, #d9e3be); }
+.bx-app-closed { transform: scale(0.86) translateY(40px); }
+.bx-notif { position: relative; }
+.bx-notif-in { animation: bx-notif-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes bx-notif-in { from { opacity: 0; transform: translateY(-14px) scale(0.97); } to { opacity: 1; transform: none; } }
+.bx-pressed { transform: scale(0.97); transition: transform 0.15s ease; }
+.bx-tap { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(255, 255, 255, 0.55); box-shadow: 0 0 0 2px rgba(11, 13, 10, 0.25); animation: bx-tap 0.6s ease-out both; pointer-events: none; }
+@keyframes bx-tap { from { opacity: 0; transform: scale(0.4); } 40% { opacity: 1; } to { opacity: 0; transform: scale(1.4); } }
+.bx-yn span { position: relative; display: grid; place-items: center; font-weight: 600; font-size: 14px; padding: 11px; border-radius: 14px; min-height: 44px; }
+.bx-pop { animation: bx-pop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes bx-pop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.bx-swap { animation: bx-swap 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes bx-swap { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+
 @media (max-width: 1080px) {
   .bx-tabs { grid-template-columns: repeat(4, 1fr); }
 }
@@ -304,7 +321,7 @@ a.bx-focus:focus-visible, .bx button:focus-visible { outline: 3px solid var(--bx
   .bx-sec { padding-block: 64px; }
   .bx-stage { height: auto; display: grid; gap: 12px; }
   .bx-stage .bx-photo { position: relative; inset: auto; height: 640px; }
-  .bx-stage .bx-photo img { object-position: 75% 10%; }
+  .bx-stage .bx-photo img { object-position: 60% 40%; }
   .bx-stage .bx-iphone { --w: min(286px, 80vw); left: 50%; top: 24px; transform: translateX(-50%); }
   .bx-chips { position: static; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
   .bx-chip { padding: 10px 14px; }
@@ -323,5 +340,5 @@ a.bx-focus:focus-visible, .bx button:focus-visible { outline: 3px solid var(--bx
   .bx-final { padding: 64px 20px; border-radius: 28px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bx *, .bx *::before, .bx *::after { transition: none !important; }
+  .bx *, .bx *::before, .bx *::after { transition: none !important; animation: none !important; }
 }
