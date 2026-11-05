@@ -48,15 +48,17 @@ function RefusalSheet({ name, pending, onCancel, onConfirm }: { name: string; pe
   useEffect(() => first.current?.focus(), []);
 
   return (
-    <div className="fixed inset-0 z-40 bg-ink/40 flex items-end md:items-center justify-center" onClick={onCancel}>
+    <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center" onClick={onCancel}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="refus-titre"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === "Escape" && onCancel()}
-        className="w-full md:max-w-md bg-white rounded-t-2xl md:rounded-2xl p-5 pb-7 space-y-4"
+        className="w-full md:max-w-md max-h-[90dvh] flex flex-col bg-white rounded-t-2xl md:rounded-2xl"
       >
+        {/* Les raisons défilent, les boutons restent toujours visibles en bas (même sur un petit téléphone). */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 pb-3 space-y-4">
         <div className="space-y-1">
           <h2 id="refus-titre" className="text-[18px] font-bold text-ink">Pourquoi pas ?</h2>
           <p className="text-[13px] text-ink-muted">{name} s&apos;en souviendra pour ses prochaines idées.</p>
@@ -99,7 +101,8 @@ function RefusalSheet({ name, pending, onCancel, onConfirm }: { name: string; pe
             <p className="text-right text-[12px] text-ink-faint">{note.length} / {REFUSAL_NOTE_MAX}</p>
           </div>
         )}
-        <div className="flex gap-2">
+        </div>
+        <div className="shrink-0 flex gap-2 px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-paper-border bg-white rounded-b-none md:rounded-b-2xl">
           <button type="button" onClick={onCancel} className="min-h-[44px] px-4 rounded-xl border border-paper-border bg-white text-[15px] font-medium text-ink">
             Annuler
           </button>
