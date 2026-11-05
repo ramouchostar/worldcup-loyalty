@@ -478,6 +478,25 @@ export async function listRecentDecisions(restaurantId: string, days = 7, nowMs 
   return rows ?? UNAVAILABLE;
 }
 
+/**
+ * Pour /platform/idees (Brigade 04), tous établissements : les « Oui » qui
+ * attendent l'équipe ou ont échoué (statut « acceptée »), et les idées
+ * préparées par l'équipe ces `days` derniers jours, quel que soit leur sort.
+ */
+export async function listPlatformIdeas(days = 14, nowMs = Date.now()): Promise<ProposalRow[] | Unavailable> {
+  const since = new Date(nowMs - days * 86_400_000).toISOString();
+  const admin = createAdminClient();
+  const rows = await readRows<ProposalRow>("agent_proposals (plateforme)", (from, to) =>
+    admin
+      .from(TABLE)
+      .select("*")
+      .or(`status.eq.acceptee,and(origin.eq.equipe,created_at.gte.${since})`)
+      .order("created_at", { ascending: false })
+      .range(from, to)
+  );
+  return rows ?? UNAVAILABLE;
+}
+
 /** Note la première fois que le gérant voit ses idées (mesure « ouvre ses idées », Brigade 06). */
 export async function markSeen(restaurantId: string, ids: string[], nowMs = Date.now()): Promise<void> {
   if (ids.length === 0) return;
