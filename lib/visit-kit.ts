@@ -11,13 +11,21 @@
 // de calcul « X € = N tickets » (décision du 2026-11-01), et ce qui n'est pas
 // livré se dit « en préparation » (ADR 0070).
 
+import { comparisonTotals, euros } from "@/lib/comparatif";
+
 export const CASE_STUDY_SLUG = "cas-kraainem";
+
+// Le comparatif de la landing (« ce que vous payeriez ailleurs »), même source :
+// un prix qui change dans lib/comparatif.ts change aussi ici.
+const VS = comparisonTotals("croissance");
+export const COMPARISON_LINE = `Pris chez des spécialistes (fidélité, relances, chiffres, pub, avis), ces postes coûtent environ ${euros(VS.monthly)} par mois. Croissance, c'est ${euros(VS.price)} HTVA, tout compris.`;
 
 export const VISIT_RULES = [
   "On vient montrer SON restaurant, pas notre logiciel.",
   "Un chiffre vérifiable plutôt qu'un superlatif. Jamais « faire exploser vos ventes », jamais un pourcentage de hausse promis, jamais « grâce à nous ».",
   "On ne parle pas de technique : le client prend son ticket en photo, point. C'est notre secret de fabrication.",
-  "Ce qui n'est pas livré se dit « en préparation » : copilote du lundi, relance automatique au rythme de chaque client, site de commande, référencement.",
+  "On présente la brigade : sept assistants, chacun son poste, et le gérant qui valide en cinq minutes par jour. On dit « assistants », jamais « intelligence artificielle » ni « robot ».",
+  "Ce qui n'est pas livré se dit « en pilote » : le site de Nina et le référencement de Max, dans le forfait Pro. Rien ne part sans le « oui » du gérant, aucun euro n'est dépensé sans son accord.",
   "On vouvoie, on parle comme au comptoir, une idée par phrase.",
 ];
 
@@ -62,7 +70,7 @@ export const OFFER_CHOICE = {
   free: {
     label: "Démarrer gratuitement",
     when: "Tous les autres. La base se construit d'abord : affiche, QR, premiers clients inscrits, premières annonces.",
-    then: "On propose Croissance quand il veut suivre ses chiffres, ou une pub de quartier quand il veut du monde en plus.",
+    then: "On propose Croissance quand il veut suivre ses chiffres et que Louis réponde à ses avis, ou une pub en ligne avec Emma quand il veut du monde en plus.",
   },
   note: "Ça se sent à vue d'œil en entrant, et dans ses réponses aux questions de découverte.",
 };
@@ -74,7 +82,7 @@ export const SCRIPT: ScriptStep[] = [
     time: "0:00 – 2:00",
     title: "L'accroche au comptoir",
     say: [
-      "Bonjour, je suis [votre prénom], de Boosteats, à Bruxelles. On aide les restaurants du quartier à faire revenir leurs clients et à en faire venir de nouveaux. J'ai regardé votre restaurant comme un client le voit sur Google, et j'ai trois choses à vous montrer. Vous avez vingt minutes maintenant, ou je repasse à l'heure qui vous arrange ?",
+      "Bonjour, je suis [votre prénom], de Boosteats, à Bruxelles. On aide les restaurants du quartier à faire monter leur chiffre d'affaires : chaque matin, notre brigade vous propose les actions qui font vendre, et vous validez en cinq minutes. J'ai regardé votre restaurant comme un client le voit sur Google, et j'ai trois choses à vous montrer. Vous avez vingt minutes maintenant, ou je repasse à l'heure qui vous arrange ?",
     ],
     lines: [
       "Si c'est non : laisser l'audit imprimé et la page à laisser, noter « visite, absent ou occupé » dans le CRM, envoyer le message « Gérant absent » le jour même.",
@@ -107,19 +115,21 @@ export const SCRIPT: ScriptStep[] = [
   },
   {
     time: "11:00 – 16:00",
-    title: "Les trois piliers, un écran chacun",
+    title: "La brigade, en trois écrans",
     lines: [
-      "On part de ce qu'il a répondu en découverte et on montre UN seul écran par pilier sur le téléphone.",
-      "Faire revenir — écran : l'inscription d'un client et son cadeau de bienvenue.",
-      "Faire venir — écran : une pub de quartier avec son estimation.",
-      "Garder la main — écran : le CA du jour et Menu & coûts.",
-      "Puis le cas Kraainem (cadre ci-dessous), en deux phrases.",
+      "On part de ce qu'il a répondu en découverte. D'abord l'écran « Idées du jour » sur le téléphone : une idée de Hugo, on appuie sur Oui devant lui. Puis UN écran pour l'assistant qui répond à son problème :",
+      "Il veut que ses clients reviennent : Léa (inscription d'un client et son cadeau de bienvenue) et Hugo (la relance).",
+      "Il veut du monde en plus : Emma (une pub en ligne avec son estimation avant de payer).",
+      "Il veut savoir où il en est : Chloé (le CA du jour, le coût de chaque plat).",
+      "Puis le cas Kraainem (cadre ci-dessous), en deux phrases, et le comparatif en une phrase.",
     ],
     say: [
+      "Chaque matin, la brigade vous prépare trois idées au plus. Vous lisez trois lignes, vous répondez oui ou non, et vous retournez en cuisine. Rien ne part sans votre oui, et notre équipe à Bruxelles est derrière, sur WhatsApp.",
       "Le client prend son ticket en photo, il gagne des points et il choisit son cadeau. Rien à brancher : le ticket de caisse suffit, votre caisse ne change pas. Vous, vous récupérez son contact, et vous pouvez lui écrire un mardi soir calme.",
       "Et les cadeaux, c'est vous qui décidez. Chaque cadeau est calculé sur ce qu'il vous coûte, au taux que vous choisissez, entre 4 et 12 %. À 8 %, une boisson qui vous coûte 0,60 € se gagne après 7,50 € d'achats.",
-      "On monte une pub Facebook et Instagram dans un rayon de 3 km autour de chez vous. Vous voyez une estimation avant de payer. Un bon départ, c'est 10 à 15 € par jour pendant deux semaines. On ajoute une offre et un mot clé à dire au comptoir : vous voyez qui vient par la pub.",
-      "Vous notez votre chiffre du jour en un écran : caisse d'un côté, plateformes de l'autre. Et pour chaque plat, vous voyez le prix de vente et ce qu'il vous coûte.",
+      "Emma monte une pub Facebook et Instagram dans un rayon de 3 km autour de chez vous. Vous voyez une estimation avant de payer. Un bon départ, c'est 10 à 15 € par jour pendant deux semaines. On ajoute une offre et un mot clé à dire au comptoir : vous voyez qui vient par la pub.",
+      "Avec Chloé, vous notez votre chiffre du jour en un écran : caisse d'un côté, plateformes de l'autre. Et pour chaque plat, vous voyez le prix de vente et ce qu'il vous coûte.",
+      COMPARISON_LINE,
     ],
   },
   {
@@ -150,34 +160,34 @@ export const SCRIPT: ScriptStep[] = [
 export const PLANS: { name: string; tagline: string; price: string; content: string; adFee: string }[] = [
   {
     name: "Gratuit",
-    tagline: "Inscrivez vos clients",
+    tagline: "Quatre assistants : Léa, Hugo, Chloé, Emma",
     price: "0 €, pour toujours",
-    content: "Affiche, QR, cadeaux calculés sur vos coûts, liste de vos clients, messages, Menu & coûts, CA du jour, jusqu'à 500 tickets par mois",
+    content: "Affiche, QR, cadeaux calculés sur vos coûts, liste de vos clients, relances, CA du jour, coût de chaque plat, pub en ligne quand vous voulez, jusqu'à 500 tickets par mois",
     adFee: "20 % du budget",
   },
   {
     name: "Croissance",
-    tagline: "Suivez vos chiffres",
+    tagline: "Toute la brigade du Gratuit, plus Louis",
     price: "150 €/mois, sans engagement",
-    content: "Tickets illimités, CA comparé jour par jour et part qui vient des clients du programme, ventes par plat, prévisions, annonces programmées, et on répond à vos avis Google",
+    content: "Tickets illimités, Louis répond à vos avis Google avec l'équipe, CA comparé jour par jour et part qui vient des clients du programme, ventes par plat, prévisions, messages programmés",
     adFee: "15 % du budget",
   },
   {
     name: "Pro",
-    tagline: "On s'en occupe",
+    tagline: "Toute la brigade, avec Nina et Max en pilote",
     price: "500 €/mois, 3 mois minimum",
-    content: "Tout Croissance, plus une fiche Google tenue à jour, un rapport et un point chaque mois",
+    content: "Tout Croissance, plus Nina (un site qui donne envie de commander) et Max (votre visibilité sur Google) en pilote, une fiche Google tenue à jour, un rapport et un point chaque mois",
     adFee: "5 % du budget",
   },
 ];
 
 export const LEAVE_BEHIND = {
-  title: "Faites revenir vos clients. Faites-en venir de nouveaux.",
+  title: "Votre brigade marketing. Vous validez en cinq minutes par jour.",
   subtitle: "Rien à brancher : le ticket de caisse suffit.",
   pillars: [
-    { name: "Faire revenir", body: "Vos clients prennent leur ticket en photo, gagnent des points et choisissent leur cadeau. Vous récupérez leur contact et vous leur écrivez quand vous voulez." },
-    { name: "Faire venir", body: "Une pub Facebook et Instagram dans votre quartier, montée pour vous. Estimation avant de payer, offre et mot clé à dire au comptoir." },
-    { name: "Garder la main", body: "Votre chiffre du jour en un écran. Le prix de revient de chaque plat. La part de vos ventes qui vient de vos clients inscrits." },
+    { name: "Léa et Hugo font revenir vos clients", body: "Vos clients prennent leur ticket en photo, gagnent des points et choisissent leur cadeau. Hugo écrit à ceux qui ne reviennent plus, quand vous avez dit oui." },
+    { name: "Emma fait venir le quartier", body: "Elle lance et gère vos publicités en ligne, à 3 km autour de chez vous. Une estimation avant de payer, une offre et un mot clé à dire au comptoir." },
+    { name: "Chloé suit vos chiffres", body: "Votre chiffre du jour en un écran, le coût de chaque plat, et vos jours calmes repérés pour que Hugo et Emma s'en occupent." },
   ],
   gifts: "Chaque cadeau est calculé sur ce qu'il vous coûte, au taux que vous choisissez (4 à 12 %). Exemple à 8 % : une boisson qui vous coûte 0,60 € se gagne après 7,50 € d'achats.",
   cta: "Analysez votre restaurant gratuitement, en une minute — boosteats.be/audit-gratuit · WhatsApp +32 490 11 31 67",
@@ -220,7 +230,9 @@ export const MESSAGES: { id: string; title: string; when: string; text: string }
 
 export const OBJECTIONS: { said: string; worry: string; answer: string; ask: string }[] = [
   { said: "« J'ai déjà une carte à tampons / Joyn. »", worry: "Changer ses habitudes pour rien", answer: "Gardez-la si vous voulez. La différence : avec Boosteats, vous récupérez le contact de vos clients et vous pouvez leur écrire.", ask: "Aujourd'hui, si un habitué ne revient plus, vous le savez ?" },
-  { said: "« Pas le temps de gérer ça. »", worry: "Une tâche de plus", answer: "Rien à installer. On pose l'affiche et le QR, votre équipe dit une phrase. Les cadeaux se calculent tout seuls à partir de vos coûts.", ask: "Si je vous montre que ça prend dix minutes aujourd'hui et rien ensuite, on essaie ?" },
+  { said: "« Pas le temps de gérer ça. »", worry: "Une tâche de plus", answer: "C'est justement le but : la brigade prépare tout, vous répondez oui ou non en cinq minutes par jour, depuis votre téléphone. Le lancement, c'est l'affiche, le QR et une phrase pour votre équipe.", ask: "Si je vous montre que ça prend dix minutes aujourd'hui et cinq minutes par jour ensuite, on essaie ?" },
+  { said: "« Des assistants ? C'est un robot qui va écrire à mes clients ? »", worry: "Perdre la main sur ce qui part en son nom", answer: "Rien ne part sans votre oui, et aucun euro n'est dépensé sans votre accord. Les assistants préparent, vous décidez. Et derrière, il y a notre équipe à Bruxelles, joignable sur WhatsApp.", ask: "Je vous montre une idée sur l'écran, et vous me dites si vous l'auriez envoyée ?" },
+  { said: "« J'ai déjà Malou / Zenchef / une agence. »", worry: "Payer deux fois", answer: "Gardez ce qui marche. Mais regardez le total : " + COMPARISON_LINE.charAt(0).toLowerCase() + COMPARISON_LINE.slice(1), ask: "Combien vous payez aujourd'hui, tous abonnements compris ?" },
   { said: "« Mes employés ne vont pas suivre. »", worry: "Que ça tombe à l'eau", answer: "C'est la vraie question, vous avez raison. Chaque employé a son propre QR, et vous voyez qui inscrit le plus de clients. On forme l'équipe le jour du lancement.", ask: "Qui, dans votre équipe, parle le plus aux clients ? On commence avec lui." },
   { said: "« Ça va me coûter combien en cadeaux ? »", worry: "Perdre de la marge", answer: "Ce que vous décidez. Vous choisissez un taux entre 4 et 12 %, et chaque cadeau est calculé sur ce qu'il vous coûte. À 8 %, une boisson à 0,60 € se gagne après 7,50 € d'achats.", ask: "Quel taux vous semble raisonnable pour commencer ?" },
   { said: "« Ça coûte combien ? » / « Pas d'abonnement. »", worry: "Être lié", answer: "Rien pour commencer : le Gratuit n'a ni carte bancaire ni engagement. Vous passez à un plan payant seulement si vous voulez suivre vos chiffres ou qu'on s'occupe de la pub.", ask: "On démarre en Gratuit et on fait le point dans un mois ?" },
