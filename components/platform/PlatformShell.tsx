@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -21,12 +21,12 @@ import {
   Sun,
   Users,
   X,
-  type LucideIcon,
   MapPin,
   BookOpen,
   Lightbulb,
 } from "lucide-react";
 import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
+import { Gauge } from "@/components/icons";
 
 // ADR 0030 §2/§7 + ADR 0033 §4 — remplace l'ancienne barre d'onglets
 // horizontale (components/platform/PlatformHeader.tsx, supprimée) par un
@@ -35,7 +35,10 @@ import { BoosteatsLogo } from "@/components/brand/BoosteatsLogo";
 // d'accès portée par app/platform/layout.tsx — ce composant n'est que la
 // chrome, il ne revérifie rien.
 
-const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
+// Les icônes lucide existantes et les icônes Hugeicons de `@/components/icons` (charte anti-slop, ADR 0090) se rendent pareil.
+type NavIconProps = { size?: number; strokeWidth?: number; className?: string; "aria-hidden"?: boolean | "true" | "false" };
+
+const NAV: { href: string; label: string; icon: ComponentType<NavIconProps>; exact?: boolean }[] = [
   { href: "/platform", label: "Réseau", icon: Network, exact: true },
   { href: "/platform/stats", label: "Chiffres", icon: BarChart3 },
   { href: "/platform/backlog", label: "Backlog", icon: ListTodo },
@@ -48,6 +51,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/platform/prestataires", label: "Prestataires", icon: Clapperboard },
   { href: "/platform/pub", label: "Pub", icon: MapPin },
   { href: "/platform/idees", label: "Idées", icon: Lightbulb },
+  { href: "/platform/brigade", label: "Brigade", icon: Gauge },
 ];
 
 const COLLAPSE_KEY = "platform-sidebar-collapsed";
