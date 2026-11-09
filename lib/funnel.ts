@@ -25,8 +25,10 @@ import { todayInBrussels } from "./qr-funnel";
 /** Les étapes, dans l'ordre du parcours réel (ADR 0048/0049). */
 export const FUNNEL_STEPS = [
   "qr_landing",
+  "camera_open",
   "ticket_capture_opened",
   "photo_retake_asked",
+  "result_view",
   "signup_started",
   "signup_completed",
   "ticket_submitted",
@@ -94,6 +96,12 @@ export const STEP_VIEW: Record<FunnelStep, { label: string; hint: string; rateFr
     hint: "Chargements de la page de l'établissement (qr_landings, ADR 0037)",
     rateFrom: null,
   },
+  // ADR 0094 — ces deux étages manquaient pour lire le tunnel « arrivée → caméra → photo → résultat → inscription ».
+  camera_open: {
+    label: "Caméra ouverte",
+    hint: "L'écran ticket a ouvert la caméra (intégrée ou celle du téléphone) — avant la photo",
+    rateFrom: "qr_landing",
+  },
   ticket_capture_opened: {
     label: "Photo du ticket prise",
     hint: "Une image a été acceptée et préparée sur l'appareil",
@@ -104,6 +112,11 @@ export const STEP_VIEW: Record<FunnelStep, { label: string; hint: string; rateFr
     label: "Photo floue ou noire, reprise demandée",
     hint: "Contrôle gratuit sur le téléphone, avant l'envoi (ADR 0092) — un événement, pas une personne",
     rateFrom: "qr_landing",
+  },
+  result_view: {
+    label: "Résultat vu",
+    hint: "Le client a vu ses points : « Ton ticket est prêt » (visiteur) ou la confirmation (membre) — un événement, pas une personne",
+    rateFrom: "ticket_capture_opened",
   },
   signup_started: {
     label: "Départ vers l'inscription",
@@ -155,8 +168,10 @@ export const STEP_VIEW: Record<FunnelStep, { label: string; hint: string; rateFr
  * (ADR 0037 §2 : « il compte des chargements de page, pas des personnes »).
  */
 export const CLIENT_REPORTABLE_STEPS = [
+  "camera_open",
   "ticket_capture_opened",
   "photo_retake_asked",
+  "result_view",
   "signup_started",
   "install_prompt_shown",
 ] as const satisfies readonly FunnelStep[];
