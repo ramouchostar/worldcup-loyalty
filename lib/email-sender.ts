@@ -67,3 +67,18 @@ export function restaurantCopyAddress(
 export function restaurantCopySubject(subject: string, to: string): string {
   return `[Copie → ${to.trim()}] ${subject}`;
 }
+
+// Domaines réservés (RFC 2606 / 6761) : aucune boîte n'y existe, un envoi y
+// rebondit à coup sûr. Nos comptes de démo et de test (seed.boosteats.test,
+// demo-kraainem.boosteats.test) en sont : 341 rebonds sur 347 entre le
+// 2026-10-11 et le 2026-11-09, qui abîment la réputation du domaine d'envoi.
+const RESERVED_TLDS = ["test", "example", "invalid", "localhost"];
+
+export function isUndeliverableAddress(to: string): boolean {
+  const domain = to.trim().toLowerCase().split("@").pop() ?? "";
+  if (!domain || !to.includes("@")) return true;
+  const labels = domain.split(".");
+  const tld = labels[labels.length - 1];
+  if (RESERVED_TLDS.includes(tld)) return true;
+  return /^example\.(com|net|org)$/.test(labels.slice(-2).join("."));
+}

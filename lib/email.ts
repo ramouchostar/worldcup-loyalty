@@ -7,7 +7,7 @@ import { createAdminClient } from "./supabase";
 import { getRestaurantBranding, logoPublicUrl } from "./restaurant";
 import { BRAND_DEFAULTS } from "./branding";
 import { foodIconUrl } from "./food-icon";
-import { replyToAddress, restaurantCopyAddress, restaurantCopySubject, senderAddress, senderConfigFromEnv, type SenderKind } from "./email-sender";
+import { isUndeliverableAddress, replyToAddress, restaurantCopyAddress, restaurantCopySubject, senderAddress, senderConfigFromEnv, type SenderKind } from "./email-sender";
 import { APP_URL, type MemberTheme, type RenderedEmail } from "./email-templates/kit";
 import { randomUUID } from "node:crypto";
 import { recordSend } from "./message-log";
@@ -104,6 +104,14 @@ export async function dispatch(to: string, content: RenderedEmail, meta: Dispatc
       subject: content.subject,
       ...extra,
     });
+
+  // Adresse de démo ou de test (domaine réservé) : jamais confiée à Resend, un
+  // rebond certain abîme la réputation du domaine. Dit dans le journal ; vrai
+  // en retour pour que l'appelant ne retente pas à chaque passage du cron.
+  if (isUndeliverableAddress(to)) {
+    await journal("failed", { error: "Adresse de test (domaine réservé) : non envoyé." });
+    return true;
+  }
 
   const resend = getClient();
   if (!resend) {
