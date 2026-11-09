@@ -619,7 +619,7 @@ Les sept **assistants** marketing de Boosteats qui préparent des **idées** pou
 _Avoid_ : IA, robot, bot, agent (côté restaurateur — « agent » ne vit que dans le code : `lib/agents/`) ; seule exception, le titre de la landing (`components/restaurateurs/Hero.tsx`) dit « 7 agents IA », décidé par Mehdi le 2026-11-05.
 
 **Assistant** :
-Un personnage de la brigade, un poste chacun : **Léa** inscrit les clients et gère les cadeaux · **Hugo** relance les clients · **Chloé** suit les chiffres · **Emma** lance et gère les publicités en ligne (Gratuit) · **Louis** répond aux avis Google (Croissance) · **Nina** crée un site qui donne envie de commander · **Max** améliore votre visibilité sur Google (Pro). Jamais présenté comme une personne de l'équipe. Jamais vu par un membre.
+Un personnage de la brigade, un poste chacun : **Léa** inscrit les clients et gère les cadeaux · **Hugo** relance les clients · **Chloé** suit les chiffres · **Emma** lance et gère les publicités en ligne (Gratuit) · **Louis** répond aux avis Google (Croissance) · **Nina** crée un site qui donne envie de commander · **Max** améliore votre visibilité sur Google (Pro, Nina et Max **en pilote** avec quelques établissements — jamais présentés comme disponibles pour tous). Jamais présenté comme une personne de l'équipe. Jamais vu par un membre.
 _Avoid_ : employé, conseiller, coach.
 
 **Idée** :

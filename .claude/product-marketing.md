@@ -1,12 +1,13 @@
 # Product Marketing Context — Boosteats
 
-**Document version:** v3
-**Last updated:** 2026-11-01
+**Document version:** v4
+**Last updated:** 2026-11-09
 
 > Fiche de base lue par tous les skills marketing (texte, offre, prospection, landing).
 > Elle résume et **ne remplace pas** les décisions : [ADR 0074](../docs/adr/0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
 > (positionnement), [ADR 0081](../docs/adr/0081-le-jeu-de-la-croissance.md) (jeu de la croissance, frais Pub),
 > [ADR 0086](../docs/adr/0086-pub-le-process-deux-validations-le-reste-automatique.md) (Pub),
+> [ADR 0089](../docs/adr/0089-la-brigade-des-idees-que-le-gerant-valide.md) (la brigade), [ADR 0088](../docs/adr/0088-site-referencement-pro.md) (site et référencement, en pilote),
 > [docs/strategie/](../docs/strategie/) (positionnement, prospection Bruxelles). En cas de désaccord, l'ADR gagne.
 >
 > **Dépôt public** : jamais de nom de gérant, de coordonnée, de chiffre d'un client ou de condition
@@ -14,9 +15,13 @@
 
 ## Product Overview
 
-**One-liner :** Boosteats fait revenir vos clients et en fait venir de nouveaux. Rien à brancher : le ticket de caisse suffit. Et chaque cadeau est calculé sur ce qu'il vous coûte, au taux que vous choisissez.
+**One-liner :** Faites grimper votre chiffre d'affaires. Une brigade de sept assistants prépare chaque jour des idées pour faire revenir vos clients et en faire venir de nouveaux ; vous les validez en 5 minutes. Rien à brancher : le ticket de caisse suffit. Et chaque cadeau est calculé sur ce qu'il vous coûte, au taux que vous choisissez.
 
-**What it does :** Le client prend son ticket en photo avec son téléphone et gagne des points ; il choisit son cadeau au catalogue. Le restaurateur récupère ainsi une liste de clients joignables, leur envoie des messages, lance une pub dans son quartier sur Facebook et Instagram, et suit son chiffre d'affaires du jour et ce que lui coûte chaque plat.
+**Titre de la landing (décidé par le porteur le 2026-11-05) :** « Faites grimper votre chiffre d'affaires. » — sous-titre « 7 agents IA analysent vos ventes et vos clients, et vous proposent chaque jour les actions qui font vendre. De vrais experts vous accompagnent. » C'est le **seul** endroit où l'on dit « agents IA » ; partout ailleurs, « la brigade » et « les assistants ».
+
+**What it does :** Le client prend son ticket en photo avec son téléphone et gagne des points ; il choisit son cadeau au catalogue. Le restaurateur récupère ainsi une liste de clients joignables, leur envoie des messages, lance une pub dans son quartier sur Facebook et Instagram, et suit son chiffre d'affaires du jour et ce que lui coûte chaque plat. **La brigade** (ADR 0089) transforme tout ça en idées toutes prêtes (trois lignes : quoi, pour qui, combien), au plus trois par jour : le gérant répond oui ou non depuis son téléphone, rien ne part et aucun euro n'est dépensé sans son « oui ».
+
+**La brigade, poste par poste :** Léa inscrit les clients et gère les cadeaux · Hugo relance les clients · Chloé suit les chiffres · Emma lance et gère les pubs Facebook et Instagram (dès le Gratuit) · Louis répond aux avis Google (Croissance) · Nina crée un site qui donne envie de commander · Max améliore la place sur Google (Pro, **tous deux en pilote** avec quelques établissements). Jamais présentés comme des personnes de l'équipe.
 
 **Product category :** fidélité et marketing local pour restaurants (le restaurateur cherche « carte de fidélité », « programme de fidélité », « pub Facebook restaurant », « faire revenir mes clients »).
 
@@ -31,12 +36,19 @@
 | **Pro** | 500 €/mois, 3 mois minimum puis au mois | Celui qui veut qu'on s'en occupe | 5 % du budget |
 
 Contenu réellement livré par plan : voir « Ce que contient chaque plan » plus bas. **Croissance à
-150 €/mois** (décision du porteur, 2026-11-01), aligné sur la landing (`PlansSection.tsx` : « 150 €, c'est
-environ 16 tickets de plus dans le mois ») et dans `docs/strategie/positionnement.md`.
+150 €/mois** (décision du porteur, 2026-11-01), aligné sur la landing (`PlansSection.tsx`) et
+`docs/strategie/positionnement.md`. Plus jamais de calcul « X € = N tickets » face au restaurateur
+(décision du 2026-11-01).
 
-### Ce que contient chaque plan (livré au 2026-11-01)
+**Le comparatif** (landing, section 3, et 12 articles `/blog/*-ou-boosteats`) : ce que coûte chaque
+poste chez un spécialiste (Joyn, Zerosix, Brevo, Zenchef, Tenzo, Apicbase, agences pub, Malou, Guest
+Suite, développeur, agences de référencement), prix publics relevés le 2026-11-05, source unique
+`lib/comparatif.ts` (un test échoue s'ils ne sont pas relus avant le 2027-05-24). Honnête : chaque
+article dit ce que le concurrent fait bien et ce que Boosteats ne fait pas.
 
-**Gratuit — « Inscrivez vos clients »**
+### Ce que contient chaque plan (livré au 2026-11-09)
+
+**Gratuit — « Inscrivez vos clients »** — Léa, Hugo, Chloé, Emma
 - QR code et affiches prêts à imprimer, QR personnel pour chaque employé en salle
 - Photo du ticket de caisse lue toute seule, rien à brancher (jusqu'à 500 tickets/mois ; au-delà le client n'est jamais bloqué)
 - Points (10 par euro) et catalogue de cadeaux **calculé sur le prix de revient** des plats, au taux choisi par le restaurateur (4 à 12 %)
@@ -46,21 +58,27 @@ environ 16 tickets de plus dans le mois ») et dans `docs/strategie/positionneme
 - Menu & coûts (prix de vente et prix de revient ligne par ligne), CA du jour noté en un écran
 - Pub de quartier sur demande (frais 20 %)
 
-**Croissance — « Suivez vos chiffres »** = Gratuit, plus :
+**Croissance — « Suivez vos chiffres »** = Gratuit, plus Louis :
 - Tickets illimités
 - Suivi du chiffre d'affaires : jour par jour, comparé aux mêmes jours, **part du CA venue des clients du programme**
 - Ventes par plat, prévisions de fréquentation, opportunités, annonces programmées, baromètre avancé
 - **Réponse à vos avis Google** par Boosteats (service, sur invitation comme gestionnaire de la fiche — décision du 2026-11-01, aussi en Pro)
 - Pub de quartier à 15 % de frais
 
-**Pro — « On s'en occupe »** = Croissance, plus :
+**Pro — « On s'en occupe »** = Croissance, plus Nina et Max (en pilote) :
 - Repères anonymes face aux restaurants du secteur
 - Pub de quartier à 5 % de frais
 - Accompagnement humain : fiche Google tenue à jour (sur invitation), rapport et point mensuels — **livré en partie à la main**, à dire tel quel
 
-**Pas encore livré — ne jamais présenter comme disponible** (ADR 0070 §Conséquences) : copilote du
-lundi, centre des avis automatisé dans la console (la réponse aux avis par l'équipe, elle, est livrée en Croissance et Pro), relance automatique au rythme de chaque client,
-site de commande partenaire, référencement. Si on en parle : « en préparation », jamais au présent.
+**Livré depuis le 2026-11-05** : l'écran « Idées du jour » de la console (premier onglet), les idées
+d'Hugo (relancer les clients qui ne reviennent plus), de Chloé (rappel du CA du jour, opportunités),
+d'Emma (la pub proposée au gérant), de Léa et de Max (constats de l'analyse), le message du matin.
+
+**En pilote — à dire « en pilote », jamais comme disponible pour tous** : le site de Nina (ADR 0088,
+sur `<établissement>.boosteats.be`, le bouton « Commander » ouvre la commande existante) et le
+référencement de Max. **Pas encore livré** : la réponse aux avis par Louis dans la console (attend
+l'accès Google Business Profile ; la réponse par l'équipe, elle, est livrée en Croissance et Pro), le
+message du matin sur WhatsApp (modèles à faire valider par Meta). Si on en parle : « en préparation ».
 
 ## Target Audience
 
@@ -156,7 +174,7 @@ Prix et chiffres concurrents à **revérifier avant de les citer** à un prospec
 **How they describe us :** *à collecter.*
 
 **Words to use :** clients, revenir, quartier, ticket, caisse, cadeau, CA du jour, prix de revient, marge, pub, Facebook et Instagram, gratuit, sans engagement, « en un écran ».
-**Words to avoid :** « SEO » (dire « référencement »), « attribution » (dire « savoir d'où viennent vos clients »), « CRM », « segments », « automatique / instantané » côté client, « scanner » le ticket (dire « prendre en photo »), « grâce à nous », tout pourcentage de hausse promis, « faire exploser vos ventes », « réseau de clients » (faux aujourd'hui, et on ne met jamais de concurrent devant son client).
+**Words to avoid :** « IA », « agent », « robot », « bot » (dire « la brigade », « les assistants » ; seule exception, le titre de la landing), « roue », « copilote », « SEO » (dire « référencement »), « attribution » (dire « savoir d'où viennent vos clients »), « CRM », « segments », « automatique / instantané » côté client, « scanner » le ticket (dire « prendre en photo »), « grâce à nous », tout pourcentage de hausse promis, « faire exploser vos ventes », « réseau de clients » (faux aujourd'hui, et on ne met jamais de concurrent devant son client).
 
 **Glossary :**
 | Term | Meaning |
@@ -186,7 +204,7 @@ Prospection, landing et e-mails restaurateurs : **vouvoiement**. Console du rest
 - Support : réponse directe, par le même canal
 - Social : preuves du terrain (photos de salle, chiffres avec accord)
 
-**Terms we own :** « faire revenir, faire venir », « rien à brancher : le ticket de caisse suffit », « chaque cadeau est calculé sur ce qu'il vous coûte ».
+**Terms we own :** « faites grimper votre chiffre d'affaires », « votre part du travail : 5 minutes par jour », « sept abonnements ailleurs, un seul forfait chez nous », « faire revenir, faire venir », « rien à brancher : le ticket de caisse suffit », « chaque cadeau est calculé sur ce qu'il vous coûte ».
 **Never use (and why) :** « grâce à nous » (on mesure une origine, pas un CA additionnel — ADR 0064) ; « automatique / instantané » pour la validation des tickets côté client (ADR 0008) ; « 0 % de commission » sans contexte (ADR 0070) ; une fonction non livrée au présent.
 
 ## Proof Points
@@ -219,9 +237,12 @@ Pub de quartier gérée **pour les restaurants clients** (pas d'acquisition Boos
 
 | Date | Learning | Evidence | Applies to | Status |
 |---|---|---|---|---|
+| 2026-11-05 | Titre « Faites grimper votre chiffre d'affaires » + brigade de 7 assistants ; « agents IA » seulement dans le titre | Décision du porteur | Landing, kit de visite, page comptoir | active |
+| 2026-11-05 | Comparer honnêtement avec les concurrents nommés (prix publics datés, ce qu'ils font bien) ; pas d'Owner.com (absent d'Europe) | Décision du porteur ; publicité comparative (CDE art. VI.17) | Landing, blog | active |
+| 2026-11-09 | Commissions des plateformes : « jusqu'à 30 % » reste correct en Belgique | Vérifié par le porteur | Landing (section site) | active |
 | 2026-11-01 | Croissance à 150 €/mois (au lieu de 99 € sur la landing) | Décision du porteur | Landing, one-pager, script | active |
 | 2026-11-01 | Ne pas mettre en avant « les clients restent à vous » | Décision du porteur | Tout texte commercial | active |
-| 2026-11-01 | Le message d'ouverture est « faire revenir + faire venir » ; la fidélité au coût maîtrisé est ce qui nous distingue, la pub de quartier ce qui fait payer | Décision du porteur | Tout texte commercial | active |
+| 2026-11-01 | Le message d'ouverture est « faire revenir + faire venir » ; la fidélité au coût maîtrisé est ce qui nous distingue, la pub de quartier ce qui fait payer | Décision du porteur | Tout texte commercial | remplacé le 2026-11-05 par le titre « chiffre d'affaires » ; « faire revenir + faire venir » reste le fond |
 | 2026-11-01 | Cible du premier mois : indépendants de Bruxelles (pas le réseau Belchicken) | Décision du porteur | Prospection, landing | active |
 | 2026-11-01 | Le prix se présente en commençant par le Gratuit, puis chaque plan payant avec ce qu'il apporte | Décision du porteur | Landing, one-pager, script | active |
 | 2026-11-01 | Ne pas parler de « réseau de clients » | Faux aujourd'hui ; contraire à l'ADR 0070 | Tout texte | active |
@@ -230,6 +251,7 @@ Pub de quartier gérée **pour les restaurants clients** (pas d'acquisition Boos
 ## Changelog
 
 *Les plus récentes en haut. Une ligne par révision : quoi et pourquoi.*
+- v4 (2026-11-09) — La brigade (ADR 0089) : titre de la landing, sept assistants et leurs plans, Nina et Max en pilote, ce qui est livré ; comparatif concurrents ; mots à éviter (IA, agent, robot, roue, copilote) ; plus de calcul en tickets.
 - v3 (2026-11-02) — Preuve : cas Kraainem publiable (accord d'Aram).
 - v2 (2026-11-01) — Plans : la réponse aux avis Google par Boosteats est livrée en Croissance et Pro (décision de Mehdi) ; le centre des avis automatisé reste en préparation.
 - v1 (2026-11-01) — Contexte initial, rédigé depuis le code, les ADR 0070/0074/0081/0086 et docs/strategie, après les décisions du porteur (message, cible, prix Gratuit d'abord, Croissance à 150 €, tournures « rien à brancher » et « calculé sur ce qu'il vous coûte »).
