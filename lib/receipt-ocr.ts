@@ -64,6 +64,8 @@ export type ReadTrace = {
   ms: number;
   input_tokens: number | null;
   output_tokens: number | null;
+  /** Le JSON a été extrait d'une réponse en phrase (ADR 0093) : sans cela, secours Haiku. */
+  json_salvaged?: boolean;
 };
 
 /**
@@ -234,6 +236,18 @@ export class ReadError extends Error {
  * bloc `thinking` : on cherche le bloc de texte, on ne suppose jamais sa place.
  */
 export function readJsonFromContent(content: ReadonlyArray<{ type: string; text?: string }>): VisionResult {
+  return readJsonDetailed(content).parsed;
+}
+
+/**
+ * Comme `readJsonFromContent`, mais dit si le JSON a dû être extrait d'une phrase (ADR 0093).
+ * Du 2026-10-10 au 2026-11-09, 11 lectures de Sonnet sur 369 (3 %) ont répondu « The order
+ * number is… » au lieu du JSON : la lecture partait en secours Haiku. Si la phrase contient
+ * l'objet JSON, on le prend ; sinon l'erreur reste la même (le secours joue).
+ */
+export function readJsonDetailed(
+  content: ReadonlyArray<{ type: string; text?: string }>
+): { parsed: VisionResult; salvaged: boolean } {
   const rawText = content
     .filter((b) => b.type === "text" && typeof b.text === "string")
     .map((b) => b.text as string)
@@ -241,7 +255,23 @@ export function readJsonFromContent(content: ReadonlyArray<{ type: string; text?
     .trim();
   // Strip markdown code fences if model wraps output
   const jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-  return JSON.parse(jsonText) as VisionResult;
+  try {
+    return { parsed: JSON.parse(jsonText) as VisionResult, salvaged: false };
+  } catch (err) {
+    const from = jsonText.indexOf("{");
+    const to = jsonText.lastIndexOf("}");
+    if (from >= 0 && to > from) {
+      try {
+        const parsed = JSON.parse(jsonText.slice(from, to + 1));
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return { parsed: parsed as VisionResult, salvaged: true };
+        }
+      } catch {
+        /* pas un JSON : l'erreur d'origine reste */
+      }
+    }
+    throw err;
+  }
 }
 
 async function readOnce(
@@ -281,7 +311,7 @@ async function readOnce(
     );
     const ms = Date.now() - started;
     if (msg.stop_reason === "refusal") throw new ReadError("refus du modèle", ms, true);
-    const parsed = readJsonFromContent(msg.content);
+    const { parsed, salvaged } = readJsonDetailed(msg.content);
     return {
       parsed,
       trace: {
@@ -289,6 +319,7 @@ async function readOnce(
         ms,
         input_tokens: msg.usage?.input_tokens ?? null,
         output_tokens: msg.usage?.output_tokens ?? null,
+        ...(salvaged ? { json_salvaged: true } : {}),
       },
     };
   } catch (err) {

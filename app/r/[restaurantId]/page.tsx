@@ -15,6 +15,8 @@ import { ScanTicketCta } from "@/components/member/ScanTicketCta";
 import { foodIconUrl } from "@/lib/food-icon";
 import { recordStaffLanding } from "@/lib/staff-codes";
 import { recordLanding } from "@/lib/qr-funnel";
+import { classifyArrival } from "@/lib/arrival-source";
+import { headers } from "next/headers";
 import { COIN_EMOJI, PEOPLE_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
 import { SITE_ORIGIN } from "@/lib/site";
@@ -89,9 +91,20 @@ export default async function RestaurantLandingPage({
   // seul point de mesure qui ne dépende pas du consentement (GA4 refusé par
   // défaut ne voit presque rien). Aucune donnée personnelle, un compteur par
   // jour, et un échec n'empêche jamais la page de s'afficher.
+  // ADR 0093 — « direct » détaillé : l'origine (referer) et le robot éventuel sont CLASSÉS dans
+  // une liste close puis jetés ; ni l'en-tête brut ni l'agent utilisateur ne sont conservés.
+  const reqHeaders = await headers();
+  const ownHosts = [SITE_ORIGIN, process.env.NEXT_PUBLIC_APP_URL ?? ""]
+    .map((u) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } })
+    .filter(Boolean);
   await recordLanding(
     restaurantId,
-    utmSource === "qr_code" ? "qr_code" : "direct",
+    classifyArrival({
+      utmSource,
+      referer: reqHeaders.get("referer"),
+      userAgent: reqHeaders.get("user-agent"),
+      ownHosts,
+    }),
     user ? "membre" : "anonyme"
   );
   // ADR 0053 — la même arrivée comptée par PRÉNOM du personnel, en plus de

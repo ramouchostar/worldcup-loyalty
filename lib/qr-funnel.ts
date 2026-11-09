@@ -12,7 +12,10 @@ import { createAdminClient } from "./supabase";
 // ni cookie, ni identifiant — un compteur par jour. C'est ce qui permet de
 // mesurer sans consentement (ADR 0025), là où GA4 ne voit presque rien.
 
-export type LandingSource = "qr_code" | "direct";
+import type { ArrivalSource } from "./arrival-source";
+
+/** ADR 0093 : « direct » est détaillé (aperçu de lien, réseau social, recherche…) — voir lib/arrival-source.ts. */
+export type LandingSource = ArrivalSource;
 export type LandingVisitor = "anonyme" | "membre";
 
 // Jour belge : un scan au comptoir appartient à la journée du commerce, pas
@@ -49,7 +52,9 @@ export async function recordLanding(
 export type FunnelDay = {
   day: string;
   landingsQr: number;      // arrivées anonymes venues d'un QR imprimé
-  landingsDirect: number;  // arrivées anonymes sans utm (lien partagé, saisie)
+  landingsDirect: number;  // arrivées anonymes hors QR (toutes les autres sources)
+  /** Le détail de `landingsDirect` par source (ADR 0093) — avant, tout était « direct ». */
+  directDetail: Record<string, number>;
   landingsMembre: number;  // retours de membres déjà inscrits
   signups: number;
   scans: number;
@@ -78,7 +83,7 @@ export async function getFunnel(restaurantId: string, days = 14): Promise<Funnel
     const key = d.slice(0, 10);
     let row = parJour.get(key);
     if (!row) {
-      row = { day: key, landingsQr: 0, landingsDirect: 0, landingsMembre: 0, signups: 0, scans: 0, orders: 0 };
+      row = { day: key, landingsQr: 0, landingsDirect: 0, directDetail: {}, landingsMembre: 0, signups: 0, scans: 0, orders: 0 };
       parJour.set(key, row);
     }
     return row;
@@ -88,7 +93,10 @@ export async function getFunnel(restaurantId: string, days = 14): Promise<Funnel
     const row = jour(l.day);
     if (l.visitor === "membre") row.landingsMembre += l.count;
     else if (l.source === "qr_code") row.landingsQr += l.count;
-    else row.landingsDirect += l.count;
+    else {
+      row.landingsDirect += l.count;
+      row.directDetail[l.source] = (row.directDetail[l.source] ?? 0) + l.count;
+    }
   }
   for (const m of (memberships.data ?? []) as { joined_at: string }[]) jour(m.joined_at).signups++;
   for (const s of (scans.data ?? []) as { scanned_at: string }[]) jour(s.scanned_at).scans++;

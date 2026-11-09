@@ -12,6 +12,7 @@ import { RestaurantFilter } from "./RestaurantFilter";
 import { ScanFrictions, type FrictionCard } from "./ScanFrictions";
 import { MatchRates } from "./MatchRates";
 import { ScanActions } from "./ScanActions";
+import { ARRIVAL_LABELS } from "@/lib/arrival-source";
 
 export const metadata = { title: "Tickets scannés — Plateforme" };
 
@@ -309,6 +310,21 @@ export default async function PlatformScansPage({
                 </tbody>
               </table>
             </div>
+          )}
+          {funnel.some((d) => d.landingsDirect > 0) && (
+            <p className="text-xs text-gray-500 mt-2">
+              <strong>Arrivées lien, par origine (ADR 0093)</strong> —{" "}
+              {Object.entries(
+                funnel.reduce<Record<string, number>>((acc, d) => {
+                  for (const [k, v] of Object.entries(d.directDetail)) acc[k] = (acc[k] ?? 0) + v;
+                  return acc;
+                }, {})
+              )
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, v]) => `${ARRIVAL_LABELS[k] ?? k} ${v}`)
+                .join(" · ")}
+              . Les arrivées d&apos;avant ce détail sont comptées « sans origine ».
+            </p>
           )}
         </section>
       )}
