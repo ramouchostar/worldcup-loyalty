@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { replyToAddress, restaurantCopyAddress, restaurantCopySubject, senderAddress, senderDisplayName } from "./email-sender";
+import { isUndeliverableAddress, replyToAddress, restaurantCopyAddress, restaurantCopySubject, senderAddress, senderDisplayName } from "./email-sender";
 
 test("expéditeur membre : le nom de l'établissement, sur le domaine d'envoi", () => {
   assert.equal(
@@ -44,4 +44,17 @@ test("copie plateforme : jamais un e-mail membre, ni le test, ni à soi-même, n
 
 test("copie plateforme : l'objet dit à qui l'original est parti", () => {
   assert.equal(restaurantCopySubject("Ta semaine", "gerant@resto.be"), "[Copie → gerant@resto.be] Ta semaine");
+});
+
+test("adresse de test : domaines réservés jamais envoyés", () => {
+  assert.equal(isUndeliverableAddress("membre-12@demo-kraainem.boosteats.test"), true);
+  assert.equal(isUndeliverableAddress("patron@seed.boosteats.test"), true);
+  assert.equal(isUndeliverableAddress("A@FOO.TEST "), true);
+  assert.equal(isUndeliverableAddress("x@example.com"), true);
+  assert.equal(isUndeliverableAddress("x@site.invalid"), true);
+  assert.equal(isUndeliverableAddress("sans-arobase"), true);
+  assert.equal(isUndeliverableAddress("mehdi@gmail.com"), false);
+  assert.equal(isUndeliverableAddress("contact@boosteats.be"), false);
+  assert.equal(isUndeliverableAddress("chef@testaurant.be"), false);
+  assert.equal(isUndeliverableAddress("x@myexample.com"), false);
 });
