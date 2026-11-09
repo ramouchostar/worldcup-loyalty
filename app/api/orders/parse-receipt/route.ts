@@ -10,6 +10,7 @@ import { recordFunnelStep } from "@/lib/funnel";
 import { storeScan } from "@/lib/receipt-scans";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
+import { DELIVERY_TICKET_MESSAGE, outsideProgramMessage } from "@/lib/refused-tickets";
 import { isOtherEstablishment, judgeReceipt, notAReceiptMessage, otherEstablishmentMessage, refusalReason, scanRefusalReason, unknownCodeMessage } from "@/lib/receipt-proof";
 import { loadRewardGrid, welcomeReward } from "@/lib/rewards";
 import { listCatalogue } from "@/lib/points";
@@ -142,10 +143,19 @@ export async function POST(request: NextRequest) {
     userId: user?.id ?? null,
     file,
     analysis,
-    outcome: verdict === "receipt" && !analysis.key_issue ? "parsed" : "header_rejected",
+    outcome: verdict === "receipt" && !analysis.key_issue && !analysis.delivery ? "parsed" : "header_rejected",
     refusalReason: scanRefusalReason(analysis, { checkCompleteness: false }),
   });
 
+  // ADR 0098 — refus DÉFINITIFS : ticket de livraison, ticket d'un établissement hors programme (Ixelles).
+  if (analysis.delivery) {
+    await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "delivery_ticket");
+    return NextResponse.json({ error: DELIVERY_TICKET_MESSAGE }, { status: 422 });
+  }
+  if (analysis.outside_program) {
+    await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "outside_program");
+    return NextResponse.json({ error: outsideProgramMessage(analysis.outside_program, restaurantName) }, { status: 422 });
+  }
   // ADR 0073 — ticket d'un AUTRE établissement : refus net, compté à part.
   if (isOtherEstablishment(analysis)) {
     await recordFunnelStep(String(rawRestaurantId), "ticket_rejected", "wrong_establishment");

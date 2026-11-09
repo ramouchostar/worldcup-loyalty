@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { TICKET_KEY_DESCRIPTION, TICKET_KEY_PATTERN, compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
 import { sanitizeKeyDate } from "./receipt-key-sanity";
 import type { DeviceClass } from "./arrival-source";
+import { isDeliveryChannel, outsideProgramByCode } from "./refused-tickets";
 import { judgeHeader, type EstablishmentIdentity, type HeaderVerdict } from "./receipt-header";
 import { checkStoreCode, repairStoreCode, storeCodeOf, type KeyStoreVerdict } from "./receipt-key-store";
 
@@ -112,6 +113,10 @@ export type ReceiptAnalysis = {
   order_number: string | null;
   /** Pourquoi la clé lue a été écartée (ADR 0073) ; null si elle est gardée ou absente. */
   key_issue: KeyIssue | null;
+  /** Ticket de livraison (Uber Eats, Deliveroo, « Livraison ») : jamais accepté (ADR 0098). */
+  delivery: boolean;
+  /** Nom de l'établissement hors programme que désigne le ticket (Ixelles), sinon null (ADR 0098). */
+  outside_program: string | null;
   amount: number | null;
   confidence: number;
   has_restaurant_header: boolean;
@@ -435,8 +440,10 @@ export function needsRescue(input: {
    * lui faut, la relecture n'ajouterait que 7 à 13 s d'attente.
    */
   previewEnough?: boolean;
+  /** Ticket de livraison : refusé quoi qu'on relise (ADR 0098). */
+  notAccepted?: boolean;
 }): boolean {
-  if (input.previewEnough) return false;
+  if (input.previewEnough || input.notAccepted) return false;
   if (!input.totalOrKeySeen) return false;
   if (input.looksLikePoster && input.orderNumber === null) return false;
   const amountMissing = input.amount === null;
@@ -563,6 +570,7 @@ export async function analyzeReceipt(
   let codeRepaired: string | null = null;
   // ADR 0091 : l'en-tête imprimé passe AVANT le code de la clé.
   let headerTrace: ReceiptReadTrace["header"];
+  let outsideProgram: string | null = null;
   const screened = (r: Reading): { reading: Reading; issue: KeyIssue | null } => {
     const header = identities
       ? judgeHeader(r.printed_name, r.printed_address, identities.ownId, identities.all)
@@ -572,6 +580,14 @@ export async function analyzeReceipt(
     }
     if (header.verdict === "other") {
       // Le ticket nomme un autre établissement : refus, même si la clé porte le bon code.
+      // ADR 0098 : si cet établissement ne fait pas partie du programme (Ixelles), on le dit.
+      const matched = identities?.all.find((i) => i.id === header.matched);
+      if (matched && matched.active === false && !outsideProgram) outsideProgram = matched.name;
+      return { reading: { ...r, order_number: null }, issue: "other_establishment" };
+    }
+    const outsideByCode = outsideProgramByCode(r.order_number);
+    if (outsideByCode) {
+      if (!outsideProgram) outsideProgram = outsideByCode;
       return { reading: { ...r, order_number: null }, issue: "other_establishment" };
     }
     const codeVerdict = checkStoreCode(r.order_number, ownStoreCode, otherStoreCodes);
@@ -608,6 +624,7 @@ export async function analyzeReceipt(
     looksLikePoster: reading.looks_like_qr_or_poster,
     keyIssue,
     totalOrKeySeen: reading.amount !== null || reading.raw_order_number !== null,
+    notAccepted: isDeliveryChannel(reading.channel),
   };
   const previewEnough =
     options.preview === true &&
@@ -663,6 +680,8 @@ export async function analyzeReceipt(
   return {
     ...reading,
     key_issue: keyIssue,
+    delivery: isDeliveryChannel(reading.channel),
+    outside_program: outsideProgram,
     confidence,
     key_second_read: trace.rescue_filled.includes("key"),
     trace,

@@ -77,9 +77,14 @@ export function keyLabelForMember(keyLabel: string | null): string {
 export function scanRefusalReason(
   analysis: Pick<ReceiptAnalysis, "amount" | "order_number" | "key_corrected" | "has_restaurant_header" | "looks_like_qr_or_poster"> & {
     key_issue?: KeyIssue | null;
+    delivery?: boolean;
+    outside_program?: string | null;
   },
   opts: { checkCompleteness: boolean; hasReliableKey?: boolean }
 ): RejectionReason | null {
+  // ADR 0098 — refus définitifs, avant tout le reste.
+  if (analysis.delivery) return "delivery_ticket";
+  if (analysis.outside_program) return "outside_program";
   if (isOtherEstablishment(analysis)) return "wrong_establishment";
   const verdict = judgeReceipt(analysis);
   if (verdict === "poster") return "qr_detected";

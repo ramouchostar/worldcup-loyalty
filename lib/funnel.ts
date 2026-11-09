@@ -54,6 +54,8 @@ export const REJECTION_REASONS = [
   "visitor_rate_limited",
   "reading_unavailable",
   "repeat_refused",
+  "delivery_ticket",
+  "outside_program",
 ] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
 
@@ -79,6 +81,9 @@ export const REJECTION_LABELS: Record<RejectionReason, string> = {
   reading_unavailable: "Lecture impossible (panne ou délai dépassé)",
   // Refus répété du même type de ticket (code d'établissement inconnu), arrêté avant la lecture.
   repeat_refused: "Même refus répété (arrêté avant la lecture)",
+  // ADR 0098 — refus définitifs voulus par le porteur : jamais de nouvelle photo à demander.
+  delivery_ticket: "Ticket de livraison (jamais accepté)",
+  outside_program: "Ticket d'un établissement hors programme (Ixelles)",
 };
 
 /**
