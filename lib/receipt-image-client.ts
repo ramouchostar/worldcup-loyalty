@@ -12,6 +12,7 @@
 //   le fichier d'origine s'il est sous le plafond, sinon une erreur CLAIRE.
 // Pas de dépendance, pas d'import serveur : client only.
 import { MAX_UPLOAD_BYTES, formatMb } from "./receipt-upload-errors";
+import { PHOTO_MEASURE_WIDTH, measureGray, type PhotoMetrics } from "./photo-quality";
 
 export const RECEIPT_MAX_EDGE = 1600;
 export const RECEIPT_JPEG_QUALITY = 0.85;
@@ -87,5 +88,35 @@ export async function prepareReceiptImage(file: File): Promise<PreparedReceipt> 
       ok: false,
       error: "Ce format d'image n'est pas lisible ici. Reprends le ticket en photo directement depuis l'app (JPG).",
     };
+  }
+}
+
+/**
+ * Mesure de netteté et de luminosité de la photo, sur le téléphone (ADR 0092). null si le
+ * navigateur ne sait pas la décoder : dans ce cas, aucun contrôle — le serveur tranche.
+ */
+export async function measureReceiptPhoto(file: File): Promise<PhotoMetrics | null> {
+  try {
+    const src = await decode(file);
+    const w = "width" in src ? src.width : (src as HTMLImageElement).naturalWidth;
+    const h = "height" in src ? src.height : (src as HTMLImageElement).naturalHeight;
+    if (!w || !h) return null;
+    const cw = PHOTO_MEASURE_WIDTH;
+    const ch = Math.max(1, Math.round((h * cw) / w));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(src as CanvasImageSource, 0, 0, cw, ch);
+    if ("close" in src) (src as ImageBitmap).close();
+    const rgba = ctx.getImageData(0, 0, cw, ch).data;
+    const gray = new Uint8Array(cw * ch);
+    for (let i = 0; i < gray.length; i++) {
+      gray[i] = Math.round(0.299 * rgba[i * 4] + 0.587 * rgba[i * 4 + 1] + 0.114 * rgba[i * 4 + 2]);
+    }
+    return measureGray(gray, cw, ch);
+  } catch {
+    return null;
   }
 }

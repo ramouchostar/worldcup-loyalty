@@ -11,7 +11,8 @@ import { foodIconUrl } from "@/lib/food-icon";
 import { createQrDetector, showsProgramQr, POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
 import { track, type AmountBand } from "@/lib/analytics";
 import { beaconFunnelStep } from "@/lib/funnel-beacon";
-import { prepareReceiptImage } from "@/lib/receipt-image-client";
+import { prepareReceiptImage, measureReceiptPhoto } from "@/lib/receipt-image-client";
+import { judgePhotoQuality, shouldBlockPhoto, PHOTO_QUALITY_MESSAGES } from "@/lib/photo-quality";
 import { describeUploadFailure, readJsonSafe } from "@/lib/receipt-upload-errors";
 import { savePendingTicket, loadPendingTicket, clearPendingTicket } from "@/lib/pending-ticket";
 import type { MissingParts } from "@/lib/ticket-auto-send";
@@ -151,6 +152,8 @@ export default function SubmitOrderClient({
   // seule une nouvelle photo comble le trou. Le compteur ne sert qu'à la
   // mesure (n-ième photo ratée sur ce ticket).
   const [framingIssue, setFramingIssue] = useState<MissingParts | null>(null);
+  // ADR 0092 — photos arrêtées de suite par le contrôle flou/noir (le second essai passe toujours).
+  const photoBlocksRef = useRef(0);
   const [framingFailures, setFramingFailures] = useState(0);
   const router = useRouter();
   // ADR 0034 — renvoyé par /api/orders : sans équipe, pas de score communautaire
@@ -319,6 +322,20 @@ export default function SubmitOrderClient({
           }
         }
       }
+      // ADR 0092 — contrôle GRATUIT de la netteté et de la lumière, avant toute lecture payante.
+      // Il ne piège jamais : le second essai de suite passe, le serveur tranche.
+      const metrics = await measureReceiptPhoto(prepared.file);
+      const quality = metrics ? judgePhotoQuality(metrics) : "ok";
+      if (quality !== "ok" && shouldBlockPhoto(quality, photoBlocksRef.current)) {
+        photoBlocksRef.current += 1;
+        beaconFunnelStep(restaurantId, "photo_retake_asked");
+        setReceiptFile(null);
+        setPreview(null);
+        setParseStatus("error");
+        setParseError(`${PHOTO_QUALITY_MESSAGES[quality].title}. ${PHOTO_QUALITY_MESSAGES[quality].hint}`);
+        return;
+      }
+      photoBlocksRef.current = 0;
       setReceiptFile(prepared.file);
       setPreview(URL.createObjectURL(prepared.file));
       // Entonnoir (ADR 0037) — pour TOUT LE MONDE, pas seulement le visiteur :

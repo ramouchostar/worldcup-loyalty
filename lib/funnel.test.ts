@@ -13,8 +13,8 @@ const totals = (entries: Record<string, number>) => new Map(Object.entries(entri
 const rateOf = (steps: ReturnType<typeof computeStepTotals>, step: string) =>
   steps.find((s) => s.step === step)!.rate;
 
-test("les dix étapes du brief, ni plus ni moins", () => {
-  assert.equal(FUNNEL_STEPS.length, 10);
+test("les dix étapes du brief + la reprise de photo demandée (ADR 0092), ni plus ni moins", () => {
+  assert.equal(FUNNEL_STEPS.length, 11);
 });
 
 test("chaque rateFrom pointe une étape connue, jamais elle-même", () => {
@@ -72,14 +72,14 @@ test("les étages sans dénominateur n'ont jamais de taux", () => {
   assert.equal(rateOf(steps, "home_viewed"), null);
 });
 
-test("totaux vides : dix étages à zéro, aucun taux", () => {
+test("totaux vides : onze étages à zéro, aucun taux", () => {
   const steps = computeStepTotals(new Map());
-  assert.equal(steps.length, 10);
+  assert.equal(steps.length, 11);
   assert.ok(steps.every((s) => s.count === 0 && s.rate === null));
 });
 
-test("seules les trois étapes déclarables par le navigateur sont acceptées", () => {
-  assert.equal(CLIENT_REPORTABLE_STEPS.length, 3);
+test("seules les quatre étapes déclarables par le navigateur sont acceptées", () => {
+  assert.equal(CLIENT_REPORTABLE_STEPS.length, 4);
   for (const step of CLIENT_REPORTABLE_STEPS) assert.equal(isClientReportableStep(step), true);
   // Les faits serveur ne passent jamais par /api/funnel : un POST forgé ne
   // doit pas pouvoir gonfler « ticket validé » ni « compte créé ».
