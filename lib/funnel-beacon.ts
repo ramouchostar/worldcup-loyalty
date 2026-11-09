@@ -9,7 +9,7 @@
 // perdue, c'est un étage de l'entonnoir qui paraît vide.
 
 /** Les seules étapes qu'un navigateur peut déclarer — miroir de CLIENT_REPORTABLE_STEPS. */
-export type ClientFunnelStep = "ticket_capture_opened" | "photo_retake_asked" | "signup_started" | "install_prompt_shown";
+export type ClientFunnelStep = "camera_open" | "ticket_capture_opened" | "photo_retake_asked" | "result_view" | "signup_started" | "install_prompt_shown";
 
 export function beaconFunnelStep(restaurantId: string, step: ClientFunnelStep): void {
   if (!restaurantId) return;
