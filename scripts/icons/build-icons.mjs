@@ -18,6 +18,7 @@ const ICONS = {
   ArrowDown: "arrow-down-01",
   ArrowRight: "arrow-right-02",
   Calculator: "calculator-01",
+  Camera: "camera-01",
   ChartColumn: "chart-column",
   Check: "tick-02",
   Close: "cancel-01",
