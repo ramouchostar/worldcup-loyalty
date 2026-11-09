@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera } from "@/components/icons";
 
 // ADR 0097 — écran d'arrivée par le QR imprimé : un seul geste. Toute la surface est un lien vers
 // l'écran ticket, qui ouvre directement la caméra (ADR 0057) ; le seul autre élément est le petit
@@ -34,7 +34,7 @@ export function ArrivalOneButton({
           <p className="text-sm font-semibold text-gray-700">{restaurantName}</p>
         )}
         <span className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-red text-white shadow-lg">
-          <Camera className="w-11 h-11" strokeWidth={2.25} aria-hidden="true" />
+          <Camera size={44} aria-hidden="true" />
         </span>
         <h1 className="text-3xl font-black leading-tight tracking-tight text-gray-900">
           Photographie ton ticket de caisse
