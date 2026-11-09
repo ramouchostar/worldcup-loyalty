@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { journalEvent, signPayload, verifyResendWebhook } from "./resend-webhook";
+import { checkResendWebhook, journalEvent, signPayload, verifyResendWebhook } from "./resend-webhook";
 
 const SECRET = `whsec_${Buffer.from("un-secret-de-test-assez-long").toString("base64")}`;
 const BODY = JSON.stringify({ type: "email.delivered", data: { email_id: "abc" } });
@@ -27,4 +27,20 @@ test("seuls délivré, rebond et plainte changent le journal", () => {
   assert.equal(journalEvent("email.complained"), "complained");
   assert.equal(journalEvent("email.opened"), null);
   assert.equal(journalEvent("email.clicked"), null);
+});
+
+test("secret collé avec un espace, des guillemets ou un retour à la ligne : accepté quand même", () => {
+  const sig = signPayload(SECRET, "msg_1", String(NOW), BODY);
+  const base = { id: "msg_1", timestamp: String(NOW), signature: `v1,${sig}`, body: BODY, nowSeconds: NOW };
+  for (const pasted of [` ${SECRET}`, `${SECRET}\n`, `"${SECRET}"`, ` "${SECRET}" `]) {
+    assert.equal(checkResendWebhook({ ...base, secret: pasted }), "ok", JSON.stringify(pasted));
+  }
+});
+
+test("le refus dit sa cause", () => {
+  const sig = signPayload(SECRET, "msg_1", String(NOW), BODY);
+  const base = { secret: SECRET, id: "msg_1", timestamp: String(NOW), signature: `v1,${sig}`, body: BODY, nowSeconds: NOW };
+  assert.equal(checkResendWebhook({ ...base, signature: null }), "missing_headers");
+  assert.equal(checkResendWebhook({ ...base, nowSeconds: NOW + 600 }), "stale_timestamp");
+  assert.equal(checkResendWebhook({ ...base, secret: `whsec_${Buffer.from("autre").toString("base64")}` }), "bad_signature");
 });

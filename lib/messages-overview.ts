@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase";
 import { listLiveRestaurants } from "./demo";
 import { addToTotals, emptyTotals, totalsByKey, type SendRow, type SendTotals } from "./message-catalog";
+import { SETTLE_MINUTES } from "./delivery-tracking";
 import { isMissingJournal, listMessageSettings, type MessageSetting } from "./message-log";
 
 // Lecture de /platform/messages (ADR 0063) — SERVEUR UNIQUEMENT. Deux sources :
@@ -35,6 +36,10 @@ export type MessagesOverview = {
   unreachable: number; // pushs sans appareil abonné
   notifications: NotificationCount[];
   lastSentAt: string | null;
+  // Suivi de délivrance (lib/delivery-tracking.ts) : dernier accusé Resend reçu
+  // et e-mails partis depuis, sans accusé.
+  lastEventAt: string | null;
+  unackedSinceEvent: number;
   lastFailure: { at: string; key: string; error: string } | null;
   failureReasons: { error: string; count: number }[];
   recent: RecentSend[];
@@ -74,6 +79,25 @@ export async function getMessagesOverview(now = new Date()): Promise<MessagesOve
       .limit(1),
     listMessageSettings(),
   ]);
+
+  // Dernier accusé Resend, quel qu'il soit (délivré, rebond, plainte).
+  const lastOf = async (col: "delivered_at" | "bounced_at" | "complained_at") => {
+    const { data } = await admin.from("message_sends").select(col).not(col, "is", null).order(col, { ascending: false }).limit(1);
+    return ((data ?? []) as Record<string, string>[])[0]?.[col] ?? null;
+  };
+  const eventDates = (await Promise.all([lastOf("delivered_at"), lastOf("bounced_at"), lastOf("complained_at")])).filter(
+    (d): d is string => !!d
+  );
+  const lastEventAt = eventDates.sort().at(-1) ?? null;
+  const settled = new Date(now.getTime() - SETTLE_MINUTES * 60_000).toISOString();
+  let unackedQuery = admin
+    .from("message_sends")
+    .select("id", { count: "exact", head: true })
+    .eq("channel", "email")
+    .not("provider_id", "is", null)
+    .lt("created_at", settled);
+  unackedQuery = unackedQuery.gt("created_at", lastEventAt ?? since);
+  const { count: unackedSinceEvent } = await unackedQuery;
 
   const names = new Map(((allRestaurantsRes.data ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
   const journalAvailable = !isMissingJournal(sendsRes.error);
@@ -150,6 +174,8 @@ export async function getMessagesOverview(now = new Date()): Promise<MessagesOve
     unreachable,
     notifications,
     lastSentAt: ((lastSentRes.data ?? []) as { created_at: string }[])[0]?.created_at ?? null,
+    lastEventAt,
+    unackedSinceEvent: unackedSinceEvent ?? 0,
     lastFailure,
     failureReasons,
     recent,

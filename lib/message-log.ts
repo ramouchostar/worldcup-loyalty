@@ -74,27 +74,29 @@ export async function recordClick(sendId: string): Promise<void> {
 
 // Un événement Resend met à jour la ligne de l'envoi correspondant. Un rebond
 // ou une plainte l'emporte sur « délivré » ; les dates restent toutes.
-export async function applyProviderEvent(providerId: string, event: ResendEventType, at: string): Promise<boolean> {
+// Renvoie le nombre de lignes touchées (0 = aucun envoi ne porte cet
+// identifiant, à signaler), ou null en cas d'erreur.
+export async function applyProviderEvent(providerId: string, event: ResendEventType, at: string): Promise<number | null> {
   try {
     const admin = createAdminClient();
     const fail = (error: { code?: string; message?: string }) => {
       if (!isMissingJournal(error)) console.error("applyProviderEvent:", error.message);
-      return false;
+      return null;
     };
     if (event === "delivered") {
       // La date toujours ; le statut seulement s'il était encore « envoyé » —
       // « délivré » ne recouvre jamais un rebond ou une plainte arrivés avant.
-      const { error } = await admin.from("message_sends").update({ delivered_at: at }).eq("provider_id", providerId);
+      const { data, error } = await admin.from("message_sends").update({ delivered_at: at }).eq("provider_id", providerId).select("id");
       if (error) return fail(error);
       await admin.from("message_sends").update({ status: "delivered" }).eq("provider_id", providerId).eq("status", "sent");
-      return true;
+      return (data ?? []).length;
     }
     const patch = event === "bounced" ? { bounced_at: at, status: "bounced" } : { complained_at: at, status: "complained" };
-    const { error } = await admin.from("message_sends").update(patch).eq("provider_id", providerId);
-    return error ? fail(error) : true;
+    const { data, error } = await admin.from("message_sends").update(patch).eq("provider_id", providerId).select("id");
+    return error ? fail(error) : (data ?? []).length;
   } catch (err) {
     console.error("applyProviderEvent threw:", err);
-    return false;
+    return null;
   }
 }
 

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { CheckCircle2, CircleAlert, CircleDashed } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getEmailSetup } from "@/lib/email";
+import { deliveryTracking, SILENT_AFTER_HOURS } from "@/lib/delivery-tracking";
 import { getMessagesOverview, type MessagesOverview } from "@/lib/messages-overview";
 import { MESSAGES, SEQUENCES, messageLabel, rate, emptyTotals, type SendTotals } from "@/lib/message-catalog";
 import { defaultImage, previewEntries } from "@/lib/email-templates/fixtures";
@@ -116,6 +117,7 @@ export default async function PlatformMessagesPage() {
   const staleDomain = (v: string | null | undefined) => !!v && /boosteats\.tech/i.test(v);
   const domainStale = staleDomain(setup.domain);
   const replyToStale = staleDomain(setup.replyTo);
+  const tracking = deliveryTracking({ hasSecret: setup.hasWebhookSecret, lastEventAt: o.lastEventAt, unackedSinceEvent: o.unackedSinceEvent });
   const emailSendable = setup.hasApiKey && !!setup.domain && !domainStale;
 
   return (
@@ -171,10 +173,24 @@ export default async function PlatformMessagesPage() {
             hint={staleDomain(setup.appUrl) ? "Ancien domaine, les liens mènent à une page introuvable : NEXT_PUBLIC_APP_URL=https://www.boosteats.be dans Vercel, puis redéployer." : undefined}
           />
           <SetupRow
-            ok={setup.hasWebhookSecret ? true : null}
+            ok={tracking.state === "off" || tracking.state === "waiting" ? null : tracking.state === "ok"}
             label="Suivi de délivrance"
-            value={setup.hasWebhookSecret ? "Webhook signé" : "Pas encore"}
-            hint={setup.hasWebhookSecret ? undefined : `Resend → Webhooks → ${setup.appUrl}/api/webhooks/resend (délivré, rebond, plainte), puis RESEND_WEBHOOK_SECRET dans Vercel. Facultatif : sans lui, on sait ce qui part, pas ce qui arrive.`}
+            value={
+              tracking.state === "off"
+                ? "Pas encore"
+                : tracking.lastEventAt
+                  ? `Dernier accusé ${fmtDate(tracking.lastEventAt)}`
+                  : "Aucun accusé reçu"
+            }
+            hint={
+              tracking.state === "off"
+                ? `Resend → Webhooks → ${setup.appUrl}/api/webhooks/resend (délivré, rebond, plainte), puis RESEND_WEBHOOK_SECRET dans Vercel. Facultatif : sans lui, on sait ce qui part, pas ce qui arrive.`
+                : tracking.state === "silent"
+                  ? `${tracking.unacked} e-mails partis sans accusé depuis plus de ${SILENT_AFTER_HOURS} h : les chiffres « délivrés » sont faux. Resend → Webhooks → l'adresse doit être exactement ${setup.appUrl}/api/webhooks/resend ; ouvrir les tentatives : 401 = le secret de ce webhook n'est pas celui de RESEND_WEBHOOK_SECRET dans Vercel (le recopier, puis redéployer), 308 = adresse sans « www », aucune tentative = webhook désactivé ou « email.delivered » pas coché.`
+                  : tracking.state === "waiting"
+                    ? "Secret configuré, aucun e-mail parti depuis : le premier envoi le confirmera."
+                    : undefined
+            }
           />
           <SetupRow
             ok={o.lastSentAt ? true : o.journalAvailable ? false : null}
@@ -208,7 +224,7 @@ export default async function PlatformMessagesPage() {
         {sectionTitle("Sur 30 jours", "E-mails du journal (tests exclus). Délivrés et rebonds dépendent du webhook Resend ; les clics sont comptés chez nous, sans pixel.")}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <Kpi label="E-mails partis" value={String(o.email.sent)} note={o.email.failed ? `${o.email.failed} pas partis` : "aucun échec"} />
-          <Kpi label="Délivrés" value={pct(rate(o.email.delivered, o.email.sent))} note={setup.hasWebhookSecret ? undefined : "webhook à brancher"} />
+          <Kpi label="Délivrés" value={pct(rate(o.email.delivered, o.email.sent))} note={tracking.state === "off" ? "webhook à brancher" : tracking.state === "silent" ? "faux : plus d'accusés" : undefined} />
           <Kpi label="Rebonds · plaintes" value={`${o.email.bounced} · ${o.email.complained}`} />
           <Kpi label="Cliqués" value={pct(rate(o.email.clicked, o.email.sent))} note={`${o.email.clicked} e-mail${o.email.clicked > 1 ? "s" : ""}`} />
           <Kpi label="Pushs non joignables" value={String(o.unreachable)} note="membre sans appareil abonné" />
