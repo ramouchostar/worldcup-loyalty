@@ -86,6 +86,8 @@ export type AnalyticsEventMap = {
   restaurant_landing_viewed: {
     restaurant_id: string;
     entry_source: string;
+    /** ADR 0097 : « one_button » = écran d'arrivée en un seul bouton (arrivée par le QR imprimé). */
+    variant?: "one_button";
   };
   /** Création de compte aboutie (compte d'authentification). */
   sign_up: { method: SignupMethod; funnel: Funnel };
