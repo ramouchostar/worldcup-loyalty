@@ -111,3 +111,17 @@ test("« Bestelnummer » est l'étiquette néerlandaise : le membre lit aussi «
   assert.match(keyFramingHint("Bestelnummer"), /haut du ticket.*EFT/);
   assert.doesNotMatch(keyFramingHint("N° de commande"), /EFT|haut du ticket/);
 });
+
+test("refus définitifs (ADR 0098) : livraison et hors programme passent avant tout autre motif", () => {
+  const membre = { checkCompleteness: true, hasReliableKey: true };
+  // Ticket de livraison : aucune clé, ce n'est ni « incomplet » ni « reprends la photo ».
+  assert.equal(scanRefusalReason(lecture({ delivery: true, order_number: null }), membre), "delivery_ticket");
+  assert.equal(scanRefusalReason(lecture({ delivery: true, order_number: null }), { checkCompleteness: false }), "delivery_ticket");
+  // Ixelles : plus précis que « autre établissement ».
+  assert.equal(
+    scanRefusalReason(lecture({ outside_program: "Belchicken Ixelles", key_issue: "other_establishment", order_number: null }), membre),
+    "outside_program"
+  );
+  // Sans ces drapeaux, rien ne change.
+  assert.equal(scanRefusalReason(lecture({ delivery: false, outside_program: null }), membre), null);
+});
