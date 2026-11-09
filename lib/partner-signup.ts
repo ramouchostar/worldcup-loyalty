@@ -6,6 +6,7 @@ import { correctedFields, normalizeWebsite, sanitizeDraft, slugBase } from "@/li
 import type { PartnerAttribution } from "@/lib/partner-attribution";
 import { loadUserProgress } from "@/lib/partner-progress-server";
 import { missingFor, type MissingStep } from "@/lib/partner-progress";
+import { isPlacesConfigured, placeLocation } from "@/lib/audit/places";
 
 // ADR 0075 §1 — les établissements d'un brouillon deviennent de vrais
 // établissements (`pending`) au moment où le compte existe. Appelé depuis le
@@ -111,6 +112,8 @@ export async function createRestaurantsFromDraft(
       continue;
     }
 
+    if (e.placeId) await setLocationFromPlace(admin, id, e.placeId);
+
     // ADR 0041 — siège gérant ; le trigger dérive owner_id.
     await upsertRestaurantAdmin({ restaurantId: id, userId: user.id, role: "gerant", invitedBy: null });
     if (user.email) await sendPartnerApplicationReceivedEmail(user.email, e.name, id);
@@ -121,6 +124,38 @@ export async function createRestaurantsFromDraft(
     console.warn("[inscription] fiches déjà inscrites par un autre compte :", result.takenByOthers.join(", "));
   }
   return result;
+}
+
+// Position de la fiche Google (restaurants.lat / lng, migration 20261006-1542) :
+// relue côté serveur depuis l'identifiant, jamais prise du brouillon du
+// navigateur. Sans elle, aucun signal local (matchs, événements, Pub). Un
+// échec ne bloque jamais l'inscription : il est dit dans le journal, et
+// scripts/backfill-restaurant-location.mjs rattrape.
+export async function setLocationFromPlace(
+  admin: ReturnType<typeof createAdminClient>,
+  restaurantId: string,
+  placeId: string,
+): Promise<boolean> {
+  if (!isPlacesConfigured()) {
+    console.error("[inscription] GOOGLE_PLACES_API_KEY absente : position non posée", { restaurantId });
+    return false;
+  }
+  try {
+    const loc = await placeLocation(placeId);
+    if (!loc) {
+      console.warn("[inscription] fiche Google sans position", { restaurantId, placeId });
+      return false;
+    }
+    const { error } = await admin.from("restaurants").update({ lat: loc.lat, lng: loc.lng }).eq("id", restaurantId);
+    if (error) {
+      console.error("[inscription] position non enregistrée :", restaurantId, error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[inscription] lecture de la position échouée :", restaurantId, err instanceof Error ? err.message : err);
+    return false;
+  }
 }
 
 /** La page d'avancement (ADR 0075 §3). */

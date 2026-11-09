@@ -244,6 +244,18 @@ export async function placeForSignup(placeId: string, sessionToken?: string | nu
   return toDetails(p);
 }
 
+// Position seule d'une fiche (inscription, rattrapage) : le champ le moins cher
+// de Places. null : la fiche n'a pas de position.
+export async function placeLocation(placeId: string): Promise<{ lat: number; lng: number } | null> {
+  if (!/^[\w-]{10,300}$/.test(placeId)) throw new PlacesError("identifiant de fiche invalide");
+  const p = await call<{ location?: { latitude?: number; longitude?: number } }>(`/places/${encodeURIComponent(placeId)}`, {
+    fieldMask: "location",
+  });
+  const lat = p.location?.latitude;
+  const lng = p.location?.longitude;
+  return typeof lat === "number" && typeof lng === "number" ? { lat, lng } : null;
+}
+
 // ─── Voisins ─────────────────────────────────────────────────────────────────
 
 export interface Neighbor {
