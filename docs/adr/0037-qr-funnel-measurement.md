@@ -1,6 +1,6 @@
 # ADR 0037 — Mesurer le haut de l'entonnoir côté serveur
 
-**Statut** : Accepté (2026-08-21). Complète l'**ADR 0036** (conservation des scans) et le plan de mesure (`docs/tracking-plan.md`). Contraint par l'**ADR 0025** (minimisation, consentement).
+**Statut** : Accepté (2026-08-21). Complète l'**ADR 0036** (conservation des scans) et le plan de mesure (`docs/tracking-plan.md`). Contraint par l'**ADR 0025** (minimisation, consentement). Amendé par l'[ADR 0093](0093-lecture-tolerante-et-origine-des-arrivees.md) : l'origine de l'arrivée est classée dans une liste close, le *referer* et l'agent utilisateur sont lus puis jetés.
 
 ## Contexte
 
