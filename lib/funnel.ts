@@ -1,7 +1,7 @@
 import { createAdminClient } from "./supabase";
 import { todayInBrussels } from "./qr-funnel";
 
-// ADR 0037 — les dix étages du parcours ticket, comptés côté serveur.
+// ADR 0037 — les étages du parcours ticket (dix, puis onze avec « photo_retake_asked », ADR 0092), comptés côté serveur.
 //
 // L'ADR 0037 a réglé le premier étage (`qr_landings`, m60) : un compteur par
 // jour, sans IP, sans cookie, sans identifiant — donc mesurable sans
@@ -26,6 +26,7 @@ import { todayInBrussels } from "./qr-funnel";
 export const FUNNEL_STEPS = [
   "qr_landing",
   "ticket_capture_opened",
+  "photo_retake_asked",
   "signup_started",
   "signup_completed",
   "ticket_submitted",
@@ -98,6 +99,12 @@ export const STEP_VIEW: Record<FunnelStep, { label: string; hint: string; rateFr
     hint: "Une image a été acceptée et préparée sur l'appareil",
     rateFrom: "qr_landing",
   },
+  // ADR 0092 — arrêtée sur le téléphone, avant toute lecture : n'est PAS une étape de « ticket_capture_opened ».
+  photo_retake_asked: {
+    label: "Photo floue ou noire, reprise demandée",
+    hint: "Contrôle gratuit sur le téléphone, avant l'envoi (ADR 0092) — un événement, pas une personne",
+    rateFrom: "qr_landing",
+  },
   signup_started: {
     label: "Départ vers l'inscription",
     hint: "Le visiteur quitte l'écran ticket pour Google ou l'e-mail",
@@ -149,6 +156,7 @@ export const STEP_VIEW: Record<FunnelStep, { label: string; hint: string; rateFr
  */
 export const CLIENT_REPORTABLE_STEPS = [
   "ticket_capture_opened",
+  "photo_retake_asked",
   "signup_started",
   "install_prompt_shown",
 ] as const satisfies readonly FunnelStep[];
