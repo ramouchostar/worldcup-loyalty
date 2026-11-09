@@ -16,6 +16,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
+import { DELIVERY_TICKET_MESSAGE, outsideProgramMessage } from "@/lib/refused-tickets";
 import {
   isOtherEstablishment,
   judgeReceipt,
@@ -207,13 +208,23 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       file: receiptFile,
       analysis: serverOcr,
-      outcome: verdict === "receipt" && !serverOcr.key_issue ? "parsed" : "header_rejected",
+      outcome: verdict === "receipt" && !serverOcr.key_issue && !serverOcr.delivery ? "parsed" : "header_rejected",
       refusalReason: scanRefusalReason(serverOcr, {
         checkCompleteness: true,
         hasReliableKey: receiptConfig.has_reliable_key,
       }),
     }));
 
+  // ADR 0098 — refus DÉFINITIFS voulus par le porteur : ticket de livraison, ticket d'un établissement
+  // hors programme (Ixelles). Chacun son message, jamais « reprends la photo ».
+  if (serverOcr.delivery) {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "delivery_ticket");
+    return NextResponse.json({ error: DELIVERY_TICKET_MESSAGE }, { status: 422 });
+  }
+  if (serverOcr.outside_program) {
+    await recordFunnelStep(restaurantId, "ticket_rejected", "outside_program");
+    return NextResponse.json({ error: outsideProgramMessage(serverOcr.outside_program, restaurantName) }, { status: 422 });
+  }
   // ADR 0073 — la clé porte le code d'un AUTRE établissement : le ticket vient
   // d'ailleurs, refaire la photo n'y changera rien. Refus net, compté à part.
   if (isOtherEstablishment(serverOcr)) {
