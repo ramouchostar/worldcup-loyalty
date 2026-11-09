@@ -16,6 +16,8 @@ import { foodIconUrl } from "@/lib/food-icon";
 import { recordStaffLanding } from "@/lib/staff-codes";
 import { recordLanding } from "@/lib/qr-funnel";
 import { classifyArrival } from "@/lib/arrival-source";
+import { ArrivalOneButton } from "@/components/member/ArrivalOneButton";
+import { arrivalOfferLine, getArrivalOneButton, showOneButtonArrival } from "@/lib/arrival";
 import { headers } from "next/headers";
 import { COIN_EMOJI, PEOPLE_EMOJI, RECEIPT_EMOJI } from "@/lib/fluent-emoji";
 import type { CommunityScore, Team } from "@/types";
@@ -124,6 +126,27 @@ export default async function RestaurantLandingPage({
   // ADR 0062 — ce que le ticket rapporte VRAIMENT : cadeau d'accueil,
   // points et catalogue, cadeaux d'équipe. Jamais d'euro ni de taux.
   const offer = await getLandingOffer(restaurantId);
+
+  // ADR 0097 — arrivée par le QR imprimé, établissement qui a allumé le drapeau : un seul bouton.
+  // Les autres arrivées gardent la vitrine complète ci-dessous. La mesure (arrivées → caméra ouverte)
+  // est celle de l'entonnoir, comparée avant / après l'allumage.
+  if (showOneButtonArrival({ flagOn: await getArrivalOneButton(restaurantId), utmSource, isLoggedIn: !!user })) {
+    return (
+      <>
+        <TrackOnMount
+          event="restaurant_landing_viewed"
+          params={{ restaurant_id: restaurantId, entry_source: utmSource ?? "direct", variant: "one_button" }}
+        />
+        <ArrivalOneButton
+          restaurantId={restaurantId}
+          restaurantName={restaurant.name}
+          logoUrl={logo}
+          offerLine={arrivalOfferLine({ welcome: offer.welcome, showcaseCount: offer.showcase.length })}
+          loginAction={redirectToLogin.bind(null, restaurantId)}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
