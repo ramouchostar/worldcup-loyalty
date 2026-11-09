@@ -73,3 +73,20 @@ export const ARRIVAL_LABELS: Record<string, string> = {
   boosteats: "notre site",
   utm_autre: "autre campagne (utm)",
 };
+
+/** Famille de téléphone, ADR 0096 : liste close, déduite de l'agent utilisateur qui est ensuite jeté. */
+export const DEVICE_CLASSES = ["ios", "android", "autre"] as const;
+export type DeviceClass = (typeof DEVICE_CLASSES)[number];
+
+/**
+ * Pourquoi : le contrôle du QR de l'affiche se fait sur le téléphone avec une fonction que seul
+ * Chrome Android possède ; sur iPhone la photo de l'affiche part au serveur (lecture payante).
+ * Pour savoir si un décodeur de QR pour iPhone vaut son poids, il faut compter les refus « QR de
+ * l'affiche » PAR famille de téléphone. Seule la famille est gardée, jamais l'agent lui-même.
+ */
+export function classifyDevice(userAgent: string | null | undefined): DeviceClass {
+  const ua = userAgent ?? "";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "autre";
+}

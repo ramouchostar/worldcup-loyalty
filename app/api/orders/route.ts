@@ -6,6 +6,7 @@ import { createPendingReward, LEGACY_RESTAURANT_ID } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
 import { analyzeReceipt, type ReceiptAnalysis } from "@/lib/receipt-ocr";
+import { classifyDevice } from "@/lib/arrival-source";
 import { insertOrderItems } from "@/lib/order-items";
 import { claimScanImage, linkScanToOrder, markScanRefused, storeScan } from "@/lib/receipt-scans";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
@@ -175,7 +176,9 @@ export async function POST(request: NextRequest) {
   const restaurantName = await getRestaurantDisplayName(restaurantId);
   let serverOcr: ReceiptAnalysis;
   try {
-    serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig, otherStoreCodes, identities);
+    serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig, otherStoreCodes, identities, {
+      device: classifyDevice(request.headers.get("user-agent")),
+    });
   } catch (err) {
     // ADR 0079 — panne ou délai dépassé : jusque-là AUCUNE trace (le client voyait une erreur,
     // nous rien). On compte, et on garde la cause dans les journaux du serveur.

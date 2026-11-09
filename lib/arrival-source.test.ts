@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyArrival, isArrivalSource } from "./arrival-source";
+import { classifyArrival, classifyDevice, isArrivalSource } from "./arrival-source";
 
 const OWN = ["boosteats.com"];
 const PHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1";
@@ -42,4 +42,12 @@ test("le referer brut n'est jamais rendu : seule une valeur de la liste close so
   const v = classifyArrival({ userAgent: PHONE, referer: "https://secret.example.com/?token=abc" });
   assert.equal(isArrivalSource(v), true);
   assert.equal(v.includes("secret"), false);
+});
+
+test("la famille de téléphone est déduite de l'agent, sans le conserver (ADR 0096)", () => {
+  assert.equal(classifyDevice(PHONE), "ios");
+  assert.equal(classifyDevice("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"), "android");
+  assert.equal(classifyDevice("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120"), "autre");
+  assert.equal(classifyDevice(null), "autre");
+  assert.equal(classifyDevice(undefined), "autre");
 });

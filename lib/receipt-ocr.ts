@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TICKET_KEY_DESCRIPTION, TICKET_KEY_PATTERN, compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
 import { sanitizeKeyDate } from "./receipt-key-sanity";
+import type { DeviceClass } from "./arrival-source";
 import { judgeHeader, type EstablishmentIdentity, type HeaderVerdict } from "./receipt-header";
 import { checkStoreCode, repairStoreCode, storeCodeOf, type KeyStoreVerdict } from "./receipt-key-store";
 
@@ -81,6 +82,8 @@ export type ReceiptReadTrace = {
   rescue: (ReadTrace & { ok: boolean; refused?: boolean; error?: string }) | null;
   /** Ce que la relecture a comblé. */
   rescue_filled: RescueFilled[];
+  /** Famille de téléphone du client (ADR 0096) : sert à compter les refus « QR de l'affiche » iPhone / Android. */
+  device?: DeviceClass;
   /** La relecture a été sautée parce que l'aperçu du visiteur avait déjà total et ticket reconnu (ADR 0095). */
   rescue_skipped?: "preview_enough";
   /** Les deux lectures ont lu une valeur et elles diffèrent (la première est gardée). */
@@ -506,7 +509,7 @@ export async function analyzeReceipt(
   /** Identités (nom, adresse) des établissements — l'en-tête imprimé décide (ADR 0091). */
   identities: { ownId: string; all: readonly EstablishmentIdentity[] } | null = null,
   /** `preview` : aperçu du visiteur — pas de relecture quand le total est lu et le ticket reconnu (ADR 0095). */
-  options: { preview?: boolean } = {}
+  options: { preview?: boolean; device?: DeviceClass } = {}
 ): Promise<ReceiptAnalysis> {
   const startedAt = Date.now();
   const remaining = () => TOTAL_BUDGET_MS - (Date.now() - startedAt);
@@ -655,6 +658,7 @@ export async function analyzeReceipt(
   if (keyIssue) trace.key_issue = keyIssue;
   if (codeRepaired && reading.order_number) trace.key_code_repaired = codeRepaired;
   if (headerTrace) trace.header = headerTrace;
+  if (options.device) trace.device = options.device;
 
   return {
     ...reading,
