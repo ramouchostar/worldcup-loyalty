@@ -81,6 +81,8 @@ export type ReceiptReadTrace = {
   rescue: (ReadTrace & { ok: boolean; refused?: boolean; error?: string }) | null;
   /** Ce que la relecture a comblé. */
   rescue_filled: RescueFilled[];
+  /** La relecture a été sautée parce que l'aperçu du visiteur avait déjà total et ticket reconnu (ADR 0095). */
+  rescue_skipped?: "preview_enough";
   /** Les deux lectures ont lu une valeur et elles diffèrent (la première est gardée). */
   rescue_conflict: boolean;
   /**
@@ -424,7 +426,14 @@ export function needsRescue(input: {
   keyIssue?: KeyIssue | null;
   /** Le premier passage a lu le total, ou une clé (même refusée) : un ticket est bien là. */
   totalOrKeySeen: boolean;
+  /**
+   * Aperçu du VISITEUR (ADR 0095) : il ne montre que le total et le gain, et la vraie lecture a lieu
+   * à l'envoi, après l'inscription. Total lu et ticket reconnu (en-tête ou clé) : l'aperçu a ce qu'il
+   * lui faut, la relecture n'ajouterait que 7 à 13 s d'attente.
+   */
+  previewEnough?: boolean;
 }): boolean {
+  if (input.previewEnough) return false;
   if (!input.totalOrKeySeen) return false;
   if (input.looksLikePoster && input.orderNumber === null) return false;
   const amountMissing = input.amount === null;
@@ -495,7 +504,9 @@ export async function analyzeReceipt(
   /** Codes des AUTRES établissements (lib/receipt-config.ts getOtherStoreCodes) — ADR 0073. */
   otherStoreCodes: readonly string[] = [],
   /** Identités (nom, adresse) des établissements — l'en-tête imprimé décide (ADR 0091). */
-  identities: { ownId: string; all: readonly EstablishmentIdentity[] } | null = null
+  identities: { ownId: string; all: readonly EstablishmentIdentity[] } | null = null,
+  /** `preview` : aperçu du visiteur — pas de relecture quand le total est lu et le ticket reconnu (ADR 0095). */
+  options: { preview?: boolean } = {}
 ): Promise<ReceiptAnalysis> {
   const startedAt = Date.now();
   const remaining = () => TOTAL_BUDGET_MS - (Date.now() - startedAt);
@@ -587,17 +598,22 @@ export async function analyzeReceipt(
   const trace: ReceiptReadTrace = { first: firstTrace, rescue: null, rescue_filled: [], rescue_conflict: false };
 
   // 2. Relecture par Fable, seulement si la lecture est incomplète et qu'il reste du temps.
-  if (
-    needsRescue({
-      amount: reading.amount,
-      orderNumber: reading.order_number,
-      hasKeyPattern: keyPattern !== null,
-      looksLikePoster: reading.looks_like_qr_or_poster,
-      keyIssue,
-      totalOrKeySeen: reading.amount !== null || reading.raw_order_number !== null,
-    }) &&
-    remaining() >= MIN_TIME_FOR_ANOTHER_READ_MS
-  ) {
+  const rescueInput = {
+    amount: reading.amount,
+    orderNumber: reading.order_number,
+    hasKeyPattern: keyPattern !== null,
+    looksLikePoster: reading.looks_like_qr_or_poster,
+    keyIssue,
+    totalOrKeySeen: reading.amount !== null || reading.raw_order_number !== null,
+  };
+  const previewEnough =
+    options.preview === true &&
+    reading.amount !== null &&
+    !keyIssue &&
+    (reading.has_restaurant_header || reading.order_number !== null);
+  // ADR 0095 : on garde la trace des relectures évitées, pour mesurer ce que l'aperçu a gagné.
+  if (previewEnough && needsRescue(rescueInput)) trace.rescue_skipped = "preview_enough";
+  if (needsRescue({ ...rescueInput, previewEnough }) && remaining() >= MIN_TIME_FOR_ANOTHER_READ_MS) {
     const rescueStarted = Date.now();
     try {
       const second = await readOnce(client, {

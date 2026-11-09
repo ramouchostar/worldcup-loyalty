@@ -205,3 +205,15 @@ test("une phrase sans JSON garde l'erreur d'origine (le secours Haiku joue)", ()
   assert.throws(() => readJsonDetailed([{ type: "text", text: "The order number is not visible on this photo." }]));
   assert.throws(() => readJsonDetailed([{ type: "text", text: "Voici {pas du json} fin." }]));
 });
+
+test("aperçu du visiteur : total lu et ticket reconnu, pas de relecture (ADR 0095)", () => {
+  const base = { amount: 9.8, orderNumber: null, hasKeyPattern: true, looksLikePoster: false, totalOrKeySeen: true };
+  assert.equal(needsRescue(base), true); // pour le membre : clé absente, on relit
+  assert.equal(needsRescue({ ...base, previewEnough: true }), false); // aperçu : le total suffit
+});
+
+test("aperçu du visiteur : total absent, la relecture garde son sens côté appelant", () => {
+  // previewEnough n'est posé qu'avec un total lu ; sans lui, la règle d'avant s'applique.
+  const base = { amount: null, orderNumber: null, hasKeyPattern: true, looksLikePoster: false, totalOrKeySeen: true };
+  assert.equal(needsRescue({ ...base, previewEnough: false }), true);
+});
