@@ -152,6 +152,20 @@ export default function SubmitOrderClient({
   // seule une nouvelle photo comble le trou. Le compteur ne sert qu'à la
   // mesure (n-ième photo ratée sur ce ticket).
   const [framingIssue, setFramingIssue] = useState<MissingParts | null>(null);
+  // ADR 0094 — deux étages du tunnel qui manquaient : la caméra s'ouvre, puis le client voit son résultat.
+  // Visiteur : « Ton ticket est prêt » (lecture terminée). Membre : la confirmation d'envoi.
+  const resultShown = visitor
+    ? !!preview && parseStatus === "done"
+    : submitStatus === "success_validated" || submitStatus === "success_pending";
+  useEffect(() => {
+    if (cameraOpen) beaconFunnelStep(restaurantId, "camera_open");
+    // un événement à chaque ouverture, pas à chaque rendu
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraOpen]);
+  useEffect(() => {
+    if (resultShown) beaconFunnelStep(restaurantId, "result_view");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultShown]);
   // ADR 0092 — photos arrêtées de suite par le contrôle flou/noir (le second essai passe toujours).
   const photoBlocksRef = useRef(0);
   const [framingFailures, setFramingFailures] = useState(0);
@@ -377,6 +391,7 @@ export default function SubmitOrderClient({
   // tue entre-temps, elle survit et le montage suivant affiche le filet.
   function openNativeCamera() {
     markNativeCameraOpened();
+    beaconFunnelStep(restaurantId, "camera_open");
     window.addEventListener("focus", () => window.setTimeout(() => clearNativeCameraMark(), 1500), { once: true });
     cameraInputRef.current?.click();
   }
