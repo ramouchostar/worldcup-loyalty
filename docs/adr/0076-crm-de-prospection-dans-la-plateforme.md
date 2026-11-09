@@ -1,7 +1,8 @@
 # ADR 0076 — Le CRM de prospection vit dans la plateforme
 
-**Statut** : Proposé (2026-10-03) — demande du porteur du même jour, à valider par l'associé
-(offre « 2 mois Pro offerts » en particulier). Étend l'[ADR 0033](0033-console-plateforme-demo-chiffres-backlog.md) §4
+**Statut** : Accepté (2026-10-19, validé par les deux associés en réunion) — demande du porteur
+du 2026-10-03. L'offre « 2 mois Pro offerts » est précisée le 2026-11-01 : seulement aux
+restaurants qui ont déjà une bonne base, au jugement en visite. Étend l'[ADR 0033](0033-console-plateforme-demo-chiffres-backlog.md) §4
 (un onglet de plus dans `/platform`, huit au total). S'appuie sur l'audit de l'[ADR 0069](0069-audit-restaurant-depuis-la-plateforme.md)
 et l'offre de l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md). N'amende ni l'ADR 0007
 ni l'ADR 0029 : rien de ce qui est ici ne descend vers un membre. Stratégies détaillées :

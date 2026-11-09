@@ -1,9 +1,9 @@
 # ADR 0084 — Réserver un prestataire (vidéo, photo, design, impression) depuis la console
 
-**Statut** : Proposé (2026-10-09) — décidé par le porteur en conversation de session
-(2026-09-30 → 2026-10-09) sur la maquette « Parcours Vidéo » (45 écrans :
-https://claude.ai/artifact/Mz8ZtA1Yv7LNSVRnWFrj5K), **à valider par l'associé avant de
-brancher les paiements**.
+**Statut** : Accepté (2026-10-19, validé par les deux associés en réunion) — décidé par le porteur
+en conversation de session (2026-09-30 → 2026-10-09) sur la maquette « Parcours Vidéo » (45 écrans :
+https://claude.ai/artifact/Mz8ZtA1Yv7LNSVRnWFrj5K). **Amendé le 2026-10-23 (réunion des
+associés)** : virement au lieu de Stripe Connect, voir §2 bis.
 Amende l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md) §4 sur **un
 seul point** : Stripe Connect n'est plus exclu, il sert **uniquement** à payer des
 prestataires de contenu (jamais des commandes de repas, jamais un membre). Précise l'[ADR
@@ -63,6 +63,17 @@ prestataire peut exercer plusieurs métiers. **Rien côté membre** (ADR 0007/00
   prestataire) : **à confirmer par le comptable avant la mise en service** (§9).
 - Montants en **euros uniquement côté restaurateur et plateforme** (B2B) ; **jamais** côté
   membre.
+
+### 2 bis. Le virement remplace Stripe Connect (amendé le 2026-10-23, réunion des associés)
+
+- **Pas de Stripe Connect** : le restaurateur paie Boosteats **par virement**, sur un compte
+  bancaire dédié aux Prestataires (un compte par service, comme la Pub — ADR 0086). Ce que le §2
+  dit de Stripe (comptes des prestataires, carte enregistrée, prélèvement du solde) ne s'applique pas.
+- **Flux de facturation, validé par le juriste** : le client paie Boosteats ; le prestataire
+  facture Boosteats **après** le travail ; Boosteats le paie par virement. L'argent reste chez
+  Boosteats jusqu'à la validation, comme au §2.
+- Les parts (87,5 % au prestataire, 12,5 % ou 5 % en Pro à Boosteats) et l'acompte de 20 %
+  ne changent pas ; ils se règlent par virement. La TVA reste une question au comptable (§9).
 
 ### 3. Les neuf règles (écrites dans le produit, acceptées par case à cocher)
 

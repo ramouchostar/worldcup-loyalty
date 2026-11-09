@@ -1,6 +1,6 @@
 # ADR 0080 — La photo d'un refus visiteur ne se garde que si le visiteur l'accepte
 
-**Statut** : Proposé (2026-10-07) — décisions à valider par le porteur (§ « À trancher »). Précise l'[ADR 0036](0036-receipt-scan-retention.md) §1 (« toute image passée à Vision est conservée ») : cette règle ne vaut pas pour les visiteurs sans compte, et le texte ne le disait pas. S'appuie sur l'[ADR 0045](0045-preuve-scan-avant-compte.md) §3, l'[ADR 0025](0025-gdpr-data-governance.md) (minimisation) et l'[ADR 0079](0079-chaque-refus-a-sa-cause.md) (mesures). À passer au bouclier ([ADR 0065](0065-le-bouclier-scene-trace-echos.md)) avant de coder.
+**Statut** : Accepté (2026-10-19, réunion des associés : photos de refus gardées 7 jours) — proposé le 2026-10-07. Précise l'[ADR 0036](0036-receipt-scan-retention.md) §1 (« toute image passée à Vision est conservée ») : cette règle ne vaut pas pour les visiteurs sans compte, et le texte ne le disait pas. S'appuie sur l'[ADR 0045](0045-preuve-scan-avant-compte.md) §3, l'[ADR 0025](0025-gdpr-data-governance.md) (minimisation) et l'[ADR 0079](0079-chaque-refus-a-sa-cause.md) (mesures). À passer au bouclier ([ADR 0065](0065-le-bouclier-scene-trace-echos.md)) avant de coder.
 
 ## Contexte
 
@@ -42,6 +42,10 @@ Texte de l'écran de refus (visiteur et membre) · page de confidentialité · A
 1. **Opt-in ou rien** (recommandé), ou conservation automatique de tous les refus visiteurs ?
 2. **7 jours** (recommandé) ou 72 h ?
 3. **Mesurer d'abord** : deux semaines de compteurs (§4) sans photos, pour voir si les 16 refus par semaine justifient d'y toucher ? Moins risqué, mais on garde l'aveuglement sur le cas T237 pendant ce temps.
+
+**Décidé le 2026-10-19 (réunion des associés)** : rétention de **7 jours**. L'opt-in (§1)
+n'a pas été remis en cause : la recommandation reste. On ne fait pas d'abord deux semaines de
+mesure sans photos (point 3).
 
 ## Conséquences
 
