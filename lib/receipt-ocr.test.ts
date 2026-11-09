@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mergeReadings, needsRescue, readJsonFromContent, type Reading } from "./receipt-ocr";
+import { mergeReadings, needsRescue, readJsonDetailed, readJsonFromContent, type Reading } from "./receipt-ocr";
 
 const complete: Reading = {
   order_number: "2026-09-05/223/09353",
@@ -187,4 +187,21 @@ test("la relecture ne remplace pas le nom et l'adresse déjà lus (ADR 0091)", (
   const { merged } = mergeReadings(first, rescue);
   assert.equal(merged.printed_name, "Belchicken Kraainem");
   assert.equal(merged.printed_address, "Kraainemlaan 185");
+});
+
+test("un JSON noyé dans une phrase est récupéré et signalé (ADR 0093)", () => {
+  const phrase = 'The order number is clearly printed. Here is the result: {"order_number": "2026-11-09/223/01645", "amount": 9.8, "has_restaurant_header": true} Hope this helps.';
+  const r = readJsonDetailed([{ type: "text", text: phrase }]);
+  assert.equal(r.salvaged, true);
+  assert.equal((r.parsed as { amount: number }).amount, 9.8);
+});
+
+test("un JSON propre n'est pas signalé comme récupéré", () => {
+  const r = readJsonDetailed([{ type: "text", text: '```json\n{"order_number": null, "amount": 5, "has_restaurant_header": false}\n```' }]);
+  assert.equal(r.salvaged, false);
+});
+
+test("une phrase sans JSON garde l'erreur d'origine (le secours Haiku joue)", () => {
+  assert.throws(() => readJsonDetailed([{ type: "text", text: "The order number is not visible on this photo." }]));
+  assert.throws(() => readJsonDetailed([{ type: "text", text: "Voici {pas du json} fin." }]));
 });
