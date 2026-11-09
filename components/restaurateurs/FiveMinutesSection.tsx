@@ -96,6 +96,16 @@ function IdeasDemo() {
               </div>
             );
           })}
+          <div className="bx-tally">
+            <span className="bx-tally-bar" aria-hidden>
+              {IDEAS.map((_, k) => (
+                <i key={k} className={k < done.length ? "bx-on" : ""} />
+              ))}
+            </span>
+            <small>
+              {`${done.length} sur ${IDEAS.length}\u00a0· environ 4\u00a0minutes en tout`}
+            </small>
+          </div>
         </>
       ) : (
         <div className="bx-empty bx-glass">
@@ -124,29 +134,31 @@ export function FiveMinutesSection() {
         <div className="bx-five">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="bx-bgimg" src={PHOTOS.cuisine} alt="" aria-hidden loading="lazy" />
-          <div>
+          {/* Grille nommée (landing.css) : sur mobile, le téléphone à essayer
+              passe juste sous le titre, avant les étapes. */}
+          <div className="bx-five-head">
             <h2>Votre part du travail&#8239;? 5&nbsp;minutes par jour.</h2>
             <p className="bx-sub" style={{ marginTop: 16 }}>
               La brigade prépare tout. Vous lisez, vous répondez, vous retournez en cuisine.
             </p>
-            <ol className="bx-steps">
-              {STEPS.map((s) => (
-                <li key={s.n} className="bx-step bx-glass-dark">
-                  <span className="bx-n">{s.n}</span>
-                  <div>
-                    <b>{s.title}</b>
-                    <span>{s.desc}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <ul className="bx-promise">
-              {PROMISES.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
           </div>
-          <div>
+          <ol className="bx-steps">
+            {STEPS.map((s) => (
+              <li key={s.n} className="bx-step">
+                <span className="bx-n">{s.n}</span>
+                <div>
+                  <b>{s.title}</b>
+                  <span>{s.desc}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <ul className="bx-promise">
+            {PROMISES.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+          <div className="bx-five-phone">
             <IPhone width={310} wallpaper={{ background: "#EFF1E4" }}>
               <IdeasDemo />
             </IPhone>

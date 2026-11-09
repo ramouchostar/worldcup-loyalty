@@ -57,15 +57,15 @@ export function CookieBanner() {
       role="dialog"
       aria-live="polite"
       aria-label="Choix des cookies"
-      className="fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="fixed inset-x-0 bottom-0 z-[100] p-2 sm:p-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
     >
-      <div className="mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-white p-4 shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-[0_8px_40px_rgba(0,0,0,0.18)] sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-[13px] font-semibold text-gray-900 sm:text-sm">
               On mesure l&apos;audience de ce site
             </p>
-            <p className="mt-1 text-sm leading-relaxed text-gray-600">
+            <p className="mt-0.5 text-[13px] leading-snug text-gray-600 sm:mt-1 sm:text-sm sm:leading-relaxed">
               Uniquement pour comprendre comment il est utilisé et l&apos;améliorer. Aucune
               publicité, aucune revente. Tu peux refuser sans rien perdre.{" "}
               <Link
