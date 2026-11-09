@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase";
+import type { EstablishmentIdentity } from "./receipt-header";
 
 // ADR 0019 — Config de clé unique de ticket par établissement.
 // Découverte à l'onboarding (lib/receipt-key-discovery.ts), confirmée par
@@ -87,6 +88,26 @@ export async function getOtherStoreCodes(restaurantId: string): Promise<string[]
     return [...new Set(((data ?? []) as { store_code: string }[]).map((r) => r.store_code))];
   } catch {
     return [];
+  }
+}
+
+/**
+ * Nom et adresse enregistrés de chaque établissement réel (ADR 0091) : de quoi comparer l'en-tête
+ * imprimé du ticket. Panne ou colonne absente → null : le ticket retombe sur le code de la clé.
+ */
+export async function getEstablishmentIdentities(
+  ownId: string
+): Promise<{ ownId: string; all: EstablishmentIdentity[] } | null> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.from("restaurants").select("id, name, address").eq("is_demo", false);
+    if (error) throw error;
+    const all = ((data ?? []) as { id: string; name: string | null; address: string | null }[])
+      .filter((r) => r.name)
+      .map((r) => ({ id: r.id, name: r.name as string, address: r.address }));
+    return all.some((r) => r.id === ownId) ? { ownId, all } : null;
+  } catch {
+    return null;
   }
 }
 

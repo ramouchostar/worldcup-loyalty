@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { analyzeReceipt, isAllowedReceiptType } from "@/lib/receipt-ocr";
-import { getReceiptConfig, getOtherStoreCodes } from "@/lib/receipt-config";
+import { getReceiptConfig, getOtherStoreCodes, getEstablishmentIdentities } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { checkRateLimit, checkIpRateLimit, hashIp } from "@/lib/rate-limit";
 import { recordScan } from "@/lib/scan-meter";
@@ -89,15 +89,16 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
 
-  const [restaurantName, receiptConfig, otherStoreCodes] = await Promise.all([
+  const [restaurantName, receiptConfig, otherStoreCodes, identities] = await Promise.all([
     getRestaurantDisplayName(String(rawRestaurantId)),
     getReceiptConfig(String(rawRestaurantId)),
     getOtherStoreCodes(String(rawRestaurantId)), // ADR 0073 — les codes des autres établissements
+    getEstablishmentIdentities(String(rawRestaurantId)), // ADR 0091 — l'en-tête imprimé décide
   ]);
 
   let analysis;
   try {
-    analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes);
+    analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes, identities);
   } catch (err) {
     console.error("[parse-receipt] Claude vision error:", err);
     // ADR 0079 — panne ou délai dépassé : compté (le client voyait une erreur, nous rien).
