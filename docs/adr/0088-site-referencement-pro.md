@@ -1,6 +1,6 @@
 # ADR 0088 — Référencement en Pro : un site optimisé pour Google sur un sous-domaine Boosteats, la commande reste ailleurs
 
-**Statut** : Proposé (2026-11-03). Décidé par le porteur en session le 2026-11-02 (périmètre, plan,
+**Statut** : Accepté (2026-11-09, validé par les associés). Proposé le 2026-11-03, décidé par le porteur en session le 2026-11-02 (périmètre, plan,
 adresse, pilotes), sur la maquette « Site Houba — maquette SEO »
 (https://claude.ai/artifact/6qJgFMH7htrkc8XmtGgHzB : accueil, page d'un plat, rapport du mois).
 Maquette **validée par le porteur le 2026-11-03**, avec deux ajouts (promo à la une, bouton Commander, Appeler ou Itinéraire : §2 et §3). Amendé le 2026-11-03 : repli sur l'itinéraire (§3), sous-domaine et référencement à Boosteats sans redirection (§4), accord de Houba reçu (§7). Précise l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
