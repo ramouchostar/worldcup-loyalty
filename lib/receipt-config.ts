@@ -100,11 +100,11 @@ export async function getEstablishmentIdentities(
 ): Promise<{ ownId: string; all: EstablishmentIdentity[] } | null> {
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.from("restaurants").select("id, name, address").eq("is_demo", false);
+    const { data, error } = await admin.from("restaurants").select("id, name, address, status").eq("is_demo", false);
     if (error) throw error;
-    const all = ((data ?? []) as { id: string; name: string | null; address: string | null }[])
+    const all = ((data ?? []) as { id: string; name: string | null; address: string | null; status?: string | null }[])
       .filter((r) => r.name)
-      .map((r) => ({ id: r.id, name: r.name as string, address: r.address }));
+      .map((r) => ({ id: r.id, name: r.name as string, address: r.address, active: r.status === undefined || r.status === null || r.status === "active" }));
     return all.some((r) => r.id === ownId) ? { ownId, all } : null;
   } catch {
     return null;

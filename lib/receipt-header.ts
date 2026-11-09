@@ -15,6 +15,8 @@ export type EstablishmentIdentity = {
   id: string;
   name: string;
   address: string | null;
+  /** Établissement actif dans le programme ; false = en attente ou désactivé (ADR 0098). Absent = actif. */
+  active?: boolean;
 };
 
 export type HeaderVerdict = "own" | "other" | "unknown";
