@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
   let analysis;
   try {
-    analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes, identities);
+    analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes, identities, { preview: true });
   } catch (err) {
     console.error("[parse-receipt] Claude vision error:", err);
     // ADR 0079 — panne ou délai dépassé : compté (le client voyait une erreur, nous rien).
