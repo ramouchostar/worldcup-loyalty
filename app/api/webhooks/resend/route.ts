@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { journalEvent, verifyResendWebhook } from "@/lib/resend-webhook";
+import { checkResendWebhook, journalEvent } from "@/lib/resend-webhook";
 import { applyProviderEvent } from "@/lib/message-log";
 
 // Webhook Resend (ADR 0063 §6) : délivré, rebond, plainte → journal des
@@ -13,14 +13,18 @@ export async function POST(request: Request) {
   if (!secret) return NextResponse.json({ error: "Webhook non configuré." }, { status: 503 });
 
   const body = await request.text();
-  const ok = verifyResendWebhook({
+  const check = checkResendWebhook({
     secret,
     id: request.headers.get("svix-id"),
     timestamp: request.headers.get("svix-timestamp"),
     signature: request.headers.get("svix-signature"),
     body,
   });
-  if (!ok) return NextResponse.json({ error: "Signature invalide." }, { status: 401 });
+  if (check !== "ok") {
+    // Jamais le secret ni la signature dans le journal : seulement la cause.
+    console.warn(`[webhook resend] refusé (401) : ${check}`, { svixId: request.headers.get("svix-id") });
+    return NextResponse.json({ error: "Signature invalide.", reason: check }, { status: 401 });
+  }
 
   let event: { type?: string; created_at?: string; data?: { email_id?: string } };
   try {
@@ -34,7 +38,10 @@ export async function POST(request: Request) {
   // Un type qu'on ne suit pas est accusé reçu (200) : sinon Resend le
   // renverrait en boucle.
   if (kind && emailId) {
-    await applyProviderEvent(emailId, kind, event.created_at ?? new Date().toISOString());
+    const touched = await applyProviderEvent(emailId, kind, event.created_at ?? new Date().toISOString());
+    // Accusé valide mais aucun envoi à ce nom : l'identifiant gardé à l'envoi
+    // n'est pas celui que Resend renvoie. Dit dans le journal, jamais tu.
+    if (touched === 0) console.warn(`[webhook resend] ${event.type} sans envoi correspondant`, { emailId });
   }
   return NextResponse.json({ ok: true });
 }
