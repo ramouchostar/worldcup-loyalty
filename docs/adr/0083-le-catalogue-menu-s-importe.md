@@ -76,10 +76,11 @@ bien chaque ligne : nous avons lu ta carte, mais c'est toi qui la connais. »
   `(restaurant_id, name)`, même désactivation sans suppression, même copie vers les autres
   établissements (ADR 0075 §2). Il n'y a pas de seconde porte d'entrée dans `menu_items`.
 
-**À trancher sur la maquette** : un article sans prix de revient. `cost_price` est obligatoire
+**Décidé le 2026-10-19 (réunion des associés)** : un article sans prix de revient. `cost_price` est obligatoire
 aujourd'hui. Exiger les soixante coûts avant d'enregistrer recrée le mur qu'on veut retirer.
-L'autre voie : enregistrer l'article hors cadeaux (`reward_eligible = false`) tant que son coût
-manque, avec une migration qui rend le coût facultatif pour ces seuls articles.
+Il est donc **enregistré hors cadeaux** (`reward_eligible = false`) tant que son coût manque ;
+`cost_price` est déjà facultatif en base (migration 20260901-0020). Dès que le gérant saisit
+le coût, l'article peut redevenir un cadeau, sous les plafonds de l'ADR 0017.
 
 ### 3. Limites
 

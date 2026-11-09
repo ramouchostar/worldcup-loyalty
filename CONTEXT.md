@@ -540,7 +540,7 @@ _Avoid_ : score (réservé au **score communautaire**), score de confiance, note
 Réponse du restaurateur à un signalement, via un **fil médié par la plateforme** — il **ne reçoit jamais** le numéro/email du membre. Transforme un mécontentement en relation réparée.
 _Avoid_ : SAV, réclamation, support.
 
-### Prestataires *(ADR 0084 — proposé)*
+### Prestataires *(ADR 0084 — accepté le 2026-10-19 ; paiement par virement, amendé le 2026-10-23)*
 
 **Prestataire** :
 Professionnel indépendant (vidéaste, photographe, graphiste, imprimeur) invité par la plateforme à exécuter des **missions** pour des restaurateurs. Rôle distinct du restaurateur et du membre : aucun siège d'établissement, il ne voit que ses missions. Espace `/prestataire`.
