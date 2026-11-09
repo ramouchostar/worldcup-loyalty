@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { analyzeReceipt, isAllowedReceiptType } from "@/lib/receipt-ocr";
+import { classifyDevice } from "@/lib/arrival-source";
 import { getReceiptConfig, getOtherStoreCodes, getEstablishmentIdentities } from "@/lib/receipt-config";
 import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { checkRateLimit, checkIpRateLimit, hashIp } from "@/lib/rate-limit";
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
 
   let analysis;
   try {
-    analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes, identities, { preview: true });
+    analysis = await analyzeReceipt(file, restaurantName, receiptConfig, otherStoreCodes, identities, { preview: true, device: classifyDevice(request.headers.get("user-agent")) });
   } catch (err) {
     console.error("[parse-receipt] Claude vision error:", err);
     // ADR 0079 — panne ou délai dépassé : compté (le client voyait une erreur, nous rien).
