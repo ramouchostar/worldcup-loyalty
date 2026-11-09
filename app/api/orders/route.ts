@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { validateOrderDate } from "@/lib/orders";
-import { getReceiptConfig, getOtherStoreCodes, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
+import { getReceiptConfig, getOtherStoreCodes, getEstablishmentIdentities, validateOrderKey, extractDateFromKey } from "@/lib/receipt-config";
 import { createPendingReward, LEGACY_RESTAURANT_ID } from "@/lib/rewards";
 import { incrementProgramRevenue } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
@@ -163,9 +163,11 @@ export async function POST(request: NextRequest) {
   // ADR 0019 — la clé de commande est définie par l'établissement
   // (restaurant_receipt_config, fallback Bestelnummer legacy).
   // ADR 0073 — le code de l'établissement dans la clé : on lit aussi ceux des autres.
-  const [receiptConfig, otherStoreCodes] = await Promise.all([
+  // ADR 0091 — l'en-tête imprimé (nom, adresse) décide avant le code : on lit leurs identités.
+  const [receiptConfig, otherStoreCodes, identities] = await Promise.all([
     getReceiptConfig(restaurantId),
     getOtherStoreCodes(restaurantId),
+    getEstablishmentIdentities(restaurantId),
   ]);
 
   // ADR 0058 — sans lecture serveur, pas de commande (plus de repli en revue
@@ -173,7 +175,7 @@ export async function POST(request: NextRequest) {
   const restaurantName = await getRestaurantDisplayName(restaurantId);
   let serverOcr: ReceiptAnalysis;
   try {
-    serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig, otherStoreCodes);
+    serverOcr = await analyzeReceipt(receiptFile, restaurantName, receiptConfig, otherStoreCodes, identities);
   } catch (err) {
     // ADR 0079 — panne ou délai dépassé : jusque-là AUCUNE trace (le client voyait une erreur,
     // nous rien). On compte, et on garde la cause dans les journaux du serveur.

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TICKET_KEY_DESCRIPTION, TICKET_KEY_PATTERN, compileKeyPattern, type ReceiptKeyConfig } from "./receipt-config";
 import { sanitizeKeyDate } from "./receipt-key-sanity";
+import { judgeHeader, type EstablishmentIdentity, type HeaderVerdict } from "./receipt-header";
 import { checkStoreCode, repairStoreCode, storeCodeOf, type KeyStoreVerdict } from "./receipt-key-store";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
@@ -38,6 +39,8 @@ type VisionResult = {
   order_number: string | null;
   amount: number | null;
   has_restaurant_header: boolean;
+  printed_name?: unknown;
+  printed_address?: unknown;
   looks_like_qr_or_poster?: unknown;
   order_time?: unknown;
   items?: unknown;
@@ -88,6 +91,12 @@ export type ReceiptReadTrace = {
    * ramenée à celui de l'établissement. La clé brute reste dans `raw_order_number`.
    */
   key_code_repaired?: string;
+  /**
+   * L'en-tête imprimé (ADR 0091) : ce qui a été lu, et ce qu'il a décidé.
+   * `overrode_code` : le code de la clé disait « autre / inconnu » mais l'en-tête désigne bien
+   * l'établissement — la clé est gardée.
+   */
+  header?: { verdict: HeaderVerdict; name: string | null; address: string | null; matched: string | null; overrode_code?: boolean };
 };
 
 export type RescueFilled = "amount" | "key";
@@ -99,6 +108,9 @@ export type ReceiptAnalysis = {
   amount: number | null;
   confidence: number;
   has_restaurant_header: boolean;
+  /** Nom et adresse imprimés en tête du ticket, tels que lus (ADR 0091). */
+  printed_name: string | null;
+  printed_address: string | null;
   // Photo d'une AFFICHE/flyer/QR du programme plutôt que d'un ticket imprimé
   // (backlog « refuser les photos de QR et d'affiche ») : l'affiche porte le
   // nom du resto, donc l'en-tête seule ne suffit pas à la départager.
@@ -198,10 +210,11 @@ ${buildKeyPromptSection(config)}2. Total amount in euros (look for TOTAAL, TOTAL
 8. daily_sequence: the short daily order number printed in the header, e.g. "179" in "Take away - 179 | ZSM" — null if not visible
 9. subtotal and discount_total: the printed subtotal and the printed discount/coupon amount as numbers (null if not printed)
 10. payment_method: the printed payment method ("Cash", "Betalen met kaart"…) — null if not visible. NEVER read card numbers, authorisation codes or any banking identifier: ignore that block entirely.
-11. Whether the photo shows a PROMOTIONAL POSTER, flyer, sticker, table sign or QR-code display (marketing material inviting to scan a code) rather than a printed till receipt — true only if it is clearly marketing material, false for any actual receipt even partial or blurry.
+11. printed_name and printed_address: the restaurant name and the street address printed at the very top of the receipt, copied exactly as printed (null if not visible). Do not guess or complete them.
+12. Whether the photo shows a PROMOTIONAL POSTER, flyer, sticker, table sign or QR-code display (marketing material inviting to scan a code) rather than a printed till receipt — true only if it is clearly marketing material, false for any actual receipt even partial or blurry.
 
 Return ONLY valid JSON, no markdown, no explanation:
-{"order_number": "YYYY-MM-DD/NNN/0NNNN" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false, "printed_date": "2026-06-01" or null, "channel": "Self-order kiosk" or null, "daily_sequence": "179" or null, "subtotal": 15.00 or null, "discount_total": 7.10 or null, "payment_method": "Cash" or null}`;
+{"order_number": "YYYY-MM-DD/NNN/0NNNN" or null, "amount": 12.50 or null, "has_restaurant_header": true or false, "printed_name": "Belchicken Kraainem" or null, "printed_address": "Kraainemlaan 185" or null, "order_time": "18:42" or null, "items": [{"name": "Finest Burger", "quantity": 1, "unit_price": 11.50}], "looks_like_qr_or_poster": true or false, "printed_date": "2026-06-01" or null, "channel": "Self-order kiosk" or null, "daily_sequence": "179" or null, "subtotal": 15.00 or null, "discount_total": 7.10 or null, "payment_method": "Cash" or null}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +308,8 @@ export type Reading = {
   key_corrected: boolean;
   amount: number | null;
   has_restaurant_header: boolean;
+  printed_name: string | null;
+  printed_address: string | null;
   looks_like_qr_or_poster: boolean;
   order_time: string | null;
   items: ReceiptLineItem[];
@@ -338,6 +353,8 @@ function interpretReading(
         ? Math.round(parsed.amount * 100) / 100
         : null,
     has_restaurant_header: parsed.has_restaurant_header === true,
+    printed_name: shortText(parsed.printed_name, 80),
+    printed_address: shortText(parsed.printed_address, 120),
     looks_like_qr_or_poster: parsed.looks_like_qr_or_poster === true,
     order_time:
       typeof parsed.order_time === "string" && ORDER_TIME_RE.test(parsed.order_time) ? parsed.order_time : null,
@@ -412,6 +429,8 @@ export function mergeReadings(
     key_corrected: keyFromRescue ? rescue.key_corrected : first.key_corrected,
     amount: first.amount ?? rescue.amount,
     has_restaurant_header: first.has_restaurant_header || rescue.has_restaurant_header,
+    printed_name: first.printed_name ?? rescue.printed_name,
+    printed_address: first.printed_address ?? rescue.printed_address,
     // C'est le juge le plus capable qui dit « affiche » quand la première lecture n'avait rien trouvé.
     looks_like_qr_or_poster: rescue.looks_like_qr_or_poster,
     order_time: first.order_time ?? rescue.order_time,
@@ -443,7 +462,9 @@ export async function analyzeReceipt(
   restaurantName: string,
   config?: ReceiptKeyConfig | null,
   /** Codes des AUTRES établissements (lib/receipt-config.ts getOtherStoreCodes) — ADR 0073. */
-  otherStoreCodes: readonly string[] = []
+  otherStoreCodes: readonly string[] = [],
+  /** Identités (nom, adresse) des établissements — l'en-tête imprimé décide (ADR 0091). */
+  identities: { ownId: string; all: readonly EstablishmentIdentity[] } | null = null
 ): Promise<ReceiptAnalysis> {
   const startedAt = Date.now();
   const remaining = () => TOTAL_BUDGET_MS - (Date.now() - startedAt);
@@ -495,8 +516,28 @@ export async function analyzeReceipt(
   // Erreur d'un seul chiffre sur le code (« 263 » pour « 253 ») : la clé est ramenée au code de
   // l'établissement plutôt qu'écartée — la trace garde « 263→253 ».
   let codeRepaired: string | null = null;
+  // ADR 0091 : l'en-tête imprimé passe AVANT le code de la clé.
+  let headerTrace: ReceiptReadTrace["header"];
   const screened = (r: Reading): { reading: Reading; issue: KeyIssue | null } => {
-    const verdict = checkStoreCode(r.order_number, ownStoreCode, otherStoreCodes);
+    const header = identities
+      ? judgeHeader(r.printed_name, r.printed_address, identities.ownId, identities.all)
+      : { verdict: "unknown" as HeaderVerdict, matched: null };
+    if (identities && (r.printed_name || r.printed_address) && (!headerTrace || headerTrace.verdict === "unknown")) {
+      headerTrace = { verdict: header.verdict, name: r.printed_name, address: r.printed_address, matched: header.matched };
+    }
+    if (header.verdict === "other") {
+      // Le ticket nomme un autre établissement : refus, même si la clé porte le bon code.
+      return { reading: { ...r, order_number: null }, issue: "other_establishment" };
+    }
+    const codeVerdict = checkStoreCode(r.order_number, ownStoreCode, otherStoreCodes);
+    if (header.verdict === "own") {
+      // Il nomme le nôtre : la clé reste, quel que soit son code (un chiffre mal lu n'y change rien).
+      if (codeVerdict === "other_establishment" || codeVerdict === "unknown_code") {
+        if (headerTrace) headerTrace.overrode_code = true;
+      }
+      return { reading: { ...r, has_restaurant_header: true }, issue: null };
+    }
+    const verdict = codeVerdict;
     if (verdict === "unknown_code") {
       const repaired = repairStoreCode(r.order_number, ownStoreCode, otherStoreCodes);
       if (repaired) {
@@ -566,6 +607,7 @@ export async function analyzeReceipt(
 
   if (keyIssue) trace.key_issue = keyIssue;
   if (codeRepaired && reading.order_number) trace.key_code_repaired = codeRepaired;
+  if (headerTrace) trace.header = headerTrace;
 
   return {
     ...reading,

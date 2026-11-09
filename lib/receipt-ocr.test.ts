@@ -8,6 +8,8 @@ const complete: Reading = {
   key_corrected: false,
   amount: 9.8,
   has_restaurant_header: true,
+  printed_name: null,
+  printed_address: null,
   looks_like_qr_or_poster: false,
   order_time: "18:42",
   items: [{ name: "Finest Burger", quantity: 1, unit_price: 9.8 }],
@@ -24,6 +26,8 @@ const empty: Reading = {
   key_corrected: false,
   amount: null,
   has_restaurant_header: false,
+  printed_name: null,
+  printed_address: null,
   looks_like_qr_or_poster: false,
   order_time: null,
   items: [],
@@ -175,4 +179,12 @@ test("JSON : les balises markdown autour sont retirées", () => {
 test("JSON : une réponse tronquée ou vide lève une erreur (jamais une lecture inventée)", () => {
   assert.throws(() => readJsonFromContent([{ type: "text", text: '{"order_number": "2026-09' }]));
   assert.throws(() => readJsonFromContent([{ type: "thinking" }]));
+});
+
+test("la relecture ne remplace pas le nom et l'adresse déjà lus (ADR 0091)", () => {
+  const first = { ...empty, amount: 9.8, printed_name: "Belchicken Kraainem" };
+  const rescue = { ...complete, printed_name: "Belchicken Houba", printed_address: "Kraainemlaan 185" };
+  const { merged } = mergeReadings(first, rescue);
+  assert.equal(merged.printed_name, "Belchicken Kraainem");
+  assert.equal(merged.printed_address, "Kraainemlaan 185");
 });
