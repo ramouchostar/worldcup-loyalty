@@ -5,6 +5,7 @@ import { giftToAddIdea, loadLeaGiftInput, loadLeaTicketsInput, ticketsToVerifyId
 import { lapsedIdea, loadHugoInput } from "./hugo";
 import { loadEmmaDecision } from "./emma";
 import { loadMaxDecision } from "./max";
+import { loadLouisDecision } from "./louis";
 import { recordIdeas, type RecordResult } from "./proposals";
 import type { AssistantId, Idea } from "./types";
 
@@ -18,7 +19,8 @@ import type { AssistantId, Idea } from "./types";
 // propose rien dit pourquoi quand il le sait (`reason`).
 
 export type GeneratorContext = { restaurantId: string; todayISO: string; nowMs: number };
-export type GeneratorOutput = { ideas: Idea[]; reason?: string | null };
+/** `trace` : les chiffres que le générateur veut laisser dans le rapport du passage (ex. jetons, brouillons écartés). */
+export type GeneratorOutput = { ideas: Idea[]; reason?: string | null; trace?: Record<string, number | string> };
 export type Generator = { id: string; assistant: AssistantId; run: (ctx: GeneratorContext) => Promise<GeneratorOutput> };
 
 const one = (idea: Idea | null): GeneratorOutput => ({ ideas: idea ? [idea] : [] });
@@ -46,9 +48,18 @@ export const GENERATORS: Generator[] = [
       return { ideas: d.ideas, reason: d.reason };
     },
   },
+  {
+    // Brigade 13 : trois brouillons de réponse aux avis Google, écrits par Claude (un seul appel, seulement s'il y a des avis à traiter).
+    id: "louis",
+    assistant: "louis",
+    run: async (c) => {
+      const d = await loadLouisDecision(c.restaurantId, c.todayISO, c.nowMs);
+      return { ideas: d.idea ? [d.idea] : [], reason: d.reason, trace: d.trace };
+    },
+  },
 ];
 
-export type GeneratorReport = { id: string; assistant: AssistantId; ideas: number; reason?: string | null; error?: string };
+export type GeneratorReport = { id: string; assistant: AssistantId; ideas: number; reason?: string | null; trace?: Record<string, number | string>; error?: string };
 
 /** Fait tourner chaque générateur, chacun isolé des autres (pur hors des générateurs eux-mêmes). */
 export async function generateAll(ctx: GeneratorContext, generators: Generator[] = GENERATORS): Promise<{ ideas: Idea[]; report: GeneratorReport[] }> {
@@ -62,7 +73,13 @@ export async function generateAll(ctx: GeneratorContext, generators: Generator[]
       return { id: g.id, assistant: g.assistant, ideas: 0, error };
     }
     ideas.push(...s.value.ideas);
-    return { id: g.id, assistant: g.assistant, ideas: s.value.ideas.length, ...(s.value.reason ? { reason: s.value.reason } : {}) };
+    return {
+      id: g.id,
+      assistant: g.assistant,
+      ideas: s.value.ideas.length,
+      ...(s.value.reason ? { reason: s.value.reason } : {}),
+      ...(s.value.trace && Object.keys(s.value.trace).length > 0 ? { trace: s.value.trace } : {}),
+    };
   });
   return { ideas, report };
 }

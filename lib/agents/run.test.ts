@@ -34,6 +34,16 @@ test("un générateur qui tombe n'empêche pas les autres, et son erreur est dan
 
 test("les générateurs livrés : un par module d'Omar, ids uniques", () => {
   const ids = GENERATORS.map((g) => g.id);
-  assert.deepEqual(ids, ["chloe", "chloe-ca", "lea-tickets", "lea-cadeau", "hugo", "emma", "max"]);
+  assert.deepEqual(ids, ["chloe", "chloe-ca", "lea-tickets", "lea-cadeau", "hugo", "emma", "max", "louis"]);
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test("la trace d'un générateur (jetons, brouillons écartés) arrive dans le rapport du passage", async () => {
+  const gens = [
+    { id: "louis", assistant: "louis" as const, run: async () => ({ ideas: [], reason: "rien_a_repondre", trace: { unanswered: 4, tokensIn: 900 } }) },
+    { id: "max", assistant: "max" as const, run: async () => ({ ideas: [], reason: "pas_d_audit" }) },
+  ];
+  const { report } = await generateAll({ restaurantId: "houba", todayISO: "2026-11-10", nowMs: 0 }, gens);
+  assert.deepEqual(report[0].trace, { unanswered: 4, tokensIn: 900 });
+  assert.equal("trace" in report[1], false);
 });
