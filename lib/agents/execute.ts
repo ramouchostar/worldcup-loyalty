@@ -118,11 +118,17 @@ export async function executeIdea(row: ProposalRow, ctx: ExecContext): Promise<E
             ? { kind: "done", message: "Hugo a préparé l'annonce : elle t'attend dans tes idées." }
             : { kind: "done", message: "Hugo préparera l'annonce dès demain matin." };
         }
-        // Relais vers un assistant qui n'a pas encore son module (Louis) : l'équipe prend le relais.
+        // Relais vers un assistant qui n'a pas de relais automatique : l'équipe prend le relais.
         return { kind: "team", message: "C'est noté : l'équipe Boosteats s'en occupe." };
       }
-      case "update_fiche":
       case "team":
+        // Louis (Brigade 13) : les réponses validées par le gérant sont déjà inscrites dans l'idée (`approvedReplies`,
+        // execute-louis.ts) ; l'équipe les publie sur la fiche Google à la main, tant que l'API n'existe pas (Brigade 12).
+        if (row.assistant === "louis") {
+          return { kind: "team", message: "C'est noté : l'équipe Boosteats publie tes réponses sur ta fiche Google et te prévient quand c'est fait." };
+        }
+        return { kind: "team", message: "C'est noté : l'équipe Boosteats s'en occupe et te tient au courant." };
+      case "update_fiche":
         // Fiche Google sans API (Brigade 12) et idées préparées à la main : le travail est humain.
         return { kind: "team", message: "C'est noté : l'équipe Boosteats s'en occupe et te tient au courant." };
     }

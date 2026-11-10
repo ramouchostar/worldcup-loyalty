@@ -7,6 +7,8 @@ import { todayInBrussels } from "@/lib/broadcast";
 import { decideIdea, getIdea, type Decision } from "@/lib/agents/proposals";
 import { executeIdea } from "@/lib/agents/execute";
 import { REFUSAL_REASONS, type RefusalReason } from "@/lib/agents/types";
+import { saveApproval, validateApproval } from "@/lib/agents/execute-louis";
+import type { LouisReply } from "@/lib/agents/louis";
 
 // Les gestes du gérant sur ses idées (ADR 0089 §5, Brigade 03). Une Server
 // Action est une route publique : chaque appel se re-garde (membre de la
@@ -14,7 +16,7 @@ import { REFUSAL_REASONS, type RefusalReason } from "@/lib/agents/types";
 // que le navigateur envoie ne dit ce qu'il faut exécuter, seulement l'id.
 
 export type DecideInput =
-  | { kind: "oui"; termsAccepted?: boolean }
+  | { kind: "oui"; termsAccepted?: boolean; /** Louis : les réponses que le gérant garde, avec le texte qu'il a relu (Brigade 13). */ replies?: { ref: string; text: string }[] }
   | { kind: "non"; reason: string; note?: string | null }
   | { kind: "plus_tard" };
 
@@ -54,6 +56,14 @@ export async function decide(restaurantId: string, id: string, input: DecideInpu
     const row = await getIdea(restaurantId, id);
     if (row && !("unavailable" in row) && row.content.action.kind === "create_ad_request" && input.kind === "oui" && input.termsAccepted !== true) {
       return { ok: false, message: "Coche les conditions de la Pub pour continuer." };
+    }
+    // Louis : ce qui part sous le nom de l'établissement est ce que le gérant a relu. Les réponses qu'il renvoie sont
+    // recoupées avec l'idée enregistrée, puis inscrites dedans AVANT la décision — l'équipe publie ce texte-là.
+    if (row && !("unavailable" in row) && row.assistant === "louis" && Array.isArray(row.content.replies) && row.status === "proposee") {
+      const approval = validateApproval(row.content.replies as LouisReply[], input.kind === "oui" ? input.replies : undefined);
+      if (!approval.ok) return { ok: false, message: approval.message };
+      const failure = await saveApproval(row, approval.approved);
+      if (failure) return { ok: false, message: failure };
     }
   }
 
