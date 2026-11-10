@@ -630,6 +630,10 @@ Le choix du gérant quand il dit « Non » à une idée, dans une liste : pas le
 _Avoid_ : motif, feedback, commentaire.
 _Avoid_ : suggestion, recommandation, tâche, opportunité (la page Opportunités est une **source** des idées de Chloé).
 
+**Réponse de Louis** *(ADR 0089 §9)* :
+Le brouillon d'une réponse publique à un avis Google, écrit par Louis pour un avis récent sans réponse et avec un texte. Trois au plus par idée ; le gérant les relit, les modifie ou les écarte avant le « Oui », et l'équipe publie le texte qu'il a validé (tant que l'API Google manque). Jamais de promesse, jamais de nom ni de contact dans la réponse.
+_Avoid_ : réponse automatique (il n'y en a pas : tout passe par le « Oui » du gérant).
+
 ## Example dialogue
 
 > ⚠️ *Dialogue d'époque Coupe du Monde — les échanges mentionnant « bonus de tour », « avancement », « Belgique en quarts » ou `round_reached` sont obsolètes (ADR 0014). Les notions de double verrou, de couches de récompense, de doublon (Bestelnummer) et de commande directe restent valables. À rafraîchir lors de l'implémentation du pivot.*
