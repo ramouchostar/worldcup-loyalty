@@ -3,6 +3,7 @@ import { createAdminClient, createServerSupabaseClient } from "@/lib/supabase";
 import { todayInBrussels } from "@/lib/broadcast";
 import { listPlatformIdeas, type ProposalRow } from "@/lib/agents/proposals";
 import { ASSISTANTS, REFUSAL_REASON_LABELS, type IdeaStatus } from "@/lib/agents/types";
+import { approvedForTeam } from "@/lib/agents/ideas-view";
 import { MarkDoneButton, TeamIdeaForm } from "./TeamIdeaForm";
 import { RunNowForm } from "./RunNowForm";
 
@@ -107,6 +108,25 @@ export default async function PlatformIdeesPage() {
                     <p className={muted}>Relais vers {ASSISTANTS[action.to].name}, pas encore automatisé.</p>
                   ) : (
                     <p className={muted}>En cours d&apos;exécution.</p>
+                  )}
+                  {approvedForTeam(r.content).length > 0 && (
+                    <div className="space-y-2" aria-label="Réponses validées par le gérant, à publier sur la fiche Google">
+                      <p className={muted}>
+                        Réponses relues par le gérant. Les publier telles quelles sous l&apos;avis de même date et de même texte : aucun identifiant d&apos;avis n&apos;est conservé.
+                      </p>
+                      <ol className="space-y-2">
+                        {approvedForTeam(r.content).map((a) => (
+                          <li key={a.ref} className="rounded-lg border border-gray-200 dark:border-gray-800 p-3 space-y-1.5">
+                            <p className="text-xs text-gray-500">
+                              {a.rating} sur 5, avis du {a.date}
+                              {a.edited ? ", texte modifié par le gérant" : ""}
+                            </p>
+                            <p className="text-xs text-gray-500">« {a.excerpt} »</p>
+                            <p className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100">{a.text}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
                   )}
                   <MarkDoneButton restaurantId={r.restaurant_id} id={r.id} />
                 </li>
