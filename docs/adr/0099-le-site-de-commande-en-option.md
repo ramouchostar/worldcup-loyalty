@@ -1,6 +1,6 @@
 # ADR 0099 — Le site de commande, en option, avec des options d'article
 
-**Statut** : Proposé (2026-11-11), par Omar. **Demande à Mehdi d'amender** l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md) §4 (« prise de commande, paiement, livraison » hors du produit), l'[ADR 0088](0088-site-referencement-pro.md) §3 (« la commande reste ailleurs », aucun paiement chez nous) et l'[ADR 0070](0070-plans-croissance-pro-commande-en-ligne-et-referencement.md) (le site de commande Boosteats). **Rien de ce qui suit n'est décidé** tant que Mehdi ne l'a pas accepté ; cette PR n'ajoute que les options des articles, sans écran, sans commande, sans paiement.
+**Statut** : Accepté (2026-11-11) — proposé par Omar le même jour, accord de Mehdi donné à Omar pour amender les ADR concernés. **Périmètre accepté : les options des articles et, ensuite, le retrait au comptoir payé au comptoir. Le paiement en ligne et la livraison restent exclus** (chacun aura son ADR). **Amende** l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md) §4 (« prise de commande, paiement, livraison » hors du produit), l'[ADR 0088](0088-site-referencement-pro.md) §3 (« la commande reste ailleurs », aucun paiement chez nous) et l'[ADR 0070](0070-plans-croissance-pro-commande-en-ligne-et-referencement.md) (le site de commande Boosteats). La caisse certifiée reste une **question ouverte** (Contexte) à faire confirmer avant la première commande réelle. Les options des articles sont livrées sans écran, sans commande, sans paiement ; le reste de la décision s'applique aux PR suivantes.
 
 ## Contexte
 
@@ -10,7 +10,7 @@ L'ADR 0074 §4 l'a sorti de la feuille de route pour trois raisons : le support,
 
 Ce qui a été examiné avant d'écrire cet ADR : huit cartes réelles de six cuisines (poulet frit, pizzeria, burger, pâtes, mitraillette, sushi, donburi), collées par le porteur à partir des pages Uber Eats de restaurants, et un parcours de commande maquetté avec lui le 2026-11-11 (https://claude.ai/code/artifact/b5fe41c9-f398-414d-95a7-ae94d245e2d1).
 
-## Décision (proposée)
+## Décision
 
 ### 1. Une option, pas une obligation
 
@@ -56,7 +56,7 @@ Un snack arrive avec les sauces, crudités et suppléments habituels déjà prop
 - **Lire les cartes des plateformes automatiquement** : conditions d'utilisation, blocages, risque pour tout le projet.
 - **Paiement en ligne dès la première version** : Stripe Connect ou équivalent, remboursements, litiges, TVA. Une phase à part, une fois le canal prouvé.
 
-## À valider par Mehdi
+## Restent ouverts
 
 1. Rouvre-t-on l'ADR 0074 §4, et pour quels forfaits ?
 2. Qui pose le générateur de site (Brigade 15) : le site de commande et la vitrine partagent routes et mise en page.
