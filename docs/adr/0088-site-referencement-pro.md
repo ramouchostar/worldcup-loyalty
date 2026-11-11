@@ -76,6 +76,10 @@ pas vendu à part et n'entre pas dans Croissance. Il réunit trois choses :
 
 ### 3. La commande reste ailleurs
 
+> **Amendé par l'[ADR 0099](0099-le-site-de-commande-en-option.md) (accepté, 2026-11-11)** : un restaurateur peut
+> aussi activer **le site de commande Boosteats** (retrait au comptoir, payé au comptoir, sans paiement en
+> ligne). Quand il l'a activé, le bouton « Commander » ouvre ce site ; sinon, ce qui suit s'applique.
+
 Le bouton principal dépend de ce que le restaurant a :
 
 - **un vrai site de commande** (celui de sa caisse, Takeaway, Uber Eats, Deliveroo ou un
