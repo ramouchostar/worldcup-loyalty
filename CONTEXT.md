@@ -14,6 +14,10 @@ _Avoid_ : commande, achat, order — toujours qualifier de "directe" pour distin
 Achat passé via Uber Eats, Takeaway ou Deliveroo. Ne compte PAS dans le programme. Ne doit jamais apparaître dans la table `orders`.
 _Avoid_ : livraison (trop générique — on peut livrer directement).
 
+**Commande du site** *(ADR 0099, proposé)* :
+Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). Sort sur l'imprimante du restaurant. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; un point pourra être crédité plus tard, sans photo de ticket.
+_Avoid_ : commande (seule — réservé à la commande directe d'un membre), ticket (c'est la photo de la caisse), order.
+
 **Vente caisse** *(ADR 0027)* :
 Encaissement enregistré par le système de caisse du restaurateur (membre ou non), importé par CSV/Excel à part de `orders`. **Jamais affichée ligne à ligne** (le resto a le détail dans sa caisse) — c'est la matière brute du **forecast de CA total**. Ce qui EST montré, c'est la prévision qui en découle, réservée à l'**admin/restaurateur** (jamais côté client/membre — c'est la vue admin, qui a toujours le droit aux euros ; l'ADR 0007 ne vise que le membre). Table `restaurant_sales`, **service-role only**. Une **commande directe** est une vente caisse qui a *en plus* été scannée par un membre. Le rapport est **déposé tel quel** (2026-08-22) : colonnes devinées par en-têtes + contenu (`guessMappingSmart`), **granularité détectée** (`detectGranularity` : jour / semaine / mois) — détail journalier → prévision 7 jours ; totaux hebdo/mensuels → **lecture de tendance** (moyenne récente, dernière période, direction), jamais de prévision jour par jour inventée.
 _Avoid_ : vente (seul — ambigu), CA / chiffre d'affaires **côté client** (interdit ADR 0007 ; autorisé côté admin), commande (réservé aux commandes directes des membres).
@@ -203,6 +207,14 @@ _Avoid_ : scraping, « on récupère ton menu Uber Eats ».
 **Article** :
 Une ligne du catalogue menu (`menu_items`) — un produit vendu par l'établissement. Possède un nom, une catégorie, un prix de vente et un prix de revient. Marqué `reward_eligible` s'il peut être proposé en cadeau. Re-téléverser le catalogue met à jour les articles existants (upsert sur le nom) et désactive ceux absents du nouveau fichier — jamais de suppression (préserve l'historique des récompenses). Prix de vente et prix de revient d'un article se corrigent aussi un par un dans le tableau (« Modifier »), sans re-téléverser.
 _Avoid_ : produit, item (anglicisme), plat (exclut à tort boissons et accompagnements).
+
+**Option** *(ADR 0099, proposé)* :
+Ce que le client choisit en plus d'un article : une sauce, une taille, un supplément, un retrait (« sans oignons »). Quatre sortes de **groupes d'options** : inclus (compris dans le prix), variante (taille), extra (supplément payant), retrait (toujours à 0 €, imprimé en gros sur le ticket). Un groupe a un minimum et un maximum de sélections ; une option a une quantité maximale, peut être cochée d'office et peut ouvrir des sous-groupes. Les options ne sont **jamais** dans `menu_items`.
+_Avoid_ : supplément (seul — c'est une sorte de groupe), ingrédient, topping, modificateur.
+
+**Bibliothèque d'options** *(ADR 0099, proposé)* :
+Les options d'un établissement, saisies une fois (la sauce « Samouraï ») et réutilisées par tous les groupes qui la proposent ; son prix est porté par chaque groupe, ses allergènes par la bibliothèque (jamais préremplis comme des faits).
+_Avoid_ : liste de sauces, catalogue d'options.
 
 **Catégorie** :
 Famille d'un article dans le catalogue (ex. "Burger", "Accompagnement", "Dessert", "Boisson"). Sert à regrouper les articles, à restreindre les suggestions de cadeaux à une taille cohérente avec le palier, et à composer les combos (évolution future). Sans rapport avec une communauté/équipe.
