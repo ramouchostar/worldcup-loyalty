@@ -7,6 +7,7 @@ import type { LeaIdea } from "./lea";
 import type { HugoIdea } from "./hugo";
 import type { EmmaIdea } from "./emma";
 import type { MaxIdea } from "./max";
+import type { LouisIdea } from "./louis";
 
 // Le contrat de la brigade (ADR 0089) : chaque idée d'assistant DOIT être une `Idea`.
 // Vérifié à la compilation (npm run type-check) : un module qui s'en écarte casse le build.
@@ -17,7 +18,8 @@ export type BrigadeIdea =
   | Conforms<LeaIdea>
   | Conforms<HugoIdea>
   | Conforms<EmmaIdea>
-  | Conforms<MaxIdea>;
+  | Conforms<MaxIdea>
+  | Conforms<LouisIdea>;
 
 test("les sept assistants, chacun sous sa propre clé", () => {
   const ids = Object.keys(ASSISTANTS) as AssistantId[];
