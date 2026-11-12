@@ -61,7 +61,7 @@ export function assembleTrees(rows: OptionRows): Map<string, OptionGroup[]> {
   return trees;
 }
 
-const isMissingTable = (error: { code?: string; message?: string } | null) =>
+export const isMissingTable = (error: { code?: string; message?: string } | null) =>
   !!error && (error.code === "PGRST205" || error.code === "42P01" || /menu_(option|item_option)/.test(error.message ?? "") && /(does not exist|Could not find the table)/i.test(error.message ?? ""));
 
 /** Les options des articles demandés (ou de tout l'établissement si `itemIds` est omis). */
