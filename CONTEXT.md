@@ -220,6 +220,14 @@ _Avoid_ : liste de sauces, catalogue d'options.
 Famille d'un article dans le catalogue (ex. "Burger", "Accompagnement", "Dessert", "Boisson"). Sert à regrouper les articles, à restreindre les suggestions de cadeaux à une taille cohérente avec le palier, et à composer les combos (évolution future). Sans rapport avec une communauté/équipe.
 _Avoid_ : type, segment, rayon.
 
+**Famille de plats** *(ADR 0100, proposé)* :
+Ce que nous reconnaissons d'un article d'après son nom puis sa catégorie : mitraillette, durum, pizza, pâtes, boisson… (`lib/menu-options/families.ts`, dictionnaire écrit à la main). Elle sert à mettre ensemble les articles qui ont les mêmes options et à préparer un lot de départ ; elle porte une **confiance** (forte, moyenne, faible, aucune) mesurée sur des cartes. Ce n'est pas la **catégorie** que le restaurateur a écrite, et elle n'est jamais affichée aux membres.
+_Avoid_ : type de plat, catégorie (c'est le champ du catalogue), rayon.
+
+**Groupe de plats** *(ADR 0100, proposé)* :
+Des articles qui ont les mêmes options, réglés d'un seul geste (« Je valide ce groupe ») sur l'écran « Options de mes plats ». Dans le code, un `Lot` (`lib/menu-options/lots.ts`). Ne pas confondre avec un **groupe d'options** (la liste de choix « Sauces » d'un article) ni avec une équipe.
+_Avoid_ : cluster, lot (dans un texte visible), paquet, groupe (seul — ambigu avec le groupe d'options et l'équipe).
+
 **Prix de vente** :
 Prix carte d'un article (`menu_items.menu_price`) — la valeur perçue par le client quand il reçoit l'article en cadeau. Sert de numérateur au calcul d'attractivité d'une suggestion. Donnée euros, admin uniquement.
 _Avoid_ : prix public, tarif, prix client.
