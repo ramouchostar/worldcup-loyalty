@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase";
+import { readItemFacts } from "@/lib/menu-options/facts";
 import { countGroupsByArticle, saveLots, supabaseOptionsDb } from "@/lib/menu-options/save";
 
 // ADR 0100 — régler les options des plats par groupes, depuis le catalogue (console, jamais côté membre : des euros).
 //
 // GET /api/admin/menu/options?restaurantId=…
-//   → { items: [{ id, name, category, price, hasPhoto }], configured: { [articleId]: nombre de listes de choix }, available }
+//   → { items: [{ id, name, category, price, hasPhoto }], configured: { [articleId]: nombre de listes de choix }, available, facts }
+//   `facts` = description et allergènes confirmés déjà enregistrés par plat (aperçu du site) ; `{}` si les colonnes manquent.
 //   `available: false` = les tables d'options n'existent pas encore (migration pas appliquée) : l'écran le dit.
 // PUT /api/admin/menu/options — { restaurantId, lots, trace }
 //   Les lots sont revérifiés ici (forme, modèle d'options, appartenance des plats) : le navigateur n'est jamais cru.
@@ -38,7 +40,14 @@ export async function GET(req: NextRequest) {
   const items = ((data ?? []) as { id: string; name: string; category: string; menu_price: number; image_path: string | null }[]).map((i) => ({
     id: i.id, name: i.name, category: i.category, price: Number(i.menu_price), hasPhoto: !!i.image_path,
   }));
-  return NextResponse.json({ items, configured: Object.fromEntries(counts ?? []), available: counts !== null });
+  // Ce qui est déjà enregistré (descriptions, allergènes confirmés) : pour l'aperçu du site. Jamais bloquant.
+  let facts = {};
+  try {
+    facts = await readItemFacts(restaurantId);
+  } catch (e) {
+    console.error("[menu-options] faits :", e);
+  }
+  return NextResponse.json({ items, configured: Object.fromEntries(counts ?? []), available: counts !== null, facts });
 }
 
 export async function PUT(req: NextRequest) {
