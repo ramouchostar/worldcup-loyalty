@@ -4,6 +4,8 @@
 
 > **Amendement proposé par l'[ADR 0088](0088-site-referencement-pro.md) (2026-11-03)** : le site du Pro vit sur un sous-domaine Boosteats (plus le domaine du resto), sans commande ni paiement ; le référencement = site optimisé pour Google + fiche gérée + rapport mensuel.
 
+> **Amendement par l'[ADR 0099](0099-le-site-de-commande-en-option.md) (accepté, 2026-11-11)** : un site de commande Boosteats revient, en option et réduit au retrait au comptoir payé au comptoir (impression sur l'imprimante du restaurant). Ni paiement en ligne, ni commission de 5 %, ni Stripe Connect, ni livraison.
+
 **Statut** : Accepté (2026-09-26). Amende l'[ADR 0029](0029-monetization-freemium-data-driven.md)
 (montants fixés, contenu des plans Croissance et Pro redéfini, plafond Gratuit à 500 tickets)
 et précise l'[ADR 0015](0015-multi-restaurant-platform-pivot.md) (pas d'app client

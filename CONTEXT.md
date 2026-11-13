@@ -14,7 +14,7 @@ _Avoid_ : commande, achat, order — toujours qualifier de "directe" pour distin
 Achat passé via Uber Eats, Takeaway ou Deliveroo. Ne compte PAS dans le programme. Ne doit jamais apparaître dans la table `orders`.
 _Avoid_ : livraison (trop générique — on peut livrer directement).
 
-**Commande du site** *(ADR 0099, proposé)* :
+**Commande du site** *(ADR 0099)* :
 Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). Sort sur l'imprimante du restaurant. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; un point pourra être crédité plus tard, sans photo de ticket.
 _Avoid_ : commande (seule — réservé à la commande directe d'un membre), ticket (c'est la photo de la caisse), order.
 
@@ -208,11 +208,11 @@ _Avoid_ : scraping, « on récupère ton menu Uber Eats ».
 Une ligne du catalogue menu (`menu_items`) — un produit vendu par l'établissement. Possède un nom, une catégorie, un prix de vente et un prix de revient. Marqué `reward_eligible` s'il peut être proposé en cadeau. Re-téléverser le catalogue met à jour les articles existants (upsert sur le nom) et désactive ceux absents du nouveau fichier — jamais de suppression (préserve l'historique des récompenses). Prix de vente et prix de revient d'un article se corrigent aussi un par un dans le tableau (« Modifier »), sans re-téléverser.
 _Avoid_ : produit, item (anglicisme), plat (exclut à tort boissons et accompagnements).
 
-**Option** *(ADR 0099, proposé)* :
+**Option** *(ADR 0099)* :
 Ce que le client choisit en plus d'un article : une sauce, une taille, un supplément, un retrait (« sans oignons »). Quatre sortes de **groupes d'options** : inclus (compris dans le prix), variante (taille), extra (supplément payant), retrait (toujours à 0 €, imprimé en gros sur le ticket). Un groupe a un minimum et un maximum de sélections ; une option a une quantité maximale, peut être cochée d'office et peut ouvrir des sous-groupes. Les options ne sont **jamais** dans `menu_items`.
 _Avoid_ : supplément (seul — c'est une sorte de groupe), ingrédient, topping, modificateur.
 
-**Bibliothèque d'options** *(ADR 0099, proposé)* :
+**Bibliothèque d'options** *(ADR 0099)* :
 Les options d'un établissement, saisies une fois (la sauce « Samouraï ») et réutilisées par tous les groupes qui la proposent ; son prix est porté par chaque groupe, ses allergènes par la bibliothèque (jamais préremplis comme des faits).
 _Avoid_ : liste de sauces, catalogue d'options.
 
