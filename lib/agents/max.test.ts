@@ -102,17 +102,13 @@ test("un site qui pointe vers un réseau social (partiel) n'est pas un site abse
   assert.equal(maxDecision(input({ fiche: fiche({ site: crit("site", "manquant", 5) }) })).ideas[0].finding, "site");
 });
 
-test("les avis sans réponse passent la main à Louis : Max ne répond à rien", () => {
+test("les avis sans réponse sont l'affaire de Louis : Max n'en fait plus une idée (pas de doublon le même matin)", () => {
   const d = maxDecision(input({ fiche: fiche({ reponses: crit("reponses", "manquant", 5, "10 % sur 12 mois") }) }));
-  const i = d.ideas[0];
-  assert.equal(i.type, "avis_a_repondre");
-  assert.equal(i.finding, "reponses");
-  assert.equal(i.question, "Je demande à Louis de s'en occuper ?");
-  assert.deepEqual(i.action, { kind: "relay", to: "louis", label: "Oui, demander à Louis" });
-  assert.match(i.lines.what, /\(10 % sur 12 mois ont une réponse\)/);
-  // À points égaux, un geste de fiche passe avant le relais.
+  assert.equal(d.ideas.length, 0);
+  assert.equal(d.reason, "rien_a_signaler");
+  // Un autre manque de la fiche reste proposé, sans mention des avis.
   const both = maxDecision(input({ fiche: fiche({ reponses: crit("reponses", "manquant", 5), telephone: crit("telephone", "manquant", 5) }) }));
-  assert.deepEqual(both.ideas.map((x) => x.finding), ["telephone", "reponses"]);
+  assert.deepEqual(both.ideas.map((x) => x.finding), ["telephone"]);
 });
 
 test("pas de constat par jour : Max ne prétend jamais qu'un jour de la semaine manque", () => {

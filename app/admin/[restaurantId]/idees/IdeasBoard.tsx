@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, Check, Lightbulb } from "lucide-react";
 import { Card, EmptyState, PageHeader, SectionLabel } from "@/components/admin/ui";
 import { REFUSAL_NOTE_MAX, REFUSAL_REASONS, REFUSAL_REASON_LABELS, type IdeaLines, type RefusalReason } from "@/lib/agents/types";
+import { repliesYesLabel, type ReplyCard } from "@/lib/agents/ideas-view";
 import { decide, type DecideInput } from "./actions";
 
 // L'écran « Idées du jour » (ADR 0089, Brigade 03), d'après la maquette validée
@@ -28,6 +29,10 @@ export type IdeaCardData = {
   /** Idée d'Emma : la case des conditions de la Pub, cochée par le gérant lui-même (ADR 0086 §4). */
   needsTerms: boolean;
   preparedByTeam: boolean;
+  /** Louis (Brigade 13) : un brouillon de réponse par avis, que le gérant relit, modifie ou écarte avant le « Oui ». */
+  replies?: ReplyCard[];
+  /** Avis à traiter qui n'entrent pas aujourd'hui : ils viennent les jours suivants. */
+  repliesLeft?: number;
 };
 export type InProgressData = { id: string; name: string; photo: string; title: string; error: string | null; team: boolean };
 export type RecentData = { id: string; label: string; outcome: string; yes: boolean };
@@ -127,6 +132,11 @@ function IdeaCard({ idea, restaurantId }: { idea: IdeaCardData; restaurantId: st
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Louis : le texte de chaque réponse (modifiable) et les avis que le gérant écarte.
+  const replies = idea.replies ?? [];
+  const [texts, setTexts] = useState<Record<string, string>>(() => Object.fromEntries(replies.map((r) => [r.ref, r.text])));
+  const [skipped, setSkipped] = useState<Record<string, boolean>>({});
+  const kept = replies.filter((r) => !skipped[r.ref]);
 
   function send(input: DecideInput) {
     setError(null);
@@ -174,6 +184,55 @@ function IdeaCard({ idea, restaurantId }: { idea: IdeaCardData; restaurantId: st
         </div>
       )}
 
+      {replies.length > 0 && !state?.done && (
+        <div className="space-y-3">
+          {replies.map((r) => {
+            const off = !!skipped[r.ref];
+            const modified = (texts[r.ref] ?? r.text) !== r.text;
+            const fieldId = `reponse-${idea.id}-${r.ref}`;
+            return (
+              <div key={r.ref} className={`rounded-lg border border-paper-border p-3 space-y-2 ${off ? "opacity-60" : ""}`}>
+                <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-muted">
+                  <span className="font-semibold text-ink tracking-wide" role="img" aria-label={`${r.rating} sur 5`}>
+                    {"★".repeat(r.rating)}
+                    {"☆".repeat(Math.max(0, 5 - r.rating))}
+                  </span>
+                  <span>{r.when}</span>
+                  {r.careful && <span className="rounded-full bg-warn/10 px-2 py-0.5 text-[12px] font-medium text-warn">À relire avec soin</span>}
+                  {modified && <span className="rounded-full bg-boost-cream px-2 py-0.5 text-[12px] font-medium text-boost-olive-dark">Modifiée</span>}
+                </div>
+                <p className="border-l-2 border-paper-border pl-2.5 text-[13px] text-ink-muted">« {r.excerpt} »</p>
+                <label htmlFor={fieldId} className="block text-[13px] text-ink-muted">Réponse de {idea.name}, publiée sous le nom de ton établissement</label>
+                <textarea
+                  id={fieldId}
+                  rows={4}
+                  maxLength={600}
+                  value={texts[r.ref] ?? r.text}
+                  disabled={off || pending}
+                  onChange={(e) => setTexts((t) => ({ ...t, [r.ref]: e.target.value }))}
+                  className="w-full resize-y rounded-lg border border-paper-border bg-paper px-3 py-2.5 text-[14px] leading-snug text-ink focus:outline-none focus:ring-2 focus:ring-boost-olive disabled:opacity-60"
+                />
+                <label className="flex items-center gap-2.5 min-h-[44px] text-[13px] text-ink-muted">
+                  <input
+                    type="checkbox"
+                    checked={off}
+                    disabled={pending}
+                    onChange={(e) => setSkipped((s) => ({ ...s, [r.ref]: e.target.checked }))}
+                    className="h-5 w-5 accent-boost-olive"
+                  />
+                  Ne pas répondre à cet avis
+                </label>
+              </div>
+            );
+          })}
+          {(idea.repliesLeft ?? 0) > 0 && (
+            <p className="text-[13px] text-ink-muted">
+              {idea.repliesLeft} {idea.repliesLeft === 1 ? "autre avis vient" : "autres avis viennent"} les jours suivants.
+            </p>
+          )}
+        </div>
+      )}
+
       {state?.done ? (
         <div className={`flex items-start gap-2 rounded-lg px-3 py-2.5 ${state.tone === "danger" ? "bg-danger/10" : "bg-paper-subtle"}`} role="status">
           {state.tone === "danger" ? (
@@ -197,11 +256,17 @@ function IdeaCard({ idea, restaurantId }: { idea: IdeaCardData; restaurantId: st
           <div className="flex gap-2">
             <button
               type="button"
-              disabled={pending || (idea.needsTerms && !terms)}
-              onClick={() => send({ kind: "oui", termsAccepted: idea.needsTerms ? terms : undefined })}
+              disabled={pending || (idea.needsTerms && !terms) || (replies.length > 0 && kept.length === 0)}
+              onClick={() =>
+                send({
+                  kind: "oui",
+                  termsAccepted: idea.needsTerms ? terms : undefined,
+                  replies: replies.length > 0 ? kept.map((r) => ({ ref: r.ref, text: texts[r.ref] ?? r.text })) : undefined,
+                })
+              }
               className="flex-1 min-h-[44px] rounded-xl bg-boost-olive text-white text-[15px] font-semibold disabled:opacity-50"
             >
-              {pending ? "Un instant…" : idea.yesLabel}
+              {pending ? "Un instant…" : replies.length > 0 ? repliesYesLabel(kept.length) : idea.yesLabel}
             </button>
             <button type="button" disabled={pending} onClick={() => setRefusing(true)} className="min-h-[44px] px-4 rounded-xl border border-paper-border bg-white text-[15px] font-medium text-ink">
               Non

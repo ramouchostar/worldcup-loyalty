@@ -1,6 +1,6 @@
 # ADR 0089 — La brigade : des idées que le gérant valide
 
-**Statut** : Accepté (2026-11-05), **style de la maquette remplacé par l'[ADR 0090](0090-charte-anti-slop.md)** (charte anti-slop : structure inchangée), **amendé le 2026-11-05** (§8 : la brigade apprend des refus de chaque établissement, demande du porteur) — décidé par le porteur le 2026-11-04 sur la maquette de l'accueil
+**Statut** : Accepté (2026-11-05), **style de la maquette remplacé par l'[ADR 0090](0090-charte-anti-slop.md)** (charte anti-slop : structure inchangée), **amendé le 2026-11-05** (§8 : la brigade apprend des refus de chaque établissement, demande du porteur), **amendé le 2026-11-10** (§9 : Louis, des réponses aux avis que le gérant relit) — décidé par le porteur le 2026-11-04 sur la maquette de l'accueil
 (https://claude.ai/artifact/KjZz5nTT41bX8kP3a4furC) et le plan en 20 actions du backlog plateforme
 (« Brigade 01 » à « Brigade 20 », PR #390). Fixe le contrat que les modules d'Omar (Brigades 07 à 11
 et 14, PR #392 à #397, bilan `docs/brigade-bilan-modules-omar.md`) attendaient. S'appuie sur l'[ADR
@@ -152,6 +152,34 @@ on doit pouvoir dire au gérant, en une phrase, pourquoi une idée revient ou ne
 - **Le gérant voit ce qui a été retenu** juste après son refus, en une phrase (« Compris. Hugo ne te
   reproposera pas ça avant 7 jours. »), jamais un chiffre de score.
 - Au-delà de 90 jours, la brigade oublie : un établissement change, ses goûts aussi.
+
+### 9. Louis : des réponses aux avis que le gérant relit (amendement du 2026-11-10, Brigade 13)
+
+- **Une idée, trois brouillons au plus.** Louis lit les avis récents de la fiche Google et écrit un brouillon de
+  réponse pour les trois plus récents qui n'en ont pas et qui ont un texte (une note seule n'appelle pas de
+  réponse). C'est UNE idée (`reponses_aux_avis`), pas une par avis : le plafond de trois idées par jour reste celui
+  de tout le gérant. Le gérant relit, **modifie ce qu'il veut, écarte ce qu'il veut**, puis dit « Oui » ; le texte
+  validé est inscrit dans l'idée (`approvedReplies`) **avant** la décision. Ce que l'équipe publie est ce texte-là,
+  jamais le brouillon d'origine.
+- **Qui publie.** L'équipe Boosteats, à la main, depuis la fiche, tant que l'accès à l'API Google Business Profile
+  manque (Brigade 12, ADR 0082 §4). Le geste est « équipe » : elle publie, puis note « Fait » sur `/platform/idees`,
+  où elle lit chaque réponse validée avec l'avis (date et extrait) auquel elle répond. Le jour où l'API existe, seul
+  l'exécuteur change.
+- **Garde-fous.** Un brouillon qui contient une promesse (remise, cadeau, remboursement, « cela n'arrivera plus »),
+  un contact ou un champ à remplir est écarté et la raison est tracée. Un avis à une ou deux étoiles est marqué
+  « à relire avec soin ». Le texte d'un avis est une donnée pour Claude, jamais une consigne.
+- **Source et âge.** Les avis viennent du dernier audit de la fiche (ADR 0069, jusqu'à 500 avis datés avec la
+  réponse du propriétaire), lu depuis moins de sept jours (hypothèse) : au-delà, Louis se tait et le dit, car l'avis
+  a pu recevoir une réponse depuis. La relecture régulière des avis (coût DataForSEO, plafond visible) est une PR à part.
+- **Pas de réponse automatique.** C'est une décision à part (ADR 0082 §4), qui amendera l'alternative rejetée
+  ci-dessous. Piste à instruire : un mode choisi par le gérant, limité aux avis à quatre et cinq étoiles, proposé par
+  une idée de Louis quand des avis restent sans réponse depuis trois jours, jamais pour une à trois étoiles. La brique
+  « le gérant choisit par une idée » existe déjà (refus appris, §8).
+- **Un seul assistant parle des avis.** Max ne propose plus « Des avis attendent ta réponse » : il doublait la carte
+  de Louis, sans les brouillons.
+- **Trace.** Dans l'idée : avis lus, sans réponse, avec texte, sans texte, hors fenêtre, déjà proposés. Dans le rapport
+  du passage du matin : jetons et brouillons écartés avec leur raison. Dans les mesures (§7) : taux de « Oui » et
+  délai de décision de Louis, qui dira si les gérants relisent ou laissent expirer.
 
 ## Conséquences
 

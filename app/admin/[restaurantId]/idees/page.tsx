@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
 import { listRecentDecisions, listTodayIdeas, markSeen, type ProposalRow } from "@/lib/agents/proposals";
 import { ASSISTANTS } from "@/lib/agents/types";
-import { deadlineLabel, ideasSummary, outcomeLabel } from "@/lib/agents/ideas-view";
+import { deadlineLabel, ideasSummary, outcomeLabel, replyCards } from "@/lib/agents/ideas-view";
 import { EmptyState, PageHeader } from "@/components/admin/ui";
 import { IdeasBoard, type IdeaCardData, type InProgressData, type RecentData } from "./IdeasBoard";
 
@@ -34,6 +34,8 @@ function toCard(row: ProposalRow, nowMs: number): IdeaCardData {
       ? { text: `Entre ${nf.format(idea.estimate.low)} et ${nf.format(idea.estimate.high)} ${idea.estimate.unit}`, basis: idea.estimate.basis }
       : null,
     yesLabel: idea.action.label ? `Oui, ${idea.action.label.charAt(0).toLowerCase()}${idea.action.label.slice(1)}` : "Oui",
+    replies: row.assistant === "louis" ? replyCards(idea, nowMs) : undefined,
+    repliesLeft: row.assistant === "louis" && typeof idea.remaining === "number" ? idea.remaining : undefined,
     needsTerms: idea.action.kind === "create_ad_request",
     preparedByTeam: row.origin === "equipe",
   };

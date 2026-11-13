@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Gem, Lightbulb, TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { MenuItem } from "@/types";
 import { SOLO_BANDS, COMMUNITY_BANDS } from "@/lib/reward-bands";
@@ -341,6 +342,17 @@ export default function AdminMenuPage() {
         subtitle={<>Téléverse ton catalogue, puis assigne un article à chaque palier de récompense. Ces données
           servent au calcul des cadeaux et ne sont jamais visibles côté client.</>}
       />
+
+      {/* ADR 0100 — les options des plats (taille, sauces, suppléments, « sans ») se règlent sur leur propre écran. */}
+      <div className="bg-white rounded-xl border border-paper-border p-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-bold text-ink">Options de mes plats</h2>
+          <p className="text-xs text-ink-muted mt-0.5">La sauce, la taille, un supplément, ce que le client ne veut pas. Règle-les par groupes de plats, en quelques clics.</p>
+        </div>
+        <Link href={`/admin/${restaurantId}/menu/options`} className="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:opacity-90">
+          Régler les options
+        </Link>
+      </div>
 
       {/* ── Upload ──────────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-paper-border p-5 space-y-3">

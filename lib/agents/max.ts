@@ -33,21 +33,19 @@ import type { IdeaLines } from "./chloe";
 
 export type MaxFinding = "horaires" | "lien_commande" | "lien_menu" | "photos" | "telephone" | "site" | "description" | "attributs" | "reponses";
 
-export type MaxAction =
-  | {
-      kind: "update_fiche";
-      finding: Exclude<MaxFinding, "reponses">;
-      /** `api` : la fiche est gérée par Boosteats (ADR 0082) ; `equipe` : l'équipe le fait à la main. */
-      via: "api" | "equipe";
-      /** Ce que seul le gérant peut fournir ; la demande ne part pas sans. */
-      needsInput: string;
-      label: string;
-    }
-  | { kind: "relay"; to: "louis"; label: string };
+export type MaxAction = {
+  kind: "update_fiche";
+  finding: Exclude<MaxFinding, "reponses">;
+  /** `api` : la fiche est gérée par Boosteats (ADR 0082) ; `equipe` : l'équipe le fait à la main. */
+  via: "api" | "equipe";
+  /** Ce que seul le gérant peut fournir ; la demande ne part pas sans. */
+  needsInput: string;
+  label: string;
+};
 
 export type MaxIdea = {
   assistant: "max";
-  type: "fiche_a_completer" | "avis_a_repondre";
+  type: "fiche_a_completer";
   finding: MaxFinding;
   title: string;
   question: string;
@@ -215,30 +213,9 @@ export function maxDecision(input: MaxInput, limit = MAX_IDEAS_LIMIT): MaxDecisi
     });
   });
 
-  // Les avis sans réponse ne sont pas un geste de fiche : Louis (Brigade 13) y répond. Max le signale et passe la main.
-  const reponses = statusOf(input.fiche, "reponses");
-  if (reponses && (reponses.status === "manquant" || reponses.status === "partiel")) {
-    ranked.push({
-      points: reponses.points,
-      order: RULES.length,
-      idea: {
-        assistant: "max",
-        type: "avis_a_repondre",
-        finding: "reponses",
-        title: "Des avis attendent ta réponse sur Google",
-        question: "Je demande à Louis de s'en occuper ?",
-        lines: {
-          what: `Répondre aux avis laissés sur ta fiche${reponses.detail ? ` (${reponses.detail} ont une réponse)` : ""} : une réponse se voit de tous ceux qui lisent les avis.`,
-          who: "Louis écrit les réponses, toi tu les valides avant qu'elles soient publiées.",
-          cost: "0 €.",
-        },
-        estimate: null,
-        decideBy,
-        action: { kind: "relay", to: "louis", label: "Oui, demander à Louis" },
-        evidence: trace(reponses),
-      },
-    });
-  }
+  // Les avis sans réponse ne sont pas un geste de fiche : c'est l'affaire de Louis (Brigade 13), qui écrit les
+  // brouillons à partir des avis eux-mêmes. Max ne le signale plus : sa propre carte « Des avis attendent ta réponse »
+  // doublait celle de Louis le même matin, sans les brouillons.
 
   if (ranked.length === 0) return none("rien_a_signaler");
   // Le plus de points d'abord (ce que la grille pèse le plus), puis l'ordre de la grille : toujours le même classement.
