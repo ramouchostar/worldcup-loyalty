@@ -67,3 +67,26 @@ FROM menu_option_setups s, jsonb_array_elements(s.detail) AS d
 WHERE d ? 'descGenerated'
 GROUP BY 1
 ORDER BY composees DESC;
+
+-- 7. Import du PDF (ADR 0100 §8) : la lecture est-elle bonne ? Table menu_pdf_imports (migration 20261113-2130).
+-- Seuils à surveiller : moins de 2/3 des lignes rapprochées = la lecture ou le rapprochement est à revoir ; plus d'un tiers
+-- des descriptions du PDF réécrites = la reprise « telle quelle » ne convient pas.
+SELECT
+  COUNT(*)                                                                       AS imports,
+  SUM(lines_read)                                                                AS lignes_lues,
+  ROUND(100.0 * SUM(matched) / NULLIF(SUM(lines_read), 0))                       AS pct_lignes_rapprochees,
+  ROUND(100.0 * SUM(matched_near) / NULLIF(SUM(matched), 0))                     AS pct_rapprochements_proches,
+  SUM(unmatched)                                                                 AS lignes_a_part,
+  SUM(articles_without)                                                          AS plats_sans_ligne,
+  ROUND(100.0 * SUM(desc_edited) / NULLIF(SUM(desc_kept) + SUM(desc_edited), 0)) AS pct_descriptions_retouchees
+FROM menu_pdf_imports;
+
+-- 8. Allergènes : combien le PDF en propose, combien le restaurateur en corrige, combien il en confirme.
+-- Si plus d'un quart des listes proposées par le PDF est corrigé, la lecture des allergènes est à revoir avant d'aller plus loin.
+SELECT
+  SUM(allergens_proposed)                                                        AS plats_avec_allergenes_du_pdf,
+  SUM(allergens_changed)                                                         AS listes_corrigees_par_eux,
+  ROUND(100.0 * SUM(allergens_changed) / NULLIF(SUM(allergens_proposed), 0))     AS pct_corrigees,
+  SUM(allergens_confirmed)                                                       AS plats_confirmes,
+  ROUND(100.0 * SUM(allergens_confirmed) / NULLIF(SUM(rows_written), 0))         AS pct_confirmes_parmi_ecrits
+FROM menu_pdf_imports;

@@ -407,7 +407,12 @@ export function supabaseOptionsDb(): OptionsDb {
     async setDescriptions(restaurantId, rows) {
       for (const part of chunks(rows, 10)) {
         const results = await Promise.all(part.map((r) =>
-          admin.from("menu_items").update({ description: r.text === "" ? null : r.text, description_source: r.source }).eq("id", r.articleId).eq("restaurant_id", restaurantId),
+          {
+            const q = admin.from("menu_items").update({ description: r.text === "" ? null : r.text, description_source: r.source }).eq("id", r.articleId).eq("restaurant_id", restaurantId);
+            // Une description que nous avons composée ne recouvre JAMAIS celle que le restaurateur a écrite ou reprise de son PDF :
+            // l'écran repart du catalogue à chaque ouverture et ne la connaît pas.
+            return r.source === "generated" ? q.or("description_source.is.null,description_source.eq.generated") : q;
+          }
         ));
         for (const { error } of results) {
           if (!error) continue;

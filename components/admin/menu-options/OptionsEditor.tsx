@@ -8,6 +8,7 @@ import { STRENGTH_LABEL, STRENGTH_NOTE, TIPS, plural } from "@/lib/menu-options/
 import { TONES, type Tone } from "@/lib/menu-options/descriptions";
 import { buildEditor, savePayload, setTone, traceOf, type EditorState, type Lot } from "@/lib/menu-options/lots";
 import { LotCard, type ArticleMeta, type Change } from "./LotCard";
+import { PdfImport } from "./PdfImport";
 import { Tip } from "./fields";
 
 type Loaded = { items: { id: string; name: string; category: string; price: number; hasPhoto: boolean }[]; configured: Record<string, number>; available: boolean };
@@ -178,6 +179,8 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
           Bravo ! {placed} plats configurés avec seulement {st.lots.length} validations au lieu de {placed}.
         </div>
       )}
+
+      <PdfImport restaurantId={restaurantId} names={Object.fromEntries(Object.values(st.articles).map((a) => [a.id, a.name]))} />
 
       <Card>
         <h2 className="text-[17px] font-semibold text-ink">Pour nous aider à nous améliorer</h2>
