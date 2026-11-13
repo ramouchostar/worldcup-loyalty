@@ -40,6 +40,14 @@ Nous ne connaissons pas les prix de ses suppléments. Un choix payant ou une var
 
 Le serveur relit la forme, rejoue la validation du modèle (`validateTree`), vérifie que chaque plat est celui de l'établissement, puis écrit : bibliothèque d'options, **nouveaux** groupes (un jeu par groupe de plats, partagé par tous ses plats), liens des plats, et enfin la bascule des anciens liens. Supabase n'a pas de transaction côté client : si quelque chose échoue avant la bascule, les nouveaux groupes sont supprimés (cascade) et l'ancien réglage reste intact ; les anciens groupes devenus orphelins, sous-groupes compris, sont nettoyés ensuite, sans jamais toucher un groupe encore utilisé ailleurs. Tables absentes : l'écran le dit (le code reste fail-open).
 
+### 7. Les descriptions s'écrivent d'après le nom du plat, et rien d'autre
+
+Chaque plat d'un groupe reçoit une description composée **à partir de son nom seulement** (`lib/menu-options/descriptions.ts`), en trois tons au choix (sobre, gourmand, fun). Règle : **jamais un ingrédient, une viande, une origine ou une qualité absents du nom** ; la phrase de ton parle du client, jamais du plat. Un garde-fou (`inventedWords`) rejoue la règle sur chaque texte composé. Une seule question par groupe, pour les burgers (« la viande ? », facultative) ; si le nom dit déjà la viande et que la réponse dit autre chose, le nom gagne et le conflit est signalé. Familles sans confiance (boisson, dessert, sauce, menu…) : pas de description composée. Maximum 300 caractères, sans balise.
+
+Le restaurateur peut réécrire chaque description ; ce qu'il a écrit n'est jamais réécrit par un changement de ton. Source gardée par plat (`generated`, `restaurateur`, `pdf`) dans `menu_items.description` et `description_source` (migration `20261113-1758`). Écriture **fail-open** : si les colonnes manquent, les options s'enregistrent quand même, l'écran le dit et le groupe reste « à enregistrer ».
+
+**Trace** (ADR 0065) : par groupe, descriptions composées, gardées, réécrites, vidées (`docs/mesures/suivi-options-menu.sql`, requêtes 5 et 6). **Seuil** : plus d'un tiers retouché (même seuil que l'import du catalogue, ADR 0083) → la règle « d'après le nom » est à revoir.
+
 ## Conséquences
 
 - **Données** : une table de trace `menu_option_setups` (migration `20261112-0417`, service-role seul), à appliquer à la main à la fusion. Sans elle, les options s'enregistrent et le journal le dit.
@@ -59,7 +67,7 @@ Le serveur relit la forme, rejoue la validation du modèle (`validateTree`), vé
 
 La suite est décidée dans la maquette validée, pas dans cette PR :
 
-1. **Descriptions** : écrites d'après le nom du plat seulement (jamais une viande, une origine ou un allergène absent du nom), avec une question par groupe (« la viande de tes burgers ? »).
+1. ~~Descriptions~~ : faites, voir §7.
 2. **PDF du menu** : reprendre les descriptions écrites par le restaurateur, lui proposer les allergènes à confirmer (cochés d'office, « demande-nous au comptoir » tant qu'ils ne sont pas confirmés, jamais « aucun » sans sa confirmation). Demande une description et des allergènes par article, donc une migration à coordonner avec la Brigade 15 (générateur de site).
 3. **Aperçu du site, tickets par coin de cuisine** (le nom du client en grand, un ticket par zone).
 4. Les règles sur les allergènes à la vente à distance (règlement UE 1169/2011, art. 14) sont à faire confirmer avant la première commande réelle.
