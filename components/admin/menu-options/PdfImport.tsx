@@ -20,7 +20,7 @@ type Msg = { kind: "ok" | "err"; text: string; details?: string[]; technical?: s
 const btn = "min-h-[44px] rounded-lg px-4 py-2 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink";
 const MAX_MB = 4;
 
-export function PdfImport({ restaurantId, names }: { restaurantId: string; names: Record<string, string> }) {
+export function PdfImport({ restaurantId, names, onSaved }: { restaurantId: string; names: Record<string, string>; onSaved?: () => void }) {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<"idle" | "reading" | "review" | "saving" | "done">("idle");
   const [res, setRes] = useState<ReadResult | null>(null);
@@ -76,6 +76,7 @@ export function PdfImport({ restaurantId, names }: { restaurantId: string; names
       }
       setMsg({ kind: "ok", text: `Enregistré : ${plural(data?.rows ?? rows.length, "plat", "plats")}.` });
       setPhase("done");
+      onSaved?.();
     } catch {
       setMsg({ kind: "err", text: "L'enregistrement n'a pas pu partir. Rien n'est perdu : réessaie." });
       setPhase("review");

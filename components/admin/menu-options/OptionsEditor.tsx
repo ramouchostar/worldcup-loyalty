@@ -10,9 +10,11 @@ import { buildEditor, savePayload, setTone, traceOf, type EditorState, type Lot 
 import { LotCard, type ArticleMeta, type Change } from "./LotCard";
 import { KitchenTickets } from "./KitchenTickets";
 import { PdfImport } from "./PdfImport";
+import { SitePreview } from "./SitePreview";
+import type { FactsById } from "@/lib/menu-options/site-preview";
 import { Tip } from "./fields";
 
-type Loaded = { items: { id: string; name: string; category: string; price: number; hasPhoto: boolean }[]; configured: Record<string, number>; available: boolean };
+type Loaded = { items: { id: string; name: string; category: string; price: number; hasPhoto: boolean }[]; configured: Record<string, number>; available: boolean; facts?: FactsById };
 type Msg = { kind: "ok" | "err"; text: string; details?: string[]; technical?: string };
 
 // L'écran « Options de mes plats » (ADR 0100) : on part du menu que le restaurateur a déjà, on range ses plats en groupes
@@ -33,6 +35,7 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
   const [phase, setPhase] = useState<"loading" | "error" | "unavailable" | "empty" | "ready">("loading");
   const [meta, setMeta] = useState<ArticleMeta>({});
   const [configured, setConfigured] = useState<Record<string, number>>({});
+  const [facts, setFacts] = useState<FactsById>({});
   const [st, setSt] = useState<EditorState | null>(null);
   const [savedSig, setSavedSig] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -43,6 +46,7 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
     const { data } = await readJsonSafe<Loaded>(res);
     if (!res.ok || !data) { if (first) setPhase("error"); return; }
     setConfigured(data.configured);
+    setFacts(data.facts ?? {});
     if (!first) return;
     if (!data.available) { setPhase("unavailable"); return; }
     if (data.items.length === 0) { setPhase("empty"); return; }
@@ -181,9 +185,11 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
         </div>
       )}
 
-      <PdfImport restaurantId={restaurantId} names={Object.fromEntries(Object.values(st.articles).map((a) => [a.id, a.name]))} />
+      <PdfImport restaurantId={restaurantId} onSaved={() => void load(false)} names={Object.fromEntries(Object.values(st.articles).map((a) => [a.id, a.name]))} />
 
       <KitchenTickets restaurantId={restaurantId} st={st} meta={meta} />
+
+      <SitePreview st={st} meta={meta} configured={configured} facts={facts} />
 
       <Card>
         <h2 className="text-[17px] font-semibold text-ink">Pour nous aider à nous améliorer</h2>
