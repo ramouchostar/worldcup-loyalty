@@ -70,6 +70,9 @@ export const TIPS = {
   pdfNear: "Le nom dans ton PDF n'est pas exactement celui de ton menu. Regarde que c'est bien le même plat avant de garder son texte.",
   allergenWhy: "Nous ne devinons jamais un allergène d'après le nom d'un plat : seulement ce qui est écrit dans ton PDF, ou ce que tu coches. Tant que tu n'as pas confirmé un plat, ton site dira « demande-nous au comptoir », jamais « aucun ».",
   allergenBulk: "Confirme d'un coup tous les plats dont les allergènes sont écrits dans ton PDF. À faire seulement si tu les as relus.",
+  zoneWhy: "Dans ta cuisine, une personne fait les pizzas et une autre les pâtes ? Chacune reçoit alors son propre ticket, avec seulement ses plats. Le prénom du client est écrit en grand sur chaque ticket pour ne pas mélanger deux commandes.",
+  zoneField: "Le coin où se prépare ce plat. Nous proposons un coin d'après le genre de plat : change-le si ta cuisine est organisée autrement. Un plat sans coin sort sur le ticket « Cuisine », il n'est jamais perdu.",
+  zoneCashier: "Un ticket en plus, pour la caisse : il montre tous les plats et la somme que le client doit payer.",
 } as const;
 
 export const TONE_LABEL: Record<"sobre" | "gourmand" | "fun", string> = { sobre: "Sobre", gourmand: "Gourmand", fun: "Fun" };
