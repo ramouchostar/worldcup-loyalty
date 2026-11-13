@@ -4,7 +4,8 @@ import { isMissingTable } from "./store";
 import { MAX_DEPTH, validateTree } from "./model";
 import { optionKey } from "./normalize";
 import { GROUP_KINDS, type OptionChoice, type OptionGroup } from "./types";
-import type { EditorTrace, LotTrace, SaveChoice, SaveGroup, SaveLot } from "./lots";
+import { MAX_DESCRIPTION } from "./descriptions";
+import type { EditorTrace, LotTrace, SaveChoice, SaveDescription, SaveGroup, SaveLot } from "./lots";
 
 // Écrire les options réglées par le restaurateur (ADR 0100). Ce qui arrive du navigateur n'est JAMAIS cru : on relit
 // la forme, on rejoue la validation du modèle, on vérifie que chaque article est bien celui de l'établissement.
@@ -81,8 +82,13 @@ export function checkPayload(raw: unknown): CheckedPayload {
     const count = { choices: 0 };
     const groups = l.groups.map((g) => readGroup(g, 0, where, count));
     if (groups.some((g) => g === null)) return;
+    const descriptions = readDescriptions(l.descriptions, articleIds, where, errors);
+    if (descriptions === null) return;
     const trace = isObj(l.trace) ? readLotTrace(l.trace) : null;
-    lots.push({ articleIds: [...new Set(articleIds)], groups: groups as SaveGroup[], trace: trace ?? { family: "autre", strength: "faible", articles: articleIds.length, proposed: 0, kept: 0, added: 0, edits: 0, pricesSet: 0 } });
+    lots.push({
+      articleIds: [...new Set(articleIds)], groups: groups as SaveGroup[], descriptions,
+      trace: trace ?? { family: "autre", strength: "faible", articles: articleIds.length, proposed: 0, kept: 0, added: 0, edits: 0, pricesSet: 0, descGenerated: 0, descKept: 0, descEdited: 0, descCleared: 0 },
+    });
   });
   if (errors.length > 0) return { ok: false, errors };
 
@@ -108,7 +114,32 @@ function readLotTrace(t: Record<string, unknown>): LotTrace | null {
   const num = (x: unknown) => (typeof x === "number" && Number.isFinite(x) && x >= 0 && x < 1e6 ? Math.floor(x) : 0);
   const family = typeof t.family === "string" && /^[a-z_]{2,20}$/.test(t.family) ? t.family : "autre";
   const strength = t.strength === "forte" || t.strength === "moyenne" || t.strength === "faible" || t.strength === "aucune" ? t.strength : "faible";
-  return { family: family as LotTrace["family"], strength, articles: num(t.articles), proposed: num(t.proposed), kept: num(t.kept), added: num(t.added), edits: num(t.edits), pricesSet: num(t.pricesSet) };
+  return {
+    family: family as LotTrace["family"], strength, articles: num(t.articles), proposed: num(t.proposed), kept: num(t.kept), added: num(t.added), edits: num(t.edits), pricesSet: num(t.pricesSet),
+    descGenerated: num(t.descGenerated), descKept: num(t.descKept), descEdited: num(t.descEdited), descCleared: num(t.descCleared),
+  };
+}
+
+/**
+ * Les descriptions d'un groupe de plats : un texte par plat du groupe, une ligne, sans balise, 300 lettres au plus. Absentes
+ * (ancien écran) = aucune description. `null` = invalide, les erreurs sont dites. Une description vide = « aucune », voulue.
+ */
+function readDescriptions(raw: unknown, articleIds: string[], where: string, errors: string[]): SaveDescription[] | null {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.length > articleIds.length) { errors.push(`${where} : les descriptions ne sont pas valides.`); return null; }
+  const out: SaveDescription[] = [];
+  const seen = new Set<string>();
+  let ok = true;
+  for (const d of raw) {
+    if (!isObj(d) || typeof d.articleId !== "string" || typeof d.text !== "string" || (d.source !== "generated" && d.source !== "restaurateur")) { errors.push(`${where} : une description n'a pas pu être lue.`); ok = false; continue; }
+    if (!articleIds.includes(d.articleId)) { errors.push(`${where} : une description est pour un plat qui n'est pas dans ce groupe.`); ok = false; continue; }
+    if (seen.has(d.articleId)) { errors.push(`${where} : un plat a deux descriptions.`); ok = false; continue; }
+    seen.add(d.articleId);
+    const text = d.text.replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+    if (text.length > MAX_DESCRIPTION) { errors.push(`${where} : une description dépasse ${MAX_DESCRIPTION} lettres.`); ok = false; continue; }
+    out.push({ articleId: d.articleId, text, source: d.source });
+  }
+  return ok ? out : null;
 }
 
 // ─── L'accès à la base, derrière une petite interface (testée avec une base en mémoire) ──────────
@@ -136,13 +167,17 @@ export interface OptionsDb {
   itemLinkedGroups(groupIds: string[]): Promise<string[]>;
   choiceReferencedGroups(groupIds: string[]): Promise<string[]>;
   deleteGroups(ids: string[]): Promise<void>;
+  /** Écrit les descriptions des plats. `false` = les colonnes n'existent pas encore (migration pas appliquée) : rien n'est écrit. */
+  setDescriptions(restaurantId: string, rows: SaveDescription[]): Promise<boolean>;
   writeSetup(row: SetupRow): Promise<boolean>;
 }
 
 export type SetupRow = {
   restaurant_id: string; created_by: string; articles_total: number; lots_total: number; lots_saved: number; unplaced: number;
   suggested: number; suggested_kept: number; dishes_added: number; merges: number; splits: number;
-  choices_proposed: number; choices_kept: number; lines_changed: number; prices_set: number; detail: LotTrace[];
+  choices_proposed: number; choices_kept: number; lines_changed: number; prices_set: number;
+  descriptions_generated: number; descriptions_kept: number; descriptions_edited: number; descriptions_cleared: number;
+  detail: LotTrace[];
 };
 
 // ─── L'écriture d'un groupe de plats ─────────────────────────────────────────
@@ -232,7 +267,11 @@ async function writeLot(db: OptionsDb, restaurantId: string, lot: SaveLot): Prom
 }
 
 export type SaveOutcome =
-  | { ok: true; lots: number; articles: number; groups: number; choices: number; traceSaved: boolean }
+  | {
+      ok: true; lots: number; articles: number; groups: number; choices: number; traceSaved: boolean;
+      /** Descriptions écrites. `descriptionsSaved` : `null` = aucune à écrire, `false` = colonnes absentes ou échec (les options, elles, sont écrites). */
+      descriptions: number; descriptionsSaved: boolean | null; descriptionsDetail?: string;
+    }
   | { ok: false; status: number; error: string; details?: string[]; savedLots?: number; detail?: string };
 
 /** Enregistre les groupes de plats validés. Les groupes déjà écrits restent écrits si un suivant échoue : on le dit. */
@@ -243,12 +282,25 @@ export async function saveLots(db: OptionsDb, restaurantId: string, rawLots: unk
   const wanted = [...new Set(checked.lots.flatMap((l) => l.articleIds))];
 
   let groups = 0, choices = 0, saved = 0;
+  let descWritten = 0, descSaved: boolean | null = null, descDetail: string | undefined;
   try {
     const owned = new Set(await at("vérification des plats", db.ownedArticleIds(restaurantId, wanted)));
     if (wanted.some((id) => !owned.has(id))) return { ok: false, status: 400, error: "Un des plats n'appartient pas à cet établissement. Recharge la page." };
     for (const lot of checked.lots) {
       const c = await writeLot(db, restaurantId, lot);
       groups += c.groups; choices += c.choices; saved++;
+      // Les descriptions ne défont jamais les options : un échec ici est dit, mais ce qui est écrit reste écrit.
+      if (lot.descriptions.length > 0) {
+        try {
+          const ok = await at("descriptions", db.setDescriptions(restaurantId, lot.descriptions));
+          descSaved = (descSaved ?? true) && ok;
+          if (ok) descWritten += lot.descriptions.length;
+        } catch (e) {
+          console.error("[menu-options] descriptions non enregistrées :", e);
+          descSaved = false;
+          descDetail = describeFailure(e);
+        }
+      }
     }
   } catch (e) {
     if (e instanceof OptionsUnavailableError) return { ok: false, status: 503, error: e.message };
@@ -266,18 +318,25 @@ export async function saveLots(db: OptionsDb, restaurantId: string, rawLots: unk
       restaurant_id: restaurantId, created_by: userId, articles_total: n("articles"), lots_total: n("lots"), lots_saved: saved, unplaced: n("unplaced"),
       suggested: n("suggested"), suggested_kept: n("suggestedKept"), dishes_added: n("added"), merges: n("merges"), splits: n("splits"),
       choices_proposed: detail.reduce((a, d) => a + d.proposed, 0), choices_kept: detail.reduce((a, d) => a + d.kept, 0),
-      lines_changed: detail.reduce((a, d) => a + d.edits, 0), prices_set: detail.reduce((a, d) => a + d.pricesSet, 0), detail,
+      lines_changed: detail.reduce((a, d) => a + d.edits, 0), prices_set: detail.reduce((a, d) => a + d.pricesSet, 0),
+      descriptions_generated: detail.reduce((a, d) => a + d.descGenerated, 0), descriptions_kept: detail.reduce((a, d) => a + d.descKept, 0),
+      descriptions_edited: detail.reduce((a, d) => a + d.descEdited, 0), descriptions_cleared: detail.reduce((a, d) => a + d.descCleared, 0),
+      detail,
     });
   } catch (e) {
     console.error("[menu-options] trace non enregistrée :", e);
   }
   if (!traceSaved) console.warn("[menu-options] trace non enregistrée (table menu_option_setups absente ?)");
-  return { ok: true, lots: saved, articles: wanted.length, groups, choices, traceSaved };
+  return { ok: true, lots: saved, articles: wanted.length, groups, choices, traceSaved, descriptions: descWritten, descriptionsSaved: descSaved, ...(descDetail ? { descriptionsDetail: descDetail } : {}) };
 }
 
 export type { EditorTrace };
 
 // ─── L'adaptateur Supabase ───────────────────────────────────────────────────
+
+/** Une colonne absente (migration pas appliquée) : PostgREST dit PGRST204, Postgres dit 42703. */
+const isMissingColumn = (error: { code?: string; message?: string } | null) =>
+  !!error && (error.code === "PGRST204" || error.code === "42703" || /column .*(does not exist|schema cache)|Could not find the '.*' column/i.test(error.message ?? ""));
 
 const chunks = <T,>(xs: T[], size = 100): T[][] => { const out: T[][] = []; for (let i = 0; i < xs.length; i += size) out.push(xs.slice(i, i + size)); return out; };
 
@@ -345,8 +404,28 @@ export function supabaseOptionsDb(): OptionsDb {
     async deleteGroups(ids) {
       for (const part of chunks(ids)) check("suppression des groupes", (await admin.from("menu_option_groups").delete().in("id", part)).error);
     },
+    async setDescriptions(restaurantId, rows) {
+      for (const part of chunks(rows, 10)) {
+        const results = await Promise.all(part.map((r) =>
+          admin.from("menu_items").update({ description: r.text === "" ? null : r.text, description_source: r.source }).eq("id", r.articleId).eq("restaurant_id", restaurantId),
+        ));
+        for (const { error } of results) {
+          if (!error) continue;
+          if (isMissingColumn(error)) return false; // migration des descriptions pas appliquée : les options restent écrites
+          throw new Error(`menu_items (descriptions) : ${error.message}`);
+        }
+      }
+      return true;
+    },
     async writeSetup(row) {
-      const { error } = await admin.from("menu_option_setups").insert(row);
+      let { error } = await admin.from("menu_option_setups").insert(row);
+      // « colonne absente » d'abord : son message cite aussi la table et « does not exist », et passerait pour une table absente.
+      if (error && isMissingColumn(error)) {
+        // La table de trace existe mais pas encore ses colonnes de descriptions : on garde au moins le reste.
+        const legacy: Record<string, unknown> = { ...row };
+        for (const k of ["descriptions_generated", "descriptions_kept", "descriptions_edited", "descriptions_cleared"]) delete legacy[k];
+        ({ error } = await admin.from("menu_option_setups").insert(legacy));
+      }
       if (error && isMissingTable(error)) return false;
       if (error) throw new Error(`menu_option_setups : ${error.message}`);
       return true;
