@@ -44,7 +44,7 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
         // ADR 0052 — la file des doublons ambigus est un ONGLET de Commandes.
         { href: `${base}/orders`, label: "Commandes", icon: "orders", hint: "Les tickets de tes clients, à vérifier ou déjà validés" },
         { href: `${base}/pending-rewards`, label: "Cadeaux", icon: "gifts", hint: "Les cadeaux que tes clients viendront chercher" },
-        ...(siteOrders ? [{ href: `${base}/commandes-du-site`, label: "Commandes du site", icon: "orders", hint: "Ce que tes clients commandent sur ton site : tu prépares, ils retirent et paient au comptoir" }] : []),
+        ...(siteOrders ? [{ href: `${base}/commandes-du-site`, label: "Commandes du site", icon: "orders", hint: "Nina reçoit les commandes de ton site : tu prépares, ils retirent et paient au comptoir" }] : []),
       ],
     },
     {

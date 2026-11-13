@@ -9,7 +9,7 @@ export default function SiteOrdersPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   return (
     <div className="space-y-5">
-      <PageHeader title="Commandes du site" subtitle="Ce que tes clients ont commandé sur ton site : tu prépares, tu dis « prête », ils viennent payer et retirer au comptoir." />
+      <PageHeader title="Commandes du site" subtitle="Nina reçoit ici les commandes de ton site : tu prépares, tu dis « prête », ils viennent payer et retirer au comptoir." />
       <SiteOrdersBoard restaurantId={restaurantId} />
     </div>
   );
