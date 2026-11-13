@@ -232,6 +232,10 @@ _Avoid_ : cluster, lot (dans un texte visible), paquet, groupe (seul — ambigu 
 Le texte que le client lit sous le nom d'un plat. Composée d'après le **nom seul** (jamais un ingrédient, une viande ou une origine absents du nom), en ton sobre, gourmand ou fun ; le restaurateur la réécrit librement et son texte n'est jamais remplacé. Source gardée : `generated`, `restaurateur` ou `pdf`. Ne dit jamais d'allergène.
 _Avoid_ : « description IA », « texte marketing ».
 
+**Allergènes confirmés** *(ADR 0100 §8)* :
+La liste des allergènes d'un plat (les 14 du règlement UE 1169/2011), valable **seulement si le restaurateur l'a confirmée plat par plat**. Elle vient de son PDF ou de sa main, jamais déduite d'un nom. Non confirmée (`NULL`), le site dit « demande-nous au comptoir » ; jamais « aucun » sans sa confirmation.
+_Avoid_ : « allergènes détectés », « allergènes automatiques », « sans allergène » (sauf confirmé).
+
 **Prix de vente** :
 Prix carte d'un article (`menu_items.menu_price`) — la valeur perçue par le client quand il reçoit l'article en cadeau. Sert de numérateur au calcul d'attractivité d'une suggestion. Donnée euros, admin uniquement.
 _Avoid_ : prix public, tarif, prix client.

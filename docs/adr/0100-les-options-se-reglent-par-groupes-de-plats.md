@@ -48,6 +48,14 @@ Le restaurateur peut réécrire chaque description ; ce qu'il a écrit n'est jam
 
 **Trace** (ADR 0065) : par groupe, descriptions composées, gardées, réécrites, vidées (`docs/mesures/suivi-options-menu.sql`, requêtes 5 et 6). **Seuil** : plus d'un tiers retouché (même seuil que l'import du catalogue, ADR 0083) → la règle « d'après le nom » est à revoir.
 
+### 8. Le PDF du menu : ce que le restaurateur a écrit, relu et confirmé
+
+Facultatif, après les descriptions. Le restaurateur envoie son PDF (4 Mo au plus, limite d'un corps de requête sur Vercel) ; Claude **recopie** pour chaque plat son nom, sa description imprimée et les allergènes **imprimés** (jamais déduits, jamais de liste vide, le texte du PDF est une donnée et non une consigne), puis le code rapproche chaque ligne d'un plat du catalogue (`lib/menu-options/pdf.ts`). **Un rapprochement n'est gardé que s'il est sans ambiguïté** : mêmes mots à l'ordre près, ou au moins trois quarts de mots communs avec un seul plat candidat, et une seule ligne pour ce plat. Sinon la ligne reste « à part » et le restaurateur la voit ; on ne rapproche jamais « au plus ressemblant ».
+
+Ce qui vient du PDF est une **proposition à relire**. La description s'écrit avec la source `pdf` (ou `restaurateur` s'il la retouche) et une description composée par nous ne la recouvre plus jamais ; les allergènes, eux, ne deviennent un fait que par la **confirmation du restaurateur, plat par plat** : `menu_items.allergens` vaut `NULL` (pas confirmé : le site dira « demande-nous au comptoir », jamais « aucun »), `{}` (confirmé : aucun des 14) ou la liste confirmée, avec `allergens_confirmed_at`. Changer la liste défait la confirmation. Un geste « j'ai tout relu » confirme d'un coup les plats dont les allergènes sont écrits dans le PDF ; il ne confirme jamais un plat sans allergène écrit. Écriture : le serveur revérifie tout (liste fermée des 14 allergènes du règlement UE 1169/2011, longueur, appartenance des plats) et ne touche que ce que le restaurateur a décidé. Migration `20261113-2130` ; fail-open (rien n'est écrit, l'écran le dit).
+
+**Trace** (ADR 0065) : table `menu_pdf_imports`, une ligne par enregistrement, des compteurs seulement (lignes lues, rapprochées, rapprochées « de près », à part, plats sans ligne, descriptions gardées ou retouchées, listes d'allergènes corrigées ou confirmées ; `docs/mesures/suivi-options-menu.sql`, requêtes 7 et 8). **Seuils** : moins de deux tiers des lignes rapprochées, ou plus d'un quart des listes d'allergènes corrigées, et la lecture est à revoir avant d'aller plus loin. **Limite connue** : écrit sans PDF réel (le restaurateur n'en a pas fourni) ; un PDF scanné en image, ou une mise en page à colonnes, peuvent être mal lus, ce que la trace dira.
+
 ## Conséquences
 
 - **Données** : une table de trace `menu_option_setups` (migration `20261112-0417`, service-role seul), à appliquer à la main à la fusion. Sans elle, les options s'enregistrent et le journal le dit.
@@ -68,6 +76,6 @@ Le restaurateur peut réécrire chaque description ; ce qu'il a écrit n'est jam
 La suite est décidée dans la maquette validée, pas dans cette PR :
 
 1. ~~Descriptions~~ : faites, voir §7.
-2. **PDF du menu** : reprendre les descriptions écrites par le restaurateur, lui proposer les allergènes à confirmer (cochés d'office, « demande-nous au comptoir » tant qu'ils ne sont pas confirmés, jamais « aucun » sans sa confirmation). Demande une description et des allergènes par article, donc une migration à coordonner avec la Brigade 15 (générateur de site).
+2. ~~PDF du menu~~ : fait, voir §8. Reste à coordonner avec la Brigade 15 (générateur de site) : lire `description` et `allergens` (`NULL` = « demande-nous au comptoir »).
 3. **Aperçu du site, tickets par coin de cuisine** (le nom du client en grand, un ticket par zone).
 4. Les règles sur les allergènes à la vente à distance (règlement UE 1169/2011, art. 14) sont à faire confirmer avant la première commande réelle.
