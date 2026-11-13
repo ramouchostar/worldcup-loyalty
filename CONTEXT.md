@@ -15,7 +15,7 @@ Achat passé via Uber Eats, Takeaway ou Deliveroo. Ne compte PAS dans le program
 _Avoid_ : livraison (trop générique — on peut livrer directement).
 
 **Commande du site** *(ADR 0099)* :
-Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). Sort sur l'imprimante du restaurant. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; un point pourra être crédité plus tard, sans photo de ticket.
+Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). Sort sur l'imprimante du restaurant (à venir ; en attendant, le restaurateur la lit dans la console « Commandes du site », ADR 0099 §7). États : reçue, prête, retirée, annulée. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; un point pourra être crédité plus tard, sans photo de ticket.
 _Avoid_ : commande (seule — réservé à la commande directe d'un membre), ticket (c'est la photo de la caisse), order.
 
 **Vente caisse** *(ADR 0027)* :
