@@ -32,8 +32,8 @@ export function Tip({ text, children, align = "left" }: { text: string; children
 }
 
 /** Un texte saisi à la main : la valeur est prise quand on quitte le champ (une modification = un seul changement compté). */
-export function TextField({ value, onCommit, ariaLabel, className = "", placeholder }: {
-  value: string; onCommit: (v: string) => void; ariaLabel: string; className?: string; placeholder?: string;
+export function TextField({ value, onCommit, ariaLabel, className = "", placeholder, disabled = false }: {
+  value: string; onCommit: (v: string) => void; ariaLabel: string; className?: string; placeholder?: string; disabled?: boolean;
 }) {
   const [text, setText] = useState(value);
   useEffect(() => setText(value), [value]);
@@ -41,6 +41,7 @@ export function TextField({ value, onCommit, ariaLabel, className = "", placehol
     <input
       aria-label={ariaLabel}
       placeholder={placeholder}
+      disabled={disabled}
       value={text}
       onChange={(e) => setText(e.target.value)}
       onBlur={() => { if (text !== value) onCommit(text); }}
