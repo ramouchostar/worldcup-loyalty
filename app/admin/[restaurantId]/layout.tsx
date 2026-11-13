@@ -14,6 +14,7 @@ import { CONSOLE_VIEW_COOKIE, consoleSections, parseConsoleView, simpleTabs } fr
 import { getPlan } from "@/lib/entitlements";
 import { marketplaceEnabled } from "@/lib/missions";
 import { pubEnabledFor } from "@/lib/ads/config";
+import { siteOrdersEnabledFor } from "@/lib/site-orders/order";
 import { AnalyticsIdentity } from "@/components/analytics/AnalyticsIdentity";
 import { loadProgress } from "@/lib/partner-progress-server";
 import { isIncomplete } from "@/lib/partner-progress";
@@ -91,7 +92,7 @@ export default async function AdminLayout({
   // à quatre onglets, par défaut. Les deux listes vivent dans lib/admin-nav.ts
   // (la page « Plus » affiche la liste complète). Le sandbox (outil de dev)
   // reste volontairement hors nav — accessible par URL, gardé comme le reste.
-  const navSections = consoleSections(base, canManage, marketplaceEnabled(access.isSuperAdmin), pubEnabledFor(restaurantId, access.isSuperAdmin));
+  const navSections = consoleSections(base, canManage, marketplaceEnabled(access.isSuperAdmin), pubEnabledFor(restaurantId, access.isSuperAdmin), siteOrdersEnabledFor(restaurantId));
   const vue = parseConsoleView((await cookies()).get(CONSOLE_VIEW_COOKIE)?.value);
   // Le seul badge de la barre d'onglets : les tickets qui attendent une
   // décision (ADR 0064). Compté ici parce que la barre est sur chaque page.
