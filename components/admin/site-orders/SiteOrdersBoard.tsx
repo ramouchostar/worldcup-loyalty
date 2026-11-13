@@ -141,7 +141,7 @@ export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
   }
 
   if (phase === "loading") return <div className="space-y-3">{[1, 2].map((i) => <div key={i} className="h-32 animate-pulse rounded-xl border border-paper-border bg-white" />)}</div>;
-  if (phase === "closed") return <Card><p className="text-[15px] text-ink">Les commandes du site ne sont pas encore ouvertes pour ton établissement. Nous te prévenons dès que c&apos;est le cas.</p></Card>;
+  if (phase === "closed") return <Card><p className="text-[15px] text-ink">Les commandes de ton site (Nina, en pilote) ne sont pas encore ouvertes pour ton établissement. Nous te prévenons dès que c&apos;est le cas.</p></Card>;
   if (phase === "unavailable") return <Card><p className="text-[15px] text-ink">Les commandes du site ne sont pas encore activées pour ton compte. Réessaie dans un moment : nous nous en occupons.</p></Card>;
   if (phase === "error") return <Card><p role="alert" className="text-[15px] text-danger">Impossible de lire les commandes pour le moment. Recharge la page, ou réessaie dans un instant.</p></Card>;
 

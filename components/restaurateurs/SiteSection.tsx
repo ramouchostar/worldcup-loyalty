@@ -9,9 +9,10 @@ import { ArrowRight, Check } from "@/components/icons";
 // la maquette : la brigade qui envoie les clients, puis un iPhone posé sur une
 // photo. EN PILOTE (ADR 0070 : jamais au présent comme disponible).
 // Écarts voulus à la maquette :
-// - « Commander » ouvre le site de commande de l'établissement : Boosteats ne
-//   prend ni commande ni paiement (ADR 0088 §3), donc pas de « Nouvelle commande
-//   en direct » ; la bulle dit ce que fait le bouton ;
+// - « Commander » ouvre la commande que l'établissement utilise déjà : tant que la
+//   commande du site de Nina est fermée (ADR 0099 §8, SITE_ORDER_RESTAURANTS),
+//   Boosteats ne prend pas de commande, donc pas de « Nouvelle commande en
+//   direct » ; la bulle dit ce que fait le bouton. À revoir le jour où elle s'ouvre ;
 // - la commission des plateformes s'écrit « jusqu'à 30 % selon le contrat »,
 //   sans exemple chiffré (décision du 2026-11-05).
 const SENDERS: { id: AssistantId; text: string }[] = [

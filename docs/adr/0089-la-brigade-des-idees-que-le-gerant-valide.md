@@ -37,7 +37,7 @@ sans qu'on l'ait voulu. Les règles ci-dessous existent pour l'empêcher.
 | Chloé | suit les chiffres (le CA du jour ; plat par plat en Croissance) | Gratuit |
 | Emma | lance et gère les publicités en ligne (libellé changé le 2026-11-05) | Gratuit (la Pub reste ouverte établissement par établissement, `PUB_RESTAURANTS`) |
 | Louis | répond aux avis Google | Croissance |
-| Nina | crée un site qui donne envie de commander (ADR 0088 ; libellé du 2026-11-05) | Pro |
+| Nina | crée un site qui donne envie de commander (ADR 0088 ; libellé du 2026-11-05) ; reçoit aussi les commandes du site (ADR 0099 §8, fermées, `SITE_ORDER_RESTAURANTS`) | Pro, en pilote |
 | Max | améliore votre visibilité sur Google (libellé du 2026-11-05) | Pro |
 
 Un assistant que le forfait ne couvre pas **ne produit rien** pour cet établissement : jamais d'idée
