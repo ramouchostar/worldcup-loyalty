@@ -128,3 +128,12 @@ SELECT
 FROM site_orders
 GROUP BY 1
 ORDER BY commandes DESC;
+
+-- 12. Purge des commandes du site (ADR 0099 §7) : des commandes d'avant la durée de conservation portent-elles encore un prénom
+-- ou un téléphone ? DOIT rester à 0 (le cron nocturne les efface). Remplacer 30 par SITE_ORDER_PURGE_DAYS s'il est réglé.
+SELECT
+  COUNT(*)                                                                     AS commandes_qui_portent_encore_des_donnees,
+  MIN(created_at)::date                                                        AS la_plus_ancienne
+FROM site_orders
+WHERE created_at < NOW() - INTERVAL '30 days'
+  AND (phone IS NOT NULL OR first_name <> '—');
