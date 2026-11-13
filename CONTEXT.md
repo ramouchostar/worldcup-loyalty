@@ -240,6 +240,10 @@ _Avoid_ : « allergènes détectés », « allergènes automatiques », « sans 
 L'endroit de la cuisine où se prépare un plat (« Pizza », « Pâtes », « Grill », « Comptoir »), choisi par le restaurateur. Il découpe le ticket de cuisine en un ticket par coin, le prénom du client en grand sur chacun. Sans coin, le plat sort sur le ticket « Cuisine ». Dans le code, `kitchen_zone` / `zone`.
 _Avoid_ : poste, station, zone (dans un texte visible).
 
+**Aperçu du site** *(ADR 0100 §10)* :
+Dans la console, ce que les clients verraient du menu du restaurateur (plats, prix, photos, choix, descriptions, allergènes confirmés), avec une liste de ce qui reste à finir. Il ne publie rien et n'est pas le site public (ADR 0088).
+_Avoid_ : « mise en ligne », « publication » (rien n'est publié).
+
 **Prix de vente** :
 Prix carte d'un article (`menu_items.menu_price`) — la valeur perçue par le client quand il reçoit l'article en cadeau. Sert de numérateur au calcul d'attractivité d'une suggestion. Donnée euros, admin uniquement.
 _Avoid_ : prix public, tarif, prix client.
