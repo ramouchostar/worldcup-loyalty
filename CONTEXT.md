@@ -236,6 +236,10 @@ _Avoid_ : « description IA », « texte marketing ».
 La liste des allergènes d'un plat (les 14 du règlement UE 1169/2011), valable **seulement si le restaurateur l'a confirmée plat par plat**. Elle vient de son PDF ou de sa main, jamais déduite d'un nom. Non confirmée (`NULL`), le site dit « demande-nous au comptoir » ; jamais « aucun » sans sa confirmation.
 _Avoid_ : « allergènes détectés », « allergènes automatiques », « sans allergène » (sauf confirmé).
 
+**Coin de cuisine** *(ADR 0100 §9)* :
+L'endroit de la cuisine où se prépare un plat (« Pizza », « Pâtes », « Grill », « Comptoir »), choisi par le restaurateur. Il découpe le ticket de cuisine en un ticket par coin, le prénom du client en grand sur chacun. Sans coin, le plat sort sur le ticket « Cuisine ». Dans le code, `kitchen_zone` / `zone`.
+_Avoid_ : poste, station, zone (dans un texte visible).
+
 **Prix de vente** :
 Prix carte d'un article (`menu_items.menu_price`) — la valeur perçue par le client quand il reçoit l'article en cadeau. Sert de numérateur au calcul d'attractivité d'une suggestion. Donnée euros, admin uniquement.
 _Avoid_ : prix public, tarif, prix client.
