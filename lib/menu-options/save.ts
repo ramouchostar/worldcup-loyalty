@@ -168,11 +168,29 @@ async function cleanup(db: OptionsDb, oldTop: string[]) {
   }
 }
 
+// Quand l'écriture échoue, on veut savoir À QUELLE ÉTAPE et ce que dit la base : l'étape est collée à l'erreur ici, et
+// l'écran la montre dans « détail pour l'équipe » (sans elle il faudrait fouiller les journaux du serveur).
+type StepError = Error & { step?: string };
+const withStep = (e: unknown, step: string): StepError => {
+  const err: StepError = e instanceof Error ? e : new Error(String(e));
+  if (!err.step) err.step = step;
+  return err;
+};
+async function at<T>(step: string, work: Promise<T>): Promise<T> {
+  try { return await work; } catch (e) { throw withStep(e, step); }
+}
+/** Une ligne lisible de ce qui a échoué : « [écriture des choix] message de la base ». Pour la console, jamais pour un membre. */
+export function describeFailure(e: unknown): string {
+  const err = e as StepError | null;
+  const msg = (err?.message ?? String(e)).replace(/\s+/g, " ").slice(0, 240);
+  return err?.step ? `[${err.step}] ${msg}` : msg;
+}
+
 async function writeLot(db: OptionsDb, restaurantId: string, lot: SaveLot): Promise<Counts> {
-  const old = await db.linkedGroupIds(lot.articleIds);
+  const old = await at("lecture des anciens groupes", db.linkedGroupIds(lot.articleIds));
   if (lot.groups.length === 0) {
     // « Ces plats n'ont pas de choix » : on retire ce qui existait.
-    await db.unlink(lot.articleIds, []);
+    await at("retrait des liens", db.unlink(lot.articleIds, []));
     await cleanup(db, old).catch((e) => console.error("[menu-options] ménage des anciens groupes :", e));
     return { groups: 0, choices: 0 };
   }
@@ -180,7 +198,7 @@ async function writeLot(db: OptionsDb, restaurantId: string, lot: SaveLot): Prom
   const entries = new Map<string, string>();
   const collect = (gs: SaveGroup[]) => gs.forEach((g) => g.choices.forEach((c) => { if (!entries.has(optionKey(c.name))) entries.set(optionKey(c.name), c.name); collect(c.groups); }));
   collect(lot.groups);
-  const library = await db.ensureLibrary(restaurantId, [...entries].map(([key, name]) => ({ key, name })));
+  const library = await at("bibliothèque d'options", db.ensureLibrary(restaurantId, [...entries].map(([key, name]) => ({ key, name }))));
 
   const groups: GroupInsert[] = [], choices: ChoiceInsert[] = [], choiceGroups: ChoiceGroupInsert[] = [];
   const build = (g: SaveGroup): string => {
@@ -199,12 +217,12 @@ async function writeLot(db: OptionsDb, restaurantId: string, lot: SaveLot): Prom
   const created = groups.map((g) => g.id);
 
   try {
-    await db.insertGroups(groups);
-    await db.insertChoices(choices);
-    await db.insertChoiceGroups(choiceGroups);
-    await db.linkArticles(lot.articleIds.flatMap((articleId) => top.map((groupId, position) => ({ menu_item_id: articleId, group_id: groupId, position }))));
+    await at("écriture des listes de choix", db.insertGroups(groups));
+    await at("écriture des choix", db.insertChoices(choices));
+    await at("écriture des sous-questions", db.insertChoiceGroups(choiceGroups));
+    await at("liens avec les plats", db.linkArticles(lot.articleIds.flatMap((articleId) => top.map((groupId, position) => ({ menu_item_id: articleId, group_id: groupId, position })))));
     // La bascule : les articles n'ont plus que les nouveaux groupes. Si elle échoue, on revient à l'ancien réglage.
-    await db.unlink(lot.articleIds, top);
+    await at("bascule des liens", db.unlink(lot.articleIds, top));
   } catch (e) {
     await db.deleteGroups(created).catch((err) => console.error("[menu-options] retour arrière impossible :", err));
     throw e;
@@ -215,7 +233,7 @@ async function writeLot(db: OptionsDb, restaurantId: string, lot: SaveLot): Prom
 
 export type SaveOutcome =
   | { ok: true; lots: number; articles: number; groups: number; choices: number; traceSaved: boolean }
-  | { ok: false; status: number; error: string; details?: string[]; savedLots?: number };
+  | { ok: false; status: number; error: string; details?: string[]; savedLots?: number; detail?: string };
 
 /** Enregistre les groupes de plats validés. Les groupes déjà écrits restent écrits si un suivant échoue : on le dit. */
 export async function saveLots(db: OptionsDb, restaurantId: string, rawLots: unknown, rawTrace: unknown, userId: string): Promise<SaveOutcome> {
@@ -223,11 +241,11 @@ export async function saveLots(db: OptionsDb, restaurantId: string, rawLots: unk
   if (!checked.ok) return { ok: false, status: 400, error: "Certains choix ne sont pas valides.", details: checked.errors.slice(0, 12) };
 
   const wanted = [...new Set(checked.lots.flatMap((l) => l.articleIds))];
-  const owned = new Set(await db.ownedArticleIds(restaurantId, wanted));
-  if (wanted.some((id) => !owned.has(id))) return { ok: false, status: 400, error: "Un des plats n'appartient pas à cet établissement. Recharge la page." };
 
   let groups = 0, choices = 0, saved = 0;
   try {
+    const owned = new Set(await at("vérification des plats", db.ownedArticleIds(restaurantId, wanted)));
+    if (wanted.some((id) => !owned.has(id))) return { ok: false, status: 400, error: "Un des plats n'appartient pas à cet établissement. Recharge la page." };
     for (const lot of checked.lots) {
       const c = await writeLot(db, restaurantId, lot);
       groups += c.groups; choices += c.choices; saved++;
@@ -235,7 +253,7 @@ export async function saveLots(db: OptionsDb, restaurantId: string, rawLots: unk
   } catch (e) {
     if (e instanceof OptionsUnavailableError) return { ok: false, status: 503, error: e.message };
     console.error("[menu-options] enregistrement :", e);
-    return { ok: false, status: 500, error: saved > 0 ? `L'enregistrement s'est arrêté après ${saved} groupe(s). Réessaie : ce qui est déjà enregistré est gardé.` : "L'enregistrement a échoué. Rien n'a été changé. Réessaie.", savedLots: saved };
+    return { ok: false, status: 500, error: saved > 0 ? `L'enregistrement s'est arrêté après ${saved} groupe(s). Réessaie : ce qui est déjà enregistré est gardé.` : "L'enregistrement a échoué. Rien n'a été changé. Réessaie.", savedLots: saved, detail: describeFailure(e) };
   }
 
   // La trace (ADR 0065) : jamais bloquante, jamais silencieuse (le résultat dit si elle est partie).

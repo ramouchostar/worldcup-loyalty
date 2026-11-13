@@ -10,7 +10,7 @@ import { LotCard, type ArticleMeta, type Change } from "./LotCard";
 import { Tip } from "./fields";
 
 type Loaded = { items: { id: string; name: string; category: string; price: number; hasPhoto: boolean }[]; configured: Record<string, number>; available: boolean };
-type Msg = { kind: "ok" | "err"; text: string; details?: string[] };
+type Msg = { kind: "ok" | "err"; text: string; details?: string[]; technical?: string };
 
 // L'écran « Options de mes plats » (ADR 0100) : on part du menu que le restaurateur a déjà, on range ses plats en groupes
 // qui ont les mêmes choix, et il règle un groupe d'un seul geste. Rien n'est écrit tant qu'il n'a pas cliqué sur
@@ -77,16 +77,22 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ restaurantId, lots: savePayload({ ...st, lots: toSave }), trace: traceOf(st) }),
       });
-      const { data } = await readJsonSafe<{ error?: string; details?: string[]; lots?: number; articles?: number; traceSaved?: boolean }>(res);
+      const { data } = await readJsonSafe<{ error?: string; details?: string[]; detail?: string; lots?: number; articles?: number; traceSaved?: boolean }>(res);
       if (!res.ok) {
-        setMsg({ kind: "err", text: describeHttpFailure(res.status, data?.error), details: data?.details });
+        // Le détail technique aide l'équipe à trouver la cause sans fouiller les journaux du serveur.
+        setMsg({ kind: "err", text: describeHttpFailure(res.status, data?.error), details: data?.details, technical: data?.detail ?? `réponse ${res.status}` });
         return;
       }
       setSavedSig((prev) => ({ ...prev, ...Object.fromEntries(toSave.map((l) => [l.key, sigOf(st, l)])) }));
-      setMsg({ kind: "ok", text: `Enregistré : ${plural(data?.lots ?? toSave.length, "groupe", "groupes")} de plats, ${plural(data?.articles ?? 0, "plat", "plats")}.` });
+      setMsg({
+        kind: "ok",
+        text: `Enregistré : ${plural(data?.lots ?? toSave.length, "groupe", "groupes")} de plats, ${plural(data?.articles ?? 0, "plat", "plats")}.`,
+        // La mesure interne n'est pas ton travail : on le dit sans t'alarmer, et nous le voyons de notre côté.
+        details: data?.traceSaved === false ? ["Tes options sont bien enregistrées. Notre compteur interne, lui, n'a pas pu l'être : ce n'est pas un problème pour toi."] : undefined,
+      });
       await load(false);
-    } catch {
-      setMsg({ kind: "err", text: "Impossible de joindre le serveur. Ton travail est encore ici : réessaie." });
+    } catch (e) {
+      setMsg({ kind: "err", text: "Impossible de joindre le serveur. Ton travail est encore ici : réessaie.", technical: e instanceof Error ? e.message : undefined });
     } finally {
       setSaving(false);
     }
@@ -166,6 +172,7 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
         <div role="status" className={`rounded-xl border px-4 py-3 text-[15px] ${msg.kind === "ok" ? "border-good/30 bg-good/10 text-good" : "border-danger/30 bg-danger/10 text-danger"}`}>
           <p className="font-semibold">{msg.text}</p>
           {msg.details && msg.details.length > 0 && <ul className="mt-1 list-inside list-disc text-[13px]">{msg.details.map((d, i) => <li key={i}>{d}</li>)}</ul>}
+          {msg.technical && <p className="mt-2 break-words text-[13px] font-normal">Détail pour l&apos;équipe : {msg.technical}</p>}
         </div>
       )}
 

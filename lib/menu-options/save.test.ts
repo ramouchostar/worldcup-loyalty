@@ -178,7 +178,11 @@ for (const step of ["insertGroups", "insertChoices", "insertChoiceGroups", "link
     db.failOn = step;
     const r = await save(db, [lot(["a1"], [supplements()])]);
     assert.equal(r.ok, false);
-    if (!r.ok) { assert.equal(r.status, 500); assert.match(r.error, /Rien n'a été changé/); }
+    if (!r.ok) {
+      assert.equal(r.status, 500);
+      assert.match(r.error, /Rien n'a été changé/);
+      assert.match(r.detail ?? "", /^\[[^\]]+\] panne simulée : /, "l'étape et le message de la base sont dits");
+    }
     assert.deepEqual([...db.groups.keys()].sort(), before.groups);
     assert.equal(JSON.stringify(db.links), before.links);
     assert.equal(db.choices.size, before.choices);
@@ -211,6 +215,37 @@ test("tables absentes : l'erreur est dite clairement (503), rien n'est inventé"
   const r = await save(db, [lot(["a1"], [sauces()])]);
   assert.equal(r.ok, false);
   if (!r.ok) { assert.equal(r.status, 503); assert.match(r.error, /pas encore activées/); }
+});
+
+test("chaque étape qui échoue est nommée dans le détail (pour trouver la cause sans fouiller les journaux)", async () => {
+  const steps: [keyof MemDb, RegExp][] = [
+    ["ensureLibrary", /^\[bibliothèque d'options\]/], ["insertGroups", /^\[écriture des listes de choix\]/], ["insertChoices", /^\[écriture des choix\]/],
+    ["insertChoiceGroups", /^\[écriture des sous-questions\]/], ["linkArticles", /^\[liens avec les plats\]/], ["unlink", /^\[bascule des liens\]/],
+  ];
+  for (const [method, expected] of steps) {
+    const db = db0("a1");
+    (db as unknown as Record<string, () => Promise<never>>)[method as string] = async () => { throw new Error("la base dit non"); };
+    const r = await save(db, [lot(["a1"], [sauces()])]);
+    assert.equal(r.ok, false, String(method));
+    if (!r.ok) assert.match(r.detail ?? "", expected, String(method));
+  }
+});
+
+test("si la vérification des plats plante, la réponse est propre (pas une exception) et dit l'étape", async () => {
+  const db = db0("a1");
+  db.ownedArticleIds = async () => { throw new Error("connexion refusée"); };
+  const r = await save(db, [lot(["a1"], [sauces()])]);
+  assert.equal(r.ok, false);
+  if (!r.ok) { assert.equal(r.status, 500); assert.equal(r.detail, "[vérification des plats] connexion refusée"); }
+  assert.equal(db.groups.size, 0);
+});
+
+test("le détail est une seule ligne, coupée : jamais un pavé", async () => {
+  const db = db0("a1");
+  db.insertGroups = async () => { throw new Error(`ligne un\nligne deux ${"x".repeat(500)}`); };
+  const r = await save(db, [lot(["a1"], [sauces()])]);
+  assert.equal(r.ok, false);
+  if (!r.ok) { assert.ok(!/\n/.test(r.detail ?? "")); assert.ok((r.detail ?? "").length <= 280); }
 });
 
 // ─── La trace ────────────────────────────────────────────────────────────────
