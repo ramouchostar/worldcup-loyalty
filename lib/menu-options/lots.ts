@@ -3,6 +3,7 @@
 // Tout l'état de l'écran est ici, en fonctions pures : le composant ne fait qu'afficher et appeler ces actions, et le
 // serveur rejoue la même validation avant d'écrire. Aucun prix n'est jamais prérempli (ADR 0099 §5).
 
+import { DEFAULT_TONE, describeArticle, MAX_DESCRIPTION, type Described, type Tone, type Viande } from "./descriptions";
 import { validateTree, type TreeIssue } from "./model";
 import { optionKey } from "./normalize";
 import { AFFINITY, LOT_OF, SUGGESTED_WITH, classifyArticle, familyStrength, joinLabels, type Family, type Strength } from "./families";
@@ -50,12 +51,20 @@ export type Lot = {
   proposed: number;
   edits: number;
   pricesSet: number;
+  /** « De quelle viande sont tes burgers quand le nom ne le dit pas ? » Sert aux descriptions du groupe, facultatif. */
+  viande: Viande | null;
 };
 
 export type Stats = { suggested: number; suggestedRemoved: number; added: number; merges: number; splits: number };
 
 export type EditorState = {
   articles: Record<string, ArticleRef>;
+  /** La famille reconnue de chaque article : les phrases (« Un durum… », « Des pâtes… ») en dépendent. */
+  families: Record<string, Family>;
+  /** Le ton des descriptions, pour tous les plats : sobre, gourmand ou fun. */
+  tone: Tone;
+  /** Ce que le restaurateur a écrit lui-même, par article. « » = il a voulu aucune description. */
+  descEdits: Record<string, string>;
   lots: Lot[];
   /** Articles que nous n'avons pas su ranger : à ajouter à un lot par le restaurateur. */
   unplaced: string[];
@@ -105,8 +114,10 @@ export function buildEditor(articles: ArticleRef[]): EditorState {
   const next = (p: string) => `${p}${++n}`;
   const byFamily = new Map<Family, string[]>();
   const unplaced: string[] = [];
+  const families: Record<string, Family> = {};
   for (const a of articles) {
     const family = classifyArticle(a);
+    families[a.id] = family;
     if (familyStrength(family) === null) unplaced.push(a.id);
     else (byFamily.get(family) ?? byFamily.set(family, []).get(family)!).push(a.id);
   }
@@ -147,9 +158,10 @@ export function buildEditor(articles: ArticleRef[]): EditorState {
       proposed: countChoices(groups),
       edits: 0,
       pricesSet: 0,
+      viande: null,
     });
   }
-  return { articles: Object.fromEntries(articles.map((a) => [a.id, a])), lots, unplaced, stats, seq: n };
+  return { articles: Object.fromEntries(articles.map((a) => [a.id, a])), families, tone: DEFAULT_TONE, descEdits: {}, lots, unplaced, stats, seq: n };
 }
 
 // ─── Parcours et recherche ───────────────────────────────────────────────────
@@ -307,7 +319,7 @@ export function splitArticle(s: EditorState, articleId: string): EditorState {
   const rekey = (gs: DraftGroup[]): DraftGroup[] => gs.map((g) => ({ ...g, key: `g${++seq}`, choices: g.choices.map((c) => ({ ...c, key: `c${++seq}`, groups: rekey(c.groups) })) }));
   const groups = rekey(src.groups);
   next.seq = seq;
-  const lot: Lot = { ...clone(src), key: `lot${++next.seq}`, label: next.articles[articleId]?.name ?? "Plat", articleIds: [articleId], suggestedIds: [], groups, validated: false, proposed: countChoices(groups), edits: 0, pricesSet: 0 };
+  const lot: Lot = { ...clone(src), key: `lot${++next.seq}`, label: next.articles[articleId]?.name ?? "Plat", articleIds: [articleId], suggestedIds: [], groups, validated: false, proposed: countChoices(groups), edits: 0, pricesSet: 0, viande: src.viande };
   next.lots.splice(next.lots.indexOf(findLot(next, src.key)!) + 1, 0, lot);
   next.stats.splits++;
   return next;
@@ -413,13 +425,71 @@ export function mergeSuggestions(s: EditorState): { intoKey: string; fromKey: st
   return out;
 }
 
+// ─── Les descriptions (ADR 0100 §7) ──────────────────────────────────────────
+
+/** Une description telle qu'elle partira : ce que le restaurateur a écrit, sinon ce que nous avons composé d'après le nom. */
+export type DescriptionOf = { text: string; source: "generated" | "restaurateur"; conflict?: string };
+
+const cleanDescription = (raw: string) => raw.replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, MAX_DESCRIPTION);
+
+function generatedFor(s: EditorState, lot: Lot, articleId: string): Described | null {
+  const a = s.articles[articleId];
+  if (!a) return null;
+  return describeArticle({ id: articleId, name: a.name, category: a.category, family: s.families[articleId] ?? "autre", tone: s.tone, viande: lot.viande });
+}
+
+/** La description d'un article de ce lot, ou `null` quand il n'en a pas (boisson, dessert, sauce, formule, inconnu). */
+export function descriptionOf(s: EditorState, lot: Lot, articleId: string): DescriptionOf | null {
+  if (articleId in s.descEdits) return { text: s.descEdits[articleId], source: "restaurateur" };
+  const g = generatedFor(s, lot, articleId);
+  return g ? { text: g.text, source: "generated", conflict: g.conflict } : null;
+}
+
+/** Les plats d'un lot dont le nom contredit la réponse donnée (« Burger poulet » alors qu'il a dit « bœuf »), sauf s'il a écrit lui-même. */
+export function lotConflicts(s: EditorState, lot: Lot): { articleId: string; message: string }[] {
+  return lot.articleIds.flatMap((id) => {
+    const d = descriptionOf(s, lot, id);
+    return d?.conflict ? [{ articleId: id, message: d.conflict }] : [];
+  });
+}
+
+export const setTone = (s: EditorState, tone: Tone): EditorState => ({ ...clone(s), tone });
+
+export function setViande(s: EditorState, lotKey: string, viande: Viande | null): EditorState {
+  return withLot(s, lotKey, (_n, lot) => { lot.viande = viande; });
+}
+
+/** Le restaurateur écrit sa propre description. Retaper exactement la nôtre revient à ne rien avoir changé. */
+export function editDescription(s: EditorState, articleId: string, text: string): EditorState {
+  const next = clone(s);
+  const lot = lotOfArticle(next, articleId);
+  const clean = cleanDescription(text);
+  const gen = lot ? generatedFor(next, lot, articleId) : null;
+  if (gen && clean === gen.text) delete next.descEdits[articleId];
+  else next.descEdits[articleId] = clean;
+  return next;
+}
+
+/** Revient à notre description (le restaurateur avait écrit la sienne, ou l'avait vidée). */
+export function resetDescription(s: EditorState, articleId: string): EditorState {
+  const next = clone(s);
+  delete next.descEdits[articleId];
+  return next;
+}
+
 // ─── Ce qu'on enregistre, ce qu'on mesure ────────────────────────────────────
 
 export type SaveChoice = { name: string; priceDelta: number; maxQty: number; isDefault: boolean; groups: SaveGroup[] };
 export type SaveGroup = { title: string; kind: GroupKind; min: number; max: number | null; choices: SaveChoice[] };
 
-export type LotTrace = { family: Family; strength: Strength; articles: number; proposed: number; kept: number; added: number; edits: number; pricesSet: number };
-export type SaveLot = { articleIds: string[]; groups: SaveGroup[]; trace: LotTrace };
+export type SaveDescription = { articleId: string; text: string; source: "generated" | "restaurateur" };
+
+export type LotTrace = {
+  family: Family; strength: Strength; articles: number; proposed: number; kept: number; added: number; edits: number; pricesSet: number;
+  /** Descriptions : composées par nous, gardées telles quelles, réécrites par lui, vidées par lui. */
+  descGenerated: number; descKept: number; descEdited: number; descCleared: number;
+};
+export type SaveLot = { articleIds: string[]; groups: SaveGroup[]; descriptions: SaveDescription[]; trace: LotTrace };
 
 function toSaveGroup(g: DraftGroup): SaveGroup {
   return {
@@ -433,10 +503,23 @@ export function savePayload(s: EditorState): SaveLot[] {
   return s.lots.filter((l) => l.validated).map((lot) => {
     let kept = 0, added = 0;
     eachChoice(lot.groups, (c) => { if (c.keep) { if (c.origin === "pack") kept++; else added++; } });
+    const descriptions: SaveDescription[] = [];
+    let descGenerated = 0, descKept = 0, descEdited = 0, descCleared = 0;
+    for (const articleId of lot.articleIds) {
+      const gen = generatedFor(s, lot, articleId);
+      if (gen) descGenerated++;
+      const d = descriptionOf(s, lot, articleId);
+      if (!d) continue;
+      descriptions.push({ articleId, text: d.text, source: d.source });
+      if (d.source === "generated") descKept++;
+      else if (d.text === "") descCleared++;
+      else descEdited++;
+    }
     return {
       articleIds: lot.articleIds,
       groups: lot.groups.map(toSaveGroup),
-      trace: { family: lot.family, strength: lot.strength, articles: lot.articleIds.length, proposed: lot.proposed, kept, added, edits: lot.edits, pricesSet: lot.pricesSet },
+      descriptions,
+      trace: { family: lot.family, strength: lot.strength, articles: lot.articleIds.length, proposed: lot.proposed, kept, added, edits: lot.edits, pricesSet: lot.pricesSet, descGenerated, descKept, descEdited, descCleared },
     };
   });
 }
@@ -445,6 +528,7 @@ export type EditorTrace = {
   articles: number; lots: number; lotsSaved: number; unplaced: number;
   suggested: number; suggestedKept: number; added: number; merges: number; splits: number;
   choicesProposed: number; choicesKept: number; lines: number; pricesSet: number;
+  descGenerated: number; descKept: number; descEdited: number; descCleared: number;
 };
 
 export function traceOf(s: EditorState): EditorTrace {
@@ -454,5 +538,6 @@ export function traceOf(s: EditorState): EditorTrace {
     articles: Object.keys(s.articles).length, lots: s.lots.length, lotsSaved: saved.length, unplaced: s.unplaced.length,
     suggested: s.stats.suggested, suggestedKept: s.stats.suggested - s.stats.suggestedRemoved, added: s.stats.added, merges: s.stats.merges, splits: s.stats.splits,
     choicesProposed: sum((t) => t.proposed), choicesKept: sum((t) => t.kept), lines: sum((t) => t.edits), pricesSet: sum((t) => t.pricesSet),
+    descGenerated: sum((t) => t.descGenerated), descKept: sum((t) => t.descKept), descEdited: sum((t) => t.descEdited), descCleared: sum((t) => t.descCleared),
   };
 }

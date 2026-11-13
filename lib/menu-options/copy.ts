@@ -60,6 +60,14 @@ export const TIPS = {
   max: "Combien de choses il peut choisir, au plus. Laisse vide s'il n'y a pas de limite.",
   guess: "Nous avons deviné de quel genre est cette liste de choix, mais nous ne sommes pas sûrs. Regarde la case à côté : si ce n'est pas le bon genre, change-le.",
   menuPrice: "Ce prix vient de ton menu, celui que tu as déjà dans Boosteats. Pour le changer, va dans « Menu et coûts ».",
+  tone: "Le ton, c'est la manière d'écrire. « Sobre » dit juste ce qu'est le plat. « Gourmand » et « Fun » ajoutent une phrase qui parle du client. Nous n'écrivons jamais un ingrédient que tu n'as pas écrit toi-même.",
+  descRule: "Nous n'écrivons jamais un ingrédient, une viande ou une origine qui n'est pas dans le nom de ton plat. La phrase de ton parle du client, jamais du plat. Tu peux réécrire chaque description.",
+  viande: "Le nom « Cheese burger » ne dit pas de quelle viande il est. Si tu réponds, tous les burgers du groupe sont décrits avec cette viande. Si le nom d'un burger dit déjà la viande, nous gardons le nom.",
+  descEdit: "La description que tes clients liront. Écris la tienne si tu préfères : elle ne sera jamais réécrite quand tu changes le ton.",
+  descReset: "Reprendre la description que nous avons écrite d'après le nom du plat.",
+  descConflict: "Le nom du plat et ta réponse ne disent pas la même chose. Nous avons gardé ce que dit le nom. Regarde si ce plat doit sortir du groupe, ou écris sa description toi-même.",
 } as const;
+
+export const TONE_LABEL: Record<"sobre" | "gourmand" | "fun", string> = { sobre: "Sobre", gourmand: "Gourmand", fun: "Fun" };
 
 export const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;

@@ -228,6 +228,10 @@ _Avoid_ : type de plat, catégorie (c'est le champ du catalogue), rayon.
 Des articles qui ont les mêmes options, réglés d'un seul geste (« Je valide ce groupe ») sur l'écran « Options de mes plats ». Dans le code, un `Lot` (`lib/menu-options/lots.ts`). Ne pas confondre avec un **groupe d'options** (la liste de choix « Sauces » d'un article) ni avec une équipe.
 _Avoid_ : cluster, lot (dans un texte visible), paquet, groupe (seul — ambigu avec le groupe d'options et l'équipe).
 
+**Description de plat** *(ADR 0100 §7)* :
+Le texte que le client lit sous le nom d'un plat. Composée d'après le **nom seul** (jamais un ingrédient, une viande ou une origine absents du nom), en ton sobre, gourmand ou fun ; le restaurateur la réécrit librement et son texte n'est jamais remplacé. Source gardée : `generated`, `restaurateur` ou `pdf`. Ne dit jamais d'allergène.
+_Avoid_ : « description IA », « texte marketing ».
+
 **Prix de vente** :
 Prix carte d'un article (`menu_items.menu_price`) — la valeur perçue par le client quand il reçoit l'article en cadeau. Sert de numérateur au calcul d'attractivité d'une suggestion. Donnée euros, admin uniquement.
 _Avoid_ : prix public, tarif, prix client.

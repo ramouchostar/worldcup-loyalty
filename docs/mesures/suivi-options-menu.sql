@@ -44,3 +44,26 @@ SELECT
   percentile_cont(0.5) WITHIN GROUP (ORDER BY lots_total)  AS mediane_groupes,
   percentile_cont(0.5) WITHIN GROUP (ORDER BY articles_total) AS mediane_plats
 FROM menu_option_setups;
+
+-- 5. Descriptions des plats (ADR 0100 §7) : la part que les restaurateurs réécrivent ou vident.
+-- Seuil : si plus d'un tiers des descriptions composées est retouché (même seuil que l'import du catalogue, ADR 0083),
+-- la règle « d'après le nom seulement » ne fait pas gagner de temps et est à revoir.
+SELECT
+  SUM(descriptions_generated)                          AS composees_par_nous,
+  SUM(descriptions_kept)                               AS gardees_telles_quelles,
+  SUM(descriptions_edited)                             AS reecrites_par_eux,
+  SUM(descriptions_cleared)                            AS videes_par_eux,
+  ROUND(100.0 * (SUM(descriptions_edited) + SUM(descriptions_cleared)) / NULLIF(SUM(descriptions_generated), 0))  AS pct_retouchees
+FROM menu_option_setups;
+
+-- 6. Par famille de plats : quelles familles voient leurs descriptions réécrites ?
+SELECT
+  d->>'family'                                         AS famille,
+  SUM((d->>'descGenerated')::int)                      AS composees,
+  SUM((d->>'descKept')::int)                           AS gardees,
+  SUM((d->>'descEdited')::int + (d->>'descCleared')::int)  AS retouchees,
+  ROUND(100.0 * SUM((d->>'descEdited')::int + (d->>'descCleared')::int) / NULLIF(SUM((d->>'descGenerated')::int), 0))  AS pct_retouchees
+FROM menu_option_setups s, jsonb_array_elements(s.detail) AS d
+WHERE d ? 'descGenerated'
+GROUP BY 1
+ORDER BY composees DESC;

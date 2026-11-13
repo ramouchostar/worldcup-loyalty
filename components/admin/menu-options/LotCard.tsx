@@ -4,10 +4,12 @@ import { useState } from "react";
 import { StatusBadge } from "@/components/admin/ui";
 import { KIND_LABEL, KIND_TIP, STRENGTH_LABEL, STRENGTH_NOTE, TIPS, plural, ruleText } from "@/lib/menu-options/copy";
 import {
-  addArticle, addChoice, addGroup, applyBulkPrice, canValidate, confirmGroup, groupPricesMissing, lotIssues, mergeLots, mergeSuggestions,
-  needsPrice, removeArticle, removeGroup, renameLot, reopenLot, splitArticle, updateChoice, updateGroup, validateLot,
+  addArticle, addChoice, addGroup, applyBulkPrice, canValidate, confirmGroup, descriptionOf, editDescription, groupPricesMissing, lotConflicts,
+  lotIssues, mergeLots, mergeSuggestions, needsPrice, removeArticle, removeGroup, renameLot, reopenLot, resetDescription, setViande, splitArticle,
+  updateChoice, updateGroup, validateLot,
   type DraftChoice, type DraftGroup, type EditorState, type Lot,
 } from "@/lib/menu-options/lots";
+import type { Viande } from "@/lib/menu-options/descriptions";
 import type { GroupKind } from "@/lib/menu-options/types";
 import { NumberField, TextField, Tip } from "./fields";
 
@@ -156,12 +158,14 @@ export function LotCard({ lot, state, meta, configured, saved, change }: { lot: 
     ...state.lots.filter((l) => l.key !== lot.key).flatMap((l) => l.articleIds.map((id) => ({ id, label: `${state.articles[id]?.name ?? id} (de « ${l.label} »)`, group: "Dans un autre groupe" }))),
   ];
   const nSugg = lot.suggestedIds.length;
+  const conflicts = lotConflicts(state, lot);
+  const described = lot.articleIds.map((id) => ({ id, d: descriptionOf(state, lot, id) })).filter((x) => x.d && x.d.text);
 
   const hint = lot.validated
     ? "Groupe réglé."
     : [
         nSugg ? `Nous avons ajouté ${plural(nSugg, "plat", "plats")} qui ${nSugg > 1 ? "vont" : "va"} souvent avec les autres : retire ceux qui sont différents.` : k > 1 ? `Ces ${k} plats ont les mêmes choix.` : "Ce plat a ses propres choix.",
-        issues.pending ? `${plural(issues.pending, "ligne", "lignes")} à regarder.` : "",
+        issues.pending + conflicts.length ? `${plural(issues.pending + conflicts.length, "ligne", "lignes")} à regarder.` : "",
         issues.pricesMissing ? `${issues.pricesMissing} prix à mettre.` : "",
       ].filter(Boolean).join(" ");
 
@@ -255,19 +259,69 @@ export function LotCard({ lot, state, meta, configured, saved, change }: { lot: 
         </Tip>
       )}
 
+      <div className="flex flex-col gap-2 rounded-lg border border-paper-border bg-paper px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <b className="text-[15px] text-ink">Descriptions</b>
+          <Tip text={TIPS.descRule}><StatusBadge>Seulement ce qui est dans le nom</StatusBadge></Tip>
+        </div>
+        {lot.family === "burger" && !lot.validated && (
+          <label className="flex flex-wrap items-center gap-2 text-[13px] text-ink-body">
+            <Tip text={TIPS.viande}><span>De quelle viande sont tes burgers quand le nom ne le dit pas ? <span className="text-ink-muted">(facultatif)</span></span></Tip>
+            <select className={select} aria-label="Viande des burgers" value={lot.viande ?? ""} onChange={(e) => change((s) => setViande(s, lot.key, (e.target.value || null) as Viande | null))}>
+              <option value="">Je ne dis pas</option>
+              <option value="bœuf">Bœuf</option>
+              <option value="poulet">Poulet</option>
+              <option value="mélange">Un mélange (on n&apos;écrit pas la viande)</option>
+            </select>
+          </label>
+        )}
+        {lot.strength === "aucune" ? (
+          <p className="text-[13px] text-ink-muted">Pas de description pour les boissons, les desserts et les sauces : le nom suffit.</p>
+        ) : described.length === 0 ? (
+          <p className="text-[13px] text-ink-muted">Nous ne savons pas encore décrire ces plats. Tu peux écrire leur description toi-même, plat par plat, ci-dessous.</p>
+        ) : (
+          described.slice(0, 2).map(({ id, d }) => (
+            <p key={id} className="text-[13px] italic text-ink-body"><b className="not-italic">{state.articles[id]?.name}</b> : {d!.text}</p>
+          ))
+        )}
+        {conflicts.length > 0 && !lot.validated && (
+          <ul className="list-inside list-disc text-[13px] text-warn">
+            {conflicts.slice(0, 3).map((c) => <li key={c.articleId}>{state.articles[c.articleId]?.name} : {c.message}</li>)}
+          </ul>
+        )}
+      </div>
+
       <details className="text-[13px] text-ink-muted">
         <summary className="cursor-pointer">Voir les plats de ce groupe</summary>
         <div className="mt-2 divide-y divide-paper-border rounded-lg border border-paper-border">
-          {lot.articleIds.map((id) => (
-            <div key={id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-[15px] text-ink">
-              <span className="min-w-[160px] flex-1 font-medium">{state.articles[id]?.name}</span>
-              <Tip text={TIPS.menuPrice}><span className="text-[13px] text-ink-muted">{meta[id] ? euro(meta[id].price) : ""}</span></Tip>
-              {meta[id] && !meta[id].hasPhoto && <StatusBadge>Pas de photo</StatusBadge>}
-              {!lot.validated && k > 1 && (
-                <Tip text={TIPS.split} align="right"><button type="button" className={ghost} onClick={() => change((s) => splitArticle(s, id))}>Il a d&apos;autres choix</button></Tip>
-              )}
-            </div>
-          ))}
+          {lot.articleIds.map((id) => {
+            const d = descriptionOf(state, lot, id);
+            const conflict = d?.conflict;
+            return (
+              <div key={id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-[15px] text-ink">
+                <span className="min-w-[160px] flex-1 font-medium">{state.articles[id]?.name}</span>
+                <Tip text={TIPS.menuPrice}><span className="text-[13px] text-ink-muted">{meta[id] ? euro(meta[id].price) : ""}</span></Tip>
+                {meta[id] && !meta[id].hasPhoto && <StatusBadge>Pas de photo</StatusBadge>}
+                {!lot.validated && k > 1 && (
+                  <Tip text={TIPS.split} align="right"><button type="button" className={ghost} onClick={() => change((s) => splitArticle(s, id))}>Il a d&apos;autres choix</button></Tip>
+                )}
+                <div className="flex w-full flex-wrap items-center gap-2">
+                  <TextField
+                    value={d?.text ?? ""}
+                    ariaLabel={`Description de ${state.articles[id]?.name ?? "ce plat"}`}
+                    placeholder="Pas de description : écris la tienne"
+                    disabled={lot.validated}
+                    className="min-w-[220px] flex-1 text-[13px] disabled:opacity-60"
+                    onCommit={(v) => change((s) => editDescription(s, id, v))}
+                  />
+                  {d?.source === "restaurateur" && !lot.validated && (
+                    <Tip text={TIPS.descReset} align="right"><button type="button" className={ghost} onClick={() => change((s) => resetDescription(s, id))}>Reprendre la nôtre</button></Tip>
+                  )}
+                  {conflict && !lot.validated && <Tip text={TIPS.descConflict} align="right"><StatusBadge tone="warn">Le nom et ta réponse ne vont pas ensemble</StatusBadge></Tip>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </details>
 

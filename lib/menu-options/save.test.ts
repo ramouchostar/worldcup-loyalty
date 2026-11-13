@@ -51,6 +51,13 @@ class MemDb implements OptionsDb {
     this.choiceGroups = this.choiceGroups.filter((cg) => !deadChoices.has(cg.choice_id) && !gone.has(cg.group_id));
     this.links = this.links.filter((l) => !gone.has(l.group_id));
   }
+  descTable = true;
+  descriptions = new Map<string, { text: string; source: string }>();
+  async setDescriptions(_r: string, rows: { articleId: string; text: string; source: string }[]) {
+    if (!this.descTable) return false;
+    for (const r of rows) if (this.owned.has(r.articleId)) this.descriptions.set(r.articleId, { text: r.text, source: r.source });
+    return true;
+  }
   async writeSetup(row: SetupRow) { if (!this.traceTable) return false; this.setups.push(row); return true; }
 
   groupTitles(articleId: string) { return this.links.filter((l) => l.menu_item_id === articleId).sort((a, b) => a.position - b.position).map((l) => this.groups.get(l.group_id)!.title); }
@@ -59,7 +66,10 @@ class MemDb implements OptionsDb {
 const choice = (name: string, priceDelta = 0, groups: SaveGroup[] = []): SaveGroup["choices"][number] => ({ name, priceDelta, maxQty: 1, isDefault: false, groups });
 const sauces = (names = ["Ketchup", "Mayonnaise"]): SaveGroup => ({ title: "Sauces", kind: "inclus", min: 1, max: 2, choices: names.map((n) => choice(n)) });
 const supplements = (): SaveGroup => ({ title: "Suppléments", kind: "extra", min: 0, max: 3, choices: [choice("Feta", 1), choice("Olives", 1.5)] });
-const lot = (articleIds: string[], groups: SaveGroup[]): SaveLot => ({ articleIds, groups, trace: { family: "mitraillette", strength: "forte", articles: articleIds.length, proposed: 6, kept: 5, added: 0, edits: 1, pricesSet: 2 } });
+const lot = (articleIds: string[], groups: SaveGroup[], descriptions: SaveLot["descriptions"] = []): SaveLot => ({
+  articleIds, groups, descriptions,
+  trace: { family: "mitraillette", strength: "forte", articles: articleIds.length, proposed: 6, kept: 5, added: 0, edits: 1, pricesSet: 2, descGenerated: 3, descKept: 2, descEdited: 1, descCleared: 0 },
+});
 const db0 = (...articles: string[]) => { const d = new MemDb(); articles.forEach((a) => d.owned.add(a)); return d; };
 const save = (db: MemDb, lots: unknown, trace: unknown = { articles: 3, lots: 1 }) => saveLots(db, "resto", lots, trace, "user-1");
 
@@ -106,7 +116,7 @@ test("trop de niveaux de questions imbriquées est refusé", () => {
 test("les groupes sont écrits une fois par groupe de plats, et partagés par tous ses articles", async () => {
   const db = db0("a1", "a2", "a3");
   const r = await save(db, [lot(["a1", "a2", "a3"], [sauces(), supplements()])]);
-  assert.deepEqual(r, { ok: true, lots: 1, articles: 3, groups: 2, choices: 4, traceSaved: true });
+  assert.deepEqual(r, { ok: true, lots: 1, articles: 3, groups: 2, choices: 4, traceSaved: true, descriptions: 0, descriptionsSaved: null });
   assert.equal(db.groups.size, 2, "deux groupes pour trois articles : le groupe est partagé");
   assert.equal(db.links.length, 6);
   assert.deepEqual(db.groupTitles("a2"), ["Sauces", "Suppléments"]);
@@ -248,6 +258,85 @@ test("le détail est une seule ligne, coupée : jamais un pavé", async () => {
   if (!r.ok) { assert.ok(!/\n/.test(r.detail ?? "")); assert.ok((r.detail ?? "").length <= 280); }
 });
 
+// ─── Les descriptions (ADR 0100 §7) ──────────────────────────────────────────
+
+const desc = (articleId: string, text: string, source: "generated" | "restaurateur" = "generated") => ({ articleId, text, source });
+
+test("les descriptions sont lues, nettoyées (une ligne, sans balise) et rattachées aux plats du groupe", () => {
+  const r = checkPayload([lot(["a1", "a2"], [sauces()], [desc("a1", "  Une pizza\n   <b>Margherita</b>. "), desc("a2", "", "restaurateur")])]);
+  assert.equal(r.ok, true);
+  if (r.ok) assert.deepEqual(r.lots[0].descriptions, [desc("a1", "Une pizza bMargherita/b."), desc("a2", "", "restaurateur")]);
+});
+
+test("un ancien écran sans descriptions reste accepté : aucune description", () => {
+  const r = checkPayload([{ articleIds: ["a1"], groups: [sauces()] }]);
+  assert.equal(r.ok, true);
+  if (r.ok) assert.deepEqual(r.lots[0].descriptions, []);
+});
+
+test("une description invalide est refusée avec une phrase claire", () => {
+  const bad = (descriptions: unknown, fragment: RegExp) => {
+    const r = checkPayload([{ ...lot(["a1"], [sauces()]), descriptions }]);
+    assert.equal(r.ok, false, JSON.stringify(descriptions).slice(0, 60));
+    if (!r.ok) assert.ok(r.errors.some((e) => fragment.test(e)), r.errors.join(" | "));
+  };
+  bad("oups", /descriptions ne sont pas valides/);
+  bad([desc("a1", "x".repeat(301))], /dépasse 300 lettres/);
+  bad([desc("intrus", "Texte")], /pas dans ce groupe/);
+  bad([desc("a1", "Un"), desc("a1", "Deux")], /ne sont pas valides/); // plus de descriptions que de plats : refusé d'emblée
+  const twice = checkPayload([lot(["a1", "a2"], [sauces()], [desc("a1", "Un"), desc("a1", "Deux")])]);
+  assert.equal(twice.ok, false);
+  if (!twice.ok) assert.ok(twice.errors.some((e) => /deux descriptions/.test(e)), twice.errors.join(" | "));
+  bad([{ articleId: "a1", text: "Texte", source: "ia" }], /n'a pas pu être lue/);
+  bad([{ articleId: "a1", text: 42, source: "generated" }], /n'a pas pu être lue/);
+  bad([desc("a1", "Un"), desc("a1", "Deux"), desc("a1", "Trois")], /ne sont pas valides/);
+});
+
+test("les descriptions sont écrites pour les plats du groupe, avec leur origine, et la vide est gardée vide", async () => {
+  const db = db0("a1", "a2");
+  const r = await save(db, [lot(["a1", "a2"], [sauces()], [desc("a1", "Un durum poulet, pour les vraies faims."), desc("a2", "", "restaurateur")])]);
+  assert.equal(r.ok && r.descriptions, 2);
+  assert.equal(r.ok && r.descriptionsSaved, true);
+  assert.deepEqual(db.descriptions.get("a1"), { text: "Un durum poulet, pour les vraies faims.", source: "generated" });
+  assert.deepEqual(db.descriptions.get("a2"), { text: "", source: "restaurateur" });
+});
+
+test("sans description à écrire, le résultat le dit (null), pas « enregistré »", async () => {
+  const db = db0("a1");
+  const r = await save(db, [lot(["a1"], [sauces()])]);
+  assert.equal(r.ok && r.descriptionsSaved, null);
+  assert.equal(r.ok && r.descriptions, 0);
+});
+
+test("colonnes de description absentes : les options sont enregistrées, et le résultat dit que les descriptions ne l'ont pas été", async () => {
+  const db = db0("a1");
+  db.descTable = false;
+  const r = await save(db, [lot(["a1"], [sauces()], [desc("a1", "Une pizza Royale.")])]);
+  assert.equal(r.ok, true);
+  assert.equal(r.ok && r.descriptionsSaved, false);
+  assert.equal(r.ok && r.descriptions, 0);
+  assert.equal(db.groups.size, 1, "les options, elles, sont écrites");
+  assert.equal(db.descriptions.size, 0);
+});
+
+test("une panne en écrivant les descriptions ne défait JAMAIS les options, et dit l'étape", async () => {
+  const db = db0("a1", "a2");
+  db.setDescriptions = async () => { throw new Error("la base dit non"); };
+  const r = await save(db, [lot(["a1"], [sauces()], [desc("a1", "Texte.")]), lot(["a2"], [supplements()], [desc("a2", "Autre.")])]);
+  assert.equal(r.ok, true, "les deux groupes de plats sont enregistrés");
+  assert.equal(r.ok && r.lots, 2);
+  assert.equal(r.ok && r.descriptionsSaved, false);
+  assert.match((r.ok && r.descriptionsDetail) || "", /^\[descriptions\] la base dit non/);
+  assert.equal(db.groups.size, 2);
+});
+
+test("la trace additionne les descriptions composées, gardées, réécrites et vidées", async () => {
+  const db = db0("a1", "a2");
+  await save(db, [lot(["a1"], [sauces()]), lot(["a2"], [supplements()])]);
+  const row = db.setups[0];
+  assert.deepEqual([row.descriptions_generated, row.descriptions_kept, row.descriptions_edited, row.descriptions_cleared], [6, 4, 2, 0]);
+});
+
 // ─── La trace ────────────────────────────────────────────────────────────────
 
 test("la trace est écrite avec les chiffres du restaurateur, jamais ceux du navigateur pour les lots", async () => {
@@ -298,6 +387,9 @@ test("ce que produit l'éditeur passe la validation du serveur, de bout en bout"
   assert.deepEqual(db.groupTitles("m1"), ["Crudités", "Sauces", "Suppléments", "Ajouter des frites ?", "Je le prends sans"]);
   assert.deepEqual(db.groupTitles("p1"), ["Taille", "Suppléments", "Je le prends sans"]);
   assert.deepEqual(db.groupTitles("b1"), [], "boissons : aucune option");
+  assert.equal(db.descriptions.get("m1")?.text.startsWith("Une mitraillette kefta, pour "), true, "la description composée d'après le nom est écrite");
+  assert.equal(db.descriptions.get("m1")?.source, "generated");
+  assert.equal(db.descriptions.has("b1"), false, "pas de description pour une boisson");
   const prices = [...db.choices.values()].map((c) => c.price_delta);
   assert.ok(prices.every((p) => Number.isFinite(p) && p >= 0));
 });
