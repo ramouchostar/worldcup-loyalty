@@ -66,6 +66,10 @@ export const TIPS = {
   descEdit: "La description que tes clients liront. Écris la tienne si tu préfères : elle ne sera jamais réécrite quand tu changes le ton.",
   descReset: "Reprendre la description que nous avons écrite d'après le nom du plat.",
   descConflict: "Le nom du plat et ta réponse ne disent pas la même chose. Nous avons gardé ce que dit le nom. Regarde si ce plat doit sortir du groupe, ou écris sa description toi-même.",
+  pdfWhy: "Si tu as déjà un menu en PDF avec des descriptions, nous les reprenons telles que tu les as écrites. Si ton PDF indique les allergènes, nous te les proposons : tu relis, tu corriges, tu confirmes.",
+  pdfNear: "Le nom dans ton PDF n'est pas exactement celui de ton menu. Regarde que c'est bien le même plat avant de garder son texte.",
+  allergenWhy: "Nous ne devinons jamais un allergène d'après le nom d'un plat : seulement ce qui est écrit dans ton PDF, ou ce que tu coches. Tant que tu n'as pas confirmé un plat, ton site dira « demande-nous au comptoir », jamais « aucun ».",
+  allergenBulk: "Confirme d'un coup tous les plats dont les allergènes sont écrits dans ton PDF. À faire seulement si tu les as relus.",
 } as const;
 
 export const TONE_LABEL: Record<"sobre" | "gourmand" | "fun", string> = { sobre: "Sobre", gourmand: "Gourmand", fun: "Fun" };
