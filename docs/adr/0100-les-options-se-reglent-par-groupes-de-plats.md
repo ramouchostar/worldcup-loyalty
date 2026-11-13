@@ -56,6 +56,12 @@ Ce qui vient du PDF est une **proposition à relire**. La description s'écrit a
 
 **Trace** (ADR 0065) : table `menu_pdf_imports`, une ligne par enregistrement, des compteurs seulement (lignes lues, rapprochées, rapprochées « de près », à part, plats sans ligne, descriptions gardées ou retouchées, listes d'allergènes corrigées ou confirmées ; `docs/mesures/suivi-options-menu.sql`, requêtes 7 et 8). **Seuils** : moins de deux tiers des lignes rapprochées, ou plus d'un quart des listes d'allergènes corrigées, et la lecture est à revoir avant d'aller plus loin. **Limite connue** : écrit sans PDF réel (le restaurateur n'en a pas fourni) ; un PDF scanné en image, ou une mise en page à colonnes, peuvent être mal lus, ce que la trace dira.
 
+### 9. Le ticket de cuisine : un ticket par coin, le prénom en grand
+
+Chaque plat a un **coin de cuisine** (« Pizza », « Pâtes », « Grill », « Comptoir »…), proposé d'après sa famille et modifiable (`menu_items.kitchen_zone`, texte libre de 30 lettres, huit coins au plus ; migration `20261113-2300`). Un plat sans coin sort sur le ticket « CUISINE » : il n'est jamais perdu, même au-delà de huit coins. La logique du ticket est pure et testée (`lib/menu-options/tickets.ts`) : sans découpage, un ticket « CUISINE » avec la somme à payer ; avec découpage, un ticket par coin utilisé (sans prix, « TICKET 1/3 · PIZZA ») et, au choix, un ticket « CAISSE · TOUT » avec le prix. Sur chaque ticket le **prénom est écrit en très grand** (il évite de mélanger deux commandes) et un retrait se lit **« SANS SALADE », jamais « SANS » seul** ; un supplément « Oui » (« Ajouter des frites ? ») s'écrit « + FRITES ».
+
+**Rien n'est imprimé** : il n'existe ni commande du site ni imprimante choisie (ADR 0099 §5, question ouverte 4). L'écran « Ce que le cuisinier reçoit » montre un exemple de commande bâti sur les **vrais plats et les vrais choix** du restaurateur. Le découpage (un ticket par coin ou un seul) n'est pas encore enregistré : il ne le sera qu'avec la commande du site. **Trace** : table `menu_zone_setups` (propositions gardées, changées, vidées ; `docs/mesures/suivi-options-menu.sql`, requête 9) ; **seuil** : moins de deux tiers des propositions gardées, la table famille → coin est à revoir. **À prévoir pour l'impression** : les imprimantes thermiques ont un jeu de caractères limité (accents, « œ »), à tester sur le matériel choisi.
+
 ## Conséquences
 
 - **Données** : une table de trace `menu_option_setups` (migration `20261112-0417`, service-role seul), à appliquer à la main à la fusion. Sans elle, les options s'enregistrent et le journal le dit.
@@ -77,5 +83,5 @@ La suite est décidée dans la maquette validée, pas dans cette PR :
 
 1. ~~Descriptions~~ : faites, voir §7.
 2. ~~PDF du menu~~ : fait, voir §8. Reste à coordonner avec la Brigade 15 (générateur de site) : lire `description` et `allergens` (`NULL` = « demande-nous au comptoir »).
-3. **Aperçu du site, tickets par coin de cuisine** (le nom du client en grand, un ticket par zone).
+3. **Aperçu du site**. Les tickets par coin de cuisine sont faits sans impression, voir §9 ; l'impression attend la commande du site et le choix de l'imprimante.
 4. Les règles sur les allergènes à la vente à distance (règlement UE 1169/2011, art. 14) sont à faire confirmer avant la première commande réelle.
