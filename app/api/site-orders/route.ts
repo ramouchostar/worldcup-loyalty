@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkIpRateLimit, hashIp } from "@/lib/rate-limit";
 import { supabaseOrdersDb } from "@/lib/site-orders/db";
-import { siteOrdersEnabledFor } from "@/lib/site-orders/order";
+import { siteOrdersAvailable } from "@/lib/site-orders/access";
 import { placeSiteOrder } from "@/lib/site-orders/service";
 
 // ADR 0099 §2 — une commande du site : retrait au comptoir, paiement au comptoir. FERMÉE par défaut : sans
-// SITE_ORDER_RESTAURANTS qui liste l'établissement, la route répond 404 comme si elle n'existait pas (la caisse certifiée
+// SITE_ORDER_RESTAURANTS qui liste l'établissement ET un forfait Pro actif (Nina, ADR 0099 §8), la route répond 404 comme si elle n'existait pas (la caisse certifiée
 // et le RGPD doivent être tranchés avant d'ouvrir à un vrai restaurant, ADR 0099).
 //
 // POST /api/site-orders  { restaurantId, firstName, phone, lines: [{ articleId, qty, selection }] }
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     body = null;
   }
   const restaurantId = typeof body?.restaurantId === "string" ? body.restaurantId : "";
-  if (!restaurantId || !siteOrdersEnabledFor(restaurantId)) return NOT_FOUND();
+  if (!restaurantId || !(await siteOrdersAvailable(restaurantId))) return NOT_FOUND();
 
   const db = supabaseOrdersDb();
 

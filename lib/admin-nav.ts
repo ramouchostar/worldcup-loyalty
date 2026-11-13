@@ -32,7 +32,7 @@ export function parseConsoleView(raw: string | undefined): ConsoleView {
  * `marketplace` : le module « Prestataires » (ADR 0084) est ouvert pour ce restaurateur
  * (MARKETPLACE_ENABLED, ou super-admin). Fermé = le lien n'existe pas.
  * `pub` : la Pub (ADR 0086) est ouverte pour cet établissement (PUB_RESTAURANTS, ou super-admin).
- * `siteOrders` : les commandes du site (ADR 0099) sont ouvertes pour cet établissement (SITE_ORDER_RESTAURANTS). Fermé = le lien n'existe pas.
+ * `siteOrders` : les commandes du site (ADR 0099) sont ouvertes pour cet établissement (SITE_ORDER_RESTAURANTS) ET l'établissement est en Pro (Nina, ADR 0099 §8). Fermé = le lien n'existe pas.
  */
 export function consoleSections(base: string, canManage: boolean, marketplace = false, pub = false, siteOrders = false): AdminNavSection[] {
   return [
