@@ -62,6 +62,12 @@ Chaque plat a un **coin de cuisine** (« Pizza », « Pâtes », « Grill », «
 
 **Rien n'est imprimé** : il n'existe ni commande du site ni imprimante choisie (ADR 0099 §5, question ouverte 4). L'écran « Ce que le cuisinier reçoit » montre un exemple de commande bâti sur les **vrais plats et les vrais choix** du restaurateur. Le découpage (un ticket par coin ou un seul) n'est pas encore enregistré : il ne le sera qu'avec la commande du site. **Trace** : table `menu_zone_setups` (propositions gardées, changées, vidées ; `docs/mesures/suivi-options-menu.sql`, requête 9) ; **seuil** : moins de deux tiers des propositions gardées, la table famille → coin est à revoir. **À prévoir pour l'impression** : les imprimantes thermiques ont un jeu de caractères limité (accents, « œ »), à tester sur le matériel choisi.
 
+### 10. L'aperçu du site : voir ce qui est prêt, sans rien publier
+
+Sous l'éditeur, « Ton site, tel que tes clients le verraient » : une liste en cinq lignes (plats et prix, photos, choix, descriptions, allergènes) où chaque « à finir » dit quoi faire, et un aperçu par catégorie bâti sur les **vrais** plats, prix, photos, choix, descriptions et allergènes **confirmés** (`lib/menu-options/site-preview.ts`, `facts.ts`). Ce que le restaurateur a écrit ou repris de son PDF, déjà en base, gagne toujours ; la description composée par nous ne s'affiche que pour un groupe qu'il a validé. Un plat dont les allergènes ne sont pas confirmés dit « demande-nous au comptoir », jamais « aucun ». Les boissons et les sauces ne comptent pas dans « allergènes confirmés ».
+
+**Rien n'est publié et il n'y a pas de bouton « mettre en ligne »** : le site public (ADR 0088, Brigade 15) n'existe pas encore, et cet aperçu n'en tient pas lieu. Il est dans la console et ne touche pas aux pages publiques. Les lectures sont fail-open (`GET /api/admin/menu/options` renvoie `facts`, `{}` si les colonnes manquent). **Trace** : aucune nouvelle table ; l'aperçu ne décide rien, il montre l'état des données déjà mesurées (§3, §7, §8, §9). **Écho à suivre** : quand le site public sera construit, il lira les mêmes colonnes (`description`, `allergens`, `kitchen_zone`) avec les mêmes règles de repli ; une seule source de vérité, `site-preview.ts`, évite deux lectures qui divergent.
+
 ## Conséquences
 
 - **Données** : une table de trace `menu_option_setups` (migration `20261112-0417`, service-role seul), à appliquer à la main à la fusion. Sans elle, les options s'enregistrent et le journal le dit.
@@ -83,5 +89,5 @@ La suite est décidée dans la maquette validée, pas dans cette PR :
 
 1. ~~Descriptions~~ : faites, voir §7.
 2. ~~PDF du menu~~ : fait, voir §8. Reste à coordonner avec la Brigade 15 (générateur de site) : lire `description` et `allergens` (`NULL` = « demande-nous au comptoir »).
-3. **Aperçu du site**. Les tickets par coin de cuisine sont faits sans impression, voir §9 ; l'impression attend la commande du site et le choix de l'imprimante.
+3. ~~Aperçu du site~~ : fait dans la console, voir §10 ; le site public reste à construire (Brigade 15). Les tickets par coin de cuisine sont faits sans impression, voir §9 ; l'impression attend la commande du site et le choix de l'imprimante.
 4. Les règles sur les allergènes à la vente à distance (règlement UE 1169/2011, art. 14) sont à faire confirmer avant la première commande réelle.
