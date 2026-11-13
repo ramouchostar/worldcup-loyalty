@@ -7,7 +7,9 @@ l'[ADR 0078](0078-ca-du-jour-saisi-a-la-main.md) §5 (le rappel s'automatise) et
 l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md) sur un seul point : un
 restaurateur peut **demander** qu'on connecte sa caisse (§6). Reprend la PR #279 (push au gérant, ADR
 0077 encore en PR, non fusionné). Appliqué avec le bouclier de l'[ADR
-0065](0065-le-bouclier-scene-trace-echos.md).
+0065](0065-le-bouclier-scene-trace-echos.md). **Amendé par l'[ADR 0102](0102-ca-lu-par-hubrise.md)
+(proposé, 2026-11-13)** sur le §6 : une caisse ou une plateforme présente sur HubRise se connecte en
+lecture seule (jeton dans Supabase Vault), d'abord mesurée à côté de la saisie.
 
 ## Contexte
 
