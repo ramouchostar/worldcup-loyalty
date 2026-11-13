@@ -5,6 +5,7 @@ import {
   pricesMissing, removeArticle, removeGroup, reopenLot, savePayload, splitArticle, toOptionTrees, traceOf, updateChoice, updateGroup, validateLot,
   type ArticleRef, type EditorState, type Lot,
 } from "./lots";
+import { descriptionOf, editDescription, lotConflicts, resetDescription, setTone, setViande } from "./lots";
 import { validateTree } from "./model";
 
 let n = 0;
@@ -310,4 +311,120 @@ test("buildEditor ne partage aucune clé entre deux lots (régler l'un ne règle
   const walk = (gs: Lot["groups"]) => gs.forEach((g) => { keys.add(g.key); total++; g.choices.forEach((c) => { keys.add(c.key); total++; walk(c.groups); }); });
   s.lots.forEach((l) => { keys.add(l.key); total++; walk(l.groups); });
   assert.equal(keys.size, total);
+});
+
+// ─── Les descriptions (ADR 0100 §7) ──────────────────────────────────────────
+
+const desc = (s: EditorState, lotLabel: string, article: ArticleRef) => descriptionOf(s, lotByLabel(s, lotLabel), article.id);
+
+test("par défaut le ton est gourmand : chaque plat reçoit sa description d'après son nom", () => {
+  const c = carte();
+  const s = buildEditor(c.all);
+  assert.equal(s.tone, "gourmand");
+  const d = desc(s, "Mitraillettes", c.mit[0])!;
+  assert.match(d.text, /^Une mitraillette kefta, pour /);
+  assert.equal(d.source, "generated");
+  assert.match(desc(s, "Pizzas", c.piz[0])!.text, /^Une pizza Margherita, /);
+});
+
+test("boissons, desserts, formules et inconnus n'ont pas de description", () => {
+  const c = carte();
+  const s = buildEditor(c.all);
+  assert.equal(desc(s, "Boissons", c.bois[0]), null);
+  assert.equal(desc(s, "Boissons", c.des[0]), null);
+});
+
+test("changer le ton réécrit toutes les descriptions composées, pas celles que le restaurateur a écrites", () => {
+  const c = carte();
+  let s = editDescription(buildEditor(c.all), c.piz[1].id, "La Royale de la maison.");
+  s = setTone(s, "sobre");
+  assert.equal(desc(s, "Pizzas", c.piz[0])!.text, "Une pizza Margherita.");
+  assert.equal(desc(s, "Pizzas", c.piz[1])!.text, "La Royale de la maison.", "son texte n'est pas touché");
+  assert.equal(descriptionOf(s, lotByLabel(s, "Pizzas"), c.piz[1].id)!.source, "restaurateur");
+});
+
+test("la question de viande des burgers n'écrit la viande que si le restaurateur répond", () => {
+  const c = carte();
+  let s = buildEditor(c.all);
+  const lot = lotByLabel(s, "Burgers");
+  s = setTone(s, "sobre");
+  assert.equal(descriptionOf(s, lot, c.bur[0].id)!.text, "Un burger au fromage.", "pas de viande inventée");
+  s = setViande(s, lot.key, "bœuf");
+  assert.equal(descriptionOf(s, lotByLabel(s, "Burgers"), c.bur[0].id)!.text, "Un burger de bœuf au fromage.");
+  assert.equal(descriptionOf(s, lotByLabel(s, "Burgers"), c.bur[1].id)!.text, "Un burger au poulet croustillant.", "le nom prime");
+});
+
+test("un nom qui contredit la réponse est signalé, et corriger la description l'efface", () => {
+  const c = carte();
+  let s = setViande(buildEditor(c.all), lotByLabel(buildEditor(c.all), "Burgers").key, "bœuf");
+  const lot = lotByLabel(s, "Burgers");
+  const conflicts = lotConflicts(s, lot);
+  assert.equal(conflicts.length, 1);
+  assert.equal(conflicts[0].articleId, c.bur[1].id);
+  assert.match(conflicts[0].message, /poulet croustillant.*bœuf/);
+  s = editDescription(s, c.bur[1].id, "Notre burger poulet.");
+  assert.deepEqual(lotConflicts(s, lotByLabel(s, "Burgers")), [], "il a écrit la sienne : plus rien à signaler");
+});
+
+test("réécrire une description la garde ; retaper exactement la nôtre revient à ne rien avoir changé ; la vider est un choix", () => {
+  const c = carte();
+  let s = buildEditor(c.all);
+  const id = c.dur[0].id;
+  const ours = desc(s, "Durums", c.dur[0])!.text;
+  s = editDescription(s, id, "  Le durum   du patron. ");
+  assert.equal(s.descEdits[id], "Le durum du patron.");
+  s = editDescription(s, id, ours);
+  assert.equal(id in s.descEdits, false);
+  s = editDescription(s, id, "");
+  assert.equal(s.descEdits[id], "");
+  assert.equal(descriptionOf(s, lotByLabel(s, "Durums"), id)!.text, "");
+  s = resetDescription(s, id);
+  assert.equal(desc(s, "Durums", c.dur[0])!.text, ours);
+});
+
+test("une description est limitée à 300 lettres et sans balise", () => {
+  const c = carte();
+  const s = editDescription(buildEditor(c.all), c.piz[0].id, `<b>${"x".repeat(500)}</b>`);
+  assert.equal(s.descEdits[c.piz[0].id].length, 300);
+  assert.ok(!/[<>]/.test(s.descEdits[c.piz[0].id]));
+});
+
+test("ce qu'on enregistre contient une description par plat décrit, avec son origine", () => {
+  const c = carte();
+  let s = editDescription(buildEditor(c.all), c.piz[0].id, "Notre classique.");
+  s = setTone(s, "sobre");
+  for (const lot of s.lots) { for (const g of s.lots.find((x) => x.key === lot.key)!.groups) s = applyBulkPrice(s, lot.key, g.key, 1); s = validateLot(s, lot.key); }
+  const payload = savePayload(s);
+  const pizzas = payload.find((p) => p.articleIds.includes(c.piz[0].id))!;
+  assert.deepEqual(pizzas.descriptions.map((d) => [d.articleId, d.text, d.source]), [
+    [c.piz[0].id, "Notre classique.", "restaurateur"],
+    [c.piz[1].id, "Une pizza Royale.", "generated"],
+  ]);
+  const boissons = payload.find((p) => p.articleIds.includes(c.bois[0].id))!;
+  assert.deepEqual(boissons.descriptions, [], "aucune description pour les boissons et desserts");
+});
+
+test("la trace compte les descriptions composées, gardées, réécrites et vidées", () => {
+  const c = carte();
+  let s = buildEditor(c.all);
+  s = editDescription(s, c.mit[0].id, "La mitraillette du chef.");
+  s = editDescription(s, c.mit[1].id, "");
+  const lot = lotByLabel(s, "Mitraillettes");
+  for (const g of lot.groups) s = applyBulkPrice(s, lot.key, g.key, 1);
+  s = validateLot(s, lot.key);
+  const t = savePayload(s)[0].trace;
+  assert.deepEqual([t.descGenerated, t.descKept, t.descEdited, t.descCleared], [3, 1, 1, 1]);
+  assert.deepEqual([traceOf(s).descGenerated, traceOf(s).descKept, traceOf(s).descEdited, traceOf(s).descCleared], [3, 1, 1, 1]);
+});
+
+test("sortir un plat d'un groupe garde la réponse de viande ; ses descriptions écrites le suivent partout", () => {
+  const c = carte();
+  let s = buildEditor(c.all);
+  s = setViande(s, lotByLabel(s, "Burgers").key, "poulet");
+  s = editDescription(s, c.mit[0].id, "À moi.");
+  s = splitArticle(s, c.bur[0].id);
+  assert.equal(s.lots.find((l) => l.label === "Cheese burger")!.viande, "poulet");
+  s = splitArticle(s, c.mit[0].id);
+  const solo = s.lots.find((l) => l.label === "Mitraillette kefta")!;
+  assert.equal(descriptionOf(s, solo, c.mit[0].id)!.text, "À moi.");
 });
