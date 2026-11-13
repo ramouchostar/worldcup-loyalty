@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { supabaseOrdersDb } from "@/lib/site-orders/db";
-import { siteOrdersEnabledFor } from "@/lib/site-orders/order";
+import { siteOrdersAvailable } from "@/lib/site-orders/access";
 import { SiteOrdersUnavailableError, changeStatus, listRecentOrders } from "@/lib/site-orders/service";
 
 // ADR 0099 §2 — les commandes du site vues par le restaurateur (console seulement : prénom, téléphone, euros).
-// Fermées comme la commande elle-même : sans SITE_ORDER_RESTAURANTS qui liste l'établissement, 404.
+// Fermées comme la commande elle-même : sans SITE_ORDER_RESTAURANTS qui liste l'établissement ET un forfait Pro actif, 404.
 //
 // GET   /api/admin/site-orders?restaurantId=…  → { orders: OrderView[] }  (dernières 24 h + toutes les commandes encore ouvertes)
 // PATCH /api/admin/site-orders  { restaurantId, id, status: "prete" | "retiree" | "annulee", reason? }
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!restaurantId) return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
-  if (!siteOrdersEnabledFor(restaurantId)) return NOT_FOUND();
+  if (!(await siteOrdersAvailable(restaurantId))) return NOT_FOUND();
   try {
     return NextResponse.json({ orders: await listRecentOrders(supabaseOrdersDb(), restaurantId) });
   } catch (e) {
@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest) {
   if (!restaurantId || !id) return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   const guard = await requireAdmin(restaurantId);
   if (!guard.ok) return guard.response;
-  if (!siteOrdersEnabledFor(restaurantId)) return NOT_FOUND();
+  if (!(await siteOrdersAvailable(restaurantId))) return NOT_FOUND();
   try {
     const r = await changeStatus(supabaseOrdersDb(), restaurantId, id, body.status, body.reason);
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
