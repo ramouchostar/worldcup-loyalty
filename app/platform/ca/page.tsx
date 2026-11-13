@@ -21,6 +21,7 @@ import {
 } from "@/lib/daily-revenue-model";
 import { CopyText } from "@/components/platform/CopyText";
 import { deleteDay, saveDay } from "./actions";
+import { HubriseSection } from "./HubriseSection";
 
 export const metadata = { title: "CA du jour — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -141,6 +142,11 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
         <Stat label="Jour du test" value={stats.start ? `${Math.min(stats.elapsed, TEST_DAYS)}` : "—"} sub={`sur ${TEST_DAYS}${stats.toNote.length ? ` · ${stats.toNote.length} à noter` : ""}`} />
       </section>
       <div className={`rounded-xl border px-4 py-3 text-sm ${VERDICT_CLS[stats.verdict.tone]}`}>{stats.verdict.text}</div>
+
+      {hubriseNotice(sp.hubrise) && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{hubriseNotice(sp.hubrise)}</div>
+      )}
+      <HubriseSection restaurantId={current.id} />
 
       <div className="grid gap-5 lg:grid-cols-2 items-start">
         <section className={`${CARD} p-5 space-y-4`} aria-labelledby="h-noter">
@@ -311,6 +317,17 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
       </section>
     </div>
   );
+}
+
+// ADR 0102 — retour des actions HubRise (connexion, relecture, référence).
+function hubriseNotice(v: string | undefined): string | null {
+  if (!v) return null;
+  if (v === "connecte") return "HubRise connecté : les commandes arrivent désormais à chaque création ou modification.";
+  if (v === "deconnecte") return "HubRise déconnecté : jeton révoqué et retiré du coffre. Les commandes déjà lues restent.";
+  if (v === "reference") return "Référence notée.";
+  const m = /^relu-(\d+)-(\d+)$/.exec(v);
+  if (m) return `Relecture faite : ${m[1]} commande(s) sur les 3 derniers jours, dont ${m[2]} que le rappel n'avait pas apportée(s).`;
+  return null;
 }
 
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {

@@ -82,7 +82,10 @@ décide sur ce coût et sur l'existence d'un connecteur HubRise pour la caisse B
 - Migration : `pos_connections` (établissement, fournisseur `hubrise`, compte et point de vente
   HubRise, référence du jeton dans Vault, dates de connexion et de fin) et `pos_orders` (une ligne
   par commande, sans donnée client, jour de vente calculé). RLS activée, lecture et écriture par le
-  service seulement. Code tolérant à leur absence.
+  service seulement. Code tolérant à leur absence. *Précisé le 2026-11-13 (PR de code)* : s'y ajoutent
+  `pos_reference_days` (le chiffre de référence d'un canal pour un jour, noté sur `/platform/ca` ;
+  à défaut, la ligne saisie dans le CA du jour) et `pos_journal` (la trace : connexion, relecture,
+  rappel refusé, jeton refusé). Migration `20261113-2345-hubrise-lecture.sql`.
 - Routes : lancement et retour OAuth (`/api/hubrise/connect`, `/api/hubrise/callback`), rappels
   (`/api/webhooks/hubrise`), cron de rattrapage nocturne.
 - **Trace** : par jour et par canal, chiffre HubRise, chiffre de référence, écart en € et en % ;
