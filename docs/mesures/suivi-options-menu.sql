@@ -90,3 +90,17 @@ SELECT
   SUM(allergens_confirmed)                                                       AS plats_confirmes,
   ROUND(100.0 * SUM(allergens_confirmed) / NULLIF(SUM(rows_written), 0))         AS pct_confirmes_parmi_ecrits
 FROM menu_pdf_imports;
+
+-- 9. Coins de cuisine (ADR 0100 §9) : notre proposition d'après la famille du plat est-elle bonne ? Table menu_zone_setups
+-- (migration 20261113-2300). Seuil : moins de deux tiers des propositions gardées = la table famille -> coin
+-- (lib/menu-options/tickets.ts, ZONE_OF) est à revoir.
+SELECT
+  COUNT(*)                                                                    AS enregistrements,
+  SUM(articles)                                                               AS plats,
+  ROUND(AVG(zones), 1)                                                        AS coins_par_restaurant,
+  SUM(suggested)                                                              AS coins_proposes,
+  SUM(suggested_kept)                                                         AS gardes,
+  SUM(changed)                                                                AS changes,
+  SUM(cleared)                                                                AS vides,
+  ROUND(100.0 * SUM(suggested_kept) / NULLIF(SUM(suggested), 0))              AS pct_gardes
+FROM menu_zone_setups;
