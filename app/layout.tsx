@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Manrope, Poppins, Playfair_Display, DM_Sans, Bebas_Neue, Space_Grotesk, JetBrains_Mono, Archivo, Archivo_Black, Instrument_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { Analytics } from "@/components/analytics/Analytics";
@@ -10,39 +10,59 @@ import { SITE_ORIGIN } from "@/lib/site";
 // Toutes montées ici, quel que soit l'établissement — c'est --brand-font
 // (posé par brandStyle() dans les layouts /admin/[id] et /r/[id]) qui choisit
 // laquelle s'applique. Rester listé, jamais chargé depuis un domaine externe
-// à la requête (next/font auto-héberge les fichiers).
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+// à la requête.
+//
+// Les fichiers sont DANS LE DÉPÔT (app/fonts/*.woff2, sous-ensemble latin, licence OFL, voir app/fonts/LICENSES.md) et
+// chargés par next/font/local : plus aucun accès réseau pendant le build. Avec next/font/google, le build échouait quand
+// Google ne répondait pas (2026-11-13, PR #435, #441, #444, #445). Les noms de variables CSS sont inchangés. Pour changer
+// de police ou de graisse : scripts/fonts/fetch-fonts.mjs, puis cette liste.
+const inter = localFont({ src: [{ path: "./fonts/inter-normal-100-900.woff2", weight: "100 900", style: "normal" }], variable: "--font-inter", display: "swap" });
 // Manrope — police de titre par défaut de l'app membre (2026-09-12). Uber
 // Move / Uber Move Text, demandées en référence, sont propriétaires et non
 // licenciables : Manrope reprend la géométrie typée des titres Uber, Inter
 // le corps de texte. Variable (200–800) : une seule requête pour toutes les
 // graisses. Comme les autres, elle reste montée ici et n'entre en jeu que
 // via --brand-display-font (app/globals.css).
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
-const poppins = Poppins({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-poppins", display: "swap" });
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
-const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
-const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--font-bebas-neue", display: "swap" });
+const manrope = localFont({ src: [{ path: "./fonts/manrope-normal-200-800.woff2", weight: "200 800", style: "normal" }], variable: "--font-manrope", display: "swap" });
+const poppins = localFont({
+  src: [
+    { path: "./fonts/poppins-normal-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/poppins-normal-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/poppins-normal-700.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-poppins", display: "swap",
+});
+// Police à empattements : le repli de secours est ajusté sur Times New Roman, pas sur Arial.
+const playfair = localFont({ src: [{ path: "./fonts/playfair-display-normal-400-900.woff2", weight: "400 900", style: "normal" }], variable: "--font-playfair", display: "swap", adjustFontFallback: "Times New Roman" });
+const dmSans = localFont({ src: [{ path: "./fonts/dm-sans-normal-100-1000.woff2", weight: "100 1000", style: "normal" }], variable: "--font-dm-sans", display: "swap" });
+const bebasNeue = localFont({ src: [{ path: "./fonts/bebas-neue-normal-400.woff2", weight: "400", style: "normal" }], variable: "--font-bebas-neue", display: "swap" });
 // Console restaurateur (redesign m54) — identité visuelle fixe de l'outil
 // d'administration, indépendante de --brand-font (qui reste réservé à la
 // page membre/QR par établissement, cf. BrandingForm). Space Grotesk pour
 // les titres, JetBrains Mono pour les étiquettes techniques (labels, badges).
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-space-grotesk", display: "swap" });
-const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-jetbrains-mono", display: "swap" });
+const spaceGrotesk = localFont({ src: [{ path: "./fonts/space-grotesk-normal-500_600_700.woff2", weight: "500 700", style: "normal" }], variable: "--font-space-grotesk", display: "swap" });
+// Police à chasse fixe : pas d'ajustement du repli sur Arial (largeur de lettre différente).
+const jetbrainsMono = localFont({ src: [{ path: "./fonts/jetbrains-mono-normal-400_500_600.woff2", weight: "400 600", style: "normal" }], variable: "--font-jetbrains-mono", display: "swap", adjustFontFallback: false });
 // Landing publique restaurateurs (redesign m55, design Claude "Landing
 // Restaurateurs") — identité éditoriale du site vitrine Boosteats, distincte
 // de --brand-font (par établissement) et de Space Grotesk/JetBrains Mono
 // (console admin). Chargée globalement comme les autres polices curées, mais
 // appliquée seulement via la classe utilitaire font-landing.
-const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600", "700"], style: ["normal", "italic"], variable: "--font-archivo", display: "swap" });
+const archivo = localFont({
+  src: [
+    { path: "./fonts/archivo-normal-400_500_600_700.woff2", weight: "400 700", style: "normal" },
+    { path: "./fonts/archivo-italic-400_500_600_700.woff2", weight: "400 700", style: "italic" },
+  ],
+  variable: "--font-archivo", display: "swap",
+});
 // Template QR Belchicken Kraainem (design Claude "Templates QR Belchicken")
 // — display du support imprimé, distinct d'Archivo (corps) et non exposé
 // dans FONT_OPTIONS (pas sélectionnable comme --brand-font).
-const archivoBlack = Archivo_Black({ subsets: ["latin"], weight: "400", variable: "--font-archivo-black", display: "swap" });
+const archivoBlack = localFont({ src: [{ path: "./fonts/archivo-black-normal-400.woff2", weight: "400", style: "normal" }], variable: "--font-archivo-black", display: "swap" });
 // Police unique de Boosteats (charte anti-slop, 2026-11-05) : d'abord la landing,
 // puis les pages publiques, la console et la plateforme. L'app membre garde la
 // police de l'établissement (ADR 0015).
-const instrumentSans = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-instrument", display: "swap" });
+const instrumentSans = localFont({ src: [{ path: "./fonts/instrument-sans-normal-400_500_600_700.woff2", weight: "400 700", style: "normal" }], variable: "--font-instrument", display: "swap" });
 const brandFontVariables = `${instrumentSans.variable} ${inter.variable} ${manrope.variable} ${poppins.variable} ${playfair.variable} ${dmSans.variable} ${bebasNeue.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${archivo.variable} ${archivoBlack.variable}`;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || SITE_ORIGIN;
