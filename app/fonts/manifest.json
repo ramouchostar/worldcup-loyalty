@@ -1,0 +1,164 @@
+[
+  {
+    "family": "inter",
+    "style": "normal",
+    "weight": "100 900",
+    "file": "inter-normal-100-900.woff2"
+  },
+  {
+    "family": "manrope",
+    "style": "normal",
+    "weight": "200 800",
+    "file": "manrope-normal-200-800.woff2"
+  },
+  {
+    "family": "poppins",
+    "style": "normal",
+    "weight": "400",
+    "file": "poppins-normal-400.woff2"
+  },
+  {
+    "family": "poppins",
+    "style": "normal",
+    "weight": "600",
+    "file": "poppins-normal-600.woff2"
+  },
+  {
+    "family": "poppins",
+    "style": "normal",
+    "weight": "700",
+    "file": "poppins-normal-700.woff2"
+  },
+  {
+    "family": "playfair-display",
+    "style": "normal",
+    "weight": "400 900",
+    "file": "playfair-display-normal-400-900.woff2"
+  },
+  {
+    "family": "dm-sans",
+    "style": "normal",
+    "weight": "100 1000",
+    "file": "dm-sans-normal-100-1000.woff2"
+  },
+  {
+    "family": "bebas-neue",
+    "style": "normal",
+    "weight": "400",
+    "file": "bebas-neue-normal-400.woff2"
+  },
+  {
+    "family": "space-grotesk",
+    "style": "normal",
+    "weight": "500",
+    "file": "space-grotesk-normal-500_600_700.woff2"
+  },
+  {
+    "family": "space-grotesk",
+    "style": "normal",
+    "weight": "600",
+    "file": "space-grotesk-normal-500_600_700.woff2"
+  },
+  {
+    "family": "space-grotesk",
+    "style": "normal",
+    "weight": "700",
+    "file": "space-grotesk-normal-500_600_700.woff2"
+  },
+  {
+    "family": "jetbrains-mono",
+    "style": "normal",
+    "weight": "400",
+    "file": "jetbrains-mono-normal-400_500_600.woff2"
+  },
+  {
+    "family": "jetbrains-mono",
+    "style": "normal",
+    "weight": "500",
+    "file": "jetbrains-mono-normal-400_500_600.woff2"
+  },
+  {
+    "family": "jetbrains-mono",
+    "style": "normal",
+    "weight": "600",
+    "file": "jetbrains-mono-normal-400_500_600.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "italic",
+    "weight": "400",
+    "file": "archivo-italic-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "italic",
+    "weight": "500",
+    "file": "archivo-italic-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "italic",
+    "weight": "600",
+    "file": "archivo-italic-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "italic",
+    "weight": "700",
+    "file": "archivo-italic-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "normal",
+    "weight": "400",
+    "file": "archivo-normal-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "normal",
+    "weight": "500",
+    "file": "archivo-normal-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "normal",
+    "weight": "600",
+    "file": "archivo-normal-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo",
+    "style": "normal",
+    "weight": "700",
+    "file": "archivo-normal-400_500_600_700.woff2"
+  },
+  {
+    "family": "archivo-black",
+    "style": "normal",
+    "weight": "400",
+    "file": "archivo-black-normal-400.woff2"
+  },
+  {
+    "family": "instrument-sans",
+    "style": "normal",
+    "weight": "400",
+    "file": "instrument-sans-normal-400_500_600_700.woff2"
+  },
+  {
+    "family": "instrument-sans",
+    "style": "normal",
+    "weight": "500",
+    "file": "instrument-sans-normal-400_500_600_700.woff2"
+  },
+  {
+    "family": "instrument-sans",
+    "style": "normal",
+    "weight": "600",
+    "file": "instrument-sans-normal-400_500_600_700.woff2"
+  },
+  {
+    "family": "instrument-sans",
+    "style": "normal",
+    "weight": "700",
+    "file": "instrument-sans-normal-400_500_600_700.woff2"
+  }
+]
