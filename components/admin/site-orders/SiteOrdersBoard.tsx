@@ -7,12 +7,17 @@ import { readJsonSafe } from "@/lib/fetch-json";
 import { plural } from "@/lib/menu-options/copy";
 import { buildTickets, distinctZones } from "@/lib/menu-options/tickets";
 import { STATUS_LABEL, isOpen, minutesToReady, toTicketLines, type OrderStatus } from "@/lib/site-orders/order";
+import { acknowledge, alertTitle, gaveUp, initialAlert, stepAlert, type AlertState } from "@/lib/site-orders/alert";
 import type { OrderView } from "@/lib/site-orders/service";
+import { chime, createAudio, keepScreenOn, readSoundPref, resumeAudio, writeSoundPref } from "./order-sound";
 
 // ADR 0099 §2 — « Commandes du site » : ce que les clients ont commandé sur le site, retrait et paiement au comptoir.
-// Pas d'imprimante pour l'instant : le restaurateur lit l'écran. La liste se rafraîchit seule toutes les 15 secondes.
+// Pas d'imprimante pour l'instant : le restaurateur lit l'écran, et un carillon l'avertit d'une nouvelle commande (ADR 0099 §10,
+// lib/site-orders/alert.ts). La liste se rafraîchit seule : toutes les 10 secondes avec le son, 15 sinon.
 
 type Phase = "loading" | "closed" | "unavailable" | "error" | "ready";
+/** « blocked » : le restaurateur a activé le son, mais le navigateur veut un nouvel appui avant de jouer (page rechargée, iPhone). */
+type SoundState = "off" | "on" | "blocked";
 
 const btn = "min-h-[44px] rounded-lg px-4 py-2 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink";
 const ghost = `${btn} border border-paper-border bg-white text-ink hover:border-ink-faint`;
@@ -102,6 +107,25 @@ export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
   const [error, setError] = useState<string | null>(null);
   const live = useRef(true);
 
+  const [sound, setSound] = useState<SoundState>("off");
+  const [soundError, setSoundError] = useState<string | null>(null);
+  const [screenKept, setScreenKept] = useState<boolean | null>(null);
+  const [waiting, setWaiting] = useState<string[]>([]);
+  const [soundStopped, setSoundStopped] = useState(false);
+  const soundRef = useRef<SoundState>("off");
+  const ctxRef = useRef<AudioContext | null>(null);
+  const alertRef = useRef<AlertState>(initialAlert());
+  const baseTitle = useRef("");
+
+  const updateSound = useCallback((v: SoundState) => { soundRef.current = v; setSound(v); }, []);
+
+  /** Joue le carillon si le son est actif ; s'il a été coupé par le navigateur, le dit au lieu de se taire. */
+  const playChime = useCallback(() => {
+    const ctx = ctxRef.current;
+    if (soundRef.current !== "on" || !ctx) return;
+    void resumeAudio(ctx).then((ok) => { if (ok) chime(ctx); else updateSound("blocked"); });
+  }, [updateSound]);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/site-orders?restaurantId=${encodeURIComponent(restaurantId)}`, { cache: "no-store" });
@@ -113,17 +137,77 @@ export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
       setOrders(data.orders);
       setNow(Date.now());
       setPhase("ready");
+      const step = stepAlert(alertRef.current, data.orders, Date.now());
+      alertRef.current = step.state;
+      setWaiting([...step.state.waiting]);
+      setSoundStopped(gaveUp(step.state));
+      if (step.ring) playChime();
     } catch {
       if (live.current) setPhase((p) => (p === "ready" ? p : "error"));
     }
-  }, [restaurantId]);
+  }, [restaurantId, playChime]);
 
+  // Avec le son, on lit toutes les 10 secondes MÊME onglet en arrière-plan (le son joue, le navigateur ne le ralentit pas) ;
+  // sans le son, toutes les 15 secondes et seulement si la page est visible.
   useEffect(() => {
     live.current = true;
     void load();
-    const t = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 15000);
+    const on = sound === "on";
+    const t = setInterval(() => { if (on || document.visibilityState === "visible") void load(); }, on ? 10000 : 15000);
     return () => { live.current = false; clearInterval(t); };
-  }, [load]);
+  }, [load, sound]);
+
+  // Le choix fait sur cet appareil : le navigateur veut un appui avant de jouer un son, donc « à réactiver ».
+  useEffect(() => { if (readSoundPref(restaurantId)) updateSound("blocked"); }, [restaurantId, updateSound]);
+
+  // L'onglet porte l'alerte : on la voit même quand la page est derrière une autre.
+  useEffect(() => {
+    if (!baseTitle.current) baseTitle.current = document.title;
+    document.title = alertTitle(waiting.length, baseTitle.current);
+  }, [waiting.length]);
+  useEffect(() => () => { if (baseTitle.current) document.title = baseTitle.current; }, []);
+
+  // Une tablette qui se met en veille n'entend plus rien : on garde l'écran allumé tant que le son est actif.
+  useEffect(() => {
+    if (sound !== "on") { setScreenKept(null); return; }
+    let lock: { release(): Promise<void> } | null = null;
+    let cancelled = false;
+    const get = async () => {
+      const l = await keepScreenOn();
+      if (cancelled) { void l?.release(); return; }
+      lock = l;
+      setScreenKept(l !== null);
+    };
+    void get();
+    const onVisible = () => { if (document.visibilityState === "visible") void get(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { cancelled = true; document.removeEventListener("visibilitychange", onVisible); void lock?.release(); };
+  }, [sound]);
+
+  // Le geste du restaurateur : seul moment où le navigateur accepte de créer le son.
+  async function enableSound() {
+    setSoundError(null);
+    const ctx = ctxRef.current ?? createAudio();
+    if (!ctx) { setSoundError("Ce navigateur ne sait pas jouer de son. Essaie avec Chrome, Edge ou Safari."); return; }
+    ctxRef.current = ctx;
+    if (!(await resumeAudio(ctx))) { setSoundError("Le navigateur a refusé le son. Vérifie qu'il n'est pas coupé pour ce site, puis réessaie."); return; }
+    chime(ctx);
+    writeSoundPref(restaurantId, true);
+    updateSound("on");
+  }
+
+  function disableSound() {
+    writeSoundPref(restaurantId, false);
+    updateSound("off");
+    setSoundError(null);
+  }
+
+  /** « J'ai vu » : l'alerte s'éteint. Les commandes restent à préparer. */
+  function seen() {
+    alertRef.current = acknowledge(alertRef.current);
+    setWaiting([]);
+    setSoundStopped(false);
+  }
 
   async function change(id: string, status: OrderStatus, reason?: string) {
     setBusy(true);
@@ -151,7 +235,42 @@ export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
 
   return (
     <div className="space-y-5">
-      <p className="text-[15px] text-ink-muted">Retrait au comptoir, paiement au comptoir. Cette page se met à jour toute seule : garde-la ouverte pendant le service. Aucune imprimante n&apos;est branchée pour l&apos;instant, il n&apos;y a pas de son.</p>
+      <p className="text-[15px] text-ink-muted">Retrait au comptoir, paiement au comptoir. Cette page se met à jour toute seule : garde-la ouverte pendant le service. Aucune imprimante n&apos;est branchée pour l&apos;instant : active le son pour être prévenu d&apos;une nouvelle commande.</p>
+
+      {waiting.length > 0 && (
+        <div role="alert" className="sticky top-2 z-20 space-y-2 rounded-xl border border-warn bg-white p-4 shadow-[0_8px_24px_rgba(12,21,9,.10)]">
+          <p className="text-[17px] font-semibold text-ink">
+            {waiting.length > 1 ? "Nouvelles commandes" : "Nouvelle commande"} :{" "}
+            {orders.filter((o) => waiting.includes(o.id)).map((o) => `${o.firstName} (N° ${o.number})`).join(", ")}
+          </p>
+          {sound === "off" && <p className="text-[13px] text-ink-muted">Le son est coupé : tu ne l&apos;entends pas. Active-le ci-dessous.</p>}
+          {sound === "blocked" && <p className="text-[13px] text-ink-muted">Le son attend un appui de ta part : touche « Réactiver le son » ci-dessous.</p>}
+          {soundStopped && <p className="text-[13px] text-ink-muted">Le son s&apos;est arrêté après 5 minutes. Cette commande attend toujours.</p>}
+          <button type="button" className={primary} onClick={seen}>J&apos;ai vu</button>
+        </div>
+      )}
+
+      <div className="space-y-2 rounded-xl border border-paper-border bg-white p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <b className="text-[17px] text-ink">Son des nouvelles commandes</b>
+          <StatusBadge tone={sound === "on" ? "good" : sound === "blocked" ? "warn" : "neutral"}>{sound === "on" ? "Son activé" : sound === "blocked" ? "À réactiver" : "Son coupé"}</StatusBadge>
+          <span className="ml-auto flex flex-wrap gap-2">
+            {sound !== "on" && <button type="button" className={primary} onClick={() => void enableSound()}>{sound === "blocked" ? "Réactiver le son" : "Activer le son"}</button>}
+            {sound === "on" && <button type="button" className={ghost} onClick={() => playChime()}>Tester le son</button>}
+            {sound !== "off" && <button type="button" className={ghost} onClick={disableSound}>Couper le son</button>}
+          </span>
+        </div>
+        <p className="text-[13px] text-ink-muted">
+          {sound === "on"
+            ? "Un carillon sonne à chaque nouvelle commande, puis toutes les 30 secondes jusqu'à ce que tu touches « J'ai vu ». Garde cette page ouverte et le volume monté."
+            : sound === "blocked"
+              ? "Ton navigateur demande un appui à chaque ouverture de la page avant de jouer un son. Touche « Réactiver le son »."
+              : "Sans le son, tu ne vois une commande que si tu regardes l'écran. Active-le sur cet appareil et garde cette page ouverte."}
+        </p>
+        {sound === "on" && screenKept === true && <p className="text-[13px] text-ink-muted">L&apos;écran reste allumé tant que cette page est ouverte.</p>}
+        {sound === "on" && screenKept === false && <p className="text-[13px] text-warn">Cet appareil peut se mettre en veille, et il n&apos;entendra plus rien. Branche-le et règle la veille sur « jamais ».</p>}
+        {soundError && <p role="alert" className="text-[13px] text-danger">{soundError}</p>}
+      </div>
       {error && <div role="alert" className="rounded-lg border border-danger px-3 py-2 text-[15px] text-danger">{error}</div>}
 
       <section className="space-y-3" aria-label="À préparer">
