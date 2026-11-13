@@ -14,7 +14,7 @@ Ce qui a été examiné avant d'écrire cet ADR : huit cartes réelles de six cu
 
 ### 1. Une option, pas une obligation
 
-Le site de commande est **proposé** à tout établissement, quel que soit son forfait (le forfait qui le porte est à décider), et généré depuis son catalogue, ses photos et ses options. Un restaurateur qui n'en veut pas ne le voit pas. Le site vitrine de l'ADR 0088 reste le même ; la commande y est un module.
+Le site de commande est **proposé** à tout établissement, quel que soit son forfait (le forfait qui le porte : voir §8, celui de Nina), et généré depuis son catalogue, ses photos et ses options. Un restaurateur qui n'en veut pas ne le voit pas. Le site vitrine de l'ADR 0088 reste le même ; la commande y est un module.
 
 ### 2. Première version : retrait au comptoir, paiement au comptoir
 
@@ -50,6 +50,14 @@ Première tranche de §2, **fermée par un drapeau** : `SITE_ORDER_RESTAURANTS` 
 
 **Purge du prénom et du téléphone** (cron `/api/cron/purge-site-orders`, chaque nuit à 3 h 30 UTC, `lib/site-orders/purge.ts`) : ces données ne servent qu'à appeler le client pour retirer sa commande ; au-delà de **30 jours** (réglable par `SITE_ORDER_PURGE_DAYS`, entre 7 et 365) le téléphone est effacé et le prénom remplacé par « — ». La commande elle-même (plats, prix, numéro) reste : c'est une vente du restaurateur, pas une donnée du client. La passe est idempotente ; `?dry=1` compte sans rien effacer ; une panne répond 503 (le cron échoue, Vercel le montre) ; un réglage illisible prend le défaut et le dit dans le résultat. **La durée de 30 jours est un défaut de produit, pas une décision juridique** : à faire confirmer avec les conditions avant d'ouvrir le drapeau (comme pour la purge des missions, ADR 0084 §5). **Trace** : le résultat du cron (commandes concernées et effacées) et la requête 12 de `docs/mesures/suivi-options-menu.sql` (commandes qui portent encore des données au-delà de la durée : doit rester à 0).
 
+### 8. La commande du site est le module de Nina
+
+La brigade (ADR 0089) a un poste pour le site : **Nina** « crée un site qui donne envie de commander ». La commande du site (§2 et §7) est ce qu'elle apporte : le site de Nina, généré depuis la carte (ADR 0088), reçoit les commandes à emporter dont les options, les descriptions, les allergènes confirmés et les tickets de cuisine ont été réglés (ADR 0100). **Forfait et statut : ceux de Nina**, c'est-à-dire Pro et **en pilote**, jamais présenté comme disponible pour tous (ADR 0070), tant que Mehdi et Omar n'ont pas décidé d'ouvrir la commande aux autres forfaits (le §1 le permettait ; Restent ouverts 1).
+
+Dans le code, rien ne lit le forfait : `SITE_ORDER_RESTAURANTS` est la seule porte, établissement par établissement, comme `PUB_RESTAURANTS` pour Emma. Il n'existe pas de générateur d'idées de Nina (`lib/agents/nina.ts`) : c'est un personnage de la brigade. Une idée de Nina au gérant (« ton site est prêt à recevoir des commandes ») passerait par `recordIdeas` comme celles des autres assistants ; elle n'est pas faite.
+
+**Échos à mettre à jour le jour où le drapeau s'ouvre** (ils sont vrais aujourd'hui, car la commande est fermée, et ne doivent pas être changés avant) : le bouton « Commander » de `components/restaurateurs/SiteSection.tsx` (aujourd'hui vers la commande que le restaurant utilise déjà), l'article de blog `site-internet-restaurant-developpeur-ou-boosteats` (« Boosteats ne prend ni commande ni paiement »), `zenchef-ou-boosteats`, `.claude/product-marketing.md` et le test `lib/marketing-pages.test.ts` qui garde ces textes.
+
 ## Conséquences
 
 - **ADR à amender si Mehdi accepte** : 0074 §4, 0088 §3, 0070 (statut), et l'ordre de la feuille de route du Pro (ADR 0074 §7 : « site de commande d'un partenaire »).
@@ -68,7 +76,7 @@ Première tranche de §2, **fermée par un drapeau** : `SITE_ORDER_RESTAURANTS` 
 
 ## Restent ouverts
 
-1. Rouvre-t-on l'ADR 0074 §4, et pour quels forfaits ?
+1. Rouvre-t-on l'ADR 0074 §4, et pour quels forfaits ? (§8 : pour l'instant ceux de Nina, Pro en pilote ; l'ouverture aux autres forfaits reste à décider.)
 2. Qui pose le générateur de site (Brigade 15) : le site de commande et la vitrine partagent routes et mise en page.
 3. La réponse du comptable sur la caisse certifiée (la question sur la TVA de la Pub attend depuis le 2026-10-19).
 4. Le choix de l'imprimante cloud (Star CloudPRNT ou Epson Server Direct Print) et qui fournit le matériel.

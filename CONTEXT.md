@@ -15,7 +15,7 @@ Achat passé via Uber Eats, Takeaway ou Deliveroo. Ne compte PAS dans le program
 _Avoid_ : livraison (trop générique — on peut livrer directement).
 
 **Commande du site** *(ADR 0099)* :
-Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). Sort sur l'imprimante du restaurant (à venir ; en attendant, le restaurateur la lit dans la console « Commandes du site », ADR 0099 §7). États : reçue, prête, retirée, annulée. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; un point pourra être crédité plus tard, sans photo de ticket.
+Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). C'est le module de Nina : forfait Pro, en pilote, jamais présenté comme disponible pour tous (ADR 0099 §8). Sort sur l'imprimante du restaurant (à venir ; en attendant, le restaurateur la lit dans la console « Commandes du site », ADR 0099 §7). États : reçue, prête, retirée, annulée. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; un point pourra être crédité plus tard, sans photo de ticket.
 _Avoid_ : commande (seule — réservé à la commande directe d'un membre), ticket (c'est la photo de la caisse), order.
 
 **Vente caisse** *(ADR 0027)* :
@@ -38,8 +38,8 @@ _Avoid_ : freemium (jargon — on dit « plan ») ; abonnement du client (le cli
 Les fonctions payantes qui tournent sur les données **propres** du resto (forecast, ventes par plat, opportunités, broadcasts programmés, baromètre avancé) — le contenu du plan Croissance. À distinguer des **Repères secteur**.
 
 **Site de référencement** *(ADR 0088)* :
-Site public d'un établissement en plan **Pro**, sur `<établissement>.boosteats.be`, **généré depuis la base** (identité, carte, prix de vente, photos, horaires) pour être trouvé sur Google : accueil, une page par plat phare (vraie photo et description validée), données structurées, plan du site. Le bouton « Commander » ouvre la commande que le restaurant utilise déjà — **jamais de commande ni de paiement chez nous** (ADR 0074 §4). Va avec la fiche Google gérée (ADR 0082) et le **rapport mensuel** (place sur Google Maps mesurée sur une grille par DataForSEO, actions venues de Google).
-_Avoid_ : SEO (côté restaurateur, on dit « référencement »), site de commande (on ne prend pas de commande), « grâce à nous ».
+Site public d'un établissement en plan **Pro**, sur `<établissement>.boosteats.be`, **généré depuis la base** (identité, carte, prix de vente, photos, horaires) pour être trouvé sur Google : accueil, une page par plat phare (vraie photo et description validée), données structurées, plan du site. Le bouton « Commander » ouvre la commande que le restaurant utilise déjà — **jamais de paiement chez nous** ; la commande du site (retrait et paiement au comptoir) est un module à part, celui de Nina, fermé et en pilote (ADR 0099 §8, qui amende l'ADR 0074 §4 et l'ADR 0088 §3). Va avec la fiche Google gérée (ADR 0082) et le **rapport mensuel** (place sur Google Maps mesurée sur une grille par DataForSEO, actions venues de Google).
+_Avoid_ : SEO (côté restaurateur, on dit « référencement »), « grâce à nous ».
 
 **Repères secteur** *(ADR 0029)* :
 Agrégats **anonymisés** de la donnée de **tous** les restos (Gratuit inclus contribue), consultables uniquement en plan **Pro** — « la médiane de ton secteur fait +18 % le jeudi ». Jamais de chiffres bruts identifiables ; **seuil plancher** (≥ N restos) anti-ré-identification (esprit ADR 0016) ; contribution actée en CGU.
@@ -655,7 +655,7 @@ Les sept **assistants** marketing de Boosteats qui préparent des **idées** pou
 _Avoid_ : IA, robot, bot, agent (côté restaurateur — « agent » ne vit que dans le code : `lib/agents/`) ; seule exception, le titre de la landing (`components/restaurateurs/Hero.tsx`) dit « 7 agents IA », décidé par Mehdi le 2026-11-05.
 
 **Assistant** :
-Un personnage de la brigade, un poste chacun : **Léa** inscrit les clients et gère les cadeaux · **Hugo** relance les clients · **Chloé** suit les chiffres · **Emma** lance et gère les publicités en ligne (Gratuit) · **Louis** répond aux avis Google (Croissance) · **Nina** crée un site qui donne envie de commander · **Max** améliore votre visibilité sur Google (Pro, Nina et Max **en pilote** avec quelques établissements — jamais présentés comme disponibles pour tous). Jamais présenté comme une personne de l'équipe. Jamais vu par un membre.
+Un personnage de la brigade, un poste chacun : **Léa** inscrit les clients et gère les cadeaux · **Hugo** relance les clients · **Chloé** suit les chiffres · **Emma** lance et gère les publicités en ligne (Gratuit) · **Louis** répond aux avis Google (Croissance) · **Nina** crée un site qui donne envie de commander, et reçoit les commandes du site (ADR 0099 §8) · **Max** améliore votre visibilité sur Google (Pro, Nina et Max **en pilote** avec quelques établissements — jamais présentés comme disponibles pour tous). Jamais présenté comme une personne de l'équipe. Jamais vu par un membre.
 _Avoid_ : employé, conseiller, coach.
 
 **Idée** :
