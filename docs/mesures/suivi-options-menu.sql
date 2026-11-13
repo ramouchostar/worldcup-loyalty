@@ -104,3 +104,27 @@ SELECT
   SUM(cleared)                                                                AS vides,
   ROUND(100.0 * SUM(suggested_kept) / NULLIF(SUM(suggested), 0))              AS pct_gardes
 FROM menu_zone_setups;
+
+-- 10. Commandes du site refusées (ADR 0099 §7) : pourquoi ? Table site_order_refusals (migration 20261113-2330).
+-- Seuil : plus d'une commande refusée sur cinq pour « choix_invalide » ou « plat_indisponible » = la page client montre des choix
+-- que le serveur refuse : à corriger AVANT d'ouvrir le drapeau à un vrai restaurant.
+SELECT
+  restaurant_id,
+  reason                                                                       AS motif,
+  COUNT(*)                                                                     AS refus,
+  MIN(created_at)::date                                                        AS depuis
+FROM site_order_refusals
+GROUP BY 1, 2
+ORDER BY refus DESC;
+
+-- 11. Commandes du site : combien, et en combien de minutes une commande est-elle « prête » ? Table site_orders.
+SELECT
+  restaurant_id,
+  COUNT(*)                                                                     AS commandes,
+  COUNT(*) FILTER (WHERE status = 'annulee')                                   AS annulees,
+  ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'annulee') / NULLIF(COUNT(*), 0)) AS pct_annulees,
+  ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (ready_at - created_at)) / 60)::numeric, 1) AS minutes_mediane_avant_prete,
+  COUNT(*) FILTER (WHERE status IN ('recue', 'prete') AND created_at < NOW() - INTERVAL '6 hours') AS jamais_cloturees
+FROM site_orders
+GROUP BY 1
+ORDER BY commandes DESC;

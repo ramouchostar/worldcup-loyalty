@@ -32,8 +32,9 @@ export function parseConsoleView(raw: string | undefined): ConsoleView {
  * `marketplace` : le module « Prestataires » (ADR 0084) est ouvert pour ce restaurateur
  * (MARKETPLACE_ENABLED, ou super-admin). Fermé = le lien n'existe pas.
  * `pub` : la Pub (ADR 0086) est ouverte pour cet établissement (PUB_RESTAURANTS, ou super-admin).
+ * `siteOrders` : les commandes du site (ADR 0099) sont ouvertes pour cet établissement (SITE_ORDER_RESTAURANTS). Fermé = le lien n'existe pas.
  */
-export function consoleSections(base: string, canManage: boolean, marketplace = false, pub = false): AdminNavSection[] {
+export function consoleSections(base: string, canManage: boolean, marketplace = false, pub = false, siteOrders = false): AdminNavSection[] {
   return [
     {
       title: "Au quotidien",
@@ -43,6 +44,7 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
         // ADR 0052 — la file des doublons ambigus est un ONGLET de Commandes.
         { href: `${base}/orders`, label: "Commandes", icon: "orders", hint: "Les tickets de tes clients, à vérifier ou déjà validés" },
         { href: `${base}/pending-rewards`, label: "Cadeaux", icon: "gifts", hint: "Les cadeaux que tes clients viendront chercher" },
+        ...(siteOrders ? [{ href: `${base}/commandes-du-site`, label: "Commandes du site", icon: "orders", hint: "Ce que tes clients commandent sur ton site : tu prépares, ils retirent et paient au comptoir" }] : []),
       ],
     },
     {

@@ -17,7 +17,7 @@ type Msg = { kind: "ok" | "err"; text: string; details?: string[]; technical?: s
 const btn = "min-h-[44px] rounded-lg px-4 py-2 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink";
 const euro = (cents: number) => (cents / 100).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
 
-function TicketView({ t }: { t: Ticket }) {
+export function TicketView({ t }: { t: Ticket }) {
   return (
     <div className="min-w-0 rounded-lg border border-paper-border bg-white p-4 text-ink">
       <div className="text-[13px] font-semibold tracking-wide">{t.title}</div>
