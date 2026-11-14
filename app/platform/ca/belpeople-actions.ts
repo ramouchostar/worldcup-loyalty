@@ -52,12 +52,15 @@ export async function belpeopleSyncNow(formData: FormData) {
   const r = field(formData, "r", 80);
   const found = await belpeopleConnection(r);
   if (found.missing || !found.connection) back({ r, bperreur: "Aucun accès Belpeople pour cet établissement." });
+  // redirect() (back) lève NEXT_REDIRECT : jamais dans un try, sinon le succès
+  // est pris pour une erreur. On garde le résultat et on redirige après.
+  let days: number;
   try {
-    const res = await syncBelpeople(found.connection, todayInBrussels());
-    back({ r, belpeople: `relu-${res.days}` });
+    days = (await syncBelpeople(found.connection, todayInBrussels())).days;
   } catch (e) {
     back({ r, bperreur: `Lecture Belpeople impossible : ${(e as Error).message}` });
   }
+  back({ r, belpeople: `relu-${days}` });
 }
 
 export async function belpeopleDisconnect(formData: FormData) {
