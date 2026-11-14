@@ -27,3 +27,24 @@ test("écart Belpeople − saisie, réutilisé de HubRise", () => {
   assert.deepEqual(gap(3000, 3000), { eur: 0, pct: 0 });
   assert.deepEqual(gap(3060, 3000), { eur: 60, pct: 2 });
 });
+
+import { revenueEntriesFrom, staleDays } from "./model";
+
+const day = (sales_day: string, eur: number, orders: number) => ({ sales_day, gross_inc_vat: eur, gross_exc_vat: eur / 1.06, orders_count: orders });
+
+test("seuls les jours remplis et terminés deviennent le CA du jour", () => {
+  const rows = [day("2026-11-14", 800, 40), day("2026-11-09", 0, 0), day("2026-11-08", 2763, 150), day("2026-11-07", 3635.05, 190)];
+  assert.deepEqual(revenueEntriesFrom(rows, "2026-11-14"), [
+    { sales_day: "2026-11-08", amount: 2763, tickets: 150 },
+    { sales_day: "2026-11-07", amount: 3635.05, tickets: 190 },
+  ]);
+});
+
+test("un jour encore vide après 10 jours est signalé, pas avant", () => {
+  const rows = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(Date.UTC(2026, 10, 14 - i)).toISOString().slice(0, 10);
+    return day(d, d === "2026-11-01" || d >= "2026-11-09" ? 0 : 3000, d === "2026-11-01" || d >= "2026-11-09" ? 0 : 150);
+  });
+  // Le 09/11 → 14/11 sont vides mais récents ; le 01/11 a 13 jours : signalé.
+  assert.deepEqual(staleDays(rows, "2026-11-14"), ["2026-11-01"]);
+});

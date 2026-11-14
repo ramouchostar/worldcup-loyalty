@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable } from "@/lib/audit/store";
 import { journal, markFailed, markOk, readToken } from "@/lib/hubrise/store";
 import { BelpeopleAuthError, readDailySales, readHourlySales, signIn } from "./api";
-import { WINDOW_DAYS, windowStart, type DailySales } from "./model";
+import { revenueEntriesFrom, WINDOW_DAYS, windowStart, type DailySales } from "./model";
 
 const PROVIDER = "belpeople";
 
@@ -67,6 +67,75 @@ export async function listBelpeopleConnections(): Promise<BelpeopleConnection[]>
   }));
 }
 
+/**
+ * ADR 0103 amendé (2026-11-14) — l'établissement a une connexion Belpeople
+ * active : son CA du jour vient de Belpeople, on ne lui demande plus de le
+ * saisir (rappels, « À faire », idée de Chloé). Fail-open : une erreur de
+ * lecture répond « non » (on redemande la saisie plutôt que de se taire) et le dit.
+ */
+export async function readsRevenueFromBelpeople(restaurantId: string): Promise<boolean> {
+  try {
+    const found = await belpeopleConnection(restaurantId);
+    return !found.missing && found.connection !== null;
+  } catch (e) {
+    console.error("[belpeople] connexion illisible", restaurantId, (e as Error).message);
+    return false;
+  }
+}
+
+/**
+ * Écrit les jours remplis chez Belpeople comme CA du jour (daily_revenue_entries,
+ * source 'belpeople', outcome 'historique', tickets = commandes). Belpeople fait
+ * foi : il remplace une saisie du même jour (le détail par canal est vidé, il ne
+ * correspondrait plus au total). Migration 20261114-2000 requise.
+ */
+async function writeRevenueEntries(restaurantId: string, rows: DailySales[], today: string): Promise<{ written: number; replaced: number }> {
+  const entries = revenueEntriesFrom(rows, today);
+  if (entries.length === 0) return { written: 0, replaced: 0 };
+  const db = createAdminClient();
+  const { data: before } = await db
+    .from("daily_revenue_entries")
+    .select("sales_day, source")
+    .eq("restaurant_id", restaurantId)
+    .in("sales_day", entries.map((e) => e.sales_day));
+  const replaced = ((before ?? []) as { source: string | null }[]).filter((b) => b.source !== "belpeople").length;
+  const now = new Date().toISOString();
+  const { error } = await db.from("daily_revenue_entries").upsert(
+    entries.map((e) => ({
+      restaurant_id: restaurantId,
+      sales_day: e.sales_day,
+      outcome: "historique",
+      amount: e.amount,
+      tickets: e.tickets,
+      asked_at: null,
+      replied_at: null,
+      note: null,
+      source: "belpeople",
+      carte: null,
+      cash: null,
+      internet: null,
+      uber: null,
+      deliveroo: null,
+      takeaway: null,
+      emporter: null,
+      sur_place: null,
+      updated_at: now,
+    })),
+    { onConflict: "restaurant_id,sales_day" },
+  );
+  if (error) throw new Error(`CA du jour (daily_revenue_entries) : ${error.message}`);
+  // Comme save_daily_revenue_console : chaque jour avec montant est aussi une
+  // vente caisse (restaurant_sales, sans heure), lue par la prévision.
+  const daysList = entries.map((e) => e.sales_day);
+  const del = await db.from("restaurant_sales").delete().eq("restaurant_id", restaurantId).in("sold_on", daysList);
+  if (del.error) throw new Error(`restaurant_sales : ${del.error.message}`);
+  const ins = await db
+    .from("restaurant_sales")
+    .insert(entries.map((e) => ({ restaurant_id: restaurantId, sold_on: e.sales_day, sold_at: null, amount: e.amount, source_import_id: null })));
+  if (ins.error) throw new Error(`restaurant_sales : ${ins.error.message}`);
+  return { written: entries.length, replaced };
+}
+
 /** Enregistre (ou remplace) l'accès Belpeople : e-mail + mot de passe dans Vault. */
 export async function saveBelpeopleCredentials(input: {
   restaurantId: string;
@@ -113,7 +182,7 @@ export async function disconnectBelpeople(connectionId: string): Promise<void> {
 }
 
 /** Lit la fenêtre glissante chez Belpeople et met à jour pos_daily_sales. */
-export async function syncBelpeople(conn: BelpeopleConnection, today: string, days = WINDOW_DAYS): Promise<{ days: number }> {
+export async function syncBelpeople(conn: BelpeopleConnection, today: string, days = WINDOW_DAYS): Promise<{ days: number; written: number; replaced: number }> {
   const raw = await readToken(conn.id);
   if (!raw) {
     await markFailed(conn.id, "Accès absent du coffre : ressaisir le mot de passe Belpeople.");
@@ -155,6 +224,17 @@ export async function syncBelpeople(conn: BelpeopleConnection, today: string, da
       );
     if (error) throw new Error(`pos_daily_sales : ${error.message}`);
   }
+  // Le CA du jour de la console vient désormais de Belpeople. Un refus (migration
+  // 20261114-2000 absente, contrainte) est dit sur /platform/ca, jamais tu.
+  let revenue = { written: 0, replaced: 0 };
+  try {
+    revenue = await writeRevenueEntries(conn.restaurant_id, rows, today);
+  } catch (e) {
+    const reason = (e as Error).message;
+    await markFailed(conn.id, reason);
+    await journal("belpeople_failed", { reason }, conn.id);
+    throw e;
+  }
   // Ventes par heure (heures pleines/creuses) : même fenêtre, même jeton. Un
   // échec horaire ne fait pas échouer le CA par jour, déjà enregistré.
   let hours = 0;
@@ -184,8 +264,8 @@ export async function syncBelpeople(conn: BelpeopleConnection, today: string, da
     console.error("[belpeople] lecture horaire", (e as Error).message);
   }
   await markOk(conn.id);
-  await journal("belpeople_sync", { days: rows.length, hours, from: windowStart(today, days) }, conn.id);
-  return { days: rows.length };
+  await journal("belpeople_sync", { days: rows.length, hours, from: windowStart(today, days), ...revenue }, conn.id);
+  return { days: rows.length, ...revenue };
 }
 
 export async function listBelpeopleSales(restaurantId: string, fromDay: string): Promise<DailySales[]> {

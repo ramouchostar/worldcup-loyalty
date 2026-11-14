@@ -14,7 +14,7 @@ export type EntriesListing = { missing: true } | { missing: false; rows: DailyEn
 export async function listDailyEntries(restaurantId: string): Promise<EntriesListing> {
   const { data, error } = await createAdminClient()
     .from("daily_revenue_entries")
-    .select("sales_day, outcome, amount, tickets, asked_at, replied_at, note")
+    .select("sales_day, outcome, amount, tickets, asked_at, replied_at, note, source")
     .eq("restaurant_id", restaurantId)
     .order("sales_day", { ascending: false })
     .limit(400);
@@ -31,6 +31,7 @@ export async function listDailyEntries(restaurantId: string): Promise<EntriesLis
       asked_at: r.asked_at ? String(r.asked_at).slice(0, 5) : null,
       replied_at: r.replied_at ? String(r.replied_at).slice(0, 5) : null,
       note: r.note as string | null,
+      source: (r.source as string | null) ?? null,
     })),
   };
 }

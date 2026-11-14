@@ -6,6 +6,7 @@ import { addDays } from "../daily-revenue-model";
 import { missingDays, shortDayLabel } from "../daily-revenue-entry";
 import { CA_REMINDER_KEY, planReminders, type ClosingTimes } from "../daily-revenue-reminders";
 import type { IdeaLines } from "./chloe";
+import { readsRevenueFromBelpeople } from "../belpeople/store";
 
 // Chloé — le rappel du CA du jour (Brigade 09, chantier « La brigade »).
 //
@@ -47,6 +48,8 @@ export type ChloeCaInput = {
   covered: Set<string>; // jours notés (saisie ou ventes importées), hors « pas de réponse »
   closing: ClosingTimes | null; // horaires de la fiche Google ; null = inconnus (heure par défaut)
   remindersOn: boolean; // les rappels du CA sont allumés pour cet établissement
+  /** ADR 0103 amendé : le CA est lu dans Belpeople, plus rien à saisir. */
+  readFromPos?: boolean;
 };
 
 // ─── Réglages ─────────────────────────────────────────────────────────────────
@@ -69,6 +72,7 @@ export function notesCa(covered: Set<string>, todayISO: string, remindersOn: boo
 /** Le rappel du CA d'hier, ou `null` quand il n'y a rien à rappeler. */
 export function caReminderIdea(input: ChloeCaInput): ChloeCaIdea | null {
   const { restaurantId, todayISO, covered, closing, remindersOn } = input;
+  if (input.readFromPos) return null; // Belpeople écrit le CA : on ne demande plus de le noter
   if (!notesCa(covered, todayISO, remindersOn)) return null;
 
   const yesterday = addDays(todayISO, -1);
@@ -107,13 +111,14 @@ export async function loadChloeCaInput(restaurantId: string, todayISO: string): 
   const admin = createAdminClient();
   const since = addDays(todayISO, -NOTES_CA_WINDOW_DAYS);
 
-  const [entries, sales, resto, remindersOn] = await Promise.all([
+  const [entries, sales, resto, remindersOn, readFromPos] = await Promise.all([
     admin.from("daily_revenue_entries").select("sales_day, outcome").eq("restaurant_id", restaurantId).gte("sales_day", since),
     fetchAllRowsStrict<{ sold_on: string }>("Chloé CA : ventes importées", (from, to) =>
       admin.from("restaurant_sales").select("sold_on").eq("restaurant_id", restaurantId).gte("sold_on", since).order("id").range(from, to)
     ),
     admin.from("restaurants").select("closing_times").eq("id", restaurantId).maybeSingle(),
     isMessageEnabled(CA_REMINDER_KEY, restaurantId),
+    readsRevenueFromBelpeople(restaurantId),
   ]);
 
   const covered = new Set<string>();
@@ -123,5 +128,5 @@ export async function loadChloeCaInput(restaurantId: string, todayISO: string): 
 
   // Colonne absente (migration 20261024-1800 pas appliquée) : horaires inconnus, heure par défaut.
   const closing = resto.error ? null : ((resto.data as { closing_times: ClosingTimes | null } | null)?.closing_times ?? null);
-  return { restaurantId, todayISO, covered, closing, remindersOn };
+  return { restaurantId, todayISO, covered, closing, remindersOn, readFromPos };
 }

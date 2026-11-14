@@ -43,6 +43,8 @@ export interface DailyEntry {
   asked_at: string | null; // HH:MM
   replied_at: string | null; // HH:MM
   note: string | null;
+  /** D'où vient le chiffre : 'console', 'plateforme', 'belpeople' (ADR 0103 amendé) ; absent = inconnu. */
+  source?: string | null;
 }
 
 /** Objectif du test : 10 réponses sur 14 jours ouverts. */

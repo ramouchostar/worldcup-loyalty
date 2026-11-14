@@ -86,3 +86,8 @@ test("règle « note son CA » : un jour noté il y a exactement 28 jours compte
   assert.equal(notesCa(new Set(["2026-10-07"]), TODAY, false), false);
   assert.equal(notesCa(new Set(), TODAY, true), true);
 });
+
+test("CA lu dans Belpeople (ADR 0103 amendé) : Chloé ne demande plus de noter hier", () => {
+  assert.ok(caReminderIdea(input({ remindersOn: true })));
+  assert.equal(caReminderIdea(input({ remindersOn: true, readFromPos: true })), null);
+});
