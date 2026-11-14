@@ -128,7 +128,7 @@ export async function StatsPage({
       period={period}
       headline={headline}
       clients={clients}
-      revenue={{ allowed: revenueAccess.allowed, block: revenue, noteHref: `${base}/ca/${addDays(today, -1)}`, forecast }}
+      revenue={{ allowed: revenueAccess.allowed, block: revenue, noteHref: `${base}/ca/${addDays(today, -1)}`, forecast, today }}
       dishes={items ? (items.ok ? { ok: true, data: topDishes(items.data) } : { ok: false }) : null}
       dishesHref={`${base}/sales`}
       google={reputation.google}

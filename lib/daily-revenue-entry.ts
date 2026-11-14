@@ -42,6 +42,18 @@ export function isEditableDay(day: string, today: string): boolean {
   return isDay(day) && day <= today && day >= addDays(today, -(EDITABLE_DAYS - 1));
 }
 
+/**
+ * Les jours encore corrigeables, du plus récent au plus ancien. Aujourd'hui n'y
+ * figure que s'il est déjà noté (`covered`) : le proposer à la saisie le matin
+ * inviterait à noter une journée pas finie — le rappel du soir s'en charge.
+ */
+export function correctableDays(covered: Set<string>, today: string): string[] {
+  const out: string[] = [];
+  if (covered.has(today)) out.push(today);
+  for (let i = 1; i < EDITABLE_DAYS; i++) out.push(addDays(today, -i));
+  return out;
+}
+
 // ── Lecture du formulaire ────────────────────────────────────────────────────
 
 export type EntryInput = {
