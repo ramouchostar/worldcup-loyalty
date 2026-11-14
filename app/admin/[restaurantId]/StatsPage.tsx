@@ -30,6 +30,8 @@ import {
 } from "@/lib/stats-page-data";
 import { StatsView } from "@/components/admin/simple/StatsView";
 import { TodoCard } from "@/components/admin/simple/SimpleHome";
+import { listRequests, pubAvailability } from "@/lib/ads/requests";
+import { pubHomeCards, type PubHomeCard } from "@/lib/ads/home-card";
 import { HomeBottomNotices, HomeTopNotices } from "@/components/admin/simple/HomeNotices";
 
 // L'onglet « Stats » de la vue simple (ADR 0064 amendé, ADR 0089) : la page
@@ -44,6 +46,24 @@ function progressionLine(g: GrowthView): string {
   if (!g.game) return `Étape 2 · ${Math.min(g.notedDays, BASELINE_DAYS)} jours de chiffre notés sur ${BASELINE_DAYS}`;
   if (g.game.capReached) return `Niveau ${g.game.level} · le plus haut palier est atteint`;
   return `Niveau ${g.game.level} · ${g.game.heldWeeks} semaine${g.game.heldWeeks > 1 ? "s" : ""} tenue${g.game.heldWeeks > 1 ? "s" : ""} vers le suivant`;
+}
+
+// « Ta pub » (maquette validée le 2026-11-14) : seulement là où la Pub est ouverte et
+// qu'une pub tourne. Une lecture qui échoue n'ôte que l'encart, et se dit dans les journaux.
+async function loadPubCards(restaurantId: string, isSuperAdmin: boolean, today: string): Promise<PubHomeCard[]> {
+  try {
+    const av = await pubAvailability(restaurantId, isSuperAdmin);
+    if (!av.open) return [];
+    const list = await listRequests(restaurantId);
+    if (!list.ok) {
+      console.error("[stats] pub : lecture des demandes impossible pour", restaurantId);
+      return [];
+    }
+    return pubHomeCards(list.requests, { restaurantId, today });
+  } catch (e) {
+    console.error("[stats] pub :", (e as Error).message);
+    return [];
+  }
 }
 
 export async function StatsPage({
@@ -76,7 +96,7 @@ export async function StatsPage({
   const period = statsPeriod(periodKey, today, firstDay);
   const since = period.previous?.from ?? period.current.from;
 
-  const [gifts, revenueBlock, reputation, messages, items, homeRaw, growthRaw] = await Promise.all([
+  const [gifts, revenueBlock, reputation, messages, items, homeRaw, growthRaw, pub] = await Promise.all([
     loadGiftDays(restaurantId, since),
     loadRevenue(restaurantId, today, since),
     loadReputation(restaurantId, period.current),
@@ -84,6 +104,7 @@ export async function StatsPage({
     salesAccess.allowed ? loadItemLines(restaurantId, period.current) : Promise.resolve(null),
     loadSimpleHomeRaw(restaurantId, { canManage: canManageEstablishment(access) }),
     loadGrowthRaw(restaurantId, today),
+    loadPubCards(restaurantId, access.isSuperAdmin, today),
   ]);
 
   const clients: Block<ReturnType<typeof clientStats>> =
@@ -139,6 +160,7 @@ export async function StatsPage({
       benchmarksHref={benchAccess.allowed ? `${base}/benchmarks` : null}
       top={<HomeTopNotices bienvenue={bienvenue} seat={seat} pending={restaurant?.status === "pending"} />}
       todo={home.todo.length > 0 ? <TodoCard view={home} /> : null}
+      pub={pub}
       bottom={<HomeBottomNotices restaurantId={restaurantId} bienvenue={bienvenue} />}
     />
   );

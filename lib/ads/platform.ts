@@ -146,11 +146,12 @@ export async function loadPlatformPub(): Promise<PlatformPub | { ok: false }> {
     campaigns: C.map((c) => {
       const s = S.filter((x) => x.campaign_id === c.id);
       const est = c.request_id ? (reqById.get(c.request_id)?.estimate ?? null) : null;
+      // Personnes touchées : le total unique de Meta, pas la somme des jours (lib/ads/home-card.ts, 2026-11-14).
       const actual = est && c.lifetime ? (est.kind === "reach" ? c.lifetime.reach : est.kind === "clicks" ? c.lifetime.clicks : c.lifetime.impressions) : null;
       // Le verdict n'a de sens qu'une fois la campagne terminée (budget dépensé).
       const ended = c.request_id ? reqById.get(c.request_id)?.status === "terminee" : false;
       const estimateVerdict = est && actual !== null && ended ? (actual < est.lo ? "sous" : actual > est.hi ? "au-dessus" : "dans") : null;
-      return { id: c.id, name: c.name, restaurantName: c.restaurant_id ? nameOf(c.restaurant_id) : null, status: c.effective_status ?? c.status, paidCents: c.request_id ? (paid.get(c.request_id) ?? 0) : null, spentCents: s.reduce((n, x) => n + x.spend_cents, 0), capCents: c.spend_cap_cents, results: s.reduce((n, x) => n + x.results, 0), resultKind: s.find((x) => x.result_kind)?.result_kind ?? null, warnings: c.warnings ?? [], adStatus: c.ad_status, estimate: est ? { kind: est.kind, lo: est.lo, hi: est.hi } : null, actual, estimateVerdict };
+      return { id: c.id, name: c.name, restaurantName: c.restaurant_id ? nameOf(c.restaurant_id) : null, status: c.effective_status ?? c.status, paidCents: c.request_id ? (paid.get(c.request_id) ?? 0) : null, spentCents: s.reduce((n, x) => n + x.spend_cents, 0), capCents: c.spend_cap_cents, results: s.some((x) => x.result_kind === "personnes touchées") && (c.lifetime?.reach ?? 0) > 0 ? (c.lifetime?.reach ?? 0) : s.reduce((n, x) => n + x.results, 0), resultKind: s.find((x) => x.result_kind)?.result_kind ?? null, warnings: c.warnings ?? [], adStatus: c.ad_status, estimate: est ? { kind: est.kind, lo: est.lo, hi: est.hi } : null, actual, estimateVerdict };
     }),
     restaurants: ((rests.data ?? []) as { id: string; name: string; client_code: string }[]).map((r) => ({ id: r.id, name: r.name, clientCode: r.client_code, pageName: ident.get(r.id)?.meta_page_name ?? null, igUsername: ident.get(r.id)?.instagram_username ?? null })),
     failures: (fails.data ?? []) as { at: string; path: string; error: string | null }[],

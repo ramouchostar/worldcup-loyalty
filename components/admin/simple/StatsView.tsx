@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight, Star } from "@/components/icons";
-import { Card, CardRow } from "@/components/admin/ui";
+import { Card, CardRow, ProgressBar, StatusBadge } from "@/components/admin/ui";
+import type { PubHomeCard } from "@/lib/ads/home-card";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { StatsPeriodTabs } from "./StatsPeriodTabs";
 import { signed, type ClientStats, type RevenueStats, type StatsPeriod } from "@/lib/stats-page";
@@ -44,6 +45,8 @@ export type StatsViewProps = {
   benchmarksHref: string | null;
   top?: ReactNode;
   todo?: ReactNode;
+  /** Les pubs en diffusion ou en pause (lib/ads/home-card.ts) ; vide = pas d'encart. */
+  pub?: PubHomeCard[];
   bottom?: ReactNode;
 };
 
@@ -92,6 +95,54 @@ function Upsell({ restaurantId, plan, text }: { restaurantId: string; plan: "cro
 }
 
 // ── Blocs ─────────────────────────────────────────────────────────────────
+
+// « Ta pub » — maquette validée le 2026-11-14 (https://claude.ai/artifact/BoJGNvQinHZVJMorWpiAyC).
+// Seulement quand une pub tourne ; le détail, la recharge et la pause restent sur la page Pub.
+function PubSection({ cards }: { cards: PubHomeCard[] }) {
+  return (
+    <section className="space-y-3" aria-labelledby="stats-pub">
+      <div className="flex items-baseline justify-between gap-3">
+        <SectionTitle>
+          <span id="stats-pub">Ta pub</span>
+        </SectionTitle>
+        <Link href={cards[0].href} className="inline-flex items-center gap-1 min-h-[44px] text-[14px] font-semibold text-boost-olive-dark hover:text-ink">
+          Détail <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+      </div>
+      {cards.map((c) => (
+        <Card key={c.id} className="space-y-3.5">
+          <div className="flex items-center gap-3">
+            <div className="h-[70px] w-14 shrink-0 overflow-hidden rounded-lg border border-paper-border bg-paper-subtle">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {c.thumbnail && <img src={c.thumbnail} alt="" className="h-full w-full object-cover" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold text-ink">{c.title}</p>
+              {c.where && <p className="text-[13px] text-ink-muted">{c.where}</p>}
+            </div>
+            <StatusBadge tone={c.statusTone} solid={c.statusTone === "good"} className="shrink-0">{c.statusLabel}</StatusBadge>
+          </div>
+          <div className="rounded-lg bg-boost-cream px-3.5 py-3">
+            <strong className="block font-display text-[28px] leading-tight font-bold tabular-nums text-ink">{num(c.results)}</strong>
+            <span className="text-[13px] text-boost-olive-dark">{c.resultLine}</span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex justify-between gap-2 text-[14px] text-ink">
+              <span>Dépensé <strong>{eur(c.spentCents / 100)}</strong> sur {eur(c.paidCents / 100)}</span>
+              <span className="text-ink-muted">reste {eur(c.remainingCents / 100)}</span>
+            </div>
+            <ProgressBar value={c.spentCents} max={Math.max(1, c.paidCents)} tone="boost" label="Budget de la pub dépensé" />
+          </div>
+          {c.keyword && (
+            <p className="rounded-lg bg-paper-subtle px-3 py-2.5 text-[13.5px] leading-snug text-ink">
+              Mot clé <span className="rounded-md bg-ink px-1.5 py-0.5 text-[12.5px] font-semibold tracking-[0.04em] text-white">{c.keyword}</span> : demande à ton équipe de compter les clients qui le disent au comptoir.
+            </p>
+          )}
+        </Card>
+      ))}
+    </section>
+  );
+}
 
 function ClientsSection({ block, period }: { block: Block<ClientStats>; period: StatsPeriod }) {
   if (!block.ok) return <Unavailable what="Tes clients" />;
@@ -429,6 +480,8 @@ export function StatsView(p: StatsViewProps) {
       </div>
 
       {p.todo}
+
+      {p.pub && p.pub.length > 0 && <PubSection cards={p.pub} />}
 
       {revenueFirst ? (
         <>
