@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { belpeopleConnection, listBelpeopleHourly, listBelpeopleSales } from "@/lib/belpeople/store";
 import { belpeopleConfig } from "@/lib/belpeople/api";
 import { gap, isFilled, PREFILL_MAX_GAP_PCT, STALE_AFTER_DAYS, staleDays, type DailySales } from "@/lib/belpeople/model";
@@ -111,6 +112,7 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
             <input type="hidden" name="r" value={restaurantId} />
             <button type="submit" className={BTN_GHOST}>Recharger l&apos;historique</button>
           </form>
+          <Link href={`/platform/ca?r=${restaurantId}&bp_explore=1#bp-explorer`} className={BTN_GHOST}>Explorer les ventes par produit</Link>
           <form action={belpeopleDisconnect}>
             <input type="hidden" name="r" value={restaurantId} />
             <button type="submit" className={BTN_GHOST}>Déconnecter</button>

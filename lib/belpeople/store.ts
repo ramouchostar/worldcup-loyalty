@@ -5,7 +5,7 @@
 import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable } from "@/lib/audit/store";
 import { journal, markFailed, markOk, readToken } from "@/lib/hubrise/store";
-import { BelpeopleAuthError, readDailySales, readHourlySales, signIn } from "./api";
+import { BelpeopleAuthError, exploreProductTables, readDailySales, readHourlySales, signIn, type ExploredTable } from "./api";
 import { revenueEntriesFrom, WINDOW_DAYS, windowStart, type DailySales } from "./model";
 
 const PROVIDER = "belpeople";
@@ -305,4 +305,16 @@ export async function listBelpeopleHourly(restaurantId: string, fromIso: string)
     gross_inc_vat: r.gross_inc_vat === null ? null : Number(r.gross_inc_vat),
     orders_count: r.orders_count === null ? null : Number(r.orders_count),
   }));
+}
+
+
+/** ADR 0103 §6 — exploration des ventes par produit, à la demande d'un super-admin. Journalisée. */
+export async function exploreBelpeopleProducts(conn: BelpeopleConnection): Promise<ExploredTable[]> {
+  const raw = await readToken(conn.id);
+  if (!raw) throw new Error("Accès Belpeople absent du coffre : ressaisir le mot de passe.");
+  const creds = JSON.parse(raw) as { email: string; password: string };
+  const token = await signIn(creds.email, creds.password);
+  const tables = await exploreProductTables(token, conn.store_ref);
+  await journal("belpeople_explore", { tables: tables.map((t) => t.name) }, conn.id);
+  return tables;
 }

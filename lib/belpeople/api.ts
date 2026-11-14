@@ -5,6 +5,7 @@
 
 import { parseSalesRow, type DailySales } from "./model";
 import type { HourlyRow } from "./hourly";
+import { productTables, sampleQuery, type TableShape } from "./explore";
 
 export function belpeopleConfig(): { url: string; anon: string } | null {
   const url = process.env.BELPEOPLE_SUPABASE_URL?.trim().replace(/\/$/, "");
@@ -82,4 +83,39 @@ export async function readHourlySales(token: string, storeRef: string, fromDay: 
       gross_inc_vat: r.gross_inc_vat === null || r.gross_inc_vat === undefined ? null : Number(r.gross_inc_vat),
       orders_count: r.orders_count === null || r.orders_count === undefined ? null : Number(r.orders_count),
     }));
+}
+
+
+export type ExploredTable = TableShape & { rows: Record<string, unknown>[] | null; error: string | null };
+
+/**
+ * ADR 0103 §6 — exploration en lecture seule des ventes par produit : la liste
+ * des tables (description OpenAPI de PostgREST), puis quelques lignes du SEUL
+ * magasin autorisé pour celles qui se filtrent sur le magasin. Rien n'est
+ * enregistré chez nous.
+ */
+export async function exploreProductTables(token: string, storeRef: string): Promise<ExploredTable[]> {
+  const cfg = belpeopleConfig();
+  if (!cfg) throw new Error("Belpeople non configuré.");
+  const headers = { apikey: cfg.anon, Authorization: `Bearer ${token}` };
+  const res = await fetch(`${cfg.url}/rest/v1/`, { headers: { ...headers, Accept: "application/openapi+json" }, cache: "no-store" });
+  if (res.status === 401) throw new BelpeopleAuthError("jeton Belpeople refusé.");
+  if (!res.ok) throw new Error(`Belpeople, liste des tables : ${res.status}`);
+  const spec = (await res.json()) as { definitions?: Record<string, { properties?: Record<string, unknown> }> };
+  const tables = productTables(spec.definitions ?? {});
+  const out: ExploredTable[] = [];
+  for (const t of tables) {
+    const q = sampleQuery(t, storeRef);
+    if (!q) {
+      out.push({ ...t, rows: null, error: null });
+      continue;
+    }
+    const r = await fetch(`${cfg.url}/rest/v1/${encodeURIComponent(t.name)}?${q}`, { headers, cache: "no-store" });
+    if (!r.ok) {
+      out.push({ ...t, rows: null, error: `lecture refusée (${r.status})` });
+      continue;
+    }
+    out.push({ ...t, rows: ((await r.json()) as Record<string, unknown>[]).slice(0, 5), error: null });
+  }
+  return out;
 }

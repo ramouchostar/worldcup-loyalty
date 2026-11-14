@@ -23,6 +23,7 @@ import { CopyText } from "@/components/platform/CopyText";
 import { deleteDay, saveDay } from "./actions";
 import { HubriseSection } from "./HubriseSection";
 import { BelpeopleSection } from "./BelpeopleSection";
+import { BelpeopleExplorer } from "./BelpeopleExplorer";
 
 export const metadata = { title: "CA du jour — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -153,6 +154,7 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
       )}
       {sp.bperreur && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{sp.bperreur}</div>}
       <BelpeopleSection restaurantId={current.id} />
+      {sp.bp_explore === "1" && <BelpeopleExplorer restaurantId={current.id} />}
 
       <div className="grid gap-5 lg:grid-cols-2 items-start">
         <section className={`${CARD} p-5 space-y-4`} aria-labelledby="h-noter">
