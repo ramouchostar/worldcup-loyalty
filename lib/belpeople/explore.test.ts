@@ -28,3 +28,13 @@ test("l'échantillon est filtré sur le magasin, limité et trié par période",
   assert.equal(q?.get("limit"), "5");
   assert.equal(q?.get("order"), "month.desc");
 });
+
+import { CANDIDATE_TABLES, stripSensitive } from "./explore";
+
+test("sonde : une ligne lue perd ses colonnes client avant de sortir", () => {
+  assert.deepEqual(stripSensitive({ store_id: 223, product_name: "Finest", customer_email: "x@y", qty: 3 }), { store_id: 223, product_name: "Finest", qty: 3 });
+});
+
+test("sonde : la table connue est essayée en premier", () => {
+  assert.equal(CANDIDATE_TABLES[0], "v_odoo_product_sales_monthly");
+});
