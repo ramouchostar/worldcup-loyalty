@@ -64,6 +64,20 @@ Essai en lecture seule du 2026-11-14 (compte d'Aram, propriétaire de Kraainem, 
   Belpeople et la saisie, on pré-remplit le total du jour depuis Belpeople ; le restaurateur valide
   toujours. La valeur garde sa source (`belpeople`). Décision à acter par amendement.
 
+### 5. Les ventes par heure, pour le personnel (ajouté le 2026-11-14)
+
+La table `agg_sales_hourly` (heure, CA, commandes par `store_id`) est lue par le même cron, dans la
+même fenêtre, et rangée dans `pos_hourly_sales` (SANS donnée client). `/platform/ca` en tire un
+**profil des heures pleines et creuses** (moyenne des commandes par heure de Bruxelles, en semaine
+et le week-end, sur 28 jours ; pur et testé, `lib/belpeople/hourly.ts`) — pour caler le personnel.
+Une heure est « pleine » à ≥ 66 % du pic du jour, « creuse » à ≤ 33 %. Opérationnel, console seule,
+rien côté membre.
+
+**Hors de cet ADR, à décider avec le porteur** : les **ventes par produit** (`v_odoo_product_sales_monthly`,
+mensuelles, par `product_id`, avec des euros) et leur usage pour des **offres personnalisées** côté
+membre. Cela touche l'ADR 0007 (jamais d'euros ni de seuil au membre), l'ADR 0025 (aucune donnée
+client) et la brigade (ADR 0089) : un chantier produit à part, pas une simple lecture.
+
 ## Conséquences
 
 - Migration `20261114-1130-belpeople-lecture.sql` : `pos_connections.provider` accepte `belpeople` ;

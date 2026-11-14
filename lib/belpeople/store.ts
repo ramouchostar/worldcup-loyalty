@@ -5,7 +5,7 @@
 import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable } from "@/lib/audit/store";
 import { journal, markFailed, markOk, readToken } from "@/lib/hubrise/store";
-import { BelpeopleAuthError, readDailySales, signIn } from "./api";
+import { BelpeopleAuthError, readDailySales, readHourlySales, signIn } from "./api";
 import { WINDOW_DAYS, windowStart, type DailySales } from "./model";
 
 const PROVIDER = "belpeople";
@@ -155,8 +155,36 @@ export async function syncBelpeople(conn: BelpeopleConnection, today: string, da
       );
     if (error) throw new Error(`pos_daily_sales : ${error.message}`);
   }
+  // Ventes par heure (heures pleines/creuses) : même fenêtre, même jeton. Un
+  // échec horaire ne fait pas échouer le CA par jour, déjà enregistré.
+  let hours = 0;
+  try {
+    const token2 = await signIn(creds.email, creds.password);
+    const hourly = await readHourlySales(token2, conn.store_ref, windowStart(today, days));
+    if (hourly.length > 0) {
+      const now = new Date().toISOString();
+      const { error } = await createAdminClient()
+        .from("pos_hourly_sales")
+        .upsert(
+          hourly.map((h) => ({
+            provider: PROVIDER,
+            restaurant_id: conn.restaurant_id,
+            store_ref: conn.store_ref,
+            hour_start: h.hour_start,
+            gross_inc_vat: h.gross_inc_vat,
+            orders_count: h.orders_count,
+            read_at: now,
+          })),
+          { onConflict: "provider,restaurant_id,hour_start" },
+        );
+      if (!error) hours = hourly.length;
+      else console.error("[belpeople] pos_hourly_sales", error.message);
+    }
+  } catch (e) {
+    console.error("[belpeople] lecture horaire", (e as Error).message);
+  }
   await markOk(conn.id);
-  await journal("belpeople_sync", { days: rows.length, from: windowStart(today, days) }, conn.id);
+  await journal("belpeople_sync", { days: rows.length, hours, from: windowStart(today, days) }, conn.id);
   return { days: rows.length };
 }
 
@@ -174,6 +202,27 @@ export async function listBelpeopleSales(restaurantId: string, fromDay: string):
     sales_day: r.sales_day as string,
     gross_inc_vat: r.gross_inc_vat === null ? null : Number(r.gross_inc_vat),
     gross_exc_vat: r.gross_exc_vat === null ? null : Number(r.gross_exc_vat),
+    orders_count: r.orders_count === null ? null : Number(r.orders_count),
+  }));
+}
+
+import type { HourlyRow } from "./hourly";
+
+/** Les lignes horaires des `days` derniers jours (profil heures pleines/creuses). */
+export async function listBelpeopleHourly(restaurantId: string, fromIso: string): Promise<HourlyRow[]> {
+  const { data, error } = await createAdminClient()
+    .from("pos_hourly_sales")
+    .select("hour_start, gross_inc_vat, orders_count")
+    .eq("provider", PROVIDER)
+    .eq("restaurant_id", restaurantId)
+    .gte("hour_start", fromIso)
+    .order("hour_start", { ascending: false })
+    .limit(5000);
+  if (isMissingTable(error)) return [];
+  if (error) throw new Error(`pos_hourly_sales : ${error.message}`);
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    hour_start: r.hour_start as string,
+    gross_inc_vat: r.gross_inc_vat === null ? null : Number(r.gross_inc_vat),
     orders_count: r.orders_count === null ? null : Number(r.orders_count),
   }));
 }
