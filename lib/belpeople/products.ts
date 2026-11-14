@@ -136,6 +136,14 @@ export function buildCaisseView(rows: ProductSaleRow[], menu: MenuForMatch[]): C
   };
 }
 
+/** À partir de quelle part d'articles reconnus les totaux de CA et de marge sont montrés. */
+export const RELIABLE_MATCH_PCT = 90;
+
+/** Les totaux estimés ne sont montrés que si presque tous les articles retrouvent leur plat. */
+export function totalsReliable(v: Pick<CaisseView, "matchedPct">): boolean {
+  return v.matchedPct !== null && v.matchedPct >= RELIABLE_MATCH_PCT;
+}
+
 /** Part des articles achetés par les clients du programme (0-100), bornée : les deux sources ne se recoupent pas au plat près. */
 export function programSharePct(programItems: number, caisseItems: number): number | null {
   if (caisseItems <= 0) return null;

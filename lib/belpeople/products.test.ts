@@ -55,3 +55,11 @@ test("noms de canaux lisibles, et part du programme bornée", () => {
   assert.equal(programSharePct(5, 3), 100);
   assert.equal(programSharePct(5, 0), null);
 });
+
+import { totalsReliable } from "./products";
+
+test("les totaux estimés ne sont montrés qu'à 90 % d'articles reconnus", () => {
+  assert.equal(totalsReliable({ matchedPct: 47 }), false); // Kraainem au 2026-11-14
+  assert.equal(totalsReliable({ matchedPct: 90 }), true);
+  assert.equal(totalsReliable({ matchedPct: null }), false);
+});

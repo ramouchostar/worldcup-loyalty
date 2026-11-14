@@ -48,3 +48,20 @@ test("un jour encore vide après 10 jours est signalé, pas avant", () => {
   // Le 09/11 → 14/11 sont vides mais récents ; le 01/11 a 13 jours : signalé.
   assert.deepEqual(staleDays(rows, "2026-11-14"), ["2026-11-01"]);
 });
+
+import { coversPlatforms, daysBelpeopleMayWrite } from "./model";
+
+test("Belpeople ne remplace la saisie que s'il voit Uber Eats ou Deliveroo", () => {
+  assert.equal(coversPlatforms(["Self-order kiosk", "UberEats", "Intake module"]), true); // Kraainem
+  assert.equal(coversPlatforms(["Self-order kiosk", "Intake module", "TakeAway", null]), false); // Houba, De Bue
+  assert.equal(coversPlatforms([]), false);
+});
+
+test("un jour saisi à la main n'est jamais écrasé par Belpeople", () => {
+  const existing = [
+    { sales_day: "2026-11-09", source: "console" },
+    { sales_day: "2026-11-08", source: "belpeople" },
+    { sales_day: "2026-11-07", source: null },
+  ];
+  assert.deepEqual(daysBelpeopleMayWrite(["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09"], existing), ["2026-11-06", "2026-11-08"]);
+});

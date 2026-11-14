@@ -8,7 +8,8 @@ import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
 import { PageHeader } from "@/components/admin/ui";
 import { listProductSales } from "@/lib/belpeople/store";
-import { buildCaisseView, programSharePct, type CaisseView } from "@/lib/belpeople/products";
+import { buildCaisseView, programSharePct, totalsReliable, type CaisseView } from "@/lib/belpeople/products";
+import { coversPlatforms } from "@/lib/belpeople/model";
 import { dayLabel } from "@/lib/daily-revenue-model";
 
 // Ventes par plat (ADR 0020) — agrégats des lignes d'articles lues sur les
@@ -429,6 +430,10 @@ function CaisseSection({
   restaurantId: string;
 }) {
   const maxMargin = Math.max(1, ...caisse.dishes.map((d) => d.margin ?? 0));
+  // Totaux montrés seulement si presque tous les articles retrouvent leur plat :
+  // sinon un CA « estimé » à moitié se lirait comme le CA du restaurant.
+  const reliable = totalsReliable(caisse);
+  const platforms = coversPlatforms(caisse.channels.map((c) => c.name));
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -437,15 +442,15 @@ function CaisseSection({
           <p className="text-xs text-ink-muted mt-1">articles vendus</p>
         </div>
         <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
-          <p className="text-2xl font-black text-ink tabular-nums">{euro(caisse.revenue)}</p>
+          <p className="text-2xl font-black text-ink tabular-nums">{reliable ? euro(caisse.revenue) : "—"}</p>
           <p className="text-xs text-ink-muted mt-1">CA estimé (prix de la carte)</p>
         </div>
-        <div className="bg-white rounded-xl border border-good/30 bg-good/10 p-4 text-center">
-          <p className="text-2xl font-black text-good tabular-nums">{euro(caisse.margin)}</p>
-          <p className="text-xs text-good mt-1">
+        <div className={`bg-white rounded-xl border p-4 text-center ${reliable ? "border-good/30 bg-good/10" : "border-paper-border"}`}>
+          <p className={`text-2xl font-black tabular-nums ${reliable ? "text-good" : "text-ink"}`}>{reliable ? euro(caisse.margin) : "—"}</p>
+          <p className={`text-xs mt-1 ${reliable ? "text-good" : "text-ink-muted"}`}>
             marge estimée
             {caisse.matchedPct !== null && (
-              <span className={caisse.matchedPct < 60 ? "block font-semibold text-warn" : "block"}>
+              <span className={reliable ? "block" : "block font-semibold text-warn"}>
                 {caisse.matchedPct} % des articles reconnus
               </span>
             )}
@@ -522,6 +527,17 @@ function CaisseSection({
       </div>
 
       <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1.5">
+        {!reliable && (
+          <p className="font-semibold text-warn">
+            Totaux de CA et de marge masqués : seuls {caisse.matchedPct ?? 0} % des articles vendus retrouvent leur plat dans ta carte.
+            Les quantités sont exactes ; le CA et la marge plat par plat restent justes pour les plats reconnus.
+          </p>
+        )}
+        {!platforms && (
+          <p>
+            Uber Eats et Deliveroo ne passent pas par ta caisse : leurs ventes ne sont pas comptées ici.
+          </p>
+        )}
         {share !== null && (
           <p>
             Sur {caisse.totalItems.toLocaleString("fr-BE")} articles vendus en caisse, {programItems.toLocaleString("fr-BE")} l&apos;ont été à des
