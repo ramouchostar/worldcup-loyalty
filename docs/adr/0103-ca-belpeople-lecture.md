@@ -117,6 +117,16 @@ quantités par produit et par canal) et la fonction `report_food_cost_product_sa
 p_months)` (CA TTC et HT par produit et par mois). `v_odoo_product_sales_monthly` est une table de
 la centrale d'achat, **toute la chaîne sans magasin** : jamais lue.
 
+**Construit (2026-11-14, maquette validée par Mehdi : https://claude.ai/artifact/R5gSvUfuMLQwv1vb5XcQqg)** :
+la lecture de nuit (et « Recharger l'historique ») range `v_agg_products_sold_daily` du seul magasin
+dans `pos_product_sales` (jour, canal, produit, quantité ; migration `20261114-2200`, appliquée).
+Belpeople ne donne pas le CA par plat (la fonction `report_food_cost_product_sales` n'a rien renvoyé
+à ce compte) : « Ventes par plat » montre par défaut **Toute la caisse** — quantités × prix et coûts
+de la carte (CA et marge **estimés**, dit sur la page), part par canal, part des articles achetés
+par les clients du programme — et garde la vue **Clients du programme** telle quelle. Un produit de
+la caisse est rattaché à la carte par nom + taille (ADR 0067), jamais deviné entre plusieurs tailles ;
+les produits non reconnus et les plats sans coût sont listés (`lib/belpeople/products.ts`, testé).
+
 **Hors de cet ADR, à décider avec le porteur** : les **ventes par produit** (`v_odoo_product_sales_monthly`,
 mensuelles, par `product_id`, avec des euros) et leur usage pour des **offres personnalisées** côté
 membre. Cela touche l'ADR 0007 (jamais d'euros ni de seuil au membre), l'ADR 0025 (aucune donnée

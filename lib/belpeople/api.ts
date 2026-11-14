@@ -5,6 +5,7 @@
 
 import { parseSalesRow, type DailySales } from "./model";
 import type { HourlyRow } from "./hourly";
+import type { ProductSaleRow } from "./products";
 import { CANDIDATE_TABLES, productTables, sampleQuery, shapeOf, SAMPLE_ROWS, STORE_COLUMN_CANDIDATES, PRODUCT_REVENUE_RPC, productRevenueArgs, stripSensitive, type TableShape } from "./explore";
 
 export function belpeopleConfig(): { url: string; anon: string } | null {
@@ -85,6 +86,49 @@ export async function readHourlySales(token: string, storeRef: string, fromDay: 
     }));
 }
 
+
+/**
+ * ADR 0103 §6 — quantités vendues par plat, par jour et par canal, pour UN
+ * magasin depuis `fromDay` (v_agg_products_sold_daily). Lecture par pages de
+ * 1 000 lignes (PostgREST tronque sans le dire) ; colonnes de vente seulement.
+ */
+export async function readProductSales(token: string, storeRef: string, fromDay: string): Promise<ProductSaleRow[]> {
+  const cfg = belpeopleConfig();
+  if (!cfg) throw new Error("Belpeople non configuré.");
+  const out: ProductSaleRow[] = [];
+  const PAGE = 1000;
+  for (let from = 0; from < 200_000; from += PAGE) {
+    const q = new URLSearchParams({
+      select: "business_date,sales_channel_id,sales_channel_name,product_id,product_name,num_items_sold",
+      store_id: `eq.${storeRef}`,
+      business_date: `gte.${fromDay}`,
+      order: "business_date.asc,sales_channel_id.asc,product_id.asc",
+    });
+    const res = await fetch(`${cfg.url}/rest/v1/v_agg_products_sold_daily?${q}`, {
+      headers: { apikey: cfg.anon, Authorization: `Bearer ${token}`, Range: `${from}-${from + PAGE - 1}`, "Range-Unit": "items" },
+      cache: "no-store",
+    });
+    if (res.status === 401) throw new BelpeopleAuthError("jeton Belpeople refusé.");
+    if (!res.ok && res.status !== 206) throw new Error(`Belpeople v_agg_products_sold_daily : ${res.status}`);
+    const rows = (await res.json()) as Array<Record<string, unknown>>;
+    for (const r of rows) {
+      const day = typeof r.business_date === "string" ? r.business_date.slice(0, 10) : null;
+      const pid = Number(r.product_id);
+      const name = typeof r.product_name === "string" ? r.product_name.trim() : "";
+      if (!day || !Number.isFinite(pid) || !name) continue;
+      out.push({
+        sales_day: day,
+        channel_id: r.sales_channel_id == null ? null : Number(r.sales_channel_id),
+        channel_name: typeof r.sales_channel_name === "string" ? r.sales_channel_name : null,
+        product_id: pid,
+        product_name: name,
+        items_sold: Math.max(0, Math.trunc(Number(r.num_items_sold) || 0)),
+      });
+    }
+    if (rows.length < PAGE) return out;
+  }
+  throw new Error("Belpeople v_agg_products_sold_daily : plus de 200 000 lignes, lecture arrêtée.");
+}
 
 export type ExploredTable = TableShape & { rows: Record<string, unknown>[] | null; error: string | null };
 

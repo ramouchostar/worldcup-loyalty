@@ -7,14 +7,20 @@ import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { getEntitlement, ensureTrialStarted } from "@/lib/entitlements";
 import { PaywallSection, TrialBanner } from "@/components/admin/Paywall";
 import { PageHeader } from "@/components/admin/ui";
+import { listProductSales } from "@/lib/belpeople/store";
+import { buildCaisseView, programSharePct, type CaisseView } from "@/lib/belpeople/products";
+import { dayLabel } from "@/lib/daily-revenue-model";
 
 // Ventes par plat (ADR 0020) — agrégats des lignes d'articles lues sur les
 // tickets scannés par les membres. Surface admin uniquement : les euros et
 // coûts de revient n'apparaissent jamais côté client (ADR 0007).
 //
-// Limite assumée : on ne voit que les commandes passées PAR le programme
-// (tickets scannés), pas toute la caisse — c'est justement la vue « ce que
-// le programme me rapporte ».
+// Deux vues (ADR 0103 §6, maquette validée par Mehdi le 2026-11-14 :
+// https://claude.ai/artifact/R5gSvUfuMLQwv1vb5XcQqg) :
+// - « Toute la caisse » (par défaut quand Belpeople a des données) : quantités
+//   de la caisse × prix et coûts de la carte, par canal, et la part des
+//   articles achetés par les clients du programme ;
+// - « Clients du programme » : les tickets scannés par les membres, comme avant.
 
 const euro = (n: number) =>
   Number(n).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });
@@ -46,10 +52,10 @@ export default async function AdminSalesPage({
   searchParams,
 }: {
   params: Promise<{ restaurantId: string }>;
-  searchParams: Promise<{ days?: string }>;
+  searchParams: Promise<{ days?: string; vue?: string }>;
 }) {
   const { restaurantId } = await params;
-  const { days: rawDays } = await searchParams;
+  const { days: rawDays, vue: rawVue } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -66,7 +72,7 @@ export default async function AdminSalesPage({
 
   // Lecture PAGINÉE (PostgREST tronque en silence à 1 000 lignes, lib/paged-select.ts) :
   // des ventes par plat calculées sur un échantillon seraient fausses sans le dire.
-  const [orders, { data: menuRaw }] = await Promise.all([
+  const [orders, { data: menuRaw }, caisseRows] = await Promise.all([
     fetchAllRowsStrict<OrderRow>("Ventes par plat : tickets", (from, to) =>
       admin
         .from("orders")
@@ -78,7 +84,16 @@ export default async function AdminSalesPage({
         .range(from, to)
     ),
     admin.from("menu_items").select("id, name, menu_price, cost_price").eq("restaurant_id", restaurantId),
+    // Ventes par plat de toute la caisse (Belpeople, ADR 0103 §6). Une lecture en
+    // échec garde la vue programme et le dit dans les journaux, jamais une page cassée.
+    listProductSales(restaurantId, startDate).catch((e) => {
+      console.error("[ventes-par-plat] caisse :", (e as Error).message);
+      return null;
+    }),
   ]);
+  const caisse: CaisseView | null =
+    caisseRows && caisseRows.length > 0 ? buildCaisseView(caisseRows, (menuRaw ?? []) as MenuRow[]) : null;
+  const vue: "caisse" | "programme" = caisse && rawVue !== "programme" ? "caisse" : "programme";
 
   const menuById = new Map(((menuRaw ?? []) as MenuRow[]).map((m) => [m.id, m]));
 
@@ -170,9 +185,11 @@ export default async function AdminSalesPage({
   const analyzedPct = totalItems > 0 ? Math.round((matchedQty / totalItems) * 100) : null;
   const withTime = orders.filter((o) => o.order_time).length;
 
-  const r = (d: number) => `/admin/${restaurantId}/sales?days=${d}`;
+  const r = (d: number) => `/admin/${restaurantId}/sales?days=${d}${vue === "programme" && caisse ? "&vue=programme" : ""}`;
+  const v = (which: "caisse" | "programme") => `/admin/${restaurantId}/sales?days=${days}${which === "programme" ? "&vue=programme" : ""}`;
+  const share = caisse ? programSharePct(totalItems, caisse.totalItems) : null;
 
-  if (orders.length > 0) await ensureTrialStarted(restaurantId, "sales");
+  if (orders.length > 0 || caisse) await ensureTrialStarted(restaurantId, "sales");
   const ent = await getEntitlement(restaurantId, "sales");
 
   return (
@@ -180,8 +197,14 @@ export default async function AdminSalesPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <PageHeader
           title={<>Ventes par plat</>}
-          subtitle={<>Ce que les commandes du programme te rapportent, plat par plat —
-            calculé sur les tickets scannés par tes membres.</>}
+          subtitle={
+            vue === "caisse" ? (
+              <>Tout ce que ta caisse a vendu, plat par plat.</>
+            ) : (
+              <>Ce que les commandes du programme te rapportent, plat par plat —
+                calculé sur les tickets scannés par tes membres.</>
+            )
+          }
         />
         <div className="flex gap-1.5">
           {PERIODS.map((p) => (
@@ -200,6 +223,28 @@ export default async function AdminSalesPage({
         </div>
       </div>
 
+      {caisse && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-paper-subtle p-1 max-w-md" role="group" aria-label="Quelles ventes">
+            {(["caisse", "programme"] as const).map((w) => (
+              <Link
+                key={w}
+                href={v(w)}
+                aria-current={vue === w ? "page" : undefined}
+                className={`min-h-[44px] inline-flex items-center justify-center rounded-lg text-sm transition-colors ${
+                  vue === w ? "bg-white text-ink font-semibold shadow-sm" : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                {w === "caisse" ? "Toute la caisse" : "Clients du programme"}
+              </Link>
+            ))}
+          </div>
+          {vue === "caisse" && caisse.lastDay && (
+            <p className="text-xs text-ink-faint">Lu dans Belpeople, chiffres jusqu&apos;au {dayLabel(caisse.lastDay)} (quelques jours de retard).</p>
+          )}
+        </div>
+      )}
+
       <TrialBanner ent={ent} restaurantId={restaurantId} feature="sales" />
 
       <PaywallSection
@@ -209,6 +254,9 @@ export default async function AdminSalesPage({
         title="Débloque tes ventes par plat"
         pitch="CA, marge et volume plat par plat, heures et jours forts — calculés sur les tickets de tes membres. Passe au plan Croissance pour les consulter."
       >
+      {vue === "caisse" && caisse ? (
+        <CaisseSection caisse={caisse} share={share} programItems={totalItems} restaurantId={restaurantId} />
+      ) : (
       <div className="space-y-6">
       {/* Totaux de la période */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -361,7 +409,144 @@ export default async function AdminSalesPage({
         </>
       )}
       </div>
+      )}
       </PaywallSection>
+    </div>
+  );
+}
+
+// ── Vue « Toute la caisse » (ADR 0103 §6) ─────────────────────────────────────
+
+function CaisseSection({
+  caisse,
+  share,
+  programItems,
+  restaurantId,
+}: {
+  caisse: CaisseView;
+  share: number | null;
+  programItems: number;
+  restaurantId: string;
+}) {
+  const maxMargin = Math.max(1, ...caisse.dishes.map((d) => d.margin ?? 0));
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
+          <p className="text-2xl font-black text-ink tabular-nums">{caisse.totalItems.toLocaleString("fr-BE")}</p>
+          <p className="text-xs text-ink-muted mt-1">articles vendus</p>
+        </div>
+        <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
+          <p className="text-2xl font-black text-ink tabular-nums">{euro(caisse.revenue)}</p>
+          <p className="text-xs text-ink-muted mt-1">CA estimé (prix de la carte)</p>
+        </div>
+        <div className="bg-white rounded-xl border border-good/30 bg-good/10 p-4 text-center">
+          <p className="text-2xl font-black text-good tabular-nums">{euro(caisse.margin)}</p>
+          <p className="text-xs text-good mt-1">
+            marge estimée
+            {caisse.matchedPct !== null && (
+              <span className={caisse.matchedPct < 60 ? "block font-semibold text-warn" : "block"}>
+                {caisse.matchedPct} % des articles reconnus
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-paper-border p-4 text-center">
+          <p className="text-2xl font-black text-ink tabular-nums">{share === null ? "—" : `${share} %`}</p>
+          <p className="text-xs text-ink-muted mt-1">des articles achetés par les clients du programme</p>
+        </div>
+      </div>
+
+      {caisse.channels.length > 0 && (
+        <div className="bg-white rounded-xl border border-paper-border p-5">
+          <h2 className="font-bold text-ink mb-1">Par canal</h2>
+          <p className="text-xs text-ink-faint mb-4">Articles vendus selon l&apos;endroit de la commande.</p>
+          <div className="space-y-2">
+            {caisse.channels.map((c) => (
+              <div key={c.name} className="grid grid-cols-[minmax(0,8rem)_1fr_3rem] items-center gap-3 text-sm">
+                <span className="truncate text-ink-body">{c.name}</span>
+                <span className="h-2 rounded-full bg-paper-subtle overflow-hidden" aria-hidden="true">
+                  <span className="block h-full bg-ink rounded-full" style={{ width: `${c.pct}%` }} />
+                </span>
+                <span className="text-right tabular-nums text-ink">{c.pct} %</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl border border-paper-border overflow-x-auto">
+        <div className="px-4 pt-4 pb-2">
+          <h2 className="font-bold text-ink">Performance par plat</h2>
+          <p className="text-xs text-ink-faint mt-0.5">Quantités de la caisse × prix et coûts de ta carte. Triés par marge totale.</p>
+        </div>
+        <table className="w-full min-w-[520px] text-sm">
+          <thead className="bg-paper text-ink-muted text-xs uppercase">
+            <tr>
+              <th className="text-left font-medium px-4 py-2.5">Plat</th>
+              <th className="text-right font-medium px-4 py-2.5">Qté</th>
+              <th className="text-right font-medium px-4 py-2.5">CA estimé</th>
+              <th className="text-right font-medium px-4 py-2.5" title="(prix vente − prix revient) × quantité">Marge</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-paper-border">
+            {caisse.dishes.map((d) => (
+              <tr key={d.key}>
+                <td className="px-4 py-2.5">
+                  <div className="font-medium text-ink">
+                    {d.name}
+                    {!d.matched && (
+                      <span className="ml-2 text-xs bg-paper-subtle text-ink-muted px-1.5 py-0.5 rounded-full" title="Vendu en caisse mais absent de ta carte : ajoute-le dans Menu & coûts pour suivre sa marge">
+                        hors carte
+                      </span>
+                    )}
+                    {d.costMissing && (
+                      <span className="ml-2 text-xs bg-warn/10 text-warn px-1.5 py-0.5 rounded-full" title="Plat de la carte sans prix de revient : renseigne-le dans Menu & coûts">
+                        coût manquant
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 w-full bg-paper-subtle rounded-full h-1.5 max-w-[240px]">
+                    <div className="bg-ink h-1.5 rounded-full" style={{ width: `${d.margin === null ? 0 : Math.round((d.margin / maxMargin) * 100)}%` }} />
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-ink align-top">{d.qty.toLocaleString("fr-BE")}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-ink-body align-top">{d.revenue === null ? <span className="text-ink-faint/60">—</span> : euro(d.revenue)}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums align-top">
+                  {d.margin !== null ? <span className="font-semibold text-good">{euro(d.margin)}</span> : <span className="text-ink-faint/60">—</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="bg-paper rounded-xl p-4 text-xs text-ink-muted space-y-1.5">
+        {share !== null && (
+          <p>
+            Sur {caisse.totalItems.toLocaleString("fr-BE")} articles vendus en caisse, {programItems.toLocaleString("fr-BE")} l&apos;ont été à des
+            clients du programme ({share} %), d&apos;après les tickets qu&apos;ils ont envoyés.
+          </p>
+        )}
+        <p>
+          Le CA et la marge sont estimés avec les prix et coûts de ta carte : une remise, un menu à prix réduit ou un prix plus
+          élevé sur Uber Eats ne sont pas comptés.
+        </p>
+        {caisse.costMissing.length > 0 && (
+          <p>
+            {caisse.costMissing.length} plat{caisse.costMissing.length > 1 ? "s" : ""} sans prix de revient : marge non calculée.{" "}
+            <Link href={`/admin/${restaurantId}/menu`} className="font-semibold text-ink underline">Compléter les coûts</Link>
+          </p>
+        )}
+        {caisse.unmatched.length > 0 && (
+          <details>
+            <summary className="cursor-pointer">
+              {caisse.unmatched.length} produit{caisse.unmatched.length > 1 ? "s" : ""} de la caisse pas reconnu{caisse.unmatched.length > 1 ? "s" : ""} dans ta carte
+            </summary>
+            <p className="mt-1">{caisse.unmatched.join(", ")}</p>
+          </details>
+        )}
+      </div>
     </div>
   );
 }

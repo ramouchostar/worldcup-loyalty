@@ -5,7 +5,8 @@
 import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable } from "@/lib/audit/store";
 import { journal, markFailed, markOk, readToken } from "@/lib/hubrise/store";
-import { BelpeopleAuthError, exploreProductTables, readDailySales, readHourlySales, signIn, type ExploredTable } from "./api";
+import { BelpeopleAuthError, exploreProductTables, readDailySales, readHourlySales, readProductSales, signIn, type ExploredTable } from "./api";
+import type { ProductSaleRow } from "./products";
 import { revenueEntriesFrom, WINDOW_DAYS, windowStart, type DailySales } from "./model";
 
 const PROVIDER = "belpeople";
@@ -263,8 +264,19 @@ export async function syncBelpeople(conn: BelpeopleConnection, today: string, da
   } catch (e) {
     console.error("[belpeople] lecture horaire", (e as Error).message);
   }
+  // Ventes par plat (ADR 0103 §6) : même fenêtre. Un échec ne fait pas échouer
+  // le CA du jour, déjà enregistré ; il est dit dans le journal.
+  let products: number | string = 0;
+  try {
+    const token3 = await signIn(creds.email, creds.password);
+    const sold = await readProductSales(token3, conn.store_ref, windowStart(today, days));
+    products = await writeProductSales(conn, sold);
+  } catch (e) {
+    products = `échec : ${(e as Error).message}`;
+    console.error("[belpeople] ventes par plat", (e as Error).message);
+  }
   await markOk(conn.id);
-  await journal("belpeople_sync", { days: rows.length, hours, from: windowStart(today, days), ...revenue }, conn.id);
+  await journal("belpeople_sync", { days: rows.length, hours, products, from: windowStart(today, days), ...revenue }, conn.id);
   return { days: rows.length, ...revenue };
 }
 
@@ -317,4 +329,56 @@ export async function exploreBelpeopleProducts(conn: BelpeopleConnection): Promi
   const result = await exploreProductTables(token, conn.store_ref);
   await journal("belpeople_explore", { listed: result.listed, tables: result.tables.map((t) => t.name) }, conn.id);
   return result;
+}
+
+/** Range les ventes par plat lues (upsert par lots de 1 000). Renvoie le nombre de lignes. */
+async function writeProductSales(conn: BelpeopleConnection, sold: ProductSaleRow[]): Promise<number> {
+  const now = new Date().toISOString();
+  const db = createAdminClient();
+  for (let i = 0; i < sold.length; i += 1000) {
+    const { error } = await db.from("pos_product_sales").upsert(
+      sold.slice(i, i + 1000).map((r) => ({
+        provider: PROVIDER,
+        restaurant_id: conn.restaurant_id,
+        store_ref: conn.store_ref,
+        sales_day: r.sales_day,
+        channel_id: r.channel_id ?? 0,
+        channel_name: r.channel_name,
+        product_id: r.product_id,
+        product_name: r.product_name,
+        items_sold: r.items_sold,
+        read_at: now,
+      })),
+      { onConflict: "provider,restaurant_id,sales_day,channel_id,product_id" },
+    );
+    if (error) throw new Error(`pos_product_sales : ${error.message}`);
+  }
+  return sold.length;
+}
+
+/**
+ * Ventes par plat de la caisse depuis `fromDay` (lecture paginée). `null` si
+ * la table manque (migration 20261114-2200) : la page garde la vue programme.
+ */
+export async function listProductSales(restaurantId: string, fromDay: string): Promise<ProductSaleRow[] | null> {
+  const db = createAdminClient();
+  const out: ProductSaleRow[] = [];
+  for (let from = 0; from < 500_000; from += 1000) {
+    const { data, error } = await db
+      .from("pos_product_sales")
+      .select("sales_day, channel_id, channel_name, product_id, product_name, items_sold")
+      .eq("provider", PROVIDER)
+      .eq("restaurant_id", restaurantId)
+      .gte("sales_day", fromDay)
+      .order("sales_day")
+      .order("channel_id")
+      .order("product_id")
+      .range(from, from + 999);
+    if (isMissingTable(error)) return null;
+    if (error) throw new Error(`pos_product_sales : ${error.message}`);
+    const rows = (data ?? []) as ProductSaleRow[];
+    out.push(...rows.map((r) => ({ ...r, items_sold: Number(r.items_sold) || 0 })));
+    if (rows.length < 1000) return out;
+  }
+  throw new Error("pos_product_sales : plus de 500 000 lignes sur la période, lecture arrêtée.");
 }
