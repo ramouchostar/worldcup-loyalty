@@ -4,6 +4,9 @@ import { hubriseCredentials } from "@/lib/hubrise/api";
 import { addDays, dayLabel } from "@/lib/daily-revenue-model";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { hubriseDisconnect, hubriseSaveReference, hubriseSyncNow } from "./hubrise-actions";
+import { createAdminClient } from "@/lib/supabase";
+import { listLiveRestaurants } from "@/lib/demo";
+import { groupPosAnswers } from "@/lib/pos-system";
 
 // ADR 0102 §4, phase 1 — le chiffre HubRise À CÔTÉ de la référence, jamais à
 // la place : rien de ce bloc n'écrit dans daily_revenue_entries.
@@ -18,6 +21,33 @@ const eur = (n: number) => `${n.toLocaleString("fr-BE", { minimumFractionDigits:
 const when = (iso: string) => new Date(iso).toLocaleString("fr-BE", { timeZone: "Europe/Brussels", dateStyle: "short", timeStyle: "short" });
 const DAYS = 14;
 const COMPARED: ChannelKey[] = ["uber", "deliveroo", "takeaway"];
+
+// La caisse déclarée à l'inscription (« Quelle caisse utilisez-vous ? »), et
+// les réponses du réseau : on mesure avant de construire une connexion.
+// Fail-open : sans la migration 20261114-1000, le bloc ne s'affiche pas.
+async function PosSystemNote({ restaurantId }: { restaurantId: string }) {
+  const { data: own, error } = await createAdminClient()
+    .from("restaurants")
+    .select("pos_system, pos_system_noted_at")
+    .eq("id", restaurantId)
+    .maybeSingle();
+  if (error) return null;
+  const live = await listLiveRestaurants<{ id: string; pos_system: string | null }>(createAdminClient(), "id, pos_system");
+  const net = groupPosAnswers(live.map((r) => r.pos_system));
+  return (
+    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+      <p>
+        Caisse déclarée : <span className="font-semibold">{own?.pos_system ?? "pas encore demandée"}</span>
+        {own?.pos_system_noted_at ? ` (le ${when(own.pos_system_noted_at as string)})` : ""}
+      </p>
+      <p>
+        Réseau ({live.length} établissements en ligne) :{" "}
+        {net.groups.length ? net.groups.map((g) => `${g.label} ${g.count}`).join(" · ") : "aucune réponse"}
+        {net.unanswered ? ` · sans réponse ${net.unanswered}` : ""}
+      </p>
+    </div>
+  );
+}
 
 export async function HubriseSection({ restaurantId }: { restaurantId: string }) {
   const found = await activeConnection(restaurantId);
@@ -41,6 +71,7 @@ export async function HubriseSection({ restaurantId }: { restaurantId: string })
           Lecture seule des commandes d&apos;un point de vente HubRise (ADR 0102). Le chiffre s&apos;affiche ici, à côté de la
           référence, sans jamais remplacer le CA du jour.
         </p>
+        <PosSystemNote restaurantId={restaurantId} />
         {configured ? (
           <a href={`/api/hubrise/connect?r=${encodeURIComponent(restaurantId)}`} className={`${BTN} inline-block`}>
             Connecter HubRise
@@ -106,6 +137,8 @@ export async function HubriseSection({ restaurantId }: { restaurantId: string })
           </form>
         </div>
       </div>
+
+      <PosSystemNote restaurantId={restaurantId} />
 
       {conn.last_failed_at && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">

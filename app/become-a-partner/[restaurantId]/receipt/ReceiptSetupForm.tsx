@@ -5,6 +5,7 @@ import { analyzeReceiptSamples, confirmReceiptConfig } from "../../actions";
 import { queueEvent } from "@/lib/analytics-pending";
 import type { ReceiptKeyProposal } from "@/lib/receipt-key-discovery";
 import { CopyToInputs, SameForAll, type Sibling } from "../../SameForAll";
+import { POS_MAX_LENGTH, POS_QUESTION, POS_SUGGESTIONS, POS_UNKNOWN } from "@/lib/pos-system";
 
 // Étape 3/4 onboarding (ADR 0019). Deux phases :
 // 1. upload 2-3 photos → analyse → proposition de clé unique ;
@@ -19,6 +20,10 @@ export function ReceiptSetupForm({ restaurantId, siblings = [] }: { restaurantId
   const [error, setError] = useState<string | null>(null);
   const [proposal, setProposal] = useState<ReceiptKeyProposal | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // ADR 0102 (suite) — la caisse utilisée, facultative, envoyée avec les deux
+  // sorties de l'étape (numéro confirmé ou « continuer sans »).
+  const [pos, setPos] = useState("");
+  const [posUnknown, setPosUnknown] = useState(false);
 
   function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []).slice(0, 3);
@@ -107,6 +112,35 @@ export function ReceiptSetupForm({ restaurantId, siblings = [] }: { restaurantId
         </button>
       </form>
 
+      <div className="bg-white rounded-2xl shadow-xl p-6 space-y-2">
+        <label htmlFor="pos-system" className="block text-sm font-medium text-gray-700">
+          {POS_QUESTION}
+        </label>
+        <input
+          id="pos-system"
+          list="pos-system-suggestions"
+          value={pos}
+          maxLength={POS_MAX_LENGTH}
+          disabled={posUnknown}
+          onChange={(e) => setPos(e.target.value)}
+          placeholder="Ex : Lightspeed, Vectron, SumUp…"
+          autoComplete="off"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-50 disabled:text-gray-400"
+        />
+        <datalist id="pos-system-suggestions">
+          {POS_SUGGESTIONS.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input type="checkbox" checked={posUnknown} onChange={(e) => setPosUnknown(e.target.checked)} />
+          {POS_UNKNOWN}
+        </label>
+        <p className="text-xs text-gray-500">
+          Facultatif. Ça nous dit si votre chiffre du jour peut être lu dans votre caisse, au lieu d&apos;être noté à la main.
+        </p>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <p className="text-red-700 text-sm font-medium">{error}</p>
@@ -117,6 +151,8 @@ export function ReceiptSetupForm({ restaurantId, siblings = [] }: { restaurantId
       {proposal && proposal.has_reliable_key && (
         <form action={handleConfirm} className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
           <CopyToInputs siblings={siblings} same={same} />
+          <input type="hidden" name="pos_system" value={pos} />
+          <input type="hidden" name="pos_unknown" value={posUnknown ? "true" : ""} />
           <div>
             <h2 className="font-bold text-gray-900">Numéro repéré sur tes tickets ✅</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -238,6 +274,8 @@ export function ReceiptSetupForm({ restaurantId, siblings = [] }: { restaurantId
       <form action={handleConfirm} className="text-center">
         <input type="hidden" name="skip" value="true" />
         <CopyToInputs siblings={siblings} same={same} />
+        <input type="hidden" name="pos_system" value={pos} />
+        <input type="hidden" name="pos_unknown" value={posUnknown ? "true" : ""} />
         <button
           type="submit"
           disabled={confirming}

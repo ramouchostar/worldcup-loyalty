@@ -77,6 +77,17 @@ HubRise (abonnement par point de vente) et ses ponts (Uber Eats Bridge, connecte
 payants. Le coût par établissement est relevé pendant le pilote ; l'extension à Houba et De Bue se
 décide sur ce coût et sur l'existence d'un connecteur HubRise pour la caisse Belchicken.
 
+### 6. On demande la caisse avant de construire
+
+*Ajouté le 2026-11-14 (décision du porteur)* : « **Quelle caisse utilisez-vous ?** » est posée à
+l'inscription, à l'étape des tickets (facultative, réponse libre avec suggestions, « Je ne sais
+pas » possible, reprise pour les établissements « même caisse »), et en visite (kit, questions de
+découverte et fiche après visite). Réponse brute dans `restaurants.pos_system` (migration
+`20261114-1000-restaurant-caisse.sql`), regroupée à la lecture sur `/platform/ca`. Une connexion
+de caisse hors HubRise (Chift, API d'un éditeur) ne se discute qu'une fois qu'une caisse non
+couverte revient souvent. Ne jamais promettre la connexion : « si elle est compatible, le chiffre
+remonte tout seul ; sinon 30 secondes par jour suffisent ».
+
 ## Conséquences
 
 - Migration : `pos_connections` (établissement, fournisseur `hubrise`, compte et point de vente
