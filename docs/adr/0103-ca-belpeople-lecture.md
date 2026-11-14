@@ -109,6 +109,14 @@ seulement décrite ; les colonnes qui pourraient porter une donnée client ne so
 (`belpeople_explore`). La page « Ventes par plat » sur le total sera décidée sur cette base
 (finesse des périodes, rapprochement produit ↔ carte pour la marge), maquette d'abord.
 
+Belpeople refuse la liste des tables à ce compte (401 sur la description OpenAPI) : l'exploration
+sonde des noms. Ceux de la page « Ventes de produits » de Belpeople ont été lus dans le **code
+public** de son site (2026-11-14, aucun mot de passe) : `v_agg_products_sold_daily` / `_weekly` /
+`_monthly` (filtrées par `store_id`, période `business_date` / `week_start` / `month_start`,
+quantités par produit et par canal) et la fonction `report_food_cost_product_sales(p_store_ids,
+p_months)` (CA TTC et HT par produit et par mois). `v_odoo_product_sales_monthly` est une table de
+la centrale d'achat, **toute la chaîne sans magasin** : jamais lue.
+
 **Hors de cet ADR, à décider avec le porteur** : les **ventes par produit** (`v_odoo_product_sales_monthly`,
 mensuelles, par `product_id`, avec des euros) et leur usage pour des **offres personnalisées** côté
 membre. Cela touche l'ADR 0007 (jamais d'euros ni de seuil au membre), l'ADR 0025 (aucune donnée
