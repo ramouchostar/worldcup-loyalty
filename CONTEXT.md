@@ -30,6 +30,9 @@ _Avoid_ : « connexion à la caisse » (on demande le chiffre), « ventes du jou
 Lecture seule des commandes d'un point de vente via **HubRise** (concentrateur où caisse et plateformes de livraison déposent leurs commandes), autorisée par OAuth (portée `location[orders.read]`, jeton dans Supabase Vault, jamais d'identifiant de portail). Tables `pos_connections` et `pos_orders` (sans donnée client). **Ne remplace pas le CA du jour** tant que l'écart n'est pas mesuré : d'abord affiché à côté dans `/platform/ca`, puis pré-remplit un canal après 14 jours à ≤ 2 % d'écart ; le total sans saisie n'arrive que si la caisse elle-même est sur HubRise. Pilote : Kraainem, Uber Eats seul.
 _Avoid_ : « CA automatique » tant que seule une plateforme est branchée (c'est la ligne Uber Eats, pas le CA du jour).
 
+**Caisse déclarée** *(ADR 0102 §6)* :
+Réponse du restaurateur à « Quelle caisse utilisez-vous ? » (inscription, étape des tickets ; ou en visite), gardée telle que tapée dans `restaurants.pos_system` (« Je ne sais pas » compris, NULL = pas demandée). Sert à mesurer quelles caisses ont nos restaurants avant de construire une connexion. _Avoid_ : « caisse compatible » tant que personne n'a vérifié le catalogue HubRise.
+
 **Prévision (forecast)** *(ADR 0027)* :
 Estimation du **CA total** à venir de l'établissement, calculée **uniquement sur les ventes caisse** (jamais les commandes scannées). Réservée à l'**admin/restaurateur** — jamais côté membre (l'ADR 0007 ne vise que le membre). Toujours exprimée en **fourchette + niveau de confiance**, avec un **plancher** en dessous duquel elle ne s'affiche pas (« pas assez de données »). Moteur déterministe et explicable (facteurs visibles).
 _Avoid_ : prédiction (trop absolu — c'est une aide à la décision, pas une garantie), CA / chiffre d'affaires **côté client** (interdit ADR 0007).

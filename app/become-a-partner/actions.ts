@@ -10,6 +10,7 @@ import { parseMenuCsv, upsertMenuCatalog } from "@/lib/menu";
 import { applyDefaultRewardConfig } from "@/lib/reward-defaults";
 import { isAllowedReceiptType } from "@/lib/receipt-ocr";
 import { parseHttpUrl } from "@/lib/url";
+import { posSystemAnswer } from "@/lib/pos-system";
 import {
   discoverReceiptKey,
   validateProposedPattern,
@@ -54,6 +55,20 @@ async function ownedCopyTargets(userId: string, currentId: string, formData: For
   const ids = Array.from(new Set(formData.getAll("copy_to").map((v) => String(v)).filter((id) => id && id !== currentId))).slice(0, 10);
   const checks = await Promise.all(ids.map(async (id) => ((await isRestaurantOwner(userId, id)) ? id : null)));
   return checks.filter((id): id is string => !!id);
+}
+
+// ADR 0102 (suite) — « Quelle caisse utilisez-vous ? » (étape tickets). Une
+// réponse vide ne remplace jamais une réponse déjà donnée. Fail-open : sans la
+// migration 20261114-1000, l'inscription continue, la réponse est perdue et
+// le journal le dit.
+async function savePosSystem(restaurantIds: string[], formData: FormData): Promise<void> {
+  const answer = posSystemAnswer(formData.get("pos_system"), formData.get("pos_unknown") === "true");
+  if (!answer || restaurantIds.length === 0) return;
+  const { error } = await createAdminClient()
+    .from("restaurants")
+    .update({ pos_system: answer, pos_system_noted_at: new Date().toISOString() })
+    .in("id", restaurantIds);
+  if (error) console.error("[inscription] caisse non enregistrée :", restaurantIds.join(","), error.message);
 }
 
 // ADR 0075 §6 — un établissement ajouté plus tard reprend la carte ou la
@@ -114,6 +129,11 @@ export async function copyReceiptFormatFrom(targetId: string, sourceId: string):
   if (error) {
     console.error("[inscription] format de ticket non repris :", targetId, error.message);
     redirect(`/become-a-partner/${targetId}/receipt`);
+  }
+  // ADR 0102 (suite) — même caisse : la réponse « Quelle caisse » suit le format.
+  const { data: srcPos } = await admin.from("restaurants").select("pos_system").eq("id", sourceId).maybeSingle();
+  if (srcPos?.pos_system) {
+    await admin.from("restaurants").update({ pos_system: srcPos.pos_system, pos_system_noted_at: new Date().toISOString() }).eq("id", targetId);
   }
   redirect(PARTNER_PROGRESS_PATH);
 }
@@ -255,6 +275,8 @@ export async function confirmReceiptConfig(
   const skip = formData.get("skip") === "true";
   const admin = createAdminClient();
   const copyTargets = await ownedCopyTargets(auth.userId, restaurantId, formData);
+  // Même caisse pour les établissements cochés « pareil pour tous » (ADR 0075 §2).
+  await savePosSystem([restaurantId, ...copyTargets], formData);
 
   // ADR 0075 §2 — même caisse dans plusieurs établissements : le FORMAT est
   // copié, jamais `store_code` (le code d'établissement imprimé dans la clé,

@@ -92,7 +92,7 @@ export const SCRIPT: ScriptStep[] = [
     time: "2:00 – 7:00",
     title: "Les questions de découverte",
     lines: [
-      "On écoute plus qu'on ne parle. On note ses mots exacts : ils serviront pour nos textes. Choisir 5 questions sur 7 :",
+      "On écoute plus qu'on ne parle. On note ses mots exacts : ils serviront pour nos textes. Choisir 5 questions sur 8, dont toujours celle de la caisse :",
       "« Quels sont vos jours les plus calmes ? Qu'est-ce que vous faites ces jours-là ? »",
       "« Vos clients, vous les connaissez ? Vous savez qui revient et qui ne revient plus ? »",
       "« Aujourd'hui, comment vous faites pour qu'un client revienne ? Carte à tampons, promos, rien ? »",
@@ -100,6 +100,8 @@ export const SCRIPT: ScriptStep[] = [
       "« Combien vous coûtent vos promos et vos cadeaux en fin de mois ? Vous le savez ? »",
       "« Vous suivez votre chiffre du jour ? Où vous le notez ? »",
       "« Quelle part de vos ventes passe par Uber Eats, Deliveroo ou Takeaway ? »",
+      // ADR 0102 (suite) — on mesure quelles caisses ont nos restaurants avant d'en connecter une.
+      "« Quelle caisse utilisez-vous ? » (la marque écrite sur l'écran ou en bas du ticket ; ne rien promettre : « si elle est compatible, le chiffre remonte tout seul, sinon 30 secondes par jour suffisent »)",
     ],
   },
   {
@@ -256,6 +258,7 @@ export const AFTER_VISIT_FIELDS: { field: string; fill: string }[] = [
   { field: "Ce qu'il fait pour faire revenir", fill: "rien / carte à tampons / Joyn / autre" },
   { field: "Pub déjà faite ?", fill: "non / oui, budget, résultat dans ses mots" },
   { field: "Part des plateformes", fill: "son estimation" },
+  { field: "Caisse utilisée", fill: "la marque (Lightspeed, Vectron, SumUp…) ou « ne sait pas »" },
   { field: "Ses phrases exactes", fill: "2 ou 3 citations, pour nos textes et la fiche marketing" },
   { field: "Objection principale", fill: "dans ses mots" },
   { field: "Prochaine étape", fill: "action + date et heure (jamais vide)" },
