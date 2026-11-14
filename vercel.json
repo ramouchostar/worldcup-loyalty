@@ -62,6 +62,10 @@
     {
       "path": "/api/cron/hubrise-sync",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/belpeople-sync",
+      "schedule": "0 5 * * *"
     }
   ]
 }

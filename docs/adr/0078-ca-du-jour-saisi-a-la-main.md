@@ -1,6 +1,9 @@
 # ADR 0078 — Le CA du jour se note à la main, d'abord en test
 
-**Statut** : Proposé (2026-10-05) — décidé par le porteur en conversation de session. Amende
+**Statut** : Proposé (2026-10-05) — décidé par le porteur en conversation de session. **Amendé par
+l'[ADR 0103](0103-ca-belpeople-lecture.md) (proposé, 2026-11-14)** : la connexion à Belpeople, refusée
+ici, devient possible en lecture seule pour le seul CA d'un restaurant (API de données, mot de passe
+dans Vault, accord du siège), à côté de la saisie. Amende
 l'[ADR 0027](0027-sales-import-and-forecast.md) §3 (le CSV n'est plus la seule source des ventes de
 caisse). Reste dans le cadre de l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md)
 (mesurer, jamais se brancher sur la caisse) et applique l'[ADR 0065](0065-le-bouclier-scene-trace-echos.md) (tester la
