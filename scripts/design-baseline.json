@@ -32,7 +32,6 @@
     "app/(public)/publicite-restaurant/page.tsx": 1,
     "app/(public)/relancer-vos-clients/page.tsx": 1,
     "app/(public)/visibilite-restaurant/page.tsx": 1,
-    "app/admin/[restaurantId]/SimpleHomePage.tsx": 1,
     "app/admin/[restaurantId]/benchmarks/page.tsx": 1,
     "app/admin/[restaurantId]/broadcast/page.tsx": 1,
     "app/admin/[restaurantId]/ca/[jour]/page.tsx": 1,

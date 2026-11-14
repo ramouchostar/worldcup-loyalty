@@ -291,7 +291,7 @@ const GESTURE_COUNT: Record<number, string> = { 3: "Trois gestes", 4: "Quatre ge
 
 const TODO_ICONS: Record<string, LucideIcon> = { staff: Users, flagged: Receipt, pending: Receipt, claims: Star, catalog: ListPlus, ca: CalendarDays };
 
-function TodoCard({ view }: { view: SimpleHomeView }) {
+export function TodoCard({ view }: { view: SimpleHomeView }) {
   if (view.todo.length === 0) {
     return (
       <div className="flex items-center gap-3 bg-white border border-paper-border rounded-xl px-5 py-3.5">

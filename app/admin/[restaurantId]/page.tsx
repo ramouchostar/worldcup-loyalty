@@ -14,7 +14,8 @@ import { ConsolePushCard } from "@/components/admin/ConsolePushCard";
 import { PageHeader, Card, SectionLabel, StatTile, StatusBadge } from "@/components/admin/ui";
 import { cookies } from "next/headers";
 import { CONSOLE_VIEW_COOKIE, parseConsoleView } from "@/lib/admin-nav";
-import { SimpleHomePage } from "./SimpleHomePage";
+import { StatsPage } from "./StatsPage";
+import { parseStatsPeriod } from "@/lib/stats-page";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
 import { addDays, caTodos } from "@/lib/console-journey";
@@ -35,18 +36,22 @@ export default async function AdminDashboardPage({
   // `?bienvenue=1` : première arrivée par lien d'invitation (ADR 0032). La
   // proposition d'installer l'app y prend un ton d'accueil, au lieu de se
   // fondre dans la console d'un habitué.
-  searchParams: Promise<{ bienvenue?: string; seat?: string }>;
+  searchParams: Promise<{ bienvenue?: string; seat?: string; periode?: string }>;
 }) {
   const { restaurantId } = await params;
-  const { bienvenue, seat } = await searchParams;
+  const { bienvenue, seat, periode } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   // ADR 0064 — la vue simple est l'accueil par défaut ; ce tableau de bord
-  // complet reste celui de la vue pro, inchangé.
+  // complet reste celui de la vue pro, inchangé. Depuis le 2026-11-14, l'onglet
+  // « Stats » de la vue simple montre la page Stats par forfait ; l'ancien
+  // accueil simple vit sur /progression (lien « Ta progression »).
   if (parseConsoleView((await cookies()).get(CONSOLE_VIEW_COOKIE)?.value) === "simple") {
-    return <SimpleHomePage restaurantId={restaurantId} userId={user.id} bienvenue={!!bienvenue} seat={seat} />;
+    return (
+      <StatsPage restaurantId={restaurantId} userId={user.id} periodKey={parseStatsPeriod(periode)} bienvenue={!!bienvenue} seat={seat} />
+    );
   }
 
   const admin = createAdminClient();

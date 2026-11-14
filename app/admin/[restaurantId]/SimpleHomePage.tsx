@@ -1,6 +1,4 @@
-import { ConsolePushCard } from "@/components/admin/ConsolePushCard";
-import Link from "next/link";
-import { Hourglass, SlidersHorizontal } from "lucide-react";
+import { HomeBottomNotices, HomeTopNotices } from "@/components/admin/simple/HomeNotices";
 import { getRestaurant } from "@/lib/restaurant";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { loadSimpleHomeRaw } from "@/lib/console-journey-data";
@@ -23,7 +21,6 @@ import { RevenueWeeksCard } from "@/components/admin/simple/RevenueWeeksCard";
 import { FORECAST_MIN_NOTED_DAYS, weeklyPerformance } from "@/lib/revenue-weeks";
 import { forecastFrom, loadForecastInputs } from "@/lib/forecast-data";
 import { pendingServicesFor } from "@/lib/service-requests";
-import { InstallAppCard } from "@/components/InstallAppCard";
 import { SimpleHome } from "@/components/admin/simple/SimpleHome";
 
 // Accueil de la vue simple (ADR 0064) — la page charge, lib/console-journey.ts
@@ -72,52 +69,8 @@ export async function SimpleHomePage({
     new Date().toLocaleDateString("fr-BE", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Brussels" })
   );
 
-  const top = (
-    <>
-      {/* ADR 0038 §3 — première arrivée par lien d'invitation : l'app d'abord. */}
-      {bienvenue && <InstallAppCard audience="restaurateur" surface="console_premiere_visite" ton="accueil" />}
-
-      {/* ADR 0041 — rôle proposé rétrogradé en équipe (quota atteint). */}
-      {seat === "equipe-quota" && (
-        <div className="bg-paper-subtle border border-paper-border rounded-xl p-4">
-          <p className="text-sm text-ink-body">
-            Ton accès a été ajouté en <strong>équipe (accès établissement)</strong> — le quota de gérants/managers était
-            déjà atteint. Ton accès à la console reste complet.
-          </p>
-        </div>
-      )}
-
-      {restaurant?.status === "pending" && (
-        <div className="bg-warn/10 border border-warn/30 rounded-xl p-4">
-          <p className="font-bold text-warn text-sm mb-1">
-            <Hourglass size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
-            Ton établissement n&apos;est pas encore visible des clients
-          </p>
-          {/* ADR 0075 §3 — en attente = inscription finie, validation en cours. */}
-          <p className="text-xs text-warn">
-            Ton inscription est complète : notre équipe le vérifie et te prévient dès qu&apos;il est en ligne.
-          </p>
-        </div>
-      )}
-    </>
-  );
-
-  const bottom = (
-    <>
-      <ConsolePushCard restaurantId={restaurantId} />
-      {!bienvenue && <InstallAppCard audience="restaurateur" surface="console_admin" ton="discret" />}
-      <Link
-        href={`${base}/vue?mode=pro`}
-        className="flex items-center gap-3 px-5 py-3.5 bg-white border border-dashed border-paper-border rounded-xl hover:bg-paper transition-colors md:hidden"
-      >
-        <SlidersHorizontal size={17} strokeWidth={1.7} className="text-ink-muted shrink-0" aria-hidden="true" />
-        <span className="flex-1 min-w-0">
-          <span className="block text-[13.5px] font-semibold text-ink">Voir tous les chiffres</span>
-          <span className="block text-[12px] text-ink-faint">Passer en vue pro : ventes, prévisions, repères, réglages</span>
-        </span>
-      </Link>
-    </>
-  );
+  const top = <HomeTopNotices bienvenue={bienvenue} seat={seat} pending={restaurant?.status === "pending"} />;
+  const bottom = <HomeBottomNotices restaurantId={restaurantId} bienvenue={bienvenue} />;
 
   return (
     <SimpleHome

@@ -17,9 +17,14 @@ import type { ProgramDay, RevenueDay } from "./revenue-tracker";
 /** 60 jours : 14 affichés + 4 mêmes jours de semaine pour comparer + marge. */
 const HISTORY_DAYS = 60;
 
-export async function loadRevenueTracker(restaurantId: string, today: string): Promise<{ days: RevenueDay[]; program: Record<string, ProgramDay> }> {
+export async function loadRevenueTracker(
+  restaurantId: string,
+  today: string,
+  /** Profondeur de lecture : 60 jours pour l'accueil, plus pour « Stats — depuis le début ». */
+  historyDays: number = HISTORY_DAYS
+): Promise<{ days: RevenueDay[]; program: Record<string, ProgramDay> }> {
   const admin = createAdminClient();
-  const since = addDays(today, -HISTORY_DAYS);
+  const since = addDays(today, -historyDays);
 
   const [entries, sales, orders] = await Promise.all([
     listDailyEntries(restaurantId).catch((e) => {
