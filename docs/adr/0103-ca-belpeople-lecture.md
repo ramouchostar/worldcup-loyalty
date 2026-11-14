@@ -98,6 +98,17 @@ et le week-end, sur 28 jours ; pur et testé, `lib/belpeople/hourly.ts`) — pou
 Une heure est « pleine » à ≥ 66 % du pic du jour, « creuse » à ≤ 33 %. Opérationnel, console seule,
 rien côté membre.
 
+### 6. Ventes par produit : on explore d'abord (ajouté le 2026-11-14)
+
+Mehdi veut que « Ventes par plat » (console) montre le **total de la caisse**, pas seulement les
+tickets du programme. Avant de construire, un bouton « Explorer les ventes par produit » sur
+`/platform/ca` (super-admin) liste les tables de produits et de ventes de Belpeople et en lit **5
+lignes au plus, filtrées sur le seul magasin autorisé** ; une table sans colonne magasin est
+seulement décrite ; les colonnes qui pourraient porter une donnée client ne sont **jamais** lues
+(`lib/belpeople/explore.ts`, testé). Rien n'est enregistré ; chaque exploration est journalisée
+(`belpeople_explore`). La page « Ventes par plat » sur le total sera décidée sur cette base
+(finesse des périodes, rapprochement produit ↔ carte pour la marge), maquette d'abord.
+
 **Hors de cet ADR, à décider avec le porteur** : les **ventes par produit** (`v_odoo_product_sales_monthly`,
 mensuelles, par `product_id`, avec des euros) et leur usage pour des **offres personnalisées** côté
 membre. Cela touche l'ADR 0007 (jamais d'euros ni de seuil au membre), l'ADR 0025 (aucune donnée
