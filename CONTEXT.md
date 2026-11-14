@@ -536,7 +536,7 @@ Liste d'activité **pseudonymisée** des membres d'un établissement pour son re
 _Avoid_ : fichier client, export clients, contacts.
 
 **Vue simple / vue pro** *(ADR 0064)* :
-Les deux affichages de la console restaurateur, sur les **mêmes pages et les mêmes droits**. La **vue simple**, par défaut, a cinq onglets — Idées · Stats · Tickets · Annonces · Plus (ADR 0064 amendé par l'ADR 0089) — en bas de l'écran sur téléphone, en colonne sur ordinateur ; « Plus » liste tout le reste, en mots de restaurateur. La **vue pro** est la console complète (quatre sections, tableau de bord détaillé du mois). Préférence d'affichage par appareil (cookie `console_vue`), jamais un droit.
+Les deux affichages de la console restaurateur, sur les **mêmes pages et les mêmes droits**. La **vue simple**, par défaut, a cinq onglets — Idées · Stats · Tickets · Annonces · Plus (ADR 0064 amendé par l'ADR 0089) — en bas de l'écran sur téléphone, en colonne sur ordinateur ; « Plus » liste tout le reste, en mots de restaurateur. L'onglet **Stats** montre les chiffres de la période selon le forfait (ADR 0064 amendé le 2026-11-14) ; l'ancien accueil simple s'appelle **Ta progression** (`/admin/<id>/progression`). La **vue pro** est la console complète (quatre sections, tableau de bord détaillé du mois). Préférence d'affichage par appareil (cookie `console_vue`), jamais un droit.
 _Avoid_ : mode simple/expert, console allégée (rien n'est retiré, tout est dans « Plus »), « Broadcasts » (on dit « Annonces »).
 
 **Étape du parcours** *(ADR 0064)* :

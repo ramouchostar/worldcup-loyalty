@@ -41,6 +41,9 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
       links: [
         { href: base, label: "Dashboard", icon: "dashboard", hint: "Tes chiffres du mois et ce qu'il y a à faire" },
         { href: `${base}/idees`, label: "Idées du jour", icon: "ideas", hint: "Ce que tes assistants te proposent aujourd'hui : oui ou non" },
+        // La page « Stats » a pris l'adresse de l'accueil : le jeu de la croissance,
+        // les tâches et le CA jour par jour y restent, à cette adresse.
+        { href: `${base}/progression`, label: "Ta progression", icon: "thresholds", hint: "Ton étape, ce qu'il y a à faire et ton chiffre jour par jour" },
         // ADR 0052 — la file des doublons ambigus est un ONGLET de Commandes.
         { href: `${base}/orders`, label: "Commandes", icon: "orders", hint: "Les tickets de tes clients, à vérifier ou déjà validés" },
         { href: `${base}/pending-rewards`, label: "Cadeaux", icon: "gifts", hint: "Les cadeaux que tes clients viendront chercher" },
@@ -98,8 +101,9 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
 /**
  * Les onglets de la vue simple — bas d'écran sur téléphone, colonne sur
  * ordinateur. Cinq depuis la brigade (ADR 0089, ADR 0064 amendé le 2026-11-05) :
- * « Idées » en tête — les idées des assistants à valider —, puis « Stats »,
- * l'ancien accueil (l'espace Stats de Chloé le remplacera, même adresse).
+ * « Idées » en tête — les idées des assistants à valider —, puis « Stats »
+ * (la page Stats par forfait, 2026-11-14 ; l'ancien accueil est devenu
+ * « Ta progression », `${base}/progression`).
  * « Plus » garde l'accès à tout.
  */
 export function simpleTabs(base: string): (AdminNavLink & { match: "exact" | "prefix" })[] {
