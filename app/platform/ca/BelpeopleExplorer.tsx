@@ -15,8 +15,9 @@ export async function BelpeopleExplorer({ restaurantId }: { restaurantId: string
     return <p className="text-sm text-gray-500">Belpeople n&apos;est pas connecté pour cet établissement.</p>;
   }
   let tables: ExploredTable[];
+  let listed: boolean;
   try {
-    tables = await exploreBelpeopleProducts(found.connection);
+    ({ tables, listed } = await exploreBelpeopleProducts(found.connection));
   } catch (e) {
     return (
       <div id="bp-explorer" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -33,6 +34,12 @@ export async function BelpeopleExplorer({ restaurantId }: { restaurantId: string
           5 au plus ; une table sans magasin est seulement décrite ; les colonnes qui pourraient porter une donnée client ne sont jamais lues.
           Rien n&apos;est enregistré.
         </p>
+        {!listed && (
+          <p className="text-xs text-gray-500 max-w-2xl">
+            Belpeople refuse la liste complète des tables à ce compte : seuls des noms connus ou probables ont été essayés.
+            Une table absente ici peut exister sous un autre nom.
+          </p>
+        )}
       </div>
       {tables.length === 0 && <p className="text-sm text-gray-500">Aucune table de produits trouvée.</p>}
       {tables.map((t) => (
@@ -40,13 +47,13 @@ export async function BelpeopleExplorer({ restaurantId }: { restaurantId: string
           <p className="font-semibold text-gray-900 dark:text-white">
             {t.name}{" "}
             <span className="text-xs font-normal text-gray-500">
-              {t.storeColumn ? `magasin : ${t.storeColumn}` : "sans colonne magasin (non lue)"}
+              {t.storeColumn ? `magasin : ${t.storeColumn}` : "non lue"}
               {t.dateColumn ? `, période : ${t.dateColumn}` : ""}
             </span>
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 break-words">Colonnes : {t.columns.join(", ")}</p>
+          {t.columns.length > 0 && <p className="text-xs text-gray-600 dark:text-gray-400 break-words">Colonnes : {t.columns.join(", ")}</p>}
           {t.hidden.length > 0 && <p className="text-xs text-gray-500">Jamais lues : {t.hidden.join(", ")}</p>}
-          {t.error && <p className="text-xs text-red-700">{t.error}</p>}
+          {t.error && <p className="text-xs text-gray-600 dark:text-gray-400">{t.error}</p>}
           {t.rows && t.rows.length === 0 && <p className="text-xs text-gray-500">Aucune ligne pour ce magasin.</p>}
           {t.rows && t.rows.length > 0 && (
             <div className="overflow-x-auto">

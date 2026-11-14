@@ -52,3 +52,36 @@ export function sampleQuery(t: TableShape, storeRef: string): URLSearchParams | 
   if (t.dateColumn && t.readable.includes(t.dateColumn)) q.set("order", `${t.dateColumn}.desc`);
   return q;
 }
+
+// ── Sonde par noms (2026-11-14) ────────────────────────────────────────────────
+// Belpeople refuse la liste des tables (description OpenAPI réservée au compte
+// de service, 401) : on essaie des noms connus ou probables, un par un.
+
+/** Noms essayés quand la liste des tables est refusée. Le premier est connu (essai du 2026-11-14). */
+export const CANDIDATE_TABLES = [
+  "v_odoo_product_sales_monthly",
+  "v_odoo_product_sales_daily",
+  "v_odoo_product_sales_weekly",
+  "v_odoo_product_sales",
+  "odoo_product_sales",
+  "agg_product_sales_daily",
+  "agg_sales_product_daily",
+  "agg_sales_daily_product",
+  "agg_product_sales",
+  "agg_sales_by_product",
+  "product_sales_daily",
+  "product_sales",
+  "v_product_sales",
+  "agg_category_sales_daily",
+  "v_odoo_products",
+  "odoo_products",
+  "products",
+];
+
+/** Colonnes magasin essayées, dans l'ordre. */
+export const STORE_COLUMN_CANDIDATES = ["store_id", "restaurant_id", "location_id", "shop_id", "store"];
+
+/** Une ligne lue → seulement ses colonnes non sensibles (rien d'autre ne sort de la lecture). */
+export function stripSensitive(row: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(row).filter(([k]) => !SENSITIVE_COLUMN.test(k)));
+}

@@ -5,7 +5,7 @@
 
 import { parseSalesRow, type DailySales } from "./model";
 import type { HourlyRow } from "./hourly";
-import { productTables, sampleQuery, type TableShape } from "./explore";
+import { CANDIDATE_TABLES, productTables, sampleQuery, shapeOf, SAMPLE_ROWS, STORE_COLUMN_CANDIDATES, stripSensitive, type TableShape } from "./explore";
 
 export function belpeopleConfig(): { url: string; anon: string } | null {
   const url = process.env.BELPEOPLE_SUPABASE_URL?.trim().replace(/\/$/, "");
@@ -94,28 +94,63 @@ export type ExploredTable = TableShape & { rows: Record<string, unknown>[] | nul
  * magasin autorisé pour celles qui se filtrent sur le magasin. Rien n'est
  * enregistré chez nous.
  */
-export async function exploreProductTables(token: string, storeRef: string): Promise<ExploredTable[]> {
+export async function exploreProductTables(token: string, storeRef: string): Promise<{ listed: boolean; tables: ExploredTable[] }> {
   const cfg = belpeopleConfig();
   if (!cfg) throw new Error("Belpeople non configuré.");
   const headers = { apikey: cfg.anon, Authorization: `Bearer ${token}` };
   const res = await fetch(`${cfg.url}/rest/v1/`, { headers: { ...headers, Accept: "application/openapi+json" }, cache: "no-store" });
-  if (res.status === 401) throw new BelpeopleAuthError("jeton Belpeople refusé.");
-  if (!res.ok) throw new Error(`Belpeople, liste des tables : ${res.status}`);
-  const spec = (await res.json()) as { definitions?: Record<string, { properties?: Record<string, unknown> }> };
-  const tables = productTables(spec.definitions ?? {});
+  if (res.ok) {
+    const spec = (await res.json()) as { definitions?: Record<string, { properties?: Record<string, unknown> }> };
+    const out: ExploredTable[] = [];
+    for (const t of productTables(spec.definitions ?? {})) {
+      const q = sampleQuery(t, storeRef);
+      if (!q) {
+        out.push({ ...t, rows: null, error: null });
+        continue;
+      }
+      const r = await fetch(`${cfg.url}/rest/v1/${encodeURIComponent(t.name)}?${q}`, { headers, cache: "no-store" });
+      out.push(r.ok ? { ...t, rows: ((await r.json()) as Record<string, unknown>[]).slice(0, SAMPLE_ROWS), error: null } : { ...t, rows: null, error: `lecture refusée (${r.status})` });
+    }
+    return { listed: true, tables: out };
+  }
+  // Liste refusée (Supabase la réserve au compte de service) : sonde par noms.
+  return { listed: false, tables: await probeTables(cfg.url, headers, storeRef) };
+}
+
+/**
+ * Essaie chaque nom de CANDIDATE_TABLES avec un filtre sur le magasin (une
+ * colonne magasin après l'autre). Jamais de lecture sans ce filtre : une table
+ * qui ne se filtre pas est signalée « existe, non lue ». Les colonnes sensibles
+ * sont retirées de chaque ligne avant de sortir d'ici.
+ */
+async function probeTables(url: string, headers: Record<string, string>, storeRef: string): Promise<ExploredTable[]> {
   const out: ExploredTable[] = [];
-  for (const t of tables) {
-    const q = sampleQuery(t, storeRef);
-    if (!q) {
-      out.push({ ...t, rows: null, error: null });
-      continue;
+  for (const name of CANDIDATE_TABLES) {
+    let found: ExploredTable | null = null;
+    let exists = false;
+    let lastStatus = 0;
+    for (const col of STORE_COLUMN_CANDIDATES) {
+      const q = new URLSearchParams({ select: "*", [col]: `eq.${storeRef}`, limit: String(SAMPLE_ROWS) });
+      const r = await fetch(`${url}/rest/v1/${encodeURIComponent(name)}?${q}`, { headers, cache: "no-store" });
+      lastStatus = r.status;
+      if (r.status === 404) break; // la table n'existe pas (ou n'est pas exposée)
+      exists = true;
+      if (r.status === 401 || r.status === 403) break; // existe, pas pour ce compte
+      if (!r.ok) continue; // 400 : pas cette colonne magasin, on essaie la suivante
+      const raw = ((await r.json()) as Record<string, unknown>[]).slice(0, SAMPLE_ROWS);
+      const rows = raw.map(stripSensitive);
+      const columns = raw[0] ? Object.keys(raw[0]) : [];
+      const shape = shapeOf(name, columns);
+      found = { ...shape, storeColumn: col, rows, error: null };
+      break;
     }
-    const r = await fetch(`${cfg.url}/rest/v1/${encodeURIComponent(t.name)}?${q}`, { headers, cache: "no-store" });
-    if (!r.ok) {
-      out.push({ ...t, rows: null, error: `lecture refusée (${r.status})` });
-      continue;
-    }
-    out.push({ ...t, rows: ((await r.json()) as Record<string, unknown>[]).slice(0, 5), error: null });
+    if (found) out.push(found);
+    else if (exists)
+      out.push({
+        ...shapeOf(name, []),
+        rows: null,
+        error: lastStatus === 401 || lastStatus === 403 ? `existe, accès refusé (${lastStatus})` : "existe, mais aucune colonne magasin : non lue",
+      });
   }
   return out;
 }

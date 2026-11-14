@@ -309,12 +309,12 @@ export async function listBelpeopleHourly(restaurantId: string, fromIso: string)
 
 
 /** ADR 0103 §6 — exploration des ventes par produit, à la demande d'un super-admin. Journalisée. */
-export async function exploreBelpeopleProducts(conn: BelpeopleConnection): Promise<ExploredTable[]> {
+export async function exploreBelpeopleProducts(conn: BelpeopleConnection): Promise<{ listed: boolean; tables: ExploredTable[] }> {
   const raw = await readToken(conn.id);
   if (!raw) throw new Error("Accès Belpeople absent du coffre : ressaisir le mot de passe.");
   const creds = JSON.parse(raw) as { email: string; password: string };
   const token = await signIn(creds.email, creds.password);
-  const tables = await exploreProductTables(token, conn.store_ref);
-  await journal("belpeople_explore", { tables: tables.map((t) => t.name) }, conn.id);
-  return tables;
+  const result = await exploreProductTables(token, conn.store_ref);
+  await journal("belpeople_explore", { listed: result.listed, tables: result.tables.map((t) => t.name) }, conn.id);
+  return result;
 }
