@@ -11,6 +11,7 @@ import { META_SPEC, buildTargeting, isOpenObjective, judgeContent, judgeRequest,
 import { formatEur, isLowCredit, MIN_BUDGET_CENTS, quote, daysLeft } from "./money";
 import { structuredRef } from "./structured-ref";
 import { todayBrussels } from "./sync";
+import { campaignReach, campaignResults } from "./home-card";
 
 // ADR 0086 §1-5 — le parcours d'une demande de pub, côté restaurateur et côté plateforme.
 // Tout passe par le serveur (service-role) ; les gardes d'accès sont dans les Server Actions.
@@ -64,6 +65,11 @@ export type RequestView = {
   campaignName: string | null;
   adStatus: string | null;
   notices: NoticeView[];
+  /** Mot clé de l'offre à dire au comptoir, et dernier jour de l'offre. */
+  offerKeyword: string | null;
+  offerTo: string | null;
+  /** D'où vient `reach` : le total unique de Meta, ou la somme des jours en attendant (lib/ads/home-card.ts). */
+  reachSource: "meta" | "jours";
 };
 
 type Notice = { id: string; request_id: string; kind: "initial" | "recharge"; budget_cents: number; fee_cents: number; vat_cents: number; expected_cents: number; structured_ref: string; confirmed_at: string | null; created_at: string };
@@ -80,10 +86,10 @@ export async function listRequests(restaurantId: string): Promise<{ ok: true; re
   const [notices, credits, camps, billing] = await Promise.all([
     ids.length ? db.from("ad_payment_notices").select("*").in("request_id", ids).order("created_at") : Promise.resolve({ data: [], error: null }),
     ids.length ? db.from("ad_credit_transactions").select("request_id, amount_cents").in("request_id", ids) : Promise.resolve({ data: [], error: null }),
-    ids.length ? db.from("ad_campaigns").select("id, request_id, name, ad_status").in("request_id", ids) : Promise.resolve({ data: [], error: null }),
+    ids.length ? db.from("ad_campaigns").select("id, request_id, name, ad_status, lifetime").in("request_id", ids) : Promise.resolve({ data: [], error: null }),
     getBilling(restaurantId),
   ]);
-  const campRows = (camps.data ?? []) as { id: string; request_id: string; name: string; ad_status: string | null }[];
+  const campRows = (camps.data ?? []) as { id: string; request_id: string; name: string; ad_status: string | null; lifetime: { reach?: unknown } | null }[];
   const stats = campRows.length
     ? await db.from("ad_daily_stats").select("campaign_id, day, spend_cents, results, reach, clicks").in("campaign_id", campRows.map((c) => c.id)).order("day")
     : { data: [] };
@@ -99,6 +105,7 @@ export async function listRequests(restaurantId: string): Promise<{ ok: true; re
     const status = r.status as RequestStatus;
     const objective = r.objective as string;
     const creative = r.creative as RequestView["creative"];
+    const reach = campaignReach(s, camp?.lifetime);
     return {
       id,
       seq: r.seq as number,
@@ -117,13 +124,16 @@ export async function listRequests(restaurantId: string): Promise<{ ok: true; re
       createdAt: r.created_at as string,
       paidCents: paid,
       spentCents: spent,
-      results: s.reduce((n, x) => n + x.results, 0),
-      reach: s.reduce((n, x) => n + x.reach, 0),
+      results: campaignResults(objective, s, reach.reach),
+      reach: reach.reach,
+      reachSource: reach.source,
       clicks: s.reduce((n, x) => n + x.clicks, 0),
       daysLeft: status === "en_diffusion" ? daysLeft(paid - spent, recent) : null,
       lowCredit: status === "en_diffusion" && isLowCredit(paid - spent, recent),
       campaignName: camp?.name ?? null,
       adStatus: camp?.ad_status ?? null,
+      offerKeyword: (r.offer_keyword as string | null) ?? null,
+      offerTo: (r.offer_to as string | null) ?? null,
       notices: ((notices.data ?? []) as Notice[]).filter((n) => n.request_id === id).map((n) => ({ id: n.id, kind: n.kind, budgetCents: n.budget_cents, feeCents: n.fee_cents, vatCents: n.vat_cents, expectedCents: n.expected_cents, ref: n.structured_ref, confirmedAt: n.confirmed_at, createdAt: n.created_at })),
     };
   });
