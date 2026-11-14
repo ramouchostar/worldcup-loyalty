@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { superAdminId } from "@/lib/hubrise/guard";
 import { belpeopleConnection, disconnectBelpeople, saveBelpeopleCredentials, syncBelpeople } from "@/lib/belpeople/store";
+import { BACKFILL_DAYS } from "@/lib/belpeople/model";
 import { belpeopleConfig } from "@/lib/belpeople/api";
 import { todayInBrussels } from "@/lib/qr-funnel";
 
@@ -59,6 +60,20 @@ export async function belpeopleSyncNow(formData: FormData) {
     days = (await syncBelpeople(found.connection, todayInBrussels())).days;
   } catch (e) {
     back({ r, bperreur: `Lecture Belpeople impossible : ${(e as Error).message}` });
+  }
+  back({ r, belpeople: `relu-${days}` });
+}
+
+export async function belpeopleBackfill(formData: FormData) {
+  await guard();
+  const r = field(formData, "r", 80);
+  const found = await belpeopleConnection(r);
+  if (found.missing || !found.connection) back({ r, bperreur: "Aucun accès Belpeople pour cet établissement." });
+  let days: number;
+  try {
+    days = (await syncBelpeople(found.connection, todayInBrussels(), BACKFILL_DAYS)).days;
+  } catch (e) {
+    back({ r, bperreur: `Rechargement Belpeople impossible : ${(e as Error).message}` });
   }
   back({ r, belpeople: `relu-${days}` });
 }

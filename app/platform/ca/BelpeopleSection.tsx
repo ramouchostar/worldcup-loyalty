@@ -4,7 +4,7 @@ import { gap, isFilled, PREFILL_MAX_GAP_PCT, PREFILL_MIN_DAYS, type DailySales }
 import { listDailyEntries } from "@/lib/daily-revenue";
 import { addDays, dayLabel } from "@/lib/daily-revenue-model";
 import { todayInBrussels } from "@/lib/qr-funnel";
-import { belpeopleDisconnect, belpeopleSave, belpeopleSyncNow } from "./belpeople-actions";
+import { belpeopleBackfill, belpeopleDisconnect, belpeopleSave, belpeopleSyncNow } from "./belpeople-actions";
 
 // ADR 0103 §4, phase 1 — le CA total Belpeople À CÔTÉ du total saisi, jamais à
 // la place : rien de ce bloc n'écrit dans daily_revenue_entries.
@@ -17,7 +17,7 @@ const LABEL = "text-xs font-semibold text-gray-600 dark:text-gray-300";
 
 const eur = (n: number) => `${n.toLocaleString("fr-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 const when = (iso: string) => new Date(iso).toLocaleString("fr-BE", { timeZone: "Europe/Brussels", dateStyle: "short", timeStyle: "short" });
-const DAYS = 14;
+const DAYS = 30;
 
 export async function BelpeopleSection({ restaurantId }: { restaurantId: string }) {
   const found = await belpeopleConnection(restaurantId);
@@ -100,6 +100,10 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
           <form action={belpeopleSyncNow}>
             <input type="hidden" name="r" value={restaurantId} />
             <button type="submit" className={BTN_GHOST}>Relire maintenant</button>
+          </form>
+          <form action={belpeopleBackfill}>
+            <input type="hidden" name="r" value={restaurantId} />
+            <button type="submit" className={BTN_GHOST}>Recharger l&apos;historique</button>
           </form>
           <form action={belpeopleDisconnect}>
             <input type="hidden" name="r" value={restaurantId} />

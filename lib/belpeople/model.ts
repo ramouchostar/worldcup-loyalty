@@ -3,8 +3,10 @@
 
 export { gap } from "@/lib/hubrise/model";
 
-/** Belpeople se remplit en différé : on relit une fenêtre, pas « hier » seul. */
-export const WINDOW_DAYS = 10;
+/** Belpeople se remplit en différé (parfois ~6 jours) : on relit une fenêtre large. */
+export const WINDOW_DAYS = 14;
+/** Rechargement de l'historique à la demande (bouton « Recharger l'historique »). */
+export const BACKFILL_DAYS = 120;
 export const PREFILL_MAX_GAP_PCT = 2;
 export const PREFILL_MIN_DAYS = 14;
 

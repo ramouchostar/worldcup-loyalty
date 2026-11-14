@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase";
 import { isMissingTable } from "@/lib/audit/store";
 import { journal, markFailed, markOk, readToken } from "@/lib/hubrise/store";
 import { BelpeopleAuthError, readDailySales, signIn } from "./api";
-import { windowStart, type DailySales } from "./model";
+import { WINDOW_DAYS, windowStart, type DailySales } from "./model";
 
 const PROVIDER = "belpeople";
 
@@ -113,7 +113,7 @@ export async function disconnectBelpeople(connectionId: string): Promise<void> {
 }
 
 /** Lit la fenêtre glissante chez Belpeople et met à jour pos_daily_sales. */
-export async function syncBelpeople(conn: BelpeopleConnection, today: string): Promise<{ days: number }> {
+export async function syncBelpeople(conn: BelpeopleConnection, today: string, days = WINDOW_DAYS): Promise<{ days: number }> {
   const raw = await readToken(conn.id);
   if (!raw) {
     await markFailed(conn.id, "Accès absent du coffre : ressaisir le mot de passe Belpeople.");
@@ -129,7 +129,7 @@ export async function syncBelpeople(conn: BelpeopleConnection, today: string): P
   let rows: DailySales[];
   try {
     const token = await signIn(creds.email, creds.password);
-    rows = await readDailySales(token, conn.store_ref, windowStart(today));
+    rows = await readDailySales(token, conn.store_ref, windowStart(today, days));
   } catch (e) {
     const reason = e instanceof BelpeopleAuthError ? `Connexion Belpeople refusée : ${e.message}` : (e as Error).message;
     await markFailed(conn.id, reason);
@@ -156,7 +156,7 @@ export async function syncBelpeople(conn: BelpeopleConnection, today: string): P
     if (error) throw new Error(`pos_daily_sales : ${error.message}`);
   }
   await markOk(conn.id);
-  await journal("belpeople_sync", { days: rows.length, from: windowStart(today) }, conn.id);
+  await journal("belpeople_sync", { days: rows.length, from: windowStart(today, days) }, conn.id);
   return { days: rows.length };
 }
 
