@@ -1,14 +1,16 @@
 import { belpeopleConnection, listBelpeopleHourly, listBelpeopleSales } from "@/lib/belpeople/store";
 import { belpeopleConfig } from "@/lib/belpeople/api";
-import { gap, isFilled, PREFILL_MAX_GAP_PCT, PREFILL_MIN_DAYS, type DailySales } from "@/lib/belpeople/model";
+import { gap, isFilled, PREFILL_MAX_GAP_PCT, STALE_AFTER_DAYS, staleDays, type DailySales } from "@/lib/belpeople/model";
 import { hourlyProfile, type DayType, type HourSlot } from "@/lib/belpeople/hourly";
 import { listDailyEntries } from "@/lib/daily-revenue";
 import { addDays, dayLabel } from "@/lib/daily-revenue-model";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { belpeopleBackfill, belpeopleDisconnect, belpeopleSave, belpeopleSyncNow } from "./belpeople-actions";
 
-// ADR 0103 §4, phase 1 — le CA total Belpeople À CÔTÉ du total saisi, jamais à
-// la place : rien de ce bloc n'écrit dans daily_revenue_entries.
+// ADR 0103 §4 (amendé le 2026-11-14) — Belpeople fait foi : le cron écrit le CA
+// TTC de chaque jour rempli dans le CA du jour (source 'belpeople'). Ce bloc
+// compare aux saisies faites à la main (jamais à lui-même) et signale les jours
+// encore vides chez Belpeople au-delà de STALE_AFTER_DAYS.
 
 const CARD = "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl";
 const INPUT = "w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2.5 py-2 text-sm";
@@ -39,8 +41,8 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
       <section id="belpeople" className={`${CARD} p-5 space-y-3`} aria-labelledby="h-bp">
         <h2 id="h-bp" className="text-lg font-bold text-gray-900 dark:text-white">Belpeople · CA total de la caisse</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
-          Lecture seule du CA total (tous canaux) dans Belpeople. Le chiffre s&apos;affiche ici, à côté du total saisi, sans jamais le remplacer.
-          Un accord écrit du siège Belchicken est requis avant d&apos;activer la lecture quotidienne.
+          Lecture seule du CA total (tous canaux) dans Belpeople. Une fois connecté, ce chiffre devient le CA du jour de
+          l&apos;établissement : plus de saisie ni de rappel.
         </p>
         {configured ? (
           <form action={belpeopleSave} className="grid gap-3 sm:grid-cols-4 items-end">
@@ -71,7 +73,10 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
   const from = addDays(today, -(DAYS - 1));
   const [sales, entries] = await Promise.all([listBelpeopleSales(restaurantId, from), listDailyEntries(restaurantId)]);
   const byDayBp = new Map(sales.map((s) => [s.sales_day, s]));
-  const byDayEntry = entries.missing ? new Map() : new Map(entries.rows.map((e) => [e.sales_day, e.amount]));
+  // Seules les saisies à la main se comparent : une ligne écrite par Belpeople serait égale à elle-même.
+  const byDayEntry = entries.missing ? new Map() : new Map(entries.rows.filter((e) => e.source !== "belpeople").map((e) => [e.sales_day, e.amount]));
+  const stale = staleDays(sales, today, DAYS);
+  const staleSet = new Set(stale);
   const days = Array.from({ length: DAYS }, (_, i) => addDays(today, -i));
 
   let compared = 0;
@@ -119,8 +124,15 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
         </div>
       )}
 
+      {stale.length > 0 && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {stale.length} jour{stale.length > 1 ? "s" : ""} toujours vide{stale.length > 1 ? "s" : ""} chez Belpeople après {STALE_AFTER_DAYS} jours :{" "}
+          {stale.map(dayLabel).join(", ")}. Fermé ce jour-là, ou Belpeople en retard ? Le CA du jour reste vide tant que rien n&apos;est lu.
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <Tile label="Jours à ≤ 2 %" value={compared ? `${within}/${compared}` : "—"} sub={`comparés à la saisie · pré-remplissage à ${PREFILL_MIN_DAYS}`} />
+        <Tile label="Jours à ≤ 2 %" value={compared ? `${within}/${compared}` : "—"} sub="comparés aux saisies à la main" />
         <Tile label="Jours lus" value={String(sales.filter(isFilled).length)} sub={`sur ${DAYS} derniers jours`} />
         <Tile label="Décalage" value={lastFilled ? `${Math.max(0, Math.round((Date.parse(today) - Date.parse(lastFilled.sales_day)) / 86400000))} j` : "—"} sub="dernier jour plein ↔ aujourd'hui" />
       </div>
@@ -131,7 +143,7 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
             <tr className="text-left text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">
               <th className="py-2 pr-3 font-semibold">Jour de vente</th>
               <th className="py-2 pr-3 font-semibold">Belpeople (TTC)</th>
-              <th className="py-2 pr-3 font-semibold">Saisi</th>
+              <th className="py-2 pr-3 font-semibold">Saisi à la main</th>
               <th className="py-2 pr-3 font-semibold">Écart</th>
             </tr>
           </thead>
@@ -145,7 +157,7 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
                 <tr key={d} className="border-b border-gray-100 dark:border-gray-900">
                   <td className="py-2 pr-3 whitespace-nowrap">{dayLabel(d)}{d === today ? <span className="text-xs text-gray-500"> · en cours</span> : null}</td>
                   <td className="py-2 pr-3 tabular-nums whitespace-nowrap">
-                    {bp && isFilled(bp) ? <>{eur(bp.gross_inc_vat ?? 0)} <span className="text-xs text-gray-500">· {bp.orders_count} cmd</span></> : <span className="text-gray-400">—</span>}
+                    {bp && isFilled(bp) ? <>{eur(bp.gross_inc_vat ?? 0)} <span className="text-xs text-gray-500">· {bp.orders_count} cmd</span></> : <span className={staleSet.has(d) ? "text-red-700 font-semibold" : "text-gray-400"}>{staleSet.has(d) ? "vide" : "—"}</span>}
                   </td>
                   <td className="py-2 pr-3 tabular-nums whitespace-nowrap">{saisi !== null && saisi !== undefined ? eur(saisi) : <span className="text-gray-400">—</span>}</td>
                   <td className={`py-2 pr-3 tabular-nums whitespace-nowrap ${off ? "text-red-700 font-semibold" : ""}`}>
@@ -159,7 +171,8 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
       </div>
       <p className="text-xs text-gray-500">
         CA total, tous canaux (caisse + plateformes), TVA comprise. Belpeople se remplit avec quelques jours de retard : les jours
-        vides se compléteront à la prochaine lecture. Rien n&apos;est écrit dans le CA du jour (phase 1).
+        vides se compléteront à la prochaine lecture. Chaque jour rempli devient le CA du jour de la console (il remplace une
+        saisie du même jour) ; un jour vide n&apos;est jamais compté comme 0 €.
       </p>
 
       <HourlyProfile restaurantId={restaurantId} today={today} />

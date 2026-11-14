@@ -1,4 +1,5 @@
 import { HomeBottomNotices, HomeTopNotices } from "@/components/admin/simple/HomeNotices";
+import { readsRevenueFromBelpeople } from "@/lib/belpeople/store";
 import { getRestaurant } from "@/lib/restaurant";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { loadSimpleHomeRaw } from "@/lib/console-journey-data";
@@ -55,7 +56,8 @@ export async function SimpleHomePage({
   // son CA (un jour noté sur les 28 derniers) ou dont les rappels sont allumés :
   // jamais sept tâches d'un coup à quelqu'un à qui on n'a encore rien demandé.
   const notesCa = revenueRaw.days.some((d) => d.day >= addDays(today, -28)) || (await isMessageEnabled(CA_REMINDER_KEY, restaurantId));
-  const caMissing = notesCa ? missingDays(new Set(revenueRaw.days.map((d) => d.day)), today) : [];
+  // ADR 0103 amendé : CA lu dans Belpeople → rien à saisir.
+  const caMissing = notesCa && !(await readsRevenueFromBelpeople(restaurantId)) ? missingDays(new Set(revenueRaw.days.map((d) => d.day)), today) : [];
   const view = buildSimpleHomeView({ ...raw, caMissing });
   // ADR 0087 §5 — la performance semaine après semaine (14 jours notés) et les
   // 7 prochains jours (28). Même moteur que la page Prévisions (lib/forecast-data).

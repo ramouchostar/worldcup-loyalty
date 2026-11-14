@@ -1,4 +1,5 @@
 import { getRestaurant } from "@/lib/restaurant";
+import { readsRevenueFromBelpeople } from "@/lib/belpeople/store";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { getEntitlement, getPlan, type Plan } from "@/lib/entitlements";
 import { todayInBrussels } from "@/lib/qr-funnel";
@@ -134,7 +135,9 @@ export async function StatsPage({
   const notesCa =
     (revenueBlock.ok && revenueBlock.data.days.some((d) => d.day >= addDays(today, -28))) ||
     (await isMessageEnabled(CA_REMINDER_KEY, restaurantId));
-  const caMissing = notesCa && revenueBlock.ok ? missingDays(new Set(revenueBlock.data.days.map((d) => d.day)), today) : [];
+  // ADR 0103 amendé : CA lu dans Belpeople → rien à saisir, même pour les jours encore en retard.
+  const fromPos = await readsRevenueFromBelpeople(restaurantId);
+  const caMissing = !fromPos && notesCa && revenueBlock.ok ? missingDays(new Set(revenueBlock.data.days.map((d) => d.day)), today) : [];
   const home = buildSimpleHomeView({ ...homeRaw, caMissing });
 
   const growth = buildGrowthView(growthRaw);
@@ -149,7 +152,7 @@ export async function StatsPage({
       period={period}
       headline={headline}
       clients={clients}
-      revenue={{ allowed: revenueAccess.allowed, block: revenue, noteHref: `${base}/ca/${addDays(today, -1)}`, forecast, today }}
+      revenue={{ allowed: revenueAccess.allowed, block: revenue, noteHref: fromPos ? null : `${base}/ca/${addDays(today, -1)}`, forecast, today }}
       dishes={items ? (items.ok ? { ok: true, data: topDishes(items.data) } : { ok: false }) : null}
       dishesHref={`${base}/sales`}
       google={reputation.google}

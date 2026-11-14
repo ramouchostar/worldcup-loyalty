@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { readsRevenueFromBelpeople } from "@/lib/belpeople/store";
 import { Award, CalendarDays, ChevronRight, CircleCheck, Hourglass, Lightbulb, ListPlus, Receipt, Rocket, Star, TriangleAlert, Trophy, type LucideIcon } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase";
 import { createServerSupabaseClient } from "@/lib/supabase";
@@ -91,7 +92,9 @@ export default async function AdminDashboardPage({
   // ADR 0087 §5 — les jours sans CA noté, même règle que la vue simple.
   const today = todayInBrussels();
   const revenue = await loadRevenueTracker(restaurantId, today);
-  const caMissing = revenue.days.some((d) => d.day >= addDays(today, -28)) || (await isMessageEnabled(CA_REMINDER_KEY, restaurantId))
+  // ADR 0103 amendé : CA lu dans Belpeople → rien à saisir.
+  const caMissing = !(await readsRevenueFromBelpeople(restaurantId)) &&
+    (revenue.days.some((d) => d.day >= addDays(today, -28)) || (await isMessageEnabled(CA_REMINDER_KEY, restaurantId)))
     ? missingDays(new Set(revenue.days.map((d) => d.day)), today)
     : [];
 

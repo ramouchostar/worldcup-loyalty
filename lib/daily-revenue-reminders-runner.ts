@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createAdminClient } from "./supabase";
 import { listLiveRestaurants } from "./demo";
 import { isMessageEnabled, isMissingJournal, recordSend } from "./message-log";
+import { readsRevenueFromBelpeople } from "./belpeople/store";
 import { sendConsolePush } from "./console-push";
 import { trackedUrl } from "./message-links";
 import { APP_URL } from "./email-templates/kit";
@@ -179,6 +180,11 @@ export async function runCaReminders(now = new Date()): Promise<ReminderReport> 
       if (kept) report.weather++;
     }
     if (!(await isMessageEnabled(CA_REMINDER_KEY, r.id))) continue;
+    // ADR 0103 amendé : le CA de cet établissement est lu dans Belpeople, rien à lui demander.
+    if (await readsRevenueFromBelpeople(r.id)) {
+      report.skipped.push(`${r.id} : CA lu dans Belpeople, aucun rappel`);
+      continue;
+    }
     report.enabled++;
     const state = await knownState(r.id, today);
     if ("lockMissing" in state) {

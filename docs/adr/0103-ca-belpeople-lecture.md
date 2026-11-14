@@ -1,6 +1,6 @@
 # ADR 0103 — Le CA total se lit dans Belpeople, en lecture seule, à côté de la saisie
 
-**Statut** : Proposé (2026-11-14) — décidé par le porteur en session, à valider. Pilote :
+**Statut** : Accepté (2026-11-14, Mehdi) — **amendé le 2026-11-14** : Belpeople remplace la saisie (§4 bis), les conditions du §2 (accord écrit du siège) et du §4 (14 jours de mesure) sont levées par le porteur. Pilote :
 Belchicken Kraainem. **Amende l'[ADR 0078](0078-ca-du-jour-saisi-a-la-main.md)** (qui refusait de se
 connecter à Belpeople avec l'identifiant d'un restaurant) : la lecture devient possible, à des
 conditions strictes, parce que la caisse Belchicken (S4D) n'est pas sur HubRise et que Belpeople
@@ -63,6 +63,31 @@ Essai en lecture seule du 2026-11-14 (compte d'Aram, propriétaire de Kraainem, 
 - **Phase 2 (pré-remplissage)** : après **14 jours comparables** avec un écart ≤ **2 %** entre
   Belpeople et la saisie, on pré-remplit le total du jour depuis Belpeople ; le restaurateur valide
   toujours. La valeur garde sa source (`belpeople`). Décision à acter par amendement.
+
+### 4 bis. Belpeople remplace la saisie (amendé le 2026-11-14, décision de Mehdi)
+
+Le porteur lève les conditions des §2 et §4 : Kraainem n'a **jamais** saisi son CA à la main
+(aucune ligne `daily_revenue_entries` au 2026-11-14), la phase de comparaison n'a donc rien à
+mesurer, et la saisie n'est plus utile quand la caisse elle-même est lue.
+
+- Le cron (et « Relire » / « Recharger l'historique ») écrit chaque jour **rempli et terminé** chez
+  Belpeople (`revenueEntriesFrom`, `lib/belpeople/model.ts`) dans `daily_revenue_entries` :
+  `amount` = CA TTC, `tickets` = commandes, `outcome = 'historique'` (un chiffre venu d'ailleurs, hors
+  taux de réponse du test), `source = 'belpeople'` (migration `20261114-2000-ca-source-belpeople`),
+  et la vente caisse du même jour dans `restaurant_sales`, comme `save_daily_revenue_console`.
+  Stats, « Ta progression », prévisions et Chloé lisent donc le chiffre sans autre changement.
+- **Belpeople fait foi** : il remplace une saisie du même jour (le détail par canal est vidé). Le
+  nombre de saisies remplacées est tracé (`replaced` dans le journal `belpeople_sync`).
+- **Un jour vide n'est jamais 0 €** : il attend. Au-delà de 10 jours toujours vide, il est signalé
+  en rouge sur `/platform/ca` (`staleDays`) — fermé, ou Belpeople en retard, à l'équipe de juger.
+- **On ne demande plus rien** à un établissement connecté (`readsRevenueFromBelpeople`) : pas de
+  rappel du soir, pas de tâche « CA de … à saisir », pas d'idée « Tu n'as pas noté hier », pas de
+  lien « Noter le chiffre d'hier » ni de barre à corriger dans Stats. Le retard de Belpeople
+  (~6 jours) est assumé : les niveaux du jeu de la croissance (ADR 0081) se comptent en semaines.
+- Fail-open : une connexion illisible répond « non connecté » (on redemande la saisie plutôt que
+  de se taire) ; une écriture refusée met la connexion en échec, dit en rouge sur `/platform/ca`.
+- Reste à faire (maquette d'abord) : la page de saisie `/admin/[id]/ca/[jour]` en lecture seule
+  pour un établissement connecté (« Lu dans Belpeople »).
 
 ### 5. Les ventes par heure, pour le personnel (ajouté le 2026-11-14)
 

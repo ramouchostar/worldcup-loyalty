@@ -27,7 +27,8 @@ export type StatsViewProps = {
   revenue: {
     allowed: boolean;
     block: Block<RevenueStats>;
-    noteHref: string;
+    /** null : le CA est lu dans Belpeople (ADR 0103 amendé), rien à noter ni à corriger ici. */
+    noteHref: string | null;
     forecast: { expected: number; low: number; high: number } | null;
     /** Aujourd'hui (Bruxelles) — décide quels jours des barres s'ouvrent encore (fenêtre de correction, ADR 0087). */
     today: string;
@@ -183,7 +184,7 @@ function ClientsSection({ block, period }: { block: Block<ClientStats>; period: 
   );
 }
 
-function Bars({ bars, restaurantId, today }: { bars: RevenueStats["bars"]; restaurantId: string; today: string }) {
+function Bars({ bars, restaurantId, today, editable = true }: { bars: RevenueStats["bars"]; restaurantId: string; today: string; editable?: boolean }) {
   if (bars.length === 0) return null;
   const max = Math.max(1, ...bars.map((b) => b.amount ?? 0));
   // Au-delà de ~6 semaines, les barres deviennent des traits : on n'en garde que les 42 dernières.
@@ -200,7 +201,7 @@ function Bars({ bars, restaurantId, today }: { bars: RevenueStats["bars"]; resta
       <div className="flex items-end gap-[3px] h-16">
         {shown.map((b) =>
           // Chaque jour encore corrigeable s'ouvre d'un appui (ADR 0087 : saisie ou correction).
-          isEditableDay(b.day, today) ? (
+          editable && isEditableDay(b.day, today) ? (
             <Link
               key={b.day}
               href={`/admin/${restaurantId}/ca/${b.day}`}
@@ -250,7 +251,7 @@ function RevenueSection({ restaurantId, revenue, upsell }: { restaurantId: strin
             )}
           </div>
           {/* Le jour par jour est une fonction Croissance (maquette Gratuit : total et jours notés seuls). */}
-          {revenue.allowed && r && r.notedDays > 0 && <Bars bars={r.bars} restaurantId={restaurantId} today={revenue.today} />}
+          {revenue.allowed && r && r.notedDays > 0 && <Bars bars={r.bars} restaurantId={restaurantId} today={revenue.today} editable={revenue.noteHref !== null} />}
           {r && r.notedDays > 0 && (
             <p className="sr-only">
               {r.notedDays} jours notés sur {r.elapsedDays} jours écoulés de la période.
@@ -278,9 +279,11 @@ function RevenueSection({ restaurantId, revenue, upsell }: { restaurantId: strin
               </strong>
             </div>
           )}
-          <Link href={revenue.noteHref} className="min-h-[44px] inline-flex items-center gap-1 text-[14px] font-semibold text-boost-olive-dark hover:underline">
-            Noter le chiffre d&apos;hier <ArrowRight size={15} aria-hidden="true" />
-          </Link>
+          {revenue.noteHref && (
+            <Link href={revenue.noteHref} className="min-h-[44px] inline-flex items-center gap-1 text-[14px] font-semibold text-boost-olive-dark hover:underline">
+              Noter le chiffre d&apos;hier <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+          )}
         </Card>
       )}
       {upsell && (
