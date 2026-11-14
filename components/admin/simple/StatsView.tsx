@@ -5,7 +5,7 @@ import { Card, CardRow } from "@/components/admin/ui";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { StatsPeriodTabs } from "./StatsPeriodTabs";
 import { signed, type ClientStats, type RevenueStats, type StatsPeriod } from "@/lib/stats-page";
-import type { Block, GoogleBlock, MessagesBlock, SocialBlock } from "@/lib/stats-page-data";
+import type { Block, ChallengeCount, GoogleBlock, MessagesBlock, SocialBlock } from "@/lib/stats-page-data";
 
 // La page « Stats » de la vue simple — maquette validée le 2026-11-14
 // (https://claude.ai/artifact/87hGzRBqX2dSW9metwAYCo). Une phrase en clair,
@@ -252,39 +252,56 @@ function DishesSection({ block, href }: { block: Block<{ name: string; quantity:
   );
 }
 
+/** « +3 ce mois » sous un total de défis ; rien pour « depuis le début » (le total dit tout). */
+function challengeDelta(c: ChallengeCount, period: StatsPeriod): string | null {
+  if (period.key === "debut") return null;
+  return `+${num(c.inPeriod)} ${period.key === "mois" ? "ce mois" : period.label}`;
+}
+
 function GoogleSection({ block, period }: { block: Block<GoogleBlock>; period: StatsPeriod }) {
   if (!block.ok) return <Unavailable what="Ta réputation sur Google" />;
   const g = block.data;
+  const delta = challengeDelta(g.reviews, period);
   return (
     <section className="space-y-3" aria-labelledby="stats-google">
       <SectionTitle>
         <span id="stats-google">Ta réputation sur Google</span>
       </SectionTitle>
       <Card className="space-y-3">
-        {g.rating ? (
-          <div className="flex items-center gap-3">
-            <strong className="font-display text-[34px] font-bold text-ink tabular-nums">
-              {g.rating.rating.toLocaleString("fr-BE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-            </strong>
-            <div className="flex flex-col gap-0.5">
+        {/* Le défi « avis Google » de l'appli : le chiffre que le programme apporte. */}
+        <div className="flex items-end justify-between gap-3">
+          <span className="flex flex-col">
+            <span className="text-[15px] font-semibold text-ink">Avis laissés par tes clients</span>
+            <span className="text-[13px] text-ink-muted">membres qui ont fait le défi « avis Google » dans l&apos;appli</span>
+          </span>
+          <span className="flex flex-col items-end shrink-0">
+            <strong className="font-display text-[30px] leading-none font-bold text-ink tabular-nums">{num(g.reviews.total)}</strong>
+            {delta && <span className="text-[13px] text-ink-muted tabular-nums mt-1">{delta}</span>}
+          </span>
+        </div>
+        <div className="pt-3 border-t border-paper-border">
+          {g.rating ? (
+            <div className="flex items-center gap-2 text-[14px] text-ink-muted">
               <span className="flex gap-0.5 text-warn" role="img" aria-label={`${g.rating.rating.toLocaleString("fr-BE")} étoiles sur 5`}>
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} size={15} strokeWidth={1.6} fill={g.rating!.rating >= i - 0.25 ? "currentColor" : "none"} aria-hidden="true" />
+                  <Star key={i} size={13} strokeWidth={1.6} fill={g.rating!.rating >= i - 0.25 ? "currentColor" : "none"} aria-hidden="true" />
                 ))}
               </span>
-              <span className="text-[14px] text-ink-muted">{num(g.rating.count)} avis au total</span>
+              <span>
+                Note Google{" "}
+                <strong className="text-ink tabular-nums">
+                  {g.rating.rating.toLocaleString("fr-BE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                </strong>{" "}
+                · {num(g.rating.count)} avis au total
+              </span>
             </div>
-          </div>
-        ) : (
-          <p className="text-[13.5px] text-ink-muted">
-            {g.ratingFailed
-              ? "La note Google n'a pas pu être lue pour l'instant."
-              : "Ta fiche Google n'est pas encore reliée à ton établissement : dis-le-nous, on s'en charge."}
-          </p>
-        )}
-        <div className="flex justify-between gap-3 pt-3 border-t border-paper-border text-[14.5px] text-ink">
-          <span>Avis laissés par des membres du programme {period.key === "debut" ? "" : period.key === "mois" ? "ce mois" : period.label}</span>
-          <strong className="tabular-nums">{num(g.memberReviews)}</strong>
+          ) : (
+            <p className="text-[13px] text-ink-muted">
+              {g.ratingFailed
+                ? "La note Google n'a pas pu être lue pour l'instant."
+                : "Ta fiche Google n'est pas encore reliée à ton établissement : dis-le-nous, on s'en charge."}
+            </p>
+          )}
         </div>
       </Card>
     </section>
@@ -294,25 +311,29 @@ function GoogleSection({ block, period }: { block: Block<GoogleBlock>; period: S
 function SocialSection({ block, period }: { block: Block<SocialBlock>; period: StatsPeriod }) {
   if (!block.ok) return <Unavailable what="Tes réseaux" />;
   if (block.data.networks.length === 0) return null;
-  const when = period.key === "mois" ? " ce mois" : period.key === "mois-dernier" ? ` ${period.label}` : "";
   return (
     <section className="space-y-3" aria-labelledby="stats-reseaux">
       <SectionTitle>
         <span id="stats-reseaux">Tes réseaux</span>
       </SectionTitle>
       <Card padding="p-0">
-        {block.data.networks.map((n, i) => (
-          <CardRow key={n.key} first={i === 0} className="flex items-center justify-between gap-3">
-            <span className="flex flex-col">
-              <span className="text-[15px] font-semibold text-ink">{n.label}</span>
-              <span className="text-[13px] text-ink-muted">
-                membre{n.follows > 1 ? "s" : ""} du programme abonné{n.follows > 1 ? "s" : ""}
-                {when}
+        {block.data.networks.map((n, i) => {
+          const delta = challengeDelta(n.follows, period);
+          return (
+            <CardRow key={n.key} first={i === 0} className="flex items-center justify-between gap-3">
+              <span className="flex flex-col">
+                <span className="text-[15px] font-semibold text-ink">{n.label}</span>
+                <span className="text-[13px] text-ink-muted">
+                  membre{n.follows.total > 1 ? "s" : ""} abonné{n.follows.total > 1 ? "s" : ""} par le défi de l&apos;appli
+                </span>
               </span>
-            </span>
-            <strong className="font-display text-[22px] font-bold text-ink tabular-nums">+{num(n.follows)}</strong>
-          </CardRow>
-        ))}
+              <span className="flex flex-col items-end shrink-0">
+                <strong className="font-display text-[22px] leading-none font-bold text-ink tabular-nums">{num(n.follows.total)}</strong>
+                {delta && <span className="text-[12.5px] text-ink-muted tabular-nums mt-1">{delta}</span>}
+              </span>
+            </CardRow>
+          );
+        })}
       </Card>
     </section>
   );

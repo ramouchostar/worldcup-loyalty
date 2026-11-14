@@ -279,8 +279,9 @@ décision « Stats par plan » du point associés du 2026-11-10.
 - **Rien d'inventé** : un chiffre que la base ne connaît pas n'est pas affiché. Absents de la v1,
   faute de données : le nombre d'abonnés aux réseaux et les nouveaux avis Google du mois (pas
   d'historique), les réponses aux avis (fiche Google gérée, ADR 0082), le site et le point mensuel
-  (Pro). « Tes réseaux » compte les **membres du programme** abonnés (actions validées) ; la note
-  Google est lue chez Places (note + nombre d'avis, en cache 6 h).
+  (Pro). Avis Google et « Tes réseaux » comptent les **membres qui ont fait le défi** de l'appli
+  (actions validées : total depuis le début en grand, « +N » sur la période dessous) ; la note
+  Google est lue chez Places (note + nombre d'avis, en cache 6 h) et reste en petit.
 - **Comparer honnêtement** : une variation de tickets n'est dite que si la période d'avant a des
   tickets ; une variation du CA que sur la moyenne par jour noté, avec au moins 5 jours notés de
   chaque côté ; le pourcentage de clients revenus (deux jours différents) à partir de 5 clients.

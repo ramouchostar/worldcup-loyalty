@@ -94,12 +94,15 @@ export type GoogleBlock = {
   rating: { rating: number; count: number } | null;
   /** Lecture de la note tentée et échouée (dit à l'écran). */
   ratingFailed: boolean;
-  /** Avis déclarés par des membres du programme dans la période (micro-actions validées). */
-  memberReviews: number;
+  /** Défi « avis Google » accompli par des membres du programme (micro-actions validées). */
+  reviews: ChallengeCount;
 };
 
+/** Membres qui ont accompli un défi de l'appli : depuis le début (jusqu'à la fin de la période) et dans la période. */
+export type ChallengeCount = { total: number; inPeriod: number };
+
 export type SocialBlock = {
-  networks: { key: "instagram_follow" | "tiktok_follow" | "facebook_follow"; label: string; follows: number }[];
+  networks: { key: "instagram_follow" | "tiktok_follow" | "facebook_follow"; label: string; follows: ChallengeCount }[];
 };
 
 type RestaurantLinks = {
@@ -110,23 +113,26 @@ type RestaurantLinks = {
   facebook_url: string | null;
 };
 
-async function loadClaims(restaurantId: string, range: DayRange): Promise<Record<string, number>> {
+// Un défi par membre et par type (UNIQUE user_id, reward_type) : compter les
+// défis validés, c'est compter les membres qui l'ont accompli.
+async function loadClaims(restaurantId: string, range: DayRange): Promise<Record<string, ChallengeCount>> {
   const admin = createAdminClient();
-  const rows = await fetchAllRowsStrict<{ reward_type: string; claimed_at: string }>("Stats : actions", (a, b) =>
+  const rows = await fetchAllRowsStrict<{ reward_type: string; claimed_at: string }>("Stats : défis", (a, b) =>
     admin
       .from("micro_reward_claims")
       .select("reward_type, claimed_at")
       .eq("restaurant_id", restaurantId)
       .eq("status", "validated")
-      .gte("claimed_at", dayStartIso(range.from))
       .order("id")
       .range(a, b)
   );
-  const out: Record<string, number> = {};
+  const out: Record<string, ChallengeCount> = {};
   for (const r of rows) {
     const d = brusselsDay(r.claimed_at);
-    if (d < range.from || d > range.to) continue;
-    out[r.reward_type] = (out[r.reward_type] ?? 0) + 1;
+    if (d > range.to) continue;
+    const c = (out[r.reward_type] ??= { total: 0, inPeriod: 0 });
+    c.total += 1;
+    if (d >= range.from) c.inPeriod += 1;
   }
   return out;
 }
@@ -160,13 +166,21 @@ export async function loadReputation(
     }
   }
 
+  // Un réseau s'affiche s'il est relié OU si des membres y ont déjà fait le défi.
+  const zero: ChallengeCount = { total: 0, inPeriod: 0 };
   const networks: SocialBlock["networks"] = [];
-  if (l?.instagram_url) networks.push({ key: "instagram_follow", label: "Instagram", follows: claims.data.instagram_follow ?? 0 });
-  if (l?.tiktok_url) networks.push({ key: "tiktok_follow", label: "TikTok", follows: claims.data.tiktok_follow ?? 0 });
-  if (l?.facebook_url) networks.push({ key: "facebook_follow", label: "Facebook", follows: claims.data.facebook_follow ?? 0 });
+  const NETS = [
+    { key: "instagram_follow", label: "Instagram", url: l?.instagram_url },
+    { key: "tiktok_follow", label: "TikTok", url: l?.tiktok_url },
+    { key: "facebook_follow", label: "Facebook", url: l?.facebook_url },
+  ] as const;
+  for (const n of NETS) {
+    const c = claims.data[n.key];
+    if (n.url || c) networks.push({ key: n.key, label: n.label, follows: c ?? zero });
+  }
 
   return {
-    google: { ok: true, data: { rating, ratingFailed, memberReviews: claims.data.google_review ?? 0 } },
+    google: { ok: true, data: { rating, ratingFailed, reviews: claims.data.google_review ?? { total: 0, inPeriod: 0 } } },
     social: { ok: true, data: { networks } },
   };
 }
