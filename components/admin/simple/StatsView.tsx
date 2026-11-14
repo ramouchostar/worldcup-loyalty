@@ -5,6 +5,8 @@ import { Card, CardRow } from "@/components/admin/ui";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { StatsPeriodTabs } from "./StatsPeriodTabs";
 import { signed, type ClientStats, type RevenueStats, type StatsPeriod } from "@/lib/stats-page";
+import { isEditableDay } from "@/lib/daily-revenue-entry";
+import { dayLabel } from "@/lib/daily-revenue-model";
 import type { Block, ChallengeCount, GoogleBlock, MessagesBlock, SocialBlock } from "@/lib/stats-page-data";
 
 // La page « Stats » de la vue simple — maquette validée le 2026-11-14
@@ -26,6 +28,8 @@ export type StatsViewProps = {
     block: Block<RevenueStats>;
     noteHref: string;
     forecast: { expected: number; low: number; high: number } | null;
+    /** Aujourd'hui (Bruxelles) — décide quels jours des barres s'ouvrent encore (fenêtre de correction, ADR 0087). */
+    today: string;
   };
   /** null : le forfait ne montre pas ce bloc (Gratuit). */
   dishes: Block<{ name: string; quantity: number }[]> | null;
@@ -128,21 +132,41 @@ function ClientsSection({ block, period }: { block: Block<ClientStats>; period: 
   );
 }
 
-function Bars({ bars }: { bars: RevenueStats["bars"] }) {
+function Bars({ bars, restaurantId, today }: { bars: RevenueStats["bars"]; restaurantId: string; today: string }) {
   if (bars.length === 0) return null;
   const max = Math.max(1, ...bars.map((b) => b.amount ?? 0));
   // Au-delà de ~6 semaines, les barres deviennent des traits : on n'en garde que les 42 dernières.
   const shown = bars.slice(-42);
+  const bar = (b: RevenueStats["bars"][number]) => (
+    <span
+      className={`block w-full rounded-[3px] ${b.amount === null ? "bg-paper-border" : b.amount >= max * 0.9 ? "bg-boost-olive" : "bg-boost-light"}`}
+      style={{ height: b.amount === null ? "8%" : `${Math.max(8, Math.round((b.amount / max) * 100))}%` }}
+    />
+  );
+  const value = (b: RevenueStats["bars"][number]) => (b.amount !== null ? eur(b.amount) : b.closed ? "fermé" : "pas noté");
   return (
-    <div className="flex items-end gap-[3px] h-16" aria-hidden="true">
-      {shown.map((b) => (
-        <span
-          key={b.day}
-          className={`flex-1 rounded-[3px] ${b.amount === null ? "bg-paper-border" : b.amount >= max * 0.9 ? "bg-boost-olive" : "bg-boost-light"}`}
-          style={{ height: b.amount === null ? "8%" : `${Math.max(8, Math.round((b.amount / max) * 100))}%` }}
-        />
-      ))}
-    </div>
+    <>
+      <div className="flex items-end gap-[3px] h-16">
+        {shown.map((b) =>
+          // Chaque jour encore corrigeable s'ouvre d'un appui (ADR 0087 : saisie ou correction).
+          isEditableDay(b.day, today) ? (
+            <Link
+              key={b.day}
+              href={`/admin/${restaurantId}/ca/${b.day}`}
+              aria-label={`${dayLabel(b.day)} : ${value(b)} — voir ou corriger`}
+              className="flex-1 h-full flex flex-col justify-end rounded-[4px] hover:bg-paper-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink/40"
+            >
+              {bar(b)}
+            </Link>
+          ) : (
+            <span key={b.day} className="flex-1 h-full flex flex-col justify-end" aria-hidden="true">
+              {bar(b)}
+            </span>
+          ),
+        )}
+      </div>
+      <p className="text-[12px] text-ink-muted">Appuie sur un jour pour le voir, le saisir ou le corriger.</p>
+    </>
   );
 }
 
@@ -175,7 +199,7 @@ function RevenueSection({ restaurantId, revenue, upsell }: { restaurantId: strin
             )}
           </div>
           {/* Le jour par jour est une fonction Croissance (maquette Gratuit : total et jours notés seuls). */}
-          {revenue.allowed && r && r.notedDays > 0 && <Bars bars={r.bars} />}
+          {revenue.allowed && r && r.notedDays > 0 && <Bars bars={r.bars} restaurantId={restaurantId} today={revenue.today} />}
           {r && r.notedDays > 0 && (
             <p className="sr-only">
               {r.notedDays} jours notés sur {r.elapsedDays} jours écoulés de la période.
