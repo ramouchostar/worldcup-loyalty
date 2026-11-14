@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gap, isFilled, parseSalesRow, windowStart } from "./model";
 
-test("la fenêtre glissante finit aujourd'hui et couvre 10 jours", () => {
-  assert.equal(windowStart("2026-11-14"), "2026-11-05");
+test("la fenêtre glissante finit aujourd'hui et couvre 14 jours par défaut", () => {
+  assert.equal(windowStart("2026-11-14"), "2026-11-01");
   assert.equal(windowStart("2026-11-14", 7), "2026-11-08");
-  assert.equal(windowStart("2026-03-01"), "2026-02-20"); // passe un mois
+  assert.equal(windowStart("2026-03-15", 120), "2025-11-16"); // historique
 });
 
 test("une ligne agg_sales_daily se lit en CA TTC, HT, commandes", () => {

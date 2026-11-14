@@ -44,7 +44,7 @@ export async function readDailySales(token: string, storeRef: string, fromDay: s
     store_id: `eq.${storeRef}`,
     business_date_utc: `gte.${fromDay}`,
     order: "business_date_utc.desc",
-    limit: "40",
+    limit: "400",
   });
   const res = await fetch(`${cfg.url}/rest/v1/agg_sales_daily?${q}`, {
     headers: { apikey: cfg.anon, Authorization: `Bearer ${token}` },
