@@ -259,3 +259,37 @@ Décidé par le porteur sur la maquette validée le 2026-11-05
 - **Toujours un seul badge** (les tickets) : le nombre d'idées est dit dans le titre de l'écran, pas
   dans la barre.
 
+
+## Amendement du 2026-11-14 — la page Stats par forfait, l'ancien accueil devient « Ta progression »
+
+Maquette validée par le porteur le 2026-11-14 (https://claude.ai/artifact/87hGzRBqX2dSW9metwAYCo),
+décision « Stats par plan » du point associés du 2026-11-10.
+
+- **L'onglet « Stats »** (même adresse `/admin/<id>`, vue simple) montre une **phrase en clair**,
+  puis Tes clients · Ton chiffre d'affaires · Ce qui se vend · Ta réputation sur Google · Tes
+  réseaux · Tes messages aux clients · Ta progression. Période dans l'adresse (`?periode=` :
+  ce mois, mois dernier, depuis le début), comparée aux **mêmes jours du mois d'avant**. Logique
+  pure `lib/stats-page.ts`, lecture `lib/stats-page-data.ts`, affichage
+  `components/admin/simple/StatsView.tsx`.
+- **Le forfait décide par les droits** (`getEntitlement`, essais compris), jamais par un test sur
+  son nom : `revenue_tracker` met le chiffre d'affaires en premier avec la comparaison et la part
+  des clients du programme ; `sales` ajoute « Ce qui se vend » ; `forecast` la prévision des 7
+  jours ; `sector_benchmarks` le lien « Toi face au secteur ». Un bloc verrouillé est remplacé par
+  **un seul** encart « Avec Croissance » ou « Avec Pro » (demande de forfait existante).
+- **Rien d'inventé** : un chiffre que la base ne connaît pas n'est pas affiché. Absents de la v1,
+  faute de données : le nombre d'abonnés aux réseaux et les nouveaux avis Google du mois (pas
+  d'historique), les réponses aux avis (fiche Google gérée, ADR 0082), le site et le point mensuel
+  (Pro). « Tes réseaux » compte les **membres du programme** abonnés (actions validées) ; la note
+  Google est lue chez Places (note + nombre d'avis, en cache 6 h).
+- **Comparer honnêtement** : une variation de tickets n'est dite que si la période d'avant a des
+  tickets ; une variation du CA que sur la moyenne par jour noté, avec au moins 5 jours notés de
+  chaque côté ; le pourcentage de clients revenus (deux jours différents) à partir de 5 clients.
+  Une baisse est dite en neutre, jamais en rouge (ADR 0054).
+- **« À faire » reste à l'arrivée** (§3, QR de l'équipe en premier) : la liste s'affiche sous la
+  phrase quand elle n'est pas vide.
+- **L'ancien accueil simple** (objectif du jour, jeu de la croissance, CA jour par jour, missions)
+  devient **« Ta progression »** (`/admin/<id>/progression`), inchangé, relié par la carte du bas
+  de Stats et listé dans « Plus ». Rien n'est retiré.
+- **Trace** : chaque bloc se lit séparément ; une lecture en échec affiche « lecture impossible »
+  dans ce bloc et laisse `[stats] <bloc> : …` dans les logs Vercel — jamais un zéro qui passerait
+  pour un vrai chiffre.

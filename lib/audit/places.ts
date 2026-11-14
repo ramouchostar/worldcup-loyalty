@@ -256,6 +256,16 @@ export async function placeLocation(placeId: string): Promise<{ lat: number; lng
   return typeof lat === "number" && typeof lng === "number" ? { lat, lng } : null;
 }
 
+// Note et nombre d'avis seuls (page Stats de la console) : deux champs, sans
+// avis ni photos. null : la fiche n'a pas encore de note.
+export async function placeRating(placeId: string): Promise<{ rating: number; count: number } | null> {
+  if (!/^[\w-]{10,300}$/.test(placeId)) throw new PlacesError("identifiant de fiche invalide");
+  const p = await call<{ rating?: number; userRatingCount?: number }>(`/places/${encodeURIComponent(placeId)}`, {
+    fieldMask: "rating,userRatingCount",
+  });
+  return typeof p.rating === "number" ? { rating: p.rating, count: p.userRatingCount ?? 0 } : null;
+}
+
 // ─── Voisins ─────────────────────────────────────────────────────────────────
 
 export interface Neighbor {
