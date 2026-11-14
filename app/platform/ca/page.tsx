@@ -22,6 +22,7 @@ import {
 import { CopyText } from "@/components/platform/CopyText";
 import { deleteDay, saveDay } from "./actions";
 import { HubriseSection } from "./HubriseSection";
+import { BelpeopleSection } from "./BelpeopleSection";
 
 export const metadata = { title: "CA du jour — Plateforme" };
 export const dynamic = "force-dynamic";
@@ -147,6 +148,11 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{hubriseNotice(sp.hubrise)}</div>
       )}
       <HubriseSection restaurantId={current.id} />
+      {belpeopleNotice(sp.belpeople) && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{belpeopleNotice(sp.belpeople)}</div>
+      )}
+      {sp.bperreur && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{sp.bperreur}</div>}
+      <BelpeopleSection restaurantId={current.id} />
 
       <div className="grid gap-5 lg:grid-cols-2 items-start">
         <section className={`${CARD} p-5 space-y-4`} aria-labelledby="h-noter">
@@ -320,6 +326,15 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
 }
 
 // ADR 0102 — retour des actions HubRise (connexion, relecture, référence).
+function belpeopleNotice(v: string | undefined): string | null {
+  if (!v) return null;
+  if (v === "ok") return "Belpeople connecté : le CA total est lu et s'affiche à côté de la saisie.";
+  if (v === "deconnecte") return "Belpeople déconnecté : accès retiré du coffre. Les jours déjà lus restent.";
+  const m = /^relu-(\d+)$/.exec(v);
+  if (m) return `Lecture Belpeople faite : ${m[1]} jour(s) mis à jour.`;
+  return null;
+}
+
 function hubriseNotice(v: string | undefined): string | null {
   if (!v) return null;
   if (v === "connecte") return "HubRise connecté : les commandes arrivent désormais à chaque création ou modification.";
