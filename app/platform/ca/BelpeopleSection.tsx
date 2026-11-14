@@ -1,6 +1,7 @@
-import { belpeopleConnection, listBelpeopleSales } from "@/lib/belpeople/store";
+import { belpeopleConnection, listBelpeopleHourly, listBelpeopleSales } from "@/lib/belpeople/store";
 import { belpeopleConfig } from "@/lib/belpeople/api";
 import { gap, isFilled, PREFILL_MAX_GAP_PCT, PREFILL_MIN_DAYS, type DailySales } from "@/lib/belpeople/model";
+import { hourlyProfile, type DayType, type HourSlot } from "@/lib/belpeople/hourly";
 import { listDailyEntries } from "@/lib/daily-revenue";
 import { addDays, dayLabel } from "@/lib/daily-revenue-model";
 import { todayInBrussels } from "@/lib/qr-funnel";
@@ -160,7 +161,63 @@ export async function BelpeopleSection({ restaurantId }: { restaurantId: string 
         CA total, tous canaux (caisse + plateformes), TVA comprise. Belpeople se remplit avec quelques jours de retard : les jours
         vides se compléteront à la prochaine lecture. Rien n&apos;est écrit dans le CA du jour (phase 1).
       </p>
+
+      <HourlyProfile restaurantId={restaurantId} today={today} />
     </section>
+  );
+}
+
+const HOURLY_DAYS = 28;
+
+async function HourlyProfile({ restaurantId, today }: { restaurantId: string; today: string }) {
+  const fromIso = `${addDays(today, -(HOURLY_DAYS - 1))}T00:00:00`;
+  const rows = await listBelpeopleHourly(restaurantId, fromIso);
+  if (rows.length === 0) return null;
+  const profile = hourlyProfile(rows);
+
+  return (
+    <div className="border-t border-gray-100 dark:border-gray-800 pt-4 space-y-3">
+      <div>
+        <h3 className="font-semibold text-gray-900 dark:text-white">Heures pleines et creuses</h3>
+        <p className="text-xs text-gray-500">Moyenne des commandes par heure sur {HOURLY_DAYS} jours — pour caler le personnel. Heure de Bruxelles.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {(["semaine", "weekend"] as DayType[]).map((type) => (
+          <DayProfile key={type} title={type === "semaine" ? "En semaine (lun.–ven.)" : "Week-end (sam.–dim.)"} slots={profile[type]} />
+        ))}
+      </div>
+      <p className="text-xs text-gray-500">
+        <span className="font-semibold text-gray-700 dark:text-gray-200">Plein</span> ≥ 66 % du pic du jour ·
+        <span className="font-semibold"> Creux</span> ≤ 33 %. Un creux = moins de personnel ; un plein = renfort.
+      </p>
+    </div>
+  );
+}
+
+function DayProfile({ title, slots }: { title: string; slots: HourSlot[] }) {
+  if (slots.length === 0) return <div className="text-sm text-gray-500">{title} : pas encore de données.</div>;
+  const peak = slots.reduce((m, s) => Math.max(m, s.avgOrders), 0) || 1;
+  return (
+    <div className="space-y-1">
+      <p className={LABEL}>{title}</p>
+      <div className="space-y-0.5">
+        {slots.map((s) => (
+          <div key={s.hour} className="flex items-center gap-2 text-xs">
+            <span className="w-10 tabular-nums text-gray-500">{String(s.hour).padStart(2, "0")} h</span>
+            <span className="flex-1 h-3 rounded bg-gray-100 dark:bg-gray-800 overflow-hidden">
+              <span
+                className={`block h-full ${s.level === "plein" ? "bg-gray-900 dark:bg-white" : s.level === "creux" ? "bg-gray-300 dark:bg-gray-600" : "bg-gray-500"}`}
+                style={{ width: `${Math.round((s.avgOrders / peak) * 100)}%` }}
+              />
+            </span>
+            <span className="w-16 tabular-nums text-right text-gray-600 dark:text-gray-300">{s.avgOrders} cmd</span>
+            <span className={`w-12 text-right ${s.level === "plein" ? "font-semibold text-gray-900 dark:text-white" : s.level === "creux" ? "text-gray-400" : "text-gray-500"}`}>
+              {s.level === "plein" ? "plein" : s.level === "creux" ? "creux" : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
