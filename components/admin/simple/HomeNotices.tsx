@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Hourglass, SlidersHorizontal } from "lucide-react";
+import { Gauge } from "@/components/icons";
 import { ConsolePushCard } from "@/components/admin/ConsolePushCard";
 import { InstallAppCard } from "@/components/InstallAppCard";
 
@@ -26,7 +26,6 @@ export function HomeTopNotices({ bienvenue, seat, pending }: { bienvenue: boolea
       {pending && (
         <div className="bg-warn/10 border border-warn/30 rounded-xl p-4">
           <p className="font-bold text-warn text-sm mb-1">
-            <Hourglass size={14} strokeWidth={1.8} className="inline-block mr-1.5 -mt-0.5" aria-hidden="true" />
             Ton établissement n&apos;est pas encore visible des clients
           </p>
           {/* ADR 0075 §3 — en attente = inscription finie, validation en cours. */}
@@ -48,7 +47,7 @@ export function HomeBottomNotices({ restaurantId, bienvenue }: { restaurantId: s
         href={`/admin/${restaurantId}/vue?mode=pro`}
         className="flex items-center gap-3 px-5 py-3.5 bg-white border border-dashed border-paper-border rounded-xl hover:bg-paper transition-colors md:hidden"
       >
-        <SlidersHorizontal size={17} strokeWidth={1.7} className="text-ink-muted shrink-0" aria-hidden="true" />
+        <Gauge size={17} className="text-ink-muted shrink-0" />
         <span className="flex-1 min-w-0">
           <span className="block text-[13.5px] font-semibold text-ink">Voir tous les chiffres</span>
           <span className="block text-[12px] text-ink-faint">Passer en vue pro : ventes, prévisions, repères, réglages</span>

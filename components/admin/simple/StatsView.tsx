@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, Star } from "lucide-react";
+import { ArrowRight, Star } from "@/components/icons";
 import { Card, CardRow } from "@/components/admin/ui";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { StatsPeriodTabs } from "./StatsPeriodTabs";
@@ -204,7 +204,7 @@ function RevenueSection({ restaurantId, revenue, upsell }: { restaurantId: strin
             </div>
           )}
           <Link href={revenue.noteHref} className="min-h-[44px] inline-flex items-center gap-1 text-[14px] font-semibold text-boost-olive-dark hover:underline">
-            Noter le chiffre d&apos;hier <ChevronRight size={15} aria-hidden="true" />
+            Noter le chiffre d&apos;hier <ArrowRight size={15} aria-hidden="true" />
           </Link>
         </Card>
       )}
@@ -246,7 +246,7 @@ function DishesSection({ block, href }: { block: Block<{ name: string; quantity:
         </Card>
       )}
       <Link href={href} className="min-h-[44px] inline-flex items-center gap-1 text-[14px] font-semibold text-boost-olive-dark hover:underline">
-        Tous les plats et ta marge <ChevronRight size={15} aria-hidden="true" />
+        Tous les plats et ta marge <ArrowRight size={15} aria-hidden="true" />
       </Link>
     </section>
   );
@@ -282,11 +282,7 @@ function GoogleSection({ block, period }: { block: Block<GoogleBlock>; period: S
         <div className="pt-3 border-t border-paper-border">
           {g.rating ? (
             <div className="flex items-center gap-2 text-[14px] text-ink-muted">
-              <span className="flex gap-0.5 text-warn" role="img" aria-label={`${g.rating.rating.toLocaleString("fr-BE")} étoiles sur 5`}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} size={13} strokeWidth={1.6} fill={g.rating!.rating >= i - 0.25 ? "currentColor" : "none"} aria-hidden="true" />
-                ))}
-              </span>
+              <Star size={15} className="text-warn shrink-0" />
               <span>
                 Note Google{" "}
                 <strong className="text-ink tabular-nums">
@@ -438,7 +434,7 @@ export function StatsView(p: StatsViewProps) {
             <span className="text-[15px] font-semibold text-ink">Toi face au secteur</span>
             <span className="text-[13px] text-ink-muted">Tes repères comparés aux restaurants autour de toi</span>
           </span>
-          <ChevronRight size={18} className="text-ink-faint shrink-0" aria-hidden="true" />
+          <ArrowRight size={18} className="text-ink-faint shrink-0" aria-hidden="true" />
         </Link>
       )}
 
@@ -454,7 +450,7 @@ export function StatsView(p: StatsViewProps) {
           <span className="text-[15px] font-semibold text-ink">Ta progression</span>
           <span className="text-[13px] text-ink-muted">{p.progression.line}</span>
         </span>
-        <ChevronRight size={18} className="text-ink-faint shrink-0" aria-hidden="true" />
+        <ArrowRight size={18} className="text-ink-faint shrink-0" aria-hidden="true" />
       </Link>
 
       {p.bottom}
