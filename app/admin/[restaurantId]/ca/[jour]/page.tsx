@@ -5,9 +5,10 @@ import { createAdminClient, createServerSupabaseClient } from "@/lib/supabase";
 import { isEstablishmentAdmin } from "@/lib/admin-guard";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { loadRevenueTracker } from "@/lib/revenue-tracker-data";
+import type { RevenueDay } from "@/lib/revenue-tracker";
 import { getDayChannels } from "@/lib/daily-revenue";
 import { dayLabel, weekdayName, type DailyEntry } from "@/lib/daily-revenue-model";
-import { dayFeedback, isEditableDay, missingDays, shortDayLabel, type DayFeedback } from "@/lib/daily-revenue-entry";
+import { correctableDays, dayFeedback, isEditableDay, shortDayLabel, type DayFeedback } from "@/lib/daily-revenue-entry";
 import { pendingServicesFor } from "@/lib/service-requests";
 import { loadDayReasons } from "@/lib/day-reasons-data";
 import type { DayReasons } from "@/lib/day-reasons";
@@ -82,7 +83,6 @@ export default async function CaDayPage({
     const { data: place } = await createAdminClient().from("restaurants").select("id, lat, lng").eq("id", restaurantId).maybeSingle();
     reasons = await loadDayReasons((place as { id: string; lat: number | null; lng: number | null } | null) ?? { id: restaurantId, lat: null, lng: null }, jour, today).catch(() => null);
   }
-  const stillMissing = missingDays(new Set(days.map((d) => d.day)), today).filter((d) => d !== jour);
   const name = weekdayName(jour);
   const title = cap(dayLabel(jour));
 
@@ -112,27 +112,18 @@ export default async function CaDayPage({
             <span className="font-semibold">Noté : fermé ce jour-là.</span>{" "}
             <span className="text-ink-muted">Il ne compte pas dans tes moyennes.</span>
           </p>
-          <Link href={`?modifier=1`} className="inline-block mt-3 text-[13.5px] font-semibold text-ink underline underline-offset-4">Modifier</Link>
+          <Link
+            href="?modifier=1"
+            className="mt-4 inline-flex items-center min-h-[44px] px-5 rounded-lg border border-paper-border text-[13.5px] font-semibold text-ink hover:bg-paper-subtle"
+          >
+            Corriger ce jour
+          </Link>
         </Card>
       ) : (
         <Feedback f={feedback as DayFeedback} reasons={reasons} justSaved={ok === "1"} name={name} />
       )}
 
-      {!editing && stillMissing.length > 0 && (
-        <Card padding="p-0">
-          <div className="px-5 pt-4 pb-2">
-            <SectionLabel tone="muted">Encore à saisir</SectionLabel>
-          </div>
-          {stillMissing.map((d) => (
-            <div key={d} className="flex items-center justify-between gap-3 px-5 py-3 border-t border-paper-border">
-              <span className="text-[14px] text-ink">CA de {shortDayLabel(d)}</span>
-              <Link href={`${base}/ca/${d}`} className="min-h-[40px] inline-flex items-center px-4 rounded-lg bg-ink text-white text-[13px] font-semibold hover:bg-ink-body">
-                Saisir
-              </Link>
-            </div>
-          ))}
-        </Card>
-      )}
+      <LastDays days={days} jour={jour} today={today} base={base} editing={editing} />
 
       <Card>
         <p className="text-[13.5px] text-ink-body mb-3">
@@ -143,6 +134,56 @@ export default async function CaDayPage({
 
       <Link href={base} className="block text-center text-[13.5px] text-ink-muted underline underline-offset-4">Retour à l&apos;accueil</Link>
     </div>
+  );
+}
+
+/**
+ * Les 14 derniers jours, chacun avec son chiffre et son geste : « Saisir » un
+ * jour oublié, « Modifier » un jour déjà noté. C'est le chemin de retour qui
+ * manquait : avant, un jour noté avec une erreur n'avait plus aucun lien.
+ */
+function LastDays({ days, jour, today, base, editing }: { days: RevenueDay[]; jour: string; today: string; base: string; editing: boolean }) {
+  const byDay = new Map(days.map((d) => [d.day, d]));
+  const list = correctableDays(new Set(days.map((d) => d.day)), today);
+  return (
+    <Card padding="p-0">
+      <div className="px-5 pt-4 pb-2">
+        <SectionLabel tone="muted">Les 14 derniers jours</SectionLabel>
+        <p className="text-[12.5px] text-ink-muted mt-1">Un jour oublié ? Un chiffre faux ? Tout se corrige ici, pendant 14 jours.</p>
+      </div>
+      {list.map((d) => {
+        const e = byDay.get(d) ?? null;
+        const isCurrent = d === jour;
+        return (
+          <div key={d} className={`flex items-center justify-between gap-3 px-5 py-2.5 border-t border-paper-border ${isCurrent ? "bg-paper-subtle" : ""}`}>
+            <span className="min-w-0">
+              <span className="block text-[14px] text-ink">
+                {cap(shortDayLabel(d))}
+                {d === today ? " — aujourd'hui" : ""}
+              </span>
+              <span className="block text-[12.5px] tabular-nums text-ink-muted">{e ? (e.closed ? "Fermé" : eur(e.amount ?? 0)) : "Pas encore noté"}</span>
+            </span>
+            {isCurrent && editing ? (
+              <span className="text-[12.5px] font-semibold text-ink-muted px-1">En cours</span>
+            ) : e ? (
+              <Link
+                href={`${base}/ca/${d}?modifier=1`}
+                className="min-h-[40px] inline-flex items-center px-4 rounded-lg border border-paper-border text-[13px] font-semibold text-ink hover:bg-paper-subtle"
+              >
+                Modifier
+              </Link>
+            ) : (
+              <Link
+                href={`${base}/ca/${d}`}
+                className="min-h-[40px] inline-flex items-center px-4 rounded-lg bg-ink text-white text-[13px] font-semibold hover:bg-ink-body"
+              >
+                Saisir
+              </Link>
+            )}
+          </div>
+        );
+      })}
+    </Card>
   );
 }
 
@@ -182,7 +223,12 @@ function Feedback({ f, reasons, justSaved, name }: { f: DayFeedback; reasons: Da
           )}
         </div>
         {f.averageTicket !== null && <p className="text-[13px] text-ink-muted mt-2">Ticket moyen : {eur2(f.averageTicket)} ({p.orders} commandes)</p>}
-        <Link href="?modifier=1" className="inline-block mt-3 text-[13px] text-ink-muted underline underline-offset-4">Modifier</Link>
+        <Link
+          href="?modifier=1"
+          className="mt-4 inline-flex items-center min-h-[44px] px-5 rounded-lg border border-paper-border text-[13.5px] font-semibold text-ink hover:bg-paper-subtle"
+        >
+          Corriger ce chiffre
+        </Link>
       </Card>
 
       <Card>

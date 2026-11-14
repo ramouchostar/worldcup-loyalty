@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CAISSE, PLATEFORMES, blockTotal, channelsNote, dayFeedback, isEditableDay, missingDays, parseEntry, shortDayLabel } from "./daily-revenue-entry";
+import { CAISSE, PLATEFORMES, blockTotal, channelsNote, correctableDays, dayFeedback, isEditableDay, missingDays, parseEntry, shortDayLabel } from "./daily-revenue-entry";
 import type { DailyEntry } from "./daily-revenue-model";
 
 const entry = (sales_day: string, amount: number | null, outcome: DailyEntry["outcome"] = "saisi"): DailyEntry => ({
@@ -131,4 +131,20 @@ test("dayFeedback : un jour fermé ou sans réponse ne compte pas comme un chiff
   const f = dayFeedback(entries, "2026-10-23", 1200, null, { amount: 0, tickets: 0 });
   assert.equal(f.sameDays?.n, 1);
   assert.equal(f.sameDays?.pct, 0);
+});
+
+test("correctableDays : 14 jours du plus récent au plus ancien, aujourd'hui seulement s'il est noté", () => {
+  const today = "2026-11-14";
+  const without = correctableDays(new Set(), today);
+  assert.equal(without.length, 13);
+  assert.equal(without[0], "2026-11-13");
+  assert.equal(without[12], "2026-11-01");
+  assert.ok(!without.includes(today));
+
+  const withToday = correctableDays(new Set([today]), today);
+  assert.equal(withToday.length, 14);
+  assert.equal(withToday[0], today);
+  assert.equal(withToday[13], "2026-11-01");
+  // Tous corrigeables : le plus ancien reste dans la fenêtre d'isEditableDay.
+  for (const d of withToday) assert.ok(isEditableDay(d, today), d);
 });

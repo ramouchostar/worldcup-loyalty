@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Lock, TrendingDown, TrendingUp } from "lucide-react";
 import { RequestPlanButton } from "@/components/admin/Paywall";
-import { dayLabel } from "@/lib/daily-revenue-model";
+import { addDays, dayLabel } from "@/lib/daily-revenue-model";
+import { isEditableDay } from "@/lib/daily-revenue-entry";
 import type { RevenueTracker } from "@/lib/revenue-tracker";
 
 // « Ton chiffre d'affaires », jour par jour (ADR 0081 §7) — sur l'accueil,
@@ -106,7 +107,7 @@ export function RevenueTrackerCard({
           )}
 
           {/* Les 14 derniers jours */}
-          <Bars cells={t.cells} />
+          <Bars cells={t.cells} restaurantId={restaurantId} today={addDays(yesterday, 1)} />
 
           {/* La part du programme */}
           {t.program && (
@@ -131,28 +132,43 @@ export function RevenueTrackerCard({
   );
 }
 
-function Bars({ cells }: { cells: RevenueTracker["cells"] }) {
+function Bars({ cells, restaurantId, today }: { cells: RevenueTracker["cells"]; restaurantId: string; today: string }) {
   const top = Math.max(1, ...cells.map((c) => c.amount ?? 0));
+  const value = (c: RevenueTracker["cells"][number]) => (c.amount !== null ? eur(c.amount) : c.closed ? "fermé" : "pas noté");
+  const bar = (c: RevenueTracker["cells"][number]) =>
+    c.amount !== null ? (
+      <div
+        className={`w-full rounded-t-[3px] ${c.isLast ? "bg-boost-olive" : "bg-boost-light"}`}
+        style={{ height: `${Math.max(4, (c.amount / top) * 100)}%` }}
+        title={`${dayLabel(c.day)} : ${value(c)}`}
+      />
+    ) : (
+      <div
+        className={`w-full h-[6px] rounded-[2px] ${c.closed ? "bg-paper-border" : "border border-dashed border-paper-border"}`}
+        title={`${dayLabel(c.day)} : ${value(c)}`}
+      />
+    );
   return (
     <div className="mt-4">
       <p className="text-[12px] text-ink-faint mb-2">14 derniers jours</p>
-      <div className="flex items-end gap-1.5 h-24" role="img" aria-label="Chiffre d'affaires des 14 derniers jours">
-        {cells.map((c) => (
-          <div key={c.day} className="flex-1 h-full flex flex-col justify-end items-center gap-1">
-            {c.amount !== null ? (
-              <div
-                className={`w-full rounded-t-[3px] ${c.isLast ? "bg-boost-olive" : "bg-boost-light"}`}
-                style={{ height: `${Math.max(4, (c.amount / top) * 100)}%` }}
-                title={`${dayLabel(c.day)} : ${eur(c.amount)}`}
-              />
-            ) : (
-              <div
-                className={`w-full h-[6px] rounded-[2px] ${c.closed ? "bg-paper-border" : "border border-dashed border-paper-border"}`}
-                title={`${dayLabel(c.day)} : ${c.closed ? "fermé" : "pas noté"}`}
-              />
-            )}
-          </div>
-        ))}
+      <div className="flex items-end gap-1.5 h-24">
+        {cells.map((c) =>
+          // Chaque jour encore corrigeable s'ouvre d'un appui (ADR 0087 : saisie ou correction).
+          isEditableDay(c.day, today) ? (
+            <Link
+              key={c.day}
+              href={`/admin/${restaurantId}/ca/${c.day}`}
+              aria-label={`${dayLabel(c.day)} : ${value(c)} — voir ou corriger`}
+              className="flex-1 h-full flex flex-col justify-end items-center gap-1 rounded-[4px] hover:bg-paper-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink/40"
+            >
+              {bar(c)}
+            </Link>
+          ) : (
+            <div key={c.day} className="flex-1 h-full flex flex-col justify-end items-center gap-1" aria-label={`${dayLabel(c.day)} : ${value(c)}`}>
+              {bar(c)}
+            </div>
+          ),
+        )}
       </div>
       <div className="flex gap-1.5 mt-1.5" aria-hidden="true">
         {cells.map((c) => (
@@ -171,6 +187,7 @@ function Bars({ cells }: { cells: RevenueTracker["cells"] }) {
           pas noté
         </span>
       </p>
+      <p className="text-[12px] text-ink-muted mt-1.5">Appuie sur un jour pour le voir, le saisir ou le corriger.</p>
     </div>
   );
 }
