@@ -35,6 +35,14 @@ test("sonde : une ligne lue perd ses colonnes client avant de sortir", () => {
   assert.deepEqual(stripSensitive({ store_id: 223, product_name: "Finest", customer_email: "x@y", qty: 3 }), { store_id: 223, product_name: "Finest", qty: 3 });
 });
 
-test("sonde : la table connue est essayée en premier", () => {
-  assert.equal(CANDIDATE_TABLES[0], "v_odoo_product_sales_monthly");
+test("sonde : la vue par jour de la page « Ventes de produits » est essayée en premier", () => {
+  assert.equal(CANDIDATE_TABLES[0], "v_agg_products_sold_daily");
+});
+
+import { productRevenueArgs } from "./explore";
+
+test("la fonction de CA par produit n'est appelée qu'avec le magasin autorisé", () => {
+  assert.deepEqual(productRevenueArgs("223"), { p_store_ids: [223], p_months: null });
+  assert.equal(productRevenueArgs(""), null);
+  assert.equal(productRevenueArgs("223,224"), null);
 });

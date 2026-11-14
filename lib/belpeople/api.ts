@@ -5,7 +5,7 @@
 
 import { parseSalesRow, type DailySales } from "./model";
 import type { HourlyRow } from "./hourly";
-import { CANDIDATE_TABLES, productTables, sampleQuery, shapeOf, SAMPLE_ROWS, STORE_COLUMN_CANDIDATES, stripSensitive, type TableShape } from "./explore";
+import { CANDIDATE_TABLES, productTables, sampleQuery, shapeOf, SAMPLE_ROWS, STORE_COLUMN_CANDIDATES, PRODUCT_REVENUE_RPC, productRevenueArgs, stripSensitive, type TableShape } from "./explore";
 
 export function belpeopleConfig(): { url: string; anon: string } | null {
   const url = process.env.BELPEOPLE_SUPABASE_URL?.trim().replace(/\/$/, "");
@@ -151,6 +151,22 @@ async function probeTables(url: string, headers: Record<string, string>, storeRe
         rows: null,
         error: lastStatus === 401 || lastStatus === 403 ? `existe, accès refusé (${lastStatus})` : "existe, mais aucune colonne magasin : non lue",
       });
+  }
+  // La fonction de CA par produit et par mois, pour le seul magasin autorisé.
+  const args = productRevenueArgs(storeRef);
+  if (args) {
+    const r = await fetch(`${url}/rest/v1/rpc/${PRODUCT_REVENUE_RPC}`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+      cache: "no-store",
+    });
+    if (r.ok) {
+      const raw = ((await r.json()) as Record<string, unknown>[]).slice(0, SAMPLE_ROWS);
+      out.push({ ...shapeOf(`rpc/${PRODUCT_REVENUE_RPC}`, raw[0] ? Object.keys(raw[0]) : []), storeColumn: "p_store_ids", rows: raw.map(stripSensitive), error: null });
+    } else if (r.status !== 404) {
+      out.push({ ...shapeOf(`rpc/${PRODUCT_REVENUE_RPC}`, []), rows: null, error: `appel refusé (${r.status})` });
+    }
   }
   return out;
 }

@@ -59,6 +59,14 @@ export function sampleQuery(t: TableShape, storeRef: string): URLSearchParams | 
 
 /** Noms essayés quand la liste des tables est refusée. Le premier est connu (essai du 2026-11-14). */
 export const CANDIDATE_TABLES = [
+  // Lus par la page « Ventes de produits » de Belpeople (code public du site, 2026-11-14) :
+  // filtrés par store_id, période business_date / week_start / month_start.
+  "v_agg_products_sold_daily",
+  "v_agg_products_sold_weekly",
+  "v_agg_products_sold_monthly",
+  "v_agg_options_sold_daily",
+  "agg_sales_monthly",
+  // Table de la centrale d'achat, toute la chaîne, sans magasin : jamais lue.
   "v_odoo_product_sales_monthly",
   "v_odoo_product_sales_daily",
   "v_odoo_product_sales_weekly",
@@ -84,4 +92,15 @@ export const STORE_COLUMN_CANDIDATES = ["store_id", "restaurant_id", "location_i
 /** Une ligne lue → seulement ses colonnes non sensibles (rien d'autre ne sort de la lecture). */
 export function stripSensitive(row: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(row).filter(([k]) => !SENSITIVE_COLUMN.test(k)));
+}
+
+/**
+ * Fonction de Belpeople qui donne le CA par produit et par mois (lue par sa page
+ * « Ventes de produits ») : appelée avec le SEUL magasin autorisé.
+ */
+export const PRODUCT_REVENUE_RPC = "report_food_cost_product_sales";
+
+export function productRevenueArgs(storeRef: string): { p_store_ids: number[]; p_months: null } | null {
+  const id = Number.parseInt(storeRef, 10);
+  return Number.isFinite(id) && String(id) === storeRef.trim() ? { p_store_ids: [id], p_months: null } : null;
 }
