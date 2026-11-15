@@ -116,7 +116,7 @@ export async function runMorningIdeas(now = new Date(), opts: { only?: string; f
     try {
       const run = await runBrigade(r.id, plan, { todayISO, nowMs: now.getTime() });
       const discarded: Record<string, number> = {};
-      if (!run.recorded.unavailable) for (const d of run.recorded.discarded) discarded[d.reason] = (discarded[d.reason] ?? 0) + 1;
+      if (!run.recorded.unavailable) for (const d of run.recorded.discarded) { const k = d.bar ? `sous_la_barre_${d.bar.condition}` : d.reason; discarded[k] = (discarded[k] ?? 0) + 1; }
       const msg = await messageGerant(r, now);
       results.push({
         restaurantId: r.id,

@@ -157,9 +157,11 @@ export function refusalLearnedText(assistant: AssistantId, reason: RefusalReason
 
 /**
  * Pourquoi une idée produite n'a pas été montrée. `appris` : ce type d'idée est
- * en pause pour cet établissement, d'après ses refus (ADR 0089 §8).
+ * en pause pour cet établissement, d'après ses refus (ADR 0089 §8). `sous_la_barre` :
+ * elle rate une des cinq conditions de la barre (ADR 0105, lib/agents/playbook.ts) ;
+ * la condition ratée est dans `content.barre`.
  */
-export type DiscardReason = "plafond_du_jour" | "deja_proposee" | "refusee_recemment" | "forfait" | "appris";
+export type DiscardReason = "plafond_du_jour" | "deja_proposee" | "refusee_recemment" | "forfait" | "appris" | "sous_la_barre";
 
 /** Au plus trois idées montrées par jour et par établissement : « 5 minutes par jour, pas plus ». */
 export const DAILY_IDEA_CAP = 3;

@@ -674,7 +674,14 @@ Un personnage de la brigade, un poste chacun : **Léa** inscrit les clients et g
 _Avoid_ : employé, conseiller, coach.
 
 **Idée** :
-Une proposition toute prête d'un assistant (ou de l'équipe, « préparée par l'équipe »), enregistrée dans `agent_proposals` : trois lignes (quoi · pour qui · combien), une estimation en fourchette ou rien, une date limite, un geste joué sur « Oui ». Statuts : proposée, acceptée, refusée, expirée, exécutée, écartée (jamais montrée : plafond de 3 par jour, doublon). Rien ne part et aucun euro n'est dépensé sans « Oui ».
+Une proposition toute prête d'un assistant (ou de l'équipe, « préparée par l'équipe »), enregistrée dans `agent_proposals` : trois lignes (quoi · pour qui · combien), une estimation en fourchette ou rien, une date limite, un geste joué sur « Oui ». Statuts : proposée, acceptée, refusée, expirée, exécutée, écartée (jamais montrée : sous la barre, plafond de 3 par jour, doublon). Rien ne part et aucun euro n'est dépensé sans « Oui ».
+
+**Barre** *(ADR 0105)* :
+Les cinq conditions qu'une idée d'un assistant doit passer avant d'être montrée : une **fiche de jeu** active (mécanisme, source, mesure, `lib/agents/playbook.ts`), un constat lu sur la **caisse** et pas sur les seuls tickets du programme, au moins **50 clients joignables** pour un message aux membres, **rentable** dans le cas bas quand elle coûte, et un type qui réussit au moins **8 fois sur 10** une fois 10 résultats mesurés. Une idée qui rate est écartée « sous la barre », avec la condition ratée. Ne juge pas les idées préparées par l'équipe.
+_Avoid_ : score de confiance, filtre IA.
+
+**Fiche de jeu** *(ADR 0105)* :
+La carte d'un type d'idée : ce qui produit le gain, pourquoi on y croit (guide officiel, mesure maison), le chiffre qui dira si ça a marché. Statut active, retirée ou tâche. Un type sans fiche ne se montre pas.
 
 **Raison du refus** :
 Le choix du gérant quand il dit « Non » à une idée, dans une liste : pas le moment · trop cher · déjà fait · pas pour mon établissement · autre (avec saisie libre, jamais obligatoire). Chaque raison règle ce que la brigade propose ensuite à CET établissement (ADR 0089 §8) : délai avant de reproposer la même idée, type d'idée mis en pause 30 jours, tri par goût. Le gérant lit en une phrase ce qui a été retenu.

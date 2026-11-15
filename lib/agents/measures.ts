@@ -2,6 +2,7 @@ import { createAdminClient } from "../supabase";
 import { fetchAllRowsStrict } from "../paged-select";
 import { isMissingJournal } from "../message-log";
 import { brusselsDay, isMissingProposals, type ProposalRow } from "./proposals";
+import type { BarCondition } from "./playbook";
 import { ASSISTANTS, type AssistantId, type DiscardReason, type RefusalReason } from "./types";
 
 // Les mesures de la brigade (ADR 0089 §7, Brigade 06) : de quoi dire, par assistant et par
@@ -60,7 +61,10 @@ export type MeasureRow = Pick<
   | "discard_reason"
   | "execution_error"
   | "executed_at"
->;
+> & {
+  /** Condition de la barre ratée (ADR 0105), lue dans `content.barre.condition`. */
+  bar_condition?: string | null;
+};
 
 // ─── Un groupe d'idées (un assistant, un établissement, ou tout le réseau) ────
 
@@ -71,6 +75,8 @@ export type GroupMeasure = {
   shown: number;
   /** Écartées avant d'être montrées, par raison : « Rien ne disparaît en silence » (ADR 0065). */
   discarded: Partial<Record<DiscardReason, number>>;
+  /** Écartées sous la barre (ADR 0105), par condition ratée : de quoi voir quelle condition coupe le plus. */
+  belowBar: Partial<Record<BarCondition, number>>;
   decided: number;
   yes: number;
   no: number;
@@ -113,6 +119,7 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export function measureGroup(rows: readonly MeasureRow[]): GroupMeasure {
   const discarded: GroupMeasure["discarded"] = {};
+  const belowBar: GroupMeasure["belowBar"] = {};
   const refusals: GroupMeasure["refusals"] = {};
   let shown = 0, decided = 0, yes = 0, no = 0, expired = 0, open = 0, snoozes = 0;
   let refusalNotes = 0, failedExecutions = 0, awaitingTeam = 0, fromTeam = 0;
@@ -123,6 +130,10 @@ export function measureGroup(rows: readonly MeasureRow[]): GroupMeasure {
     if (r.status === "ecartee") {
       const why = r.discard_reason ?? "plafond_du_jour";
       discarded[why] = (discarded[why] ?? 0) + 1;
+      if (why === "sous_la_barre") {
+        const c = (r.bar_condition ?? "fiche_de_jeu") as BarCondition;
+        belowBar[c] = (belowBar[c] ?? 0) + 1;
+      }
       continue;
     }
     if (!SHOWN_STATUS.has(r.status)) continue;
@@ -154,6 +165,7 @@ export function measureGroup(rows: readonly MeasureRow[]): GroupMeasure {
     produced: rows.length,
     shown,
     discarded,
+    belowBar,
     decided,
     yes,
     no,
@@ -365,7 +377,7 @@ export function campaignEffect(input: {
 // ─── Lecture en base ──────────────────────────────────────────────────────────
 
 const MEASURE_COLUMNS =
-  "restaurant_id, assistant, type, origin, status, proposed_on, created_at, seen_at, decided_at, snooze_count, refusal_reason, refusal_note, discard_reason, execution_error, executed_at";
+  "restaurant_id, assistant, type, origin, status, proposed_on, created_at, seen_at, decided_at, snooze_count, refusal_reason, refusal_note, discard_reason, execution_error, executed_at, bar_condition:content->barre->>condition";
 
 /**
  * Les idées des `days` derniers jours, tous établissements ou ceux de `restaurantIds` seulement.
