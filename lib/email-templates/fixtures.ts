@@ -191,7 +191,7 @@ export function previewEntries(opts: { logoUrl: string | null; image: (name: str
         ideas,
         more: [
           { label: "Opportunités", hint: "3 idées chiffrées sur tes propres ventes", path: `/admin/${RID}/insights` },
-          { label: "Prévisions", hint: "Entre 3 800 € et 4 600 € attendus cette semaine", path: `/admin/${RID}/forecast` },
+          { label: "Prévisions", hint: "Entre 3 800 € et 4 600 € attendus cette semaine", path: `/admin/${RID}/chiffre` },
           { label: "Mes clients", hint: "5 habitués ne sont pas revenus depuis 3 semaines", path: `/admin/${RID}/clients` },
         ],
         link, manageUrl: link(`/admin/${RID}/settings#emails`), stopUrl: stop("recap"),

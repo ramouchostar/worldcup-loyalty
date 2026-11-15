@@ -320,7 +320,7 @@ export default async function PlatformDailyRevenuePage({ searchParams }: { searc
           </div>
         )}
         <p className="text-xs text-gray-500">
-          Les jours avec un montant alimentent la <Link href={`/admin/${encodeURIComponent(current.id)}/forecast`} className="underline underline-offset-2">prévision de {current.name}</Link> (à partir de 20 jours sur 4 semaines).
+          Les jours avec un montant alimentent la <Link href={`/admin/${encodeURIComponent(current.id)}/chiffre`} className="underline underline-offset-2">prévision de {current.name}</Link> (à partir de 20 jours sur 4 semaines).
         </p>
       </section>
     </div>

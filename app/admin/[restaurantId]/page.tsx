@@ -489,7 +489,7 @@ export default async function AdminDashboardPage({
           <Card>
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Ton CA total — {monthTitle(latestSales.month)}</SectionLabel>
-              <Link href={r("/forecast")} className="text-xs font-semibold text-ink hover:underline">Ventes &amp; prévisions →</Link>
+              <Link href={r("/chiffre")} className="text-xs font-semibold text-ink hover:underline">Ventes &amp; prévisions →</Link>
             </div>
             <p className="font-display text-[22px] font-bold text-ink tabular-nums">{eur(latestSales.totalSales)}</p>
             {latestSales.programSharePct !== null && (

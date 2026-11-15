@@ -75,7 +75,8 @@ export function loadGiftDays(restaurantId: string, from: string): Promise<Block<
 
 export function loadRevenue(restaurantId: string, today: string, since: string) {
   // Assez loin pour couvrir la période ET sa comparaison (mois d'avant).
-  const days = Math.max(70, Math.ceil((Date.parse(today) - Date.parse(since)) / 86_400_000) + 40);
+  // 100 jours au moins : la semaine type de Chloé lit 8 semaines avant le dernier jour lu (Belpeople a une semaine de retard).
+  const days = Math.max(100, Math.ceil((Date.parse(today) - Date.parse(since)) / 86_400_000) + 40);
   return block("chiffre d'affaires", () => loadRevenueTracker(restaurantId, today, days));
 }
 

@@ -84,7 +84,7 @@ export async function SimpleHomePage({
       revenue={
         <>
           <RevenueTrackerCard tracker={tracker} allowed={revenueAccess.allowed} restaurantId={restaurantId} yesterday={addDays(today, -1)} />
-          {revenueAccess.allowed && notesCa && <RevenueWeeksCard view={weeks} forecast={forecast} forecastHref={`${base}/forecast`} />}
+          {revenueAccess.allowed && notesCa && <RevenueWeeksCard view={weeks} forecast={forecast} forecastHref={`${base}/chiffre#previsions`} />}
         </>
       }
       missions={

@@ -108,3 +108,15 @@ Le calcul reste **déterministe et reproductible**. Un LLM (`@anthropic-ai/sdk`)
 - `restaurants.school_calendars TEXT[]` (migration `docs/migrations/20260822-2245-school-calendars.sql`) : **1 à 3** valeurs parmi `FR | NL | DE` (CHECK en base). `school_calendar` (une valeur) est conservée comme **miroir legacy** (= premier élément) ; le code lit la nouvelle colonne et retombe sur l'ancienne si la migration manque (fail-open). Helpers dans `lib/school-calendar.ts`.
 - Réglages « Mon établissement » : cases à cocher (au moins une, max trois) à la place du `<select>`.
 - Moteur (`lib/forecast.ts`, `schoolCommunities[]`) : deux états calibrés **séparément** pour éviter le double comptage quand les congés se chevauchent (été, Noël) — « Vacances scolaires » (toutes les communautés choisies en congé) et « Vacances scolaires (écoles francophones seulement) » (une partie). Chaque état n'est montré que s'il est calibré (≥ 3 jours d'historique), comme les autres facteurs.
+
+---
+
+## Amendement 2026-11-15 — la prévision vit dans la page « Chiffre d'affaires »
+
+**Constat** (Mehdi, 2026-11-15) : le bloc CA de Stats n'était « pas clair du tout » — ni dates, ni détail, et la prévision était une page à part que personne n'ouvrait.
+
+**Décision** (maquette validée : https://claude.ai/artifact/BpMKiqkWJ3DppGeXxX6dzE) :
+- Nouvelle page `/admin/<id>/chiffre` : résumé daté, « Combien tu vas faire » (ce mois et le suivant), remarques de Chloé (constat en euros → « À faire » → l'assistant qui peut s'en charger), jour par jour, semaine type, **heures de pointe** (Belpeople, `pos_hourly_sales`), canaux, puis la prévision des 7 prochains jours (même moteur, même essai ADR 0029, import de ventes et événements inchangés), et chaque jour. `/forecast` redirige vers `/chiffre#previsions`.
+- Tout part du **dernier jour lu** : Belpeople livre ses chiffres par semaine (dernier jour complet le 08/11 au 15/11) ; un jour pas encore lu n'est jamais zéro.
+- **Projection du mois** (`projectMonth`, `lib/revenue-page.ts`) : jours lus + moyenne du même jour de semaine sur 8 semaines pour chaque jour restant ; fourchette ±¾ de l'écart habituel d'un jour (8 % au moins) sur la part estimée ; aucune projection sans 4 semaines lues par jour ouvert. Calibrée sur l'historique réel le 2026-11-15 (projection au 8 du mois : −10 % à +12 % chez Kraainem, Houba, De Bue). C'est du **chiffre d'affaires**, pas du bénéfice — dit à l'écran.
+- **Trace** : `docs/mesures/suivi-projection-ca.sql` rejoue la règle au 8 de chaque mois et la compare au réel ; un écart > 10 % sur un mois, ou > 7 % en moyenne sur trois mois, dit que la règle est à revoir.
