@@ -129,7 +129,7 @@ export const SCRIPT: ScriptStep[] = [
       "Chaque matin, la brigade vous prépare trois idées au plus. Vous lisez trois lignes, vous répondez oui ou non, et vous retournez en cuisine. Rien ne part sans votre oui, et notre équipe à Bruxelles est derrière, sur WhatsApp.",
       "Le client prend son ticket en photo, il gagne des points et il choisit son cadeau. Rien à brancher : le ticket de caisse suffit, votre caisse ne change pas. Vous, vous récupérez son contact, et vous pouvez lui écrire un mardi soir calme.",
       "Et les cadeaux, c'est vous qui décidez. Chaque cadeau est calculé sur ce qu'il vous coûte, au taux que vous choisissez, entre 4 et 12 %. À 8 %, une boisson qui vous coûte 0,60 € se gagne après 7,50 € d'achats.",
-      "Emma monte une pub Facebook et Instagram dans un rayon de 3 km autour de chez vous. Vous voyez une estimation avant de payer. Un bon départ, c'est 10 à 15 € par jour pendant deux semaines. On ajoute une offre et un mot clé à dire au comptoir : vous voyez qui vient par la pub.",
+      "Emma monte une pub Facebook et Instagram dans un rayon de 3 km autour de chez vous. Vous voyez une estimation avant de payer. Un bon départ, c'est 10 à 15 € par jour pendant deux semaines. On ajoute une offre : le client l'obtient avec un bon sur son téléphone, votre équipe le scanne à la caisse, et vous voyez qui vient par la pub.",
       "Avec Chloé, vous notez votre chiffre du jour en un écran : caisse d'un côté, plateformes de l'autre. Et pour chaque plat, vous voyez le prix de vente et ce qu'il vous coûte.",
       COMPARISON_LINE,
     ],
@@ -188,7 +188,7 @@ export const LEAVE_BEHIND = {
   subtitle: "Rien à brancher : le ticket de caisse suffit.",
   pillars: [
     { name: "Léa et Hugo font revenir vos clients", body: "Vos clients prennent leur ticket en photo, gagnent des points et choisissent leur cadeau. Hugo écrit à ceux qui ne reviennent plus, quand vous avez dit oui." },
-    { name: "Emma fait venir le quartier", body: "Elle lance et gère vos publicités en ligne, à 3 km autour de chez vous. Une estimation avant de payer, une offre et un mot clé à dire au comptoir." },
+    { name: "Emma fait venir le quartier", body: "Elle lance et gère vos publicités en ligne, à 3 km autour de chez vous. Une estimation avant de payer, et une offre retirée avec un bon scanné à la caisse." },
     { name: "Chloé suit vos chiffres", body: "Votre chiffre du jour en un écran, le coût de chaque plat, et vos jours calmes repérés pour que Hugo et Emma s'en occupent." },
   ],
   gifts: "Chaque cadeau est calculé sur ce qu'il vous coûte, au taux que vous choisissez (4 à 12 %). Exemple à 8 % : une boisson qui vous coûte 0,60 € se gagne après 7,50 € d'achats.",
@@ -240,7 +240,7 @@ export const OBJECTIONS: { said: string; worry: string; answer: string; ask: str
   { said: "« Ça coûte combien ? » / « Pas d'abonnement. »", worry: "Être lié", answer: "Rien pour commencer : le Gratuit n'a ni carte bancaire ni engagement. Vous passez à un plan payant seulement si vous voulez suivre vos chiffres ou qu'on s'occupe de la pub.", ask: "On démarre en Gratuit et on fait le point dans un mois ?" },
   { said: "« 150 €, c'est cher. »", worry: "Ne pas rentrer dans ses frais", answer: "Vous ne le prenez que quand le Gratuit vous a déjà montré des clients inscrits. Et c'est sans engagement : vous arrêtez quand vous voulez.", ask: "On démarre en Gratuit, et on en reparle quand vous aurez vos premiers chiffres ?" },
   { said: "« Mes clients ne vont pas s'inscrire. »", worry: "Que ce soit inutile", answer: "On le mesure : au bout d'un mois, vous voyez combien se sont inscrits et combien sont revenus. Si ça ne marche pas, vous arrêtez, ça ne vous a rien coûté.", ask: "On regarde ensemble dans un mois ?" },
-  { said: "« J'ai déjà essayé la pub Facebook, ça ne marche pas. »", worry: "Jeter de l'argent", answer: "Souvent, on ne sait pas ce qu'elle a donné. Ici, vous voyez une estimation avant de payer, on cible 3 km autour de chez vous, et l'offre a un mot clé à dire au comptoir : vous comptez qui vient.", ask: "Qu'est-ce que vous aviez fait la dernière fois : quel budget, combien de temps ?" },
+  { said: "« J'ai déjà essayé la pub Facebook, ça ne marche pas. »", worry: "Jeter de l'argent", answer: "Souvent, on ne sait pas ce qu'elle a donné. Ici, vous voyez une estimation avant de payer, on cible 3 km autour de chez vous, et l'offre se retire avec un bon scanné à la caisse : vous comptez qui vient.", ask: "Qu'est-ce que vous aviez fait la dernière fois : quel budget, combien de temps ?" },
   { said: "« Uber Eats m'apporte mes clients. »", worry: "Perdre ce qui marche", answer: "Gardez-le. Mais il vous les loue. Ceux qui reviennent au comptoir, c'est 0 % de commission.", ask: "Quelle part de vos ventes part en commission chaque mois ?" },
   { said: "« Je dois en parler à mon associé. »", worry: "Décider seul", answer: "Bien sûr. Je vous laisse la page et l'analyse. Le Gratuit ne vous engage à rien.", ask: "On les voit ensemble ? Quel jour êtes-vous là tous les deux ?" },
 ];

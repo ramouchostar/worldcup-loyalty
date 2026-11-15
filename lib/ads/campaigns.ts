@@ -3,6 +3,8 @@ import { campaignName, freeSegment } from "./naming";
 import { adAccount, describeMetaError, metaDelete, metaGet, metaPost, type CallContext } from "./meta-api";
 import { META_SPEC, buildTargeting, dailyBudgetCents, isOpenObjective, metaTimes, offerLine, type Creative } from "./meta-spec";
 import { spendCapCents } from "./money";
+import { adDestination, offerOf, voucherOfferLine } from "./vouchers";
+import { vouchersReady } from "./vouchers-data";
 
 // ADR 0086 §2, §4, §6 — les écritures chez Meta. Tout est créé EN PAUSE : seul le geste
 // « Lancer » de Mehdi met une campagne en diffusion. Plafond de campagne = total payé
@@ -125,7 +127,19 @@ export async function prepareCampaign(requestId: string, actor: string): Promise
 
   const spec = META_SPEC[req.objective];
   const name = campaignName({ clientCode: rest.client_code, establishment: rest.id, regie: "META", objective: req.objective, version: req.version });
-  const link = restaurantLink(rest);
+  const offer = offerOf({ text: req.offer_text ?? null, keyword: req.offer_keyword ?? null, from: req.offer_from ?? null, to: req.offer_to ?? null });
+  // ADR 0104 §2 — une pub « Visites » avec offre mène à la page du bon (« Obtenir l'offre ») ;
+  // les autres gardent l'itinéraire. Le lien est figé à la création : une pub déjà créée ne change pas.
+  const dest = adDestination({
+    objective: req.objective,
+    offer,
+    vouchersReady: offer ? await vouchersReady() : false,
+    restaurantId: rest.id,
+    seq: req.seq,
+    campaignName: name,
+    mapsLink: restaurantLink(rest),
+  });
+  const link = dest.link;
 
   const existing = await db.from("ad_campaigns").select("id, external_id, adset_external_id, creative_external_id, ad_external_id").eq("request_id", req.id).maybeSingle();
   if (existing.error) return { ok: false, error: existing.error.message };
@@ -179,7 +193,7 @@ export async function prepareCampaign(requestId: string, actor: string): Promise
 
   // 3. Création
   if (!row.creative_external_id) {
-    const cta = spec.needsLink ? { type: "LEARN_MORE", value: { link } } : undefined;
+    const cta = spec.needsLink ? { type: dest.cta, value: { link } } : undefined;
     let params: Record<string, unknown>;
     if (req.creative.kind === "instagram_post") {
       if (!ident.instagram_user_id) return { ok: false, error: `compte Instagram de ${rest.name} non choisi : renseigne-le sur /platform/pub` };
@@ -187,7 +201,7 @@ export async function prepareCampaign(requestId: string, actor: string): Promise
     } else {
       const up = await uploadCreativeFile(account, req.creative, ctx());
       if (!up.ok) return { ok: false, error: up.error };
-      const message = [req.ad_text ?? "", req.offer_text && req.offer_keyword && req.offer_from && req.offer_to ? offerLine({ text: req.offer_text, keyword: req.offer_keyword, from: req.offer_from, to: req.offer_to }) : ""].filter(Boolean).join("\n\n");
+      const message = [req.ad_text ?? "", offer ? (dest.voucher ? voucherOfferLine(offer) : offerLine(offer)) : ""].filter(Boolean).join("\n\n");
       const story = up.videoId
         ? { page_id: ident.meta_page_id, ...(ident.instagram_user_id ? { instagram_user_id: ident.instagram_user_id } : {}), video_data: { video_id: up.videoId, image_url: up.thumbnail, message, call_to_action: cta ?? { type: "LEARN_MORE", value: { link } } } }
         : { page_id: ident.meta_page_id, ...(ident.instagram_user_id ? { instagram_user_id: ident.instagram_user_id } : {}), link_data: { image_hash: up.imageHash, link, message, call_to_action: cta ?? { type: "LEARN_MORE", value: { link } } } };

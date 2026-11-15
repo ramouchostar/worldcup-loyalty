@@ -8,6 +8,8 @@ import { formatEur } from "@/lib/ads/money";
 import { Card, EmptyState, PageHeader, ProgressBar, SectionLabel, StatusBadge } from "@/components/admin/ui";
 import { PauseButton, RechargeForm } from "./PubControls";
 import { STATUS_VIEW, dateFr, fr } from "./view";
+import { voucherCounts } from "@/lib/ads/vouchers-data";
+import { NO_VOUCHERS, offerOf } from "@/lib/ads/vouchers";
 
 // ADR 0085 §6 + ADR 0086 — la Pub du restaurateur : ses campagnes, le résultat de
 // chacune selon son objectif, la dépense et le budget restant. Euros permis : c'est sa
@@ -41,6 +43,10 @@ export default async function PubPage({ params }: { params: Promise<{ restaurant
   const live = requests.filter((r) => ["en_diffusion", "en_pause"].includes(r.status));
   const pending = requests.filter((r) => ["paiement_attendu", "payee", "preparee", "a_corriger"].includes(r.status));
   const ended = requests.filter((r) => r.status === "terminee");
+  // ADR 0104 §2 — une pub « Visites » avec offre mène au bon : on compte jusqu'à la caisse.
+  const counts = await voucherCounts(requests.map((r) => r.id));
+  const withVoucher = (r: RequestView) =>
+    r.objective === "TRAFIC" && offerOf({ text: r.offerText, keyword: r.offerKeyword, from: r.offerFrom, to: r.offerTo }) !== null;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -66,6 +72,7 @@ export default async function PubPage({ params }: { params: Promise<{ restaurant
               <p className="text-[13px] text-ink-muted">personnes touchées</p>
             </div>
           </div>
+          {withVoucher(r) && <VoucherLine restaurantId={restaurantId} c={counts.get(r.id) ?? NO_VOUCHERS} />}
           <div className="space-y-1.5">
             <div className="flex justify-between gap-2 text-[14px] text-ink">
               <span>Dépensé <strong>{formatEur(r.spentCents)}</strong> sur {formatEur(r.paidCents)}</span>
@@ -108,6 +115,11 @@ export default async function PubPage({ params }: { params: Promise<{ restaurant
               <p className="text-[13px] text-ink-muted">
                 {fr(r.results)} {r.resultLabel} · {formatEur(r.spentCents)} dépensés · {dateFr(r.startsOn)} → {dateFr(r.endsOn)}
               </p>
+              {withVoucher(r) && (
+                <p className="text-[13px] text-ink-muted">
+                  {fr((counts.get(r.id) ?? NO_VOUCHERS).issued)} bons obtenus, {fr((counts.get(r.id) ?? NO_VOUCHERS).redeemed)} utilisés en caisse
+                </p>
+              )}
               <div className="flex flex-wrap gap-3 pt-1">
                 <RechargeForm restaurantId={restaurantId} requestId={r.id} hasOpenNotice={r.notices.some((n) => !n.confirmedAt)} label="Relancer avec du budget" />
               </div>
@@ -144,6 +156,20 @@ function CreativeLine({ r }: { r: RequestView }) {
           {r.radiusKm ? `${r.radiusKm} km autour du resto · ` : ""}du {dateFr(r.startsOn)} au {dateFr(r.endsOn)}
         </p>
       </div>
+    </div>
+  );
+}
+
+function VoucherLine({ restaurantId, c }: { restaurantId: string; c: { views: number; issued: number; redeemed: number } }) {
+  return (
+    <div className="space-y-2 rounded-lg border border-paper-border p-3">
+      <p className="text-[13px] text-ink-muted">
+        Bons de l&apos;offre : <strong className="text-ink">{fr(c.issued)}</strong> obtenus, <strong className="text-ink">{fr(c.redeemed)}</strong> utilisés en caisse
+        {c.views > 0 ? ` (${fr(c.views)} visites de la page du bon)` : ""}.
+      </p>
+      <Link href={`/admin/${restaurantId}/bon`} className="inline-flex min-h-[44px] items-center text-[13px] font-semibold text-boost-olive-dark hover:text-ink">
+        Valider un bon à la caisse
+      </Link>
     </div>
   );
 }

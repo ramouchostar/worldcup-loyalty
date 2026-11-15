@@ -93,6 +93,7 @@ export type RequestIssue =
   | "offer"
   | "offer_keyword"
   | "offer_dates"
+  | "offer_objective"
   | "terms";
 
 export const REQUEST_ISSUE_TEXT: Record<RequestIssue, string> = {
@@ -111,6 +112,7 @@ export const REQUEST_ISSUE_TEXT: Record<RequestIssue, string> = {
   offer: "Décris l'offre en une phrase (140 caractères au plus), ou laisse les trois champs vides.",
   offer_keyword: "Le mot clé : 2 à 24 lettres ou chiffres, sans espace (par exemple CROUSTI).",
   offer_dates: "Indique les dates de validité de l'offre, la fin après le début.",
+  offer_objective: "Une offre se met sur une pub « Des visites au restaurant » : elle mène au bon que le client montre à la caisse.",
   terms: "Accepte les conditions de la Pub pour continuer.",
 };
 
@@ -217,6 +219,8 @@ export function judgeRequest(raw: Record<string, unknown>, today: string): { ok:
 
   const offer = judgeOffer(raw.offer);
   if (!offer.ok) return offer;
+  // ADR 0104 §2 — une offre mène au bon : seule une pub « Visites » porte un lien et un bouton.
+  if (offer.offer && objective !== "TRAFIC") return { ok: false, issue: "offer_objective" };
 
   if (raw.termsAccepted !== true) return { ok: false, issue: "terms" };
 

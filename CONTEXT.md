@@ -407,6 +407,14 @@ _Avoid_ : « commande » de pub (rien n'est acheté ni lancé au clic) ; « dema
 Une campagne publicitaire demandée et payée par le restaurateur depuis sa console (`ad_requests`) : objectif, budget (≥ 100 €), budget par jour, dates, zone, création (une de ses 5 à 10 meilleures publications Instagram, ou un fichier envoyé). États : paiement attendu → payée → préparée (créée en pause chez Meta) ⇄ à corriger → en diffusion ⇄ en pause → terminée. Deux gestes humains, ceux du porteur : **confirmer le paiement** (tant que Revolut n'a pas d'API) et **valider le lancement** ; pause, relance, alertes et rapports sont automatiques. Remplace, pour la pub, la demande de rappel (`service_requests`). Paiement par **virement** avec la communication structurée de la demande (amendé le 2026-10-23) ; objectifs ouverts au formulaire : `TRAFIC`, `NOTORIETE`, `VIDEO` ; ouverte par établissement (`PUB_RESTAURANTS`). Depuis le 2026-10-29 : **estimation** en fourchette avant paiement (comparée ensuite au réel), repère 10-15 €/jour, **offre + mot clé** facultatifs.
 _Avoid_ : commande de pub ; « recharge » pour une première demande (une recharge relève le plafond d'une campagne existante).
 
+**Bon de pub** *(ADR 0104)* :
+Ce qu'obtient un passant qui appuie sur « Obtenir l'offre » dans une pub avec offre : page publique `/bon/<établissement>/<n° de demande>`, puis un bon (`ad_vouchers`) avec un code court (6 caractères) et un QR que la caisse scanne depuis la console (`/admin/bon/<jeton>`, ou le code tapé sur `/admin/<id>/bon`). Une seule utilisation, valable aux dates de l'offre, aucune donnée personnelle. Mesure de la pub : clics (Meta) → bons obtenus → bons utilisés.
+_Avoid_ : « coupon » (réservé au cadeau du membre, ADR 0011) ; « code promo » (rien ne se tape dans la caisse du restaurant) ; « cadeau » (l'offre est celle du restaurateur, pas du programme).
+
+**Espace Marketing** *(ADR 0104)* :
+L'onglet « Marketing » de la vue simple (ex-« Annonces »), `/admin/<id>/marketing` : la recommandation de la semaine, ce qui tourne, la galerie d'actions, qui on peut toucher, ce que les actions ont donné. Porte d'entrée de Pub, Annonces, Prestataires et Actions, qui restent des pages.
+_Avoid_ : « Pub » pour l'espace entier (la Pub est une de ses actions).
+
 **Crédit pub** *(ADR 0086)* :
 Ce qu'un restaurateur a payé pour une campagne publicitaire, frais de service exclus : registre `ad_credit_transactions`, jamais de solde stocké. Le plafond Meta de la campagne vaut le total payé, donc tout le crédit est dépensé ; non remboursable (conditions de la Pub).
 _Avoid_ : solde, porte-monnaie, « points » (réservés au membre, ADR 0061).

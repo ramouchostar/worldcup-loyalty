@@ -207,7 +207,7 @@ export const article: BlogArticle = {
       items: [
         "Vous dites ce que vous voulez et vous choisissez la publication : une de vos publications Instagram qui a bien marché, ou une vidéo ou une photo que vous nous envoyez.",
         "Vous choisissez la zone autour du restaurant, les dates et le budget. Une estimation en fourchette des personnes touchées s'affiche avant de payer.",
-        "Vous ajoutez une offre et un mot clé si vous le souhaitez. Le mot clé est ajouté au texte de la pub.",
+        "Vous ajoutez une offre si vous le souhaitez. Dans la pub, le bouton « Obtenir l'offre » donne au client un bon qu'il montre à la caisse : chaque bon utilisé se compte.",
         "Vous réglez le budget par virement. On prépare la pub, on la vérifie, et on la lance.",
         "Pendant la diffusion, vous voyez dans votre espace les personnes touchées, le budget dépensé et ce qu'il reste. Vous mettez en pause ou rechargez en un geste.",
       ],
