@@ -1,6 +1,7 @@
 import type { Plan } from "../entitlements";
 import { chloeIdeas, loadChloeInput } from "./chloe";
 import { caReminderIdea, loadChloeCaInput } from "./chloe-ca";
+import { loadChannelInput, silentPlatformIdeas } from "./chloe-plateformes";
 import { giftToAddIdea, loadLeaGiftInput, loadLeaTicketsInput, ticketsToVerifyIdea } from "./lea";
 import { lapsedIdea, loadHugoInput } from "./hugo";
 import { loadEmmaDecision } from "./emma";
@@ -29,6 +30,8 @@ const one = (idea: Idea | null): GeneratorOutput => ({ ideas: idea ? [idea] : []
 /** Les générateurs livrés (Omar, Brigades 07 à 11 et 14). Un nouveau s'ajoute ici. */
 export const GENERATORS: Generator[] = [
   { id: "chloe", assistant: "chloe", run: async (c) => ({ ideas: chloeIdeas(await loadChloeInput(c.restaurantId, c.todayISO)) }) },
+  // ADR 0105 : une plateforme de livraison qui se tait alors que la caisse tourne.
+  { id: "chloe-plateformes", assistant: "chloe", run: async (c) => ({ ideas: silentPlatformIdeas(await loadChannelInput(c.restaurantId, c.todayISO)) }) },
   { id: "chloe-ca", assistant: "chloe", run: async (c) => one(caReminderIdea(await loadChloeCaInput(c.restaurantId, c.todayISO))) },
   { id: "lea-tickets", assistant: "lea", run: async (c) => one(ticketsToVerifyIdea(await loadLeaTicketsInput(c.restaurantId, c.todayISO, c.nowMs))) },
   { id: "lea-cadeau", assistant: "lea", run: async (c) => one(giftToAddIdea(await loadLeaGiftInput(c.restaurantId, c.todayISO))) },

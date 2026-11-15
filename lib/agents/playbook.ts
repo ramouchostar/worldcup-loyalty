@@ -72,6 +72,17 @@ export const PLAYS: Play[] = [
   },
   {
     assistant: "chloe",
+    type: "plateforme_muette",
+    status: "active",
+    channel: "plateforme",
+    mechanism: "Une plateforme de livraison qui ne vend plus rien alors que la caisse tourne, c'est une tablette éteinte ou un restaurant en pause : le rallumer rend le chiffre tout de suite.",
+    source: "Mesuré chez nous : Kraainem, 0 commande Uber Eats du 4 au 16 août 2026 (20 à 60 articles par jour d'habitude) alors que la caisse vendait 300 à 590 articles par jour.",
+    measure: "La plateforme revient au moins à 30 % de sa médiane dans les 3 jours lus après le « Oui ».",
+    needsTill: true,
+    costsMoney: false,
+  },
+  {
+    assistant: "chloe",
     type: "plat_a_mettre_en_avant",
     status: "retiree",
     channel: "membres",
