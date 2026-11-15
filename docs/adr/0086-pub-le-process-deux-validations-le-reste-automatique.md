@@ -45,6 +45,8 @@ demandée, payée ou en diffusion. Chaque demande garde son **origine** (`ad_req
 `origin_evidence`, migration `20261105-0300`) pour comparer les pubs d'Emma à celles des gérants. Emma ne
 touche à aucun argent et ne lance rien chez Meta.
 
+**Amendé le 2026-11-15** par l'[ADR 0104](0104-espace-marketing-et-pub-vers-un-bon.md) : une pub qui porte une offre est une pub « Visites » dont le bouton « Obtenir l'offre » mène à un **bon** Boosteats, scanné en caisse ; le mot clé seul ne se comptait pas.
+
 ## Contexte
 
 Le 2026-10-17, la chaîne Meta est en place et vérifiée par l'API : application, System User
