@@ -28,3 +28,13 @@ SELECT (created_at >= '2026-11-15') AS apres_barre,
        count(*) FILTER (WHERE status IN ('acceptee','executee')) AS oui,
        count(*) FILTER (WHERE status NOT IN ('ecartee','proposee')) AS decidees_ou_expirees
 FROM agent_proposals WHERE origin = 'systeme' GROUP BY 1;
+
+-- 5. Max, horaires des jours fériés (ADR 0105 §5, étape 2). Une idée par occasion et par
+--    établissement Pro, de J-15 à J-2. Seuil : à J-2 du 24/12, un établissement Pro sans idée
+--    montrée ni écartée « deja_sur_la_fiche » = générateur en panne (voir le rapport du passage).
+--    Réussite (à écrire dans result.outcome) : horaires relus par Places dans les 7 jours.
+SELECT restaurant_id, content->>'finding' AS occasion, status, refusal_reason,
+       content->'evidence'->>'ficheRead' AS fiche_lue, decided_at, executed_at
+FROM agent_proposals
+WHERE assistant = 'max' AND type = 'horaires_jours_speciaux'
+ORDER BY created_at DESC;

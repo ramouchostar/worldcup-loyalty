@@ -5,6 +5,7 @@ import { giftToAddIdea, loadLeaGiftInput, loadLeaTicketsInput, ticketsToVerifyId
 import { lapsedIdea, loadHugoInput } from "./hugo";
 import { loadEmmaDecision } from "./emma";
 import { loadMaxDecision } from "./max";
+import { loadFeteDecision } from "./max-fetes";
 import { loadLouisDecision } from "./louis";
 import { recordIdeas, type RecordResult } from "./proposals";
 import type { AssistantId, Idea } from "./types";
@@ -46,6 +47,15 @@ export const GENERATORS: Generator[] = [
     run: async (c) => {
       const d = await loadMaxDecision(c.restaurantId, c.todayISO, c.nowMs);
       return { ideas: d.ideas, reason: d.reason };
+    },
+  },
+  {
+    // ADR 0105 : les horaires des jours fériés, 15 jours avant (lecture Places dans les 7 derniers jours seulement).
+    id: "max-fetes",
+    assistant: "max",
+    run: async (c) => {
+      const d = await loadFeteDecision(c.restaurantId, c.todayISO);
+      return { ideas: d.idea ? [d.idea] : [], reason: d.reason };
     },
   },
   {

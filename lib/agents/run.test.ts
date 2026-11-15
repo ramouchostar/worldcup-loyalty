@@ -32,9 +32,9 @@ test("un générateur qui tombe n'empêche pas les autres, et son erreur est dan
   ]);
 });
 
-test("les générateurs livrés : un par module d'Omar, ids uniques", () => {
+test("les générateurs livrés : un par module, ids uniques", () => {
   const ids = GENERATORS.map((g) => g.id);
-  assert.deepEqual(ids, ["chloe", "chloe-ca", "lea-tickets", "lea-cadeau", "hugo", "emma", "max", "louis"]);
+  assert.deepEqual(ids, ["chloe", "chloe-ca", "lea-tickets", "lea-cadeau", "hugo", "emma", "max", "max-fetes", "louis"]);
   assert.equal(new Set(ids).size, ids.length);
 });
 

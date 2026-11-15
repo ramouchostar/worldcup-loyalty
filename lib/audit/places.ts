@@ -229,6 +229,22 @@ export async function placeOpeningPeriods(placeId: string): Promise<OpeningPerio
   return p.regularOpeningHours?.periods?.length ? p.regularOpeningHours.periods : null;
 }
 
+// ADR 0105 (Max, horaires des jours fériés) — les jours qui ont des horaires
+// exceptionnels sur la fiche. Google ne les rend que pour les 7 prochains jours
+// (`currentOpeningHours.specialDays`). Liste vide : aucun jour exceptionnel posé.
+type PlaceDate = { year?: number; month?: number; day?: number };
+
+export async function placeSpecialDays(placeId: string): Promise<string[]> {
+  if (!/^[\w-]{10,300}$/.test(placeId)) throw new PlacesError("identifiant de fiche invalide");
+  const p = await call<{ currentOpeningHours?: { specialDays?: { date?: PlaceDate }[] } }>(`/places/${encodeURIComponent(placeId)}`, {
+    fieldMask: "currentOpeningHours.specialDays",
+  });
+  return (p.currentOpeningHours?.specialDays ?? [])
+    .map((s) => s.date)
+    .filter((d): d is Required<PlaceDate> => !!d?.year && !!d.month && !!d.day)
+    .map((d) => `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`);
+}
+
 // Fiche réduite pour l'inscription (ADR 0075) : pas d'avis, de photos ni
 // d'horaires — seulement ce qui pré-remplit l'établissement.
 const SIGNUP_FIELDS = [
