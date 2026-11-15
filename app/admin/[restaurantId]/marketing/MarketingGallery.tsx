@@ -17,6 +17,8 @@ export type GalleryTile = {
   wide?: boolean;
   /** Une image (photo d'illustration, ou le visuel de la dernière pub) ; sinon une icône. */
   image: string | null;
+  /** « contain » : l'image entière sur fond blanc (un logo qu'on ne doit pas rogner). */
+  fit?: "cover" | "contain";
   icon?: "star" | "phone" | "camera";
   badge?: string;
   title: string;
@@ -70,10 +72,10 @@ function Tile({ t, wide }: { t: GalleryTile; wide: boolean }) {
   const Icon = t.icon ? ICONS[t.icon] : null;
   const body = (
     <>
-      <div className={`relative w-full overflow-hidden ${wide ? "aspect-[2/1]" : "aspect-square"} ${t.image ? "bg-paper-subtle" : "bg-boost-cream"}`}>
+      <div className={`relative w-full overflow-hidden ${wide ? "aspect-[2/1]" : "aspect-square"} ${t.image ? (t.fit === "contain" ? "bg-white" : "bg-paper-subtle") : "bg-boost-cream"}`}>
         {t.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={t.image} alt="" className={`h-full w-full object-cover ${t.href ? "" : "opacity-60"}`} loading="lazy" />
+          <img src={t.image} alt="" className={`h-full w-full ${t.fit === "contain" ? "object-contain p-2" : "object-cover"} ${t.href ? "" : "opacity-60"}`} loading="lazy" />
         ) : (
           Icon && (
             <div className="flex h-full w-full items-center justify-center">
