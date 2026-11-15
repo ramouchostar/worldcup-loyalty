@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BAR_CONDITION_LABELS, type BarCondition } from "@/lib/agents/playbook";
 import { redirect } from "next/navigation";
 import { createAdminClient, createServerSupabaseClient } from "@/lib/supabase";
 import { listLiveRestaurants } from "@/lib/demo";
@@ -39,6 +40,7 @@ const DISCARD_LABELS: Record<DiscardReason, string> = {
   refusee_recemment: "Refusée récemment",
   forfait: "Hors du forfait",
   appris: "Mise en pause après des refus",
+  sous_la_barre: "Sous la barre (ADR 0105)",
 };
 
 const num = (n: number) => n.toLocaleString("fr-BE");
@@ -208,9 +210,21 @@ export default async function PlatformBrigadePage() {
           ) : (
             <ul className="text-sm text-gray-800 dark:text-gray-200 space-y-1">
               {discardEntries.map(([why, n]) => (
-                <li key={why} className="flex justify-between gap-3">
-                  <span>{DISCARD_LABELS[why]}</span>
-                  <span className="tabular-nums">{num(n)}</span>
+                <li key={why} className="space-y-1">
+                  <div className="flex justify-between gap-3">
+                    <span>{DISCARD_LABELS[why]}</span>
+                    <span className="tabular-nums">{num(n)}</span>
+                  </div>
+                  {why === "sous_la_barre" && (
+                    <ul className="pl-3 text-gray-600 dark:text-gray-400 space-y-0.5">
+                      {(Object.entries(net.belowBar) as [BarCondition, number][]).map(([c, k]) => (
+                        <li key={c} className="flex justify-between gap-3">
+                          <span>{BAR_CONDITION_LABELS[c]}</span>
+                          <span className="tabular-nums">{num(k)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

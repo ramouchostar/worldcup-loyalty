@@ -28,6 +28,8 @@ const DISCARD_TEXT: Record<DiscardReason, string> = {
   refusee_recemment: "Le gérant a refusé cette idée récemment : elle ne peut pas revenir tout de suite.",
   appris: "Le gérant a mis ce genre d'idée en pause (refus répétés).",
   plafond_du_jour: "L'établissement a déjà ses 3 idées du jour : réessaie demain, ou attends qu'une idée soit décidée.",
+  // Jamais pour une idée de l'équipe : la barre ne juge que les générateurs (ADR 0105).
+  sous_la_barre: "L'idée ne passe pas la barre de la brigade.",
 };
 
 export type CreateResult = { ok: true; message: string } | { ok: false; errors: string[] };

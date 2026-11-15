@@ -18,6 +18,7 @@ import {
   type IdeaStatus,
   type RefusalReason,
 } from "./types";
+import { checkBar, trackRecords, type BarCondition, type TrackRecord } from "./playbook";
 
 // La couche des idées (ADR 0089, Brigade 02) : tout ce qui écrit ou lit
 // `agent_proposals` passe par ici. Les générateurs (lib/agents/<prénom>.ts)
@@ -167,9 +168,12 @@ export const EMPTY_PROFILE: IdeaProfile = { types: new Map(), refusals: new Map(
 
 // ─── Le choix du jour ─────────────────────────────────────────────────────────
 
+/** Une idée écartée ; `bar` dit quelle condition de la barre elle a ratée (ADR 0105). */
+export type Discarded = { idea: Idea; reason: DiscardReason; bar?: { condition: BarCondition; detail: string } };
+
 export type Selection = {
   show: Idea[];
-  discard: { idea: Idea; reason: DiscardReason }[];
+  discard: Discarded[];
 };
 
 export type SelectionContext = {
@@ -184,6 +188,13 @@ export type SelectionContext = {
   discardedTodayKeys?: Set<string>;
   nowMs: number;
   cap?: number;
+  /**
+   * La barre (ADR 0105) : `recordIdeas` l'allume pour les idées des générateurs, jamais pour
+   * celles de l'équipe. Éteinte par défaut dans ce calcul pur.
+   */
+  applyBar?: boolean;
+  /** Le bilan mesuré de chaque type sur le réseau (condition 5). */
+  records?: Map<string, TrackRecord>;
 };
 
 /**
@@ -218,14 +229,19 @@ export function selectIdeas(candidates: Idea[], ctx: SelectionContext): Selectio
     if (decideByInstant(idea.decideBy).getTime() <= ctx.nowMs) continue;
     const key = ideaKey(idea);
     let reason: DiscardReason | null = null;
-    if (!planCovers(ctx.plan, requiredPlan(idea))) reason = "forfait";
+    let bar: Discarded["bar"];
+    const barCheck = ctx.applyBar ? checkBar(idea, ctx.records) : null;
+    if (barCheck && !barCheck.ok) {
+      reason = "sous_la_barre";
+      bar = { condition: barCheck.condition, detail: barCheck.detail };
+    } else if (!planCovers(ctx.plan, requiredPlan(idea))) reason = "forfait";
     else if (isTypeMuted(ctx.profile.types.get(typeKey(idea)), ctx.nowMs)) reason = "appris";
     else if (ctx.openKeys.has(key) || seen.has(key)) reason = "deja_proposee";
     else if (refusalStillBlocks(ctx.profile.refusals.get(key), ctx.nowMs)) reason = "refusee_recemment";
     else if (slots <= 0) reason = "plafond_du_jour";
     seen.add(key);
     if (reason && ctx.discardedTodayKeys?.has(key)) continue;
-    if (reason) out.discard.push({ idea, reason });
+    if (reason) out.discard.push(bar ? { idea, reason, bar } : { idea, reason });
     else {
       out.show.push(idea);
       slots--;
@@ -357,7 +373,31 @@ async function readHistory(
   });
 }
 
-export type RecordResult = { unavailable: false; shown: ProposalRow[]; discarded: { idea: Idea; reason: DiscardReason }[] } | Unavailable;
+export type RecordResult = { unavailable: false; shown: ProposalRow[]; discarded: Discarded[] } | Unavailable;
+
+/**
+ * Le bilan mesuré de chaque type d'idée sur tout le réseau (condition 5 de la barre) : les idées
+ * exécutées dont une mesure a écrit `result.outcome`. Fail-open : table absente ou lecture en échec
+ * = aucun bilan (le type reste « à l'essai »), dit dans les journaux.
+ */
+async function readTrackRecords(): Promise<Map<string, TrackRecord>> {
+  try {
+    const admin = createAdminClient();
+    const rows = await readRows<{ assistant: string; type: string; outcome: string | null }>("agent_proposals (résultats)", (from, to) =>
+      admin
+        .from(TABLE)
+        .select("assistant, type, outcome:result->>outcome")
+        .eq("status", "executee")
+        .not("result->>outcome", "is", null)
+        .order("id")
+        .range(from, to)
+    );
+    return trackRecords(rows ?? []);
+  } catch (e) {
+    console.error("[brigade] bilan des types illisible :", (e as Error).message);
+    return new Map();
+  }
+}
 
 /**
  * Enregistre les idées produites pour un établissement : celles qui se montrent
@@ -377,7 +417,10 @@ export async function recordIdeas(
 
   const rows = await readHistory(restaurantId, nowMs, { includeToday: today });
   if (!rows) return UNAVAILABLE;
+  const applyBar = origin === "systeme";
   const selection = selectIdeas(candidates, {
+    applyBar,
+    records: applyBar ? await readTrackRecords() : undefined,
     plan: opts.plan,
     nowMs,
     shownToday: rows.filter((r) => r.proposed_on === today && r.status !== "ecartee").length,
@@ -386,7 +429,7 @@ export async function recordIdeas(
     discardedTodayKeys: new Set(rows.filter((r) => r.status === "ecartee" && r.proposed_on === today).map((r) => r.idea_key)),
   });
 
-  const toRow = (idea: Idea, status: IdeaStatus, discard: DiscardReason | null) => ({
+  const toRow = (idea: Idea, status: IdeaStatus, discard: DiscardReason | null, bar?: Discarded["bar"]) => ({
     restaurant_id: restaurantId,
     assistant: idea.assistant,
     type: idea.type,
@@ -394,7 +437,7 @@ export async function recordIdeas(
     origin,
     status,
     action_kind: idea.action.kind,
-    content: idea,
+    content: bar ? { ...idea, barre: bar } : idea,
     proposed_on: today,
     decide_by: decideByInstant(idea.decideBy).toISOString(),
     discard_reason: discard,
@@ -417,8 +460,18 @@ export async function recordIdeas(
     shown.push(data as ProposalRow);
   }
   if (discarded.length > 0) {
-    const { error: dErr } = await admin.from(TABLE).insert(discarded.map((d) => toRow(d.idea, "ecartee", d.reason)));
-    if (dErr && !isMissingProposals(dErr)) throw new Error(`agent_proposals (écartées) : ${dErr.message}`);
+    const { error: dErr } = await admin.from(TABLE).insert(discarded.map((d) => toRow(d.idea, "ecartee", d.reason, d.bar)));
+    if (dErr?.code === "23514") {
+      // Migration 20261115-1500 pas encore appliquée : « sous_la_barre » refusé par la contrainte.
+      // Les autres écartées s'enregistrent ; celles-là sont dites dans les journaux, jamais perdues en silence.
+      const below = discarded.filter((d) => d.reason === "sous_la_barre");
+      console.error(`[brigade] ${restaurantId} : ${below.length} idée(s) sous la barre non enregistrée(s), migration 20261115-1500 à appliquer :`, below.map((d) => `${d.idea.assistant}:${d.idea.type} (${d.bar?.condition})`).join(", "));
+      const rest = discarded.filter((d) => d.reason !== "sous_la_barre");
+      if (rest.length > 0) {
+        const { error: rErr } = await admin.from(TABLE).insert(rest.map((d) => toRow(d.idea, "ecartee", d.reason, d.bar)));
+        if (rErr && !isMissingProposals(rErr)) throw new Error(`agent_proposals (écartées) : ${rErr.message}`);
+      }
+    } else if (dErr && !isMissingProposals(dErr)) throw new Error(`agent_proposals (écartées) : ${dErr.message}`);
   }
   return { unavailable: false, shown, discarded };
 }
