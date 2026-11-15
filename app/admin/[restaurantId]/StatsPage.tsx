@@ -29,7 +29,20 @@ import {
   loadTickets,
   type Block,
 } from "@/lib/stats-page-data";
-import { StatsView } from "@/components/admin/simple/StatsView";
+import { belgianPublicHolidays } from "@/lib/forecast";
+import {
+  caBars,
+  caSummary,
+  lastReadDay,
+  monthActual,
+  monthName,
+  monthStart,
+  projectMonth,
+  readWindow,
+  statsTakeaways,
+  weekType,
+} from "@/lib/revenue-page";
+import { StatsView, type RevenueDetail } from "@/components/admin/simple/StatsView";
 import { TodoCard } from "@/components/admin/simple/SimpleHome";
 import { listRequests, pubAvailability } from "@/lib/ads/requests";
 import { pubHomeCards, type PubHomeCard } from "@/lib/ads/home-card";
@@ -116,13 +129,13 @@ export async function StatsPage({
     : { ok: false };
 
   // La prévision (ADR 0027) : même seuil que l'accueil, 28 jours notés.
-  let forecast: { expected: number; low: number; high: number } | null = null;
+  let forecast: { expected: number; low: number; high: number; from: string; to: string } | null = null;
   if (revenueAccess.allowed && revenueBlock.ok) {
     const noted = revenueBlock.data.days.filter((d) => !d.closed && typeof d.amount === "number").length;
     if (noted >= FORECAST_MIN_NOTED_DAYS && (await getEntitlement(restaurantId, "forecast")).allowed) {
       try {
         const f = forecastFrom(await loadForecastInputs(restaurantId), new Date().toISOString().slice(0, 10));
-        if (f.status === "ok") forecast = f.weekTotal;
+        if (f.status === "ok" && f.days.length) forecast = { ...f.weekTotal, from: f.days[0].date, to: f.days[f.days.length - 1].date };
       } catch (e) {
         console.error("[stats] prévision :", (e as Error).message);
       }
@@ -140,6 +153,30 @@ export async function StatsPage({
   const caMissing = !fromPos && notesCa && revenueBlock.ok ? missingDays(new Set(revenueBlock.data.days.map((d) => d.day)), today) : [];
   const home = buildSimpleHomeView({ ...homeRaw, caMissing });
 
+  // Le bloc CA revu (maquette validée le 2026-11-15, https://claude.ai/artifact/BpMKiqkWJ3DppGeXxX6dzE) :
+  // dates partout, jours pas encore lus distincts, « À retenir » de Chloé, lien vers la page détail.
+  let detail: RevenueDetail | null = null;
+  if (revenueAccess.allowed && revenueBlock.ok) {
+    const caDays = revenueBlock.data.days;
+    const lastRead = lastReadDay(caDays, today);
+    const win = readWindow(period, lastRead);
+    const summary = win ? caSummary(caDays, win, revenueBlock.data.program, period.previous !== null) : null;
+    const week = weekType(caDays, lastRead);
+    const y = Number(today.slice(0, 4));
+    const holidays = new Set([...belgianPublicHolidays(y).keys(), ...belgianPublicHolidays(y + 1).keys()]);
+    const month = lastRead && week && period.key === "mois" ? projectMonth(caDays, monthStart(today), lastRead, week, holidays) : null;
+    const prevMonth = monthStart(addDays(monthStart(today), -1));
+    const prevActual = monthActual(caDays, prevMonth);
+    detail = {
+      href: `${base}/chiffre${period.key === "mois" ? "" : `?periode=${period.key}`}`,
+      lastRead,
+      fromPos,
+      summary,
+      bars: caBars(caDays, period, today, lastRead),
+      takeaways: statsTakeaways({ month, lastMonth: prevActual !== null ? { name: monthName(prevMonth), total: prevActual } : null, summary, week }),
+    };
+  }
+
   const growth = buildGrowthView(growthRaw);
   const headline = clients.ok
     ? statsHeadline({ period, clients: clients.data, revenue: revenueAccess.allowed && revenue.ok ? revenue.data : null })
@@ -152,7 +189,7 @@ export async function StatsPage({
       period={period}
       headline={headline}
       clients={clients}
-      revenue={{ allowed: revenueAccess.allowed, block: revenue, noteHref: fromPos ? null : `${base}/ca/${addDays(today, -1)}`, forecast, today }}
+      revenue={{ allowed: revenueAccess.allowed, block: revenue, noteHref: fromPos ? null : `${base}/ca/${addDays(today, -1)}`, forecast, today, detail }}
       dishes={items ? (items.ok ? { ok: true, data: topDishes(items.data) } : { ok: false }) : null}
       dishesHref={`${base}/sales`}
       google={reputation.google}

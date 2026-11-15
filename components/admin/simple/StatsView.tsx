@@ -6,6 +6,8 @@ import type { PubHomeCard } from "@/lib/ads/home-card";
 import { RequestPlanButton } from "@/components/admin/Paywall";
 import { StatsPeriodTabs } from "./StatsPeriodTabs";
 import { signed, type ClientStats, type RevenueStats, type StatsPeriod } from "@/lib/stats-page";
+import { rangeLabel, shortDay, type CaBar, type CaSummary } from "@/lib/revenue-page";
+import { ASSISTANTS } from "@/lib/agents/types";
 import { isEditableDay } from "@/lib/daily-revenue-entry";
 import { dayLabel } from "@/lib/daily-revenue-model";
 import type { Block, ChallengeCount, GoogleBlock, MessagesBlock, SocialBlock } from "@/lib/stats-page-data";
@@ -29,9 +31,11 @@ export type StatsViewProps = {
     block: Block<RevenueStats>;
     /** null : le CA est lu dans Belpeople (ADR 0103 amendé), rien à noter ni à corriger ici. */
     noteHref: string | null;
-    forecast: { expected: number; low: number; high: number } | null;
+    forecast: { expected: number; low: number; high: number; from: string; to: string } | null;
     /** Aujourd'hui (Bruxelles) — décide quels jours des barres s'ouvrent encore (fenêtre de correction, ADR 0087). */
     today: string;
+    /** null en Gratuit : le bloc garde le total et les jours notés seuls. */
+    detail: RevenueDetail | null;
   };
   /** null : le forfait ne montre pas ce bloc (Gratuit). */
   dishes: Block<{ name: string; quantity: number }[]> | null;
@@ -114,7 +118,6 @@ function PubSection({ cards }: { cards: PubHomeCard[] }) {
         <Card key={c.id} className="space-y-3.5">
           <div className="flex items-center gap-3">
             <div className="h-[70px] w-14 shrink-0 overflow-hidden rounded-lg border border-paper-border bg-paper-subtle">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               {c.thumbnail && <img src={c.thumbnail} alt="" className="h-full w-full object-cover" />}
             </div>
             <div className="min-w-0 flex-1">
@@ -184,101 +187,200 @@ function ClientsSection({ block, period }: { block: Block<ClientStats>; period: 
   );
 }
 
-function Bars({ bars, restaurantId, today, editable = true }: { bars: RevenueStats["bars"]; restaurantId: string; today: string; editable?: boolean }) {
+/** Le bloc CA revu (maquette validée le 2026-11-15) — calculs dans lib/revenue-page.ts. */
+export type RevenueDetail = {
+  href: string;
+  lastRead: string | null;
+  /** Lu dans la caisse (Belpeople) : rien à saisir ni à corriger ici. */
+  fromPos: boolean;
+  summary: CaSummary | null;
+  bars: CaBar[];
+  takeaways: string[];
+};
+
+function Bars({ bars, restaurantId, today, editable, detailHref }: { bars: CaBar[]; restaurantId: string; today: string; editable: boolean; detailHref: string }) {
   if (bars.length === 0) return null;
   const max = Math.max(1, ...bars.map((b) => b.amount ?? 0));
   // Au-delà de ~6 semaines, les barres deviennent des traits : on n'en garde que les 42 dernières.
   const shown = bars.slice(-42);
-  const bar = (b: RevenueStats["bars"][number]) => (
+  const value = (b: CaBar) => (b.amount !== null ? eur(b.amount) : b.status === "closed" ? "fermé" : b.status === "pending" ? "pas encore lu" : "pas noté");
+  const bar = (b: CaBar) => (
     <span
-      className={`block w-full rounded-[3px] ${b.amount === null ? "bg-paper-border" : b.amount >= max * 0.9 ? "bg-boost-olive" : "bg-boost-light"}`}
+      className={`block w-full rounded-[3px] ${b.amount === null ? "bg-paper-border" : b.best ? "bg-boost-olive" : "bg-boost-light"}`}
       style={{ height: b.amount === null ? "8%" : `${Math.max(8, Math.round((b.amount / max) * 100))}%` }}
     />
   );
-  const value = (b: RevenueStats["bars"][number]) => (b.amount !== null ? eur(b.amount) : b.closed ? "fermé" : "pas noté");
+  const pending = shown.some((b) => b.status === "pending");
   return (
-    <>
-      <div className="flex items-end gap-[3px] h-16">
-        {shown.map((b) =>
-          // Chaque jour encore corrigeable s'ouvre d'un appui (ADR 0087 : saisie ou correction).
-          editable && isEditableDay(b.day, today) ? (
+    <div className="space-y-1.5">
+      <div className="flex items-end gap-[3px] h-20">
+        {shown.map((b) => {
+          // Saisie : un jour encore corrigeable s'ouvre d'un appui (ADR 0087). Caisse lue : la page détail.
+          const href = editable && isEditableDay(b.day, today) ? `/admin/${restaurantId}/ca/${b.day}` : detailHref;
+          return (
             <Link
               key={b.day}
-              href={`/admin/${restaurantId}/ca/${b.day}`}
-              aria-label={`${dayLabel(b.day)} : ${value(b)} — voir ou corriger`}
+              href={href}
+              aria-label={`${dayLabel(b.day)} : ${value(b)}${href === detailHref ? " — voir le détail" : " — voir ou corriger"}`}
               className="flex-1 h-full flex flex-col justify-end rounded-[4px] hover:bg-paper-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink/40"
             >
               {bar(b)}
             </Link>
-          ) : (
-            <span key={b.day} className="flex-1 h-full flex flex-col justify-end" aria-hidden="true">
-              {bar(b)}
+          );
+        })}
+      </div>
+      {shown.length <= 16 ? (
+        <div className="flex gap-[3px]" aria-hidden="true">
+          {shown.map((b) => (
+            <span key={b.day} className="flex-1 flex flex-col items-center text-[11px] leading-[13px] text-ink-muted tabular-nums">
+              <span>{b.letter}</span>
+              <span className="font-semibold text-ink">{b.num}</span>
             </span>
-          ),
+          ))}
+        </div>
+      ) : (
+        <div className="flex justify-between text-[13px] text-ink-muted" aria-hidden="true">
+          <span>{shortDay(shown[0].day)}</span>
+          <span>{shortDay(shown[shown.length - 1].day)}</span>
+        </div>
+      )}
+      <div className="flex gap-x-4 gap-y-1 flex-wrap text-[13px] text-ink-muted pt-0.5">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-[2px] bg-boost-olive" aria-hidden="true" />
+          Meilleur jour
+        </span>
+        {pending && (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[2px] bg-paper-border" aria-hidden="true" />
+            Pas encore lu dans ta caisse
+          </span>
         )}
       </div>
-      <p className="text-[12px] text-ink-muted">Appuie sur un jour pour le voir, le saisir ou le corriger.</p>
-    </>
+    </div>
   );
 }
 
-function RevenueSection({ restaurantId, revenue, upsell }: { restaurantId: string; revenue: StatsViewProps["revenue"]; upsell: boolean }) {
+function RevenueSection({ restaurantId, revenue, upsell, period }: { restaurantId: string; revenue: StatsViewProps["revenue"]; upsell: boolean; period: StatsPeriod }) {
   const r = revenue.block.ok ? revenue.block.data : null;
+  const d = revenue.allowed ? revenue.detail : null;
+  const s = d?.summary ?? null;
+  const range = (x: { from: string; to: string }) => rangeLabel(x);
   return (
     <section className="space-y-3" aria-labelledby="stats-ca">
-      <SectionTitle>
-        <span id="stats-ca">Ton chiffre d&apos;affaires</span>
-      </SectionTitle>
+      <div className="flex items-baseline justify-between gap-3">
+        <SectionTitle>
+          <span id="stats-ca">Ton chiffre d&apos;affaires</span>
+        </SectionTitle>
+        <span className="text-[13px] text-ink-muted">{period.label}</span>
+      </div>
       {!revenue.block.ok ? (
         <Unavailable what="Ton chiffre d'affaires" />
-      ) : (
-        <Card className="space-y-3">
-          <div className="flex items-baseline justify-between gap-3 flex-wrap">
-            <strong className="font-display text-[26px] font-bold text-ink tabular-nums">
-              {r && r.notedDays > 0 ? eur(r.total) : "Pas encore noté"}
-            </strong>
-            {revenue.allowed && r?.changePct != null ? (
-              <span className={`text-[14px] font-semibold ${r.changePct > 0 ? "text-good" : "text-ink-muted"}`}>
-                {r.changePct > 0 ? "+" : r.changePct < 0 ? "−" : ""}
-                {Math.abs(r.changePct)} % vs mêmes jours
-              </span>
-            ) : (
-              r && (
-                <span className="text-[13px] text-ink-muted">
-                  {r.notedDays} jour{r.notedDays > 1 ? "s" : ""} noté{r.notedDays > 1 ? "s" : ""} sur {r.elapsedDays}
-                </span>
-              )
-            )}
-          </div>
-          {/* Le jour par jour est une fonction Croissance (maquette Gratuit : total et jours notés seuls). */}
-          {revenue.allowed && r && r.notedDays > 0 && <Bars bars={r.bars} restaurantId={restaurantId} today={revenue.today} editable={revenue.noteHref !== null} />}
-          {r && r.notedDays > 0 && (
-            <p className="sr-only">
-              {r.notedDays} jours notés sur {r.elapsedDays} jours écoulés de la période.
-            </p>
+      ) : d ? (
+        <Card className="space-y-3.5">
+          {s ? (
+            <div className="space-y-0.5">
+              <p className="text-[13px] text-ink-muted first-letter:uppercase">{range(s.window)}</p>
+              <div className="flex items-baseline justify-between gap-3">
+                <strong className="font-display text-[32px] font-bold text-ink tabular-nums">{eur(s.total)}</strong>
+                {s.compare && (
+                  <span className={`text-[15px] font-semibold ${s.compare.changePct > 0 ? "text-good" : "text-ink-muted"}`}>
+                    {s.compare.changePct > 0 ? "+" : s.compare.changePct < 0 ? "−" : ""}
+                    {Math.abs(s.compare.changePct)} %
+                  </span>
+                )}
+              </div>
+              <p className="text-[13px] text-ink-muted">
+                {eur(s.avgPerDay)} par jour
+                {s.compare ? ` · contre ${eur(s.compare.avgPerDay)} ${range(s.compare.window)}` : ""}
+              </p>
+            </div>
+          ) : (
+            <p className="text-[15px] text-ink-muted">Aucun jour lu sur cette période pour le moment.</p>
           )}
-          {revenue.allowed && r?.programSharePct != null && (
-            <div className="pt-3 border-t border-paper-border space-y-1.5">
-              <div className="flex justify-between text-[14.5px] text-ink">
-                <span>Part venue des clients du programme</span>
-                <strong className="tabular-nums">{r.programSharePct} %</strong>
-              </div>
-              <div className="h-2 rounded bg-paper-subtle overflow-hidden" aria-hidden="true">
-                <span className="block h-full bg-boost-olive rounded" style={{ width: `${r.programSharePct}%` }} />
-              </div>
+
+          <Bars bars={d.bars} restaurantId={restaurantId} today={revenue.today} editable={!d.fromPos && revenue.noteHref !== null} detailHref={d.href} />
+
+          {s && (s.best || s.programSharePct != null) && (
+            <div className="space-y-2.5 border-t border-paper-border pt-3 text-[15px] text-ink">
+              {s.best && (
+                <div className="flex justify-between gap-3">
+                  <span>Meilleur jour</span>
+                  <strong className="text-right">{shortDay(s.best.day)} · {eur(s.best.amount)}</strong>
+                </div>
+              )}
+              {s.calmest && (
+                <div className="flex justify-between gap-3">
+                  <span>Jour le plus calme</span>
+                  <strong className="text-right">{shortDay(s.calmest.day)} · {eur(s.calmest.amount)}</strong>
+                </div>
+              )}
+              {s.programSharePct != null && (
+                <div className="flex justify-between gap-3">
+                  <span>Part venue des clients du programme</span>
+                  <strong className="tabular-nums">{s.programSharePct} %</strong>
+                </div>
+              )}
             </div>
           )}
-          {revenue.allowed && revenue.forecast && (
-            <div className="flex justify-between gap-3 text-[14.5px] text-ink">
-              <span>Prévu ces 7 prochains jours</span>
+
+          {revenue.forecast && (
+            <div className="flex justify-between gap-3 bg-boost-cream rounded-lg p-3 text-[15px] text-ink">
+              <span>Prévu {range(revenue.forecast)}</span>
               <strong className="tabular-nums text-right">
                 {eur(revenue.forecast.expected)}
-                <span className="block text-[12px] font-normal text-ink-muted">
+                <span className="block text-[13px] font-normal text-ink-muted">
                   entre {eur(revenue.forecast.low)} et {eur(revenue.forecast.high)}
                 </span>
               </strong>
             </div>
           )}
+
+          {d.takeaways.length > 0 && (
+            <div className="border border-paper-border rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2.5">
+                <img src={ASSISTANTS.chloe.photo} alt="" width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
+                <span className="flex flex-col leading-tight">
+                  <strong className="text-[13px] text-ink">{ASSISTANTS.chloe.name} a remarqué</strong>
+                  <span className="text-[13px] text-ink-muted">{ASSISTANTS.chloe.post}</span>
+                </span>
+              </div>
+              {d.takeaways.map((t) => (
+                <p key={t} className="text-[15px] leading-snug text-ink">
+                  {t}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {d.lastRead && d.fromPos && (
+            <p className="text-[13px] text-ink-muted">Lu dans ta caisse jusqu&apos;au {dayLabel(d.lastRead)} : ta caisse donne ses chiffres une semaine après.</p>
+          )}
+
+          <Link
+            href={d.href}
+            className="min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg bg-ink text-white text-[15px] font-semibold hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            Voir le détail et les prévisions <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+          {revenue.noteHref && (
+            <Link href={revenue.noteHref} className="min-h-[44px] inline-flex items-center gap-1 text-[15px] font-semibold text-boost-olive-dark hover:underline">
+              Noter le chiffre d&apos;hier <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+          )}
+        </Card>
+      ) : (
+        <Card className="space-y-3">
+          {/* Gratuit (maquette du 2026-11-14) : total et jours notés seuls. */}
+          <div className="flex items-baseline justify-between gap-3 flex-wrap">
+            <strong className="font-display text-[26px] font-bold text-ink tabular-nums">
+              {r && r.notedDays > 0 ? eur(r.total) : "Pas encore noté"}
+            </strong>
+            {r && (
+              <span className="text-[13px] text-ink-muted">
+                {r.notedDays} jour{r.notedDays > 1 ? "s" : ""} noté{r.notedDays > 1 ? "s" : ""} sur {r.elapsedDays}
+              </span>
+            )}
+          </div>
           {revenue.noteHref && (
             <Link href={revenue.noteHref} className="min-h-[44px] inline-flex items-center gap-1 text-[14px] font-semibold text-boost-olive-dark hover:underline">
               Noter le chiffre d&apos;hier <ArrowRight size={15} aria-hidden="true" />
@@ -290,7 +392,7 @@ function RevenueSection({ restaurantId, revenue, upsell }: { restaurantId: strin
         <Upsell
           restaurantId={restaurantId}
           plan="croissance"
-          text="Ton chiffre jour par jour, comparé aux mêmes jours, et la part qui vient de tes clients du programme."
+          text="Ton chiffre jour par jour, comparé aux mêmes jours, tes heures de pointe et ce que tu vas faire ce mois-ci."
         />
       )}
     </section>
@@ -460,7 +562,7 @@ function MessagesSection({ block, period }: { block: Block<MessagesBlock>; perio
 export function StatsView(p: StatsViewProps) {
   const revenueFirst = p.revenue.allowed;
   const clients = <ClientsSection block={p.clients} period={p.period} />;
-  const revenue = <RevenueSection restaurantId={p.restaurantId} revenue={p.revenue} upsell={p.upsell === "croissance"} />;
+  const revenue = <RevenueSection restaurantId={p.restaurantId} revenue={p.revenue} upsell={p.upsell === "croissance"} period={p.period} />;
 
   return (
     <div className="space-y-7">

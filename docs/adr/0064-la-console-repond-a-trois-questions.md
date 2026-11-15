@@ -294,3 +294,9 @@ décision « Stats par plan » du point associés du 2026-11-10.
 - **Trace** : chaque bloc se lit séparément ; une lecture en échec affiche « lecture impossible »
   dans ce bloc et laisse `[stats] <bloc> : …` dans les logs Vercel — jamais un zéro qui passerait
   pour un vrai chiffre.
+
+---
+
+## Amendement 2026-11-15 — le bloc CA de Stats est daté et mène au détail
+
+Maquette validée par Mehdi : https://claude.ai/artifact/BpMKiqkWJ3DppGeXxX6dzE. En Croissance et Pro, le bloc « Ton chiffre d'affaires » de Stats dit la période, les jours lus (« du 1er au 8 novembre »), la comparaison datée (« contre 3 762 € du 1er au 8 octobre »), une date sous chaque barre, les jours pas encore lus distincts des jours à zéro, meilleur jour et jour le plus calme, la prévision datée, deux phrases « À retenir » de Chloé (projection du mois, jour le plus faible) et le bouton « Voir le détail et les prévisions » vers `/admin/<id>/chiffre` (ADR 0027 amendé). Gratuit garde le total et les jours notés seuls. Logique dans `lib/revenue-page.ts` (testée).

@@ -75,7 +75,7 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
       title: "Pilotage",
       links: [
         { href: `${base}/sales`, label: "Ventes", icon: "sales", hint: "Ce que tu vends, plat par plat, et ta marge" },
-        { href: `${base}/forecast`, label: "Prévisions", icon: "forecast", hint: "Ton chiffre d'affaires des 7 prochains jours" },
+        { href: `${base}/chiffre`, label: "Chiffre d'affaires", icon: "forecast", hint: "Ton chiffre jour par jour, tes heures de pointe et ce que tu vas faire ce mois-ci" },
         { href: `${base}/insights`, label: "Opportunités", icon: "insights", hint: "Des idées de promos calculées sur tes tickets" },
         { href: `${base}/quality`, label: "Baromètre", icon: "quality", hint: "Ce que tes clients te disent, en privé" },
         { href: `${base}/benchmarks`, label: "Repères secteur", icon: "benchmarks", hint: "Toi face aux restaurants de ton secteur" },
