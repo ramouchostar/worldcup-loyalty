@@ -165,6 +165,17 @@ export const PLAYS: Play[] = [
     costsMoney: false,
   },
   {
+    assistant: "max",
+    type: "horaires_jours_speciaux",
+    status: "active",
+    channel: "google",
+    mechanism: "Des horaires exceptionnels justes un jour férié évitent le client qui trouve porte close ou croit l'établissement fermé.",
+    source: "Guide officiel Google Business Profile : définir des horaires exceptionnels pour les jours fériés et les fêtes.",
+    measure: "Horaires posés avant la date (relus par Places dans les 7 jours) ; appels et itinéraires de la fiche ces jours-là.",
+    needsTill: false,
+    costsMoney: false,
+  },
+  {
     assistant: "louis",
     type: "reponses_aux_avis",
     status: "active",
