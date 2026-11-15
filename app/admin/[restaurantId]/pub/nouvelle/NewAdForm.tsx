@@ -120,7 +120,8 @@ export function NewAdForm(p: { restaurantId: string; today: string; posts: PostO
         adText,
         creative,
         billing: { legalName, vatNumber, address: billAddress },
-        offer: { text: offerText, keyword: offerKeyword, from: offerFrom, to: offerTo },
+        // ADR 0104 §2 — seule une pub « Visites » porte une offre (elle mène au bon).
+        offer: objective === "TRAFIC" ? { text: offerText, keyword: offerKeyword, from: offerFrom, to: offerTo } : null,
         termsAccepted: terms,
       });
       if (!r.ok) return setError(r.error ?? "Réessaie.");
@@ -253,28 +254,33 @@ export function NewAdForm(p: { restaurantId: string; today: string; posts: PostO
 
       <section className="space-y-2">
         <p className={STEP}>5. Une offre ? <span className="text-[13px] font-normal text-ink-muted">(facultatif)</span></p>
-        <label className="block text-[13px] text-ink-body">
-          Offre
-          <input value={offerText} onChange={(e) => setOfferText(e.target.value)} maxLength={140} placeholder="Family Bucket = 5 Junior Burgers offerts" className={INPUT} />
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          <label className="text-[13px] text-ink-body">
-            Mot clé
-            <input value={offerKeyword} onChange={(e) => setOfferKeyword(e.target.value.toUpperCase().replace(/\s/g, ""))} maxLength={24} placeholder="CROUSTI" className={INPUT} />
-          </label>
-          <label className="text-[13px] text-ink-body">
-            Du
-            <input type="date" value={offerFrom} onChange={(e) => setOfferFrom(e.target.value)} className={INPUT} />
-          </label>
-          <label className="text-[13px] text-ink-body">
-            Au
-            <input type="date" min={offerFrom || undefined} value={offerTo} onChange={(e) => setOfferTo(e.target.value)} className={INPUT} />
-          </label>
-        </div>
-        <p className="text-[12px] text-ink-faint">
-          On te rappelle le mot clé dans tes e-mails pour prévenir tes équipes.{" "}
-          {upload ? "Il est ajouté au texte de la pub." : postId ? "Avec une publication Instagram, Meta garde sa légende : mets le mot clé dans la vidéo." : ""}
-        </p>
+        {objective !== "TRAFIC" ? (
+          <p className="text-[13px] text-ink-muted">Une offre se met sur une pub « {OBJECTIVE_RESULT.TRAFIC.label} » : le client obtient un bon qu&apos;il montre à la caisse, et chaque client venu se compte.</p>
+        ) : (
+          <>
+            <label className="block text-[13px] text-ink-body">
+              Offre
+              <input value={offerText} onChange={(e) => setOfferText(e.target.value)} maxLength={140} placeholder="Family Bucket = 5 Junior Burgers offerts" className={INPUT} />
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="text-[13px] text-ink-body">
+                Mot clé
+                <input value={offerKeyword} onChange={(e) => setOfferKeyword(e.target.value.toUpperCase().replace(/\s/g, ""))} maxLength={24} placeholder="CROUSTI" className={INPUT} />
+              </label>
+              <label className="text-[13px] text-ink-body">
+                Du
+                <input type="date" value={offerFrom} onChange={(e) => setOfferFrom(e.target.value)} className={INPUT} />
+              </label>
+              <label className="text-[13px] text-ink-body">
+                Au
+                <input type="date" min={offerFrom || undefined} value={offerTo} onChange={(e) => setOfferTo(e.target.value)} className={INPUT} />
+              </label>
+            </div>
+            <p className="text-[12px] text-ink-faint">
+              Dans la pub, le bouton « Obtenir l&apos;offre » donne au client un bon (un code et un QR). Il le montre à la caisse, ton équipe le scanne avec la console : tu vois combien de clients sont venus grâce au bon. Le mot clé est écrit sur le bon.
+            </p>
+          </>
+        )}
       </section>
 
       <section className="space-y-2">

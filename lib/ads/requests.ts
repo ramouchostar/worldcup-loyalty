@@ -68,6 +68,9 @@ export type RequestView = {
   /** Mot clé de l'offre à dire au comptoir, et dernier jour de l'offre. */
   offerKeyword: string | null;
   offerTo: string | null;
+  /** Texte et premier jour de l'offre (ADR 0104 : la page du bon les montre). */
+  offerText: string | null;
+  offerFrom: string | null;
   /** D'où vient `reach` : le total unique de Meta, ou la somme des jours en attendant (lib/ads/home-card.ts). */
   reachSource: "meta" | "jours";
 };
@@ -134,6 +137,8 @@ export async function listRequests(restaurantId: string): Promise<{ ok: true; re
       adStatus: camp?.ad_status ?? null,
       offerKeyword: (r.offer_keyword as string | null) ?? null,
       offerTo: (r.offer_to as string | null) ?? null,
+      offerText: (r.offer_text as string | null) ?? null,
+      offerFrom: (r.offer_from as string | null) ?? null,
       notices: ((notices.data ?? []) as Notice[]).filter((n) => n.request_id === id).map((n) => ({ id: n.id, kind: n.kind, budgetCents: n.budget_cents, feeCents: n.fee_cents, vatCents: n.vat_cents, expectedCents: n.expected_cents, ref: n.structured_ref, confirmedAt: n.confirmed_at, createdAt: n.created_at })),
     };
   });
@@ -297,7 +302,7 @@ export async function createRequest(restaurantId: string, userId: string, raw: R
       ["BIC", pay.bic],
     ],
     note: input.offer
-      ? `Recopie la communication telle quelle : c'est elle qui relie ton virement à ta pub. Ton offre : « ${input.offer.text} », mot clé ${input.offer.keyword}, du ${dateFr(input.offer.from)} au ${dateFr(input.offer.to)} — préviens tes équipes.`
+      ? `Recopie la communication telle quelle : c'est elle qui relie ton virement à ta pub. Ton offre : « ${input.offer.text} », mot clé ${input.offer.keyword}, du ${dateFr(input.offer.from)} au ${dateFr(input.offer.to)} — préviens tes équipes${input.objective === "TRAFIC" ? " : les clients viendront avec un bon à scanner depuis ta console" : ""}.`
       : "Recopie la communication telle quelle : c'est elle qui relie ton virement à ta pub.",
   });
   await alertPlatform("payment_expected", requestId, {
@@ -490,8 +495,12 @@ export async function launchRequest(requestId: string, userId: string): Promise<
     intro: `Elle part en diffusion le ${dateFr(q.starts_on)}, après le dernier contrôle de Meta. Tes chiffres arrivent dans ta console chaque matin.`,
     ...(q.offer_text && q.offer_keyword
       ? {
-          rows: [["Offre", q.offer_text], ["Mot clé à dire au comptoir", q.offer_keyword], ["Valable", `du ${dateFr(q.offer_from)} au ${dateFr(q.offer_to)}`]] as [string, string][],
-          note: "Préviens tes équipes en salle : des clients vont venir avec ce mot clé.",
+          rows: [["Offre", q.offer_text], [q.objective === "TRAFIC" ? "Mot clé écrit sur le bon" : "Mot clé à dire au comptoir", q.offer_keyword], ["Valable", `du ${dateFr(q.offer_from)} au ${dateFr(q.offer_to)}`]] as [string, string][],
+          // ADR 0104 §2 — une pub « Visites » avec offre mène à un bon que la caisse scanne.
+          note:
+            q.objective === "TRAFIC"
+              ? "Préviens tes équipes en salle : des clients vont venir avec un bon sur leur téléphone. Ils scannent son QR avec la console (ou tapent son code dans Marketing, Bons de pub) et appuient sur « Bon utilisé »."
+              : "Préviens tes équipes en salle : des clients vont venir avec ce mot clé.",
         }
       : {}),
   });

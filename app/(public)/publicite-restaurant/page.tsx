@@ -41,7 +41,7 @@ const FAQ: Faq[] = [
   },
   {
     q: "Comment savoir si des clients sont venus par la pub ?",
-    a: "Vous ajoutez une offre et un mot clé à dire au comptoir. Votre équipe coche chaque client qui le dit. Dans votre espace, vous voyez en plus les personnes touchées et le budget dépensé, au jour le jour.",
+    a: "Vous ajoutez une offre. Dans la pub, le bouton « Obtenir l'offre » donne au client un bon gratuit, sans inscription. Il le montre à la caisse, votre équipe le scanne avec votre espace. Vous voyez les clics, les bons obtenus et les bons utilisés, au jour le jour.",
   },
   {
     q: "Je peux arrêter en cours de route ?",
@@ -79,7 +79,7 @@ const OBJECTIVES = [
 ];
 
 const STEPS = [
-  { n: "1", title: "Vous demandez", body: "Depuis votre espace : l'objectif, le budget, les dates, le rayon autour du restaurant, une photo ou une vidéo, et si vous voulez une offre avec son mot clé. L'estimation s'affiche tout de suite." },
+  { n: "1", title: "Vous demandez", body: "Depuis votre espace : l'objectif, le budget, les dates, le rayon autour du restaurant, une photo ou une vidéo, et si vous voulez une offre, que le client retire avec un bon. L'estimation s'affiche tout de suite." },
   { n: "2", title: "Vous payez par virement", body: "Une communication structurée relie votre virement à votre demande. Un QR de paiement vous évite de taper l'IBAN." },
   { n: "3", title: "Nous vérifions et lançons", body: "Nous préparons la campagne, relisons le texte et l'image, et la mettons en ligne sur Facebook et Instagram." },
   { n: "4", title: "Vous suivez, vous décidez", body: "Personnes touchées, budget dépensé, jours restants. Pause et ajout de budget en un geste, sans attendre personne." },
@@ -103,7 +103,7 @@ export default function PublicitePage() {
               onDark
               eyebrow="Faire venir · Pub de quartier"
               title="Une pub Facebook et Instagram pour les gens qui habitent à côté"
-              intro="Vous choisissez un rayon autour de votre restaurant, un budget et une offre. Nous montons la pub, et vos voisins la voient dans leur fil. Au comptoir, un mot clé vous dit qui est venu pour elle."
+              intro="Vous choisissez un rayon autour de votre restaurant, un budget et une offre. Nous montons la pub, et vos voisins la voient dans leur fil. À la caisse, le bon de l'offre vous dit qui est venu pour elle."
             />
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <TrackedLink
@@ -146,7 +146,7 @@ export default function PublicitePage() {
             goodTitle="La pub de quartier Boosteats"
             good={[
               "Un rayon de 1, 3, 5 ou 10 km autour de votre adresse, pour toucher ceux qui peuvent passer à pied ou en voiture.",
-              "Une offre et un mot clé à dire au comptoir : chaque client qui le dit est venu pour la pub.",
+              "Une offre retirée avec un bon scanné à la caisse : chaque bon utilisé est un client venu pour la pub.",
               "Une estimation en fourchette avant de payer, puis le suivi jour par jour dans votre espace.",
               "Deux semaines bien placées, en période creuse, avec la pause et l'ajout de budget à portée de main.",
             ]}
@@ -217,22 +217,22 @@ export default function PublicitePage() {
 
       <Section>
         <div className="text-center">
-          <Heading center eyebrow="Le mot clé" title="La seule mesure qui compte se fait au comptoir" />
+          <Heading center eyebrow="Le bon" title="La seule mesure qui compte se fait à la caisse" />
         </div>
         <div className="mt-10 grid md:grid-cols-[1fr_auto_1fr] gap-6 items-center max-w-[900px] mx-auto">
           <div className="rounded-2xl bg-white border border-paper-border p-6">
             <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-ink-faint">Dans la pub</p>
-            <p className="font-display text-[22px] font-bold text-ink mt-2 leading-tight">« Dites SMASH au comptoir, les frites sont offertes. »</p>
+            <p className="font-display text-[22px] font-bold text-ink mt-2 leading-tight">« Obtenir l&apos;offre » : les frites offertes, avec un bon gratuit sur le téléphone.</p>
           </div>
           <span className="hidden md:block text-[28px] text-moss-dark font-bold text-center" aria-hidden>→</span>
           <div className="rounded-2xl bg-ink p-6">
-            <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-night-faint">Près de la caisse</p>
-            <p className="font-display text-[22px] font-bold text-white mt-2 leading-tight">Une coche par client qui dit le mot.</p>
-            <p className="font-mono text-[18px] tracking-[0.3em] text-moss-light mt-3" aria-hidden>|||| |||| ||</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-night-faint">À la caisse</p>
+            <p className="font-display text-[22px] font-bold text-white mt-2 leading-tight">Un scan par client qui montre son bon.</p>
+            <p className="font-mono text-[18px] tracking-[0.3em] text-moss-light mt-3" aria-hidden>12 bons utilisés</p>
           </div>
         </div>
         <p className="font-landing text-[16px] leading-[1.7] text-ink-muted text-center max-w-[620px] mx-auto mt-8">
-          Le mot clé et l&apos;offre sont rappelés dans votre espace pour que toute l&apos;équipe les ait en tête. À la fin, vous comparez les coches au budget dépensé.
+          Votre équipe scanne le bon avec votre espace, ou tape son code. À la fin, vous comparez les bons utilisés au budget dépensé.
         </p>
       </Section>
 

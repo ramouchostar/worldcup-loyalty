@@ -1,3 +1,4 @@
+import { FUNNEL_FLAG_TEXT } from "@/lib/ads/vouchers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { loadPlatformPub, metaIdentities } from "@/lib/ads/platform";
@@ -103,6 +104,11 @@ export default async function PlatformPubPage() {
                   <p className="text-gray-600 dark:text-gray-400">{c.dailyCents !== null ? `${formatEur(c.dailyCents)}/jour · ` : ""}plafond {c.capCents !== null ? formatEur(c.capCents) : "—"} · payé {formatEur(c.paidCents)}</p>
                   {c.adText && <p className="text-gray-600 dark:text-gray-400 italic">« {c.adText} »</p>}
                   {c.offer && <p className="text-gray-600 dark:text-gray-400">Offre : {c.offer}</p>}
+                  {c.voucherPath && (
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Bouton « Obtenir l&apos;offre » vers <a href={c.voucherPath} target="_blank" rel="noopener noreferrer" className="underline">{c.voucherPath}</a> (à ouvrir avant de lancer)
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500">Bénéficiaire {c.restaurantName} · payeur Boosteats{c.adStatus ? ` · Meta : ${c.adStatus}` : ""}</p>
                   {c.capCents !== null && c.capCents > c.paidCents && <p className="text-xs text-red-700">Plafond au-dessus du payé : ne lance pas.</p>}
                   <LaunchControls requestId={c.requestId} canLaunch={c.capCents !== null && c.capCents <= c.paidCents} />
@@ -161,7 +167,7 @@ export default async function PlatformPubPage() {
         <h2 className={H2}>Toutes les campagnes</h2>
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-gray-500">
-            <tr><th className="py-1 pr-3">Campagne</th><th className="pr-3">Client</th><th className="pr-3">État</th><th className="pr-3">Payé</th><th className="pr-3">Dépensé</th><th className="pr-3">Plafond</th><th className="pr-3">Résultat</th><th className="pr-3">Estimé → réel</th><th>Signalements</th></tr>
+            <tr><th className="py-1 pr-3">Campagne</th><th className="pr-3">Client</th><th className="pr-3">État</th><th className="pr-3">Payé</th><th className="pr-3">Dépensé</th><th className="pr-3">Plafond</th><th className="pr-3">Résultat</th><th className="pr-3">Estimé → réel</th><th className="pr-3">Bons (vues → obtenus → utilisés)</th><th>Signalements</th></tr>
           </thead>
           <tbody>
             {d.campaigns.map((c) => (
@@ -176,7 +182,10 @@ export default async function PlatformPubPage() {
                 <td className={`pr-3 tabular-nums text-xs ${c.estimateVerdict && c.estimateVerdict !== "dans" ? "text-amber-700" : ""}`}>
                   {c.estimate ? `${c.estimate.lo.toLocaleString("fr-BE")}–${c.estimate.hi.toLocaleString("fr-BE")} → ${c.actual === null ? "…" : c.actual.toLocaleString("fr-BE")}${c.estimateVerdict ? ` (${c.estimateVerdict})` : ""}` : "—"}
                 </td>
-                <td className="text-xs text-gray-500">{c.warnings.join(", ")}</td>
+                <td className={`pr-3 tabular-nums text-xs ${c.vouchers?.flags.length ? "text-amber-700" : ""}`}>
+                  {c.vouchers ? `${c.vouchers.views} → ${c.vouchers.issued} → ${c.vouchers.redeemed}` : "—"}
+                </td>
+                <td className="text-xs text-gray-500">{[...c.warnings, ...(c.vouchers?.flags.map((f) => FUNNEL_FLAG_TEXT[f]) ?? [])].join(", ")}</td>
               </tr>
             ))}
           </tbody>

@@ -177,8 +177,8 @@ export function ConsolePubScreen() {
         </span>
       </div>
       <div className="mt-5 rounded-xl border border-dashed border-ink/20 bg-white p-3.5">
-        <p className="text-[12px] font-bold m-0">Rappel pour l&apos;équipe</p>
-        <p className="text-[12.5px] text-ink-muted m-0 mt-0.5">Offre : −25 % sur le burger premium · mot clé : SMASH · du 7 au 21</p>
+        <p className="text-[12px] font-bold m-0">L&apos;offre de la pub</p>
+        <p className="text-[12.5px] text-ink-muted m-0 mt-0.5">−25 % sur le burger premium, du 7 au 21 · 38 bons obtenus, 21 utilisés en caisse</p>
       </div>
     </div>
   );
@@ -209,7 +209,7 @@ export function CampaignCalendar() {
         <div>
           <p className="font-bold text-[15px] text-ink m-0">La veille</p>
           <p className="font-landing text-[14.5px] leading-[1.6] text-ink-muted m-0 mt-1">
-            L&apos;équipe connaît l&apos;offre et le mot clé. Une feuille près de la caisse pour cocher chaque client qui le dit.
+            L&apos;équipe connaît l&apos;offre et sait scanner le bon du client avec votre espace.
           </p>
         </div>
         <div>

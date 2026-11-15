@@ -74,7 +74,7 @@ export const EMMA_BLOCK_TEXT: Record<EmmaBlock, string> = {
 
 // ─── Réglages ─────────────────────────────────────────────────────────────────
 
-/** Visites : une promo se mesure en passages, avec un mot clé dit au comptoir (ADR 0086 §7). */
+/** Visites : une promo se mesure en passages ; depuis l'ADR 0104, la pub mène à un bon scanné en caisse. */
 export const EMMA_OBJECTIVE = "TRAFIC" as const;
 /** Rayon de la zone, en km (valeur de la tâche ; le formulaire propose 1, 3, 5 ou 10). */
 export const EMMA_RADIUS_KM = 3;

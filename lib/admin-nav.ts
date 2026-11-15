@@ -60,17 +60,17 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
         { href: `${base}/referrals`, label: "Parrainages", icon: "referrals", hint: "Les clients qui en amènent d'autres" },
       ],
     },
-    ...(marketplace || pub
-      ? [
-          {
-            title: "Contenus et pub",
-            links: [
-              ...(pub ? [{ href: `${base}/pub`, label: "Pub", icon: "pub", hint: "Une pub Facebook et Instagram autour du resto, payée d'avance, chiffres chaque matin" }] : []),
-              ...(marketplace ? [{ href: `${base}/prestataires`, label: "Prestataires", icon: "prestataires", hint: "Un vidéaste, un photographe, un graphiste ou un imprimeur — brief clair, devis ferme" }] : []),
-            ],
-          },
-        ]
-      : []),
+    // ADR 0104 — l'espace Marketing : toujours là, la page en tête ; Pub et
+    // Prestataires y restent selon leurs drapeaux (ex-section « Contenus et pub »).
+    {
+      title: "Marketing",
+      links: [
+        { href: `${base}/marketing`, label: "Marketing", icon: "marketing", hint: "Ce qu'il y a à lancer cette semaine, ce qui tourne et ce que ça a donné" },
+        ...(pub ? [{ href: `${base}/pub`, label: "Pub", icon: "pub", hint: "Une pub Facebook et Instagram autour du resto, payée d'avance, chiffres chaque matin" }] : []),
+        ...(pub ? [{ href: `${base}/bon`, label: "Bons de pub", icon: "vouchers", hint: "Valider à la caisse le bon d'un client venu par ta pub" }] : []),
+        ...(marketplace ? [{ href: `${base}/prestataires`, label: "Prestataires", icon: "prestataires", hint: "Un vidéaste, un photographe, un graphiste ou un imprimeur — brief clair, devis ferme" }] : []),
+      ],
+    },
     {
       title: "Pilotage",
       links: [
@@ -100,7 +100,9 @@ export function consoleSections(base: string, canManage: boolean, marketplace = 
 
 /**
  * Les onglets de la vue simple — bas d'écran sur téléphone, colonne sur
- * ordinateur. Cinq depuis la brigade (ADR 0089, ADR 0064 amendé le 2026-11-05) :
+ * ordinateur. Cinq depuis la brigade (ADR 0089, ADR 0064 amendé le 2026-11-05 ;
+ * « Annonces » devient « Marketing » le 2026-11-15, ADR 0104 — la page Annonces
+ * reste, à un appui depuis Marketing et dans « Plus ») :
  * « Idées » en tête — les idées des assistants à valider —, puis « Stats »
  * (la page Stats par forfait, 2026-11-14 ; l'ancien accueil est devenu
  * « Ta progression », `${base}/progression`).
@@ -111,7 +113,7 @@ export function simpleTabs(base: string): (AdminNavLink & { match: "exact" | "pr
     { href: `${base}/idees`, label: "Idées", icon: "ideas", hint: "", match: "prefix" },
     { href: base, label: "Stats", icon: "stats", hint: "", match: "exact" },
     { href: `${base}/orders`, label: "Tickets", icon: "orders", hint: "", match: "prefix" },
-    { href: `${base}/broadcast`, label: "Annonces", icon: "broadcasts", hint: "", match: "prefix" },
+    { href: `${base}/marketing`, label: "Marketing", icon: "marketing", hint: "", match: "prefix" },
     { href: `${base}/plus`, label: "Plus", icon: "more", hint: "", match: "prefix" },
   ];
 }

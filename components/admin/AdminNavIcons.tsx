@@ -57,4 +57,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   // La brigade (ADR 0089) : les idées du jour, et les chiffres (ancien accueil).
   ideas: Lightbulb,
   stats: ChartLine,
+  // L'espace Marketing et les bons de pub (ADR 0104).
+  marketing: Megaphone,
+  vouchers: QrCode,
 };
