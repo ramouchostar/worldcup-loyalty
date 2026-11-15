@@ -312,8 +312,9 @@ function galleryTiles(p: { base: string; pubOpen: boolean; marketplace: boolean;
     {
       id: "avis",
       category: "google",
-      image: null,
-      icon: "star",
+      // Image fournie par Mehdi le 2026-11-15 (logo Google + étoiles), montrée entière sur fond blanc.
+      image: "/marketing/console/avis-google.png",
+      fit: "contain",
       title: "Plus d'avis Google",
       text: "Tes clients laissent un avis contre des points",
       facts: [],
