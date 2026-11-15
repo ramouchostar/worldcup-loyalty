@@ -35,14 +35,16 @@ export const ASSISTANTS: Record<AssistantId, Assistant> = {
 };
 
 /**
- * Types d'idée qui demandent un forfait AU-DESSUS de celui de leur assistant.
+ * Types d'idée dont le forfait n'est pas celui de leur assistant (au-dessus ou en dessous).
  * Chloé suit le chiffre du jour en Gratuit, mais les ventes plat par plat sont
  * l'analytique de Croissance (ADR 0070 §2) ; la promo qu'elle passe à Hugo suit.
+ * Max est en Pro, mais les horaires des jours fériés vont dès Croissance (Mehdi, 2026-11-15).
  */
 export const IDEA_TYPE_PLAN: Partial<Record<string, Plan>> = {
   jour_creux_promo: "croissance",
   plat_a_mettre_en_avant: "croissance",
   promo_a_annoncer: "croissance",
+  horaires_jours_speciaux: "croissance",
 };
 
 // ─── L'idée ───────────────────────────────────────────────────────────────────

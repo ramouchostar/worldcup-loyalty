@@ -82,6 +82,8 @@ mieux qu'une idée de remplissage (ADR 0089).
 
 1. Cette PR : la barre.
 2. Max : horaires des fêtes, lus par l'API Places (avant le 9 décembre, pour arriver 15 jours avant le 24).
+   Cette idée va **dès Croissance**, pas seulement en Pro comme le reste de Max (Mehdi, 2026-11-15) :
+   seule exception, par type d'idée (`IDEA_TYPE_PLAN`), à la règle « un assistant, un forfait » de l'ADR 0089.
 3. Chloé sur la caisse : jour calme refait (`source: "caisse"`, gain bas chiffré), plateforme de
    livraison qui se tait.
 4. Emma : prolonger une pub qui rapporte, pub du jour calme avec bon (ADR 0104).

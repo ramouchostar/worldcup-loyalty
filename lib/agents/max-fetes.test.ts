@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { belgianSpecialDays, datesLabel, easterSunday, feteDecision, nextOccasion, type FeteInput } from "./max-fetes";
 import { checkBar } from "./playbook";
-import { ideaKey } from "./proposals";
+import { ideaKey, planCovers, requiredPlan } from "./proposals";
 
 const input = (over: Partial<FeteInput> = {}): FeteInput => ({
   restaurantId: "kraainem",
@@ -65,4 +65,11 @@ test("les fêtes de fin d'année ne se taisent pas sur une lecture partielle (le
 
 test("sans fiche Google, rien", () => {
   assert.equal(feteDecision(input({ hasPlace: false })).reason, "pas_de_fiche");
+});
+
+test("forfait : dès Croissance (Houba, De Bue), pas en Gratuit", () => {
+  const idea = feteDecision(input()).idea!;
+  assert.equal(requiredPlan(idea), "croissance");
+  assert.equal(planCovers("croissance", requiredPlan(idea)), true);
+  assert.equal(planCovers("gratuit", requiredPlan(idea)), false);
 });
