@@ -127,6 +127,9 @@ export async function executeIdea(row: ProposalRow, ctx: ExecContext): Promise<E
         if (row.assistant === "louis") {
           return { kind: "team", message: "C'est noté : l'équipe Boosteats publie tes réponses sur ta fiche Google et te prévient quand c'est fait." };
         }
+        if (row.type === "plateforme_muette") {
+          return { kind: "team", message: "C'est noté. Regarde ta tablette maintenant ; si la plateforme ne repart pas, l'équipe Boosteats t'appelle aujourd'hui." };
+        }
         return { kind: "team", message: "C'est noté : l'équipe Boosteats s'en occupe et te tient au courant." };
       case "update_fiche":
         // Fiche Google sans API (Brigade 12) et idées préparées à la main : le travail est humain.

@@ -37,4 +37,12 @@ SELECT restaurant_id, content->>'finding' AS occasion, status, refusal_reason,
        content->'evidence'->>'ficheRead' AS fiche_lue, decided_at, executed_at
 FROM agent_proposals
 WHERE assistant = 'max' AND type = 'horaires_jours_speciaux'
+-- 6. Chloé, plateforme muette (ADR 0105 §5, étape 3). Une idée par panne (plateforme + premier jour
+--    muet). Réussite : la plateforme revient à 30 % de sa médiane dans les 3 jours lus après le « Oui ».
+--    Seuil de révision : plus d'une fausse alerte sur trois (« Déjà fait » ou « Pas pour moi » alors
+--    que la plateforme vendait) = seuils SILENT_RATIO / OPEN_RATIO à revoir.
+SELECT restaurant_id, content->>'finding' AS panne, status, refusal_reason,
+       content->'evidence'->>'silentDays' AS jours_muets, content->'evidence'->>'dataLagDays' AS retard_donnees
+FROM agent_proposals
+WHERE assistant = 'chloe' AND type = 'plateforme_muette'
 ORDER BY created_at DESC;
