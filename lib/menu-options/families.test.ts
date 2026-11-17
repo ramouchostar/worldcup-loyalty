@@ -85,3 +85,15 @@ test("café, frites, sticks, « … Menu » en fin de nom : des plats d'une vrai
   assert.equal(fam("Hot stripes (4)"), "poulet_frit");
   assert.equal(fam("Burger frites"), "burger"); // des frites DANS un plat ne font pas un accompagnement
 });
+
+test("une rubrique « Promotions » ou « Deals » qui range de vrais plats : le nom décide (ADR 0100 §11)", () => {
+  for (const cat of ["Promotions", "Deals", "Offres spéciales"]) {
+    assert.equal(fam("Wings (4)", cat), "poulet_frit", cat);
+    assert.equal(fam("Hot stripes (1)", cat), "poulet_frit", cat);
+    assert.equal(fam("12 Wings Menu", cat), "menu", cat);
+  }
+  assert.equal(fam("Chef's Choice", "Promotions"), "autre"); // un nom qui ne dit rien reste à ranger à la main
+  // Une vraie promotion reste une promotion : le nom ou la rubrique le dit sans ambiguïté.
+  assert.equal(fam("Burger gratuit", "Promotions"), "promo");
+  assert.equal(fam("Pizza offerte", "Deals"), "promo");
+});
