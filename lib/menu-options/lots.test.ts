@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import {
   addArticle, addChoice, addGroup, applyBulkPrice, buildEditor, canValidate, confirmGroup, lotIssues, mergeLots, mergeSuggestions,
   pricesMissing, removeArticle, removeGroup, reopenLot, savePayload, splitArticle, toOptionTrees, traceOf, updateChoice, updateGroup, validateLot,
-  type ArticleRef, type EditorState, type Lot,
+  identicalLotSuggestions, mergeIdentical, type ArticleRef, type EditorState, type Lot,
 } from "./lots";
+import { buildHints, cleanSections } from "./menu-structure";
 import { descriptionOf, editDescription, lotConflicts, resetDescription, setTone, setViande } from "./lots";
 import { validateTree } from "./model";
 
@@ -42,8 +43,10 @@ function priceAndValidate(s: EditorState, lot: Lot, price = 1): EditorState {
 test("les articles sont rangés par famille, et ce qu'on ne sait pas ranger reste à part", () => {
   const c = carte();
   const s = buildEditor(c.all);
-  assert.deepEqual(s.lots.map((l) => l.label), ["Mitraillettes", "Durums, pains turcs, paninis et sandwichs", "Burgers", "Pizzas", "Pâtes", "Boissons et desserts"]);
-  assert.deepEqual(ids([...s.unplaced.map((id) => s.articles[id])]), ids([...c.menu, ...c.bizarre]));
+  assert.deepEqual(s.lots.map((l) => l.label), ["Mitraillettes", "Durums, pains turcs, paninis et sandwichs", "Burgers", "Pizzas", "Pâtes", "Boissons et desserts", "Menus mitraillettes"]);
+  // Une formule n'est plus « à part » : elle se range avec les formules de la même sorte (ADR 0100 §11).
+  assert.deepEqual(ids([...s.unplaced.map((id) => s.articles[id])]), ids(c.bizarre));
+  assert.deepEqual(lotByLabel(s, "Menus mitraillettes").articleIds, c.menu.map((m) => m.id));
 });
 
 test("durums, pains turcs et paninis ne font qu'un lot : les paninis et sandwichs y sont PROPOSÉS, pas imposés", () => {
@@ -286,7 +289,7 @@ test("la trace dit ce que le restaurateur a gardé et changé, par lot validé",
   assert.equal(t.pricesSet, 5);
   const all = traceOf(s);
   assert.equal(all.lotsSaved, 1);
-  assert.equal(all.unplaced, 2);
+  assert.equal(all.unplaced, 1);
   assert.equal(all.articles, carte().all.length);
 });
 
@@ -427,4 +430,106 @@ test("sortir un plat d'un groupe garde la réponse de viande ; ses descriptions 
   s = splitArticle(s, c.mit[0].id);
   const solo = s.lots.find((l) => l.label === "Mitraillette kefta")!;
   assert.equal(descriptionOf(s, solo, c.mit[0].id)!.text, "À moi.");
+});
+
+// ─── Ce que le menu du restaurateur (PDF ou lien) dit de sa carte (ADR 0100 §11) ─────────────────────────────
+
+test("les formules se rangent par sorte : « Menu kebab » avec les menus kebab, « Menu burger » avec les menus burger", () => {
+  const kebab = [art("Menu kebab poulet", "Menus"), art("Menu durum kefta", "Menus")];
+  const burger = [art("Menu cheese burger", "Menus"), art("Menu burger poulet", "Menus")];
+  const s = buildEditor([...kebab, ...burger, art("Menu du chef", "Menus")]);
+  assert.deepEqual(s.lots.map((l) => l.label), ["Menus kebabs et durums", "Menus burgers", "Autres menus"]);
+  assert.deepEqual(s.lots[0].articleIds, kebab.map((a) => a.id));
+  assert.deepEqual(s.unplaced, []);
+  assert.deepEqual(s.lots.every((l) => l.family === "menu" && l.groups.length === 0), true); // le menu muet ne propose rien
+});
+
+test("la liste d'idées du plat laisse sa place aux sauces du restaurateur", () => {
+  const b = [art("Cheese burger"), art("Double burger")];
+  const hints = buildHints(b.map((a) => ({ articleId: a.id, category: "Burgers" })), cleanSections([{ category: "Burgers", sauces: ["Ketchup", "Mayo", "Samouraï"], oneOf: ["Frites", "Riz"] }]));
+  const s = buildEditor(b, hints);
+  assert.equal(s.lots.length, 1);
+  const sauce = s.lots[0].groups.find((g) => g.title === "Sauce")!;
+  assert.deepEqual(sauce.choices.map((c) => c.name), ["Ketchup", "Mayo", "Samouraï"]);
+  const acc = s.lots[0].groups.find((g) => g.title === "Accompagnement")!;
+  assert.deepEqual([acc.kind, acc.min, acc.max, acc.choices.map((c) => c.name)], ["inclus", 1, 1, ["Frites", "Riz"]]);
+  assert.ok(!s.lots[0].groups.some((g) => g.title === "Suppléments" && g.choices.some((c) => c.name === "Ketchup")));
+  for (const g of [sauce, acc]) for (const c of g.choices) assert.equal(c.priceDelta, 0); // jamais de prix deviné
+});
+
+test("sans menu lu, rien ne change : les mêmes lots que d'habitude", () => {
+  const c = carte();
+  assert.deepEqual(buildEditor(c.all, { categoryOf: {}, extrasOf: {} }).lots.map((l) => l.groups.map((g) => g.title)), buildEditor(c.all).lots.map((l) => l.groups.map((g) => g.title)));
+});
+
+test("la rubrique imprimée dans le menu range un plat que son nom ne dit pas", () => {
+  const a = art("Le Smoky", "Cheap eats");
+  assert.deepEqual(buildEditor([a]).unplaced, [a.id]);
+  const s = buildEditor([a], { categoryOf: { [a.id]: "Burgers" }, extrasOf: {} });
+  assert.deepEqual(s.unplaced, []);
+  assert.equal(s.lots[0].family, "burger");
+});
+
+test("deux plats d'une même famille qui n'ont pas les mêmes sauces ne partagent pas un lot", () => {
+  const poulet = art("Burger poulet"), boeuf = art("Burger boeuf");
+  const hints = buildHints(
+    [{ articleId: poulet.id, category: "Burgers poulet" }, { articleId: boeuf.id, category: "Burgers boeuf" }],
+    cleanSections([{ category: "Burgers poulet", sauces: ["Mayo"], oneOf: [] }, { category: "Burgers boeuf", sauces: ["Ketchup"], oneOf: [] }]),
+  );
+  const s = buildEditor([poulet, boeuf], hints);
+  assert.equal(s.lots.length, 2);
+  assert.deepEqual(s.lots.map((l) => l.label), ["Burgers (Burgers poulet)", "Burgers (Burgers boeuf)"]);
+  assert.deepEqual(s.lots.map((l) => l.articleIds.length), [1, 1]);
+});
+
+test("des lots qui ont EXACTEMENT les mêmes choix sont proposés à la réunion, et se valident d'un coup", () => {
+  const kebab = art("Menu kebab", "Menus"), burger = art("Menu burger", "Menus");
+  const same = cleanSections([{ category: "Menus", sauces: ["Ketchup", "Mayo"], oneOf: ["Frites", "Riz"] }]);
+  const hints = buildHints([kebab, burger].map((a) => ({ articleId: a.id, category: "Menus" })), same);
+  let s = buildEditor([kebab, burger], hints);
+  assert.equal(s.lots.length, 2);
+  const sug = identicalLotSuggestions(s);
+  assert.equal(sug.length, 1);
+  assert.deepEqual(sug[0].labels, ["Menus kebabs et durums", "Menus burgers"]);
+
+  s = mergeIdentical(s, sug[0].keys);
+  assert.equal(s.lots.length, 1);
+  assert.deepEqual(s.lots[0].articleIds.slice().sort(), [kebab.id, burger.id].sort());
+  assert.equal(s.stats.merges, 1);
+  assert.deepEqual(identicalLotSuggestions(s), []);
+
+  s = priceAndValidate(s, s.lots[0]);
+  assert.equal(savePayload(s).length, 1);
+  assert.equal(savePayload(s)[0].articleIds.length, 2); // deux sortes de menus réglés d'un seul geste
+});
+
+test("des lots qui diffèrent d'un seul choix, ou qui n'ont aucune liste, ne sont jamais proposés à la réunion", () => {
+  const a = art("Menu kebab", "Menus"), b = art("Menu burger", "Menus");
+  const h = (sauces: string[][]) => {
+    const secs = cleanSections([{ category: "K", sauces: sauces[0], oneOf: [] }, { category: "B", sauces: sauces[1], oneOf: [] }]);
+    return buildHints([{ articleId: a.id, category: "K" }, { articleId: b.id, category: "B" }], secs);
+  };
+  assert.deepEqual(identicalLotSuggestions(buildEditor([a, b], h([["Ketchup", "Mayo"], ["Ketchup", "Mayo", "Ail"]]))), []);
+  assert.deepEqual(identicalLotSuggestions(buildEditor([a, b])), []); // deux lots vides ne se ressemblent pas : rien à régler
+  // Un lot déjà validé ne se réunit plus.
+  let s = buildEditor([a, b], h([["Ketchup"], ["Ketchup"]]));
+  assert.equal(identicalLotSuggestions(s).length, 1);
+  s = priceAndValidate(s, s.lots[0]);
+  assert.deepEqual(identicalLotSuggestions(s), []);
+});
+
+test("les choix repris du menu du restaurateur sont marqués « menu », pas « idée » ; la trace les compte comme gardés", () => {
+  const b = [art("Cheese burger")];
+  const hints = buildHints([{ articleId: b[0].id, category: "Burgers" }], cleanSections([{ category: "Burgers", sauces: ["Ketchup", "Mayo"], oneOf: ["Frites", "Riz"] }]));
+  let s = buildEditor(b, hints);
+  const lot = s.lots[0];
+  const sauce = lot.groups.find((g) => g.title === "Sauce")!;
+  const acc = lot.groups.find((g) => g.title === "Accompagnement")!;
+  assert.deepEqual([...sauce.choices, ...acc.choices].map((c) => c.origin), ["menu", "menu", "menu", "menu"]);
+  assert.ok(lot.groups.find((g) => g.title === "Suppléments")!.choices.every((c) => c.origin === "pack")); // nos idées restent des idées
+  s = updateChoice(s, lot.key, sauce.choices[1].key, { keep: false });
+  s = priceAndValidate(s, s.lots[0]);
+  const t = savePayload(s)[0].trace;
+  assert.equal(t.added, 0);
+  assert.equal(t.kept, t.proposed - 1);
 });

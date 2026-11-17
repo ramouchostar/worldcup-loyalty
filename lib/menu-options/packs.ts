@@ -8,6 +8,8 @@ export type PackChoice = {
   name: string;
   /** Coché d'office quand le client ouvre le plat (les crudités). */
   isDefault?: boolean;
+  /** Écrit dans le menu du restaurateur (ADR 0100 §11) : ce n'est pas une idée de notre part. */
+  fromMenu?: boolean;
   /** Ouvre une question de plus (« Ajouter des frites ? » → quelle sauce avec les frites). */
   sub?: PackGroup;
 };
