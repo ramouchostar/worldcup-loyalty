@@ -45,6 +45,7 @@ function BulkPrice({ lotKey, group, change }: { lotKey: string; group: DraftGrou
 
 function ChoiceRow({ lotKey, group, choice, lotValidated, weak, change }: { lotKey: string; group: DraftGroup; choice: DraftChoice; lotValidated: boolean; weak: boolean; change: Change }) {
   const proposal = choice.origin === "pack" && !lotValidated;
+  const fromMenu = choice.origin === "menu" && !lotValidated;
   const needs = needsPrice(group, choice);
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-paper-border py-2 ${choice.keep ? "" : "opacity-50"} ${proposal ? "bg-paper" : ""}`}>
@@ -85,6 +86,11 @@ function ChoiceRow({ lotKey, group, choice, lotValidated, weak, change }: { lotK
             </label>
           </Tip>
         </>
+      )}
+      {fromMenu && (
+        <Tip text="Ce choix est écrit dans ton menu : nous l'avons repris tel quel. Si tu ne le vends plus, décoche la case." align="right">
+          <StatusBadge tone="good">De ton menu</StatusBadge>
+        </Tip>
       )}
       {weak && proposal && (
         <Tip text="Une idée de notre part : beaucoup de restaurants la proposent, mais pas tous. Garde-la ou décoche-la." align="right">
