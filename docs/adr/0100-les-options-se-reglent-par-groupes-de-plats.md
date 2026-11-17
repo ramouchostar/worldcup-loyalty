@@ -68,6 +68,30 @@ Sous l'éditeur, « Ton site, tel que tes clients le verraient » : une liste en
 
 **Rien n'est publié et il n'y a pas de bouton « mettre en ligne »** : le site public (ADR 0088, Brigade 15) n'existe pas encore, et cet aperçu n'en tient pas lieu. Il est dans la console et ne touche pas aux pages publiques. Les lectures sont fail-open (`GET /api/admin/menu/options` renvoie `facts`, `{}` si les colonnes manquent). **Trace** : aucune nouvelle table ; l'aperçu ne décide rien, il montre l'état des données déjà mesurées (§3, §7, §8, §9). **Écho à suivre** : quand le site public sera construit, il lira les mêmes colonnes (`description`, `allergens`, `kitchen_zone`) avec les mêmes règles de repli ; une seule source de vérité, `site-preview.ts`, évite deux lectures qui divergent.
 
+### 11. Le menu en premier : PDF ou lien, et ce qu'il dit des rubriques, des sauces et des accompagnements
+
+Premier retour d'essai d'Omar (2026-11-17) : le PDF arrivait **après** les groupes, donc rien de ce qu'il dit n'orientait le rangement. Résultat sur une vraie carte de snack : « Nous n'avons pas su où mettre 49 plats » (formules « 12 Wings Menu », « Hot wings (4) », « Coffee », « Fries »…), alors que le menu classe déjà chaque plat dans une rubrique et dit ses sauces et ses accompagnements. Le menu devient donc **le premier geste de l'écran** (« Par où commencer ? »), sous deux formes : **un PDF** ou **le lien du menu en ligne** (le site du restaurant, le lien de son QR code).
+
+**Ce que la lecture rend**, en plus des descriptions et des allergènes (§8) : la **rubrique** imprimée de chaque plat, et par rubrique (ou pour tout le menu) les **sauces disponibles** et les **accompagnements au choix** (« servi avec frites ou riz » → un choix gratuit, obligatoire, entre les deux). Rien n'est inventé : un menu muet ne propose rien, un seul accompagnement n'est pas un choix (`lib/menu-options/menu-structure.ts`, `pdf-read.ts`).
+
+**Ce que l'écran en fait** (`buildEditor(articles, hints)`, `lots.ts`) :
+- la rubrique imprimée aide à reconnaître un plat que son nom ne dit pas ;
+- les sauces du menu **remplacent** nos idées de départ dans la liste « Sauce(s) » du groupe (ce sont les sauces de ce restaurant), ou forment une liste gratuite **à confirmer** quand le groupe n'en avait pas ; les choix repris sont étiquetés « De ton menu », pas « Idée », et ne portent **jamais de prix** (ADR 0099 §5) ;
+- deux plats d'une même famille qui n'ont pas les mêmes sauces ou accompagnements ne partagent pas un groupe (un groupe = les mêmes choix) ;
+- les **formules** ne restent plus « à part » : « Menu kebab » et « Menu durum » vont ensemble, « Menu burger » avec les menus burgers, d'après le nom (« 12 Wings Menu » compris), à défaut d'après la rubrique du menu, à défaut « Autres menus » ;
+- des groupes qui ont **exactement les mêmes choix** (mêmes listes, mêmes prix) sont **proposés** à la réunion (« Les réunir ») et se valident alors d'un seul geste. Jamais d'office : une réunion défait des choix qu'on pourrait vouloir séparer ; jamais proposée pour un groupe sans aucune liste ;
+- si le restaurateur a **déjà réglé** quelque chose (groupe validé, ligne modifiée, plat ajouté, description écrite), la lecture **ne reconstruit rien** : le menu ne sert alors qu'aux descriptions et aux allergènes. On ne défait jamais son travail.
+
+**Le lien** (`lib/menu-options/link-read.ts`) est une page que NOTRE serveur va chercher à une adresse écrite par un utilisateur : garde-fous contre les attaques par redirection vers le réseau interne (SSRF), les mêmes que le test du QR code des prestataires (`lib/safe-url.ts`, `lib/qr-check.ts`) : https, un vrai nom de domaine (jamais une adresse en chiffres), chaque saut jugé et sa résolution DNS contrôlée (3 redirections au plus), 10 s, 3 Mo, seul le **texte** est gardé (ni script ni page exécutée), les données structurées schema.org sont gardées. **Limite connue** : la résolution est contrôlée avant la requête, pas pendant (un nom qui change de réponse entre les deux n'est pas arrêté) ; la page n'est jamais renvoyée au navigateur, seul ce que Claude en tire (des noms de plats) l'est.
+
+**Ce qui n'est pas lu** : les pages qui se construisent avec du JavaScript (presque pas de texte : « envoie plutôt ton PDF »), les sites qui refusent les robots (401, 403, 429), et les **liens des plateformes de livraison** (Uber Eats, Deliveroo, Takeaway… : ils demandent un vrai navigateur et leurs conditions d'usage ne sont pas vérifiées ; décision d'Omar du 2026-11-17 : on fait le PDF et le lien du restaurant d'abord). Chaque cas dit au restaurateur quoi faire ; aucun ne produit un menu à moitié lu.
+
+**Trace** (ADR 0065) : la ligne de `menu_pdf_imports` dit désormais d'où vient le menu (`source` : `pdf` ou `lien`), combien de rubriques et de listes de sauces et d'accompagnements ont été repris (migration `20261117-1200`, **à appliquer à la main** ; sans elle la trace s'écrit comme avant), et le journal serveur `[menu-read]` les compte à chaque lecture. Requête 13 de `docs/mesures/suivi-options-menu.sql`. Règles à surveiller : un « lien » qui rend presque toujours 0 rubrique ne sert à rien ; des listes de sauces reprises avec une part de choix gardés (requête 1) qui tombe = la lecture se trompe de sauces.
+
+**Échos** : l'ancien composant `PdfImport` devient `PdfReview` (relecture des descriptions et des allergènes) ; la lecture est dans `MenuSource` ; les textes de l'écran ne parlent plus de « PDF » seul.
+
+**Une seule imprimante** (question d'Omar, §9) : avec un seul coin, ou le découpage désactivé, la commande sort en **un seul ticket « Cuisine »** avec tous les plats et la somme à payer. Envoyer chaque coin vers sa propre imprimante, et replier les coins sans imprimante sur celle par défaut, reste à faire avec le choix de l'imprimante.
+
 ## Conséquences
 
 - **Données** : une table de trace `menu_option_setups` (migration `20261112-0417`, service-role seul), à appliquer à la main à la fusion. Sans elle, les options s'enregistrent et le journal le dit.
@@ -90,4 +114,5 @@ La suite est décidée dans la maquette validée, pas dans cette PR :
 1. ~~Descriptions~~ : faites, voir §7.
 2. ~~PDF du menu~~ : fait, voir §8. Reste à coordonner avec la Brigade 15 (générateur de site) : lire `description` et `allergens` (`NULL` = « demande-nous au comptoir »).
 3. ~~Aperçu du site~~ : fait dans la console, voir §10 ; le site public reste à construire (Brigade 15). Les tickets par coin de cuisine sont faits sans impression, voir §9 ; l'impression attend la commande du site et le choix de l'imprimante.
-4. Les règles sur les allergènes à la vente à distance (règlement UE 1169/2011, art. 14) sont à faire confirmer avant la première commande réelle.
+4. **Menu en ligne via les plateformes de livraison** (§11) : lecture à part, pas encore ouverte ; elle demande un navigateur hébergé (coût mensuel) et la vérification des conditions d'usage des plateformes (comptable ou juriste). Un PDF ou le lien du restaurant d'abord.
+5. Les règles sur les allergènes à la vente à distance (règlement UE 1169/2011, art. 14) sont à faire confirmer avant la première commande réelle.

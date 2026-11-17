@@ -8,6 +8,7 @@ import { validateTree, type TreeIssue } from "./model";
 import { optionKey } from "./normalize";
 import { AFFINITY, LOT_OF, SUGGESTED_WITH, classifyArticle, familyStrength, joinLabels, type Family, type Strength } from "./families";
 import { packFor, type PackGroup } from "./packs";
+import { applyExtras, extrasSignature, menuKind, type MenuHints } from "./menu-structure";
 import type { GroupKind, OptionChoice, OptionGroup } from "./types";
 
 export type ArticleRef = { id: string; name: string; category: string };
@@ -21,7 +22,8 @@ export type DraftChoice = {
   isDefault: boolean;
   /** Décoché : le client ne le verra pas. */
   keep: boolean;
-  origin: "pack" | "ajout";
+  /** pack = une idée de notre part ; menu = écrit dans le menu du restaurateur (PDF ou lien) ; ajout = écrit par lui. */
+  origin: "pack" | "menu" | "ajout";
   groups: DraftGroup[];
 };
 
@@ -100,7 +102,7 @@ function buildGroup(pg: PackGroup, next: (p: string) => string): DraftGroup {
       maxQty: 1,
       isDefault: !!pc.isDefault,
       keep: true,
-      origin: "pack",
+      origin: pc.fromMenu ? "menu" : "pack",
       groups: pc.sub ? [buildGroup(pc.sub, next)] : [],
     })),
   };
@@ -108,17 +110,35 @@ function buildGroup(pg: PackGroup, next: (p: string) => string): DraftGroup {
 
 const countChoices = (groups: DraftGroup[]): number => groups.reduce((n, g) => n + g.choices.reduce((m, c) => m + 1 + countChoices(c.groups), 0), 0);
 
-/** Range les articles du catalogue en lots. Les articles que nous ne savons pas ranger (formules, promotions, inconnus) restent à part. */
-export function buildEditor(articles: ArticleRef[]): EditorState {
+/** Les familles dont les plats n'ont pas de sauce ni d'accompagnement à demander : le menu n'y ajoute rien. */
+const NO_EXTRAS = new Set<Family>(["boisson", "dessert", "sauce", "accompagnement"]);
+
+type LotDraft = { lotKey: string; label: string; family: Family; strength: Strength; articleIds: string[]; suggestedIds: string[] };
+
+/**
+ * Range les articles du catalogue en lots. Les articles que nous ne savons pas ranger (promotions, inconnus) restent à part.
+ * Avec `hints` (ce que le PDF ou le lien du restaurateur dit de sa carte, ADR 0100 §11) :
+ *  - la catégorie imprimée dans son menu aide à reconnaître un plat (« Burgers ») ;
+ *  - ses sauces et ses accompagnements gratuits remplacent nos idées de départ ;
+ *  - deux plats d'une même famille qui n'ont pas les mêmes sauces ne partagent pas un lot (un lot = les mêmes choix).
+ * Les formules (« Menu kebab », « Menu burger ») se rangent ensemble par sorte, jamais « à part ».
+ */
+export function buildEditor(articles: ArticleRef[], hints?: MenuHints): EditorState {
   let n = 0;
   const next = (p: string) => `${p}${++n}`;
   const byFamily = new Map<Family, string[]>();
+  const menus = new Map<string, { label: string; ids: string[] }>();
   const unplaced: string[] = [];
   const families: Record<string, Family> = {};
   for (const a of articles) {
-    const family = classifyArticle(a);
+    const printed = hints?.categoryOf[a.id];
+    let family = classifyArticle({ name: a.name, category: printed ?? a.category });
+    if (printed && family === "autre") family = classifyArticle(a);
     families[a.id] = family;
-    if (familyStrength(family) === null) unplaced.push(a.id);
+    if (family === "menu") {
+      const kind = menuKind({ name: a.name, category: printed ?? a.category });
+      (menus.get(kind.key) ?? menus.set(kind.key, { label: kind.label, ids: [] }).get(kind.key)!).ids.push(a.id);
+    } else if (familyStrength(family) === null) unplaced.push(a.id);
     else (byFamily.get(family) ?? byFamily.set(family, []).get(family)!).push(a.id);
   }
 
@@ -137,29 +157,44 @@ export function buildEditor(articles: ArticleRef[]): EditorState {
     }
   }
 
-  const lots: Lot[] = [];
+  const drafts: LotDraft[] = [];
   const stats: Stats = { suggested: 0, suggestedRemoved: 0, added: 0, merges: 0, splits: 0 };
   for (const [lotKey, families] of lotFamilies) {
     const sugg = suggested.get(lotKey) ?? [];
-    const articleIds = families.flatMap((f) => byFamily.get(f) ?? []);
     const suggestedIds = sugg.flatMap((f) => byFamily.get(f) ?? []);
     const primary = families[0];
-    const groups = packFor(lotKey).map((pg) => buildGroup(pg, next));
-    stats.suggested += suggestedIds.length;
-    lots.push({
-      key: next("lot"),
-      label: joinLabels([...families, ...sugg]),
-      family: primary,
+    drafts.push({
+      lotKey, label: joinLabels([...families, ...sugg]), family: primary,
       strength: lotKey === "sans_choix" ? "aucune" : familyStrength(primary) ?? "faible",
-      articleIds: [...articleIds, ...suggestedIds],
-      suggestedIds,
-      groups,
-      validated: false,
-      proposed: countChoices(groups),
-      edits: 0,
-      pricesSet: 0,
-      viande: null,
+      articleIds: [...families.flatMap((f) => byFamily.get(f) ?? []), ...suggestedIds], suggestedIds,
     });
+  }
+  for (const [lotKey, m] of menus) drafts.push({ lotKey, label: m.label, family: "menu", strength: "faible", articleIds: m.ids, suggestedIds: [] });
+
+  const lots: Lot[] = [];
+  for (const d of drafts) {
+    // Les plats d'un même lot qui n'ont pas les mêmes sauces ou accompagnements ne peuvent pas partager leurs choix.
+    const useMenu = !!hints && !NO_EXTRAS.has(d.family) && d.lotKey !== "sans_choix";
+    const parts = new Map<string, string[]>();
+    for (const id of d.articleIds) {
+      const sig = useMenu ? extrasSignature(hints!.extrasOf[id]) : "";
+      (parts.get(sig) ?? parts.set(sig, []).get(sig)!).push(id);
+    }
+    for (const [sig, ids] of parts) {
+      const first = hints?.extrasOf[ids[0]];
+      const groups = applyExtras(packFor(d.lotKey), useMenu && sig !== "" ? first : undefined).map((pg) => buildGroup(pg, next));
+      const suggestedIds = d.suggestedIds.filter((id) => ids.includes(id));
+      let label = d.label;
+      if (parts.size > 1) {
+        const cats = [...new Set(ids.map((id) => hints?.categoryOf[id]).filter((c): c is string => !!c))];
+        label = `${d.label} (${cats.length > 0 ? cats.slice(0, 3).join(", ") : "le reste"})`;
+      }
+      stats.suggested += suggestedIds.length;
+      lots.push({
+        key: next("lot"), label, family: d.family, strength: d.strength, articleIds: ids, suggestedIds, groups,
+        validated: false, proposed: countChoices(groups), edits: 0, pricesSet: 0, viande: null,
+      });
+    }
   }
   return { articles: Object.fromEntries(articles.map((a) => [a.id, a])), families, tone: DEFAULT_TONE, descEdits: {}, lots, unplaced, stats, seq: n };
 }
@@ -344,7 +379,7 @@ export function updateGroup(s: EditorState, lotKey: string, groupKey: string, pa
         g.min = 0; g.max = null;
         g.choices.forEach((c) => { c.priceDelta = 0; c.maxQty = 1; c.isDefault = false; c.groups = []; });
       } else if (g.kind === "inclus") g.choices.forEach((c) => { if (c.priceDelta === null) c.priceDelta = 0; });
-      else g.choices.forEach((c) => { if (c.priceDelta === 0 && c.origin === "pack" && !c.isDefault) c.priceDelta = null; });
+      else g.choices.forEach((c) => { if (c.priceDelta === 0 && c.origin !== "ajout" && !c.isDefault) c.priceDelta = null; });
     }
     if (patch.min !== undefined) { g.min = Math.max(0, Math.floor(patch.min) || 0); if (g.max !== null && g.max < g.min) g.max = g.min; }
     if (patch.max !== undefined) { g.max = patch.max === null ? null : Math.max(1, Math.floor(patch.max) || 1); if (g.max !== null && g.min > g.max) g.min = g.max; }
@@ -425,6 +460,39 @@ export function mergeSuggestions(s: EditorState): { intoKey: string; fromKey: st
   return out;
 }
 
+// ─── Des groupes qui ont EXACTEMENT les mêmes choix (ADR 0100 §11) ───────────
+
+/** Tout ce que le client verrait d'un lot, sans les clés internes : deux lots qui ont la même empreinte se règlent d'un coup. */
+function lotSignature(lot: Lot): string {
+  const g = (groups: DraftGroup[]): unknown[] => groups.map((x) => [
+    x.title.trim().toLowerCase(), x.kind, x.min, x.max,
+    x.choices.filter((c) => c.keep).map((c) => [optionKey(c.name), c.priceDelta, c.maxQty, c.isDefault, g(c.groups)]),
+  ]);
+  return JSON.stringify(g(lot.groups));
+}
+
+/**
+ * Les lots non validés qui ont exactement les mêmes listes de choix, mêmes prix compris : « Menus kebabs » et « Menus burgers »
+ * avec les mêmes sauces, les mêmes accompagnements. Nous le PROPOSONS (une réunion défait des choix qu'on pourrait vouloir
+ * séparer), jamais d'office. Un lot sans aucune liste n'a rien en commun avec un autre : il n'est jamais proposé.
+ */
+export function identicalLotSuggestions(s: EditorState): { keys: string[]; labels: string[] }[] {
+  const bySig = new Map<string, Lot[]>();
+  for (const l of s.lots) {
+    if (l.validated || l.groups.length === 0) continue;
+    const sig = lotSignature(l);
+    (bySig.get(sig) ?? bySig.set(sig, []).get(sig)!).push(l);
+  }
+  return [...bySig.values()].filter((ls) => ls.length >= 2).map((ls) => ({ keys: ls.map((l) => l.key), labels: ls.map((l) => l.label) }));
+}
+
+/** Réunit plusieurs lots dans le premier : leurs plats prennent les mêmes choix, et se valident d'un seul geste. */
+export function mergeIdentical(s: EditorState, keys: string[]): EditorState {
+  const [into, ...rest] = keys;
+  if (!into) return s;
+  return rest.reduce((acc, from) => mergeLots(acc, into, from), s);
+}
+
 // ─── Les descriptions (ADR 0100 §7) ──────────────────────────────────────────
 
 /** Une description telle qu'elle partira : ce que le restaurateur a écrit, sinon ce que nous avons composé d'après le nom. */
@@ -502,7 +570,7 @@ function toSaveGroup(g: DraftGroup): SaveGroup {
 export function savePayload(s: EditorState): SaveLot[] {
   return s.lots.filter((l) => l.validated).map((lot) => {
     let kept = 0, added = 0;
-    eachChoice(lot.groups, (c) => { if (c.keep) { if (c.origin === "pack") kept++; else added++; } });
+    eachChoice(lot.groups, (c) => { if (c.keep) { if (c.origin === "ajout") added++; else kept++; } });
     const descriptions: SaveDescription[] = [];
     let descGenerated = 0, descKept = 0, descEdited = 0, descCleared = 0;
     for (const articleId of lot.articleIds) {

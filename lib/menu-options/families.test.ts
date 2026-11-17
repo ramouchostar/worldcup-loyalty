@@ -75,3 +75,13 @@ test("le libellé d'un groupe de plats se lit comme une phrase", () => {
   assert.equal(joinLabels(["durum", "pain_turc", "panini"]), "Durums, pains turcs et paninis");
   assert.equal(joinLabels(["boisson", "dessert", "sauce"]), "Boissons, desserts et sauces");
 });
+
+test("café, frites, sticks, « … Menu » en fin de nom : des plats d'une vraie carte de snack se rangent (ADR 0100 §11)", () => {
+  assert.equal(fam("Coffee"), "boisson");
+  assert.equal(fam("Fries"), "accompagnement");
+  assert.equal(fam("3pc Mozzarella Sticks"), "snack_friture");
+  assert.equal(fam("12 Wings Menu"), "menu");
+  assert.equal(fam("Boneless Combo"), "menu");
+  assert.equal(fam("Hot stripes (4)"), "poulet_frit");
+  assert.equal(fam("Burger frites"), "burger"); // des frites DANS un plat ne font pas un accompagnement
+});

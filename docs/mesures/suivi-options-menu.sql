@@ -137,3 +137,20 @@ SELECT
 FROM site_orders
 WHERE created_at < NOW() - INTERVAL '30 days'
   AND (phone IS NOT NULL OR first_name <> '—');
+
+-- 13. Import du menu par PDF ou par lien (ADR 0100 §11) : lequel est utilisé, et rend-il de quoi ranger les plats ?
+-- Table menu_pdf_imports (colonnes source, categories, sauce_lists, side_lists : migration 20261117-1200).
+-- Règle à surveiller : si « lien » a presque toujours 0 rubrique, la lecture des pages web ne sert à rien (essayer un autre
+-- format ou retirer l'entrée) ; si une liste de sauces est reprise mais que la part « choix gardés » (requête 1) tombe,
+-- la lecture se trompe de sauces.
+SELECT
+  source,
+  COUNT(*)                                             AS imports_enregistres,
+  ROUND(AVG(lines_read))                               AS lignes_lues_en_moyenne,
+  ROUND(100.0 * SUM(matched) / NULLIF(SUM(lines_read), 0))  AS pct_lignes_rapprochees,
+  ROUND(AVG(categories), 1)                            AS rubriques_en_moyenne,
+  ROUND(AVG(sauce_lists), 1)                           AS listes_de_sauces_en_moyenne,
+  ROUND(AVG(side_lists), 1)                            AS listes_d_accompagnements_en_moyenne
+FROM menu_pdf_imports
+GROUP BY 1
+ORDER BY 2 DESC;

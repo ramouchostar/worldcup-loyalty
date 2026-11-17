@@ -126,7 +126,13 @@ test("trace : compte ce que le restaurateur a gardé, changé, confirmé", () =>
   rv = rv.map((r) => (r.articleId === "a2" ? setDescription(toggleAllergen(r, "oeufs"), "Ma pizza") : setConfirmed(r, true)));
   const t = traceOfReviews(lines.length, countsOf(res), rv);
   assert.deepEqual(t, {
+    source: "pdf", categories: 0, sauceLists: 0, sideLists: 0,
     linesRead: 3, matched: 2, matchedNear: 0, unmatched: 1, articlesWithout: 3,
     descProposed: 2, descKept: 1, descEdited: 1, allergensProposed: 2, allergensChanged: 1, allergensConfirmed: 1,
   });
+});
+
+test("trace : l'origine du menu et ce que nous en avons repris suivent jusqu'à la trace", () => {
+  const t = traceOfReviews(2, { matched: 1, matchedNear: 0, unmatched: 1, articlesWithout: 0 }, [], { source: "lien", counts: { categories: 5, sauceLists: 2, sideLists: 1 } });
+  assert.deepEqual([t.source, t.categories, t.sauceLists, t.sideLists], ["lien", 5, 2, 1]);
 });

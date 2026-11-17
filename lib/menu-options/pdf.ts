@@ -9,6 +9,7 @@
 //    « au hasard ») : le restaurateur la voit à part.
 
 import { MAX_DESCRIPTION } from "./descriptions";
+import type { MenuCounts, MenuHints } from "./menu-structure";
 
 export const ALLERGENS = [
   ["gluten", "Gluten"], ["crustaces", "Crustacés"], ["oeufs", "Œufs"], ["poisson", "Poisson"], ["arachides", "Arachides"],
@@ -23,7 +24,13 @@ export const ALLERGEN_LABEL: Record<AllergenKey, string> = Object.fromEntries(AL
 export const isAllergenKey = (v: unknown): v is AllergenKey => typeof v === "string" && (ALLERGEN_KEYS as readonly string[]).includes(v);
 
 /** Ce que la lecture du PDF rend pour une ligne de carte. `allergens: null` = le PDF n'imprime rien pour ce plat. */
-export type PdfLine = { name: string; description: string | null; allergens: AllergenKey[] | null };
+export type PdfLine = {
+  name: string;
+  description: string | null;
+  allergens: AllergenKey[] | null;
+  /** La rubrique sous laquelle le menu imprime ce plat (« Burgers », « Menus kebab »). Absent = non lue. */
+  category?: string | null;
+};
 
 export type CatalogItem = { id: string; name: string };
 
@@ -187,7 +194,24 @@ export function toSaveRow(r: PdfReview): PdfSaveRow {
 /** Un plat sans rien à écrire n'est pas envoyé. */
 export const hasEffect = (row: PdfSaveRow): boolean => row.description !== null || row.allergens !== null;
 
+/** Ce que la lecture d'un menu (PDF ou lien) rend au navigateur : à relire, et de quoi ranger les plats (ADR 0100 §11). */
+export type MenuReadResult = {
+  source: "pdf" | "lien";
+  linesRead: number;
+  reviews: PdfReview[];
+  unmatchedLines: { name: string }[];
+  articlesWithout: string[];
+  counts: MatchCounts;
+  hints: MenuHints;
+  menuCounts: MenuCounts;
+};
+
 export type PdfTrace = {
+  /** D'où vient le menu, et ce que nous en avons repris pour ranger les plats. */
+  source: "pdf" | "lien";
+  categories: number;
+  sauceLists: number;
+  sideLists: number;
   linesRead: number;
   matched: number;
   matchedNear: number;
@@ -210,10 +234,14 @@ export const countsOf = (r: MatchResult): MatchCounts => ({
   articlesWithout: r.articlesWithout.length,
 });
 
-export function traceOfReviews(linesRead: number, counts: MatchCounts, reviews: PdfReview[]): PdfTrace {
+export function traceOfReviews(linesRead: number, counts: MatchCounts, reviews: PdfReview[], menu?: { source: "pdf" | "lien"; counts: MenuCounts }): PdfTrace {
   const sameSet = (a: AllergenKey[], b: AllergenKey[]) => a.length === b.length && a.every((k) => b.includes(k));
   const withPdfAllergens = reviews.filter((r) => r.allergensFromPdf);
   return {
+    source: menu?.source ?? "pdf",
+    categories: menu?.counts.categories ?? 0,
+    sauceLists: menu?.counts.sauceLists ?? 0,
+    sideLists: menu?.counts.sideLists ?? 0,
     linesRead,
     ...counts,
     descProposed: reviews.filter((r) => r.descriptionOriginal !== null).length,

@@ -251,6 +251,10 @@ _Avoid_ : poste, station, zone (dans un texte visible).
 Dans la console, ce que les clients verraient du menu du restaurateur (plats, prix, photos, choix, descriptions, allergènes confirmés), avec une liste de ce qui reste à finir. Il ne publie rien et n'est pas le site public (ADR 0088).
 _Avoid_ : « mise en ligne », « publication » (rien n'est publié).
 
+**Lecture du menu** *(ADR 0100 §11)* :
+Le premier geste de l'écran « Options de mes plats » : le restaurateur donne son menu par un **PDF** ou par le **lien de son menu en ligne**, et nous en tirons ses rubriques, ses sauces et ses accompagnements gratuits pour ranger ses plats. Une proposition à relire, jamais enregistrée seule. Les liens des plateformes de livraison ne sont pas encore lus.
+_Avoid_ : « import automatique », « scraping » (dans un texte visible).
+
 **Prix de vente** :
 Prix carte d'un article (`menu_items.menu_price`) — la valeur perçue par le client quand il reçoit l'article en cadeau. Sert de numérateur au calcul d'attractivité d'une suggestion. Donnée euros, admin uniquement.
 _Avoid_ : prix public, tarif, prix client.

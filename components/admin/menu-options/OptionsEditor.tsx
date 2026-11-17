@@ -6,10 +6,12 @@ import { Card, ProgressBar, StatusBadge } from "@/components/admin/ui";
 import { describeHttpFailure, readJsonSafe } from "@/lib/fetch-json";
 import { STRENGTH_LABEL, STRENGTH_NOTE, TIPS, plural } from "@/lib/menu-options/copy";
 import { TONES, type Tone } from "@/lib/menu-options/descriptions";
-import { buildEditor, savePayload, setTone, traceOf, type EditorState, type Lot } from "@/lib/menu-options/lots";
+import { buildEditor, identicalLotSuggestions, mergeIdentical, savePayload, setTone, traceOf, type ArticleRef, type EditorState, type Lot } from "@/lib/menu-options/lots";
+import type { MenuReadResult } from "@/lib/menu-options/pdf";
 import { LotCard, type ArticleMeta, type Change } from "./LotCard";
 import { KitchenTickets } from "./KitchenTickets";
-import { PdfImport } from "./PdfImport";
+import { MenuSource } from "./MenuSource";
+import { PdfReview } from "./PdfReview";
 import { SitePreview } from "./SitePreview";
 import type { FactsById } from "@/lib/menu-options/site-preview";
 import { Tip } from "./fields";
@@ -40,6 +42,10 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
   const [savedSig, setSavedSig] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
+  // ADR 0100 §11 : le menu lu (PDF ou lien), et ce que l'écran en a fait.
+  const [catalog, setCatalog] = useState<ArticleRef[]>([]);
+  const [read, setRead] = useState<{ id: number; result: MenuReadResult } | null>(null);
+  const [outcome, setOutcome] = useState<string | null>(null);
 
   const load = useCallback(async (first: boolean) => {
     const res = await fetch(`/api/admin/menu/options?restaurantId=${encodeURIComponent(restaurantId)}`);
@@ -51,13 +57,39 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
     if (!data.available) { setPhase("unavailable"); return; }
     if (data.items.length === 0) { setPhase("empty"); return; }
     setMeta(Object.fromEntries(data.items.map((i) => [i.id, { price: i.price, hasPhoto: i.hasPhoto }])));
-    setSt(buildEditor(data.items.map((i) => ({ id: i.id, name: i.name, category: i.category }))));
+    const articles = data.items.map((i) => ({ id: i.id, name: i.name, category: i.category }));
+    setCatalog(articles);
+    setSt(buildEditor(articles));
     setPhase("ready");
   }, [restaurantId]);
 
   useEffect(() => { void load(true); }, [load]);
 
   const change: Change = useCallback((fn) => { setMsg(null); setSt((s) => (s ? fn(s) : s)); }, []);
+
+  // Le menu vient d'être lu. On range les plats d'après lui SEULEMENT si le restaurateur n'a encore rien réglé : sinon on ne
+  // défait jamais son travail, et le menu ne sert qu'aux descriptions et aux allergènes.
+  const touched = !!st && (st.lots.some((l) => l.validated || l.edits > 0 || l.pricesSet > 0) || Object.keys(st.descEdits).length > 0 || st.stats.merges + st.stats.splits + st.stats.added > 0);
+
+  function onRead(result: MenuReadResult) {
+    setMsg(null);
+    setRead((r) => ({ id: (r?.id ?? 0) + 1, result }));
+    if (!st) return;
+    if (touched) {
+      setOutcome("Tu as déjà commencé à régler tes groupes : nous n'y avons pas touché. Ton menu sert ici aux descriptions et aux allergènes, plus bas.");
+      return;
+    }
+    const next = { ...buildEditor(catalog, result.hints), tone: st.tone };
+    setSt(next);
+    const heard = result.menuCounts.categories + result.menuCounts.sauceLists + result.menuCounts.sideLists;
+    setOutcome(
+      heard > 0
+        ? `Nous avons rangé tes plats d'après ton menu : ${plural(next.lots.length, "groupe", "groupes")}${next.unplaced.length > 0 ? `, et ${plural(next.unplaced.length, "plat reste", "plats restent")} à ranger à la main` : ""}. Relis chaque groupe : ce que nous avons repris de ton menu est une proposition.`
+        : "Ton menu ne nous a rien appris de plus sur tes rubriques ni tes sauces : tes groupes sont ceux que nous proposons d'habitude.",
+    );
+  }
+
+  function clearRead() { setRead(null); setOutcome(null); }
 
   const placed = useMemo(() => (st ? st.lots.reduce((n, l) => n + l.articleIds.length, 0) : 0), [st]);
   const photos = useMemo(() => (st ? Object.keys(st.articles).filter((id) => meta[id]?.hasPhoto).length : 0), [st, meta]);
@@ -76,6 +108,7 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
   }
   if (!st) return null;
 
+  const identical = identicalLotSuggestions(st);
   const left = st.lots.filter((l) => !l.validated).length;
   const done = st.lots.filter((l) => l.validated).reduce((n, l) => n + l.articleIds.length, 0);
   const trace = traceOf(st);
@@ -123,6 +156,8 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
         <b className="block text-ink">Un groupe, un clic.</b>
         On est partis de ton menu Boosteats. Nous avons rangé tes plats en groupes qui ont les mêmes choix, et nous avons préparé ces choix d&apos;après ce que vendent des restaurants comme le tien. Toi, tu relis, tu décoches ce que tu ne fais pas, tu mets tes prix, et c&apos;est fait pour tout le groupe. Rien n&apos;est mis en ligne tant que tu n&apos;as pas cliqué sur « Enregistrer ».
       </div>
+
+      <MenuSource restaurantId={restaurantId} result={read?.result ?? null} outcome={outcome} locked={touched} onRead={onRead} onClear={clearRead} />
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-paper-border bg-white px-4 py-3">
         <b className="text-[15px] text-ink">Ton des descriptions</b>
@@ -175,6 +210,17 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
         <ProgressBar value={done} max={Math.max(placed, 1)} tone={left === 0 ? "good" : "neutral"} label="Plats réglés" />
       </div>
 
+      {identical.map((c) => (
+        <div key={c.keys.join("+")} className="flex flex-wrap items-center gap-3 rounded-xl border border-paper-border bg-paper px-4 py-3 text-[15px] text-ink">
+          <span className="min-w-[220px] flex-1">
+            {`${c.labels.map((l) => `« ${l} »`).join(" et ")} ont exactement les mêmes choix. Tu peux les réunir et tout régler d'un coup.`}
+          </span>
+          <button type="button" className={`${btn} border border-paper-border bg-white text-ink hover:border-ink-faint`} onClick={() => change((s) => mergeIdentical(s, c.keys))}>
+            Les réunir
+          </button>
+        </div>
+      ))}
+
       {st.lots.map((lot) => (
         <LotCard key={lot.key} lot={lot} state={st} meta={meta} configured={configured} saved={lot.validated && sigOf(st, lot) === savedSig[lot.key]} change={change} />
       ))}
@@ -185,7 +231,7 @@ export function OptionsEditor({ restaurantId }: { restaurantId: string }) {
         </div>
       )}
 
-      <PdfImport restaurantId={restaurantId} onSaved={() => void load(false)} names={Object.fromEntries(Object.values(st.articles).map((a) => [a.id, a.name]))} />
+      {read && <PdfReview key={read.id} restaurantId={restaurantId} res={read.result} onSaved={() => void load(false)} onClose={clearRead} names={Object.fromEntries(Object.values(st.articles).map((a) => [a.id, a.name]))} />}
 
       <KitchenTickets restaurantId={restaurantId} st={st} meta={meta} />
 

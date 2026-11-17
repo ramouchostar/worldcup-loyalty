@@ -34,7 +34,7 @@ const BY_CATEGORY: Rule[] = [
 ];
 
 // Un nom de boisson de marque classe l'article même dans une catégorie mal nommée.
-const DRINK_NAME = /\b(coca|cola|fanta|sprite|pepsi|7up|schweppes|ice tea|lipton|red ?bull|eau|water|spa|perrier|heineken|jupiler|leffe|stella|capri|sun|oasis|tonic|lait)\b/;
+const DRINK_NAME = /\b(coffee|cafe|espresso|cappuccino|latte|coca|cola|fanta|sprite|pepsi|7up|schweppes|ice tea|lipton|red ?bull|eau|water|spa|perrier|heineken|jupiler|leffe|stella|capri|sun|oasis|tonic|lait)\b/;
 
 // Les familles de plats, par ordre de priorité : la mitraillette avant le sandwich, le burger avant le poulet…
 const FOOD: Rule[] = [
@@ -50,21 +50,30 @@ const FOOD: Rule[] = [
   ["sushi", /sushi|maki|sashimi|nigiri|temaki|california|uramaki|gunkan|\brolls?\b|chirashi/],
   ["poke", /\bpoke|\bbowl/],
   ["kapsalon", /kapsalon/],
-  ["snack_friture", /fricandelle|frikandel|boulette|croquette|cervelas|bamix|viandel|loempia|mexicano|hot ?dog|saucisse|\bsnacks?\b|finger/],
+  ["snack_friture", /fricandelle|frikandel|boulette|croquette|cervelas|bamix|viandel|loempia|mexicano|hot ?dog|saucisse|\bsnacks?\b|finger|mozzarella|\bsticks?\b/],
   ["wok", /\bwok\b|noodle|nouille|ramen|udon|pad thai|riz saute|fried rice|\bbami\b|\bnasi\b|donburi|bibimbap|teriyaki|yakitori|yakisoba|katsu/],
   ["curry", /curry|tikka|masala|biryani|korma|vindaloo|tandoori|\bnaan\b|paneer/],
   ["soupe", /soupe|\bsoup|\bpho\b|\bmiso\b/],
   ["salade", /salade|salad/],
   ["sandwich", /sandwich|baguette|pistolet|\bpita\b|\bclub\b|\bsub\b|bagel|ciabatta/],
-  ["poulet_frit", /nugget|\bwings?\b|tender|poulet frit|fried chicken|crispy|chicken|poulet|bucket|popcorn/],
+  ["poulet_frit", /nugget|\bwings?\b|tender|\bstrips?\b|\bstripes?\b|poulet frit|fried chicken|crispy|chicken|poulet|bucket|popcorn/],
   ["assiette", /assiette|\bplats?\b|\bplate|grillade|brochette|steak|cotelette|escalope|poisson|\bfish\b|\bribs\b|\bbbq\b|viande/],
   ["petit_dej", /breakfast|petit dej|brunch|pancake|omelette|croissant|granola|porridge|avocado/],
   ["entree", /entree|starter|voorgerecht|appetizer|mezze|hapjes|samoussa|samosa|spring roll|\bnems?\b|accras|falafel|houmous|hummus|onion rings|tapas|apero/],
   ["boulangerie", /viennoiser|\bpains?\b|boulang|broodjes?|bakkerij/],
+  // Tout en dernier : « burger frites » est un burger, des « fries » seules sont un accompagnement.
+  ["accompagnement", /\bfrites?\b|\bfries\b|\bfriets?\b|potatoes|onion rings/],
 ];
 
 // Des catégories de plateforme qui ne disent rien du plat : le nom de l'article décide seul.
 const EMPTY_CATEGORY = /meilleures ventes|produits tendance|prix reduit|plus populaires|populair|nouveau|best ?seller|\btop\b|a la une|favori/;
+
+/** La famille de PLAT que dit un texte (« kebab », « burger »…), sans tenir compte des catégories de boissons ou de formules. `null` = rien de reconnu. */
+export function foodFamily(text: string): Family | null {
+  const t = optionKey(text);
+  for (const [family, rx] of FOOD) if (rx.test(t)) return family;
+  return null;
+}
 
 /** La famille d'un article, d'après son nom puis sa catégorie. « autre » = nous n'avons pas su (il reste à ranger à la main). */
 export function classifyArticle(article: { name: string; category?: string | null }): Family {
@@ -72,7 +81,8 @@ export function classifyArticle(article: { name: string; category?: string | nul
   if (EMPTY_CATEGORY.test(cat)) cat = "";
   const name = optionKey(article.name);
   for (const [family, rx] of BY_CATEGORY) if (rx.test(cat)) return family;
-  if (/^menu /.test(name)) return "menu";
+  // « Menu burger », mais aussi « 12 Wings Menu » ou « Boneless Combo » : le mot dit que c'est une formule.
+  if (/^menu |\bmenus?$|\bcombo\b|\bformule\b/.test(name)) return "menu";
   if (DRINK_NAME.test(name)) return "boisson";
   for (const [family, rx] of FOOD) if (rx.test(name)) return family;
   for (const [family, rx] of FOOD) if (rx.test(cat)) return family;
