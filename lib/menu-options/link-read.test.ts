@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fetchMenuPage, htmlToText, isPlatformHost, normalizeLink } from "./link-read";
+import { fetchMenuPage, htmlToText, isPlatformHost, menuLinks, normalizeLink } from "./link-read";
 import { PdfReadError } from "./pdf-read";
 
 const html = (body: string, headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" }, status = 200) => new Response(body, { status, headers });
@@ -104,4 +104,84 @@ test("une page géante n'est pas lue en entier", async () => {
 test("un site qui ne répond pas", async () => {
   const deps = { resolvesPublic: async () => true, fetch: (async () => { throw new Error("ECONNRESET"); }) as unknown as typeof fetch };
   await refuses(fetchMenuPage("https://monsite.be", deps), /ne répond pas/, 502);
+});
+
+// ─── Un menu réparti sur plusieurs pages (Belchicken : un sommaire, une page par plat) ───────────────────────
+
+const NAV = "<nav><a href='/fr/menu/'>Menu</a> Notre histoire Restaurants Franchise Contact</nav><footer>Conditions d'utilisation Politique de confidentialité</footer>";
+const hubHtml = (links: string[]) => `<html><body>${NAV}<main>${links.map((l) => `<a href="${l}"><img alt="Plat ${l.split("/").filter(Boolean).pop()}" src="x.png"></a>`).join("")}</main></body></html>`;
+const productHtml = (name: string) => `<html><body>${NAV}<h1>${name}</h1><p>Description de ${name}.</p><p>Allergènes</p><p>Gluten, Lait</p></body></html>`;
+
+function site(pages: Record<string, string>) {
+  const urls: string[] = [];
+  return {
+    urls,
+    deps: {
+      resolvesPublic: async () => true,
+      fetch: (async (u: string) => {
+        urls.push(u);
+        const body = pages[u];
+        return body === undefined ? new Response("no", { status: 404 }) : html(body);
+      }) as unknown as typeof fetch,
+    },
+  };
+}
+
+test("htmlToText : le nom d'un plat qui n'est que dans le texte alternatif de sa photo est gardé", () => {
+  assert.match(htmlToText(`<a href="/x"><img alt="Burger de bœuf extrême" src="a.png"></a>`), /Burger de bœuf extrême/);
+});
+
+test("htmlToText : un fil d'Ariane (schema.org) n'est pas gardé, un menu oui", () => {
+  const t = htmlToText(`<body>x<script type="application/ld+json">{"@type":"BreadcrumbList","name":"fil"}</script><script type="application/ld+json">{"@type":"Menu","name":"Carte"}</script></body>`);
+  assert.ok(!t.includes("fil") && t.includes("Carte"));
+});
+
+test("menuLinks : les pages du même site et de la même langue, jamais les pages légales, les fichiers ni les autres sites", () => {
+  const base = new URL("https://belchicken.com/fr/menu/");
+  const html = [
+    "/fr/boeuf-extreme/", "https://belchicken.com/fr/pepites/", "https://www.belchicken.com/fr/frites/", "/fr/pepites/#haut",
+    "/fr/contact/", "/fr/politique-de-confidentialite-et-de-cookies/", "/fr/restaurants/", "/de/speisekarte/", "/fr/menu/",
+    "https://autre-site.be/fr/menu-x/", "http://order.belchicken.com", "/wp-content/x.jpg", "/fr/",
+  ].map((h) => `<a href="${h}">x</a>`).join("");
+  assert.deepEqual(menuLinks(html, base), ["https://belchicken.com/fr/boeuf-extreme/", "https://belchicken.com/fr/pepites/", "https://www.belchicken.com/fr/frites/"]);
+});
+
+test("un sommaire : les pages liées sont lues, sans répéter le menu de navigation ni le pied de page", async () => {
+  const names = ["boeuf-extreme", "pepites", "frites", "wraps", "desserts", "salades"];
+  const pages: Record<string, string> = { "https://belchicken.com/fr/menu/": hubHtml(names.map((n) => `/fr/${n}/`)) };
+  for (const n of names) pages[`https://belchicken.com/fr/${n}/`] = productHtml(`Produit ${n}`);
+  const s = site(pages);
+  const src = await fetchMenuPage("https://belchicken.com/fr/menu/", s.deps);
+  assert.equal(src.kind, "page");
+  const text = (src as { text: string }).text;
+  assert.equal(s.urls.length, 1 + names.length);
+  for (const n of names) assert.match(text, new RegExp(`Produit ${n}`));
+  assert.match(text, /Plat boeuf-extreme/); // le nom vu sur la photo du sommaire
+  assert.equal((text.match(/Notre histoire/g) ?? []).length, 1); // la navigation n'apparaît qu'une fois
+  assert.equal((text.match(/Allergènes/g) ?? []).length, names.length); // ce qui est propre à chaque page reste
+  assert.match(text, /## Page « boeuf extreme »/);
+});
+
+test("un sommaire : une page liée qui échoue ne fait pas échouer les autres", async () => {
+  const names = ["a1", "a2", "a3", "a4", "a5", "a6"];
+  const pages: Record<string, string> = { "https://monsite.be/menu/": hubHtml(names.map((n) => `/menu/${n}/`)) };
+  for (const n of names.slice(0, 4)) pages[`https://monsite.be/menu/${n}/`] = productHtml(`Plat ${n}`);
+  const src = await fetchMenuPage("https://monsite.be/menu/", site(pages).deps); // a5 et a6 : 404
+  assert.equal(src.kind, "page");
+  assert.match((src as { text: string }).text, /Plat a4/);
+});
+
+test("une page qui montre déjà son menu n'est pas explorée plus loin", async () => {
+  const long = `<html><body>${"<p>Burger maison pain brioché cheddar oignons 9,50 €</p>".repeat(150)}${Array.from({ length: 8 }, (_, i) => `<a href="/menu/p${i}/">x</a>`).join("")}</body></html>`;
+  const s = site({ "https://monsite.be/menu/": long });
+  await fetchMenuPage("https://monsite.be/menu/", s.deps);
+  assert.equal(s.urls.length, 1);
+});
+
+test("les pages liées passent par les mêmes gardes : une adresse interne n'est jamais lue", async () => {
+  const names = ["a1", "a2", "a3", "a4", "a5", "a6"];
+  const pages: Record<string, string> = { "https://monsite.be/menu/": hubHtml(names.map((n) => `/menu/${n}/`)) + `<a href="https://127.0.0.1/menu/x/">x</a>` };
+  const s = site(pages);
+  await assert.rejects(fetchMenuPage("https://monsite.be/menu/", s.deps), PdfReadError); // aucune page liée n'a de texte : refus clair
+  assert.ok(!s.urls.some((u) => u.includes("127.0.0.1")));
 });
