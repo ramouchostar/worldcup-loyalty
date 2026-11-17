@@ -66,7 +66,10 @@ const FOOD: Rule[] = [
 ];
 
 // Des catégories de plateforme qui ne disent rien du plat : le nom de l'article décide seul.
-const EMPTY_CATEGORY = /meilleures ventes|produits tendance|prix reduit|plus populaires|populair|nouveau|best ?seller|\btop\b|a la une|favori/;
+// Un nom qui dit lui-même « promotion » : la rubrique ne se discute pas.
+const PROMO_NAME = /achete|offert|1 \+ 1|gratuit|\bfree\b|2 pour 1|\bpromo/;
+
+const EMPTY_CATEGORY =/meilleures ventes|produits tendance|prix reduit|plus populaires|populair|nouveau|best ?seller|\btop\b|a la une|favori/;
 
 /** La famille de PLAT que dit un texte (« kebab », « burger »…), sans tenir compte des catégories de boissons ou de formules. `null` = rien de reconnu. */
 export function foodFamily(text: string): Family | null {
@@ -80,7 +83,13 @@ export function classifyArticle(article: { name: string; category?: string | nul
   let cat = optionKey(article.category ?? "");
   if (EMPTY_CATEGORY.test(cat)) cat = "";
   const name = optionKey(article.name);
-  for (const [family, rx] of BY_CATEGORY) if (rx.test(cat)) return family;
+  for (const [family, rx] of BY_CATEGORY) {
+    if (!rx.test(cat)) continue;
+    // Une rubrique « Promotions » ou « Deals » range de VRAIS plats (« Wings (4) ») : si le nom ne dit pas lui-même que c'est
+    // une promotion, c'est le nom qui décide. Sinon ces plats restaient « à part ».
+    if (family === "promo" && !PROMO_NAME.test(name)) continue;
+    return family;
+  }
   // « Menu burger », mais aussi « 12 Wings Menu » ou « Boneless Combo » : le mot dit que c'est une formule.
   if (/^menu |\bmenus?$|\bcombo\b|\bformule\b/.test(name)) return "menu";
   if (DRINK_NAME.test(name)) return "boisson";
