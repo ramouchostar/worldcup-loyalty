@@ -50,6 +50,16 @@ export async function POST(req: NextRequest) {
       origin = "lien";
     }
     const { lines, sections, tokens } = await readMenu(source);
+    if (lines.length === 0) {
+      // Rien de lu : on ne laisse pas croire que « tout va bien » (ADR 0065 : aucun échec silencieux).
+      console.info(`[menu-read] source=${origin} restaurant=${restaurantId} user=${guard.userId} lignes=0 jetons=${tokens.input}/${tokens.output}`);
+      throw new PdfReadError(
+        origin === "lien"
+          ? "Nous n'avons trouvé aucun plat à cette adresse. Colle le lien de la page qui montre ton menu, ou envoie ton PDF."
+          : "Nous n'avons trouvé aucun plat dans ce PDF. Vérifie que c'est bien ton menu, ou essaie avec un PDF où l'on peut sélectionner le texte.",
+        422,
+      );
+    }
     const result = matchLines(lines, items);
     const reviews = buildReviews(result.matches);
     const hints = buildHints(result.matches.map((m) => ({ articleId: m.articleId, category: m.line.category ?? null })), sections);
