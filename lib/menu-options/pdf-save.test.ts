@@ -84,3 +84,13 @@ test("saveReviews : une panne de lecture des plats remonte en 500 avec son déta
     assert.equal(out.detail, "boom");
   }
 });
+
+test("la trace garde d'où vient le menu (PDF ou lien) et ce que nous en avons repris (ADR 0100 §11)", async () => {
+  const db = new MemPdfDb(["a1"]);
+  const r = await saveReviews(db, "r1", [{ articleId: "a1", description: "Bon", descriptionSource: "pdf", allergens: null }], { linesRead: 5, source: "lien", categories: 4, sauceLists: 2, sideLists: 1 }, "u1");
+  assert.equal(r.ok, true);
+  assert.deepEqual([db.traces[0].source, db.traces[0].categories, db.traces[0].sauce_lists, db.traces[0].side_lists], ["lien", 4, 2, 1]);
+  const old = new MemPdfDb(["a1"]);
+  await saveReviews(old, "r1", [{ articleId: "a1", description: "Bon", descriptionSource: "pdf", allergens: null }], { linesRead: 5, source: "<script>" }, "u1");
+  assert.equal(old.traces[0].source, "pdf"); // une origine inconnue n'entre pas en base
+});

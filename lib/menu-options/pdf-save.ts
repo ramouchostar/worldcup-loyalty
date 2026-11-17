@@ -55,7 +55,11 @@ export function checkRows(raw: unknown): CheckedRows {
 export type PdfTraceRow = {
   restaurant_id: string; created_by: string; lines_read: number; matched: number; matched_near: number; unmatched: number; articles_without: number;
   desc_proposed: number; desc_kept: number; desc_edited: number; allergens_proposed: number; allergens_changed: number; allergens_confirmed: number; rows_written: number;
+  /** ADR 0100 §11 — d'où vient le menu et ce que nous en avons repris. Absents tant que la migration n'est pas appliquée. */
+  source: "pdf" | "lien"; categories: number; sauce_lists: number; side_lists: number;
 };
+/** La ligne d'avant : sans les colonnes de l'ADR 0100 §11. */
+const BASE_KEYS = ["source", "categories", "sauce_lists", "side_lists"] as const;
 
 export interface PdfDb {
   /** Parmi ces identifiants, ceux qui sont des plats de CET établissement. */
@@ -90,6 +94,7 @@ export async function saveReviews(db: PdfDb, restaurantId: string, rawRows: unkn
       restaurant_id: restaurantId, created_by: userId, lines_read: n("linesRead"), matched: n("matched"), matched_near: n("matchedNear"), unmatched: n("unmatched"),
       articles_without: n("articlesWithout"), desc_proposed: n("descProposed"), desc_kept: n("descKept"), desc_edited: n("descEdited"),
       allergens_proposed: n("allergensProposed"), allergens_changed: n("allergensChanged"), allergens_confirmed: n("allergensConfirmed"), rows_written: checked.rows.length,
+      source: t.source === "lien" ? "lien" : "pdf", categories: n("categories"), sauce_lists: n("sauceLists"), side_lists: n("sideLists"),
     });
   } catch (e) {
     console.error("[menu-pdf] trace non enregistrée :", e);
@@ -125,7 +130,13 @@ export function supabasePdfDb(): PdfDb {
       return true;
     },
     async writeTrace(row) {
-      const { error } = await admin.from("menu_pdf_imports").insert(row);
+      let { error } = await admin.from("menu_pdf_imports").insert(row);
+      if (error && isMissingColumn(error)) {
+        // La migration des colonnes « source » n'est pas appliquée : on garde la trace d'avant plutôt que de la perdre.
+        const base: Record<string, unknown> = { ...row };
+        for (const k of BASE_KEYS) delete base[k];
+        ({ error } = await admin.from("menu_pdf_imports").insert(base));
+      }
       if (error) {
         if (isMissingTable(error) || isMissingColumn(error)) return false;
         throw new Error(`menu_pdf_imports : ${error.message}`);
