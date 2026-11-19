@@ -97,3 +97,12 @@ test("une rubrique « Promotions » ou « Deals » qui range de vrais plats : le
   assert.equal(fam("Burger gratuit", "Promotions"), "promo");
   assert.equal(fam("Pizza offerte", "Deals"), "promo");
 });
+
+test("asReadableFamily : une famille de la liste, jamais un mot hors liste ni « promo »", async () => {
+  const { asReadableFamily } = await import("./families");
+  assert.equal(asReadableFamily("poulet_frit"), "poulet_frit");
+  assert.equal(asReadableFamily("promo"), null);
+  assert.equal(asReadableFamily("autre"), null);
+  assert.equal(asReadableFamily("<script>"), null);
+  assert.equal(asReadableFamily(7), null);
+});
