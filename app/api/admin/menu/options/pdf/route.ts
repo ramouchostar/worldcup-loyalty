@@ -5,6 +5,7 @@ import { buildReviews, matchLines } from "@/lib/menu-options/pdf";
 import { PdfReadError, readMenu, type MenuSource } from "@/lib/menu-options/pdf-read";
 import { fetchMenuPage } from "@/lib/menu-options/link-read";
 import { buildHints, countHints } from "@/lib/menu-options/menu-structure";
+import { classifyArticle } from "@/lib/menu-options/families";
 import { saveReviews, supabasePdfDb } from "@/lib/menu-options/pdf-save";
 
 // ADR 0100 §8 — importer le PDF du menu : reprendre les descriptions que le restaurateur a écrites et lui proposer les
@@ -62,10 +63,13 @@ export async function POST(req: NextRequest) {
     }
     const result = matchLines(lines, items);
     const reviews = buildReviews(result.matches);
-    const hints = buildHints(result.matches.map((m) => ({ articleId: m.articleId, category: m.line.category ?? null })), sections);
+    const hints = buildHints(result.matches.map((m) => ({ articleId: m.articleId, category: m.line.category ?? null, kind: m.line.kind ?? null })), sections);
     const menuCounts = countHints(hints);
+    // Trace (ADR 0065) : combien de plats Claude a su ranger, et combien notre dictionnaire ne savait pas (ceux que la lecture rattrape).
+    const kindsRead = Object.keys(hints.kindOf ?? {}).length;
+    const kindsRescued = result.matches.filter((m) => m.line.kind && classifyArticle({ name: items.find((i) => i.id === m.articleId)?.name ?? m.line.name, category: m.line.category }) === "autre").length;
     // La trace (ADR 0065) : ce que la lecture a rendu, sans aucun nom de plat ni texte du menu.
-    console.info(`[menu-read] source=${origin} restaurant=${restaurantId} user=${guard.userId} lignes=${lines.length} rapprochees=${result.matches.length} a_part=${result.unmatchedLines.length} rubriques=${menuCounts.categories} listes_sauces=${menuCounts.sauceLists} listes_accompagnements=${menuCounts.sideLists} jetons=${tokens.input}/${tokens.output}`);
+    console.info(`[menu-read] source=${origin} restaurant=${restaurantId} user=${guard.userId} lignes=${lines.length} rapprochees=${result.matches.length} a_part=${result.unmatchedLines.length} rubriques=${menuCounts.categories} listes_sauces=${menuCounts.sauceLists} listes_accompagnements=${menuCounts.sideLists} sortes_lues=${kindsRead} sortes_rattrapees=${kindsRescued} jetons=${tokens.input}/${tokens.output}`);
     return NextResponse.json({
       source: origin,
       linesRead: lines.length,

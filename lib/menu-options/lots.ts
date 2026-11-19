@@ -134,6 +134,9 @@ export function buildEditor(articles: ArticleRef[], hints?: MenuHints): EditorSt
     const printed = hints?.categoryOf[a.id];
     let family = classifyArticle({ name: a.name, category: printed ?? a.category });
     if (printed && family === "autre") family = classifyArticle(a);
+    // Notre dictionnaire ne sait pas : on prend la sorte lue par Claude dans le menu (nom + description + rubrique).
+    // Le dictionnaire garde la main sur tout ce qu'il reconnaît, et une vraie promotion reste à part.
+    if (family === "autre") family = hints?.kindOf?.[a.id] ?? family;
     families[a.id] = family;
     if (family === "menu") {
       const kind = menuKind({ name: a.name, category: printed ?? a.category });

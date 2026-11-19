@@ -30,6 +30,8 @@ export type MenuHints = {
   categoryOf: Record<string, string>;
   /** Sauces et accompagnements, par plat du catalogue (absent = le menu n'en dit rien). */
   extrasOf: Record<string, ArticleExtras>;
+  /** La sorte de plat que Claude a lue (nom + description + rubrique). Sert seulement quand notre dictionnaire ne sait pas. */
+  kindOf?: Record<string, Family>;
 };
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -76,7 +78,7 @@ export function cleanSections(raw: unknown): MenuSection[] {
  * Rattache à chaque plat rapproché sa catégorie et ses extras. La rubrique d'un plat prime ; à défaut, la phrase qui vaut
  * pour tout le menu. Une catégorie que le menu écrit de deux façons (« Burgers » / « BURGERS ») est une seule.
  */
-export function buildHints(matches: { articleId: string; category: string | null }[], sections: MenuSection[]): MenuHints {
+export function buildHints(matches: { articleId: string; category: string | null; kind?: Family | null }[], sections: MenuSection[]): MenuHints {
   const byCategory = new Map<string, MenuSection>();
   let whole: MenuSection | null = null;
   for (const s of sections) {
@@ -91,6 +93,7 @@ export function buildHints(matches: { articleId: string; category: string | null
   for (const m of matches) {
     const cat = cleanCategory(m.category);
     if (cat) hints.categoryOf[m.articleId] = cat;
+    if (m.kind) (hints.kindOf ??= {})[m.articleId] = m.kind;
     const own = cat ? byCategory.get(optionKey(cat)) : undefined;
     const sauces = own && own.sauces.length > 0 ? own.sauces : whole?.sauces ?? [];
     const oneOf = own && own.oneOf.length > 0 ? own.oneOf : whole?.oneOf ?? [];

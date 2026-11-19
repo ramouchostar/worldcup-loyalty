@@ -8,6 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { nullable, readJson } from "@/lib/audit/claude-json";
 import { ALLERGEN_KEYS, isAllergenKey, type AllergenKey, type PdfLine } from "./pdf";
 import { cleanCategory, cleanSections, type MenuSection } from "./menu-structure";
+import { asReadableFamily, READABLE_FAMILIES } from "./families";
 
 export const PDF_MODEL = "claude-sonnet-5-5";
 /** La limite d'un corps de requête sur Vercel est de 4,5 Mo : on s'arrête avant, et on le dit. */
@@ -41,10 +42,11 @@ const SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["name", "category", "description", "allergens"],
+        required: ["name", "category", "kind", "description", "allergens"],
         properties: {
           name: { type: "string" },
           category: nullable({ type: "string" }),
+          kind: nullable({ type: "string", enum: [...READABLE_FAMILIES] }),
           description: nullable({ type: "string" }),
           allergens: nullable({ type: "array", items: { type: "string", enum: [...ALLERGEN_KEYS] } }),
         },
@@ -71,6 +73,7 @@ const PROMPT = `Tu lis le menu d'un restaurant. Tu rends deux listes.
 1. lines : pour CHAQUE plat ou boisson imprimé, recopie :
 - name : le nom du plat tel qu'il est imprimé (sans le prix, sans la taille).
 - category : la rubrique sous laquelle le menu classe ce plat (« Burgers », « Menus kebab », « Boissons »…), telle qu'elle est imprimée. null si le menu n'a pas de rubriques.
+- kind : la sorte de plat, UNE valeur de la liste : ${READABLE_FAMILIES.join(", ")}. Tu la choisis d'après le nom, la description et la rubrique imprimés (« Wings (8) » = poulet_frit ; une formule « Menu … » ou « Combo … » = menu ; un plat dont le nom ne dit rien mais dont la description cite des tenders et des frites = poulet_frit ; une boisson = boisson). null si rien de ce qui est imprimé ne permet de trancher : ne devine pas.
 - description : le texte descriptif imprimé sous ou à côté du nom, recopié tel quel. null s'il n'y en a pas. N'écris JAMAIS une description toi-même, ne complète pas, ne reformule pas.
 - allergens : UNIQUEMENT les allergènes que le menu imprime pour ce plat (mots, pictogrammes nommés, ou numéros expliqués par une légende du menu). null si le menu n'imprime rien pour ce plat. Ne déduis JAMAIS un allergène d'après le nom ou les ingrédients : un menu qui ne le dit pas ne le dit pas. Ne rends jamais une liste vide.
 Clés d'allergènes autorisées : ${ALLERGEN_KEYS.join(", ")}.
@@ -117,7 +120,7 @@ export async function readMenu(source: MenuSource): Promise<MenuRead> {
     throw new PdfReadError("Nous n'avons pas pu lire ce menu pour le moment. Réessaie dans un instant.", 502);
   }
 
-  let raw: { lines?: { name?: unknown; category?: unknown; description?: unknown; allergens?: unknown }[]; sections?: unknown };
+  let raw: { lines?: { name?: unknown; category?: unknown; kind?: unknown; description?: unknown; allergens?: unknown }[]; sections?: unknown };
   try {
     raw = readJson(message);
   } catch (e) {
@@ -137,6 +140,7 @@ export async function readMenu(source: MenuSource): Promise<MenuRead> {
     lines.push({
       name: l.name.trim().slice(0, 120),
       category: cleanCategory(l.category),
+      kind: asReadableFamily(l.kind),
       description: typeof l.description === "string" && l.description.trim() !== "" ? l.description : null,
       allergens: alg.length > 0 ? (alg as AllergenKey[]) : null,
     });
