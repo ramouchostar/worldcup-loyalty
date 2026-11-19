@@ -137,7 +137,8 @@ export async function createOwnerInviteAndNotify(params: {
       params.restaurantName,
       params.restaurantId,
       result.invite.url,
-      result.invite.expiresAt
+      result.invite.expiresAt,
+      params.role
     );
   }
 

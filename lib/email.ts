@@ -23,6 +23,7 @@ import { rewardReadyEmail } from "./email-templates/reward-ready";
 import { tierUnlockedEmail } from "./email-templates/tier-unlocked";
 import { referralSuccessEmail } from "./email-templates/referral-success";
 import { ownerInviteEmail } from "./email-templates/owner-invite";
+import type { AdminRole } from "./restaurant-admin-roles";
 import { providerInviteEmail } from "./email-templates/provider-invite";
 import { providerBriefReceivedEmail } from "./email-templates/provider-brief-received";
 import { providerQuoteReceivedEmail } from "./email-templates/provider-quote-received";
@@ -330,10 +331,11 @@ export async function sendOwnerInviteEmail(
   restaurantName: string,
   restaurantId: string,
   inviteUrl: string,
-  expiresAt: string
+  expiresAt: string,
+  role?: AdminRole | null
 ): Promise<boolean> {
   const logoUrl = await getRestaurantLogoUrl(restaurantId);
-  const sent = await dispatch(to, ownerInviteEmail(restaurantName, inviteUrl, expiresAt, logoUrl), { key: "owner_invite", audience: "restaurant", restaurantId });
+  const sent = await dispatch(to, ownerInviteEmail(restaurantName, inviteUrl, expiresAt, logoUrl, role, to), { key: "owner_invite", audience: "restaurant", restaurantId });
   if (sent) await logEmailSent("restaurant", restaurantId, "owner_invite", restaurantId);
   return sent;
 }

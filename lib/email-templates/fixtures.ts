@@ -245,7 +245,7 @@ export function previewEntries(opts: { logoUrl: string | null; image: (name: str
     { id: "t-onboarding-6", kind: "transactionnel", audience: "restaurateur", sequence: "Inscription inachevée", variant: "6e et dernière relance, ticket manquant", email: onboardingReminderEmail({ establishments: [{ name: theme.restaurantName, sector: null, hasMenu: true, hasTicket: false }], step: 6, last: true, logoUrl: opts.logoUrl }) },
     { id: "t-pending", kind: "transactionnel", audience: "restaurateur", sequence: "Demandes en attente", email: pendingRequestsReminderEmail(theme.restaurantName, RID, 17, 52, opts.logoUrl) },
     { id: "t-catalog", kind: "transactionnel", audience: "restaurateur", sequence: "Catalogue incomplet", email: catalogGapsReminderEmail(theme.restaurantName, RID, 4, opts.logoUrl) },
-    { id: "t-invite", kind: "transactionnel", audience: "restaurateur", sequence: "Invitation restaurateur", email: ownerInviteEmail(theme.restaurantName, link("/invite/exemple"), "2026-10-02T12:00:00Z", opts.logoUrl) },
+    { id: "t-invite", kind: "transactionnel", audience: "restaurateur", sequence: "Invitation restaurateur", email: ownerInviteEmail(theme.restaurantName, link("/invite/exemple"), "2026-10-02T12:00:00Z", opts.logoUrl, "manager", "prenom@exemple.be") },
   ];
 }
 
