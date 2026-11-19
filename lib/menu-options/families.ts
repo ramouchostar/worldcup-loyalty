@@ -85,6 +85,21 @@ export const READABLE_FAMILIES: readonly Family[] = [
 export const asReadableFamily = (v: unknown): Family | null =>
   typeof v === "string" && (READABLE_FAMILIES as readonly string[]).includes(v) ? (v as Family) : null;
 
+/** Un nom qui dit lui-même « formule » : « Menu burger », « 12 Wings Menu », « Boneless Combo ». */
+const FORMULA_NAME = /^menu |\bmenus?$|\bcombo\b|\bformule\b/;
+
+/**
+ * La famille finale d'un plat : la sorte lue par Claude (nom + description + rubrique du menu) PRIME sur le dictionnaire
+ * (mesuré sur 51 menus, ADR 0100 §11 : sur 40 désaccords relus, Claude avait raison 28 fois, le dictionnaire aucune).
+ * Le dictionnaire garde la main sur deux choses que Claude ne voit pas aussi bien : une vraie promotion (« Burger gratuit »)
+ * et un nom qui dit lui-même « menu » ou « combo ». Sans sorte lue, c'est le dictionnaire seul.
+ */
+export function chooseFamily(dictionary: Family, kind: Family | null | undefined, name: string): Family {
+  if (!kind || dictionary === "promo") return dictionary;
+  if (FORMULA_NAME.test(optionKey(name))) return dictionary;
+  return kind;
+}
+
 /** La famille de PLAT que dit un texte (« kebab », « burger »…), sans tenir compte des catégories de boissons ou de formules. `null` = rien de reconnu. */
 export function foodFamily(text: string): Family | null {
   const t = optionKey(text);
@@ -105,7 +120,7 @@ export function classifyArticle(article: { name: string; category?: string | nul
     return family;
   }
   // « Menu burger », mais aussi « 12 Wings Menu » ou « Boneless Combo » : le mot dit que c'est une formule.
-  if (/^menu |\bmenus?$|\bcombo\b|\bformule\b/.test(name)) return "menu";
+  if (FORMULA_NAME.test(name)) return "menu";
   if (DRINK_NAME.test(name)) return "boisson";
   for (const [family, rx] of FOOD) if (rx.test(name)) return family;
   for (const [family, rx] of FOOD) if (rx.test(cat)) return family;
