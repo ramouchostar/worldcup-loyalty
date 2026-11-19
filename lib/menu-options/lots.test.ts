@@ -536,7 +536,7 @@ test("les choix repris du menu du restaurateur sont marqués « menu », pas « 
 
 // ─── La sorte de plat lue par Claude (ADR 0100 §11) ─────────────────────────
 
-test("sans sorte lue par Claude, un plat muet reste à ranger à la main ; la rubrique « Kids » garde sa formule", () => {
+test("sans sorte lue par Claude, un plat muet reste à ranger à la main ; avec elle, il est rangé", () => {
   const box = art("Belkids Box", "Kids");
   const choice = art("Chef's Choice", "Chef");
   const hints = buildHints(
@@ -544,21 +544,26 @@ test("sans sorte lue par Claude, un plat muet reste à ranger à la main ; la ru
     [],
   );
   const s = buildEditor([box, choice], hints);
-  assert.equal(s.families[box.id], "menu" /* la rubrique « Kids » dit une formule : le dictionnaire garde la main */);
+  assert.equal(s.families[box.id], "poulet_frit", "Claude a lu la description : il prime sur la rubrique « Kids »");
   assert.deepEqual(s.unplaced, [choice.id], "sans sorte lue, il reste à ranger à la main");
 });
 
-test("la sorte lue ne sert que quand le dictionnaire dit « autre » : jamais contre ce qu'il reconnaît", () => {
-  const odd = art("Le Roi", "Maison");
-  const burger = art("Cheese Burger", "Maison");
+test("la sorte lue par Claude PRIME sur le dictionnaire (« Poulet Finest XL » dans la rubrique « Burgers » est un burger)", () => {
+  const finest = art("Poulet Finest XL", "Burgers");
+  const bacon = art("Le Bacon", "Burger of the month");
   const hints = buildHints(
-    [{ articleId: odd.id, category: "Maison", kind: "poulet_frit" }, { articleId: burger.id, category: "Maison", kind: "pizza" }],
+    [{ articleId: finest.id, category: "Burgers", kind: "burger" }, { articleId: bacon.id, category: "Burger of the month", kind: "burger" }],
     [],
   );
-  const s = buildEditor([odd, burger], hints);
-  assert.equal(s.families[odd.id], "poulet_frit");
-  assert.equal(s.families[burger.id], "burger", "le nom dit burger : Claude ne le contredit pas");
-  assert.deepEqual(s.unplaced, []);
+  const s = buildEditor([finest, bacon], hints);
+  assert.equal(s.families[finest.id], "burger");
+  assert.equal(s.families[bacon.id], "burger");
+});
+
+test("un nom qui dit « menu » ou « combo » garde la formule du dictionnaire, même si Claude lui donne une autre sorte", () => {
+  const combo = art("Boneless Combo", "Poulet");
+  const hints = buildHints([{ articleId: combo.id, category: "Poulet", kind: "poulet_frit" }], []);
+  assert.equal(buildEditor([combo], hints).families[combo.id], "menu");
 });
 
 test("une vraie promotion reste à part même si Claude lui donne une sorte", () => {

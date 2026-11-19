@@ -6,7 +6,7 @@
 import { DEFAULT_TONE, describeArticle, MAX_DESCRIPTION, type Described, type Tone, type Viande } from "./descriptions";
 import { validateTree, type TreeIssue } from "./model";
 import { optionKey } from "./normalize";
-import { AFFINITY, LOT_OF, SUGGESTED_WITH, classifyArticle, familyStrength, joinLabels, type Family, type Strength } from "./families";
+import { AFFINITY, LOT_OF, SUGGESTED_WITH, chooseFamily, classifyArticle, familyStrength, joinLabels, type Family, type Strength } from "./families";
 import { packFor, type PackGroup } from "./packs";
 import { applyExtras, extrasSignature, menuKind, type MenuHints } from "./menu-structure";
 import type { GroupKind, OptionChoice, OptionGroup } from "./types";
@@ -134,9 +134,8 @@ export function buildEditor(articles: ArticleRef[], hints?: MenuHints): EditorSt
     const printed = hints?.categoryOf[a.id];
     let family = classifyArticle({ name: a.name, category: printed ?? a.category });
     if (printed && family === "autre") family = classifyArticle(a);
-    // Notre dictionnaire ne sait pas : on prend la sorte lue par Claude dans le menu (nom + description + rubrique).
-    // Le dictionnaire garde la main sur tout ce qu'il reconnaît, et une vraie promotion reste à part.
-    if (family === "autre") family = hints?.kindOf?.[a.id] ?? family;
+    // La sorte lue par Claude dans le menu (nom + description + rubrique) prime, sauf pour une vraie promotion et un nom « menu ».
+    family = chooseFamily(family, hints?.kindOf?.[a.id], a.name);
     families[a.id] = family;
     if (family === "menu") {
       const kind = menuKind({ name: a.name, category: printed ?? a.category });
