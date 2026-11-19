@@ -106,3 +106,11 @@ test("asReadableFamily : une famille de la liste, jamais un mot hors liste ni «
   assert.equal(asReadableFamily("<script>"), null);
   assert.equal(asReadableFamily(7), null);
 });
+
+test("une rubrique « Burger of the month » n'est pas une boisson (le mot anglais « the » n'est pas le thé)", () => {
+  assert.equal(classifyArticle({ name: "Le Bacon", category: "Burger of the month" }), "burger");
+  assert.equal(classifyArticle({ name: "Cheese Burger", category: "Burger of the month" }), "burger");
+  assert.equal(classifyArticle({ name: "Earl Grey", category: "Thés" }), "boisson");
+  assert.equal(classifyArticle({ name: "Menthe", category: "Thé glacé" }), "boisson");
+  assert.equal(classifyArticle({ name: "Green", category: "Tea" }), "boisson");
+});
