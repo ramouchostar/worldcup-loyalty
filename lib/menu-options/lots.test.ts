@@ -533,3 +533,40 @@ test("les choix repris du menu du restaurateur sont marqués « menu », pas « 
   assert.equal(t.added, 0);
   assert.equal(t.kept, t.proposed - 1);
 });
+
+// ─── La sorte de plat lue par Claude (ADR 0100 §11) ─────────────────────────
+
+test("sans sorte lue par Claude, un plat muet reste à ranger à la main ; la rubrique « Kids » garde sa formule", () => {
+  const box = art("Belkids Box", "Kids");
+  const choice = art("Chef's Choice", "Chef");
+  const hints = buildHints(
+    [{ articleId: box.id, category: "Kids", kind: "poulet_frit" }, { articleId: choice.id, category: "Chef", kind: null }],
+    [],
+  );
+  const s = buildEditor([box, choice], hints);
+  assert.equal(s.families[box.id], "menu" /* la rubrique « Kids » dit une formule : le dictionnaire garde la main */);
+  assert.deepEqual(s.unplaced, [choice.id], "sans sorte lue, il reste à ranger à la main");
+});
+
+test("la sorte lue ne sert que quand le dictionnaire dit « autre » : jamais contre ce qu'il reconnaît", () => {
+  const odd = art("Le Roi", "Maison");
+  const burger = art("Cheese Burger", "Maison");
+  const hints = buildHints(
+    [{ articleId: odd.id, category: "Maison", kind: "poulet_frit" }, { articleId: burger.id, category: "Maison", kind: "pizza" }],
+    [],
+  );
+  const s = buildEditor([odd, burger], hints);
+  assert.equal(s.families[odd.id], "poulet_frit");
+  assert.equal(s.families[burger.id], "burger", "le nom dit burger : Claude ne le contredit pas");
+  assert.deepEqual(s.unplaced, []);
+});
+
+test("une vraie promotion reste à part même si Claude lui donne une sorte", () => {
+  const free = art("Burger gratuit", "Promotions");
+  const hints = buildHints([{ articleId: free.id, category: "Promotions", kind: "burger" }], []);
+  assert.equal(buildEditor([free], hints).families[free.id], "promo");
+});
+
+test("buildHints : sans sorte lue, pas de clé kindOf", () => {
+  assert.equal("kindOf" in buildHints([{ articleId: "a", category: "Burgers" }], []), false);
+});

@@ -10,6 +10,7 @@
 
 import { MAX_DESCRIPTION } from "./descriptions";
 import type { MenuCounts, MenuHints } from "./menu-structure";
+import type { Family } from "./families";
 
 export const ALLERGENS = [
   ["gluten", "Gluten"], ["crustaces", "Crustacés"], ["oeufs", "Œufs"], ["poisson", "Poisson"], ["arachides", "Arachides"],
@@ -30,6 +31,8 @@ export type PdfLine = {
   allergens: AllergenKey[] | null;
   /** La rubrique sous laquelle le menu imprime ce plat (« Burgers », « Menus kebab »). Absent = non lue. */
   category?: string | null;
+  /** La sorte de plat selon Claude, d'après le nom, la description et la rubrique (ADR 0100 §11). null = il ne sait pas. */
+  kind?: Family | null;
 };
 
 export type CatalogItem = { id: string; name: string };

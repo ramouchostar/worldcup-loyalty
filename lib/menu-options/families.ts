@@ -71,6 +71,20 @@ const PROMO_NAME = /achete|offert|1 \+ 1|gratuit|\bfree\b|2 pour 1|\bpromo/;
 
 const EMPTY_CATEGORY =/meilleures ventes|produits tendance|prix reduit|plus populaires|populair|nouveau|best ?seller|\btop\b|a la une|favori/;
 
+/**
+ * Les familles que Claude peut donner à un plat quand il lit le menu (ADR 0100 §11) : toutes, sauf « promo » (une promotion
+ * n'est pas une sorte de plat) et « autre » (c'est son « je ne sais pas » : il rend null).
+ */
+export const READABLE_FAMILIES: readonly Family[] = [
+  "mitraillette", "pain_turc", "durum", "kapsalon", "panini", "sandwich", "tacos", "burger", "wrap", "pizza", "pates", "sushi",
+  "poke", "wok", "curry", "salade", "soupe", "poulet_frit", "assiette", "snack_friture", "entree", "petit_dej", "boulangerie",
+  "boisson", "dessert", "sauce", "accompagnement", "menu",
+];
+
+/** Une famille rendue par Claude, ou null si ce n'est pas l'une de la liste : on ne croit jamais un mot hors liste. */
+export const asReadableFamily = (v: unknown): Family | null =>
+  typeof v === "string" && (READABLE_FAMILIES as readonly string[]).includes(v) ? (v as Family) : null;
+
 /** La famille de PLAT que dit un texte (« kebab », « burger »…), sans tenir compte des catégories de boissons ou de formules. `null` = rien de reconnu. */
 export function foodFamily(text: string): Family | null {
   const t = optionKey(text);
