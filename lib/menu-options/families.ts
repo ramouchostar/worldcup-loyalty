@@ -27,7 +27,7 @@ type Rule = [Family, RegExp];
 const BY_CATEGORY: Rule[] = [
   ["promo", /achete|offert|1 \+ 1|promo|deal|bon plan|gratuit/],
   ["menu", /\bmenus?\b|formule|combo|\bbox\b|\bmeal|\bduo\b|\btrio\b|\bpack\b|\bkids?\b|enfant/],
-  ["boisson", /boisson|drink|\bsoft|\bbiere|\bbeer|\bvins?\b|wine|cocktail|\bjus\b|\bcafe|coffee|\bthe\b|\btea\b|smoothie|dranken|limonade|\bsodas?\b|milkshake|alcool|frisdrank|bieren|\bshakes?\b|ijsthee/],
+  ["boisson", /boisson|drink|\bsoft|\bbiere|\bbeer|\bvins?\b|wine|cocktail|\bjus\b|\bcafe|coffee|^thes?\b|\bthes? (vert|noir|glace|chaud|menthe)|\btea\b|smoothie|dranken|limonade|\bsodas?\b|milkshake|alcool|frisdrank|bieren|\bshakes?\b|ijsthee/],
   ["dessert", /dessert|nagerecht|sucre|sweet|glace|ice cream|patisserie|gaufre|crepe|tiramisu|brownie|cookie|cheesecake|mousse|beignet|donut|muffin|baklava|confiserie|snoep|\bijs\b|taart/],
   ["sauce", /\bsauces?\b|\bdips?\b|sauzen|\bsaus\b/],
   ["accompagnement", /accompagnement|\bsides?\b|\bfrites?\b|\bfries\b|\bfriet|\bextras?\b|supplement|garniture|bijgerecht|\bchips\b|legume/],
