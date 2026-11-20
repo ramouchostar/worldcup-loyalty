@@ -15,10 +15,10 @@ Achat passé via Uber Eats, Takeaway ou Deliveroo. Ne compte PAS dans le program
 _Avoid_ : livraison (trop générique — on peut livrer directement).
 
 **Commande du site** *(ADR 0099)* :
-Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). C'est le module de Nina : forfait Pro, en pilote, jamais présenté comme disponible pour tous (ADR 0099 §8). Sort sur l'imprimante du restaurant (à venir ; en attendant, le restaurateur la lit dans la console « Commandes du site », ADR 0099 §7). États : reçue, prête, retirée, annulée. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; **crédite des points au passage à « retirée »**, sans photo de ticket (ADR 0108 §5, proposé), et exige un **compte** pour être envoyée (ADR 0108 §2).
+Commande passée par un client sur le site de commande d'un établissement (retrait au comptoir, paiement au comptoir dans la première version). C'est le module de Nina : forfait Pro, en pilote, jamais présenté comme disponible pour tous (ADR 0099 §8). Sort sur l'imprimante du restaurant (à venir ; en attendant, le restaurateur la lit dans la console « Commandes du site », ADR 0099 §7). États : reçue, prête, retirée, annulée. **Ne s'écrit jamais dans `orders`** (les tickets du programme) ; **crédite des points au passage à « retirée »**, sans photo de ticket (ADR 0108 §5), et exige un **compte** pour être envoyée (ADR 0108 §2).
 _Avoid_ : commande (seule — réservé à la commande directe d'un membre), ticket (c'est la photo de la caisse), order.
 
-**Espace de commande** *(ADR 0108, proposé)* :
+**Espace de commande** *(ADR 0108)* :
 La page `/commander/<établissement>` d'un restaurant, pour l'app et pour le navigateur : identité du restaurant, carte, panier. **Un compte Boosteats est demandé pour envoyer** (e-mail ou Google), jamais pour regarder. Remplace l'idée de site vitrine (ADR 0088). Une commande retirée crédite des points au membre ; **Nina** s'occupe de tout : création, personnalisation, alertes, rapports (elle propose, le gérant valide). La fiche Google sert en coulisse (identité, horaires) : aucun lien visible n'est décidé.
 _Avoid_ : site vitrine, site internet (réservés à l'ancien ADR 0088), commande anonyme.
 
