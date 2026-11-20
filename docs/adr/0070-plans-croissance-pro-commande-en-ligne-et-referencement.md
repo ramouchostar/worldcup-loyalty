@@ -1,5 +1,7 @@
 # ADR 0070 — Plans Croissance et Pro : commande en ligne à la marque du resto et référencement Google
 
+> **Amendement proposé par l'[ADR 0108](0108-l-espace-de-commande-du-restaurant-un-compte-des-points-nina.md) (2026-11-20)** : le site vitrine est abandonné ; la commande se fait dans un espace de commande par restaurant, avec un compte, relié à la fidélité et piloté par Nina.
+
 > **Amendement proposé par l'[ADR 0074](0074-boosteats-outil-marketing-pas-outil-d-exploitation.md) (2026-09-29)** : le site de commande et la commission sortent de la feuille de route, contenu et prix des plans à reconstruire — en attente de validation par l'associé.
 
 > **Amendement proposé par l'[ADR 0088](0088-site-referencement-pro.md) (2026-11-03)** : le site du Pro vit sur un sous-domaine Boosteats (plus le domaine du resto), sans commande ni paiement ; le référencement = site optimisé pour Google + fiche gérée + rapport mensuel.
