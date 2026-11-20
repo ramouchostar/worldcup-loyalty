@@ -154,3 +154,23 @@ SELECT
 FROM menu_pdf_imports
 GROUP BY 1
 ORDER BY 2 DESC;
+
+-- 14. Secours WhatsApp de la commande du site (ADR 0107 §10) : combien de fois la page l'a-t-elle proposé, et combien de clients
+-- ont TOUCHÉ le bouton ? Table site_order_refusals (motifs `secours_propose`, `whatsapp_touche`, `message_copie`) : des compteurs,
+-- aucune donnée du client. On ne voit PAS si le client a ensuite appuyé sur « Envoyer » dans WhatsApp.
+-- Seuils : moins de la moitié des clients qui touchent le bouton après une proposition = le message est mal placé ou mal compris ;
+-- plus d'une commande sur dix refusée pour « indisponible » ou « imprimante_hors_ligne » = le matériel ou le réseau est trop fragile
+-- pour ouvrir à d'autres établissements.
+SELECT
+  restaurant_id,
+  COUNT(*) FILTER (WHERE reason = 'secours_propose')                          AS propositions,
+  COUNT(*) FILTER (WHERE reason = 'whatsapp_touche')                          AS boutons_touches,
+  COUNT(*) FILTER (WHERE reason = 'message_copie')                            AS messages_copies,
+  ROUND(100.0 * COUNT(*) FILTER (WHERE reason = 'whatsapp_touche')
+        / NULLIF(COUNT(*) FILTER (WHERE reason = 'secours_propose'), 0))      AS pct_boutons_touches,
+  COUNT(*) FILTER (WHERE reason IN ('indisponible', 'imprimante_hors_ligne')) AS commandes_refusees_panne,
+  MIN(created_at)::date                                                       AS depuis
+FROM site_order_refusals
+WHERE reason IN ('secours_propose', 'whatsapp_touche', 'message_copie', 'indisponible', 'imprimante_hors_ligne')
+GROUP BY 1
+ORDER BY propositions DESC;
