@@ -7,6 +7,7 @@ import { loadOptionTrees } from "../menu-options/store";
 import { logoPublicUrl } from "../restaurant";
 import { buildPublicMenu, type MenuRow, type PublicMenu } from "./menu";
 import { purgeDays } from "./purge";
+import { readWhatsApp } from "./settings";
 
 const isMissingColumn = (error: { code?: string; message?: string } | null) =>
   !!error && (error.code === "PGRST204" || error.code === "42703" || /column .*(does not exist|schema cache)|Could not find the '.*' column/i.test(error.message ?? ""));
@@ -31,12 +32,13 @@ export async function readPublicMenu(restaurantId: string): Promise<PublicMenu |
     rows = (data ?? []) as unknown as MenuRow[];
     break;
   }
-  const trees = await loadOptionTrees(restaurantId, (rows ?? []).map((x) => x.id));
+  const [trees, whatsapp] = await Promise.all([loadOptionTrees(restaurantId, (rows ?? []).map((x) => x.id)), readWhatsApp(restaurantId)]);
   return buildPublicMenu({
     restaurant: { id: resto.id, name: resto.name, logoUrl: logoPublicUrl(resto.logo_url) },
     rows: rows ?? [],
     trees,
     imageUrl: menuImageUrl,
     retentionDays: purgeDays().days,
+    whatsapp,
   });
 }

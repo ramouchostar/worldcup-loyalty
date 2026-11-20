@@ -35,6 +35,8 @@ export type PublicMenu = {
   restaurant: { id: string; name: string; logoUrl: string | null };
   /** Combien de jours le prénom et le téléphone sont gardés (lib/site-orders/purge.ts) : dit au client, jamais inventé. */
   retentionDays: number;
+  /** Le numéro WhatsApp de commande choisi par le restaurateur (chiffres seuls, indicatif compris), pour le secours du client quand l'envoi échoue (ADR 0107 §10). `null` = pas de secours WhatsApp. Montré aux clients : le restaurateur le sait. */
+  whatsapp: string | null;
   categories: { name: string; items: PublicItem[] }[];
   /** Plats actifs que nous n'avons PAS montrés (prix absent, options impossibles) : la trace dit combien. */
   hidden: number;
@@ -46,6 +48,7 @@ export type MenuInput = {
   trees: Map<string, OptionGroup[]>;
   imageUrl: (path: string | null) => string | null;
   retentionDays: number;
+  whatsapp?: string | null;
 };
 
 const OTHER = "Autres plats";
@@ -72,5 +75,5 @@ export function buildPublicMenu(input: MenuInput): PublicMenu {
     const cat = (r.category ?? "").trim() || OTHER;
     byCat.set(cat, [...(byCat.get(cat) ?? []), item]);
   }
-  return { restaurant: input.restaurant, retentionDays: input.retentionDays, categories: [...byCat.entries()].map(([name, items]) => ({ name, items })), hidden };
+  return { restaurant: input.restaurant, retentionDays: input.retentionDays, whatsapp: input.whatsapp ?? null, categories: [...byCat.entries()].map(([name, items]) => ({ name, items })), hidden };
 }

@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { readJsonSafe } from "@/lib/fetch-json";
 import { addToCart, cartCount, cartTotal, euro, removeLine, setLineQty, toOrderLines, type Cart } from "@/lib/site-orders/cart";
 import type { PublicItem, PublicMenu } from "@/lib/site-orders/menu";
 import { cleanPhone } from "@/lib/site-orders/order";
+import { shouldOfferRescue, type RescueEvent } from "@/lib/site-orders/rescue";
+import { buildWhatsAppText, whatsAppChatLink, whatsAppLink } from "@/lib/site-orders/whatsapp";
 import type { Selection } from "@/lib/menu-options/types";
 import { DishSheet } from "./DishSheet";
 
@@ -12,6 +14,9 @@ import { DishSheet } from "./DishSheet";
 // plats et ses options, donne son prénom et son téléphone, envoie, et PAIE AU COMPTOIR en retirant. Aucun paiement ici.
 // Honnêteté : « envoyée » veut dire que le serveur l'a enregistrée, pas que quelqu'un l'a lue (pas d'imprimante pour
 // l'instant) : le texte de confirmation le dit.
+//
+// ADR 0107 §10 — le secours : quand le serveur ne peut pas prendre la commande (panne, pas de réseau), le panier RESTE et le
+// client l'envoie lui-même au restaurateur par WhatsApp. Rien n'est enregistré chez nous dans ce cas (aucun doublon possible).
 
 type Phase = "loading" | "closed" | "error" | "ready" | "sent";
 type Sent = { number: string; totalCents: number; phone: string };
@@ -32,6 +37,16 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<Sent | null>(null);
+  const [rescue, setRescue] = useState(false);
+  const [copied, setCopied] = useState<"idle" | "ok" | "fail">("idle");
+
+  // La trace du secours (compteurs seuls, aucune donnée du client) : jamais bloquante, jamais une erreur pour le client.
+  const track = useCallback((event: RescueEvent) => {
+    void fetch("/api/site-orders/rescue", {
+      method: "POST", headers: { "content-type": "application/json" }, keepalive: true,
+      body: JSON.stringify({ restaurantId, event }),
+    }).catch(() => undefined);
+  }, [restaurantId]);
 
   useEffect(() => {
     let live = true;
@@ -59,23 +74,47 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
   const phoneOk = cleanPhone(phone) !== null;
   const canSend = cart.length > 0 && firstName.trim() !== "" && phoneOk && !sending;
 
+  // Le message WhatsApp du secours : le panier tel qu'il est maintenant (le client a pu le changer avant de réessayer).
+  const whatsappNumber = menu?.whatsapp ?? null;
+  const showRescue = rescue && cart.length > 0; // un panier vidé n'a plus rien à envoyer : l'écran redevient normal
+  const rescueText = useMemo(() => (showRescue ? buildWhatsAppText(cart, firstName) : ""), [showRescue, cart, firstName]);
+  const rescueLink = showRescue ? whatsAppLink(whatsappNumber, rescueText) : null;
+  const chatLink = whatsAppChatLink(whatsappNumber);
+
+  async function copyMessage() {
+    track("copie");
+    try {
+      await navigator.clipboard.writeText(rescueText);
+      setCopied("ok");
+    } catch {
+      setCopied("fail"); // le texte s'affiche alors dans un champ à copier à la main : jamais un échec muet
+    }
+  }
+
   async function send() {
     if (!canSend) return;
     setSending(true);
     setError(null);
+    setRescue(false);
+    setCopied("idle");
+    // Le secours n'existe que si le restaurateur a donné son numéro WhatsApp ; sinon le client garde le message d'avant.
+    const failed = (status: number, code: string | null | undefined, message: string) => {
+      if (whatsappNumber !== null && shouldOfferRescue(status, code)) { setRescue(true); track("propose"); return; }
+      setError(message);
+    };
     try {
       const res = await fetch("/api/site-orders", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ restaurantId, firstName, phone, lines: toOrderLines(cart) }),
       });
-      const { data } = await readJsonSafe<{ number?: string; totalCents?: number; error?: string }>(res);
-      if (!res.ok || !data?.number) { setError(data?.error ?? "Ta commande n'a pas pu partir. Réessaie, ou appelle le restaurant."); return; }
+      const { data } = await readJsonSafe<{ number?: string; totalCents?: number; error?: string; code?: string }>(res);
+      if (!res.ok || !data?.number) { failed(res.status, data?.code, data?.error ?? "Ta commande n'a pas pu partir. Réessaie, ou appelle le restaurant."); return; }
       setSent({ number: data.number, totalCents: data.totalCents ?? cartTotal(cart), phone });
       setCart([]);
       setShowCart(false);
       setPhase("sent");
     } catch {
-      setError("Ta commande n'a pas pu partir. Vérifie ta connexion et réessaie : rien n'a été envoyé.");
+      failed(0, null, "Ta commande n'a pas pu partir. Vérifie ta connexion et réessaie : rien n'a été envoyé.");
     } finally {
       setSending(false);
     }
@@ -184,9 +223,41 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
               </div>
             </div>
 
-            {error && <p role="alert" className="rounded-lg border border-danger px-3 py-2 text-[15px] text-danger">{error}</p>}
-            <button type="button" disabled={!canSend} onClick={() => void send()} className={`${primary} w-full`}>{sending ? "Envoi…" : `Envoyer ma commande · ${euro(cartTotal(cart))}`}</button>
-            <p className="text-[13px] text-ink-muted">Tu ne paies rien en ligne : tu règles au comptoir en venant la retirer.</p>
+            {showRescue ? (
+              <div className="space-y-3">
+                <div role="alert" className="rounded-lg border border-danger px-3 py-3">
+                  <p className="text-[15px] font-semibold text-danger">Le restaurant ne peut pas recevoir ta commande pour le moment.</p>
+                  <p className="mt-1 text-[13px] text-ink">Ton panier est gardé. Envoie-le au restaurant par WhatsApp : tu paies au comptoir, comme d&apos;habitude.</p>
+                </div>
+                {rescueLink ? (
+                  <a href={rescueLink} target="_blank" rel="noopener noreferrer" onClick={() => track("whatsapp")} className={`${primary} flex w-full items-center justify-center`}>Envoyer ma commande via WhatsApp</a>
+                ) : (
+                  <>
+                    <p className="text-[13px] text-ink-muted">Ta commande est longue : copie le message, puis colle-le dans WhatsApp.</p>
+                    <button type="button" onClick={() => void copyMessage()} className={`${primary} w-full`}>Copier le message</button>
+                    {chatLink && <a href={chatLink} target="_blank" rel="noopener noreferrer" onClick={() => track("whatsapp")} className={`${ghost} flex w-full items-center justify-center`}>Ouvrir WhatsApp</a>}
+                  </>
+                )}
+                <div className="flex gap-2">
+                  {rescueLink && <button type="button" onClick={() => void copyMessage()} className={`${ghost} flex-1`}>Copier le message</button>}
+                  <button type="button" disabled={!canSend} onClick={() => void send()} className={`${ghost} flex-1 disabled:cursor-not-allowed disabled:opacity-50`}>{sending ? "Envoi…" : "Réessayer"}</button>
+                </div>
+                {copied === "ok" && <p role="status" className="text-[13px] text-ink">Message copié.</p>}
+                {copied === "fail" && (
+                  <div>
+                    <label htmlFor="co-msg" className="mb-1 block text-[15px] font-semibold text-ink">Copie ce message à la main</label>
+                    <textarea id="co-msg" readOnly rows={8} value={rescueText} onFocus={(e) => e.currentTarget.select()} className={field} />
+                  </div>
+                )}
+                <p className="text-[13px] text-ink-muted">Rien n&apos;a été enregistré sur le site. En général, WhatsApp affiche deux coches bleues quand le restaurant a ouvert ton message.</p>
+              </div>
+            ) : (
+              <>
+                {error && <p role="alert" className="rounded-lg border border-danger px-3 py-2 text-[15px] text-danger">{error}</p>}
+                <button type="button" disabled={!canSend} onClick={() => void send()} className={`${primary} w-full`}>{sending ? "Envoi…" : `Envoyer ma commande · ${euro(cartTotal(cart))}`}</button>
+                <p className="text-[13px] text-ink-muted">Tu ne paies rien en ligne : tu règles au comptoir en venant la retirer.</p>
+              </>
+            )}
           </div>
         </div>
       )}
