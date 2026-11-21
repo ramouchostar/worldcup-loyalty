@@ -699,6 +699,14 @@ _Avoid_ : score de confiance, filtre IA.
 **Fiche de jeu** *(ADR 0105)* :
 La carte d'un type d'idée : ce qui produit le gain, pourquoi on y croit (guide officiel, mesure maison), le chiffre qui dira si ça a marché. Statut active, retirée ou tâche. Un type sans fiche ne se montre pas.
 
+**Remarques des clients** *(ADR 0106)* :
+Les reproches des avis Google rangés par thème fixe (attente, commande incomplète, cuisson, accueil, propreté…) sur 90 jours, dans l'onglet Stats, avec une citation d'un avis du même thème, son jour et son heure. Jamais le nom de l'auteur.
+_Avoid_ : hub, verbatims, sentiment.
+
+**Avis grave** *(ADR 0106)* :
+Un avis qui touche à l'hygiène, au comportement du personnel ou à l'argent. Il déclenche une alerte le jour même dans « À faire » et par e-mail, avec le jour et l'heure, pour que le gérant vérifie qui était de service. Ce n'est pas une idée. Jamais le nom d'un employé ni du client.
+_Avoid_ : incident, plainte.
+
 **Raison du refus** :
 Le choix du gérant quand il dit « Non » à une idée, dans une liste : pas le moment · trop cher · déjà fait · pas pour mon établissement · autre (avec saisie libre, jamais obligatoire). Chaque raison règle ce que la brigade propose ensuite à CET établissement (ADR 0089 §8) : délai avant de reproposer la même idée, type d'idée mis en pause 30 jours, tri par goût. Le gérant lit en une phrase ce qui a été retenu.
 _Avoid_ : motif, feedback, commentaire.
