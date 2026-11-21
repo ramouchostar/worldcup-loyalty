@@ -89,6 +89,26 @@ mesurer, et la saisie n'est plus utile quand la caisse elle-même est lue.
 - Reste à faire (maquette d'abord) : la page de saisie `/admin/[id]/ca/[jour]` en lecture seule
   pour un établissement connecté (« Lu dans Belpeople »).
 
+### 4 ter. Belpeople ne remplace la saisie que s'il voit les plateformes (2026-11-14, soir)
+
+Houba (258) et De Bue (253) ont été connectés avec l'accès d'Aram (accord d'Aram). Constat sur
+leurs données : Belpeople n'y a **aucun canal Uber Eats ni Deliveroo** (ces commandes passent hors
+caisse), alors que Kraainem a un canal « UberEats ». Leur total Belpeople ≈ le bloc « caisse » de
+leur saisie (Houba, 9 → 13/11 : caisse ≈ 910 €/j, plateformes ≈ 400 €/j). Le premier
+rattrapage a **remplacé 111 saisies** (Houba 60, De Bue 51) par un total sans plateformes.
+
+- Belpeople n'écrit **jamais** sur un jour déjà saisi à la main (`daysBelpeopleMayWrite`), trace
+  `kept` dans le journal.
+- Belpeople n'écrit le CA du jour, et la saisie ne s'arrête, **que si Belpeople voit Uber Eats ou
+  Deliveroo** dans les canaux lus (`coversPlatforms`) : Kraainem oui, Houba et De Bue non (saisie
+  maintenue, Belpeople comparé sur `/platform/ca`).
+- « Ventes par plat » : totaux de CA et de marge estimés masqués sous 90 % d'articles reconnus
+  (Kraainem 47 %, Houba 60 %, De Bue 53 % au 14/11), et la page dit quand Uber Eats et Deliveroo
+  ne passent pas par la caisse.
+- Suite prévue : Uber Eats (et Deliveroo) de Houba et De Bue lus par HubRise (ADR 0102), puis CA
+  du jour = caisse Belpeople + plateformes HubRise ; restauration des 111 saisies depuis la
+  sauvegarde du 2026-11-14 05:08 UTC (décision Mehdi).
+
 ### 5. Les ventes par heure, pour le personnel (ajouté le 2026-11-14)
 
 La table `agg_sales_hourly` (heure, CA, commandes par `store_id`) est lue par le même cron, dans la

@@ -81,3 +81,22 @@ export function staleDays(rows: DailySales[], today: string, span = 30): string[
   }
   return out;
 }
+
+// ── Plateformes de livraison (constat du 2026-11-14) ──────────────────────────
+// À Kraainem, Uber Eats passe par la caisse : Belpeople a un canal « UberEats »
+// et son total est le CA complet. À Houba et De Bue, Uber Eats et Deliveroo
+// passent hors caisse : Belpeople n'a que la caisse (≈ 70 % du CA saisi à la
+// main). Belpeople ne remplace donc la saisie que là où il voit les plateformes.
+
+const PLATFORM_CHANNEL = /uber|deliveroo/i;
+
+/** Belpeople voit-il les ventes des plateformes de livraison de cet établissement ? */
+export function coversPlatforms(channelNames: (string | null)[]): boolean {
+  return channelNames.some((c) => !!c && PLATFORM_CHANNEL.test(c));
+}
+
+/** Les jours que Belpeople peut écrire : jamais un jour déjà saisi à la main (source ≠ belpeople). */
+export function daysBelpeopleMayWrite(days: string[], existing: { sales_day: string; source: string | null }[]): string[] {
+  const manual = new Set(existing.filter((e) => e.source !== "belpeople").map((e) => e.sales_day));
+  return days.filter((d) => !manual.has(d));
+}
