@@ -7,6 +7,7 @@ import { resolvePostLoginDestination } from "@/lib/post-login";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
 import { consoleReturnPath, POST_LOGIN_NEXT_COOKIE } from "@/lib/post-login-next";
+import { PENDING_SITE_ORDER_COOKIE, pendingDestination } from "@/lib/site-orders/account";
 
 export async function signIn(
   _prevState: { error: string } | null,
@@ -58,13 +59,12 @@ export async function signIn(
     // ADR 0040 — un ticket photographié en visiteur attend dans l'appareil :
     // on rouvre directement l'écran de scan, qui le reprend et l'envoie.
     const pendingTicket = cookieStore.get("pending_ticket")?.value === "1";
+    // ADR 0108 §2 — une commande du site commencée en visiteur : retour à la page de commande, qui retrouve son panier.
+    const pendingSiteOrder = cookieStore.get(PENDING_SITE_ORDER_COOKIE)?.value === "1";
     cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
     cookieStore.set("pending_ticket", "", { maxAge: 0, path: "/" });
-    redirect(
-      pendingTicket
-        ? `/r/${pendingRestaurantId}/submit-order?resume=1`
-        : `/r/${pendingRestaurantId}`
-    );
+    cookieStore.set(PENDING_SITE_ORDER_COOKIE, "", { maxAge: 0, path: "/" });
+    redirect(pendingDestination(pendingRestaurantId, { ticket: pendingTicket, siteOrder: pendingSiteOrder }));
   }
 
   // ADR 0087 §1 — un lien de rappel vers la console (saisie du CA) y ramène.

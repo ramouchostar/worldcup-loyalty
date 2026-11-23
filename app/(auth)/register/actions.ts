@@ -9,6 +9,7 @@ import { resolvePostLoginDestination } from "@/lib/post-login";
 import { sendWelcomeEmail } from "@/lib/email";
 import { OWNER_INVITE_COOKIE, isValidInviteToken } from "@/lib/owner-invite-token";
 import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase-cookie";
+import { PENDING_SITE_ORDER_COOKIE, pendingDestination } from "@/lib/site-orders/account";
 
 // ADR 0047 — /register ne collecte plus que le CONSENTEMENT (parcours Google
 // OAuth, où aucune case n'a pu être cochée à l'inscription). Prénom, zones et
@@ -88,13 +89,12 @@ export async function acceptProgramme(
   if (pendingRestaurantId) {
     // ADR 0040 — ticket photographié en visiteur → retour direct au scan.
     const pendingTicket = cookieStore.get("pending_ticket")?.value === "1";
+    // ADR 0108 §2 — une commande du site commencée en visiteur : retour à la page de commande, qui retrouve son panier.
+    const pendingSiteOrder = cookieStore.get(PENDING_SITE_ORDER_COOKIE)?.value === "1";
     cookieStore.set("pending_restaurant_id", "", { maxAge: 0, path: "/" });
     cookieStore.set("pending_ticket", "", { maxAge: 0, path: "/" });
-    redirect(
-      pendingTicket
-        ? `/r/${pendingRestaurantId}/submit-order?resume=1`
-        : `/r/${pendingRestaurantId}`
-    );
+    cookieStore.set(PENDING_SITE_ORDER_COOKIE, "", { maxAge: 0, path: "/" });
+    redirect(pendingDestination(pendingRestaurantId, { ticket: pendingTicket, siteOrder: pendingSiteOrder }));
   }
 
   // ADR 0030 §1 — destination par RÔLE, pas /join en dur (incident
