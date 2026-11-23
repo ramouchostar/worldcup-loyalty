@@ -32,7 +32,8 @@ export interface OrdersDb {
   /** Le plus grand numéro déjà pris ce jour-là (0 si aucun). */
   lastNumber(restaurantId: string, day: string): Promise<number>;
   /** `conflict` = ce numéro vient d'être pris par une autre commande : on réessaie avec le suivant. */
-  insert(row: NewOrderRow): Promise<{ ok: true; id: string } | { ok: false; conflict: true }>;
+  /** `linked` = la commande a été écrite AVEC le lien vers le compte (faux si la migration `member_id` n'est pas appliquée). */
+  insert(row: NewOrderRow): Promise<{ ok: true; id: string; linked: boolean } | { ok: false; conflict: true }>;
   recordRefusal(restaurantId: string, reason: string): Promise<void>;
   listOrders(restaurantId: string, sinceIso: string): Promise<OrderRow[]>;
   /** Change l'état SEULEMENT si la commande est encore dans l'état `from` ; renvoie `false` sinon. */
@@ -41,7 +42,7 @@ export interface OrdersDb {
 }
 
 export type PlaceOutcome =
-  | { ok: true; id: string; number: string; totalCents: number }
+  | { ok: true; id: string; number: string; totalCents: number; linked: boolean }
   | { ok: false; status: number; code: RefusalCode; message: string };
 
 const MAX_NUMBER_TRIES = 4;
@@ -77,7 +78,7 @@ export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: un
         restaurant_id: restaurantId, order_day: day, number, first_name: request.firstName, phone: request.phone,
         lines: priced.lines, total_cents: priced.totalCents, member_id: memberId,
       });
-      if (r.ok) return { ok: true, id: r.id, number: formatNumber(number), totalCents: priced.totalCents };
+      if (r.ok) return { ok: true, id: r.id, number: formatNumber(number), totalCents: priced.totalCents, linked: r.linked };
     }
     return { ok: false, status: 503, code: "indisponible", message: "Beaucoup de commandes en même temps. Réessaie dans un instant." };
   } catch (e) {

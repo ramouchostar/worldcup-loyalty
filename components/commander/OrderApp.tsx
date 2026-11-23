@@ -26,7 +26,7 @@ import { DishSheet } from "./DishSheet";
 // client l'envoie lui-même au restaurateur par WhatsApp. Rien n'est enregistré chez nous dans ce cas (aucun doublon possible).
 
 type Phase = "loading" | "closed" | "error" | "ready" | "sent";
-type Sent = { number: string; totalCents: number; phone: string };
+type Sent = { number: string; totalCents: number; phone: string; points: boolean };
 
 const btn = "min-h-[44px] rounded-lg px-4 py-2 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink";
 const primary = `${btn} bg-boost-olive text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50`;
@@ -176,11 +176,11 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ restaurantId, firstName, phone, lines: toOrderLines(cart) }),
       });
-      const { data } = await readJsonSafe<{ number?: string; totalCents?: number; error?: string; code?: string }>(res);
+      const { data } = await readJsonSafe<{ number?: string; totalCents?: number; points?: boolean; error?: string; code?: string }>(res);
       // Pas de compte : ce n'est PAS une panne (aucun secours WhatsApp) et pas une erreur du client : la connexion, panier gardé.
       if (res.status === 401 && data?.code === LOGIN_REQUIRED.code) { askLogin(); return; }
       if (!res.ok || !data?.number) { failed(res.status, data?.code, data?.error ?? "Ta commande n'a pas pu partir. Réessaie, ou appelle le restaurant."); return; }
-      setSent({ number: data.number, totalCents: data.totalCents ?? cartTotal(cart), phone: cleanPhone(phone) ?? "" });
+      setSent({ number: data.number, totalCents: data.totalCents ?? cartTotal(cart), phone: cleanPhone(phone) ?? "", points: data.points === true });
       try { localStorage.removeItem(cartKey); } catch { /* rien à effacer */ }
       setCart([]);
       setShowCart(false);
@@ -205,7 +205,9 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
         <p className="text-[15px] text-ink">
           {sent.phone !== "" ? `Le restaurant t'appelle au ${sent.phone} quand elle est prête. ` : "Le restaurant prépare ta commande. "}
           Si tu n&apos;as pas de nouvelles au bout de dix minutes, appelle le restaurant en donnant ce numéro.
-        </p>        <button type="button" className={primary} onClick={() => { setSent(null); setPhase("ready"); }}>Faire une autre commande</button>
+        </p>
+        {/* ADR 0108 §5 — dit seulement quand la commande est liée à ton compte, sans aucun nombre : jamais un gain à côté d'un prix (ADR 0028). */}
+        {sent.points && <p className="text-[15px] text-ink">Tes points arrivent quand tu as retiré et payé ta commande. Pas besoin de photographier ton ticket de caisse.</p>}        <button type="button" className={primary} onClick={() => { setSent(null); setPhase("ready"); }}>Faire une autre commande</button>
       </main>
     );
   }

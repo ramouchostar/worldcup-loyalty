@@ -13,6 +13,8 @@ import { getRestaurantDisplayName } from "@/lib/restaurant";
 import { guardAgainstDuplicates, recordDuplicateReview } from "@/lib/duplicate-guard";
 import { DUPLICATE_MEMBER_MESSAGE } from "@/lib/duplicate-detection";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { hasRecentSiteOrder } from "@/lib/site-orders/points-db";
+import { SITE_ORDER_RECENT_FLAG } from "@/lib/site-orders/points";
 import { recordScan } from "@/lib/scan-meter";
 import { MAX_UPLOAD_BYTES, describeUploadFailure } from "@/lib/receipt-upload-errors";
 import { POSTER_MEMBER_MESSAGE } from "@/lib/poster-detect";
@@ -386,6 +388,9 @@ export async function POST(request: NextRequest) {
   // enregistre à son nom les tickets oubliés par les clients — le
   // restaurateur tranche (`too_many_today` est remplacé par la limite dure).
   if (isFrequentSubmitter(sentLastWeek)) flagReasons.push("frequent_submitter");
+  // ADR 0108 §5 — une commande du site du même compte, dans ce restaurant, à moins de six heures : le même repas, déjà compté
+  // (ou qui le sera à la remise) ? Le restaurateur tranche ; sans cela, le client gagnerait deux fois.
+  if (await hasRecentSiteOrder(user.id, restaurantId)) flagReasons.push(SITE_ORDER_RECENT_FLAG);
   // ADR 0058 — plus de `no_receipt` ni `ocr_failed` (photo et lecture sont
   // obligatoires), plus d'`amount_mismatch` : le montant EST la lecture
   // serveur. Ces libellés restent mappés côté admin pour l'historique.

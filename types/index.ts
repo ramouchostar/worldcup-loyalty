@@ -209,7 +209,8 @@ export type PointTransaction = {
   id: string;
   delta: number;
   // 'order_points' : points d'un ticket, disponibles 4 h après (ADR 0061).
-  reason: "bank_reward" | "exchange_gift" | "admin_adjust" | "order_points";
+  // 'site_order_points' : points d'une commande du site retirée, même délai (ADR 0108 §5).
+  reason: "bank_reward" | "exchange_gift" | "admin_adjust" | "order_points" | "site_order_points";
   created_at: string;
 };
 
