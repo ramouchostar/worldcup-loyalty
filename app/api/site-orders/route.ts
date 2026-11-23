@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 import { supabaseOrdersDb } from "@/lib/site-orders/db";
 import { siteOrdersAvailable } from "@/lib/site-orders/access";
 import { LOGIN_REQUIRED } from "@/lib/site-orders/account";
+import { ensureSiteMembership } from "@/lib/site-orders/membership";
 import { placeSiteOrder } from "@/lib/site-orders/service";
 
 // ADR 0099 §2 — une commande du site : retrait au comptoir, paiement au comptoir. FERMÉE par défaut : sans
@@ -11,7 +12,7 @@ import { placeSiteOrder } from "@/lib/site-orders/service";
 // et le RGPD doivent être tranchés avant d'ouvrir à un vrai restaurant, ADR 0099).
 //
 // POST /api/site-orders  { restaurantId, firstName, phone?, lines: [{ articleId, qty, selection }] }
-//   → 201 { number, totalCents }   ou   4xx/5xx { error, code }
+//   → 201 { number, totalCents, points }   ou   4xx/5xx { error, code }
 // Le navigateur n'envoie JAMAIS un prix ni un nom de plat : le serveur recalcule tout (lib/site-orders/order.ts).
 //
 // ADR 0108 §2 — il faut un COMPTE pour envoyer : sans session, 401 `connexion`, AVANT la limite par adresse (une personne
@@ -61,6 +62,10 @@ export async function POST(req: NextRequest) {
     await db.recordRefusal(restaurantId, result.code);
     return NextResponse.json({ error: result.message, code: result.code }, { status: result.status });
   }
-  console.info(`[site-orders] restaurant=${restaurantId} numero=${result.number} total_cents=${result.totalCents}`);
-  return NextResponse.json({ number: result.number, totalCents: result.totalCents }, { status: 201 });
+  // ADR 0108 §2 — commander, c'est rejoindre le restaurant : après l'enregistrement, jamais avant, et sans jamais le faire échouer.
+  await ensureSiteMembership(memberId, restaurantId);
+  console.info(`[site-orders] restaurant=${restaurantId} numero=${result.number} total_cents=${result.totalCents} compte=${result.linked ? "lie" : "non_lie"}`);
+  // `points` : la commande est liée à un compte, donc sa remise rapportera des points (ADR 0108 §5). Faux si la migration
+  // `member_id` n'est pas appliquée : la page ne promet alors rien.
+  return NextResponse.json({ number: result.number, totalCents: result.totalCents, points: result.linked }, { status: 201 });
 }

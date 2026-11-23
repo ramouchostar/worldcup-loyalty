@@ -17,6 +17,7 @@ import { ChooseButton } from "./ChooseButton";
 
 const REASON_LABELS: Record<PointTransaction["reason"], string> = {
   order_points: "Ticket",
+  site_order_points: "Commande du site",
   bank_reward: "Cadeau mis de côté",
   exchange_gift: "Cadeau choisi",
   admin_adjust: "Ajustement",
@@ -58,6 +59,8 @@ export default async function PointsPage({ params }: { params: Promise<{ restaur
       .select("id, delta, reason, created_at, available_at")
       .eq("user_id", user.id)
       .eq("restaurant_id", restaurantId)
+      // Une commande du site « sans point » (ticket proche, ADR 0108 §5) est une ligne à zéro pour la mesure : jamais montrée au membre.
+      .neq("delta", 0)
       .order("created_at", { ascending: false })
       .limit(20),
   ]);

@@ -49,6 +49,7 @@ const REJECT_REASONS = [
 // regard va là où il doit — la bordure et le délai d'attente.
 const FLAG_LABELS: Record<string, string> = {
   high_amount:             "> €200",
+  site_order_recent:       "Commande du site récente",
   low_confidence:          "OCR < 70%",
   unreadable_bestelnummer: "N° illisible",
   amount_mismatch:         "Écart > 5%",
