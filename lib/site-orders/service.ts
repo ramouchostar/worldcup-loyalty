@@ -15,8 +15,10 @@ export class SiteOrdersUnavailableError extends Error {
 }
 
 export type NewOrderRow = {
-  restaurant_id: string; order_day: string; number: number; first_name: string; phone: string;
+  restaurant_id: string; order_day: string; number: number; first_name: string; phone: string | null;
   lines: OrderLine[]; total_cents: number;
+  /** Le compte qui a passé la commande (ADR 0108 §2). `null` seulement pour un test ou un appel interne : la route exige un compte. */
+  member_id: string | null;
 };
 
 export type OrderRow = {
@@ -44,8 +46,11 @@ export type PlaceOutcome =
 
 const MAX_NUMBER_TRIES = 4;
 
-/** Reçoit une commande : forme, plats, choix, prix recalculé, numéro du jour. Rien n'est écrit si quoi que ce soit est faux. */
-export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: unknown, now: Date = new Date()): Promise<PlaceOutcome> {
+/**
+ * Reçoit une commande : forme, plats, choix, prix recalculé, numéro du jour. Rien n'est écrit si quoi que ce soit est faux.
+ * `memberId` = le compte connecté qui l'envoie (ADR 0108 §2) : la route le lit de la session, jamais du corps de la demande.
+ */
+export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: unknown, now: Date = new Date(), memberId: string | null = null): Promise<PlaceOutcome> {
   const checked = checkRequest(raw);
   if (!checked.ok) return { ok: false, status: 400, code: checked.code, message: checked.message };
   const { request } = checked;
@@ -70,7 +75,7 @@ export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: un
       const number = (await db.lastNumber(restaurantId, day)) + 1;
       const r = await db.insert({
         restaurant_id: restaurantId, order_day: day, number, first_name: request.firstName, phone: request.phone,
-        lines: priced.lines, total_cents: priced.totalCents,
+        lines: priced.lines, total_cents: priced.totalCents, member_id: memberId,
       });
       if (r.ok) return { ok: true, id: r.id, number: formatNumber(number), totalCents: priced.totalCents };
     }
