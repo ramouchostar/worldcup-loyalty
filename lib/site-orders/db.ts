@@ -41,12 +41,14 @@ export function supabaseOrdersDb(): OrdersDb {
       return ((data ?? [])[0] as { number: number } | undefined)?.number ?? 0;
     },
     async insert(row: NewOrderRow) {
+      let linked = row.member_id !== null;
       let { data, error } = await admin.from("site_orders").insert(row).select("id").single();
       // Migration 20261120-2000 pas encore appliquée : la colonne du compte n'existe pas. La commande part quand même, SANS le
       // lien avec le compte (fail-open), et le journal le dit : jamais une commande perdue pour une colonne manquante.
       if (error && row.member_id !== null && isMissingColumn(error) && /member_id/.test(error.message ?? "")) {
         console.warn("[site-orders] colonne member_id absente (migration 20261120-2000 à appliquer) : commande enregistrée sans le lien avec le compte.");
         const { member_id: _dropped, ...withoutMember } = row;
+        linked = false;
         ({ data, error } = await admin.from("site_orders").insert(withoutMember).select("id").single());
       }
       if (error) {
@@ -54,7 +56,7 @@ export function supabaseOrdersDb(): OrdersDb {
         if (error.code === "23505") return { ok: false as const, conflict: true as const };
         throw fail("écriture", error);
       }
-      return { ok: true as const, id: (data as { id: string }).id };
+      return { ok: true as const, id: (data as { id: string }).id, linked };
     },
     async recordRefusal(restaurantId, reason) {
       const { error } = await admin.from("site_order_refusals").insert({ restaurant_id: restaurantId, reason: reason.slice(0, 60) });

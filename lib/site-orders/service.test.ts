@@ -22,7 +22,7 @@ class MemOrdersDb implements OrdersDb {
     const id = `o${this.rows.length + 1}`;
     this.members.push(row.member_id);
     this.rows.push({ id, restaurant_id: row.restaurant_id, order_day: row.order_day, number: row.number, first_name: row.first_name, phone: row.phone, lines: row.lines, total_cents: row.total_cents, status: "recue", created_at: "2026-11-13T12:00:00Z", ready_at: null, picked_up_at: null, cancelled_at: null, cancel_reason: null });
-    return { ok: true as const, id };
+    return { ok: true as const, id, linked: row.member_id !== null };
   }
   async recordRefusal(_r: string, reason: string) { this.refusals.push(reason); }
   async listOrders(r: string) { return this.rows.filter((x) => x.restaurant_id === r); }
@@ -42,7 +42,7 @@ const NOW = new Date("2026-11-13T12:00:00Z");
 test("placeSiteOrder : écrit la commande, numéro du jour, prix recalculé", async () => {
   const db = new MemOrdersDb([cola]);
   const out = await placeSiteOrder(db, "r1", body(), NOW);
-  assert.deepEqual(out, { ok: true, id: "o1", number: "0001", totalCents: 500 });
+  assert.deepEqual(out, { ok: true, id: "o1", number: "0001", totalCents: 500, linked: false }); // appel sans compte : pas de lien
   const second = await placeSiteOrder(db, "r1", body(), NOW);
   assert.ok(second.ok);
   if (second.ok) assert.equal(second.number, "0002");
@@ -67,6 +67,14 @@ test("placeSiteOrder : la commande garde le compte qui l'a envoyée (ADR 0108 §
   const out = await placeSiteOrder(db, "r1", body({ memberId: "pirate", member_id: "pirate" }), NOW, "compte-1");
   assert.ok(out.ok);
   assert.deepEqual(db.members, ["compte-1"]); // seul le paramètre du serveur compte
+  if (out.ok) assert.equal(out.linked, true);
+});
+
+test("placeSiteOrder : sans compte (appel interne), la commande n'est pas liée et ne promet pas de points", async () => {
+  const db = new MemOrdersDb([cola]);
+  const out = await placeSiteOrder(db, "r1", body(), NOW);
+  assert.ok(out.ok);
+  if (out.ok) assert.equal(out.linked, false);
 });
 
 test("placeSiteOrder : le téléphone est facultatif, la commande part sans", async () => {
