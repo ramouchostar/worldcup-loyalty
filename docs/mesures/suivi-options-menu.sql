@@ -174,3 +174,31 @@ FROM site_order_refusals
 WHERE reason IN ('secours_propose', 'whatsapp_touche', 'message_copie', 'indisponible', 'imprimante_hors_ligne')
 GROUP BY 1
 ORDER BY propositions DESC;
+
+-- 15. L'entonnoir de la connexion de la commande du site (ADR 0108 §2) : combien de fois la page a-t-elle dû demander un compte,
+-- et combien de commandes sont parties avec un compte ? Table site_order_refusals (motif `connexion_demandee`, un compteur sans
+-- donnée du client) et colonne site_orders.member_id (migration 20261120-2000, à appliquer à la main).
+-- Lecture : un client qui se connecte PUIS envoie compte une demande et une commande ; un client déjà connecté, une commande seule.
+-- Donc (demandes - commandes_avec_compte) est une borne BASSE du nombre de clients qui ont renoncé à la connexion.
+-- Seuil : si cette borne dépasse la moitié des demandes, le mur du compte est trop haut (ADR 0108 §2 : revoir le moment de la
+-- connexion, ou rouvrir l'invité avec téléphone). À recalibrer avec les premières commandes réelles.
+WITH demandes AS (
+  SELECT restaurant_id, COUNT(*) AS n, MIN(created_at)::date AS depuis
+  FROM site_order_refusals WHERE reason = 'connexion_demandee' GROUP BY 1
+), commandes AS (
+  SELECT restaurant_id,
+         COUNT(*) FILTER (WHERE member_id IS NOT NULL) AS avec_compte,
+         COUNT(*) FILTER (WHERE member_id IS NULL)     AS sans_compte
+  FROM site_orders GROUP BY 1
+)
+SELECT
+  COALESCE(d.restaurant_id, c.restaurant_id)                      AS restaurant_id,
+  COALESCE(d.n, 0)                                                AS connexions_demandees,
+  COALESCE(c.avec_compte, 0)                                      AS commandes_avec_compte,
+  COALESCE(c.sans_compte, 0)                                      AS commandes_sans_compte,
+  ROUND(100.0 * GREATEST(COALESCE(d.n, 0) - COALESCE(c.avec_compte, 0), 0)
+        / NULLIF(COALESCE(d.n, 0), 0))                            AS pct_renoncements_au_moins,
+  d.depuis
+FROM demandes d
+FULL JOIN commandes c USING (restaurant_id)
+ORDER BY connexions_demandees DESC;

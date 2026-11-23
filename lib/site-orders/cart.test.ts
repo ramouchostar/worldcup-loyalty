@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { OptionChoice, OptionGroup } from "../menu-options/types";
 import { checkRequest, priceOrder, type CatalogItem } from "./order";
-import type { PublicItem } from "./menu";
-import { addToCart, cartCount, cartTotal, lineKey, pruneSelection, removeLine, selectionState, setChoiceQty, setLineQty, startSelection, toOrderLines } from "./cart";
+import type { PublicItem, PublicMenu } from "./menu";
+import { SAVED_CART_MAX_AGE_MS, addToCart, cartCount, cartTotal, lineKey, pruneSelection, removeLine, restoreCart, saveCart, selectionState, setChoiceQty, setLineQty, startSelection, toOrderLines } from "./cart";
 
 const choice = (id: string, name: string, o: Partial<OptionChoice> = {}): OptionChoice => ({ id, libraryId: `l-${id}`, name, priceDelta: 0, maxQty: 1, isDefault: false, isAvailable: true, groups: [], ...o });
 const group = (id: string, kind: OptionGroup["kind"], min: number, max: number | null, choices: OptionChoice[]): OptionGroup => ({ id, title: id, kind, min, max, choices });
@@ -109,4 +109,66 @@ test("panier : deux plats identiques se regroupent, la quantité est plafonnée,
 test("toOrderLines : jamais un prix ni un nom", () => {
   const cart = addToCart([], { ...item, groups: [] }, {}, 1);
   assert.deepEqual(Object.keys(toOrderLines(cart)[0]).sort(), ["articleId", "qty", "selection"]);
+});
+
+// ─── Le panier qui attend la connexion (ADR 0108 §2) ─────────────────────────
+
+const menu = (items: PublicItem[]): PublicMenu => ({ restaurant: { id: "r1", name: "Houba", logoUrl: null }, retentionDays: 30, whatsapp: null, categories: [{ name: "Tout", items }], hidden: 0 });
+const NOW0 = 1_800_000_000_000;
+const burgerSelection = () => setChoiceQty(groups, startSelection(groups), "sauces", "ketchup", 1);
+
+test("saveCart : des identifiants, des quantités et des choix, jamais un prix ni un nom", () => {
+  const cart = addToCart([], item, burgerSelection(), 2);
+  const saved = saveCart(cart, NOW0);
+  assert.equal(saved.savedAt, NOW0);
+  assert.deepEqual(Object.keys(saved.lines[0]).sort(), ["articleId", "qty", "selection"]);
+  assert.ok(!/950|Cheese|unitCents|priceCents/.test(JSON.stringify(saved)));
+});
+
+test("restoreCart : le panier revient à l'identique, reconstruit à partir de la carte d'aujourd'hui", () => {
+  const cart = addToCart([], item, burgerSelection(), 2);
+  const back = restoreCart(JSON.parse(JSON.stringify(saveCart(cart, NOW0))), menu([item]), NOW0 + 60_000);
+  assert.equal(back.dropped, 0);
+  assert.equal(cartCount(back.cart), 2);
+  assert.equal(cartTotal(back.cart), cartTotal(cart));
+  // le prix est celui de la carte d'aujourd'hui, pas celui qui dormait : la carte a changé pendant la connexion
+  const dearer = { ...item, priceCents: 1100 };
+  const repriced = restoreCart(JSON.parse(JSON.stringify(saveCart(cart, NOW0))), menu([dearer]), NOW0 + 60_000);
+  assert.equal(cartTotal(repriced.cart), cartTotal(cart) + 2 * 150);
+});
+
+test("restoreCart : un plat qui n'est plus proposé est écarté et COMPTÉ, jamais perdu sans un mot", () => {
+  const cola: PublicItem = { id: "cola", name: "Cola", priceCents: 250, description: null, allergens: { text: "x", confirmed: false }, imageUrl: null, groups: [] };
+  const cart = addToCart(addToCart([], item, burgerSelection(), 1), cola, {}, 1);
+  const back = restoreCart(JSON.parse(JSON.stringify(saveCart(cart, NOW0))), menu([cola]), NOW0 + 1000);
+  assert.equal(back.dropped, 1);
+  assert.deepEqual(back.cart.map((l) => l.articleId), ["cola"]);
+});
+
+test("restoreCart : des choix qui ne sont plus valables écartent le plat (le serveur les refuserait)", () => {
+  const cart = addToCart([], item, burgerSelection(), 1);
+  const changed: PublicItem = { ...item, groups: groups.map((g) => (g.id === "sauces" ? { ...g, choices: g.choices.filter((c) => c.id !== "ketchup") } : g)) };
+  const back = restoreCart(JSON.parse(JSON.stringify(saveCart(cart, NOW0))), menu([changed]), NOW0 + 1000);
+  assert.equal(back.dropped, 1);
+  assert.equal(back.cart.length, 0);
+});
+
+test("restoreCart : un panier de plus de deux heures, venu du futur ou illisible ne revient pas", () => {
+  const saved = JSON.parse(JSON.stringify(saveCart(addToCart([], item, burgerSelection(), 1), NOW0)));
+  assert.equal(restoreCart(saved, menu([item]), NOW0 + SAVED_CART_MAX_AGE_MS + 1).cart.length, 0);
+  assert.equal(restoreCart(saved, menu([item]), NOW0 - 10 * 60_000).cart.length, 0);
+  for (const junk of [null, undefined, 42, "x", [], {}, { savedAt: "hier", lines: [] }, { savedAt: NOW0, lines: "non" }]) {
+    assert.deepEqual(restoreCart(junk, menu([item]), NOW0), { cart: [], dropped: 0 }, JSON.stringify(junk));
+  }
+});
+
+test("restoreCart : rien n'est cru d'un navigateur : quantités folles, lignes en trop, sélection piégée", () => {
+  const base = { articleId: "burger", qty: 1, selection: burgerSelection() };
+  const lines = [
+    { ...base, qty: 0 }, { ...base, qty: 1.5 }, { ...base, qty: 99 }, { ...base, articleId: 7 },
+    { ...base, selection: "x" }, { ...base, selection: { taille: "m" } }, null, "texte",
+  ];
+  const back = restoreCart({ savedAt: NOW0, lines }, menu([item]), NOW0 + 1000);
+  assert.equal(back.cart.length, 0);
+  assert.equal(back.dropped, lines.length);
 });

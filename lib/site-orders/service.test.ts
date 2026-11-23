@@ -7,6 +7,8 @@ import { SiteOrdersUnavailableError, changeStatus, listRecentOrders, placeSiteOr
 class MemOrdersDb implements OrdersDb {
   rows: (OrderRow & { restaurant_id: string; order_day: string })[] = [];
   refusals: string[] = [];
+  /** Le compte de chaque commande écrite (ADR 0108 §2), dans l'ordre. */
+  members: (string | null)[] = [];
   conflictsLeft = 0;
   unavailable = false;
   constructor(public catalog: CatalogItem[] = [], public trees = new Map<string, OptionGroup[]>()) {}
@@ -18,6 +20,7 @@ class MemOrdersDb implements OrdersDb {
     this.guard();
     if (this.conflictsLeft > 0) { this.conflictsLeft--; return { ok: false as const, conflict: true as const }; }
     const id = `o${this.rows.length + 1}`;
+    this.members.push(row.member_id);
     this.rows.push({ id, restaurant_id: row.restaurant_id, order_day: row.order_day, number: row.number, first_name: row.first_name, phone: row.phone, lines: row.lines, total_cents: row.total_cents, status: "recue", created_at: "2026-11-13T12:00:00Z", ready_at: null, picked_up_at: null, cancelled_at: null, cancel_reason: null });
     return { ok: true as const, id };
   }
@@ -57,6 +60,20 @@ test("placeSiteOrder : le numéro repart de 1 le lendemain et par établissement
     assert.equal(other.number, "0001");
     assert.equal(next.number, "0001");
   }
+});
+
+test("placeSiteOrder : la commande garde le compte qui l'a envoyée (ADR 0108 §2), et le corps de la demande ne peut pas le dire", async () => {
+  const db = new MemOrdersDb([cola]);
+  const out = await placeSiteOrder(db, "r1", body({ memberId: "pirate", member_id: "pirate" }), NOW, "compte-1");
+  assert.ok(out.ok);
+  assert.deepEqual(db.members, ["compte-1"]); // seul le paramètre du serveur compte
+});
+
+test("placeSiteOrder : le téléphone est facultatif, la commande part sans", async () => {
+  const db = new MemOrdersDb([cola]);
+  const out = await placeSiteOrder(db, "r1", body({ phone: "" }), NOW, "compte-1");
+  assert.ok(out.ok);
+  assert.equal(db.rows[0].phone, null);
 });
 
 test("placeSiteOrder : un conflit de numéro réessaie avec le suivant", async () => {

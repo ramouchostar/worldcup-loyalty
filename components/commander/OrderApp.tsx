@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { readJsonSafe } from "@/lib/fetch-json";
-import { addToCart, cartCount, cartTotal, euro, removeLine, setLineQty, toOrderLines, type Cart } from "@/lib/site-orders/cart";
+import { createClient } from "@/lib/supabase-browser";
+import { rememberPendingSiteOrder } from "@/app/commander/[restaurantId]/actions";
+import { LOGIN_REQUIRED } from "@/lib/site-orders/account";
+import { addToCart, cartCount, cartTotal, euro, removeLine, restoreCart, saveCart, setLineQty, toOrderLines, type Cart } from "@/lib/site-orders/cart";
 import type { PublicItem, PublicMenu } from "@/lib/site-orders/menu";
 import { cleanPhone } from "@/lib/site-orders/order";
 import { shouldOfferRescue, type RescueEvent } from "@/lib/site-orders/rescue";
@@ -11,7 +15,10 @@ import type { Selection } from "@/lib/menu-options/types";
 import { DishSheet } from "./DishSheet";
 
 // ADR 0099 §2 et §8 — la page où un client commande chez un restaurant (module de Nina, Pro, en pilote) : il choisit ses
-// plats et ses options, donne son prénom et son téléphone, envoie, et PAIE AU COMPTOIR en retirant. Aucun paiement ici.
+// plats et ses options, donne son prénom (son téléphone est facultatif), envoie, et PAIE AU COMPTOIR en retirant. Aucun paiement ici.
+//
+// ADR 0108 §2 — il faut un COMPTE pour envoyer, pas pour regarder. Sans compte, le serveur répond 401 : la page GARDE le panier
+// (dans ce navigateur, pour deux heures), propose Google, la connexion ou l'inscription, et le client revient à sa commande.
 // Honnêteté : « envoyée » veut dire que le serveur l'a enregistrée, pas que quelqu'un l'a lue (pas d'imprimante pour
 // l'instant) : le texte de confirmation le dit.
 //
@@ -39,6 +46,12 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
   const [sent, setSent] = useState<Sent | null>(null);
   const [rescue, setRescue] = useState(false);
   const [copied, setCopied] = useState<"idle" | "ok" | "fail">("idle");
+  const [signedIn, setSignedIn] = useState<boolean | null>(null); // null = on ne sait pas encore
+  const [needLogin, setNeedLogin] = useState(false);
+  const [restoredNote, setRestoredNote] = useState<string | null>(null);
+
+  const cartKey = `site_order_cart:${restaurantId}`;
+  const pendingCookie = useRef<Promise<void> | null>(null);
 
   // La trace du secours (compteurs seuls, aucune donnée du client) : jamais bloquante, jamais une erreur pour le client.
   const track = useCallback((event: RescueEvent) => {
@@ -66,12 +79,46 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
     return () => { live = false; };
   }, [restaurantId]);
 
+  // Quand la carte est là : qui est connecté (pour préremplir le prénom) et le panier qui attendait la connexion.
+  useEffect(() => {
+    if (!menu) return;
+    let live = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/site-orders/me?restaurantId=${encodeURIComponent(restaurantId)}`, { cache: "no-store" });
+        const { data } = await readJsonSafe<{ signedIn?: boolean; firstName?: string }>(res);
+        if (!live || !res.ok || !data) return;
+        setSignedIn(data.signedIn === true);
+        if (data.firstName) setFirstName((n) => (n.trim() === "" ? data.firstName ?? "" : n));
+      } catch {
+        /* sans réponse, on ne sait pas : le serveur redemandera la connexion à l'envoi s'il le faut */
+      }
+    })();
+    try {
+      const raw = localStorage.getItem(cartKey);
+      if (raw) {
+        localStorage.removeItem(cartKey); // le panier ne dort dans le navigateur que le temps de la connexion
+        const { cart: back, dropped } = restoreCart(JSON.parse(raw) as unknown, menu);
+        if (back.length > 0) {
+          setCart(back);
+          setShowCart(true);
+          const droppedNote = dropped === 0 ? "" : dropped === 1 ? " Un plat n'est plus proposé ou a changé : il a été retiré." : ` ${dropped} plats ne sont plus proposés ou ont changé : ils ont été retirés.`;
+          setRestoredNote(`On a retrouvé ta commande.${droppedNote}`);
+        }
+      }
+    } catch {
+      /* stockage refusé ou illisible (navigation privée) : on repart d'un panier vide, jamais une erreur */
+    }
+    return () => { live = false; };
+  }, [menu, restaurantId, cartKey]);
+
   const add = useCallback((item: PublicItem, selection: Selection, qty: number) => {
     setCart((c) => addToCart(c, item, selection, qty));
     setDish(null);
   }, []);
 
-  const phoneOk = cleanPhone(phone) !== null;
+  // Facultatif (ADR 0108 §2) : vide, c'est bon ; rempli, il doit être lisible.
+  const phoneOk = phone.trim() === "" || cleanPhone(phone) !== null;
   const canSend = cart.length > 0 && firstName.trim() !== "" && phoneOk && !sending;
 
   // Le message WhatsApp du secours : le panier tel qu'il est maintenant (le client a pu le changer avant de réessayer).
@@ -91,11 +138,33 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
     }
   }
 
+  // Le serveur a dit « il faut un compte » : on garde le panier, on se souvient d'où le client vient, et on propose la connexion.
+  // Le panneau s'ouvre TOUT DE SUITE : le cookie de retour se pose en arrière-plan (sur un réseau lent, le client ne regarde pas « Envoi… »).
+  function askLogin() {
+    try { localStorage.setItem(cartKey, JSON.stringify(saveCart(cart))); } catch { /* stockage refusé : le panier restera dans cet onglet */ }
+    // Sans le cookie, la connexion ramène à la page de l'établissement : le panier attend quand même dans le navigateur.
+    pendingCookie.current = rememberPendingSiteOrder(restaurantId).catch(() => undefined);
+    setSignedIn(false);
+    setNeedLogin(true);
+  }
+
+  async function signInWithGoogle() {
+    await pendingCookie.current; // le départ vers Google ne doit pas couper la pose du cookie
+    const supabase = createClient();
+    const { error: oauthErr } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      // Toujours proposer le choix du compte Google, comme la connexion du reste de Boosteats.
+      options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } },
+    });
+    if (oauthErr) setError("La connexion avec Google n'a pas marché. Réessaie, ou connecte-toi avec ton e-mail.");
+  }
+
   async function send() {
     if (!canSend) return;
     setSending(true);
     setError(null);
     setRescue(false);
+    setNeedLogin(false);
     setCopied("idle");
     // Le secours n'existe que si le restaurateur a donné son numéro WhatsApp ; sinon le client garde le message d'avant.
     const failed = (status: number, code: string | null | undefined, message: string) => {
@@ -108,8 +177,11 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
         body: JSON.stringify({ restaurantId, firstName, phone, lines: toOrderLines(cart) }),
       });
       const { data } = await readJsonSafe<{ number?: string; totalCents?: number; error?: string; code?: string }>(res);
+      // Pas de compte : ce n'est PAS une panne (aucun secours WhatsApp) et pas une erreur du client : la connexion, panier gardé.
+      if (res.status === 401 && data?.code === LOGIN_REQUIRED.code) { askLogin(); return; }
       if (!res.ok || !data?.number) { failed(res.status, data?.code, data?.error ?? "Ta commande n'a pas pu partir. Réessaie, ou appelle le restaurant."); return; }
-      setSent({ number: data.number, totalCents: data.totalCents ?? cartTotal(cart), phone });
+      setSent({ number: data.number, totalCents: data.totalCents ?? cartTotal(cart), phone: cleanPhone(phone) ?? "" });
+      try { localStorage.removeItem(cartKey); } catch { /* rien à effacer */ }
       setCart([]);
       setShowCart(false);
       setPhase("sent");
@@ -130,8 +202,10 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
         <h1 className="text-[24px] font-semibold text-ink">Commande envoyée</h1>
         <p className="text-[32px] font-semibold leading-tight text-ink">N° {sent.number}</p>
         <p className="text-[17px] text-ink">À payer au comptoir en venant la chercher : <b className="tabular-nums">{euro(sent.totalCents)}</b>.</p>
-        <p className="text-[15px] text-ink">Le restaurant t&apos;appelle au {sent.phone} quand elle est prête. Si tu n&apos;as pas de nouvelles au bout de dix minutes, appelle le restaurant en donnant ce numéro.</p>
-        <button type="button" className={primary} onClick={() => { setSent(null); setPhase("ready"); }}>Faire une autre commande</button>
+        <p className="text-[15px] text-ink">
+          {sent.phone !== "" ? `Le restaurant t'appelle au ${sent.phone} quand elle est prête. ` : "Le restaurant prépare ta commande. "}
+          Si tu n&apos;as pas de nouvelles au bout de dix minutes, appelle le restaurant en donnant ce numéro.
+        </p>        <button type="button" className={primary} onClick={() => { setSent(null); setPhase("ready"); }}>Faire une autre commande</button>
       </main>
     );
   }
@@ -206,6 +280,7 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
               ))}
             </ul>
             {cart.length === 0 && <p className="text-[15px] text-ink-muted">Ta commande est vide.</p>}
+            {restoredNote && <p role="status" className="rounded-lg border border-paper-border px-3 py-2 text-[15px] text-ink">{restoredNote}</p>}
 
             <div className="flex justify-between border-t border-dashed border-paper-border pt-3 text-[17px] font-semibold text-ink"><span>À payer au comptoir</span><span className="tabular-nums">{euro(cartTotal(cart))}</span></div>
 
@@ -215,10 +290,10 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
                 <input id="co-prenom" value={firstName} maxLength={24} autoComplete="given-name" onChange={(e) => setFirstName(e.target.value)} className={field} />
               </div>
               <div>
-                <label htmlFor="co-tel" className="mb-1 block text-[15px] font-semibold text-ink">Ton téléphone</label>
+                <label htmlFor="co-tel" className="mb-1 block text-[15px] font-semibold text-ink">Ton téléphone (facultatif)</label>
                 <input id="co-tel" type="tel" inputMode="tel" value={phone} maxLength={20} autoComplete="tel" placeholder="0470 12 34 56" onChange={(e) => setPhone(e.target.value)} className={field} aria-describedby="co-tel-aide" />
                 <p id="co-tel-aide" className="mt-1 text-[13px] text-ink-muted">
-                  {phone.trim() !== "" && !phoneOk ? "Ce numéro n'est pas lisible. Exemple : 0470 12 34 56." : `Le restaurant t'appelle quand c'est prêt. Ton prénom et ton téléphone ne servent qu'à ça : ils sont effacés après ${menu.retentionDays} jours.`}
+                  {phone.trim() !== "" && !phoneOk ? "Ce numéro n'est pas lisible. Exemple : 0470 12 34 56. Tu peux aussi le laisser vide." : `Pour que le restaurant t'appelle quand c'est prêt. Ton prénom et ton téléphone sont effacés après ${menu.retentionDays} jours.`}
                 </p>
               </div>
             </div>
@@ -251,11 +326,27 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
                 )}
                 <p className="text-[13px] text-ink-muted">Rien n&apos;a été enregistré sur le site. En général, WhatsApp affiche deux coches bleues quand le restaurant a ouvert ton message.</p>
               </div>
+            ) : needLogin ? (
+              <div className="space-y-3">
+                <div role="alert" className="rounded-lg border border-paper-border bg-white px-3 py-3">
+                  <p className="text-[17px] font-semibold text-ink">{LOGIN_REQUIRED.message}</p>
+                  <p className="mt-1 text-[13px] text-ink-muted">Tu retrouveras ta commande telle quelle après la connexion. Aucun message publicitaire sans ton accord.</p>
+                </div>
+                <button type="button" onClick={() => void signInWithGoogle()} className={`${ghost} w-full`}>Continuer avec Google</button>
+                <div className="flex gap-2">
+                  <Link href="/login" className={`${primary} flex flex-1 items-center justify-center`}>Me connecter</Link>
+                  <Link href="/signup" className={`${ghost} flex flex-1 items-center justify-center`}>Créer un compte</Link>
+                </div>
+                {error && <p role="alert" className="rounded-lg border border-danger px-3 py-2 text-[15px] text-danger">{error}</p>}
+              </div>
             ) : (
               <>
                 {error && <p role="alert" className="rounded-lg border border-danger px-3 py-2 text-[15px] text-danger">{error}</p>}
                 <button type="button" disabled={!canSend} onClick={() => void send()} className={`${primary} w-full`}>{sending ? "Envoi…" : `Envoyer ma commande · ${euro(cartTotal(cart))}`}</button>
-                <p className="text-[13px] text-ink-muted">Tu ne paies rien en ligne : tu règles au comptoir en venant la retirer.</p>
+                <p className="text-[13px] text-ink-muted">
+                  Tu ne paies rien en ligne : tu règles au comptoir en venant la retirer.
+                  {signedIn === false && " Un compte te sera demandé à l'envoi, ton panier est gardé."}
+                </p>
               </>
             )}
           </div>

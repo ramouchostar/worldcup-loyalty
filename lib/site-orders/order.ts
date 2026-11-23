@@ -1,4 +1,4 @@
-// ADR 0099 §2 et §6, ADR 0100 §11 — la commande du site : ce qu'un client envoie, ce que le SERVEUR en retient. Logique PURE
+// ADR 0099 §2 et §6, ADR 0100 §11, ADR 0108 §2 — la commande du site : ce qu'un client envoie, ce que le SERVEUR en retient. Logique PURE
 // et testée. Règle de fer : le navigateur envoie des identifiants de plats, des quantités et des choix, JAMAIS un prix ni un
 // nom de plat ; tout le reste (prix, noms, coins de cuisine, lignes lisibles) est recalculé ici à partir du catalogue.
 
@@ -22,7 +22,8 @@ export function siteOrdersEnabledFor(restaurantId: string, env: string | undefin
 // ─── La demande ──────────────────────────────────────────────────────────────
 
 export type OrderLineIn = { articleId: string; qty: number; selection: Selection };
-export type OrderRequest = { firstName: string; phone: string; lines: OrderLineIn[] };
+/** `phone` est facultatif (ADR 0108 §2) : un compte Google n'en donne pas, et le restaurateur n'en a pas besoin pour servir. */
+export type OrderRequest = { firstName: string; phone: string | null; lines: OrderLineIn[] };
 
 export type RefusalCode =
   | "forme" | "prenom" | "telephone" | "trop_de_lignes" | "quantite" | "plat_inconnu" | "plat_indisponible"
@@ -47,8 +48,12 @@ export function checkRequest(raw: unknown): CheckedRequest {
   const rawName = typeof raw.firstName === "string" ? raw.firstName.replace(/[<>\u0000-\u001f]/g, "").trim() : "";
   if (rawName === "") return { ok: false, code: "prenom", message: "Dis-nous ton prénom, pour que le restaurant t'appelle quand c'est prêt." };
   const firstName = cleanFirstName(rawName);
-  const phone = cleanPhone(raw.phone);
-  if (phone === null) return { ok: false, code: "telephone", message: "Ce numéro de téléphone n'est pas lisible. Exemple : 0470 12 34 56." };
+  // Facultatif : absent ou vide = pas de téléphone. Donné mais illisible = refusé (une faute de frappe se corrige, elle ne se devine pas).
+  const rawPhone = typeof raw.phone === "string" ? raw.phone.trim() : raw.phone;
+  const phone = rawPhone === undefined || rawPhone === null || rawPhone === "" ? null : cleanPhone(rawPhone);
+  if (phone === null && rawPhone !== undefined && rawPhone !== null && rawPhone !== "") {
+    return { ok: false, code: "telephone", message: "Ce numéro de téléphone n'est pas lisible. Exemple : 0470 12 34 56. Tu peux aussi le laisser vide." };
+  }
   if (!Array.isArray(raw.lines) || raw.lines.length === 0) return { ok: false, code: "forme", message: "Ta commande est vide." };
   if (raw.lines.length > MAX_LINES) return { ok: false, code: "trop_de_lignes", message: `Trop de plats d'un coup (${MAX_LINES} au plus). Appelle le restaurant.` };
   const lines: OrderLineIn[] = [];

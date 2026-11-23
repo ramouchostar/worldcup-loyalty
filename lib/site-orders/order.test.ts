@@ -43,6 +43,23 @@ test("cleanPhone : chiffres seulement, + gardé, 8 à 15 chiffres", () => {
   assert.equal(cleanPhone("<script>"), null);
 });
 
+test("checkRequest : le téléphone est facultatif (ADR 0108 §2), mais un numéro donné doit être lisible", () => {
+  const lines = [{ articleId: "cola", qty: 1 }];
+  for (const phone of [undefined, null, "", "   "]) {
+    const r = checkRequest({ firstName: "Amina", phone, lines });
+    assert.ok(r.ok, String(phone));
+    if (r.ok) assert.equal(r.request.phone, null);
+  }
+  const given = checkRequest({ firstName: "Amina", phone: "0470 12 34 56", lines });
+  assert.ok(given.ok);
+  if (given.ok) assert.equal(given.request.phone, "0470123456");
+  for (const phone of ["12", "abc", 470123456]) {
+    const r = checkRequest({ firstName: "Amina", phone, lines });
+    assert.equal(r.ok, false, String(phone));
+    if (!r.ok) assert.equal(r.code, "telephone");
+  }
+});
+
 test("checkRequest : prénom, téléphone, lignes, quantités", () => {
   const ok = checkRequest({ firstName: "  Amina  B. ", phone: "0470 12 34 56", lines: [{ articleId: "cola", qty: 2 }] });
   assert.ok(ok.ok);
