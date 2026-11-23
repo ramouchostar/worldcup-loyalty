@@ -202,3 +202,39 @@ SELECT
 FROM demandes d
 FULL JOIN commandes c USING (restaurant_id)
 ORDER BY connexions_demandees DESC;
+
+-- 16. Les points des commandes du site (ADR 0108 §5, migration 20261123-1000) : chaque commande retirée par un compte a-t-elle
+-- rapporté ses points ? Une ligne par commande dans point_transactions (raison `site_order_points`) :
+--   - creditees                  : delta > 0, les points sont dans le solde (disponibles 4 h après la remise) ;
+--   - sans_point_ticket_proche   : delta = 0, le même compte avait un ticket à moins de 6 h dans ce restaurant (même repas, pas de
+--                                  double compte) ;
+--   - credit_manquant            : AUCUNE ligne : le crédit a échoué (cherche « credit_site_order_points » dans les journaux de la
+--                                  base) ou la migration n'était pas appliquée à la remise. Doit rester à 0.
+-- Seuils : credit_manquant > 0 = un bug, à corriger avant d'ouvrir à d'autres établissements ; plus d'une commande retirée sur
+-- cinq « sans_point_ticket_proche » = la fenêtre de 6 h est trop large, ou les clients photographient leur ticket malgré tout.
+SELECT
+  so.restaurant_id,
+  COUNT(*)                                                          AS commandes_retirees_avec_compte,
+  COUNT(*) FILTER (WHERE pt.id IS NOT NULL AND pt.delta > 0)        AS creditees,
+  COUNT(*) FILTER (WHERE pt.id IS NOT NULL AND pt.delta = 0)        AS sans_point_ticket_proche,
+  COUNT(*) FILTER (WHERE pt.id IS NULL)                             AS credit_manquant,
+  MIN(so.picked_up_at)::date                                        AS depuis
+FROM site_orders so
+LEFT JOIN point_transactions pt ON pt.site_order_id = so.id AND pt.reason = 'site_order_points'
+WHERE so.status = 'retiree' AND so.member_id IS NOT NULL
+GROUP BY 1
+ORDER BY 2 DESC;
+
+-- 16 bis. La fuite connue du double compte (ADR 0108 §5) : des tickets signalés « Commande du site récente » que le restaurateur a
+-- VALIDÉS quand même. Chacun est un repas peut-être compté deux fois (la commande du site a déjà rapporté ses points). Seuil :
+-- plus de la moitié des tickets signalés qui sont validés = les restaurateurs ne lisent pas le signalement, ou le signalement est trop large.
+SELECT
+  restaurant_id,
+  COUNT(*)                                       AS tickets_signales,
+  COUNT(*) FILTER (WHERE status = 'validated')   AS valides_quand_meme,
+  COUNT(*) FILTER (WHERE status = 'rejected')    AS refuses,
+  COUNT(*) FILTER (WHERE status = 'pending')     AS en_attente
+FROM orders
+WHERE 'site_order_recent' = ANY(flag_reasons)
+GROUP BY 1
+ORDER BY 2 DESC;
