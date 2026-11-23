@@ -62,6 +62,21 @@ export function supabaseOrdersDb(): OrdersDb {
       const { error } = await admin.from("site_order_refusals").insert({ restaurant_id: restaurantId, reason: reason.slice(0, 60) });
       if (error && !isMissingSiteTable(error)) console.error("[site-orders] refus non tracé :", error.message);
     },
+    async countRefusals(restaurantId, sinceIso) {
+      const { data, error } = await admin
+        .from("site_order_refusals")
+        .select("reason")
+        .eq("restaurant_id", restaurantId)
+        .gte("created_at", sinceIso)
+        .limit(5000); // un plafond : au-delà, le compte exact n'importe plus, l'alerte est déjà allumée
+      if (error) {
+        if (isMissingSiteTable(error)) throw new SiteOrdersUnavailableError();
+        throw fail("refus", error);
+      }
+      const counts: Record<string, number> = {};
+      for (const r of (data ?? []) as { reason: string }[]) counts[r.reason] = (counts[r.reason] ?? 0) + 1;
+      return counts;
+    },
     async listOrders(restaurantId, sinceIso) {
       const { data, error } = await admin
         .from("site_orders")

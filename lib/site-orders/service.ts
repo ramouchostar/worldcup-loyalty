@@ -35,6 +35,8 @@ export interface OrdersDb {
   /** `linked` = la commande a été écrite AVEC le lien vers le compte (faux si la migration `member_id` n'est pas appliquée). */
   insert(row: NewOrderRow): Promise<{ ok: true; id: string; linked: boolean } | { ok: false; conflict: true }>;
   recordRefusal(restaurantId: string, reason: string): Promise<void>;
+  /** Les refus de l'établissement depuis `sinceIso`, comptés par motif (`site_order_refusals`) : la matière des alertes de Nina (ADR 0108 §6). */
+  countRefusals(restaurantId: string, sinceIso: string): Promise<Record<string, number>>;
   listOrders(restaurantId: string, sinceIso: string): Promise<OrderRow[]>;
   /** Change l'état SEULEMENT si la commande est encore dans l'état `from` ; renvoie `false` sinon. */
   transition(restaurantId: string, id: string, from: OrderStatus, patch: Record<string, unknown>): Promise<boolean>;

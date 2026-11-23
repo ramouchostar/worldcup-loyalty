@@ -25,6 +25,7 @@ class MemOrdersDb implements OrdersDb {
     return { ok: true as const, id, linked: row.member_id !== null };
   }
   async recordRefusal(_r: string, reason: string) { this.refusals.push(reason); }
+  async countRefusals() { const c: Record<string, number> = {}; for (const r of this.refusals) c[r] = (c[r] ?? 0) + 1; return c; }
   async listOrders(r: string) { return this.rows.filter((x) => x.restaurant_id === r); }
   async transition(r: string, id: string, from: OrderStatus, patch: Record<string, unknown>) {
     const row = this.rows.find((x) => x.id === id && x.restaurant_id === r && x.status === from);
