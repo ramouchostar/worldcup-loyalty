@@ -1,8 +1,8 @@
 // ADR 0111 §1 — « le panier survit à la lecture d'un article ». Les pages d'articles ne font que LIRE le panier que la
 // page de commande garde dans le navigateur (même clé, même relecture que lib/site-orders/cart.ts) pour proposer
 // « Voir mon panier ». Elles ne l'écrivent ni ne l'effacent jamais.
-// ⚠️ La clé est écrite aujourd'hui dans components/commander/OrderApp.tsx (`site_order_cart:<établissement>`) : si elle
-// change là-bas, elle change ici.
+// ⚠️ La clé est aussi écrite dans la page de commande (components/commander, `site_order_cart:<établissement>`) : si elle
+// change là-bas, elle change ici (un test le vérifie).
 
 import { cartCount, restoreCart } from "../site-orders/cart";
 import type { PublicMenu } from "../site-orders/menu";

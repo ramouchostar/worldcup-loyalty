@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { addToCart, saveCart } from "../site-orders/cart";
 import type { PublicItem, PublicMenu } from "../site-orders/menu";
@@ -53,9 +53,11 @@ test("le panier gardé par la page de commande se compte sans être touché", ()
 });
 
 test("la clé du panier est la même que celle de la page de commande", () => {
-  const files = ["components/commander/OrderApp.tsx", "lib/site-orders/cart.ts"].map((f) => readFileSync(join(process.cwd(), f), "utf8")).join("\n");
+  // La page de commande est faite de plusieurs fichiers : on la lit en entier, la clé peut passer de l'un à l'autre.
+  const dir = join(process.cwd(), "components", "commander");
+  const page = readdirSync(dir).filter((f) => /\.tsx?$/.test(f)).map((f) => readFileSync(join(dir, f), "utf8")).join("\n");
   assert.equal(cartStorageKey("x"), "site_order_cart:x");
-  assert.ok(files.includes("site_order_cart"), "la page de commande a changé de clé : ajuster lib/restaurant-posts/cart-peek.ts");
+  assert.ok(page.includes("`site_order_cart:${restaurantId}`"), "la page de commande a changé de clé : ajuster lib/restaurant-posts/cart-peek.ts");
 });
 
 test("les articles ne sont pas indexés : noindex, absents du plan du site, pas bloqués dans robots.txt (ADR 0111 §2)", () => {
