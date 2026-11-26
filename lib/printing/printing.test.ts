@@ -30,6 +30,19 @@ test("wrap : coupe aux espaces, décale la suite, coupe un mot trop long au lieu
   assert.deepEqual(wrap("", 10), []);
 });
 
+test("chaque ticket s'ouvre par « COMMANDE DU SITE » : il ne se confond pas avec un ticket de livraison", () => {
+  const tickets = buildTickets(order, { split: true, cashier: true });
+  assert.ok(tickets.length > 1);
+  for (const columns of [COLUMNS_80MM, COLUMNS_58MM]) {
+    for (const t of tickets) {
+      assert.deepEqual(paperLines(t, columns).slice(0, 2), [
+        { text: "COMMANDE DU SITE", width: 1, height: 2, bold: true, align: "center" },
+        { text: "À retirer et payer au comptoir", width: 1, height: 1, bold: false, align: "center" },
+      ]);
+    }
+  }
+});
+
 test("le prénom est en double largeur et double hauteur, en gras et centré, sur chaque ticket", () => {
   for (const t of buildTickets(order, { split: true, cashier: true })) {
     const name = paperLines(t).find((l) => l.text === "Amina");
