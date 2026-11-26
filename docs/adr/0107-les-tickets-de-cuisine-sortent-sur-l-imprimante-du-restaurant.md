@@ -120,6 +120,11 @@ Le but est de **réutiliser** ce qu'il possède. Avant tout code d'adaptateur, *
 
 **Écrit, pas branché** : `lib/printing/paper.ts` (mise en page commune aux marques : prénom en grand, « SANS X » en gras, repli des caractères du §5, 48 ou 35 colonnes) et `lib/printing/epson.ts` (document ePOS-Print, réponse et lecture du résultat « Server Direct Print »). Purs et testés : ni route, ni table, ni écran. La mise en page sert quel que soit le canal.
 
+**L'imprimante est partagée** (dit par le restaurant, rapporté par Omar le 2026-11-26) : la même sort les tickets **Deliveroo, Uber Eats et Takeaway**. Deux suites :
+
+- **Chaque ticket du site s'ouvre par « COMMANDE DU SITE »** et « À retirer et payer au comptoir » (validé par Omar sur un aperçu en texte), pour ne pas être pris pour une livraison.
+- **Un mauvais réglage arrêterait les trois plateformes.** Pour l'essai, conseil donné : une imprimante compatible **réservée au site**, sans toucher à celle qui sert. Pas encore tranché. Pour partager plus tard : le guide de la TM-m30II dit qu'un modèle à plusieurs connexions garde les données de chacune à part et les imprime à tour de rôle ; à demander, **quel appareil envoie les tickets des plateformes et par quelle liaison** (un PC qui les imprime ouvrirait la voie d'une application relais sur ce PC).
+
 ## La mise en service (la scène)
 
 **Boosteats installe.** L'équipe relève l'imprimante (§12), la branche ou la configure, colle dans ses réglages l'adresse secrète donnée par la console (« Ajouter une imprimante »), règle les coins, puis touche « Ticket de test ». La console dit « vue il y a 3 s » ou « jamais vue », avec la marche à suivre. **Un établissement n'est pas ouvert aux commandes tant qu'un ticket de test n'est pas sorti**, et un modèle n'entre dans la liste « testé » qu'après ce ticket. La durée de chaque installation se note : c'est le vrai coût de la promesse, et la base du prix.

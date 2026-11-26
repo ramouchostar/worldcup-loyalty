@@ -58,6 +58,13 @@ export function wrap(text: string, columns: number, indent = 0): string[] {
 
 const euros = (cents: number): string => `${(cents / 100).toFixed(2).replace(".", ",")} €`;
 
+/**
+ * L'en-tête de CHAQUE ticket : l'imprimante peut aussi sortir les tickets des plateformes de livraison (c'est le cas à
+ * Kraainem), la cuisine doit voir d'un coup d'œil qu'il s'agit d'une commande du site, retirée et payée au comptoir.
+ */
+export const SITE_HEADER = "COMMANDE DU SITE";
+export const SITE_HEADER_NOTE = "À retirer et payer au comptoir";
+
 /** La mise en page d'un ticket. Le prénom en très grand, les plats en haut, « SANS X » en gras et en haut : lu de loin. */
 export function paperLines(ticket: Ticket, columns: number = COLUMNS_80MM): PaperLine[] {
   const out: PaperLine[] = [];
@@ -73,6 +80,8 @@ export function paperLines(ticket: Ticket, columns: number = COLUMNS_80MM): Pape
   };
   const rule = () => out.push({ text: "-".repeat(columns), width: 1, height: 1, bold: false, align: "left" });
 
+  add(SITE_HEADER, { height: 2, bold: true, align: "center" });
+  add(SITE_HEADER_NOTE, { align: "center" });
   add(ticket.title, { bold: true, align: "center" });
   add(ticket.firstName, { width: 2, height: 2, bold: true, align: "center" });
   add(ticket.meta, { align: "center" });
