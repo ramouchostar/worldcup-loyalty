@@ -1,6 +1,6 @@
 # ADR 0107 — Les tickets de cuisine sortent sur l'imprimante du restaurant, ou le client envoie sa commande par WhatsApp
 
-**Statut** : Proposé (2026-11-20, révisé le même jour après les décisions du porteur). Choisit le principe d'impression que l'[ADR 0099](0099-le-site-de-commande-en-option.md) §2 laissait ouvert (Restent ouverts 4), réalise ce que l'[ADR 0100](0100-les-options-se-reglent-par-groupes-de-plats.md) §9 appelait « rien n'est imprimé », et **complète l'ADR 0099 §2** : une imprimante hors ligne bloque l'envoi, mais le client garde son panier et peut l'envoyer par WhatsApp (§10). **Amende l'ADR 0099 §8** (le forfait) **si Mehdi le confirme dans cette PR** : le site de commande ne serait plus réservé au Pro (§12). **Rien n'est construit** : cet ADR se valide avant le code. La commande du site reste fermée par `SITE_ORDER_RESTAURANTS` (vide) ; aucune imprimante n'a été essayée.
+**Statut** : Proposé (2026-11-20, révisé le même jour après les décisions du porteur). Choisit le principe d'impression que l'[ADR 0099](0099-le-site-de-commande-en-option.md) §2 laissait ouvert (Restent ouverts 4), réalise ce que l'[ADR 0100](0100-les-options-se-reglent-par-groupes-de-plats.md) §9 appelait « rien n'est imprimé », et **complète l'ADR 0099 §2** : une imprimante hors ligne bloque l'envoi, mais le client garde son panier et peut l'envoyer par WhatsApp (§10). **Amende l'ADR 0099 §8** (le forfait) **si Mehdi le confirme dans cette PR** : le site de commande ne serait plus réservé au Pro (§12). À la rédaction, rien n'était construit : cet ADR se valide avant le code. La commande du site reste fermée par `SITE_ORDER_RESTAURANTS` (vide) ; aucune imprimante n'a été essayée. **Amendé le 2026-11-26** (§13, toujours « Proposé ») : Kraainem passe en premier, donc **Epson avant Star**, et la traduction du ticket est écrite sans être branchée.
 
 ## Contexte
 
@@ -102,6 +102,24 @@ Le but est de **réutiliser** ce qu'il possède. Avant tout code d'adaptateur, *
 
 **Forfait et prix** (décision de Mehdi rapportée par Omar, **à confirmer**) : le site de commande **n'est plus réservé au Pro** (amende l'ADR 0099 §8, où « Pro seulement » avait été précisé le 2026-11-13) ; **l'installation est facturée, sauf pour les plans Pro**. Le **prix de l'installation** n'est pas fixé (Restent ouverts 3). Le code de l'accès (`lib/site-orders/access.ts`, qui exige aujourd'hui le drapeau **et** un forfait Pro) change dans une PR à part, une fois la décision confirmée ; les échos du §8 de l'ADR 0099 (landing, blog, fiche marketing) se mettent à jour le jour où le drapeau s'ouvre, pas avant.
 
+### 13. Kraainem d'abord, donc Epson (2026-11-26)
+
+**La demande** (Omar) : faire l'essai au Belchicken de Kraainem, qui a des imprimantes Epson. L'ordre du §1 s'inverse : **Epson d'abord**, Star ensuite.
+
+**Ce que montrent les photos envoyées par le restaurant** : des Epson compactes de la série TM-m (levier de capot gris, repère NFC, boutons en façade), a priori **TM-m30 ou TM-m30II**. La photo ne départage pas les versions : leurs façades se ressemblent. Près de l'une d'elles, un PC affiche des onglets de commandes et un téléphone « Prêt à recevoir des commandes » : **elle sert peut-être déjà à autre chose**. À demander, avec le **ticket d'auto-test** de chaque imprimante (nom du produit, micrologiciel, type de connexion).
+
+**Ce qui décide** (liste « Server Direct Print » d'Epson, rév. U, août 2023) : le canal direct existe sur les TM-m30II-H, -NT, -S, -SL, les TM-m30III, m50, m50II, les TM-T88VI et VII, et plusieurs modèles « -i » et « -DT ». **Ni la TM-m30 ni la TM-m30II sans suffixe n'y figurent**, et le guide technique de la TM-m30II ne mentionne pas cette fonction. Dans ce cas : une **imprimante compatible réservée aux commandes du site** (TM-m30III vue à 299,95 € dans une annonce en Belgique le 2026-11-26, offre non vérifiée) ou l'**application relais** (§1). Le choix reste ouvert jusqu'au ticket d'auto-test.
+
+**Lu dans les manuels** (« Server Direct Print » rév. K, plus ancienne que la liste ci-dessus, et « ePOS-Print XML » rév. AF ; à relire pour le modèle retenu) :
+
+- L'imprimante envoie un POST de formulaire (`ConnectionType=GetRequest`, `ID`) à intervalle réglable. Rien à imprimer : réponse 200 **vide**. Sinon : `PrintRequestInfo` en version 2.00, avec un **numéro de tirage**.
+- Après l'impression, elle renvoie `ConnectionType=SetResponse` avec le résultat (`success`, code : plus de papier, capot ouvert…).
+- HTTPS pris en charge, avec une vérification optionnelle du certificat du serveur (certificats à enregistrer), et une authentification **Digest** (ID et mot de passe réglés dans l'imprimante).
+
+**Ce que cela corrige dans cet ADR** : au §6, une Epson **sait** s'authentifier (Digest) et sa demande porte un `ID`, **pas d'adresse MAC** ; l'adresse secrète reste commune aux marques, la vérification MAC ne vaut que pour Star. Au §7, la demande d'une Epson ne dit pas l'état du papier ou du capot : on le sait par le résultat d'un tirage (ou par la fonction « Status Notification », non étudiée).
+
+**Écrit, pas branché** : `lib/printing/paper.ts` (mise en page commune aux marques : prénom en grand, « SANS X » en gras, repli des caractères du §5, 48 ou 35 colonnes) et `lib/printing/epson.ts` (document ePOS-Print, réponse et lecture du résultat « Server Direct Print »). Purs et testés : ni route, ni table, ni écran. La mise en page sert quel que soit le canal.
+
 ## La mise en service (la scène)
 
 **Boosteats installe.** L'équipe relève l'imprimante (§12), la branche ou la configure, colle dans ses réglages l'adresse secrète donnée par la console (« Ajouter une imprimante »), règle les coins, puis touche « Ticket de test ». La console dit « vue il y a 3 s » ou « jamais vue », avec la marche à suivre. **Un établissement n'est pas ouvert aux commandes tant qu'un ticket de test n'est pas sorti**, et un modèle n'entre dans la liste « testé » qu'après ce ticket. La durée de chaque installation se note : c'est le vrai coût de la promesse, et la base du prix.
@@ -133,8 +151,8 @@ ADR 0099 §2 (l'imprimante confirme ; hors ligne = blocage **avec secours**), §
 
 ## Restent ouverts
 
-1. **Quelles imprimantes ont les restaurants pilotes** (Houba, De Bue, Kraainem) : modèle, branchement, usage par la caisse. Photographier l'étiquette sous chaque imprimante. **C'est ce qui décide du premier adaptateur.**
-2. **Epson** : lire la documentation complète (accès refusé à la page du fabricant), dont la liste des modèles, avant de l'ajouter.
+1. **Quelles imprimantes ont les restaurants pilotes** (Houba, De Bue, Kraainem) : modèle, branchement, usage par la caisse. Kraainem : série Epson TM-m d'après les photos (§13), **ticket d'auto-test attendu** ; Houba et De Bue : inconnus. **C'est ce qui décide du canal.**
+2. **Epson** : liste des modèles et échange lus (§13). Reste à relire pour le modèle retenu : confirmation du tirage (version 2.00), certificat accepté en HTTPS, page de codes (§5).
 3. **Le prix de l'installation** (gratuite en Pro) et **qui commande** l'imprimante quand il faut en acheter une.
 4. **La caisse certifiée** (ADR 0099, Restent ouverts 3) : toujours à faire confirmer avant la première commande réelle.
 5. **Un établissement sans imprimante** : console et carillon seulement, ou WhatsApp comme circuit principal (le client envoie, le restaurateur lit sur son téléphone) ?
