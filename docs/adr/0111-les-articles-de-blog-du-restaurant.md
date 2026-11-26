@@ -77,6 +77,20 @@ Indexer serait **une autre décision** : elle rouvre l'ADR 0108 §1 (plus de pag
 
 **Français seulement**, avec la langue notée sur chaque article. Pas de traduction automatique. Le néerlandais viendra avec la traduction de la page de commande.
 
+### Mise en œuvre de la première tranche (2026-11-26, sans Nina)
+
+Migration `20261126-1300-restaurant-posts` (**à appliquer à la main** ; sans elle, bloc client caché et console « pas encore activés »). Règles pures et testées dans `lib/restaurant-posts/`. **Jamais exécuté sur une base ni un stockage réels, jamais essayé sur un téléphone.** Précisions prises à la construction, à confirmer :
+
+- La console (`/admin/<établissement>/articles`) passe par les **mêmes portes** que les pages client. La plateforme y lit sans rien pouvoir changer.
+- L'**adresse** se tire du titre à la première publication et ne change plus ; la date montrée est celle de la première publication.
+- Un article **masqué** ne se republie pas tant que Boosteats n'a pas levé le masquage, et lever le masquage le laisse « retiré ». Masquer : `POST /api/admin/restaurant-posts/moderation` (super-admin), **aucun écran** ; les signalements se lisent dans les mesures et les journaux.
+- La **case des droits** n'est demandée que si l'article a des photos.
+- Photos réenregistrées en JPEG ; adresses signées de **10 minutes**.
+- Les compteurs et les signalements ne gardent rien sur le lecteur ; la limite en nombre porte sur l'article (et, pour un signalement, sur une empreinte d'adresse utilisée pour la seule limite).
+- Suppression de compte : l'auteur est détaché ; la preuve « qui a coché les droits » et la trace des gestes restent (à valider avec le juriste, §7).
+- **Reste à raccorder à la page de commande** : garder le panier pendant la lecture (§1) et ouvrir la fiche du plat sur `?plat=<identifiant>` (« Choisir ce plat »).
+- Mesures : `docs/mesures/suivi-blog-restaurant.sql`.
+
 ## Conséquences
 
 - **Trois tables nouvelles**, réservées au serveur (aucune migration dans cet ADR) :
