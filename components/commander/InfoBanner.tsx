@@ -10,7 +10,7 @@ export function InfoBanner({ openness, phone, signedIn }: { openness: Openness |
   if (openness?.state === "inconnu") {
     return (
       <p className={notice}>
-        <b className="font-semibold">Appelle le restaurant pour commander{phone ? <> : <a href={telHref(phone)} className="underline">{phone}</a></> : null}.</b>{" "}
+        <b className="font-semibold">Appelle le restaurant pour commander{phone ? <> : <a href={telHref(phone)} className="whitespace-nowrap underline">{phone}</a></> : null}.</b>{" "}
         Ses horaires ne peuvent pas être vérifiés pour le moment, l&apos;envoi en ligne est donc fermé.
       </p>
     );
