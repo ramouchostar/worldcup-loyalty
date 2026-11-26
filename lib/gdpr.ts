@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase";
 import { purgeUserReceiptImages } from "./receipt-scans";
 import { CONSENT_PURPOSES, recordConsents } from "./consent";
+import { detachPostAuthor } from "./restaurant-posts/db";
 
 // ADR 0022 — Droits des personnes : portabilité (export) et effacement.
 // Effacement = ANONYMISATION : on strippe les données personnelles du profil
@@ -173,6 +174,10 @@ export async function deleteUserData(userId: string): Promise<string[]> {
   await purgeUserReceiptImages(userId);
   const { error: scansError } = await admin.from("receipt_scans").delete().eq("user_id", userId);
   check("receipt_scans", scansError);
+
+  // 2 quater. ADR 0111 — les articles de blog portent le nom du restaurant : ils
+  //    restent, mais leur auteur est détaché. (Sans la migration : rien à faire.)
+  check("restaurant_posts", await detachPostAuthor(userId));
 
   // 3. ADR 0023 — retours qualité : on ANONYMISE (on garde la statistique non
   //    nominative pour le baromètre), on efface le commentaire et les messages
