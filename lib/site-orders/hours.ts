@@ -1,4 +1,6 @@
-// ADR 0108 §4, ADR 0109 §3 — le restaurant est-il ouvert MAINTENANT selon sa fiche Google ? Logique PURE et testée.
+// ADR 0108 §4, ADR 0109 §3 — le restaurant est-il ouvert MAINTENANT ? Logique PURE et testée. Les horaires viennent de la
+// fiche Google ou de ce que le restaurant a saisi (quelle source l'emporte : `hours-source.ts`) ; ses fermetures passent
+// avant tout.
 //
 // Trois réponses, jamais une supposition : « ouvert » (jusqu'à quand), « fermé » (quand il rouvre), « inconnu ». Fermé comme
 // inconnu : aucune commande n'est prise, le panier se garde. Tout se calcule à l'heure de Bruxelles, horaires qui passent
@@ -8,6 +10,7 @@
 import type { HoursBlock, HoursPoint } from "../audit/places";
 import { brusselsInstant } from "../mission-cancellation";
 import { brusselsDay } from "./order";
+import type { WeeklyHours } from "./weekly-hours";
 
 export type FicheHours = { businessStatus?: string | null; current?: HoursBlock | null; regular?: HoursBlock | null };
 
@@ -63,6 +66,20 @@ function clock(p: HoursPoint): [number, number] | null {
 }
 
 type Interval = { start: number; end: number; endKnown: boolean };
+
+/** Ce qu'une source dit, avant les fermetures du restaurant. */
+export type HoursBase =
+  | { kind: "periods"; intervals: Interval[]; announced: Moment | null } // des ouvertures datées
+  | { kind: "closed"; opens: Moment | null } // la source dit « fermé » : ce n'est pas un silence
+  | { kind: "unknown" }; // la source ne dit rien
+
+/** Des jours de service fermés par le restaurant, bornes comprises (AAAA-MM-JJ). */
+export type Closure = { from: string; to: string };
+
+/** Un « jour de service » commence à 5 h : une soirée qui finit après minuit appartient à la veille. */
+export const SERVICE_DAY_START_HOUR = 5;
+/** Les horaires saisis sont dépliés sur ce nombre de jours : au-delà, aucune réouverture n'est annoncée. */
+const WEEKLY_HORIZON_DAYS = 62;
 
 function datedWall(p: HoursPoint | undefined): number | null {
   const d = p?.date;
@@ -128,27 +145,87 @@ function announced(nextOpenTime: string | undefined, now: Date): Moment | null {
   return Number.isFinite(at) && at > now.getTime() ? momentOf(brusselsWall(new Date(at))) : null;
 }
 
-export function computeOpenness(hours: FicheHours, now: Date = new Date()): Openness {
-  if (hours.businessStatus && CLOSED_STATUSES.has(hours.businessStatus)) return { state: "ferme", opens: null };
-  const wall = brusselsWall(now);
+/** La fiche Google, lue à l'instant. */
+export function googleBase(hours: FicheHours, now: Date = new Date()): HoursBase {
+  if (hours.businessStatus && CLOSED_STATUSES.has(hours.businessStatus)) return { kind: "closed", opens: null };
   for (const [block, dated] of [[hours.current, true], [hours.regular, false]] as const) {
     if (!block) continue;
     const periods = block.periods ?? [];
     if (periods.length === 0) {
       // Aucune période : fermé si la fiche le dit, sinon on ne sait rien de ce bloc.
-      if (block.openNow === false) return { state: "ferme", opens: announced(block.nextOpenTime, now) };
+      if (block.openNow === false) return { kind: "closed", opens: announced(block.nextOpenTime, now) };
       continue;
     }
     const intervals = dated ? fromDated(periods) : fromWeekly(periods, brusselsDay(now));
     // Des horaires courants illisibles ne se remplacent pas par les ordinaires : un jour exceptionnel serait ignoré.
-    if (intervals === null) return { state: "inconnu" };
-    const merged = merge(intervals);
-    const open = merged.find((i) => i.start <= wall && wall < i.end);
-    if (open) return { state: "ouvert", closes: open.endKnown ? momentOf(open.end) : null };
-    const next = merged.find((i) => i.start > wall);
-    return { state: "ferme", opens: next ? momentOf(next.start) : announced(block.nextOpenTime, now) };
+    if (intervals === null) return { kind: "unknown" };
+    return { kind: "periods", intervals: merge(intervals), announced: announced(block.nextOpenTime, now) };
   }
-  return { state: "inconnu" };
+  return { kind: "unknown" };
+}
+
+/** Les horaires saisis par le restaurant, dépliés à partir d'hier (un service d'hier peut encore courir). */
+export function weeklyBase(weekly: WeeklyHours, now: Date = new Date()): HoursBase {
+  const today = brusselsDay(now);
+  const intervals: Interval[] = [];
+  for (let offset = -1; offset <= WEEKLY_HORIZON_DAYS; offset++) {
+    const day = addDays(today, offset);
+    const weekday = (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7; // lundi d'abord
+    for (const service of weekly[weekday] ?? []) {
+      const [oh, om] = service.open.split(":").map(Number);
+      const [ch, cm] = service.close.split(":").map(Number);
+      const start = wallOf(day, oh, om);
+      const end = wallOf(service.close <= service.open ? addDays(day, 1) : day, ch, cm);
+      intervals.push({ start, end, endKnown: true });
+    }
+  }
+  const horizon = wallOf(addDays(today, WEEKLY_HORIZON_DAYS), 0, 0);
+  // Ouvert sans interruption jusqu'au bout de la fenêtre : aucune fermeture à annoncer.
+  return { kind: "periods", intervals: merge(intervals).map((i) => (i.end >= horizon ? { ...i, endKnown: false } : i)), announced: null };
+}
+
+/** Le jour de service d'un instant : avant 5 h, c'est encore la veille. */
+export function serviceDay(now: Date = new Date()): string {
+  return momentOf(brusselsWall(now) - SERVICE_DAY_START_HOUR * 60).day;
+}
+
+export const isClosedDay = (closures: readonly Closure[], day: string): boolean => closures.some((c) => c.from <= day && day <= c.to);
+
+/** Retire des ouvertures les jours de service fermés (de 5 h à 5 h). */
+function subtract(intervals: Interval[], closures: readonly Closure[]): Interval[] {
+  let pieces = intervals;
+  for (const c of closures) {
+    const from = wallOf(c.from, SERVICE_DAY_START_HOUR, 0);
+    const to = wallOf(addDays(c.to, 1), SERVICE_DAY_START_HOUR, 0);
+    pieces = pieces.flatMap((i) => {
+      if (i.end <= from || i.start >= to) return [i];
+      const out: Interval[] = [];
+      if (i.start < from) out.push({ start: i.start, end: from, endKnown: true });
+      if (i.end > to) out.push({ start: to, end: i.end, endKnown: i.endKnown });
+      return out;
+    });
+  }
+  return pieces;
+}
+
+/** Ouvert, fermé ou inconnu à l'instant `now` : les fermetures du restaurant d'abord, puis la source. */
+export function evaluateHours(base: HoursBase, closures: readonly Closure[], now: Date = new Date()): Openness {
+  const wall = brusselsWall(now);
+  const closedNow = isClosedDay(closures, serviceDay(now));
+  /** Une réouverture annoncée n'est reprise que si elle ne tombe pas un jour fermé. */
+  const allowed = (m: Moment | null) => (m && !isClosedDay(closures, serviceDay(new Date(m.at))) ? m : null);
+  if (base.kind === "unknown") return closedNow ? { state: "ferme", opens: null } : { state: "inconnu" };
+  if (base.kind === "closed") return { state: "ferme", opens: allowed(base.opens) };
+  const pieces = subtract(base.intervals, closures);
+  const open = pieces.find((i) => i.start <= wall && wall < i.end);
+  if (open) return { state: "ouvert", closes: open.endKnown ? momentOf(open.end) : null };
+  const next = pieces.find((i) => i.start > wall);
+  return { state: "ferme", opens: next ? momentOf(next.start) : allowed(base.announced) };
+}
+
+/** Ce que la fiche Google seule dit maintenant. */
+export function computeOpenness(hours: FicheHours, now: Date = new Date()): Openness {
+  return evaluateHours(googleBase(hours, now), [], now);
 }
 
 /**
