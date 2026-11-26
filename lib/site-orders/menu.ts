@@ -31,8 +31,19 @@ export type PublicItem = {
   groups: OptionGroup[];
 };
 
+/** L'identité du restaurant, telle qu'elle est en base (ADR 0108 §4 : une seule source, rien à ressaisir). Absent = ligne absente. */
+export type PublicRestaurant = {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  address?: string | null;
+  phone?: string | null;
+  /** Les types de cuisine choisis par le restaurateur (« Poulet frit »). */
+  cuisine?: string | null;
+};
+
 export type PublicMenu = {
-  restaurant: { id: string; name: string; logoUrl: string | null };
+  restaurant: PublicRestaurant;
   /** Combien de jours le prénom et le téléphone sont gardés (lib/site-orders/purge.ts) : dit au client, jamais inventé. */
   retentionDays: number;
   /** Le numéro WhatsApp de commande choisi par le restaurateur (chiffres seuls, indicatif compris), pour le secours du client quand l'envoi échoue (ADR 0107 §10). `null` = pas de secours WhatsApp. Montré aux clients : le restaurateur le sait. */
@@ -43,7 +54,7 @@ export type PublicMenu = {
 };
 
 export type MenuInput = {
-  restaurant: { id: string; name: string; logoUrl: string | null };
+  restaurant: PublicRestaurant;
   rows: MenuRow[];
   trees: Map<string, OptionGroup[]>;
   imageUrl: (path: string | null) => string | null;

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { OptionChoice, OptionGroup } from "../menu-options/types";
 import { checkRequest, priceOrder, type CatalogItem } from "./order";
 import type { PublicItem, PublicMenu } from "./menu";
-import { SAVED_CART_MAX_AGE_MS, addToCart, cartCount, cartTotal, lineKey, pruneSelection, removeLine, restoreCart, saveCart, selectionState, setChoiceQty, setLineQty, startSelection, toOrderLines } from "./cart";
+import { SAVED_CART_MAX_AGE_MS, addToCart, cartCount, cartTotal, lineKey, pruneSelection, removeLine, replaceLine, restoreCart, resumeCart, saveCart, selectionState, setChoiceQty, setLineQty, startSelection, toOrderLines } from "./cart";
 
 const choice = (id: string, name: string, o: Partial<OptionChoice> = {}): OptionChoice => ({ id, libraryId: `l-${id}`, name, priceDelta: 0, maxQty: 1, isDefault: false, isAvailable: true, groups: [], ...o });
 const group = (id: string, kind: OptionGroup["kind"], min: number, max: number | null, choices: OptionChoice[]): OptionGroup => ({ id, title: id, kind, min, max, choices });
@@ -171,4 +171,49 @@ test("restoreCart : rien n'est cru d'un navigateur : quantités folles, lignes e
   const back = restoreCart({ savedAt: NOW0, lines }, menu([item]), NOW0 + 1000);
   assert.equal(back.cart.length, 0);
   assert.equal(back.dropped, lines.length);
+});
+
+// ─── Le panier gardé à chaque changement (ADR 0111 §1) ───────────────────────
+
+test("resumeCart : un simple retour restaure en silence, sans ouvrir le panier", () => {
+  const raw = JSON.parse(JSON.stringify(saveCart(addToCart([], item, burgerSelection(), 2), NOW0)));
+  const back = resumeCart(raw, menu([item]), NOW0 + 60_000);
+  assert.equal(cartCount(back.cart), 2);
+  assert.equal(back.open, false);
+  assert.equal(back.note, null);
+});
+
+test("resumeCart : le retour de la connexion ouvre le panier et l'annonce", () => {
+  const raw = { ...saveCart(addToCart([], item, burgerSelection(), 1), NOW0), login: true };
+  const back = resumeCart(JSON.parse(JSON.stringify(raw)), menu([item]), NOW0 + 60_000);
+  assert.equal(back.open, true);
+  assert.equal(back.note, "On a retrouvé ta commande.");
+});
+
+test("resumeCart : un plat écarté se dit même au retour silencieux ; la durée de vie reste de deux heures", () => {
+  const cola: PublicItem = { id: "cola", name: "Cola", priceCents: 250, description: null, allergens: { text: "x", confirmed: false }, imageUrl: null, groups: [] };
+  const raw = JSON.parse(JSON.stringify(saveCart(addToCart(addToCart([], item, burgerSelection(), 1), cola, {}, 1), NOW0)));
+  const back = resumeCart(raw, menu([cola]), NOW0 + 1000);
+  assert.equal(back.open, false);
+  assert.equal(back.note, "Un plat n'est plus proposé ou a changé : il a été retiré.");
+  assert.equal(SAVED_CART_MAX_AGE_MS, 2 * 60 * 60 * 1000);
+  const old = resumeCart({ ...raw, login: true }, menu([cola, item]), NOW0 + SAVED_CART_MAX_AGE_MS + 1);
+  assert.deepEqual(old, { cart: [], open: false, note: null });
+});
+
+test("replaceLine : les choix changent à leur place ; deux lignes devenues identiques se réunissent", () => {
+  const ketchup = burgerSelection();
+  const mayo = setChoiceQty(groups, startSelection(groups), "sauces", "mayo", 1);
+  const cart = addToCart(addToCart([], item, ketchup, 1), item, mayo, 2);
+  const large = setChoiceQty(groups, ketchup, "taille", "l", 1);
+  const changed = replaceLine(cart, cart[0].key, item, large, 3);
+  assert.equal(changed.length, 2);
+  assert.equal(changed[0].qty, 3);
+  assert.equal(changed[0].unitCents, cart[0].unitCents + 100);
+  assert.equal(changed[1], cart[1]);
+  const merged = replaceLine(cart, cart[0].key, item, mayo, 1);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].qty, 3);
+  // la ligne a disparu entre-temps : le plat s'ajoute, il ne se perd pas
+  assert.equal(replaceLine([], cart[0].key, item, mayo, 1).length, 1);
 });

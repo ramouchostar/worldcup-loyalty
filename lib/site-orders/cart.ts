@@ -114,10 +114,26 @@ export const cartCount = (cart: Cart): number => cart.reduce((n, l) => n + l.qty
 export const toOrderLines = (cart: Cart): { articleId: string; qty: number; selection: Selection }[] =>
   cart.map((l) => ({ articleId: l.articleId, qty: l.qty, selection: l.selection }));
 
-// ─── Le panier qui attend la connexion (ADR 0108 §2) ─────────────────────────
+/** Change les choix ou la quantité d'une ligne, à sa place. Devenue identique à une autre ligne, elle la rejoint. */
+export function replaceLine(cart: Cart, key: string, item: PublicItem, selection: Selection, qty: number): Cart {
+  if (!cart.some((l) => l.key === key)) return addToCart(cart, item, selection, qty);
+  const [changed] = addToCart([], item, selection, qty);
+  const twin = cart.find((l) => l.key === changed.key && l.key !== key);
+  if (twin) return removeLine(cart, key).map((l) => (l.key === twin.key ? { ...l, qty: Math.min(MAX_QTY, l.qty + changed.qty) } : l));
+  return cart.map((l) => (l.key === key ? changed : l));
+}
 
-/** Ce qui attend dans le navigateur pendant que le client se connecte : des identifiants, des quantités, des choix. Jamais un prix ni un nom. */
-export type SavedCart = { savedAt: number; lines: { articleId: string; qty: number; selection: Selection }[] };
+// ─── Le panier gardé dans le navigateur (ADR 0108 §2, ADR 0111 §1) ───────────
+// Il s'écrit à chaque changement : le client peut lire une autre page et revenir. Un simple retour le restaure en
+// silence ; seul le retour de la connexion l'ouvre et l'annonce.
+
+/** Ce qui est gardé dans le navigateur : des identifiants, des quantités, des choix. Jamais un prix ni un nom. */
+export type SavedCart = {
+  savedAt: number;
+  lines: { articleId: string; qty: number; selection: Selection }[];
+  /** Posé quand le client part se connecter : à son retour, la page ouvre le panier et dit qu'elle l'a retrouvé. */
+  login?: boolean;
+};
 
 /** Un panier de plus de deux heures n'est plus celui du client : on ne le retrouve pas (même durée que le cookie de retour). */
 export const SAVED_CART_MAX_AGE_MS = 2 * 60 * 60 * 1000;
@@ -160,6 +176,23 @@ export function restoreCart(raw: unknown, menu: PublicMenu, now: number = Date.n
     cart = addToCart(cart, item, pruned, l.qty);
   }
   return { cart, dropped };
+}
+
+export type Resumed = {
+  cart: Cart;
+  /** Le client revient de la connexion : ouvrir le panier. */
+  open: boolean;
+  /** Ce que la page dit, ou `null` quand elle n'a rien à dire. Un plat écarté se dit toujours. */
+  note: string | null;
+};
+
+/** Ce que la page fait du panier gardé quand le client arrive. */
+export function resumeCart(raw: unknown, menu: PublicMenu, now: number = Date.now()): Resumed {
+  const { cart, dropped } = restoreCart(raw, menu, now);
+  const open = cart.length > 0 && isRecord(raw) && raw.login === true;
+  const droppedNote = dropped === 0 ? "" : dropped === 1 ? "Un plat n'est plus proposé ou a changé : il a été retiré." : `${dropped} plats ne sont plus proposés ou ont changé : ils ont été retirés.`;
+  const note = [open ? "On a retrouvé ta commande." : "", droppedNote].filter(Boolean).join(" ");
+  return { cart, open, note: note === "" ? null : note };
 }
 
 export const euro = (cents: number): string => (cents / 100).toLocaleString("fr-BE", { style: "currency", currency: "EUR" });

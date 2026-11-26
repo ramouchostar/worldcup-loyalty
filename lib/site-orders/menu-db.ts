@@ -14,12 +14,27 @@ const isMissingColumn = (error: { code?: string; message?: string } | null) =>
 
 const BASE = "id, name, category, menu_price, is_active, image_path";
 
+const IDENTITY = "id, name, logo_url, status";
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
+
+type RestaurantRow = { id: string; name: string; logo_url: string | null; status: string; address?: string | null; phone?: string | null; cuisine_types?: string[] | null };
+
+/** L'établissement et ce qui le présente. Sans les colonnes facultatives (m29, 20261001-2321), la ligne est absente, jamais une erreur. */
+async function readRestaurant(admin: ReturnType<typeof createAdminClient>, restaurantId: string): Promise<RestaurantRow | null> {
+  let last = "";
+  for (const cols of [`${IDENTITY}, address, cuisine_types, phone`, `${IDENTITY}, address, cuisine_types`, IDENTITY]) {
+    const { data, error } = await admin.from("restaurants").select(cols).eq("id", restaurantId).maybeSingle();
+    if (!error) return data as unknown as RestaurantRow | null;
+    if (!isMissingColumn(error)) throw new Error(`restaurants : ${error.message}`);
+    last = error.message;
+  }
+  throw new Error(`restaurants : ${last}`);
+}
+
 /** Le menu commandable d'un établissement actif ; `null` si l'établissement n'existe pas ou n'est pas actif. */
 export async function readPublicMenu(restaurantId: string): Promise<PublicMenu | null> {
   const admin = createAdminClient();
-  const r = await admin.from("restaurants").select("id, name, logo_url, status").eq("id", restaurantId).maybeSingle();
-  if (r.error) throw new Error(`restaurants : ${r.error.message}`);
-  const resto = r.data as { id: string; name: string; logo_url: string | null; status: string } | null;
+  const resto = await readRestaurant(admin, restaurantId);
   if (!resto || resto.status !== "active") return null;
 
   let rows: MenuRow[] | null = null;
@@ -34,7 +49,10 @@ export async function readPublicMenu(restaurantId: string): Promise<PublicMenu |
   }
   const [trees, whatsapp] = await Promise.all([loadOptionTrees(restaurantId, (rows ?? []).map((x) => x.id)), readWhatsApp(restaurantId)]);
   return buildPublicMenu({
-    restaurant: { id: resto.id, name: resto.name, logoUrl: logoPublicUrl(resto.logo_url) },
+    restaurant: {
+      id: resto.id, name: resto.name, logoUrl: logoPublicUrl(resto.logo_url),
+      address: text(resto.address), phone: text(resto.phone), cuisine: text((resto.cuisine_types ?? []).map((c) => c.trim()).filter(Boolean).join(", ")),
+    },
     rows: rows ?? [],
     trees,
     imageUrl: menuImageUrl,
