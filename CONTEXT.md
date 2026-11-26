@@ -22,6 +22,22 @@ _Avoid_ : commande (seule — réservé à la commande directe d'un membre), tic
 La page `/commander/<établissement>` d'un restaurant, pour l'app et pour le navigateur : identité du restaurant, carte, panier. **Un compte Boosteats est demandé pour envoyer** (e-mail ou Google), jamais pour regarder. Remplace l'idée de site vitrine (ADR 0088). Une commande retirée crédite des points au membre ; **Nina** s'occupe de tout : création, personnalisation, alertes, rapports (elle propose, le gérant valide). La fiche Google sert en coulisse (identité, horaires) : aucun lien visible n'est décidé.
 _Avoid_ : site vitrine, site internet (réservés à l'ancien ADR 0088), commande anonyme.
 
+**Commande planifiée** *(ADR 0109)* :
+Commande du site dont le client choisit l'heure de retrait, même restaurant fermé. Elle monte en cuisine à l'heure de lancement (retrait moins le délai de préparation). **Pas encore construite.**
+_Avoid_ : précommande, réservation, livraison programmée.
+
+**Heure de retrait** *(ADR 0109)* :
+L'heure demandée par le client (`site_orders.pickup_at`, à créer). Une demande : la page ne dit pas que le restaurant l'a acceptée.
+_Avoid_ : heure de livraison, créneau garanti.
+
+**Offre de la page de commande** *(ADR 0110)* :
+Offre écrite et publiée par le gérant, montrée sur la page de commande. Elle ne change aucun prix : la remise se fait au comptoir. **Pas encore construite.**
+_Avoid_ : coupon, cadeau, bon, code promo, remise appliquée.
+
+**Article de blog** *(ADR 0111)* :
+Texte publié par le restaurant dans son espace de commande, non indexé par Google, jamais sans « Oui, publier ». Le client lit « Nos articles ». **Pas encore construit.**
+_Avoid_ : « article » seul (réservé à une ligne de la carte), annonce (c'est un envoi), idée.
+
 **Secours WhatsApp** *(ADR 0107 §10)* :
 Quand une commande du site ne peut pas être prise (panne, pas de réseau, plus tard imprimante hors ligne), le client **garde son panier** et le restaurateur reçoit sa commande par un **message WhatsApp ordinaire** que le client envoie lui-même (bouton « Envoyer ma commande via WhatsApp », lien `wa.me`, sans l'API WhatsApp Business). **Rien n'est enregistré** dans ce cas : pas de numéro de commande, donc aucun doublon avec l'imprimante. Ne s'ouvre jamais pour une erreur que le client corrige (prénom, choix) ni pour la limite par adresse. Les deux coches bleues de WhatsApp dépendent du téléphone du restaurateur : elles disent « ouvert », pas « en préparation ».
 _Avoid_ : envoi automatique (c'est le client qui appuie sur « Envoyer »), commande WhatsApp (ce n'est pas une commande du site).
