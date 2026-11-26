@@ -19,7 +19,7 @@ const [single] = buildTickets(order, { split: false, cashier: false });
 test("printable : les accents restent, les signes typographiques et les emojis sont remplacés ou retirés", () => {
   assert.equal(printable("Bœuf « maison » – l’original… 🍟"), 'Boeuf " maison " - l\'original...');
   assert.equal(printable("Pâtes à l'ail · Crème brûlée"), "Pâtes à l'ail - Crème brûlée");
-  assert.equal(printable("A B C\u0007D\nE"), "A B C D E");
+  assert.equal(printable("A\u00a0B\u202fC\u2009D\u2007E\u0007F\nG"), "A B C D E F G");
   assert.equal(printable("2× FRITES 3,50 €"), "2× FRITES 3,50 €");
 });
 

@@ -22,7 +22,8 @@ const REPLACEMENTS: readonly [RegExp, string][] = [
   [/œ/g, "oe"], [/Œ/g, "OE"], [/æ/g, "ae"], [/Æ/g, "AE"],
   [/[‘’‚′]/g, "'"], [/[“”„″«»]/g, '"'],
   [/[‐-―−]/g, "-"], [/…/g, "..."], [/[·•]/g, "-"],
-  [/[   ]/g, " "],
+  // Espaces insécables et fines, écrites en échappements : en clair, un éditeur les change en espaces ordinaires sans le dire.
+  [/[\u00a0\u2007\u2009\u202f]/g, " "],
 ];
 
 /**
