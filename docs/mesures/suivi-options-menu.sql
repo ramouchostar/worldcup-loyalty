@@ -238,3 +238,24 @@ FROM orders
 WHERE 'site_order_recent' = ANY(flag_reasons)
 GROUP BY 1
 ORDER BY 2 DESC;
+
+-- 17. Le rapport de la semaine (ADR 0108 §6) : les mêmes chiffres, recalculés dans la base, à COMPARER à l'écran
+-- « Rapport de la semaine » (sept jours belges, aujourd'hui compris). Un écart = l'écran ment, ou la requête : à chercher.
+-- Le total est en euros : requête pour l'équipe, jamais montrée à un client (ADR 0007).
+WITH debut AS (
+  SELECT ((now() AT TIME ZONE 'Europe/Brussels')::date - 6)::timestamp AT TIME ZONE 'Europe/Brussels' AS depuis
+)
+SELECT
+  so.restaurant_id,
+  COUNT(*)                                                            AS recues,
+  COUNT(*) FILTER (WHERE so.status = 'retiree')                       AS retirees,
+  COUNT(*) FILTER (WHERE so.status = 'annulee')                       AS annulees,
+  ROUND(COALESCE(SUM(so.total_cents) FILTER (WHERE so.status = 'retiree'), 0) / 100.0, 2) AS total_retirees_eur,
+  ROUND(AVG(ROUND(EXTRACT(EPOCH FROM (so.ready_at - so.created_at)) / 60)) FILTER (WHERE so.ready_at >= so.created_at)) AS delai_moyen_min,
+  COUNT(DISTINCT so.member_id) FILTER (WHERE m.joined_at BETWEEN so.created_at AND so.created_at + INTERVAL '5 minutes') AS nouveaux_membres
+FROM site_orders so
+CROSS JOIN debut
+LEFT JOIN memberships m ON m.user_id = so.member_id AND m.restaurant_id = so.restaurant_id
+WHERE so.created_at >= debut.depuis
+GROUP BY 1
+ORDER BY 2 DESC;
