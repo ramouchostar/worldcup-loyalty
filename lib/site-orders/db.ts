@@ -6,10 +6,10 @@ import { loadOptionTrees } from "../menu-options/store";
 import type { CatalogItem, OrderStatus } from "./order";
 import { SiteOrdersUnavailableError, type NewOrderRow, type OrderRow, type OrdersDb } from "./service";
 
-const isMissingSiteTable = (error: { code?: string; message?: string } | null) =>
+export const isMissingSiteTable = (error: { code?: string; message?: string } | null) =>
   !!error && (error.code === "PGRST205" || error.code === "42P01" || (/site_order/.test(error.message ?? "") && /(does not exist|Could not find the table)/i.test(error.message ?? "")));
 
-const isMissingColumn = (error: { code?: string; message?: string } | null) =>
+export const isMissingColumn = (error: { code?: string; message?: string } | null) =>
   !!error && (error.code === "PGRST204" || error.code === "42703" || /column .*(does not exist|schema cache)|Could not find the '.*' column/i.test(error.message ?? ""));
 
 export function supabaseOrdersDb(): OrdersDb {
