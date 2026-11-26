@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAdminAccess } from "@/lib/admin-guard";
+import { canSeePosts } from "@/lib/restaurant-posts/states";
+import { siteOrdersAvailable } from "@/lib/site-orders/access";
 import { getRestaurant } from "@/lib/restaurant";
 import { todayInBrussels } from "@/lib/qr-funnel";
 import { marketplaceEnabled } from "@/lib/missions";
@@ -45,7 +47,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ rest
   const today = todayInBrussels();
   const monthStart = `${today.slice(0, 8)}01`;
 
-  const [restaurant, ideas, revenue, audience, history, scheduled, pub] = await Promise.all([
+  const [restaurant, ideas, revenue, audience, history, scheduled, pub, orderSpace] = await Promise.all([
     getRestaurant(restaurantId),
     loadMarketingIdeas(restaurantId),
     loadRevenueDays(restaurantId, today),
@@ -53,6 +55,8 @@ export default async function MarketingPage({ params }: { params: Promise<{ rest
     loadAnnouncementsAndTickets(restaurantId, today),
     loadScheduled(restaurantId),
     loadPub(restaurantId, access.isSuperAdmin),
+    // ADR 0111 — le blog vit dans l'espace de commande : mêmes portes.
+    siteOrdersAvailable(restaurantId),
   ]);
 
   const announcements = history.ok ? announcementResults(history.data.announcements, history.data.ticketDays, today) : [];
@@ -88,6 +92,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ rest
     marketplace: marketplaceEnabled(access.isSuperAdmin),
     promoReachable: audience.ok ? audience.data.promoReachable : null,
     pubThumb: lastThumb,
+    articles: { open: orderSpace, allowed: canSeePosts(access) },
   });
 
   return (
@@ -275,7 +280,14 @@ function Figure({ value, label, strong = false }: { value: string; label: string
 
 // ── 3. La galerie ────────────────────────────────────────────
 
-function galleryTiles(p: { base: string; pubOpen: boolean; marketplace: boolean; promoReachable: number | null; pubThumb: string | null }): GalleryTile[] {
+function galleryTiles(p: {
+  base: string;
+  pubOpen: boolean;
+  marketplace: boolean;
+  promoReachable: number | null;
+  pubThumb: string | null;
+  articles: { open: boolean; allowed: boolean };
+}): GalleryTile[] {
   const tiles: GalleryTile[] = [
     {
       id: "pub",
@@ -298,6 +310,18 @@ function galleryTiles(p: { base: string; pubOpen: boolean; marketplace: boolean;
       text: "Une notification sur leur téléphone",
       facts: p.promoReachable !== null ? [`${fr(p.promoReachable)} clients`] : [],
       href: `${p.base}/broadcast`,
+    },
+    {
+      id: "article",
+      category: "revenir",
+      image: null,
+      icon: "phone",
+      badge: p.articles.open ? undefined : "Bientôt",
+      title: "Écrire un article",
+      text: "Une nouvelle à lire sur ta page de commande",
+      facts: [],
+      href: p.articles.open && p.articles.allowed ? `${p.base}/articles` : null,
+      closedNote: p.articles.open ? "Réservé aux gérants et managers." : "Avec ton espace de commande (forfait Pro, en pilote).",
     },
     {
       id: "parrainage",
