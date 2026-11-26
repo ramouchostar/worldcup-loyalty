@@ -2,6 +2,7 @@
 // pour être testée sans Supabase. Aucune règle de prix ici : tout vient de `order.ts`.
 
 import type { OptionGroup } from "../menu-options/types";
+import { openingRefusal, type Openness } from "./hours";
 import {
   brusselsDay, canTransition, checkRequest, formatNumber, isOrderStatus, priceOrder, readLines,
   type CatalogItem, type OrderLine, type OrderStatus, type RefusalCode,
@@ -27,6 +28,8 @@ export type OrderRow = {
 };
 
 export interface OrdersDb {
+  /** Le restaurant est-il ouvert maintenant selon sa fiche (ADR 0108 §4, ADR 0109 §3) ? Lève sur une panne de NOTRE côté. */
+  readOpenness(restaurantId: string, now: Date): Promise<Openness>;
   loadCatalog(restaurantId: string, ids: string[]): Promise<Map<string, CatalogItem>>;
   loadTrees(restaurantId: string, ids: string[]): Promise<Map<string, OptionGroup[]>>;
   /** Le plus grand numéro déjà pris ce jour-là (0 si aucun). */
@@ -50,7 +53,9 @@ export type PlaceOutcome =
 const MAX_NUMBER_TRIES = 4;
 
 /**
- * Reçoit une commande : forme, plats, choix, prix recalculé, numéro du jour. Rien n'est écrit si quoi que ce soit est faux.
+ * Reçoit une commande : forme, restaurant ouvert, plats, choix, prix recalculé, numéro du jour. Rien n'est écrit si quoi que
+ * ce soit est faux. Restaurant fermé (`ferme`) ou horaires inconnus (`horaires_inconnus`) : 409, jamais un 5xx (le secours
+ * WhatsApp ne doit pas s'ouvrir).
  * `memberId` = le compte connecté qui l'envoie (ADR 0108 §2) : la route le lit de la session, jamais du corps de la demande.
  */
 export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: unknown, now: Date = new Date(), memberId: string | null = null): Promise<PlaceOutcome> {
@@ -58,6 +63,15 @@ export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: un
   if (!checked.ok) return { ok: false, status: 400, code: checked.code, message: checked.message };
   const { request } = checked;
   const ids = [...new Set(request.lines.map((l) => l.articleId))];
+
+  // Les horaires avant les plats : un restaurant fermé n'a pas à juger une carte. La page a pu lire « ouvert » plus tôt.
+  try {
+    const closed = openingRefusal(await db.readOpenness(restaurantId, now), now);
+    if (closed) return { ok: false, status: 409, code: closed.code, message: closed.message };
+  } catch (e) {
+    console.error("[site-orders] lecture des horaires :", e);
+    return { ok: false, status: 500, code: "indisponible", message: "Un souci de notre côté. Réessaie dans un instant, ou appelle le restaurant." };
+  }
 
   let catalog: Map<string, CatalogItem>;
   let trees: Map<string, OptionGroup[]>;

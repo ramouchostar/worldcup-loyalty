@@ -4,9 +4,13 @@
 // panne de notre côté (5xx), service pas encore activé, pas de réseau, et plus tard imprimante hors ligne
 // (`imprimante_hors_ligne`). Il ne s'affiche JAMAIS pour une erreur que le client peut corriger (prénom vide, choix manquant,
 // plat retiré), ni pour la limite par adresse (« limite », 429) : c'est une protection contre l'abus, le secours la contournerait.
+// Ni quand le restaurant est fermé ou que ses horaires sont inconnus (ADR 0109 §3) : un message WhatsApp ne serait lu par
+// personne, ou contournerait la règle ; la page dit d'attendre l'ouverture ou d'appeler.
 
 /** Les motifs de refus du serveur qui ouvrent le secours. Les autres (forme, prénom, choix, limite…) ne l'ouvrent pas. */
 const RESCUE_CODES: ReadonlySet<string> = new Set(["indisponible", "imprimante_hors_ligne"]);
+/** Les motifs qui n'ouvrent jamais le secours, quel que soit le statut HTTP. */
+const NEVER_RESCUE: ReadonlySet<string> = new Set(["ferme", "horaires_inconnus"]);
 
 /**
  * Le secours WhatsApp doit-il s'afficher ? `status` = 0 quand le navigateur n'a eu aucune réponse (pas de réseau, serveur
@@ -14,6 +18,7 @@ const RESCUE_CODES: ReadonlySet<string> = new Set(["indisponible", "imprimante_h
  */
 export function shouldOfferRescue(status: number, code?: string | null): boolean {
   if (status === 0) return true;
+  if (code && NEVER_RESCUE.has(code)) return false;
   if (code && RESCUE_CODES.has(code)) return true;
   return status >= 500; // une panne de notre côté, même sans code
 }

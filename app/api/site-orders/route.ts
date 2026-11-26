@@ -13,6 +13,7 @@ import { placeSiteOrder } from "@/lib/site-orders/service";
 //
 // POST /api/site-orders  { restaurantId, firstName, phone?, lines: [{ articleId, qty, selection }] }
 //   → 201 { number, totalCents, points }   ou   4xx/5xx { error, code }
+//   Restaurant fermé selon sa fiche → 409 `ferme` ; horaires inconnus → 409 `horaires_inconnus` (ADR 0108 §4, ADR 0109 §3).
 // Le navigateur n'envoie JAMAIS un prix ni un nom de plat : le serveur recalcule tout (lib/site-orders/order.ts).
 //
 // ADR 0108 §2 — il faut un COMPTE pour envoyer : sans session, 401 `connexion`, AVANT la limite par adresse (une personne
