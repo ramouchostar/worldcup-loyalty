@@ -12,6 +12,8 @@ l'[ADR 0070](0070-plans-croissance-pro-commande-en-ligne-et-referencement.md) (f
 propose, le gérant puis Mehdi valident). Appliqué avec le bouclier de l'[ADR
 0065](0065-le-bouclier-scene-trace-echos.md).
 
+> **Précisé par l'[ADR 0111](0111-les-articles-de-blog-du-restaurant.md) (2026-11-26)** : Nina pourra rédiger un brouillon d'article à la demande, en deuxième tranche ; rien n'est publié sans « Oui ».
+
 ## Contexte
 
 La console sait déjà beaucoup faire : relancer des clients, annoncer une promo, demander une pub,

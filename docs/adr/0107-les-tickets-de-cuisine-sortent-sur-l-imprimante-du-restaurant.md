@@ -2,6 +2,8 @@
 
 **Statut** : Proposé (2026-11-20, révisé le même jour après les décisions du porteur). Choisit le principe d'impression que l'[ADR 0099](0099-le-site-de-commande-en-option.md) §2 laissait ouvert (Restent ouverts 4), réalise ce que l'[ADR 0100](0100-les-options-se-reglent-par-groupes-de-plats.md) §9 appelait « rien n'est imprimé », et **complète l'ADR 0099 §2** : une imprimante hors ligne bloque l'envoi, mais le client garde son panier et peut l'envoyer par WhatsApp (§10). **Amende l'ADR 0099 §8** (le forfait) **si Mehdi le confirme dans cette PR** : le site de commande ne serait plus réservé au Pro (§12). À la rédaction, rien n'était construit : cet ADR se valide avant le code. La commande du site reste fermée par `SITE_ORDER_RESTAURANTS` (vide) ; aucune imprimante n'a été essayée. **Amendé le 2026-11-26** (§13, toujours « Proposé ») : Kraainem passe en premier, donc **Epson avant Star**, et la traduction du ticket est écrite sans être branchée.
 
+> **Amendé par l'[ADR 0109](0109-la-commande-planifiee.md) (2026-11-26)** pour les commandes planifiées : §3, §8 et §10 (ticket au lancement en cuisine, alarme à partir du lancement, heure dans le message WhatsApp).
+
 ## Contexte
 
 Aujourd'hui une commande du site est **lue à l'écran** : la console « Commandes du site » la montre avec ses tickets de cuisine par coin, et un carillon sonne tant que le restaurateur n'a pas dit « J'ai vu » (ADR 0099 §7 et §10). Le contenu des tickets est déjà calculé et testé (`lib/menu-options/tickets.ts`, logique pure : un ticket par coin, le prénom en grand, « SANS SALADE » en entier). **Aucun papier ne sort.** Le choix du découpage (un ticket par coin ou un seul, avec ou sans ticket « CAISSE · TOUT ») n'est pas enregistré.
