@@ -1,4 +1,6 @@
+import { closedNote } from "@/lib/site-orders/fiche";
 import type { Openness } from "@/lib/site-orders/hours";
+import type { HoursOrigin } from "@/lib/site-orders/hours-source";
 import { primary, telHref } from "./ui";
 
 // La barre fixée en bas de la carte sur téléphone et tablette : elle ouvre le panier, et dit pourquoi l'envoi est fermé.
@@ -7,15 +9,17 @@ import { primary, telHref } from "./ui";
 type Props = {
   count: number;
   openness: Openness | null;
+  /** D'où vient « ouvert ou fermé ». */
+  origin: HoursOrigin | null;
   signedIn: boolean | null;
   phone: string | null;
   onOpen: () => void;
 };
 
-export function CartBar({ count, openness, signedIn, phone, onOpen }: Props) {
+export function CartBar({ count, openness, origin, signedIn, phone, onOpen }: Props) {
   const state = openness?.state;
   const note =
-    state === "ferme" ? "Horaires lus sur la fiche Google du restaurant."
+    state === "ferme" ? closedNote(origin ?? "google")
       : state === "inconnu" ? "L'envoi en ligne est fermé pour le moment."
         : signedIn === true ? null : "Pas besoin de compte pour regarder. Il te faudra un compte pour envoyer.";
   const open = count > 0 && (

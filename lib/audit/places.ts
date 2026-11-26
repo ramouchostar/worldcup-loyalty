@@ -303,6 +303,9 @@ export interface PlaceOrderingInfo {
   regularOpeningHours: HoursBlock | null;
   /** Fournisseurs tiers que Google demande de citer avec ce résultat. */
   attributions: { provider?: string; providerUri?: string }[];
+  /** Lecture de la console seulement : pour dire si l'adresse et le téléphone du restaurant sont ceux de la fiche. */
+  address?: string | null;
+  phone?: string | null;
 }
 
 const ORDERING_FIELDS = [
@@ -312,13 +315,20 @@ const ORDERING_FIELDS = [
   "attributions",
 ].join(",");
 
+/** Quand le restaurant montre ses propres horaires, la page ne demande que la note : les horaires reviennent alors vides. */
+const RATING_FIELDS = ["rating", "userRatingCount", "attributions"].join(",");
+
+/** La console ajoute l'adresse et le téléphone de la fiche, écrits comme à l'inscription. */
+const CONSOLE_FIELDS = `${ORDERING_FIELDS},formattedAddress,nationalPhoneNumber`;
+
 /** `timeoutMs` court : une page de commande n'attend pas dix secondes une réponse de Google. */
-export async function placeOrderingInfo(placeId: string, timeoutMs = 4_000): Promise<PlaceOrderingInfo> {
+export async function placeOrderingInfo(placeId: string, timeoutMs = 4_000, wanted: "horaires" | "note" | "console" = "horaires"): Promise<PlaceOrderingInfo> {
   if (!/^[\w-]{10,300}$/.test(placeId)) throw new PlacesError("identifiant de fiche invalide");
   const p = await call<{
     rating?: number; userRatingCount?: number; businessStatus?: string; currentOpeningHours?: HoursBlock;
     regularOpeningHours?: HoursBlock; attributions?: { provider?: string; providerUri?: string }[];
-  }>(`/places/${encodeURIComponent(placeId)}?languageCode=fr&regionCode=be`, { fieldMask: ORDERING_FIELDS, timeoutMs });
+    formattedAddress?: string; nationalPhoneNumber?: string;
+  }>(`/places/${encodeURIComponent(placeId)}?languageCode=fr&regionCode=be`, { fieldMask: wanted === "note" ? RATING_FIELDS : wanted === "console" ? CONSOLE_FIELDS : ORDERING_FIELDS, timeoutMs });
   return {
     rating: typeof p.rating === "number" ? p.rating : null,
     reviewsCount: typeof p.userRatingCount === "number" ? p.userRatingCount : null,
@@ -326,6 +336,7 @@ export async function placeOrderingInfo(placeId: string, timeoutMs = 4_000): Pro
     currentOpeningHours: p.currentOpeningHours ?? null,
     regularOpeningHours: p.regularOpeningHours ?? null,
     attributions: p.attributions ?? [],
+    ...(wanted === "console" ? { address: p.formattedAddress ?? null, phone: p.nationalPhoneNumber ?? null } : {}),
   };
 }
 

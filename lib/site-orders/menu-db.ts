@@ -6,6 +6,7 @@ import { menuImageUrl } from "../menu-images";
 import { loadOptionTrees } from "../menu-options/store";
 import { logoPublicUrl } from "../restaurant";
 import { buildPublicMenu, type MenuRow, type PublicMenu } from "./menu";
+import { readPageSettings } from "./page-settings-db";
 import { purgeDays } from "./purge";
 import { readWhatsApp } from "./settings";
 
@@ -47,11 +48,20 @@ export async function readPublicMenu(restaurantId: string): Promise<PublicMenu |
     rows = (data ?? []) as unknown as MenuRow[];
     break;
   }
-  const [trees, whatsapp] = await Promise.all([loadOptionTrees(restaurantId, (rows ?? []).map((x) => x.id)), readWhatsApp(restaurantId)]);
+  const [trees, whatsapp, presentation] = await Promise.all([
+    loadOptionTrees(restaurantId, (rows ?? []).map((x) => x.id)),
+    readWhatsApp(restaurantId),
+    // La phrase de présentation est un plus : illisible, la carte s'affiche quand même, et le journal le dit.
+    readPageSettings(restaurantId).then((s) => s.presentation).catch((e) => {
+      console.error("[site-orders] présentation illisible :", e instanceof Error ? e.message : e);
+      return null;
+    }),
+  ]);
   return buildPublicMenu({
     restaurant: {
       id: resto.id, name: resto.name, logoUrl: logoPublicUrl(resto.logo_url),
       address: text(resto.address), phone: text(resto.phone), cuisine: text((resto.cuisine_types ?? []).map((c) => c.trim()).filter(Boolean).join(", ")),
+      presentation,
     },
     rows: rows ?? [],
     trees,

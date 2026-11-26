@@ -3,10 +3,12 @@ import { Location, Star } from "@/components/icons";
 import { ratingLabel, type FicheView } from "@/lib/site-orders/fiche";
 import { OPENNESS_TITLE, opennessDetail, type Openness } from "@/lib/site-orders/hours";
 import type { PublicRestaurant } from "@/lib/site-orders/menu";
+import { presentationLine } from "@/lib/site-orders/page-settings";
 import { accentFill, telHref } from "./ui";
 
-// ADR 0108 §4 — l'en-tête de l'espace : le restaurant tel qu'il est en base (nom, logo, adresse, téléphone) et ce que sa
-// fiche Google dit maintenant (ouvert ou fermé, note). Une information absente n'a pas de ligne.
+// ADR 0108 §4 — l'en-tête de l'espace : le restaurant tel qu'il est en base (nom, logo, présentation, adresse, téléphone),
+// s'il est ouvert maintenant (d'après ses horaires ou ceux de sa fiche Google) et sa note Google. Une information absente n'a
+// pas de ligne.
 
 const DOT: Record<Openness["state"], string> = { ouvert: "bg-good", ferme: "bg-danger", inconnu: "bg-ink-faint" };
 
@@ -26,7 +28,7 @@ const Line = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
 
 /** La mention exigée par Google à côté de ce qui vient de sa fiche : le texte « Google Maps », jamais traduit ni coupé. */
 function Attribution({ fiche }: { fiche: FicheView }) {
-  const what = [fiche.openness.state === "inconnu" ? null : "Horaires", fiche.rating ? "note" : null].filter(Boolean).join(" et ");
+  const what = [fiche.hoursFromGoogle ? "Horaires" : null, fiche.rating ? "note" : null].filter(Boolean).join(" et ");
   if (what === "") return null;
   return (
     <p className="text-[13px] text-ink-muted">
@@ -65,7 +67,7 @@ export function OrderHeader({ restaurant, fiche, openness, now }: Props) {
           )}
           <div className="min-w-0">
             <h1 className="break-words text-[20px] font-semibold leading-tight text-ink lg:text-[32px]">{restaurant.name}</h1>
-            <p className="mt-0.5 break-words text-[13px] text-ink-muted lg:mt-1 lg:text-[15px]">{restaurant.cuisine ? `${restaurant.cuisine}, à emporter` : "À emporter"}</p>
+            <p className="mt-0.5 break-words text-[13px] text-ink-muted lg:mt-1 lg:text-[15px]">{presentationLine(restaurant)}</p>
           </div>
         </div>
 

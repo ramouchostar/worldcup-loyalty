@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { PlaceOrderingInfo } from "../audit/places";
-import { VIEW_REASON_PREFIX, ficheView, ratingLabel, viewReason, type FicheRead } from "./fiche";
+import { VIEW_REASON_PREFIX, closedNote, ficheView, ratingLabel, viewReason, type FicheRead } from "./fiche";
+import { NO_SETTINGS } from "./page-settings";
 
 const info = (extra: Partial<PlaceOrderingInfo> = {}): PlaceOrderingInfo => ({
   rating: 3.5, reviewsCount: 156, businessStatus: "OPERATIONAL", currentOpeningHours: null,
@@ -31,7 +32,7 @@ test("les mentions de fournisseurs tiers suivent le résultat ; un lien douteux 
 test("fiche non lue : horaires inconnus, aucune note, et le compteur dit pourquoi", () => {
   const read: FicheRead = { ok: false, cause: "places_absent" };
   const view = ficheView(read, NOW);
-  assert.deepEqual(view, { readAt: NOW.toISOString(), openness: { state: "inconnu" }, rating: null, attributions: [] });
+  assert.deepEqual(view, { readAt: NOW.toISOString(), openness: { state: "inconnu" }, origin: "aucune", hoursFromGoogle: false, rating: null, attributions: [] });
   assert.equal(viewReason(read, view), "fiche_vue_inconnu:places_absent");
 });
 
@@ -41,6 +42,31 @@ test("les compteurs de visites ont un préfixe commun et tiennent dans la colonn
     { ok: true, info: info({ regularOpeningHours: null }) }, { ok: false, cause: "pas_de_fiche" }, { ok: false, cause: "lecture_impossible" },
   ];
   const reasons = reads.map((r) => viewReason(r, ficheView(r, NOW)));
-  assert.deepEqual(reasons, ["fiche_vue_ouvert", "fiche_vue_ferme", "fiche_vue_inconnu:sans_horaires", "fiche_vue_inconnu:pas_de_fiche", "fiche_vue_inconnu:lecture_impossible"]);
+  assert.deepEqual(reasons, ["fiche_vue_ouvert:google", "fiche_vue_ferme:google", "fiche_vue_inconnu:sans_horaires", "fiche_vue_inconnu:pas_de_fiche", "fiche_vue_inconnu:lecture_impossible"]);
   for (const r of reasons) assert.ok(r.startsWith(VIEW_REASON_PREFIX) && r.length <= 60);
+});
+
+const WEEK = Array.from({ length: 7 }, () => [{ open: "11:00", close: "22:00" }]);
+
+test("avec ses horaires, la note qui échoue ne change rien, et le compteur dit la source", () => {
+  const mine = { ...NO_SETTINGS, source: "manual" as const, weekly: WEEK };
+  for (const read of [null, { ok: false, cause: "lecture_impossible" } as FicheRead]) {
+    const view = ficheView(read, NOW, mine);
+    assert.deepEqual([view.openness.state, view.origin, view.rating, view.attributions], ["ouvert", "saisi", null, []]);
+    assert.equal(viewReason(read, view), "fiche_vue_ouvert:saisi");
+  }
+  const rated = ficheView({ ok: true, info: info({ regularOpeningHours: null }) }, NOW, mine);
+  assert.equal(rated.hoursFromGoogle, false); // la mention n'accompagne que la note
+  assert.ok(rated.rating);
+  const fallback = ficheView({ ok: false, cause: "lecture_impossible" }, NOW, { ...NO_SETTINGS, weekly: WEEK });
+  assert.equal(viewReason({ ok: false, cause: "lecture_impossible" }, fallback), "fiche_vue_ouvert:repli");
+  const closed = ficheView(null, NOW, { ...mine, closedToday: "2026-11-26" });
+  assert.equal(viewReason(null, closed), "fiche_vue_ferme:fermeture");
+});
+
+test("sous le panier, on dit d'où vient « fermé »", () => {
+  assert.match(closedNote("google"), /fiche Google/);
+  assert.equal(closedNote("saisi"), "Horaires donnés par le restaurant.");
+  assert.equal(closedNote("repli"), "Horaires donnés par le restaurant.");
+  assert.equal(closedNote("fermeture"), "Fermeture annoncée par le restaurant.");
 });

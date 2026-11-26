@@ -266,7 +266,7 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
         {wide && panel("aside")}
       </div>
 
-      {!wide && !showCart && <CartBar count={count} openness={openness} signedIn={signedIn} phone={restaurantPhone} onOpen={() => setShowCart(true)} />}
+      {!wide && !showCart && <CartBar count={count} openness={openness} origin={fiche?.origin ?? null} signedIn={signedIn} phone={restaurantPhone} onOpen={() => setShowCart(true)} />}
       {!wide && showCart && panel("overlay")}
 
       {dish && (

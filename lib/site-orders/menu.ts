@@ -40,6 +40,8 @@ export type PublicRestaurant = {
   phone?: string | null;
   /** Les types de cuisine choisis par le restaurateur (« Poulet frit »). */
   cuisine?: string | null;
+  /** La phrase de présentation écrite par le restaurateur ; sans elle, la page en compose une avec son type de cuisine. */
+  presentation?: string | null;
 };
 
 export type PublicMenu = {
