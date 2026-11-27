@@ -40,6 +40,8 @@ export type EditorProps = {
   /** L'article est en ligne : on rappelle que la version publiée ne bouge pas. */
   online: boolean;
   maskReason: string | null;
+  /** Un article d'occasion qui attend (ADR 0112) : « demain à 10:00 ». */
+  scheduled?: string | null;
 };
 
 export function PostEditor(props: EditorProps) {
@@ -151,6 +153,12 @@ export function PostEditor(props: EditorProps) {
         </p>
       )}
       {props.online && <p className="text-[13px] text-ink-muted">Cet article est en ligne. Tes clients lisent l&apos;ancienne version tant que tu n&apos;as pas dit « Oui, publier ».</p>}
+      {props.scheduled && (
+        <p role="status" className="rounded-lg bg-boost-olive/10 px-3 py-2 text-[13px] text-ink">
+          Il sera publié {props.scheduled}{" "}
+          si tu ne dis rien. Une modification gardée ne change pas l&apos;heure : le texte est recontrôlé avant. Avec une photo, il ne partira pas tout seul.
+        </p>
+      )}
 
       <div>
         <label className={labelCls} htmlFor="titre">Titre</label>
@@ -246,7 +254,7 @@ export function PostEditor(props: EditorProps) {
       {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-[15px] text-danger">{error}</p>}
 
       <button type="button" onClick={() => void saveAnd("apercu")} disabled={busy !== null} className={primaryBtn}>Voir avant de publier</button>
-      <button type="button" onClick={() => void saveAnd("liste")} disabled={busy !== null} className={ghostBtn}>{busy === "save" ? "Un instant..." : "Garder en brouillon"}</button>
+      <button type="button" onClick={() => void saveAnd("liste")} disabled={busy !== null} className={ghostBtn}>{busy === "save" ? "Un instant..." : props.scheduled ? "Garder la modification" : "Garder en brouillon"}</button>
     </div>
   );
 }

@@ -12,6 +12,7 @@ export const linkBtn =
 export const inputCls =
   "block min-h-[48px] w-full min-w-0 rounded-lg border border-ink-faint bg-white px-3 py-2.5 text-[15px] text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 export const labelCls = "mb-1 block text-[15px] font-semibold text-ink";
+export const sectionTitle = "pt-2 text-[17px] font-semibold tracking-[-0.02em] text-ink";
 
 export function BackLink({ href, label }: { href: string; label: string }) {
   return (
