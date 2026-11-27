@@ -31,7 +31,7 @@ L'heure demandée par le client (`site_orders.pickup_at`, à créer). Une demand
 _Avoid_ : heure de livraison, créneau garanti.
 
 **Offre de la page de commande** *(ADR 0110)* :
-Offre écrite et publiée par le gérant, montrée sur la page de commande. Elle ne change aucun prix : la remise se fait au comptoir. **Pas encore construite.**
+Offre écrite par le gérant ou le manager, publiée après « Oui, publier » avec « Mon équipe est prévenue », montrée sur la page de commande les seuls jours où elle vaut (3 en même temps au plus, 31 jours au plus). Elle ne change aucun prix : la remise se fait au comptoir. Publiée, elle ne se modifie plus : on l'arrête (tout siège, avec un motif) et on la reprend. La commande garde les offres affichées à l'envoi et y a droit même si l'offre s'arrête ensuite (`site_offers`, `site_offer_events`).
 _Avoid_ : coupon, cadeau, bon, code promo, remise appliquée.
 
 **Article de blog** *(ADR 0111, 0112)* :
@@ -39,11 +39,11 @@ Texte publié par le restaurant dans son espace de commande (`restaurant_posts`)
 _Avoid_ : « article » seul (réservé à une ligne de la carte), annonce (c'est un envoi), idée.
 
 **Article automatique** *(ADR 0112)* :
-Article de blog composé de phrases préparées à partir d'une occasion, que le restaurant a accepté de voir paraître sans accord un par un : prévenu la veille à 17 h par un message qui doit être délivré, publié à 10 h s'il ne dit rien, retiré tout seul après l'occasion. Jamais pour un moment où la page refuserait la commande (fermé, horaires inconnus). Le restaurant en répond ; Boosteats le compose et le publie.
+Article de blog composé de phrases préparées à partir d'une occasion, que le restaurant a accepté de voir paraître sans accord un par un : prévenu la veille à 17 h par un message qui doit être délivré, publié à 10 h s'il ne dit rien, retiré tout seul après l'occasion. Jamais pour un moment où la page refuserait la commande (fermé, horaires inconnus). L'article d'une promo suit son offre : retiré dès qu'elle s'arrête, caché dès qu'elle est finie. Le restaurant en répond ; Boosteats le compose et le publie.
 _Avoid_ : article de Nina, article IA (aucune IA ne l'écrit), campagne, annonce.
 
 **Occasion** *(ADR 0112)* :
-Fait daté qui peut donner un article automatique : événement près du restaurant, match, météo (pluie ou soleil annoncés pour le lendemain, d'après MET Norway), promo (`restaurant_post_occasions`). États : prévue, prévenu, publiée, refusée (quelqu'un a dit non), écartée (une règle ou une vérification l'a empêchée, raison gardée).
+Fait daté qui peut donner un article automatique : événement près du restaurant, match, météo (pluie ou soleil annoncés pour le lendemain, d'après MET Norway), promo (une par offre publiée) (`restaurant_post_occasions`). États : prévue, prévenu, publiée, refusée (quelqu'un a dit non), écartée (une règle ou une vérification l'a empêchée, raison gardée).
 _Avoid_ : événement (un seul des quatre types), idée (écran « Idées »), opportunité.
 
 **Secours WhatsApp** *(ADR 0107 §10)* :
