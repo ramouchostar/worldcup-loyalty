@@ -77,3 +77,22 @@ SELECT restaurant_id, id, status, publish_day
 FROM restaurant_post_occasions
 WHERE status IN ('prevu', 'prevenu') AND publish_day < (now() AT TIME ZONE 'Europe/Brussels')::date
 ORDER BY publish_day;
+
+-- 6. Météo : la réserve des prévisions (migration 20261127-0930). Une ligne « ok = false » = pas d'article météo pour
+--    ce point jusqu'à la prochaine demande ; la ligne « * » = toutes les demandes suspendues (429 ou 403).
+SELECT key AS point, ok, status, error, confirmed_at, next_allowed_at
+FROM weather_forecast_cache
+ORDER BY ok, key;
+
+-- 7. Météo : annoncées, publiées, écartées parce que la prévision a changé ou n'a pas pu être vérifiée.
+--    Seuil : plus d'un préavis sur trois écarté pour « meteo_change » → revoir la règle.
+SELECT facts->>'sky' AS ciel,
+       facts->>'service' AS service,
+       count(*) FILTER (WHERE notified_at IS NOT NULL) AS prevenus,
+       count(*) FILTER (WHERE status = 'publie') AS publiees,
+       count(*) FILTER (WHERE reason = 'meteo_change') AS prevision_changee,
+       count(*) FILTER (WHERE reason = 'meteo_indisponible') AS non_verifiees
+FROM restaurant_post_occasions
+WHERE kind = 'meteo'
+GROUP BY 1, 2
+ORDER BY 1, 2;

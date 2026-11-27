@@ -1,12 +1,12 @@
 # ADR 0112 — Les articles publiés automatiquement : le restaurant active une fois, il est prévenu la veille, sans réaction l'article paraît
 
-**Statut** : Accepté (2026-11-26) par le porteur (Omar) : règles et maquettes validées (https://claude.ai/artifact/2zLkvLGgwbVQFAXyrQy8jV) ; **Mehdi pas consulté** ; construit, **jamais exécuté sur une base ni un service réels**. **Amende l'[ADR 0111](0111-les-articles-de-blog-du-restaurant.md) §3** (« rien ne devient public sans Oui, publier ») et **fait une exception à l'[ADR 0089](0089-la-brigade-des-idees-que-le-gerant-valide.md) §3** (« rien ne part sans Oui ») **pour les articles d'occasion seulement**. Les articles écrits à la main gardent « Oui, publier ».
+**Statut** : Accepté (2026-11-26) par le porteur (Omar) : règles et maquettes validées (https://claude.ai/artifact/2zLkvLGgwbVQFAXyrQy8jV) ; **Mehdi pas consulté** ; construit, **jamais exécuté sur une base ni un service réels**. **Précisé le 2026-11-27** : la météo vient de MET Norway (choix du porteur, prévenu de la mention de source, de l'absence de probabilité de pluie pour la Belgique et de l'acceptation des conditions qui lui revient) ; source **éteinte** tant qu'il ne les a pas acceptées. **Amende l'[ADR 0111](0111-les-articles-de-blog-du-restaurant.md) §3** (« rien ne devient public sans Oui, publier ») et **fait une exception à l'[ADR 0089](0089-la-brigade-des-idees-que-le-gerant-valide.md) §3** (« rien ne part sans Oui ») **pour les articles d'occasion seulement**. Les articles écrits à la main gardent « Oui, publier ».
 
 ## Contexte
 
 - Demande d'Omar : un article à chaque promo ; pouvoir en générer un à chaque événement capté (match, concert, brocante, soleil, pluie).
 - Un restaurateur qui doit approuver chaque article ne le fera pas à temps : l'occasion passe. Aucun restaurateur n'a encore été interrogé sur ce point.
-- Ce qui existe : l'agenda de visit.brussels synchronisé dans `local_events` ; un lecteur de prévisions météo Google, appelé nulle part ; un lecteur de matchs qui demande la clé `BZZOIRO_API_KEY`. Les offres (ADR 0110) ne sont pas construites.
+- Ce qui existe : l'agenda de visit.brussels synchronisé dans `local_events` ; un lecteur de prévisions météo Google, appelé nulle part (**écarté**, §9) ; un lecteur de matchs qui demande la clé `BZZOIRO_API_KEY`. Les offres (ADR 0110) ne sont pas construites.
 - Rien de tout cela n'a été vérifié en production.
 
 ## Décision
@@ -23,6 +23,7 @@
 
 - À 17 h (Bruxelles), la tâche prépare les trois prochains jours et **prévient pour demain** : e-mail (clé `article_auto_preavis`, journal `message_sends`) à la personne qui a activé si elle est toujours gérante ou manager, sinon au propriétaire ; notification de la console si elle est activée.
 - À 10 h le jour de l'occasion, l'article paraît si personne n'a rien dit.
+- Une heure avant ces deux passages, à une minute décalée, la tâche `auto-articles-weather` demande les prévisions et les met en réserve (§9) : les passages de 10 h et 17 h ne font aucune demande à l'extérieur pour la météo.
 - Un jour manqué ne se rattrape pas.
 
 ### 3. « Prévenu » veut dire délivré
@@ -44,24 +45,28 @@ Des **phrases préparées à variantes**, remplies avec les seuls faits : la sou
 
 ### 7. Peu, et pas deux fois
 
-- **Un article automatique par jour au plus, trois par semaine** (lundi à dimanche). Priorité : promo, événement proche, match, météo. Ce qui est écarté est gardé avec sa raison (trois occasions au plus par type et par jour).
+- **Un article automatique par jour au plus, trois par semaine** (lundi à dimanche). Priorité : promo, événement proche, match, météo. Ce qui est écarté est gardé avec sa raison (trois occasions au plus par type et par jour). La **météo** n'est préparée que pour le **lendemain** : une occasion au plus par jour, servie après toutes les autres.
 - Une occasion n'est proposée qu'une fois ; un événement sur plusieurs jours, une fois par mois.
 - « Publier maintenant » est la décision d'une personne : les limites ne s'y appliquent pas.
 
 ### 8. La fin
 
-L'article se retire tout seul après l'occasion (événement : minuit ; match : trois heures après le coup d'envoi ; promo : sa fin). **La lecture publique cache un article échu sans attendre la tâche.** Républié à la main après sa fin, c'est un article ordinaire, sans fin.
+L'article se retire tout seul après l'occasion (événement : minuit ; match : trois heures après le coup d'envoi ; météo : fin du service annoncé, 14 h ou 22 h ; promo : sa fin). **La lecture publique cache un article échu sans attendre la tâche.** Républié à la main après sa fin, c'est un article ordinaire, sans fin.
 
-### 9. Les sources, et leurs conditions (lues le 2026-11-26)
+### 9. Les sources, et leurs conditions (lues les 2026-11-26 et 27)
 
 | Source | Règle | État |
 |---|---|---|
 | Événements (agenda.brussels, visit.brussels) | concerts, festivals, fêtes, brocantes, foires à 1,5 km au plus ; copie relue depuis moins de 4 jours ; mention de la source sous l'article | construit ; **licence non vérifiée** |
 | Matchs (Bzzoiro) | Pro League, coupes d'Europe, sélections suivies, 17 h à 22 h, un par jour | construit ; sans clé, aucun match ; **conditions non lues** |
-| Météo (Google) | soleil : 11 h à 14 h entièrement connu, ciel dégagé, aucune pluie, probabilité ≤ 20 %, ressenti ≥ 10 °C ; pluie : un service complet avec le drapeau pluie | règle écrite, **source éteinte** |
+| Météo (MET Norway) | pluie : un service entier (midi d'abord, sinon soir) avec au moins 2 mm, sur au moins 2 heures à 0,2 mm, et au moins 3 °C ; soleil : à 11 h, 12 h et 13 h, au plus 25 % de nuages, aucune pluie et au moins 12 °C | construit, **éteint** tant que `MET_NORWAY_USER_AGENT` est vide ou que la réserve manque |
 | Promos (offres) | contrat posé | **vide** tant que l'ADR 0110 n'est pas construit |
 
-- **Météo Google** : les conditions Maps Platform de l'Espace économique européen interdisent de créer un contenu à partir de ses données (§3.3.2 c, https://cloud.google.com/terms/maps-platform/eea) et limitent la conservation à quelques heures ou jours (§23, https://cloud.google.com/terms/maps-platform/eea/maps-service-terms, qui permet par ailleurs d'intégrer la météo à une application apportant une valeur propre). Un article écrit à partir d'une prévision puis gardé paraît interdit : **aucun appel, rien de gardé**. Rouvrir demande un avis juridique, un accord écrit ou une autre source. Mention exigée en cas d'usage : « Source: Includes weather data from Google. » (https://developers.google.com/maps/documentation/weather/policies).
+- **Google écarté** : les conditions Maps Platform de l'Espace économique européen interdisent de créer un contenu à partir de ses données (§3.3.2 c, https://cloud.google.com/terms/maps-platform/eea) et ne permettent de les garder que brièvement (§23, https://cloud.google.com/terms/maps-platform/eea/maps-service-terms). Un article écrit à partir d'une prévision puis gardé paraît interdit.
+- **MET Norway** (Locationforecast 2.0, format « compact ») : données sous NLOD 2.0 et CC BY 4.0 (https://api.met.no/doc/License). CC BY 4.0 permet l'usage « for any purpose, even commercially » (https://creativecommons.org/licenses/by/4.0/) ; les pages de MET Norway, elles, ne disent rien en toutes lettres de l'usage commercial. Mention exigée : le crédit, un lien vers la licence et l'indication des changements. Elle est écrite sous l'article et dans l'e-mail de la veille : « Texte composé par Boosteats d'après les prévisions de MET Norway, résumées en quelques phrases. Licence CC BY 4.0. »
+- **Conditions d'usage** (https://api.met.no/doc/TermsOfService, révision 2026-11-05) : elles doivent être lues et acceptées **par une personne** ; identification par un nom d'application et un contact (`MET_NORWAY_USER_AGENT`, **aucune valeur par défaut**, sans elle aucune demande) ; réponses gardées, pas de nouvelle demande avant « Expires » ni moins de 3 heures après la précédente (hors pays nordiques, https://api.met.no/weatherapi/locationforecast/2.0/documentation) ; « If-Modified-Since » ; 4 décimales au plus (ici 2) ; pas de trafic à l'heure pile (tâche à la minute 23, décalage au hasard) ; depuis le serveur ; suspension après 429 ou 403 ; aucune garantie de service.
+- **Ce que la documentation annonce pour la Belgique** (zone « reste du monde », https://api.met.no/doc/locationforecast/datamodel) : température et nuages à chaque instant ; pluie heure par heure sur le **court terme seulement**, puis par tranches de 6 heures ; maximum et minimum sur 6 heures ; **pas de probabilité de pluie**, pas de température ressentie. La durée du court terme pour cette zone n'est pas écrite ; **non vérifié sur une vraie réponse** (aucun appel avant l'acceptation des conditions). La règle ne lit que les heures détaillées, pour le lendemain.
+- **Ce qui part vers MET Norway** : la latitude et la longitude du restaurant à environ 1 km et la chaîne d'identification. Rien sur un membre ni un client. La position vient aujourd'hui de la fiche Google (ci-dessous).
 - **visit.brussels** : le dépôt dit « données ouvertes » ; le texte de la licence et la mention exigée **n'ont pas pu être lus** (le portail https://data.gov.be/en/dataset/19181ead-b37f-44d8-a708-d9bddd347c3b annonçait « Open Data License Brussels » dans un résultat de recherche, la page répondait 404). **À confirmer auprès de visit.brussels avant d'activer un établissement.**
 - **Distance** : calculée depuis la position du restaurant gardée en base (`restaurants.lat/lng`), reprise de sa fiche Google (à l'inscription, `lib/partner-signup.ts`, et `scripts/backfill-restaurant-location.mjs`). Les mêmes conditions (§15.4, Places API) ne permettent de la garder que **30 jours consécutifs** ; la base la garde sans limite, **constat antérieur à cet ADR**. La distance arrondie entre dans l'article. **À régler avant d'activer un établissement** : position saisie ou confirmée par le restaurant, ou venue d'une autre source.
 
@@ -73,6 +78,8 @@ Avec ces articles, **Boosteats compose le texte et le publie** quand personne ne
 
 - Migration `20261126-2330-restaurant-posts-auto`, après `20261126-1300` (**à appliquer à la main** ; sans elle, la publication automatique est « pas encore activée » et le blog écrit à la main marche comme avant) : `restaurant_post_auto_settings`, `restaurant_post_occasions`, deux colonnes sur `restaurant_posts` (fin, mention de source), `origin = 'auto'`, nouveaux gestes tracés.
 - Tâche `/api/cron/auto-articles`, toutes les heures, qui n'agit qu'à 10 h et 17 h à Bruxelles. Rejouable sans double envoi ni double publication.
+- Tâche `/api/cron/auto-articles-weather`, à la minute 23, qui n'agit qu'à 9 h et 16 h. Migration `20261127-0930-weather-forecast-cache` (réserve des prévisions, à passer après les deux autres ; sans elle la météo reste éteinte).
+- Une réserve non remplie (tâche manquée, panne) = pas d'article météo et pas de publication, avec la raison « La prévision n'a pas pu être vérifiée ».
 - La copie plateforme des e-mails aux restaurateurs contient aussi le lien de refus.
 - Le jeton est dans l'adresse de la page de refus : la mesure d'audience du site la voit. Il ne permet que de dire non, jusqu'à 10 h.
 - Tant que l'espace de commande est fermé, rien ne tourne.
@@ -81,7 +88,7 @@ Avec ces articles, **Boosteats compose le texte et le publie** quand personne ne
 
 Par établissement et par type : prévenus, publiés sans réaction, publiés à la main, refusés (par le lien ou la console), retirés après coup, écartés et pourquoi, lectures et appuis sur « Voir la carte ». Requêtes : `docs/mesures/suivi-articles-auto.sql`.
 
-**Seuils proposés, après 8 semaines** : plus d'un article publié sur cinq retiré après coup, ou un refus sur trois (la publication sans accord déplaît : revenir à « Oui, publier ») ; plus d'un préavis sur dix sans message délivré (le canal ne tient pas) ; moins de 30 lectures par article d'occasion (personne ne les lit).
+**Seuils proposés, après 8 semaines** : plus d'un article publié sur cinq retiré après coup, ou un refus sur trois (la publication sans accord déplaît : revenir à « Oui, publier ») ; plus d'un préavis sur dix sans message délivré (le canal ne tient pas) ; moins de 30 lectures par article d'occasion (personne ne les lit). Météo : plus d'un préavis sur trois écarté pour « La prévision a changé » (la règle ou l'horizon ne tiennent pas) ; toute ligne en panne dans la réserve.
 
 ## Alternatives rejetées
 
@@ -89,11 +96,13 @@ Par établissement et par type : prévenus, publiés sans réaction, publiés à
 - **Un lien qui refuse au premier chargement** : déclenché par les antivirus des boîtes mail.
 - **Publier sur un message « envoyé »** : on publierait chez quelqu'un dont l'adresse est en échec.
 - **Texte rédigé par une IA sans relecture** : une invention passerait le contrôle.
-- **Contourner les conditions météo** (garder seulement « pluie ») : le contenu resterait créé à partir de la donnée interdite.
+- **Contourner les conditions de Google** (garder seulement « pluie ») : le contenu resterait créé à partir de la donnée interdite.
+- **Deviner la pluie d'un service à partir d'une tranche de 6 heures** : elle déborde du service, on annoncerait ce que la donnée ne dit pas.
+- **Demander la prévision au passage de 10 h et de 17 h** : trafic à l'heure pile, contraire à leurs conditions.
 
 ## Restent ouverts
 
 1. Cadre juridique (§10) et licences (§9).
-2. Une source météo utilisable, ou un accord avec Google.
+2. Météo : le porteur lit et accepte les conditions de MET Norway, puis choisit l'identification ; première semaine à comparer au temps réellement observé avant de croire les seuils.
 3. Raccorder « Ce que tu proposes » (`lib/restaurant-posts/auto/offerings.ts`) et les offres (`sources/promos.ts`).
 4. Mehdi : pas consulté.
