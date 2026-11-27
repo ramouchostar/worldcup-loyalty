@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { previewEntries } from "../../email-templates/fixtures";
 import { proArticleAutoEmail } from "../../email-templates/pro-article-auto";
 import { isSequenceKey, MESSAGES } from "../../message-catalog";
-import { NO_OFFERINGS, readOfferings } from "./offerings";
 import { kindChoices, missedItems, publishedNote, readyKinds, upcomingItems } from "./overview";
 import { planOccasions, type ExistingOccasion } from "./plan";
 import { deliveryProof } from "./proof";
@@ -104,11 +103,6 @@ test("le lien de refus : signé, pour cette occasion seulement, jusqu'à l'heure
   const [i, exp, sig] = token.split(".");
   assert.equal(readRefusalToken(`${i}.${Number(exp) + 3600}.${sig}`, before, "secret"), null);
   for (const bad of [null, "", "abc", `${token}x`, `${i}.${exp}`]) assert.equal(readRefusalToken(bad, before, "secret"), null);
-});
-
-test("« Ce que tu proposes » n'est pas encore raccordé : tout est faux", async () => {
-  assert.deepEqual(await readOfferings("r"), NO_OFFERINGS);
-  assert.deepEqual(Object.values(NO_OFFERINGS), [false, false, false]);
 });
 
 test("le réglage dit ce qu'on peut cocher, et pourquoi le reste ne l'est pas", async () => {

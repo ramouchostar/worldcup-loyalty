@@ -39,9 +39,13 @@
 
 Activation et type toujours cochés, espace ouvert, message délivré, occasion toujours vraie chez sa source, limites, carte lisible, contrôle des textes (ADR 0111 §7) et plats toujours en vente. Un échec : pas de publication, raison visible dans « Pas publiés ».
 
+**Les horaires** (ajouté le 2026-11-27, demandé par le porteur) : un article n'invite pas à commander quand la page refuserait la commande. La règle est **celle de la page** (ADR 0109 §3 amendé : fermetures saisies, horaires choisis, fiche Google lue à l'instant, repli). Il faut le restaurant ouvert à un instant au moins du moment dont parle l'article : de 10 h au coup d'envoi (match), pendant le service annoncé (météo), de 10 h à minuit (événement, promo). Vérifié à la préparation (un jour fermé ne prend la place d'aucun autre), au préavis, à la publication et à « Publier maintenant ». Horaires inconnus ou illisibles : pas de publication ; « Publier maintenant » laisse alors l'article en attente. Un horaire corrigé avant le préavis repropose l'occasion.
+
+**Ce que tu proposes** : si une case dont parle un texte non modifié a été décochée depuis le préavis, il ne paraît pas. Une case cochée depuis ne change rien.
+
 ### 6. Le texte
 
-Des **phrases préparées à variantes**, remplies avec les seuls faits : la source (nom, date, distance), un plat de la carte, les informations cochées par le restaurant (terrasse, sur place, écran ; **pas encore raccordées** : un article ne parle que d'emporter). **Aucune rédaction par une IA** : le contrôle ne verrait pas une invention. Les noms venus de tiers sont nettoyés et limités ; si le contrôle refuse, pas de publication. Le contrôle ne juge pas le contenu d'un nom au-delà de sa liste.
+Des **phrases préparées à variantes**, remplies avec les seuls faits : la source (nom, date, distance), un plat de la carte, les informations cochées par le restaurant sur « Infos de ma page » (terrasse, sur place, écran ; sans elles, un article ne parle que d'emporter). **Aucune rédaction par une IA** : le contrôle ne verrait pas une invention. Les noms venus de tiers sont nettoyés et limités ; si le contrôle refuse, pas de publication. Le contrôle ne juge pas le contenu d'un nom au-delà de sa liste.
 
 ### 7. Peu, et pas deux fois
 
@@ -67,6 +71,7 @@ L'article se retire tout seul après l'occasion (événement : minuit ; match : 
 - **Conditions d'usage** (https://api.met.no/doc/TermsOfService, révision 2026-11-05) : elles doivent être lues et acceptées **par une personne** ; identification par un nom d'application et un contact (`MET_NORWAY_USER_AGENT`, **aucune valeur par défaut**, sans elle aucune demande) ; réponses gardées, pas de nouvelle demande avant « Expires » ni moins de 3 heures après la précédente (hors pays nordiques, https://api.met.no/weatherapi/locationforecast/2.0/documentation) ; « If-Modified-Since » ; 4 décimales au plus (ici 2) ; pas de trafic à l'heure pile (tâche à la minute 23, décalage au hasard) ; depuis le serveur ; suspension après 429 ou 403 ; aucune garantie de service.
 - **Ce que la documentation annonce pour la Belgique** (zone « reste du monde », https://api.met.no/doc/locationforecast/datamodel) : température et nuages à chaque instant ; pluie heure par heure sur le **court terme seulement**, puis par tranches de 6 heures ; maximum et minimum sur 6 heures ; **pas de probabilité de pluie**, pas de température ressentie. La durée du court terme pour cette zone n'est pas écrite ; **non vérifié sur une vraie réponse** (aucun appel avant l'acceptation des conditions). La règle ne lit que les heures détaillées, pour le lendemain.
 - **Ce qui part vers MET Norway** : la latitude et la longitude du restaurant à environ 1 km et la chaîne d'identification. Rien sur un membre ni un client. La position vient aujourd'hui de la fiche Google (ci-dessous).
+- **Fiche Google pour les horaires** : lue seulement pour un établissement qui montre les horaires de Google, quand une occasion est à préparer, annoncer ou publier ; une lecture par établissement et par passage, **un appel « Place Details » de plus** à chaque fois. Rien de la fiche n'est gardé : seulement le motif (« fermé à ce moment-là »). Cet usage s'ajoute au point juridique déjà ouvert sur les usages permis dans l'Espace économique européen (ADR 0109 §3) : **à trancher avant d'activer**.
 - **visit.brussels** : le dépôt dit « données ouvertes » ; le texte de la licence et la mention exigée **n'ont pas pu être lus** (le portail https://data.gov.be/en/dataset/19181ead-b37f-44d8-a708-d9bddd347c3b annonçait « Open Data License Brussels » dans un résultat de recherche, la page répondait 404). **À confirmer auprès de visit.brussels avant d'activer un établissement.**
 - **Distance** : calculée depuis la position du restaurant gardée en base (`restaurants.lat/lng`), reprise de sa fiche Google (à l'inscription, `lib/partner-signup.ts`, et `scripts/backfill-restaurant-location.mjs`). Les mêmes conditions (§15.4, Places API) ne permettent de la garder que **30 jours consécutifs** ; la base la garde sans limite, **constat antérieur à cet ADR**. La distance arrondie entre dans l'article. **À régler avant d'activer un établissement** : position saisie ou confirmée par le restaurant, ou venue d'une autre source.
 
@@ -80,6 +85,7 @@ Avec ces articles, **Boosteats compose le texte et le publie** quand personne ne
 - Tâche `/api/cron/auto-articles`, toutes les heures, qui n'agit qu'à 10 h et 17 h à Bruxelles. Rejouable sans double envoi ni double publication.
 - Tâche `/api/cron/auto-articles-weather`, à la minute 23, qui n'agit qu'à 9 h et 16 h. Migration `20261127-0930-weather-forecast-cache` (réserve des prévisions, à passer après les deux autres ; sans elle la météo reste éteinte).
 - Une réserve non remplie (tâche manquée, panne) = pas d'article météo et pas de publication, avec la raison « La prévision n'a pas pu être vérifiée ».
+- Pendant un passage, des horaires illisibles écartent l'occasion : pas de nouvel essai pour le même jour.
 - La copie plateforme des e-mails aux restaurateurs contient aussi le lien de refus.
 - Le jeton est dans l'adresse de la page de refus : la mesure d'audience du site la voit. Il ne permet que de dire non, jusqu'à 10 h.
 - Tant que l'espace de commande est fermé, rien ne tourne.
@@ -88,7 +94,7 @@ Avec ces articles, **Boosteats compose le texte et le publie** quand personne ne
 
 Par établissement et par type : prévenus, publiés sans réaction, publiés à la main, refusés (par le lien ou la console), retirés après coup, écartés et pourquoi, lectures et appuis sur « Voir la carte ». Requêtes : `docs/mesures/suivi-articles-auto.sql`.
 
-**Seuils proposés, après 8 semaines** : plus d'un article publié sur cinq retiré après coup, ou un refus sur trois (la publication sans accord déplaît : revenir à « Oui, publier ») ; plus d'un préavis sur dix sans message délivré (le canal ne tient pas) ; moins de 30 lectures par article d'occasion (personne ne les lit). Météo : plus d'un préavis sur trois écarté pour « La prévision a changé » (la règle ou l'horizon ne tiennent pas) ; toute ligne en panne dans la réserve.
+**Seuils proposés, après 8 semaines** : plus d'un article publié sur cinq retiré après coup, ou un refus sur trois (la publication sans accord déplaît : revenir à « Oui, publier ») ; plus d'une occasion sur dix écartée pour des horaires inconnus ou illisibles (les horaires ne sont pas assez renseignés) ; plus d'un préavis sur dix sans message délivré (le canal ne tient pas) ; moins de 30 lectures par article d'occasion (personne ne les lit). Météo : plus d'un préavis sur trois écarté pour « La prévision a changé » (la règle ou l'horizon ne tiennent pas) ; toute ligne en panne dans la réserve.
 
 ## Alternatives rejetées
 
@@ -104,5 +110,5 @@ Par établissement et par type : prévenus, publiés sans réaction, publiés à
 
 1. Cadre juridique (§10) et licences (§9).
 2. Météo : le porteur lit et accepte les conditions de MET Norway, puis choisit l'identification ; première semaine à comparer au temps réellement observé avant de croire les seuils.
-3. Raccorder « Ce que tu proposes » (`lib/restaurant-posts/auto/offerings.ts`) et les offres (`sources/promos.ts`).
+3. Raccorder les offres (`sources/promos.ts`).
 4. Mehdi : pas consulté.

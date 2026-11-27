@@ -9,6 +9,7 @@ import type { PostRow } from "../types";
 import { composeChecked, discardOccasion, dishIdsOf, dropDraft } from "./common";
 import { isActive } from "./engine";
 import { NO_OFFERINGS } from "./offerings";
+import { openingReason, openingWindow } from "./opening";
 import { VARIANTS } from "./phrases";
 import type { AutoDeps } from "./ports";
 import { reasonText, UNVERIFIABLE } from "./reasons";
@@ -127,6 +128,13 @@ export async function publishNow(
     if (UNVERIFIABLE.has(reason)) await deps.posts.addEvent({ postId: occasion.post_id, restaurantId: id, kind: "refuse", reason, actorId: p.userId });
     else await discardOccasion(deps, occasion, reason, PENDING_STATUSES);
     return refuse(409, reasonText(reason, null));
+  }
+  const closed = openingReason(await deps.opening(id, openingWindow(occasion.facts, occasion.publish_day)));
+  if (closed) {
+    // Fermé : l'article ne paraîtra pas. Horaires inconnus ou illisibles : il attend, le restaurant peut les corriger.
+    if (UNVERIFIABLE.has(closed)) await deps.posts.addEvent({ postId: occasion.post_id, restaurantId: id, kind: "refuse", reason: closed, actorId: p.userId });
+    else await discardOccasion(deps, occasion, closed, PENDING_STATUSES);
+    return refuse(409, reasonText(closed, null));
   }
   const menu = await deps.menu(id);
   const at = deps.now.toISOString();

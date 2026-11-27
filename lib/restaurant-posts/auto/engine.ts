@@ -9,6 +9,7 @@ import { draftSlug } from "../slug";
 import { publishPost } from "../service";
 import { composeChecked, discardOccasion, dishIdsOf, issueReason } from "./common";
 import { compose, initialVariant, occasionLabel, sourceCredit } from "./phrases";
+import { openingReason, openingWindow } from "./opening";
 import { planOccasions, type PlanStep } from "./plan";
 import type { AutoDeps, AutoRestaurant, NewOccasion } from "./ports";
 import { deliveryProof } from "./proof";
@@ -19,7 +20,7 @@ import {
   HORIZON_DAYS, MAX_PER_DAY, MAX_PER_WEEK, NOTIFY_HOUR, PUBLISH_HOUR, TERMS_VERSION,
   type AutoKind, type AutoSettings, type Candidate, type Occasion, type Offerings,
 } from "./types";
-import { NO_OFFERINGS } from "./offerings";
+import { NO_OFFERINGS, stillOffered } from "./offerings";
 
 export type RunReport = {
   hour: number;
@@ -131,10 +132,21 @@ async function plan(deps: AutoDeps, report: RunReport, settings: AutoSettings, r
     if (!slot) continue;
     const content = compose(slot.facts, { offerings, dishId: null, variant: initialVariant(c.sourceKey) });
     const issues = checkPublication(content, new Set());
-    if (issues.length === 0) writable.push(c);
-    else if (!known.has(c.sourceKey)) {
+    if (issues.length > 0) {
+      if (known.has(c.sourceKey)) continue;
       const why = issueReason(issues);
       await storeDiscarded(deps, report, id, { candidate: c, slot, reviveId: null }, why.reason, why.detail, offerings);
+      continue;
+    }
+    // Un jour fermé ne prend la place d'aucun autre. Des horaires illisibles aujourd'hui se revérifient au préavis.
+    const days = [];
+    for (const d of c.days) {
+      if (d.day < window.from || d.day > window.to) continue;
+      if ((await deps.opening(id, openingWindow(d.facts, d.day))) !== "ferme") days.push(d);
+    }
+    if (days.length > 0) writable.push({ ...c, days });
+    else if (!known.has(c.sourceKey)) {
+      await storeDiscarded(deps, report, id, { candidate: c, slot, reviveId: null }, "ferme_ce_jour", null, offerings);
     }
   }
 
@@ -156,6 +168,8 @@ async function notifyOne(deps: AutoDeps, report: RunReport, settings: AutoSettin
   if (!source) return discard(deps, report, o, "source_indisponible");
   const check = await source.recheck(context(deps, restaurant), o.facts);
   if (!check.ok) return discard(deps, report, o, check.reason);
+  const closed = openingReason(await deps.opening(restaurant.id, openingWindow(o.facts, o.publish_day)));
+  if (closed) return discard(deps, report, o, closed);
   const menu = await deps.menu(restaurant.id);
   if (!menu) return discard(deps, report, o, "carte_illisible");
   const offerings = await deps.offerings(restaurant.id).catch(() => NO_OFFERINGS);
@@ -223,6 +237,8 @@ async function publishOne(deps: AutoDeps, report: RunReport, o: Occasion, today:
   if (!source) return discard(deps, report, o, "source_indisponible");
   const check = await source.recheck(context(deps, restaurant), o.facts);
   if (!check.ok) return discard(deps, report, o, check.reason);
+  const closed = openingReason(await deps.opening(id, openingWindow(o.facts, o.publish_day)));
+  if (closed) return discard(deps, report, o, closed);
 
   const week = (await deps.db.recentOccasions(id, weekStart(today))).filter(
     (x) => x.id !== o.id && x.status === "publie" && x.published_mode === "auto" && weekStart(x.publish_day) === weekStart(today),
@@ -235,6 +251,11 @@ async function publishOne(deps: AutoDeps, report: RunReport, o: Occasion, today:
   const blocks = readBlocks(post.draft_blocks);
   // Les droits sur une photo se confirment en personne (ADR 0111 §5) : jamais par un silence.
   if (photoPaths(blocks).length > 0) return discard(deps, report, o, "photo");
+  // Un texte que personne n'a touché ne parle que de ce qui est encore coché.
+  if (o.modified_at === null) {
+    const offerings = await deps.offerings(id).catch(() => NO_OFFERINGS);
+    if (!stillOffered({ title: post.draft_title, blocks }, o.facts, o.variant, offerings)) return discard(deps, report, o, "infos_changees");
+  }
   const dishIds = dishIdsOf(menu);
   const issues = checkPublication({ title: post.draft_title, blocks }, dishIds);
   if (issues.length > 0) {

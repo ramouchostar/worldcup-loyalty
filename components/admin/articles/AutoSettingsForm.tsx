@@ -80,6 +80,7 @@ export function AutoSettingsForm({ restaurantId, active, activeSince, initial, c
       <div className="space-y-1 rounded-lg bg-paper-subtle px-4 py-3 text-[13px] text-ink">
         <p className="text-[15px] font-semibold">Ce qui ne change pas</p>
         <p>Un article par jour au plus, trois par semaine.</p>
+        <p>Rien n&apos;est publié pour un moment où tu es fermé, ou si tes horaires ne sont pas connus.</p>
         <p>Les articles n&apos;utilisent que l&apos;occasion, ta carte et les infos de ta page.</p>
         <p>Le message de la veille part à l&apos;adresse e-mail de ton compte. S&apos;il n&apos;arrive pas, rien n&apos;est publié.</p>
         <p>Tu peux retirer un article, ou tout arrêter, à tout moment.</p>

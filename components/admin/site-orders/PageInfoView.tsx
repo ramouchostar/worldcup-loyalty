@@ -258,7 +258,7 @@ export function PageInfoView({ restaurantId }: { restaurantId: string }) {
             ))}
           </div>
         </fieldset>
-        <p className="mt-1 text-[13px] text-ink-muted">Tes clients ne le voient pas pour l&apos;instant. Un article ne parlera jamais de ce que tu n&apos;as pas coché.</p>
+        <p className="mt-1 text-[13px] text-ink-muted">Pas encore montré sur ta page de commande. Tes articles automatiques peuvent en parler, jamais de ce que tu n&apos;as pas coché.</p>
       </Card>
     </div>
   );
