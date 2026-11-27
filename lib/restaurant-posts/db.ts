@@ -2,6 +2,10 @@
 // Table, fonction ou espace absents (migration 20261126-1300 pas appliquée) = `PostsUnavailableError` : le bloc client
 // se cache et la console le dit, jamais une erreur obscure.
 
+import { supabaseOffersDb } from "../site-offers/db";
+import { OFFER_ARTICLE_PROBLEM, articleProblem } from "../site-offers/offers";
+import { orderableFor } from "../site-offers/service";
+import { brusselsDay } from "../site-orders/order";
 import { createAdminClient } from "../supabase";
 import { PostsUnavailableError, type PostsDb } from "./service";
 import { PHOTO_URL_TTL_SECONDS, POST_PHOTO_BUCKET, type PostRow } from "./types";
@@ -97,6 +101,17 @@ export function supabasePostsDb(): PostsDb {
     async bump(postId, day, counter) {
       const { error } = await admin.rpc("bump_restaurant_post_daily", { p_post_id: postId, p_day: day, p_kind: counter });
       if (error) throw fail("compteur", error);
+    },
+    async onlineByOffer(restaurantId, offerId) {
+      const { data, error } = await posts().select("*").eq("restaurant_id", restaurantId).eq("offer_id", offerId).eq("status", "en_ligne");
+      if (error) throw fail("articles d'une offre", error);
+      return (data ?? []).map(toRow);
+    },
+    async offerProblem(restaurantId, offerId, now) {
+      const offers = supabaseOffersDb();
+      const offer = await offers.get(restaurantId, offerId);
+      const problem = articleProblem(offer, brusselsDay(now), offer ? await orderableFor(offers, restaurantId, [offer]) : new Set(), true);
+      return problem ? OFFER_ARTICLE_PROBLEM[problem] : null;
     },
     async listFiles(folder) {
       const { data, error } = await bucket().list(folder, { limit: 100 });

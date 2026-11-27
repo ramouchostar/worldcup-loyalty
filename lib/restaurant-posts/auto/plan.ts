@@ -90,7 +90,7 @@ export function planOccasions(p: { today: string; kinds: readonly AutoKind[]; ca
     if (chosen) {
       plan.create.push({ candidate: c, slot: chosen, reviveId });
       taken.push({ id: null, kind: c.kind, day: chosen.day, replaceable: false });
-    } else {
+    } else if (!c.later) {
       plan.discard.push({ candidate: c, slot: c.days[0], reason, reviveId });
     }
   }

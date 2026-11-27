@@ -8,6 +8,7 @@ import { listPostsForConsole, readPostTotals, signPhotoUrls, supabasePostsDb } f
 import { PostsUnavailableError } from "@/lib/restaurant-posts/service";
 import { canSeePosts, canWritePosts, hasPendingChanges, isExpired } from "@/lib/restaurant-posts/states";
 import { photoPaths } from "@/lib/restaurant-posts/blocks";
+import { offerArticleNotes } from "@/lib/restaurant-posts/offer-gate";
 import type { PostRow } from "@/lib/restaurant-posts/types";
 import { dayLabel } from "@/lib/restaurant-posts/view";
 import { siteOrdersAvailable } from "@/lib/site-orders/access";
@@ -30,7 +31,7 @@ export async function openConsole(restaurantId: string): Promise<{ canSee: boole
   return { canSee: canSeePosts(access), canWrite: canWritePosts(access) };
 }
 
-const toItem = (row: PostRow, totals: Map<string, { reads: number; menuTaps: number }> | null, occasion: Occasion | undefined, now: Date): PostListItem => {
+const toItem = (row: PostRow, totals: Map<string, { reads: number; menuTaps: number }> | null, occasion: Occasion | undefined, now: Date, offerNote: string | undefined): PostListItem => {
   // Un article échu n'est plus lu par personne, même avant que la tâche planifiée l'ait rangé.
   const ended = row.status === "en_ligne" && isExpired(row, now);
   const status = ended ? "retire" : row.status;
@@ -47,7 +48,8 @@ const toItem = (row: PostRow, totals: Map<string, { reads: number; menuTaps: num
     totals: totals ? totals.get(row.id) ?? { reads: 0, menuTaps: 0 } : null,
     pending: !ended && hasPendingChanges(row),
     maskReason: row.mask_reason,
-    note: status === "en_ligne" && auto ? publishedNote(occasion, now) : ended || endedAlone ? "Retiré tout seul à la fin de l'occasion. Tes clients ne le voient plus." : null,
+    // Ce qu'une offre fait à son article passe avant le reste : un article « en ligne » peut être caché.
+    note: offerNote ?? (status === "en_ligne" && auto ? publishedNote(occasion, now) : ended || endedAlone ? "Retiré tout seul à la fin de l'occasion. Tes clients ne le voient plus." : null),
   };
 };
 
@@ -92,7 +94,8 @@ export async function loadList(restaurantId: string, occasions: Occasion[] = [],
     const byPost = new Map(occasions.flatMap((o) => (o.post_id ? [[o.post_id, o] as const] : [])));
     // Un article qui attend sa publication automatique est montré dans « Bientôt publiés », pas parmi les brouillons.
     const shown = rows.filter((r) => !(r.status === "brouillon" && byPost.get(r.id)?.status === "prevenu"));
-    return { state: "ok", posts: shown.map((r) => toItem(r, totals, byPost.get(r.id), now)) };
+    const offerNotes = await offerArticleNotes(restaurantId, shown.filter((r) => !isExpired(r, now)), now);
+    return { state: "ok", posts: shown.map((r) => toItem(r, totals, byPost.get(r.id), now, offerNotes.get(r.id))) };
   } catch (e) {
     if (e instanceof PostsUnavailableError) return { state: "unavailable" };
     console.error("[blog] liste console :", e);

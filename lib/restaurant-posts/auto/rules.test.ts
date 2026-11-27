@@ -107,7 +107,8 @@ test("le lien de refus : signé, pour cette occasion seulement, jusqu'à l'heure
 
 test("le réglage dit ce qu'on peut cocher, et pourquoi le reste ne l'est pas", async () => {
   const off = weatherSource({ reader: null, off: "MET_NORWAY_USER_AGENT est vide", cacheReady: async () => true });
-  const ready = await readyKinds([promoSource, eventSource({ nearby: async () => [], one: async () => null }), off]);
+  const promos = promoSource({ ready: async () => "pas activées", published: async () => [], get: async () => null, orderable: async () => new Set() });
+  const ready = await readyKinds([promos, eventSource({ nearby: async () => [], one: async () => null }), off]);
   assert.deepEqual(kindChoices(ready, true).map((c) => [c.kind, c.available]), [["promo", false], ["evenement", true], ["match", false], ["meteo", false]]);
   assert.match(kindChoices(ready, true)[3].note, /pas encore allumée/);
   assert.equal(kindChoices(ready, false)[1].available, false);

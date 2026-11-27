@@ -18,7 +18,7 @@ function memoryDb() {
   const files = new Map<string, Uint8Array>();
   const events: (PostEvent & { at: string })[] = [];
   const bumps: string[] = [];
-  const state = { failRemove: false, clock: T(0) };
+  const state = { failRemove: false, clock: T(0), offerProblem: null as string | null };
   const copy = (r: PostRow | undefined) => (r ? (JSON.parse(JSON.stringify(r)) as PostRow) : null);
   const db: PostsDb = {
     async get(restaurantId, id) { const r = rows.get(id); return r && r.restaurant_id === restaurantId ? copy(r) : null; },
@@ -43,6 +43,8 @@ function memoryDb() {
     async addEvent(e) { events.push({ ...e, at: state.clock.toISOString() }); },
     async hasEvent(postId, kind, reason, since) { return events.some((e) => e.postId === postId && e.kind === kind && e.reason === reason && e.at >= since); },
     async bump(postId, day, counter) { bumps.push(`${postId} ${day} ${counter}`); },
+    async onlineByOffer(restaurantId, offerId) { return [...rows.values()].filter((r) => r.restaurant_id === restaurantId && r.offer_id === offerId && r.status === "en_ligne").map((r) => copy(r)!); },
+    async offerProblem() { return state.offerProblem; },
     async listFiles(folder) { return [...files.keys()].filter((f) => f.startsWith(`${folder}/`)); },
     async uploadFile(path, data) { files.set(path, data); },
     async removeFiles(paths) { if (state.failRemove) throw new Error("stockage en panne"); for (const p of paths) files.delete(p); },

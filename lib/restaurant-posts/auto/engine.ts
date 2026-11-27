@@ -145,7 +145,7 @@ async function plan(deps: AutoDeps, report: RunReport, settings: AutoSettings, r
       if ((await deps.opening(id, openingWindow(d.facts, d.day))) !== "ferme") days.push(d);
     }
     if (days.length > 0) writable.push({ ...c, days });
-    else if (!known.has(c.sourceKey)) {
+    else if (!c.later && !known.has(c.sourceKey)) {
       await storeDiscarded(deps, report, id, { candidate: c, slot, reviveId: null }, "ferme_ce_jour", null, offerings);
     }
   }
@@ -197,6 +197,8 @@ async function notifyOne(deps: AutoDeps, report: RunReport, settings: AutoSettin
       origin: "auto",
       author_id: null,
       source_credit: sourceCredit(o.kind),
+      // L'article d'une offre la suit : il n'est lu que tant qu'elle vaut.
+      ...(o.facts.kind === "promo" ? { offer_id: o.facts.offerId } : {}),
     });
     const withPost = (await deps.db.updateOccasion(o.id, { post_id: postId }, ["prevenu"])) ?? { ...claimed, post_id: postId };
     const sent = await deps.notify({ occasion: withPost, content, restaurant, settings, sendId });

@@ -23,7 +23,10 @@ export const AUTO_REASONS = {
   match_change: "Le match est reporté, annulé ou déplacé.",
   meteo_change: "La prévision a changé.",
   meteo_indisponible: "La prévision n'a pas pu être vérifiée.",
-  promo_finie: "La promo n'est plus active.",
+  promo_finie: "L'offre est arrêtée ou terminée.",
+  promo_changee: "L'offre a changé depuis le message.",
+  promo_plat: "Le plat de l'offre n'est plus proposé à la commande.",
+  promo_pas_aujourdhui: "L'offre ne vaut pas aujourd'hui.",
   source_indisponible: "L'information n'a pas pu être vérifiée.",
   sans_adresse: "Aucune adresse e-mail pour te prévenir.",
   mail_non_parti: "Notre message pour te prévenir n'est pas parti.",
@@ -46,5 +49,8 @@ export function reasonText(reason: string | null, detail: string | null): string
 /** La vérification n'a pas pu se faire : ce n'est pas un changement. */
 export const UNVERIFIABLE: ReadonlySet<string> = new Set<AutoReason>(["source_indisponible", "meteo_indisponible", "horaires_inconnus", "horaires_illisibles"]);
 
-/** Une occasion écartée pour ces raisons peut revenir si le restaurateur rallume, recoche ou rouvre avant son jour. */
-export const REVIVABLE: ReadonlySet<string> = new Set<AutoReason>(["arret", "type_decoche", "ferme_ce_jour", "horaires_inconnus", "horaires_illisibles"]);
+/** « Publier maintenant » refusé pour ces raisons : l'article attend toujours son jour. */
+export const STAYS_PENDING: ReadonlySet<string> = new Set<string>([...UNVERIFIABLE, "promo_pas_aujourdhui" satisfies AutoReason]);
+
+/** Une occasion écartée pour ces raisons peut revenir si le restaurateur rallume, recoche, rouvre ou remet le plat avant son jour. */
+export const REVIVABLE: ReadonlySet<string> = new Set<AutoReason>(["arret", "type_decoche", "ferme_ce_jour", "horaires_inconnus", "horaires_illisibles", "promo_plat"]);

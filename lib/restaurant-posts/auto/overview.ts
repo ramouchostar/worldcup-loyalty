@@ -89,7 +89,7 @@ const NO_POSITION = "Pas encore possible : la position de ton restaurant manque.
 export function kindChoices(ready: ReadonlySet<AutoKind>, hasPosition: boolean): KindChoice[] {
   return AUTO_KINDS.map((kind) => {
     const on = ready.has(kind);
-    if (kind === "promo") return { kind, available: on, note: on ? "" : "Pas encore possible : les offres arrivent plus tard." };
+    if (kind === "promo") return { kind, available: on, note: on ? "Un article par offre que tu publies, un jour où elle vaut. Pas d'article si son titre cite un prix." : "Pas encore possible : les offres ne sont pas encore activées." };
     if (kind === "match") return { kind, available: on, note: on ? "Pro League, coupes d'Europe et grandes sélections, le soir." : "Pas encore possible." };
     if (kind === "meteo") {
       return {

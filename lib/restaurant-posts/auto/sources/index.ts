@@ -3,9 +3,11 @@
 import { readFootballMatches } from "../../../signals/football-source";
 import { metForecastReader, readUserAgent } from "../../../signals/weather-met-source";
 import { createAdminClient } from "../../../supabase";
+import { isMissingOfferSchema, supabaseOffersDb } from "../../../site-offers/db";
+import { orderableFor } from "../../../site-offers/service";
 import { eventSource, EVENT_SOURCE, type AgendaReader, type AgendaRow } from "./events";
 import { matchSource, type MatchReader } from "./matches";
-import { promoSource } from "./promos";
+import { promoSource, type PromoReader } from "./promos";
 import type { OccasionSource } from "./types";
 import { weatherSource } from "./weather";
 import { supabaseForecastCache } from "../weather-cache";
@@ -67,8 +69,27 @@ function metWeather(env: Record<string, string | undefined>): OccasionSource {
   });
 }
 
+/** Les offres, telles qu'elles sont en base à l'instant. */
+function offerReader(): PromoReader {
+  const db = supabaseOffersDb();
+  return {
+    async ready() {
+      const admin = createAdminClient();
+      const [offers, posts] = await Promise.all([admin.from("site_offers").select("id").limit(1), admin.from("restaurant_posts").select("offer_id").limit(1)]);
+      const error = offers.error ?? posts.error;
+      if (!error) return null;
+      if (isMissingOfferSchema(error)) return "les offres ne sont pas activées (migration 20261127-1400 à appliquer)";
+      console.error("[articles auto] offres illisibles :", error.message);
+      return "les offres ne se lisent pas";
+    },
+    published: (restaurantId, sinceDay) => db.published(restaurantId, sinceDay),
+    get: (restaurantId, offerId) => db.get(restaurantId, offerId),
+    orderable: (restaurantId, offers) => orderableFor(db, restaurantId, offers),
+  };
+}
+
 /** Un jeu de sources par passage ou par requête : rien n'est gardé au-delà (la réserve météo est en base). */
 export function productionSources(env: Record<string, string | undefined> = process.env): OccasionSource[] {
   const apiKey = env.BZZOIRO_API_KEY;
-  return [promoSource, eventSource(agenda), matchSource(matchesOnce(apiKey), !!apiKey), metWeather(env)];
+  return [promoSource(offerReader()), eventSource(agenda), matchSource(matchesOnce(apiKey), !!apiKey), metWeather(env)];
 }

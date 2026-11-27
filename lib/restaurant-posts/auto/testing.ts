@@ -3,6 +3,7 @@
 
 import type { MetForecast, MetHour } from "../../signals/weather-met";
 import type { PublicMenu } from "../../site-orders/menu";
+import { OFFER_ARTICLE_PROBLEM, articleProblem, type OfferRow } from "../../site-offers/offers";
 import type { PostEvent, PostsDb } from "../service";
 import type { PostRow } from "../types";
 import type { OpeningVerdict } from "./opening";
@@ -85,6 +86,12 @@ export function world() {
     opening: "ouvert" as OpeningVerdict,
     closedDays: new Set<string>(),
     offerings: NO_OFFERINGS as Offerings,
+    /** Les offres de la page de commande : source éteinte par défaut (`offersOff` dit pourquoi). `offersDown` : illisibles. */
+    offersOff: "les offres ne sont pas activées" as string | null,
+    offers: new Map<string, OfferRow>(),
+    offersDown: false,
+    /** Les plats retirés de la commande. */
+    hiddenDishes: new Set<string>(),
     /** La météo : éteinte par défaut ; `forecast` : la prévision rendue ; `down` : le service ne répond pas. */
     weather: { on: false, down: false, forecast: null as MetForecast | null, asked: [] as { network: boolean; at: string }[] },
   };
@@ -97,6 +104,11 @@ export function world() {
   const proofs = new Map<string, SendProof | null>();
   const agenda: AgendaRow[] = [];
   let ids = 0;
+  const readOffer = (id: string) => {
+    if (state.offersDown) throw new Error("panne inventée");
+    return clone(state.offers.get(id) ?? null);
+  };
+  const orderable = (list: OfferRow[]) => new Set(list.flatMap((o) => o.menu_item_id ?? []).filter((id) => !state.hiddenDishes.has(id)));
 
   const postsDb: PostsDb = {
     async get(restaurantId, id) { const r = posts.get(id); return r && r.restaurant_id === restaurantId ? clone(r) : null; },
@@ -125,6 +137,12 @@ export function world() {
     async addEvent(e) { events.push(e); },
     async hasEvent() { return false; },
     async bump() {},
+    async onlineByOffer(restaurantId, offerId) { return clone([...posts.values()].filter((p) => p.restaurant_id === restaurantId && p.offer_id === offerId && p.status === "en_ligne")); },
+    async offerProblem(_restaurantId, offerId, now) {
+      const offer = readOffer(offerId);
+      const problem = articleProblem(offer, brusselsDay(now), orderable(offer ? [offer] : []), true);
+      return problem ? OFFER_ARTICLE_PROBLEM[problem] : null;
+    },
     async listFiles(folder) { return [...files.keys()].filter((f) => f.startsWith(`${folder}/`)); },
     async uploadFile(path, data) { files.set(path, data); },
     async removeFiles(paths) { for (const p of paths) files.delete(p); },
@@ -161,7 +179,15 @@ export function world() {
   };
 
   const sources = [
-    promoSource,
+    promoSource({
+      async ready() { return state.offersOff; },
+      async published(restaurantId, since) {
+        if (state.offersDown) throw new Error("panne inventée");
+        return clone([...state.offers.values()].filter((o) => o.restaurant_id === restaurantId && o.state === "publiee" && o.last_day >= since));
+      },
+      async get(_restaurantId, id) { return readOffer(id); },
+      async orderable(_restaurantId, list) { return orderable(list); },
+    }),
     eventSource({
       async nearby({ from, to }) { return clone(agenda.filter((r) => r.day >= from && r.day <= to)); },
       async one(source, externalId) { return clone(agenda.find((r) => r.source === source && r.external_id === externalId) ?? null); },
