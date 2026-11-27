@@ -77,22 +77,29 @@ export function publishedNote(occasion: Pick<Occasion, "published_mode" | "publi
 
 export type KindChoice = { kind: AutoKind; available: boolean; note: string };
 
+/** Les types dont la source peut donner quelque chose aujourd'hui. */
+export async function readyKinds(sources: OccasionSource[]): Promise<Set<AutoKind>> {
+  const states = await Promise.all(sources.map(async (s) => [s.kind, await s.unavailable()] as const));
+  return new Set(states.filter(([, why]) => why === null).map(([kind]) => kind));
+}
+
+const NO_POSITION = "Pas encore possible : la position de ton restaurant manque.";
+
 /** Les cases du réglage : ce qu'on peut cocher, et pourquoi le reste ne l'est pas, dit au restaurateur. */
-export function kindChoices(sources: OccasionSource[], hasPosition: boolean): KindChoice[] {
-  const ready = (kind: AutoKind) => sources.some((s) => s.kind === kind && s.unavailable() === null);
+export function kindChoices(ready: ReadonlySet<AutoKind>, hasPosition: boolean): KindChoice[] {
   return AUTO_KINDS.map((kind) => {
-    if (kind === "promo") return { kind, available: ready(kind), note: ready(kind) ? "" : "Pas encore possible : les offres arrivent plus tard." };
-    if (kind === "meteo") return { kind, available: ready(kind), note: ready(kind) ? "" : "Pas encore possible." };
-    if (kind === "match") {
-      return { kind, available: ready(kind), note: ready(kind) ? "Pro League, coupes d'Europe et grandes sélections, le soir." : "Pas encore possible." };
+    const on = ready.has(kind);
+    if (kind === "promo") return { kind, available: on, note: on ? "" : "Pas encore possible : les offres arrivent plus tard." };
+    if (kind === "match") return { kind, available: on, note: on ? "Pro League, coupes d'Europe et grandes sélections, le soir." : "Pas encore possible." };
+    if (kind === "meteo") {
+      return {
+        kind,
+        available: on && hasPosition,
+        note: !on
+          ? "Pas encore possible : la météo n'est pas encore allumée par Boosteats."
+          : !hasPosition ? NO_POSITION : "Pluie ou soleil annoncés pour le lendemain, d'après MET Norway.",
+      };
     }
-    const available = ready(kind) && hasPosition;
-    return {
-      kind,
-      available,
-      note: !hasPosition
-        ? "Pas encore possible : la position de ton restaurant manque."
-        : "Agenda de Bruxelles, à 1,5 km de chez toi au plus.",
-    };
+    return { kind, available: on && hasPosition, note: !hasPosition ? NO_POSITION : "Agenda de Bruxelles, à 1,5 km de chez toi au plus." };
   });
 }

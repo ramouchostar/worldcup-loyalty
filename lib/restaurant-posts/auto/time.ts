@@ -23,6 +23,8 @@ const utc = (day: string, time: string): string => {
 
 /** 10:00 à Bruxelles ce jour-là. */
 export const publishAt = (day: string): string => utc(day, `${String(PUBLISH_HOUR).padStart(2, "0")}:00`);
+/** La fin d'un service, à Bruxelles : l'article de météo s'y retire. */
+export const serviceEnd = (day: string, service: "midi" | "soir"): string => utc(day, service === "midi" ? "14:00" : "22:00");
 /** Minuit à la fin de ce jour, à Bruxelles. */
 export const endOfDay = (day: string): string => utc(addDays(day, 1), "00:00");
 

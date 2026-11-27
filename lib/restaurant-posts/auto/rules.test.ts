@@ -6,7 +6,7 @@ import { previewEntries } from "../../email-templates/fixtures";
 import { proArticleAutoEmail } from "../../email-templates/pro-article-auto";
 import { isSequenceKey, MESSAGES } from "../../message-catalog";
 import { NO_OFFERINGS, readOfferings } from "./offerings";
-import { kindChoices, missedItems, publishedNote, upcomingItems } from "./overview";
+import { kindChoices, missedItems, publishedNote, readyKinds, upcomingItems } from "./overview";
 import { planOccasions, type ExistingOccasion } from "./plan";
 import { deliveryProof } from "./proof";
 import { AUTO_REASONS } from "./reasons";
@@ -111,11 +111,16 @@ test("« Ce que tu proposes » n'est pas encore raccordé : tout est faux", asyn
   assert.deepEqual(Object.values(NO_OFFERINGS), [false, false, false]);
 });
 
-test("le réglage dit ce qu'on peut cocher, et pourquoi le reste ne l'est pas", () => {
-  const sources = [promoSource, eventSource({ nearby: async () => [], one: async () => null }), weatherSource];
-  assert.deepEqual(kindChoices(sources, true).map((c) => [c.kind, c.available]), [["promo", false], ["evenement", true], ["match", false], ["meteo", false]]);
-  assert.equal(kindChoices(sources, false)[1].available, false);
-  for (const c of kindChoices(sources, false)) assert.ok(c.note.length > 0);
+test("le réglage dit ce qu'on peut cocher, et pourquoi le reste ne l'est pas", async () => {
+  const off = weatherSource({ reader: null, off: "MET_NORWAY_USER_AGENT est vide", cacheReady: async () => true });
+  const ready = await readyKinds([promoSource, eventSource({ nearby: async () => [], one: async () => null }), off]);
+  assert.deepEqual(kindChoices(ready, true).map((c) => [c.kind, c.available]), [["promo", false], ["evenement", true], ["match", false], ["meteo", false]]);
+  assert.match(kindChoices(ready, true)[3].note, /pas encore allumée/);
+  assert.equal(kindChoices(ready, false)[1].available, false);
+  for (const c of kindChoices(ready, false)) assert.ok(c.note.length > 0);
+  const on = kindChoices(new Set<AutoKind>(["meteo"]), true)[3];
+  assert.deepEqual([on.available, /MET Norway/.test(on.note)], [true, true]);
+  assert.equal(kindChoices(new Set<AutoKind>(["meteo"]), false)[3].available, false);
 });
 
 const occasion = (over: Partial<Occasion>): Occasion => ({
@@ -160,9 +165,15 @@ test("le message de la veille : au catalogue, pas une séquence, valeurs échapp
   assert.ok(previewEntries({ logoUrl: null, image: () => null }).some((e) => e.id === "t-article-auto"));
 });
 
-test("la tâche est déclarée toutes les heures, et le blog écrit à la main ne dépend pas de la migration automatique", () => {
+test("la tâche est déclarée toutes les heures, la réserve météo à une minute décalée ; la migration automatique ne détruit rien", () => {
   const crons = JSON.parse(readFileSync(join(process.cwd(), "vercel.json"), "utf8")).crons as { path: string; schedule: string }[];
   assert.equal(crons.find((c) => c.path === "/api/cron/auto-articles")?.schedule, "0 * * * *");
+  // Jamais à l'heure pile : les conditions de MET Norway le demandent.
+  assert.match(crons.find((c) => c.path === "/api/cron/auto-articles-weather")!.schedule, /^(?!0 )[1-5]?\d \* \* \* \*$/);
+  const cache = readFileSync(join(process.cwd(), "docs", "migrations", "20261127-0930-weather-forecast-cache.sql"), "utf8");
+  assert.match(cache, /CREATE TABLE IF NOT EXISTS weather_forecast_cache/);
+  assert.match(cache, /ENABLE ROW LEVEL SECURITY/);
+  assert.doesNotMatch(cache, /CREATE POLICY|DROP |ALTER TABLE restaurant|DELETE FROM|TRUNCATE/);
   const sql = readFileSync(join(process.cwd(), "docs", "migrations", "20261126-2330-restaurant-posts-auto.sql"), "utf8");
   assert.match(sql, /to_regclass\('public\.restaurant_posts'\) IS NULL/);
   // Chaque table nouvelle est fermée (service role seulement) et rien n'est détruit.

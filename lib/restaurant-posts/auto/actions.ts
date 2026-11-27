@@ -11,7 +11,8 @@ import { isActive } from "./engine";
 import { NO_OFFERINGS } from "./offerings";
 import { VARIANTS } from "./phrases";
 import type { AutoDeps } from "./ports";
-import { reasonText } from "./reasons";
+import { reasonText, UNVERIFIABLE } from "./reasons";
+import { readyKinds } from "./overview";
 import {
   AUTO_KINDS, PENDING_STATUSES, TERMS_VERSION, type AutoKind, type AutoSettings, type Occasion,
 } from "./types";
@@ -33,8 +34,8 @@ export async function saveAutoSettings(
   p: { restaurantId: string; userId: string; kinds: unknown; accepted: boolean },
 ): Promise<Done<{ settings: AutoSettings }>> {
   if (!Array.isArray(p.kinds)) return refuse(400, "Requête invalide.");
-  const offered = AUTO_KINDS.filter((k) => deps.sources.some((s) => s.kind === k && s.unavailable() === null));
-  const kinds = offered.filter((k) => (p.kinds as unknown[]).includes(k));
+  const offered = await readyKinds(deps.sources);
+  const kinds = AUTO_KINDS.filter((k) => offered.has(k) && (p.kinds as unknown[]).includes(k));
   if (kinds.length === 0) return refuse(400, "Coche au moins une occasion.");
   const before = await deps.db.settings(p.restaurantId);
   const already = isActive(before);
@@ -118,11 +119,13 @@ export async function publishNow(
   const restaurant = await deps.restaurant(id);
   if (!restaurant || !restaurant.open) return refuse(404, "Introuvable.");
   const source = deps.sources.find((s) => s.kind === occasion.kind);
-  const check = source ? await source.recheck({ restaurantId: id, coords: restaurant.coords, now: deps.now }, occasion.facts) : null;
+  // Une personne appuie : la source peut être interrogée (sa réserve évite les demandes répétées).
+  const check = source ? await source.recheck({ restaurantId: id, coords: restaurant.coords, now: deps.now, network: true }, occasion.facts) : null;
   if (!check || !check.ok) {
     const reason = check && !check.ok ? check.reason : "source_indisponible";
-    // Une panne de la source n'est pas un changement : l'article attend toujours.
-    if (reason !== "source_indisponible") await discardOccasion(deps, occasion, reason, PENDING_STATUSES);
+    // Une panne de la source n'est pas un changement : rien ne paraît, l'article attend toujours, la raison est gardée.
+    if (UNVERIFIABLE.has(reason)) await deps.posts.addEvent({ postId: occasion.post_id, restaurantId: id, kind: "refuse", reason, actorId: p.userId });
+    else await discardOccasion(deps, occasion, reason, PENDING_STATUSES);
     return refuse(409, reasonText(reason, null));
   }
   const menu = await deps.menu(id);

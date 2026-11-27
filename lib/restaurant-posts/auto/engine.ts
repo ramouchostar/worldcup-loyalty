@@ -44,7 +44,8 @@ const emptyReport = (hour: number, acted: boolean): RunReport => ({
 export const isActive = (s: AutoSettings | null): s is AutoSettings => !!s && s.enabled && s.terms_version === TERMS_VERSION && s.accepted_at !== null;
 
 const sourceFor = (deps: AutoDeps, kind: AutoKind): OccasionSource | undefined => deps.sources.find((s) => s.kind === kind);
-const context = (deps: AutoDeps, r: AutoRestaurant) => ({ restaurantId: r.id, coords: r.coords, now: deps.now });
+// La tâche passe à l'heure pile : elle ne lit que les réserves (la météo est demandée par une tâche décalée).
+const context = (deps: AutoDeps, r: AutoRestaurant) => ({ restaurantId: r.id, coords: r.coords, now: deps.now, network: false });
 
 async function discard(deps: AutoDeps, report: RunReport, o: Occasion, reason: AutoReason, detail: string | null = null): Promise<void> {
   if (await discardOccasion(deps, o, reason, [o.status], detail)) report.discarded++;
@@ -103,7 +104,7 @@ async function plan(deps: AutoDeps, report: RunReport, settings: AutoSettings, r
   for (const kind of settings.kinds) {
     const source = sourceFor(deps, kind);
     if (!source) continue;
-    const why = source.unavailable();
+    const why = await source.unavailable();
     if (why !== null) {
       if (!report.unavailable.some((u) => u.kind === kind)) {
         report.unavailable.push({ kind, why });
@@ -258,6 +259,46 @@ async function publishOne(deps: AutoDeps, report: RunReport, o: Occasion, today:
     if (await discardOccasion(deps, claimed, "erreur", ["publie"])) report.discarded++;
     throw e;
   }
+}
+
+// ─── La réserve météo, une heure avant chaque passage ────────────────────────
+
+export type PrefetchReport = { hour: number; acted: boolean; restaurants: number; ready: number; off: string | null; errors: string[] };
+
+/**
+ * Une heure avant 10 h et 17 h, à une minute décalée : demander ce que les passages suivants liront en réserve. Les
+ * conditions de MET Norway interdisent le trafic à l'heure pile ; les heures montrées au restaurateur ne changent pas.
+ * `pause` : un court délai au hasard entre deux demandes.
+ */
+export async function prefetchWeather(deps: AutoDeps, pause: () => Promise<void> = async () => {}): Promise<PrefetchReport> {
+  const hour = brusselsHourOf(deps.now);
+  const report: PrefetchReport = { hour, acted: false, restaurants: 0, ready: 0, off: null, errors: [] };
+  if (hour !== NOTIFY_HOUR - 1 && hour !== PUBLISH_HOUR - 1) return report;
+  report.acted = true;
+  const source = sourceFor(deps, "meteo");
+  const why = source ? await source.unavailable() : "météo pas branchée";
+  if (!source?.prefetch || why !== null) {
+    report.off = why ?? "météo pas branchée";
+    console.warn(`[articles auto] météo éteinte : ${report.off}`);
+    return report;
+  }
+  for (const settings of await deps.db.enabledSettings()) {
+    if (!isActive(settings) || !settings.kinds.includes("meteo")) continue;
+    const id = settings.restaurant_id;
+    try {
+      const restaurant = await deps.restaurant(id);
+      if (!restaurant || !restaurant.open) continue;
+      report.restaurants++;
+      await pause();
+      const r = await source.prefetch({ ...context(deps, restaurant), network: true });
+      if (r.ok) report.ready++;
+      else report.errors.push(`${id} : ${r.error}`);
+    } catch (e) {
+      console.error(`[articles auto] réserve météo, ${id} :`, e);
+      report.errors.push(`${id} : ${(e as Error).message}`);
+    }
+  }
+  return report;
 }
 
 // ─── La fin automatique ──────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ export const AUTO_REASONS = {
   agenda_perime: "L'agenda n'a pas pu être vérifié récemment.",
   match_change: "Le match est reporté, annulé ou déplacé.",
   meteo_change: "La prévision a changé.",
+  meteo_indisponible: "La prévision n'a pas pu être vérifiée.",
   promo_finie: "La promo n'est plus active.",
   source_indisponible: "L'information n'a pas pu être vérifiée.",
   sans_adresse: "Aucune adresse e-mail pour te prévenir.",
@@ -37,6 +38,9 @@ export function reasonText(reason: string | null, detail: string | null): string
   const base = reason && reason in AUTO_REASONS ? AUTO_REASONS[reason as AutoReason] : AUTO_REASONS.erreur;
   return detail ? `${base} ${detail}` : base;
 }
+
+/** La vérification n'a pas pu se faire : ce n'est pas un changement. */
+export const UNVERIFIABLE: ReadonlySet<string> = new Set<AutoReason>(["source_indisponible", "meteo_indisponible"]);
 
 /** Une occasion écartée pour ces raisons peut revenir si le restaurateur rallume ou recoche avant son jour. */
 export const REVIVABLE: ReadonlySet<string> = new Set<AutoReason>(["arret", "type_decoche"]);

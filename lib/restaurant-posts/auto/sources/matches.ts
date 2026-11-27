@@ -53,7 +53,7 @@ export type MatchReader = (p: { from: string; to: string; competitionIds: number
 export function matchSource(read: MatchReader, hasKey: boolean): OccasionSource {
   return {
     kind: "match",
-    unavailable: () => (hasKey ? null : MATCHES_UNAVAILABLE),
+    unavailable: async () => (hasKey ? null : MATCHES_UNAVAILABLE),
     async read(_ctx, window) {
       if (!hasKey) return { ok: false, error: MATCHES_UNAVAILABLE };
       const r = await read({ ...window, competitionIds: MATCH_COMPETITIONS });

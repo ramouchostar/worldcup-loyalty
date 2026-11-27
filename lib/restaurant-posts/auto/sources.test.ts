@@ -3,17 +3,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseBzzoiroEvents, type FootballMatch } from "../../signals/football";
-import { parseGoogleWeatherHours, type WeatherHour, type WeatherRead } from "../../signals/weather";
 import { agendaRow, HERE } from "./testing";
 import { eventCandidates, eventSource } from "./sources/events";
 import { matchCandidates, matchSource } from "./sources/matches";
 import { promoSource } from "./sources/promos";
-import { skyOf, weatherSource } from "./sources/weather";
 
 const DAY = "2026-11-28";
 const NOW = new Date("2026-11-27T16:00:00Z");
 const WINDOW = { from: DAY, to: "2026-11-30" };
-const ctx = { restaurantId: "r", coords: HERE, now: NOW };
+const ctx = { restaurantId: "r", coords: HERE, now: NOW, network: false };
 const fresh = (over = {}) => agendaRow(DAY, { synced_at: "2026-11-27T02:00:00Z", ...over });
 
 test("événements : voisins, des catégories retenues, non annulés et vérifiés récemment ; la distance est dite", () => {
@@ -79,7 +77,7 @@ test("matchs : un par jour, la sélection d'abord, puis la Pro League ; fin troi
 
 test("matchs : sans clé, rien et on le dit ; revérifié au jour même", async () => {
   const none = matchSource(async () => assert.fail("aucune lecture sans clé"), false);
-  assert.match(none.unavailable()!, /BZZOIRO_API_KEY/);
+  assert.match((await none.unavailable())!, /BZZOIRO_API_KEY/);
   assert.equal((await none.read(ctx, WINDOW)).ok, false);
 
   const facts = matchCandidates([match({ id: 2, home: "Genk", away: "Gand" })], WINDOW)[0].days[0].facts;
@@ -92,41 +90,8 @@ test("matchs : sans clé, rien et on le dit ; revérifié au jour même", async 
   assert.deepEqual(await check([], false), { ok: false, reason: "source_indisponible" });
 });
 
-const hour = (h: number, over: Partial<WeatherHour> = {}): WeatherHour => ({
-  time: `${DAY}T${String(h).padStart(2, "0")}:00`, temperature: 14, apparentTemperature: 13, precipitation: 0, precipitationProbability: 5,
-  snowfall: 0, windSpeed: 10, thunderstormProbability: 0, condition: "CLEAR", weatherCode: null, ...over,
-});
-const read = (hours: WeatherHour[]): WeatherRead => ({ latitude: 0, longitude: 0, timezone: "Europe/Brussels", hours });
-const noon = (over: Partial<WeatherHour> = {}) => read([hour(11), hour(12, over), hour(13)]);
-
-test("météo : le soleil ne s'annonce jamais sans donnée", () => {
-  assert.deepEqual(skyOf(noon(), DAY), { sky: "soleil", service: "midi" });
-  assert.deepEqual(skyOf(noon({ condition: "MOSTLY_CLEAR" }), DAY), { sky: "soleil", service: "midi" });
-  for (const over of [
-    { condition: null }, { condition: "PARTLY_CLOUDY" }, { precipitation: null }, { precipitation: 0.2 },
-    { precipitationProbability: null }, { precipitationProbability: 30 }, { apparentTemperature: null }, { apparentTemperature: 6 },
-  ]) assert.equal(skyOf(noon(over), DAY), null, JSON.stringify(over));
-  assert.equal(skyOf(read([hour(11), hour(13)]), DAY), null); // une heure manque
-  assert.equal(skyOf(noon(), "2026-11-29"), null);
-});
-
-test("météo : la pluie sur un service complet ; la réponse d'exemple de Google se lit", () => {
-  assert.deepEqual(skyOf(noon({ precipitation: 3, condition: "RAIN" }), DAY), { sky: "pluie", service: "midi" });
-  assert.deepEqual(skyOf(read([18, 19, 20, 21].map((h) => hour(h, { precipitation: 1, condition: "RAIN" }))), DAY), { sky: "pluie", service: "soir" });
-  assert.equal(skyOf(read([hour(12, { precipitation: 5 })]), DAY), null); // service incomplet
-  assert.equal(skyOf(noon({ precipitation: 3, snowfall: 2 }), DAY), null);
-  const pages = JSON.parse(readFileSync(join(process.cwd(), "lib", "signals", "weather-google-forecast.fixture.json"), "utf8"));
-  const parsed = parseGoogleWeatherHours(pages, { latitude: 50.85, longitude: 4.35 })!;
-  for (const day of new Set(parsed.hours.map((h) => h.time.slice(0, 10)))) {
-    const sky = skyOf(parsed, day);
-    assert.ok(sky === null || sky.sky === "soleil" || sky.sky === "pluie");
-  }
-});
-
-test("météo éteinte et promos pas branchées : elles le disent et ne proposent rien", async () => {
-  assert.match(weatherSource.unavailable()!, /Google/);
-  assert.equal((await weatherSource.read(ctx, WINDOW)).ok, false);
-  assert.ok(promoSource.unavailable());
+test("les promos ne sont pas branchées : elles le disent et ne proposent rien", async () => {
+  assert.ok(await promoSource.unavailable());
   assert.deepEqual(await promoSource.read(ctx, WINDOW), { ok: true, candidates: [] });
   const facts = { kind: "promo" as const, offerId: "o", label: "x", day: DAY, endsDay: DAY };
   assert.deepEqual(await promoSource.recheck(ctx, facts), { ok: false, reason: "promo_finie" });

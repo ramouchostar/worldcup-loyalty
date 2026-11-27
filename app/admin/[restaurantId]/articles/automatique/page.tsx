@@ -1,7 +1,7 @@
 import { AutoSettingsForm } from "@/components/admin/articles/AutoSettingsForm";
 import { BackLink } from "@/components/admin/articles/ui";
 import { PageHeader, Restricted } from "@/components/admin/ui";
-import { kindChoices } from "@/lib/restaurant-posts/auto/overview";
+import { kindChoices, readyKinds } from "@/lib/restaurant-posts/auto/overview";
 import { productionSources } from "@/lib/restaurant-posts/auto/sources";
 import { dayLabel } from "@/lib/restaurant-posts/view";
 import { loadAuto, openConsole, restaurantHasPosition } from "../load";
@@ -15,7 +15,10 @@ export default async function AutoArticlesPage({ params }: { params: Promise<{ r
   const { restaurantId } = await params;
   const { canSee, canWrite } = await openConsole(restaurantId);
   if (!canSee) return <Restricted />;
-  const [auto, hasPosition] = await Promise.all([loadAuto(restaurantId), restaurantHasPosition(restaurantId)]);
+  const sources = productionSources();
+  const [auto, hasPosition, ready] = await Promise.all([loadAuto(restaurantId), restaurantHasPosition(restaurantId), readyKinds(sources)]);
+  // La plateforme lit la cause technique d'une source éteinte ; le restaurateur lit « pas encore possible ».
+  const weatherOff = canWrite ? null : (await sources.find((s) => s.kind === "meteo")?.unavailable()) ?? null;
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -29,10 +32,13 @@ export default async function AutoArticlesPage({ params }: { params: Promise<{ r
       ) : auto.state === "failed" ? (
         <p role="alert" className="text-[15px] text-danger">Impossible de lire le réglage pour le moment. Recharge la page.</p>
       ) : !canWrite ? (
-        <p className="text-[15px] text-ink">
-          {auto.active ? "Publication automatique activée." : "Publication automatique éteinte."}{" "}
-          Seul le restaurant peut l&apos;activer, la régler ou l&apos;arrêter.
-        </p>
+        <div className="space-y-2">
+          <p className="text-[15px] text-ink">
+            {auto.active ? "Publication automatique activée." : "Publication automatique éteinte."}{" "}
+            Seul le restaurant peut l&apos;activer, la régler ou l&apos;arrêter.
+          </p>
+          {weatherOff && <p className="break-words text-[13px] text-ink-muted">Météo éteinte pour tous : {weatherOff}.</p>}
+        </div>
       ) : (
         <AutoSettingsForm
           key={auto.settings?.updated_at ?? "neuf"}
@@ -40,7 +46,7 @@ export default async function AutoArticlesPage({ params }: { params: Promise<{ r
           active={auto.active}
           activeSince={auto.active && auto.settings?.accepted_at ? dayLabel(auto.settings.accepted_at) : null}
           initial={auto.settings?.kinds ?? []}
-          choices={kindChoices(productionSources(), hasPosition)}
+          choices={kindChoices(ready, hasPosition)}
         />
       )}
     </div>

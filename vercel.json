@@ -70,6 +70,10 @@
     {
       "path": "/api/cron/auto-articles",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-articles-weather",
+      "schedule": "23 * * * *"
     }
   ]
 }

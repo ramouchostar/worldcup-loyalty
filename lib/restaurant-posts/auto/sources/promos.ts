@@ -8,7 +8,7 @@ export const PROMOS_UNAVAILABLE = "les offres (ADR 0110) ne sont pas construites
 
 export const promoSource: OccasionSource = {
   kind: "promo",
-  unavailable: () => PROMOS_UNAVAILABLE,
+  unavailable: async () => PROMOS_UNAVAILABLE,
   read: async () => ({ ok: true, candidates: [] }),
   recheck: async () => ({ ok: false, reason: "promo_finie" }),
 };

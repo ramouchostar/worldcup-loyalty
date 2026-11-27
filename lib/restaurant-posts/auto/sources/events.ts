@@ -77,7 +77,7 @@ export function eventCandidates(rows: AgendaRow[], coords: { lat: number; lng: n
 export function eventSource(agenda: AgendaReader): OccasionSource {
   return {
     kind: "evenement",
-    unavailable: () => null,
+    unavailable: async () => null,
     async read(ctx, window) {
       if (!ctx.coords) return { ok: false, error: "la position du restaurant est inconnue" };
       try {

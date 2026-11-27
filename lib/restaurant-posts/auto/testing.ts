@@ -1,6 +1,7 @@
 // Pour les tests de la publication automatique : une base en mémoire, une carte, des sources et un facteur factices.
 // Aucun import de production ne doit venir ici.
 
+import type { MetForecast, MetHour } from "../../signals/weather-met";
 import type { PublicMenu } from "../../site-orders/menu";
 import type { PostEvent, PostsDb } from "../service";
 import type { PostRow } from "../types";
@@ -53,6 +54,22 @@ export const agendaRow = (day: string, over: Partial<AgendaRow> = {}): AgendaRow
 
 const clone = <T>(v: T): T => (v === null || v === undefined ? v : (JSON.parse(JSON.stringify(v)) as T));
 
+/** Une prévision INVENTÉE pour un jour : les heures de Bruxelles de 8 h à 23 h (UTC+1 en novembre), sèches et couvertes. */
+export function forecast(day: string, set: (localHour: number) => Partial<MetHour> = () => ({})): MetForecast {
+  return {
+    updatedAt: `${day}T00:00:00Z`,
+    hours: Array.from({ length: 16 }, (_, i) => i + 8).map((h) => ({
+      time: `${day}T${String(h - 1).padStart(2, "0")}:00:00.000Z`,
+      airTemperature: 9,
+      cloudAreaFraction: 90,
+      precipitationNextHour: 0,
+      ...set(h),
+    })),
+  };
+}
+export const rainAtNoon = (day: string) => forecast(day, (h) => (h >= 11 && h <= 13 ? { precipitationNextHour: 1.2 } : {}));
+export const sunAtNoon = (day: string) => forecast(day, (h) => (h >= 11 && h <= 13 ? { cloudAreaFraction: 5, airTemperature: 15 } : {}));
+
 export function world() {
   const state = {
     now: at17("2026-11-27"),
@@ -62,6 +79,8 @@ export function world() {
     /** Ce que le journal dira du prochain message : « delivered » par défaut. */
     proof: { status: "delivered", delivered_at: "2026-11-27T16:00:05Z", bounced_at: null, complained_at: null } as SendProof | null,
     notifyFails: null as AutoReason | null,
+    /** La météo : éteinte par défaut ; `forecast` : la prévision rendue ; `down` : le service ne répond pas. */
+    weather: { on: false, down: false, forecast: null as MetForecast | null, asked: [] as { network: boolean; at: string }[] },
   };
   const posts = new Map<string, PostRow>();
   const files = new Map<string, Uint8Array>();
@@ -142,7 +161,17 @@ export function world() {
       async one(source, externalId) { return clone(agenda.find((r) => r.source === source && r.external_id === externalId) ?? null); },
     }),
     matchSource(async () => ({ ok: true, matches: [], perCompetition: {}, errors: [] }), false),
-    weatherSource,
+    weatherSource({
+      reader: {
+        async get(_c, { now, network }) {
+          state.weather.asked.push({ network, at: now.toISOString() });
+          if (state.weather.down || !state.weather.forecast) return { ok: false, error: "panne inventée" };
+          return { ok: true, forecast: clone(state.weather.forecast) };
+        },
+      },
+      off: null,
+      cacheReady: async () => state.weather.on,
+    }),
   ];
 
   const deps = (): AutoDeps => ({
