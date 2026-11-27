@@ -13,7 +13,7 @@ const NOW = Date.parse("2026-11-23T14:00:00.000Z");
 const ago = (min: number) => new Date(NOW - min * 60000).toISOString();
 const order = (id: string, status: OrderView["status"], createdMin: number, o: Partial<OrderView> = {}): OrderView => ({
   id, number: id.padStart(4, "0"), firstName: `Client${id}`, phone: null, lines: [], totalCents: 1000, status,
-  createdAt: ago(createdMin), readyAt: null, pickedUpAt: null, cancelledAt: null, cancelReason: null, ...o,
+  createdAt: ago(createdMin), readyAt: null, pickedUpAt: null, cancelledAt: null, cancelReason: null, offerIds: [], ...o,
 });
 const alerts = (orders: OrderView[], refusals: Record<string, number> = {}) => computeAlerts({ orders, refusals, now: NOW });
 const ids = (a: { id: string }[]) => a.map((x) => x.id);

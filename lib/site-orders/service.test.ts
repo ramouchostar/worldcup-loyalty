@@ -4,7 +4,7 @@ import type { OptionGroup } from "../menu-options/types";
 import type { Openness } from "./hours";
 import type { CatalogItem, OrderStatus } from "./order";
 import { shouldOfferRescue } from "./rescue";
-import { SiteOrdersUnavailableError, changeStatus, listRecentOrders, placeSiteOrder, type NewOrderRow, type OrderRow, type OrdersDb } from "./service";
+import { SiteOrdersUnavailableError, changeStatus, listRecentOrders, placeSiteOrder, type NewOrderRow, type OrderOffer, type OrderRow, type OrdersDb } from "./service";
 
 class MemOrdersDb implements OrdersDb {
   rows: (OrderRow & { restaurant_id: string; order_day: string })[] = [];
@@ -16,6 +16,9 @@ class MemOrdersDb implements OrdersDb {
   /** Ce que la fiche dit : ouvert, sauf si un test dit autre chose. `null` = notre base est en panne. */
   openness: Openness | null = { state: "ouvert", closes: null };
   async readOpenness() { if (this.openness === null) throw new Error("base en panne"); return this.openness; }
+  offers: OrderOffer[] | null = [];
+  kept: string[][] = [];
+  async liveOffers() { if (this.offers === null) throw new Error("offres illisibles"); return this.offers; }
   constructor(public catalog: CatalogItem[] = [], public trees = new Map<string, OptionGroup[]>()) {}
   private guard() { if (this.unavailable) throw new SiteOrdersUnavailableError(); }
   async loadCatalog(_r: string, ids: string[]) { return new Map(this.catalog.filter((c) => ids.includes(c.id)).map((c) => [c.id, c])); }
@@ -26,6 +29,7 @@ class MemOrdersDb implements OrdersDb {
     if (this.conflictsLeft > 0) { this.conflictsLeft--; return { ok: false as const, conflict: true as const }; }
     const id = `o${this.rows.length + 1}`;
     this.members.push(row.member_id);
+    this.kept.push(row.offer_ids);
     this.rows.push({ id, restaurant_id: row.restaurant_id, order_day: row.order_day, number: row.number, first_name: row.first_name, phone: row.phone, lines: row.lines, total_cents: row.total_cents, status: "recue", created_at: "2026-11-13T12:00:00Z", ready_at: null, picked_up_at: null, cancelled_at: null, cancel_reason: null });
     return { ok: true as const, id, linked: row.member_id !== null };
   }
@@ -48,7 +52,7 @@ const NOW = new Date("2026-11-13T12:00:00Z");
 test("placeSiteOrder : écrit la commande, numéro du jour, prix recalculé", async () => {
   const db = new MemOrdersDb([cola]);
   const out = await placeSiteOrder(db, "r1", body(), NOW);
-  assert.deepEqual(out, { ok: true, id: "o1", number: "0001", totalCents: 500, linked: false }); // appel sans compte : pas de lien
+  assert.deepEqual(out, { ok: true, id: "o1", number: "0001", totalCents: 500, linked: false, offers: [] }); // appel sans compte : pas de lien
   const second = await placeSiteOrder(db, "r1", body(), NOW);
   assert.ok(second.ok);
   if (second.ok) assert.equal(second.number, "0002");
@@ -237,4 +241,40 @@ test("placeSiteOrder : une demande mal formée est refusée avant toute lecture 
   db.readOpenness = async () => { reads++; return { state: "ouvert", closes: null }; };
   await placeSiteOrder(db, "r1", body({ firstName: " " }), NOW, "u1");
   assert.equal(reads, 0);
+});
+
+// ─── Les offres (ADR 0110) : elles accompagnent la commande, elles ne touchent aucun prix. ───
+
+const FRITES: OrderOffer = { id: "11111111-1111-4111-8111-111111111111", title: "Frites offertes au comptoir", conditions: "Avec un menu." };
+
+test("une offre valable est gardée avec la commande et rappelée, sans changer le total", async () => {
+  const sans = new MemOrdersDb([cola]);
+  const avec = new MemOrdersDb([cola]);
+  avec.offers = [FRITES];
+  const a = await placeSiteOrder(sans, "r1", body(), NOW);
+  const b = await placeSiteOrder(avec, "r1", body(), NOW);
+  assert.ok(a.ok && b.ok);
+  if (!a.ok || !b.ok) return;
+  assert.equal(b.totalCents, a.totalCents);
+  assert.deepEqual(avec.rows[0].lines, sans.rows[0].lines);
+  assert.deepEqual(avec.kept, [[FRITES.id]]);
+  assert.deepEqual(b.offers, [FRITES]);
+  assert.deepEqual(a.offers, []);
+});
+
+test("des offres illisibles ne font jamais perdre une commande", async () => {
+  const db = new MemOrdersDb([cola]);
+  db.offers = null;
+  const out = await placeSiteOrder(db, "r1", body(), NOW);
+  assert.ok(out.ok);
+  assert.deepEqual(db.kept, [[]]);
+});
+
+test("des offres qui n'ont pas pu être gardées avec la commande ne sont pas rappelées au client", async () => {
+  const db = new MemOrdersDb([cola]);
+  db.offers = [FRITES];
+  const insert = db.insert.bind(db);
+  db.insert = async (row) => { const r = await insert(row); return r.ok ? { ...r, offersKept: false } : r; };
+  const out = await placeSiteOrder(db, "r1", body(), NOW);
+  assert.deepEqual(out.ok && out.offers, []);
 });

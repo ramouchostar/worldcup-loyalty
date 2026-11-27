@@ -18,6 +18,9 @@ export type Labels = {
   totalNote: string;
   payAtCounter: string;
   doNotRedo: string;
+  /** Devant chaque offre vue sur la page (ADR 0110). */
+  offer: string;
+  offerNote: string;
 };
 
 export const LABELS_FR: Labels = {
@@ -27,6 +30,8 @@ export const LABELS_FR: Labels = {
   totalNote: "total calculé par le site, à vérifier au comptoir",
   payAtCounter: "Retrait au comptoir, paiement au comptoir.",
   doNotRedo: "Cette commande n'a pas été enregistrée sur le site : elle ne sort pas sur l'imprimante.",
+  offer: "Offre vue sur le site",
+  offerNote: "Le total ne compte pas l'offre : elle se fait au comptoir.",
 };
 
 /** Au-delà, un lien `wa.me` risque d'être coupé par le navigateur : on propose de copier le message à la place. */
@@ -34,8 +39,9 @@ export const MAX_LINK_CHARS = 4000;
 
 const toTicketLine = (l: Cart[number]): TicketLine => ({ name: l.name, qty: l.qty, zone: null, cents: l.unitCents * l.qty, details: l.details });
 
-/** Le message, ligne par ligne, tel que le restaurateur le lira dans WhatsApp. Le nom du plat reste celui de sa carte, jamais traduit. */
-export function buildWhatsAppText(cart: Cart, firstName: string, labels: Labels = LABELS_FR): string {
+/** Le message, ligne par ligne, tel que le restaurateur le lira dans WhatsApp. Le nom du plat reste celui de sa carte, jamais traduit.
+ *  `offers` : les titres des offres que la page montrait au client à ce moment-là. */
+export function buildWhatsAppText(cart: Cart, firstName: string, labels: Labels = LABELS_FR, offers: readonly string[] = []): string {
   const out: string[] = [labels.title, `${labels.name} : ${cleanFirstName(firstName)}`, ""];
   for (const l of cart) {
     const t = textOf(toTicketLine(l));
@@ -43,7 +49,9 @@ export function buildWhatsAppText(cart: Cart, firstName: string, labels: Labels 
     for (const d of t.details) out.push(`   ${d}`);
     for (const w of t.without) out.push(`   ${w}`);
   }
-  out.push("", `${labels.total} : ${euro(cartTotal(cart))} (${labels.totalNote})`, labels.payAtCounter, labels.doNotRedo);
+  out.push("", `${labels.total} : ${euro(cartTotal(cart))} (${labels.totalNote})`);
+  if (offers.length > 0) out.push(...offers.map((title) => `${labels.offer} : ${title}`), labels.offerNote);
+  out.push(labels.payAtCounter, labels.doNotRedo);
   return out.join("\n");
 }
 
