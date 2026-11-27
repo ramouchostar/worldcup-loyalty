@@ -35,7 +35,7 @@ Offre écrite et publiée par le gérant, montrée sur la page de commande. Elle
 _Avoid_ : coupon, cadeau, bon, code promo, remise appliquée.
 
 **Article de blog** *(ADR 0111)* :
-Texte publié par le restaurant dans son espace de commande, non indexé par Google, jamais sans « Oui, publier ». Le client lit « Nos articles ». **Pas encore construit.**
+Texte publié par le restaurant dans son espace de commande (`restaurant_posts`), non indexé par Google, jamais sans « Oui, publier » d'un gérant ou d'un manager. Le client lit « Nos articles ». États : brouillon, en ligne, retiré, masqué par Boosteats (la plateforme masque, ne publie jamais). Brouillon et version publiée sont séparés ; un bloc « plat » lit le nom et le prix sur la carte, et disparaît si le plat est retiré.
 _Avoid_ : « article » seul (réservé à une ligne de la carte), annonce (c'est un envoi), idée.
 
 **Secours WhatsApp** *(ADR 0107 §10)* :
