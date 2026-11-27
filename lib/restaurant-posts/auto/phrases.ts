@@ -2,6 +2,7 @@
 // la source, le plat de la carte et les informations cochées. Aucune rédaction par une IA. PUR : les tests passent
 // chaque variante dans le contrôle de publication (check.ts).
 
+import { WEATHER_CREDIT } from "../credit";
 import type { PostBlock, PostContent } from "../types";
 import { LIMITS } from "../types";
 import { clockLabel, dayMonth, endOfDay, weekdayName } from "./time";
@@ -94,19 +95,20 @@ function weatherLines(f: WeatherFacts, o: Offerings, v: number): Lines {
   const day = weekdayName(f.day);
   const date = `${day} ${dayMonth(f.day)}`;
   const when = f.service === "midi" ? "à midi" : "en soirée";
+  // Chaque titre dit le moment : la prévision lue ne porte que sur ces heures-là, jamais sur la journée.
   if (f.sky === "pluie") {
     return {
-      title: [`Pluie annoncée ${day} : commande à emporter`, `${cap(day)}, la pluie est annoncée`, `Temps de pluie annoncé ce ${day}`][v],
+      title: [`Pluie annoncée ${day} ${when} : commande à emporter`, `${cap(day)} ${when}, la pluie est annoncée`, `Pluie annoncée ce ${day} ${when}`][v],
       paragraphs: [
         [`La météo annonce de la pluie ce ${date} ${when}.`, `De la pluie est annoncée ce ${date} ${when}.`, `Ce ${date} ${when}, la météo prévoit de la pluie.`][v],
         o.onSite
-          ? ["Viens manger au sec, sur place, ou commande à emporter.", "Mets-toi à l'abri : mange sur place ou emporte ton repas.", "Sur place ou à emporter, ton repas ne prend pas l'eau."][v]
+          ? ["Viens manger au sec, sur place, ou commande à emporter.", "Mets-toi à l'abri : mange sur place ou emporte ton repas.", "Sur place ou à emporter, à toi de choisir."][v]
           : ["Commande à emporter, puis viens retirer ton repas.", "Passe ta commande à emporter et retire ton repas au comptoir.", "Prépare ta commande à emporter avant de sortir."][v],
       ],
     };
   }
   return {
-    title: [`Soleil annoncé ce ${day}`, `${cap(day)}, le soleil est annoncé`, `Un ${day} au soleil est annoncé`][v],
+    title: [`Soleil annoncé ce ${day} à midi`, `${cap(day)} à midi, le soleil est annoncé`, `Du soleil annoncé ce ${day} à midi`][v],
     paragraphs: [
       [`La météo annonce du soleil ce ${date} ${when}.`, `Du soleil est annoncé ce ${date} ${when}.`, `Ce ${date} ${when}, la météo prévoit du soleil.`][v],
       o.terrace
@@ -164,7 +166,7 @@ export function sourceLine(facts: Facts): string {
   switch (facts.kind) {
     case "evenement": return `${categoryName(facts.category)} à ${distanceShort(facts.distanceM)}. Source : agenda de Bruxelles.`;
     case "match": return `Match à ${clockLabel(facts.kickoffUtc)}. Source : calendrier des matchs.`;
-    case "meteo": return `${facts.sky === "pluie" ? "Pluie" : "Soleil"} ${facts.service === "midi" ? "à midi" : "en soirée"}. Source : prévision météo.`;
+    case "meteo": return `${facts.sky === "pluie" ? "Pluie" : "Soleil"} ${facts.service === "midi" ? "à midi" : "en soirée"}. Source : prévision de MET Norway.`;
     case "promo": return "Ta promo.";
   }
 }
@@ -174,7 +176,7 @@ export function sourceDetails(facts: Facts, p: { hasDish: boolean; offerings: Of
   const out = [
     facts.kind === "evenement" ? "Nom, date et distance à vol d'oiseau : agenda de Bruxelles."
     : facts.kind === "match" ? "Équipes, compétition et heure : calendrier des matchs."
-    : facts.kind === "meteo" ? "Temps annoncé : prévision météo."
+    : facts.kind === "meteo" ? "Temps annoncé : prévision de MET Norway (pluie heure par heure, nuages, température), résumée."
     : "Offre et date de fin : ta promo.",
   ];
   if (p.hasDish) out.push("Plat et prix : ta carte.");
@@ -195,7 +197,6 @@ export function endLabel(expiresAt: string, day: string): string {
 export function sourceCredit(kind: AutoKind): string | null {
   if (kind === "evenement") return "Informations sur l'événement : agenda.brussels (visit.brussels).";
   if (kind === "match") return "Calendrier des matchs : Bzzoiro Sports Data.";
-  // Mention exigée par Google pour ses données météo. La source météo reste éteinte (voir sources/weather.ts).
-  if (kind === "meteo") return "Source: Includes weather data from Google.";
+  if (kind === "meteo") return WEATHER_CREDIT;
   return null;
 }

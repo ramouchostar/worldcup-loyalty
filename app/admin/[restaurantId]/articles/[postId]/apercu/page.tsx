@@ -5,6 +5,7 @@ import { PublishReview } from "@/components/admin/articles/PublishReview";
 import { BackLink } from "@/components/admin/articles/ui";
 import { Restricted } from "@/components/admin/ui";
 import { ArticleBody } from "@/components/commander/articles/ArticleBody";
+import { SourceCredit } from "@/components/commander/articles/SourceCredit";
 import { excerpt, photoPaths } from "@/lib/restaurant-posts/blocks";
 import { pendingIssues } from "@/lib/restaurant-posts/auto/actions";
 import { NO_OFFERINGS, readOfferings } from "@/lib/restaurant-posts/auto/offerings";
@@ -64,7 +65,7 @@ export default async function ReviewArticlePage({ params, searchParams }: {
     <div className="space-y-4">
       <p className="break-words text-[24px] font-semibold leading-tight tracking-[-0.02em] text-ink">{title}</p>
       <ArticleBody blocks={blocks} />
-      {post.source_credit && <p className="break-words text-[13px] text-ink-muted">{post.source_credit}</p>}
+      {post.source_credit && <SourceCredit credit={post.source_credit} />}
     </div>
   );
 

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ArticleBody } from "@/components/commander/articles/ArticleBody";
 import { ReadAndMenuBar, ReportButton } from "@/components/commander/articles/ReaderActions";
+import { SourceCredit } from "@/components/commander/articles/SourceCredit";
 import { TopBack } from "@/components/commander/articles/TopBack";
 import { readPublicPost } from "@/lib/restaurant-posts/public-db";
 import { dishesOfMenu } from "@/lib/restaurant-posts/view";
@@ -42,7 +43,7 @@ export default async function ArticlePage({ params }: Params) {
           <p className="mt-1 text-[13px] text-ink-muted">{name}, le {post.publishedLabel}</p>
         </header>
         <ArticleBody blocks={post.blocks} restaurantId={restaurantId} />
-        {post.credit && <p className="break-words text-[13px] text-ink-muted">{post.credit}</p>}
+        {post.credit && <SourceCredit credit={post.credit} />}
         <ReportButton restaurantId={restaurantId} slug={post.slug} />
       </article>
       <ReadAndMenuBar restaurantId={restaurantId} slug={post.slug} />

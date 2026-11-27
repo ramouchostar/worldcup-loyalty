@@ -1,3 +1,4 @@
+import { creditParts } from "../restaurant-posts/credit";
 import { appLink, esc, linkButton, paragraph, proShell, small, softCard, MAIL, type RenderedEmail } from "./kit";
 
 // ADR 0112 — le message de la veille : « demain à 10 h, on publie cet article chez toi ». Il montre l'article en
@@ -26,6 +27,13 @@ const short = (s: string) => (s.length <= SUBJECT_TITLE ? s : `${s.slice(0, SUBJ
 
 export const articleAutoSubject = (title: string): string => `Demain 10 h : on publie « ${short(title)} » chez toi`;
 
+/** La mention de source avec ses liens (liste fermée, hors de notre domaine : jamais suivis). */
+const creditHtml = (credit: string) =>
+  creditParts(credit)
+    .map((c) => (c.href ? `<a href="${esc(c.href)}" style="color:${MAIL.muted}; text-decoration:underline;">${esc(c.text)}</a>` : esc(c.text)))
+    .join("");
+const creditLinks = (credit: string) => creditParts(credit).flatMap((c) => (c.href ? [`${c.text} : ${c.href}`] : []));
+
 export function proArticleAutoEmail(p: ArticleAutoMail): RenderedEmail {
   const subject = articleAutoSubject(p.title);
   const editUrl = appLink(`/admin/${p.restaurantId}/articles/${p.postId}/apercu?de=message`);
@@ -36,7 +44,7 @@ export function proArticleAutoEmail(p: ArticleAutoMail): RenderedEmail {
     `<div style="color:${MAIL.ink}; font-size:17px; font-weight:700; line-height:1.35; margin-bottom:8px;">${esc(p.title)}</div>`,
     ...p.paragraphs.map((t) => `<div style="margin-bottom:8px;">${esc(t).replace(/\n/g, "<br />")}</div>`),
     p.dishName ? `<div style="color:${MAIL.ink};">Avec le plat : ${esc(p.dishName)}</div>` : "",
-    p.credit ? `<div style="margin-top:8px; color:${MAIL.muted}; font-size:12px;">${esc(p.credit)}</div>` : "",
+    p.credit ? `<div style="margin-top:8px; color:${MAIL.muted}; font-size:12px;">${creditHtml(p.credit)}</div>` : "",
   ].join("");
   const hint = "« Ne pas publier » ouvre une page où tu confirmes d'un appui.";
   const reason = "Tu reçois ce message parce que la publication automatique est activée. Tu peux l'arrêter dans « Mes articles ».";
@@ -66,7 +74,7 @@ export function proArticleAutoEmail(p: ArticleAutoMail): RenderedEmail {
     p.title,
     ...p.paragraphs,
     ...(p.dishName ? [`Avec le plat : ${p.dishName}`] : []),
-    ...(p.credit ? [p.credit] : []),
+    ...(p.credit ? [p.credit, ...creditLinks(p.credit)] : []),
     "",
     `Ne pas publier : ${p.refuseUrl}`,
     `Lire ou modifier : ${editUrl}`,
