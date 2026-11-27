@@ -15,6 +15,10 @@ export const STATUS_LABEL: Record<PostStatus, string> = {
 /** « Oui, publier » : possible partout sauf quand Boosteats a masqué (seule la plateforme lève le masquage). */
 export const canPublish = (status: PostStatus): boolean => status !== "masque";
 export const canWithdraw = (status: PostStatus): boolean => status === "en_ligne";
+
+/** La fin automatique est passée (ADR 0112) : plus aucun client ne lit l'article, même si la tâche planifiée n'est pas encore passée. */
+export const isExpired = (row: Pick<PostRow, "expires_at">, now: Date = new Date()): boolean =>
+  !!row.expires_at && Date.parse(row.expires_at) <= now.getTime();
 /** Masquer vise ce que des clients ont pu lire : en ligne, ou retiré (il pourrait revenir). */
 export const canMask = (status: PostStatus): boolean => status === "en_ligne" || status === "retire";
 export const canUnmask = (status: PostStatus): boolean => status === "masque";

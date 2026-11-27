@@ -42,6 +42,7 @@ export default async function ArticlePage({ params }: Params) {
           <p className="mt-1 text-[13px] text-ink-muted">{name}, le {post.publishedLabel}</p>
         </header>
         <ArticleBody blocks={post.blocks} restaurantId={restaurantId} />
+        {post.credit && <p className="break-words text-[13px] text-ink-muted">{post.credit}</p>}
         <ReportButton restaurantId={restaurantId} slug={post.slug} />
       </article>
       <ReadAndMenuBar restaurantId={restaurantId} slug={post.slug} />

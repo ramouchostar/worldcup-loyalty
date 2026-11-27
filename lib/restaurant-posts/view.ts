@@ -4,6 +4,7 @@
 
 import type { PublicMenu } from "../site-orders/menu";
 import { excerpt, readBlocks } from "./blocks";
+import { isExpired } from "./states";
 import type { PostBlock, PostRow } from "./types";
 
 export type PublicDish = { id: string; name: string; priceCents: number; imageUrl: string | null; hasOptions: boolean };
@@ -16,7 +17,7 @@ export type PublicBlock =
   | { type: "dish"; dish: PublicDish };
 
 export type PostCard = { slug: string; title: string; excerpt: string; publishedAt: string; publishedLabel: string; photoUrl: string | null };
-export type PublicPost = { slug: string; title: string; publishedLabel: string; blocks: PublicBlock[] };
+export type PublicPost = { slug: string; title: string; publishedLabel: string; blocks: PublicBlock[]; credit: string | null };
 
 /** « 26 novembre 2026 », au jour de Bruxelles. */
 export const dayLabel = (iso: string): string =>
@@ -38,9 +39,9 @@ export function coverPath(row: Pick<PostRow, "published_blocks">): string | null
   return b?.type === "photo" ? b.path : null;
 }
 
-/** `null` si la ligne n'est pas lisible par un client (pas en ligne, ou sans version publiée). */
-export function postCard(row: PostRow, photoUrls: ReadonlyMap<string, string>): PostCard | null {
-  if (row.status !== "en_ligne" || !row.published_title || !row.first_published_at) return null;
+/** `null` si la ligne n'est pas lisible par un client (pas en ligne, sans version publiée, ou échue). */
+export function postCard(row: PostRow, photoUrls: ReadonlyMap<string, string>, now: Date = new Date()): PostCard | null {
+  if (row.status !== "en_ligne" || !row.published_title || !row.first_published_at || isExpired(row, now)) return null;
   const cover = coverPath(row);
   return {
     slug: row.slug,
@@ -67,12 +68,13 @@ export function viewBlocks(blocks: PostBlock[], photoUrls: ReadonlyMap<string, s
   return out;
 }
 
-export function publicPost(row: PostRow, photoUrls: ReadonlyMap<string, string>, dishes: ReadonlyMap<string, PublicDish>): PublicPost | null {
-  if (row.status !== "en_ligne" || !row.published_title || !row.first_published_at) return null;
+export function publicPost(row: PostRow, photoUrls: ReadonlyMap<string, string>, dishes: ReadonlyMap<string, PublicDish>, now: Date = new Date()): PublicPost | null {
+  if (row.status !== "en_ligne" || !row.published_title || !row.first_published_at || isExpired(row, now)) return null;
   return {
     slug: row.slug,
     title: row.published_title,
     publishedLabel: dayLabel(row.first_published_at),
     blocks: viewBlocks(readBlocks(row.published_blocks), photoUrls, dishes),
+    credit: row.source_credit ?? null,
   };
 }
