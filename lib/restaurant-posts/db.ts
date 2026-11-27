@@ -6,6 +6,7 @@ import { createAdminClient } from "../supabase";
 import { PostsUnavailableError, type PostsDb } from "./service";
 import { PHOTO_URL_TTL_SECONDS, POST_PHOTO_BUCKET, type PostRow } from "./types";
 import { isUuid, readBlocks } from "./blocks";
+import { isExpired } from "./states";
 
 type DbError = { code?: string; message?: string } | null;
 
@@ -139,7 +140,10 @@ export async function listPostsForConsole(restaurantId: string): Promise<PostRow
   return (data ?? []).map(toRow);
 }
 
-/** Les articles en ligne, du plus récent au plus ancien (date de première publication). */
+/** Des articles échus pas encore rangés par la tâche planifiée ne doivent pas prendre la place des autres. */
+const EXPIRED_MARGIN = 30;
+
+/** Les articles qu'un client peut lire, du plus récent au plus ancien (date de première publication). */
 export async function listOnlinePosts(restaurantId: string, limit: number): Promise<PostRow[]> {
   const { data, error } = await createAdminClient()
     .from("restaurant_posts")
@@ -147,9 +151,11 @@ export async function listOnlinePosts(restaurantId: string, limit: number): Prom
     .eq("restaurant_id", restaurantId)
     .eq("status", "en_ligne")
     .order("first_published_at", { ascending: false })
-    .limit(limit);
+    .limit(limit + EXPIRED_MARGIN);
   if (error) throw fail("liste en ligne", error);
-  return (data ?? []).map(toRow);
+  const now = new Date();
+  // Filtré ici et non dans la requête : sans la migration 20261126-2330, la colonne de fin n'existe pas.
+  return (data ?? []).map(toRow).filter((r) => !isExpired(r, now)).slice(0, limit);
 }
 
 export type PostTotals = { reads: number; menuTaps: number };

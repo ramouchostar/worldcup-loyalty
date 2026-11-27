@@ -34,9 +34,17 @@ _Avoid_ : heure de livraison, créneau garanti.
 Offre écrite et publiée par le gérant, montrée sur la page de commande. Elle ne change aucun prix : la remise se fait au comptoir. **Pas encore construite.**
 _Avoid_ : coupon, cadeau, bon, code promo, remise appliquée.
 
-**Article de blog** *(ADR 0111)* :
-Texte publié par le restaurant dans son espace de commande (`restaurant_posts`), non indexé par Google, jamais sans « Oui, publier » d'un gérant ou d'un manager. Le client lit « Nos articles ». États : brouillon, en ligne, retiré, masqué par Boosteats (la plateforme masque, ne publie jamais). Brouillon et version publiée sont séparés ; un bloc « plat » lit le nom et le prix sur la carte, et disparaît si le plat est retiré.
+**Article de blog** *(ADR 0111, 0112)* :
+Texte publié par le restaurant dans son espace de commande (`restaurant_posts`), non indexé par Google. Écrit à la main, il n'est jamais public sans « Oui, publier » d'un gérant ou d'un manager ; seul l'**article automatique** fait exception. Le client lit « Nos articles ». États : brouillon, en ligne, retiré, masqué par Boosteats (la plateforme masque, ne publie jamais). Brouillon et version publiée sont séparés ; un bloc « plat » lit le nom et le prix sur la carte, et disparaît si le plat est retiré.
 _Avoid_ : « article » seul (réservé à une ligne de la carte), annonce (c'est un envoi), idée.
+
+**Article automatique** *(ADR 0112)* :
+Article de blog composé de phrases préparées à partir d'une occasion, que le restaurant a accepté de voir paraître sans accord un par un : prévenu la veille à 17 h par un message qui doit être délivré, publié à 10 h s'il ne dit rien, retiré tout seul après l'occasion. Le restaurant en répond ; Boosteats le compose et le publie.
+_Avoid_ : article de Nina, article IA (aucune IA ne l'écrit), campagne, annonce.
+
+**Occasion** *(ADR 0112)* :
+Fait daté qui peut donner un article automatique : événement près du restaurant, match, météo (pluie ou soleil annoncés pour le lendemain, d'après MET Norway), promo (`restaurant_post_occasions`). États : prévue, prévenu, publiée, refusée (quelqu'un a dit non), écartée (une règle ou une vérification l'a empêchée, raison gardée).
+_Avoid_ : événement (un seul des quatre types), idée (écran « Idées »), opportunité.
 
 **Secours WhatsApp** *(ADR 0107 §10)* :
 Quand une commande du site ne peut pas être prise (panne, pas de réseau, plus tard imprimante hors ligne), le client **garde son panier** et le restaurateur reçoit sa commande par un **message WhatsApp ordinaire** que le client envoie lui-même (bouton « Envoyer ma commande via WhatsApp », lien `wa.me`, sans l'API WhatsApp Business). **Rien n'est enregistré** dans ce cas : pas de numéro de commande, donc aucun doublon avec l'imprimante. Ne s'ouvre jamais pour une erreur que le client corrige (prénom, choix) ni pour la limite par adresse. Les deux coches bleues de WhatsApp dépendent du téléphone du restaurateur : elles disent « ouvert », pas « en préparation ».

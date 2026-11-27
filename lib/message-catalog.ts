@@ -59,6 +59,7 @@ export const MESSAGES: MessageDef[] = [
   { key: "pub_update", label: "Pub : chaque étape", audience: "restaurant", kind: "transactionnel", when: "Demande reçue (virement), virement reçu, pub en ligne, à corriger, budget bientôt épuisé, pub terminée", channels: "E-mail" },
   { key: "pub_alert", label: "Pub : alerte plateforme", audience: "restaurant", kind: "transactionnel", when: "Vers PUB_ALERT_EMAIL : virement attendu, à lancer, facture à émettre, refus Meta, dépense non rattachée, appel Meta en échec", channels: "E-mail" },
   { key: "brigade_morning", label: "Idées du jour (message du matin)", audience: "restaurant", kind: "transactionnel", when: "Vers 9 h, s'il y a au moins une idée à décider ; établissements de BRIGADE_EMAIL_RESTAURANTS (ADR 0089)", channels: "E-mail, push console" },
+  { key: "article_auto_preavis", label: "Article automatique : préavis", audience: "restaurant", kind: "transactionnel", when: "La veille à 17 h d'une publication automatique ; seulement si le restaurant l'a activée (ADR 0112). Sans message délivré, rien n'est publié", channels: "E-mail, push console" },
   { key: "pro_announcement", label: "Annonce aux restaurateurs", audience: "restaurant", kind: "transactionnel", when: "Écrite et envoyée depuis /platform/messages (une nouveauté de la console)", channels: "E-mail" },
   { key: "test", label: "E-mail de test", audience: "member", kind: "transactionnel", when: "Envoyé depuis cette page", channels: "E-mail" },
 

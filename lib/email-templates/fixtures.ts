@@ -22,6 +22,7 @@ import { onboardingReminderEmail } from "./onboarding-reminder";
 import { pendingRequestsReminderEmail } from "./pending-requests-reminder";
 import { catalogGapsReminderEmail } from "./catalog-gaps-reminder";
 import { ownerInviteEmail } from "./owner-invite";
+import { proArticleAutoEmail } from "./pro-article-auto";
 import { appLink, type LinkFn, type MemberTheme, type RenderedEmail, type ShortMessage } from "./kit";
 
 export type SequenceAudience = "membre" | "restaurateur";
@@ -246,6 +247,7 @@ export function previewEntries(opts: { logoUrl: string | null; image: (name: str
     { id: "t-pending", kind: "transactionnel", audience: "restaurateur", sequence: "Demandes en attente", email: pendingRequestsReminderEmail(theme.restaurantName, RID, 17, 52, opts.logoUrl) },
     { id: "t-catalog", kind: "transactionnel", audience: "restaurateur", sequence: "Catalogue incomplet", email: catalogGapsReminderEmail(theme.restaurantName, RID, 4, opts.logoUrl) },
     { id: "t-invite", kind: "transactionnel", audience: "restaurateur", sequence: "Invitation restaurateur", email: ownerInviteEmail(theme.restaurantName, link("/invite/exemple"), "2026-10-02T12:00:00Z", opts.logoUrl, "manager", "prenom@exemple.be") },
+    { id: "t-article-auto", kind: "transactionnel", audience: "restaurateur", sequence: "Article automatique : préavis", email: proArticleAutoEmail({ restaurantName: theme.restaurantName, restaurantId: RID, logoUrl: opts.logoUrl, weekday: "samedi", title: "Brocante samedi : fais une pause chez nous", paragraphs: ["Ce samedi 28 novembre, « Brocante de la place Exemple » a lieu à 600 m de chez nous.", "Entre deux stands, commande à emporter et retire ton repas au comptoir."], dishName: "Menu poulet frit 6 pièces", credit: "Informations sur l'événement : agenda.brussels (visit.brussels).", refuseUrl: link("/e/ne-pas-publier/exemple"), postId: "exemple" }) },
   ];
 }
 

@@ -42,7 +42,8 @@ export const PHOTO_URL_TTL_SECONDS = 10 * 60;
 export const POST_STATUSES = ["brouillon", "en_ligne", "retire", "masque"] as const;
 export type PostStatus = (typeof POST_STATUSES)[number];
 
-export type PostOrigin = "gerant" | "nina";
+/** `auto` : composé et proposé par la publication automatique (ADR 0112). */
+export type PostOrigin = "gerant" | "nina" | "auto";
 
 export type PostRow = {
   id: string;
@@ -67,8 +68,15 @@ export type PostRow = {
   first_published_at: string | null;
   published_at: string | null;
   withdrawn_at: string | null;
+  /** Fin automatique (ADR 0112) : passé cet instant, aucun client ne le lit. Absente tant que la migration 20261126-2330 manque. */
+  expires_at?: string | null;
+  /** La mention de source écrite sous un article automatique, que le client lit. */
+  source_credit?: string | null;
 };
 
-export type PostEventKind = "publie" | "retire" | "masque" | "demasque" | "supprime" | "signale" | "refuse";
+export type PostEventKind =
+  | "publie" | "retire" | "masque" | "demasque" | "supprime" | "signale" | "refuse"
+  // La publication automatique (ADR 0112).
+  | "auto_active" | "auto_arret" | "auto_prevenu" | "auto_publie" | "auto_refus" | "auto_ecarte";
 export type PostCounter = "lecture" | "carte";
 export const POST_COUNTERS: readonly PostCounter[] = ["lecture", "carte"];

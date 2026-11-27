@@ -5,7 +5,7 @@
 import { isPhotoPathOf, parseContent, photoFolder, photoPaths, readBlocks } from "./blocks";
 import { checkPublication, type Issue } from "./check";
 import { draftSlug, isSlug, slugCandidate, slugify } from "./slug";
-import { canMask, canPublish, canUnmask, canWithdraw } from "./states";
+import { canMask, canPublish, canUnmask, canWithdraw, isExpired } from "./states";
 import { LIMITS, PHOTO_MAX_FILES, type PostCounter, type PostEventKind, type PostRow, type PostStatus } from "./types";
 
 /** Les tables ou l'espace de stockage n'existent pas encore (migration 20261126-1300 pas appliquée). */
@@ -18,7 +18,9 @@ export class PostsUnavailableError extends Error {
 
 export type PostEvent = { postId: string | null; restaurantId: string; kind: PostEventKind; reason?: string | null; actorId?: string | null };
 
-export type NewPostRow = Pick<PostRow, "id" | "restaurant_id" | "slug" | "lang" | "status" | "draft_title" | "draft_blocks" | "origin" | "author_id">;
+export type NewPostRow = Pick<PostRow, "id" | "restaurant_id" | "slug" | "lang" | "status" | "draft_title" | "draft_blocks" | "origin" | "author_id"> &
+  // Seulement pour un article automatique : la colonne n'existe qu'avec la migration 20261126-2330.
+  Partial<Pick<PostRow, "source_credit">>;
 
 export type PostsDb = {
   get(restaurantId: string, postId: string): Promise<PostRow | null>;
@@ -122,7 +124,7 @@ export async function addPhoto(db: PostsDb, p: { restaurantId: string; postId: s
 // ─── Contrôler et publier ────────────────────────────────────────────────────
 
 /** Une ligne de trace par motif et par version du brouillon : relire l'aperçu ne gonfle pas le compte. */
-async function traceRefusals(db: PostsDb, row: PostRow, userId: string, issues: Issue[]): Promise<void> {
+async function traceRefusals(db: PostsDb, row: PostRow, userId: string | null, issues: Issue[]): Promise<void> {
   for (const code of new Set(issues.map((i) => i.code))) {
     if (await db.hasEvent(row.id, "refuse", code, row.updated_at)) continue;
     await db.addEvent({ postId: row.id, restaurantId: row.restaurant_id, kind: "refuse", reason: code, actorId: userId });
@@ -152,10 +154,14 @@ export async function checkDraft(db: PostsDb, p: { restaurantId: string; postId:
   return { ok: true, issues, revision: row.revision };
 }
 
-/** « Oui, publier » : la version relue (`revision`), recontrôlée ici. Rien ne devient public autrement. */
+/**
+ * Publier la version relue (`revision`), recontrôlée ici. Rien ne devient public autrement : « Oui, publier », « Publier
+ * maintenant », et la publication automatique (ADR 0112, `userId` nul). `expiresAt` : la fin d'un article d'occasion ;
+ * sans lui, une fin à venir est gardée et une fin passée est effacée (l'article republié à la main n'en a plus).
+ */
 export async function publishPost(
   db: PostsDb,
-  p: { restaurantId: string; postId: string; userId: string; revision: number; rightsConfirmed: boolean; dishIds: ReadonlySet<string> | null; now?: Date },
+  p: { restaurantId: string; postId: string; userId: string | null; revision: number; rightsConfirmed: boolean; dishIds: ReadonlySet<string> | null; now?: Date; expiresAt?: string },
 ): Promise<Done<{ post: PostRow }>> {
   const row = await db.get(p.restaurantId, p.postId);
   if (!row) return NOT_FOUND();
@@ -170,8 +176,10 @@ export async function publishPost(
   const hasPhotos = photoPaths(blocks).length > 0;
   if (hasPhotos && !p.rightsConfirmed) return refuse(400, "Coche la case sur les photos avant de publier.");
 
-  const now = (p.now ?? new Date()).toISOString();
+  const at = p.now ?? new Date();
+  const now = at.toISOString();
   const patch: Partial<PostRow> = {
+    ...(p.expiresAt !== undefined ? { expires_at: p.expiresAt } : isExpired(row, at) ? { expires_at: null } : {}),
     status: "en_ligne",
     published_title: row.draft_title,
     published_blocks: blocks,
@@ -264,10 +272,10 @@ export async function moderatePost(
 // ─── Le lecteur : signaler, compter. Rien sur lui n'est gardé. ────────────────
 
 /** L'article que des clients peuvent lire à cette adresse, ou rien. */
-export async function findOnlinePost(db: PostsDb, restaurantId: string, slug: unknown): Promise<PostRow | null> {
+export async function findOnlinePost(db: PostsDb, restaurantId: string, slug: unknown, now: Date = new Date()): Promise<PostRow | null> {
   if (!isSlug(slug)) return null;
   const row = await db.getBySlug(restaurantId, slug);
-  return row && row.status === "en_ligne" ? row : null;
+  return row && row.status === "en_ligne" && !isExpired(row, now) ? row : null;
 }
 
 export async function reportPost(db: PostsDb, post: PostRow): Promise<void> {

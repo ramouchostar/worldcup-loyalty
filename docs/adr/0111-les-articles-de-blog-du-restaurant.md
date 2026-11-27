@@ -1,6 +1,6 @@
 # ADR 0111 — Les articles du restaurant : un blog dans l'espace de commande, non indexé, publié par le gérant
 
-**Statut** : Accepté (2026-11-26) par le porteur (Omar) : maquette et choix conseillés validés (https://claude.ai/artifact/GJmwiP9NYQtaNdeQQhQ5cN) ; Mehdi pas encore consulté ; rien n'est construit. Demande d'Omar : « création d'article avec une partie blog pour chaque resto ». Précise l'[ADR 0108](0108-l-espace-de-commande-du-restaurant-un-compte-des-points-nina.md) (§4, §6) et l'[ADR 0089](0089-la-brigade-des-idees-que-le-gerant-valide.md) (ce que fait Nina). N'amende pas l'ADR 0108 §1.
+**Statut** : **Amendé par l'[ADR 0112](0112-les-articles-publies-automatiquement.md) (2026-11-26)** : §3, les articles d'occasion paraissent sans « Oui, publier » quand le restaurant l'a activé ; les articles écrits à la main ne changent pas. Accepté (2026-11-26) par le porteur (Omar) : maquette et choix conseillés validés (https://claude.ai/artifact/GJmwiP9NYQtaNdeQQhQ5cN) ; Mehdi pas encore consulté ; rien n'est construit. Demande d'Omar : « création d'article avec une partie blog pour chaque resto ». Précise l'[ADR 0108](0108-l-espace-de-commande-du-restaurant-un-compte-des-points-nina.md) (§4, §6) et l'[ADR 0089](0089-la-brigade-des-idees-que-le-gerant-valide.md) (ce que fait Nina). N'amende pas l'ADR 0108 §1.
 
 ## Contexte
 

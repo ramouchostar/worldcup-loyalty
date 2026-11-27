@@ -24,6 +24,8 @@ export type PostListItem = {
   totals: { reads: number; menuTaps: number } | null;
   pending: boolean;
   maskReason: string | null;
+  /** Comment un article d'occasion est parti ou s'est retiré (ADR 0112). */
+  note: string | null;
 };
 
 const n = (v: number, one: string, many: string) => `${v.toLocaleString("fr-BE")} ${v > 1 ? many : one}`;
@@ -79,9 +81,9 @@ function PostCardAdmin({ restaurantId, post, canWrite }: { restaurantId: string;
 
   const line =
     post.status === "en_ligne"
-      ? `Publié le ${post.publishedLabel}. ${post.totals ? `${n(post.totals.reads, "lecture", "lectures")}, ${n(post.totals.menuTaps, "retour vers la carte", "retours vers la carte")}.` : "Les lectures n'ont pas pu être lues."}`
+      ? `${post.note ?? `Publié le ${post.publishedLabel}.`} ${post.totals ? `${n(post.totals.reads, "lecture", "lectures")}, ${n(post.totals.menuTaps, "retour vers la carte", "retours vers la carte")}.` : "Les lectures n'ont pas pu être lues."}`
       : post.status === "retire"
-        ? `Retiré${post.withdrawnLabel ? ` le ${post.withdrawnLabel}` : ""}. Tes clients ne le voient plus.`
+        ? post.note ?? `Retiré${post.withdrawnLabel ? ` le ${post.withdrawnLabel}` : ""}. Tes clients ne le voient plus.`
         : post.status === "masque"
           ? "Tes clients ne le voient plus."
           : `Brouillon, modifié le ${post.updatedLabel}.`;
