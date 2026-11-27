@@ -21,6 +21,8 @@ export default async function SiteOrdersPage({ params }: { params: Promise<{ res
       <NinaAlerts restaurantId={restaurantId} />
       <div className="flex flex-wrap gap-2">
         <Link href={`/admin/${restaurantId}/commandes-du-site/rapport`} className={action}>Voir le rapport de la semaine</Link>
+        {/* ADR 0110 — ouverte à tout siège : la personne au comptoir doit pouvoir arrêter une offre. */}
+        <Link href={`/admin/${restaurantId}/commandes-du-site/offres`} className={action}>Offres de ta page</Link>
         {manages && <Link href={`/admin/${restaurantId}/commandes-du-site/infos`} className={action}>Infos de ma page</Link>}
       </div>
       <WhatsAppSetting restaurantId={restaurantId} />

@@ -93,6 +93,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ rest
     promoReachable: audience.ok ? audience.data.promoReachable : null,
     pubThumb: lastThumb,
     articles: { open: orderSpace, allowed: canSeePosts(access) },
+    offers: orderSpace,
   });
 
   return (
@@ -287,6 +288,7 @@ function galleryTiles(p: {
   promoReachable: number | null;
   pubThumb: string | null;
   articles: { open: boolean; allowed: boolean };
+  offers: boolean;
 }): GalleryTile[] {
   const tiles: GalleryTile[] = [
     {
@@ -323,6 +325,19 @@ function galleryTiles(p: {
       href: p.articles.open && p.articles.allowed ? `${p.base}/articles` : null,
       closedNote: p.articles.open ? "Réservé aux gérants et managers." : "Avec ton espace de commande (forfait Pro, en pilote).",
     },
+    // ADR 0110 — les offres n'existent qu'avec l'espace de commande : sans lui, pas de tuile.
+    ...(p.offers
+      ? [{
+          id: "offres",
+          category: "revenir" as const,
+          image: null,
+          icon: "phone" as const,
+          title: "Offres sur ta page",
+          text: "Ta promo à lire sur la page de commande, accordée au comptoir",
+          facts: [],
+          href: `${p.base}/commandes-du-site/offres`,
+        }]
+      : []),
     {
       id: "parrainage",
       category: "venir",
