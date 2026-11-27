@@ -31,6 +31,7 @@ import { providerDateBookedEmail } from "./email-templates/provider-date-booked"
 import { missionReminderEmail, type MissionReminderInput } from "./email-templates/mission-reminder";
 import { missionUpdateEmail, type MissionUpdateInput } from "./email-templates/mission-update";
 import type { Metier } from "./mission-money";
+import { proArticleAutoEmail, type ArticleAutoMail } from "./email-templates/pro-article-auto";
 
 // Emailing — chantier "landing pages / emailing / ads" (2026-07-28), volet
 // 2/3. Fournisseur : Resend. Même philosophie que sendPush()/sendWhatsApp()
@@ -61,7 +62,8 @@ export type EmailType =
   | "provider_quote_received"
   | "provider_date_booked"
   | "mission_reminder"
-  | "mission_update";
+  | "mission_update"
+  | "article_auto_preavis";
 
 let client: Resend | null = null;
 function getClient(): Resend | null {
@@ -524,4 +526,18 @@ export async function sendReferralSuccessEmail(
   );
   if (sent) await logEmailSent("member", userId, "referral_success", restaurantId);
   return sent;
+}
+
+// ADR 0112 — le préavis d'un article automatique. `sendId` : la ligne du journal que la publication relira (rien ne
+// paraît sans message délivré). `true` ne veut pas dire délivré : c'est le journal qui le sait.
+export async function sendArticleAutoNotice(to: string, mail: ArticleAutoMail, meta: { sendId: string; userId: string | null }): Promise<boolean> {
+  const logoUrl = mail.logoUrl ?? (await getRestaurantLogoUrl(mail.restaurantId));
+  return dispatch(to, proArticleAutoEmail({ ...mail, logoUrl }), {
+    key: "article_auto_preavis",
+    audience: "restaurant",
+    restaurantId: mail.restaurantId,
+    restaurantName: mail.restaurantName,
+    userId: meta.userId,
+    sendId: meta.sendId,
+  });
 }
