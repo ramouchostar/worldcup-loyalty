@@ -43,7 +43,7 @@ Article de blog composé de phrases préparées à partir d'une occasion, que le
 _Avoid_ : article de Nina, article IA (aucune IA ne l'écrit), campagne, annonce.
 
 **Occasion** *(ADR 0112)* :
-Fait daté qui peut donner un article automatique : événement près du restaurant, match, météo, promo (`restaurant_post_occasions`). États : prévue, prévenu, publiée, refusée (quelqu'un a dit non), écartée (une règle ou une vérification l'a empêchée, raison gardée).
+Fait daté qui peut donner un article automatique : événement près du restaurant, match, météo (pluie ou soleil annoncés pour le lendemain, d'après MET Norway), promo (`restaurant_post_occasions`). États : prévue, prévenu, publiée, refusée (quelqu'un a dit non), écartée (une règle ou une vérification l'a empêchée, raison gardée).
 _Avoid_ : événement (un seul des quatre types), idée (écran « Idées »), opportunité.
 
 **Secours WhatsApp** *(ADR 0107 §10)* :
