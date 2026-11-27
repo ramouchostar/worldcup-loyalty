@@ -3,6 +3,7 @@ import { purgeUserReceiptImages } from "./receipt-scans";
 import { CONSENT_PURPOSES, recordConsents } from "./consent";
 import { detachPostAuthor } from "./restaurant-posts/db";
 import { detachAutoAccount } from "./restaurant-posts/auto/db";
+import { detachOfferAuthors } from "./site-offers/db";
 
 // ADR 0022 — Droits des personnes : portabilité (export) et effacement.
 // Effacement = ANONYMISATION : on strippe les données personnelles du profil
@@ -181,6 +182,8 @@ export async function deleteUserData(userId: string): Promise<string[]> {
   check("restaurant_posts", await detachPostAuthor(userId));
   //    ADR 0112 — la personne qui répondait des articles automatiques n'est plus là : ils s'arrêtent.
   check("restaurant_post_auto_settings", await detachAutoAccount(userId));
+  //    ADR 0110 — une offre porte le nom du restaurant : elle reste, ses auteurs sont détachés.
+  check("site_offers", await detachOfferAuthors(userId));
 
   // 3. ADR 0023 — retours qualité : on ANONYMISE (on garde la statistique non
   //    nominative pour le baromètre), on efface le commentaire et les messages

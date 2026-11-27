@@ -13,6 +13,8 @@ export type SourceContext = {
    * à l'heure pile : elle ne lit que ce qui est en réserve. Oui quand une personne appuie, et pour la tâche décalée.
    */
   network: boolean;
+  /** Une personne appuie sur « Publier maintenant » : ce qui doit être vrai aujourd'hui l'est vérifié aussi. */
+  publishing?: "maintenant";
 };
 
 export type SourceRead = { ok: true; candidates: Candidate[] } | { ok: false; error: string };

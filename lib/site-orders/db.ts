@@ -3,6 +3,8 @@
 
 import { createAdminClient } from "../supabase";
 import { loadOptionTrees } from "../menu-options/store";
+import { supabaseOffersDb } from "../site-offers/db";
+import { OffersUnavailableError, liveOffers } from "../site-offers/service";
 import { VIEW_REASON_PREFIX } from "./fiche";
 import { readFiche } from "./fiche-db";
 import { decideForOrder } from "./hours-source";
@@ -25,6 +27,14 @@ export function supabaseOrdersDb(): OrdersDb {
     // fermeture qu'il a annoncée. Aucun cache (conditions Google Maps Platform).
     async readOpenness(restaurantId, now) {
       return (await decideForOrder(await readPageSettings(restaurantId), () => readFiche(restaurantId), now)).openness;
+    },
+    async liveOffers(restaurantId, now) {
+      try {
+        return (await liveOffers(supabaseOffersDb(), restaurantId, now)).map((o) => ({ id: o.id, title: o.title, conditions: o.conditions }));
+      } catch (e) {
+        if (e instanceof OffersUnavailableError) return []; // migration 20261127-1400 pas appliquée : pas d'offres
+        throw e;
+      }
     },
     async loadCatalog(restaurantId, ids) {
       // Le coin de cuisine est facultatif (migration 20261113-2300) : sans sa colonne, les plats sortent sur « CUISINE ».
@@ -51,21 +61,29 @@ export function supabaseOrdersDb(): OrdersDb {
     },
     async insert(row: NewOrderRow) {
       let linked = row.member_id !== null;
-      let { data, error } = await admin.from("site_orders").insert(row).select("id").single();
-      // Migration 20261120-2000 pas encore appliquée : la colonne du compte n'existe pas. La commande part quand même, SANS le
-      // lien avec le compte (fail-open), et le journal le dit : jamais une commande perdue pour une colonne manquante.
-      if (error && row.member_id !== null && isMissingColumn(error) && /member_id/.test(error.message ?? "")) {
-        console.warn("[site-orders] colonne member_id absente (migration 20261120-2000 à appliquer) : commande enregistrée sans le lien avec le compte.");
-        const { member_id: _dropped, ...withoutMember } = row;
-        linked = false;
-        ({ data, error } = await admin.from("site_orders").insert(withoutMember).select("id").single());
+      let offersKept = row.offer_ids.length > 0;
+      // Une commande sans offre ne dépend pas de la colonne des offres.
+      const payload: Partial<NewOrderRow> = { ...row };
+      if (!offersKept) delete payload.offer_ids;
+      let { data, error } = await admin.from("site_orders").insert(payload).select("id").single();
+      // Une colonne pas encore créée (migration 20261120-2000 pour le compte, 20261127-1400 pour les offres) : la commande part
+      // quand même, SANS ce lien (fail-open), et le journal le dit : jamais une commande perdue pour une colonne manquante.
+      for (const column of ["member_id", "offer_ids"] as const) {
+        if (!error || !isMissingColumn(error)) break;
+        const missing = (["member_id", "offer_ids"] as const).find((c) => c in payload && payload[c] !== null && (error!.message ?? "").includes(c));
+        if (!missing) break;
+        console.warn(`[site-orders] colonne ${missing} absente (migration à appliquer) : commande enregistrée sans elle.`);
+        delete payload[missing];
+        if (missing === "member_id") linked = false;
+        else offersKept = false;
+        ({ data, error } = await admin.from("site_orders").insert(payload).select("id").single());
       }
       if (error) {
         if (isMissingSiteTable(error)) throw new SiteOrdersUnavailableError();
         if (error.code === "23505") return { ok: false as const, conflict: true as const };
         throw fail("écriture", error);
       }
-      return { ok: true as const, id: (data as { id: string }).id, linked };
+      return { ok: true as const, id: (data as { id: string }).id, linked, offersKept };
     },
     async recordRefusal(restaurantId, reason) {
       const { error } = await admin.from("site_order_refusals").insert({ restaurant_id: restaurantId, reason: reason.slice(0, 60) });
@@ -89,18 +107,23 @@ export function supabaseOrdersDb(): OrdersDb {
       return counts;
     },
     async listOrders(restaurantId, sinceIso) {
-      const { data, error } = await admin
-        .from("site_orders")
-        .select("id, number, first_name, phone, lines, total_cents, status, created_at, ready_at, picked_up_at, cancelled_at, cancel_reason")
-        .eq("restaurant_id", restaurantId)
-        .or(`created_at.gte.${sinceIso},status.in.(recue,prete)`)
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const cols = "id, number, first_name, phone, lines, total_cents, status, created_at, ready_at, picked_up_at, cancelled_at, cancel_reason";
+      const read = (select: string) =>
+        admin
+          .from("site_orders")
+          .select(select)
+          .eq("restaurant_id", restaurantId)
+          .or(`created_at.gte.${sinceIso},status.in.(recue,prete)`)
+          .order("created_at", { ascending: false })
+          .limit(200);
+      let { data, error } = await read(`${cols}, offer_ids`);
+      // Sans la colonne des offres (migration 20261127-1400), la liste se lit comme avant.
+      if (error && isMissingColumn(error) && /offer_ids/.test(error.message ?? "")) ({ data, error } = await read(cols));
       if (error) {
         if (isMissingSiteTable(error)) throw new SiteOrdersUnavailableError();
         throw fail("liste", error);
       }
-      return (data ?? []) as OrderRow[];
+      return (data ?? []) as unknown as OrderRow[];
     },
     async transition(restaurantId, id, from: OrderStatus, patch) {
       const { data, error } = await admin.from("site_orders").update(patch).eq("id", id).eq("restaurant_id", restaurantId).eq("status", from).select("id");

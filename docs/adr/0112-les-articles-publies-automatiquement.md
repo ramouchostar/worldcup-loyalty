@@ -1,6 +1,6 @@
 # ADR 0112 — Les articles publiés automatiquement : le restaurant active une fois, il est prévenu la veille, sans réaction l'article paraît
 
-**Statut** : Accepté (2026-11-26) par le porteur (Omar) : règles et maquettes validées (https://claude.ai/artifact/2zLkvLGgwbVQFAXyrQy8jV) ; **Mehdi pas consulté** ; construit, **jamais exécuté sur une base ni un service réels**. **Précisé le 2026-11-27** : la météo vient de MET Norway (choix du porteur, prévenu de la mention de source, de l'absence de probabilité de pluie pour la Belgique et de l'acceptation des conditions qui lui revient) ; source **éteinte** tant qu'il ne les a pas acceptées. **Amende l'[ADR 0111](0111-les-articles-de-blog-du-restaurant.md) §3** (« rien ne devient public sans Oui, publier ») et **fait une exception à l'[ADR 0089](0089-la-brigade-des-idees-que-le-gerant-valide.md) §3** (« rien ne part sans Oui ») **pour les articles d'occasion seulement**. Les articles écrits à la main gardent « Oui, publier ».
+**Statut** : Accepté (2026-11-26) par le porteur (Omar) : règles et maquettes validées (https://claude.ai/artifact/2zLkvLGgwbVQFAXyrQy8jV) ; **Mehdi pas consulté** ; construit, **jamais exécuté sur une base ni un service réels**. **Complété le 2026-11-27** : les promos sont raccordées aux offres de l'[ADR 0110](0110-les-offres-sur-la-page-de-commande.md) (§11). **Précisé le 2026-11-27** : la météo vient de MET Norway (choix du porteur, prévenu de la mention de source, de l'absence de probabilité de pluie pour la Belgique et de l'acceptation des conditions qui lui revient) ; source **éteinte** tant qu'il ne les a pas acceptées. **Amende l'[ADR 0111](0111-les-articles-de-blog-du-restaurant.md) §3** (« rien ne devient public sans Oui, publier ») et **fait une exception à l'[ADR 0089](0089-la-brigade-des-idees-que-le-gerant-valide.md) §3** (« rien ne part sans Oui ») **pour les articles d'occasion seulement**. Les articles écrits à la main gardent « Oui, publier ».
 
 ## Contexte
 
@@ -64,7 +64,7 @@ L'article se retire tout seul après l'occasion (événement : minuit ; match : 
 | Événements (agenda.brussels, visit.brussels) | concerts, festivals, fêtes, brocantes, foires à 1,5 km au plus ; copie relue depuis moins de 4 jours ; mention de la source sous l'article | construit ; **licence non vérifiée** |
 | Matchs (Bzzoiro) | Pro League, coupes d'Europe, sélections suivies, 17 h à 22 h, un par jour | construit ; sans clé, aucun match ; **conditions non lues** |
 | Météo (MET Norway) | pluie : un service entier (midi d'abord, sinon soir) avec au moins 2 mm, sur au moins 2 heures à 0,2 mm, et au moins 3 °C ; soleil : à 11 h, 12 h et 13 h, au plus 25 % de nuages, aucune pluie et au moins 12 °C | construit, **éteint** tant que `MET_NORWAY_USER_AGENT` est vide ou que la réserve manque |
-| Promos (offres) | contrat posé | **vide** tant que l'ADR 0110 n'est pas construit |
+| Promos (offres) | les offres publiées de la page de commande (ADR 0110), un article par offre (§11) | construit ; sans la migration `20261127-1400`, la case ne se coche pas |
 
 - **Google écarté** : les conditions Maps Platform de l'Espace économique européen interdisent de créer un contenu à partir de ses données (§3.3.2 c, https://cloud.google.com/terms/maps-platform/eea) et ne permettent de les garder que brièvement (§23, https://cloud.google.com/terms/maps-platform/eea/maps-service-terms). Un article écrit à partir d'une prévision puis gardé paraît interdit.
 - **MET Norway** (Locationforecast 2.0, format « compact ») : données sous NLOD 2.0 et CC BY 4.0 (https://api.met.no/doc/License). CC BY 4.0 permet l'usage « for any purpose, even commercially » (https://creativecommons.org/licenses/by/4.0/) ; les pages de MET Norway, elles, ne disent rien en toutes lettres de l'usage commercial. Mention exigée : le crédit, un lien vers la licence et l'indication des changements. Elle est écrite sous l'article et dans l'e-mail de la veille : « Texte composé par Boosteats d'après les prévisions de MET Norway, résumées en quelques phrases. Licence CC BY 4.0. »
@@ -78,6 +78,15 @@ L'article se retire tout seul après l'occasion (événement : minuit ; match : 
 ### 10. Responsabilité : ce qui change
 
 Avec ces articles, **Boosteats compose le texte et le publie** quand personne ne réagit. Son rôle n'est plus seulement celui d'un hébergeur (ADR 0111 §7) : il se rapproche de celui d'un éditeur. Le restaurant déclare en répondre ; cette déclaration ne règle pas à elle seule le rôle de Boosteats. **À valider par un juriste avant d'activer un établissement** : rôle, clause des conditions restaurateurs, noms de tiers (événements, clubs, compétitions) dans un texte commercial, licences des sources.
+
+### 11. Les promos (ajouté le 2026-11-27, demandé par le porteur : un article à chaque promo)
+
+- Une offre publiée donne **une occasion, une seule**, un jour où elle vaut (jours de semaine compris). Premier jour déjà passé au préavis : un jour suivant encore valable. Sans place dans les trois prochains jours, elle n'est pas écartée tant qu'il lui reste des jours plus tard.
+- **Pas d'article** pour une offre d'un seul jour publiée après 17 h la veille, ni pour un titre que le contrôle des textes refuse (un prix, une promesse de santé ou d'allergène). Le contrôle n'est pas assoupli ; l'écartement et sa raison sont dans « Pas publiés ».
+- **Revérifié** à la préparation, au préavis, à 10 h et à « Publier maintenant » : offre publiée, valable ce jour, même titre, mêmes dates et jours, même plat, plat commandable. « Publier maintenant » demande en plus qu'elle vaille **aujourd'hui** ; sinon l'article reste en attente.
+- **Le texte ne promet pas plus que la page** : il cite le titre, dit les dates et les jours, que la remise se demande au comptoir et que les prix en ligne ne changent pas. Il ne recopie pas les conditions : il dit qu'il y en a. Le plat montré est celui de l'offre, ou aucun.
+- **L'article suit l'offre** : arrêtée, il est retiré aussitôt, publié compris ; arrêtée, finie, plat masqué ou offres illisibles, la lecture publique le cache sans attendre. Il ne se republie pas, à la main non plus.
+- Un restaurant qui avait activé avant : « Mes promos » devient cochable, **rien ne se coche tout seul** ; la phrase acceptée ne change pas.
 
 ## Conséquences
 
@@ -110,5 +119,5 @@ Par établissement et par type : prévenus, publiés sans réaction, publiés à
 
 1. Cadre juridique (§10) et licences (§9).
 2. Météo : le porteur lit et accepte les conditions de MET Norway, puis choisit l'identification ; première semaine à comparer au temps réellement observé avant de croire les seuils.
-3. Raccorder les offres (`sources/promos.ts`).
+3. ~~Raccorder les offres.~~ Fait le 2026-11-27 (§11). À décider : que faire des offres dont le titre cite un prix.
 4. Mehdi : pas consulté.

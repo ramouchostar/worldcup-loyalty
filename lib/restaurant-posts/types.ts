@@ -72,6 +72,8 @@ export type PostRow = {
   expires_at?: string | null;
   /** La mention de source écrite sous un article automatique, que le client lit. */
   source_credit?: string | null;
+  /** L'offre qu'annonce l'article (ADR 0110) : il n'est lu que tant qu'elle vaut. Absente tant que la migration 20261127-1400 manque. */
+  offer_id?: string | null;
 };
 
 export type PostEventKind =

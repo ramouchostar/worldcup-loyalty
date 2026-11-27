@@ -1,9 +1,9 @@
 import { euro } from "@/lib/site-orders/cart";
-import { primary } from "./ui";
+import { notice, primary } from "./ui";
 
 // La confirmation : la commande est enregistrée, son numéro et le montant à payer au comptoir.
 
-export type Sent = { number: string; totalCents: number; phone: string; points: boolean };
+export type Sent = { number: string; totalCents: number; phone: string; points: boolean; offers: { id: string; title: string }[] };
 
 export function SentConfirmation({ sent, onAgain }: { sent: Sent; onAgain: () => void }) {
   return (
@@ -11,6 +11,13 @@ export function SentConfirmation({ sent, onAgain }: { sent: Sent; onAgain: () =>
       <h1 className="text-[24px] font-semibold text-ink">Commande envoyée</h1>
       <p className="text-[32px] font-semibold leading-tight text-ink">N° {sent.number}</p>
       <p className="text-[17px] text-ink">À payer au comptoir en venant la chercher : <b className="tabular-nums">{euro(sent.totalCents)}</b>.</p>
+      {/* ADR 0110 §5 — les offres que le serveur jugeait valables à l'enregistrement. Aucune n'est dans le montant. */}
+      {sent.offers.length > 0 && (
+        <div className={notice}>
+          {sent.offers.map((o) => <b key={o.id} className="block break-words font-semibold">Offre à demander : {o.title}</b>)}
+          <p>Le total ne compte pas {sent.offers.length > 1 ? "les offres. Dis-le" : "l'offre. Dis-le"} au comptoir.</p>
+        </div>
+      )}
       <p className="text-[15px] text-ink">
         {sent.phone !== "" ? `Le restaurant t'appelle au ${sent.phone} quand elle est prête. ` : "Le restaurant prépare ta commande. "}
         Si tu n&apos;as pas de nouvelles au bout de dix minutes, appelle le restaurant en donnant ce numéro.

@@ -6,7 +6,6 @@ import { parseBzzoiroEvents, type FootballMatch } from "../../signals/football";
 import { agendaRow, HERE } from "./testing";
 import { eventCandidates, eventSource } from "./sources/events";
 import { matchCandidates, matchSource } from "./sources/matches";
-import { promoSource } from "./sources/promos";
 
 const DAY = "2026-11-28";
 const NOW = new Date("2026-11-27T16:00:00Z");
@@ -90,9 +89,3 @@ test("matchs : sans clé, rien et on le dit ; revérifié au jour même", async 
   assert.deepEqual(await check([], false), { ok: false, reason: "source_indisponible" });
 });
 
-test("les promos ne sont pas branchées : elles le disent et ne proposent rien", async () => {
-  assert.ok(await promoSource.unavailable());
-  assert.deepEqual(await promoSource.read(ctx, WINDOW), { ok: true, candidates: [] });
-  const facts = { kind: "promo" as const, offerId: "o", label: "x", day: DAY, endsDay: DAY };
-  assert.deepEqual(await promoSource.recheck(ctx, facts), { ok: false, reason: "promo_finie" });
-});

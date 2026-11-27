@@ -2,10 +2,11 @@
 // la source, le plat de la carte et les informations cochées. Aucune rédaction par une IA. PUR : les tests passent
 // chaque variante dans le contrôle de publication (check.ts).
 
+import { whenLong } from "../../site-offers/offers";
 import { WEATHER_CREDIT } from "../credit";
 import type { PostBlock, PostContent } from "../types";
 import { LIMITS } from "../types";
-import { clockLabel, dayMonth, endOfDay, weekdayName } from "./time";
+import { brusselsDay, clockLabel, dayMonth, endOfDay, weekdayName } from "./time";
 import type { AutoKind, EventCategory, EventFacts, Facts, MatchFacts, Offerings, PromoFacts, WeatherFacts } from "./types";
 
 /** Combien de versions chaque type d'occasion sait écrire. « Autre version » prend la suivante. */
@@ -118,15 +119,26 @@ function weatherLines(f: WeatherFacts, o: Offerings, v: number): Lines {
   };
 }
 
+/**
+ * Une offre : son titre tel que le restaurant l'a écrit, ses jours, et ce que la page en dit (aucun prix changé, la remise se
+ * demande au comptoir). Les conditions ne sont pas recopiées : on dit qu'elles existent et où les lire.
+ */
 function promoLines(f: PromoFacts, v: number): Lines {
-  const end = dayMonth(f.endsDay);
-  return {
-    title: [f.label, `En ce moment : ${f.label}`, `Chez nous : ${f.label}`][v],
-    paragraphs: [
-      [`${f.label}. L'offre court jusqu'au ${end}.`, `Jusqu'au ${end}, profite de notre offre : ${f.label}.`, `Notre offre du moment, jusqu'au ${end} : ${f.label}.`][v],
-      ["Commande à emporter et retire ton repas au comptoir.", "Passe ta commande à emporter et viens chercher ton repas.", "La commande à emporter est ouverte sur notre page."][v],
-    ],
-  };
+  const name = f.label.replace(/[\s.!?…:;,]+$/, "");
+  const long = whenLong({ first_day: f.startsDay, last_day: f.endsDay, weekdays: f.weekdays });
+  const when = long.charAt(0).toLowerCase() + long.slice(1);
+  // Un titre coupé pourrait perdre une restriction : s'il ne tient pas avec un préambule, il paraît seul.
+  const title = [f.label, `En ce moment : ${f.label}`, `Notre offre : ${f.label}`][v];
+  const paragraphs = [
+    [`Notre offre « ${name} » vaut ${when}.`, `« ${name} » : c'est notre offre, ${when}.`, `Voici notre offre, valable ${when} : « ${name} ».`][v],
+    [
+      "La remise se fait au comptoir : le total en ligne ne la compte pas. Envoie ta commande à emporter, puis dis au comptoir que tu as vu cette offre.",
+      "Commande à emporter, puis demande cette offre au comptoir en retirant ton repas. Le total affiché en ligne ne la compte pas.",
+      "En ligne, les prix ne changent pas. Demande cette offre au comptoir quand tu retires ta commande à emporter.",
+    ][v],
+  ];
+  if (f.hasConditions) paragraphs.push("Des conditions s'appliquent : elles sont écrites avec l'offre, sur notre page de commande, les jours où elle vaut.");
+  return { title: title.length > LIMITS.title ? f.label : title, paragraphs };
 }
 
 function lines(facts: Facts, offerings: Offerings, v: number): Lines {
@@ -167,7 +179,7 @@ export function sourceLine(facts: Facts): string {
     case "evenement": return `${categoryName(facts.category)} à ${distanceShort(facts.distanceM)}. Source : agenda de Bruxelles.`;
     case "match": return `Match à ${clockLabel(facts.kickoffUtc)}. Source : calendrier des matchs.`;
     case "meteo": return `${facts.sky === "pluie" ? "Pluie" : "Soleil"} ${facts.service === "midi" ? "à midi" : "en soirée"}. Source : prévision de MET Norway.`;
-    case "promo": return "Ta promo.";
+    case "promo": return "Ton offre. Source : tes offres.";
   }
 }
 
@@ -177,18 +189,20 @@ export function sourceDetails(facts: Facts, p: { hasDish: boolean; offerings: Of
     facts.kind === "evenement" ? "Nom, date et distance à vol d'oiseau : agenda de Bruxelles."
     : facts.kind === "match" ? "Équipes, compétition et heure : calendrier des matchs."
     : facts.kind === "meteo" ? "Temps annoncé : prévision de MET Norway (pluie heure par heure, nuages, température), résumée."
-    : "Offre et date de fin : ta promo.",
+    : "Titre, jours et dates : ton offre.",
   ];
   if (p.hasDish) out.push("Plat et prix : ta carte.");
   const ticked = p.offerings.onSite || p.offerings.terrace || p.offerings.screen;
   out.push(ticked ? "Ce que tu proposes (sur place, terrasse, écran) : les infos de ta page." : "« À emporter » : ta page de commande.");
-  out.push(`Retiré tout seul ${endLabel(p.expiresAt, facts.day)}.`);
+  out.push(`Retiré tout seul ${endLabel(p.expiresAt, facts.day)}${facts.kind === "promo" ? ", ou dès que ton offre s'arrête" : ""}.`);
   return out;
 }
 
-/** « samedi soir » quand l'article tient jusqu'à minuit, sinon « samedi à 23 h 45 ». */
+/** « samedi soir » quand l'article tient jusqu'à minuit (avec la date si c'est un autre jour), sinon « samedi à 23 h 45 ». */
 export function endLabel(expiresAt: string, day: string): string {
   if (new Date(expiresAt).getTime() === new Date(endOfDay(day)).getTime()) return `${weekdayName(day)} soir`;
+  const eve = brusselsDay(new Date(Date.parse(expiresAt) - 60_000));
+  if (new Date(expiresAt).getTime() === new Date(endOfDay(eve)).getTime()) return `${weekdayName(eve)} ${dayMonth(eve)} au soir`;
   const last = new Date(expiresAt).toLocaleDateString("fr-BE", { weekday: "long", timeZone: "Europe/Brussels" });
   return `${last} à ${clockLabel(expiresAt)}`;
 }

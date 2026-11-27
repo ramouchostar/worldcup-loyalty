@@ -19,8 +19,8 @@ export class PostsUnavailableError extends Error {
 export type PostEvent = { postId: string | null; restaurantId: string; kind: PostEventKind; reason?: string | null; actorId?: string | null };
 
 export type NewPostRow = Pick<PostRow, "id" | "restaurant_id" | "slug" | "lang" | "status" | "draft_title" | "draft_blocks" | "origin" | "author_id"> &
-  // Seulement pour un article automatique : la colonne n'existe qu'avec la migration 20261126-2330.
-  Partial<Pick<PostRow, "source_credit">>;
+  // Seulement pour un article automatique : ces colonnes n'existent qu'avec les migrations 20261126-2330 et 20261127-1400.
+  Partial<Pick<PostRow, "source_credit" | "offer_id">>;
 
 export type PostsDb = {
   get(restaurantId: string, postId: string): Promise<PostRow | null>;
@@ -37,6 +37,10 @@ export type PostsDb = {
   addEvent(event: PostEvent): Promise<void>;
   hasEvent(postId: string, kind: PostEventKind, reason: string, sinceIso: string): Promise<boolean>;
   bump(postId: string, day: string, counter: PostCounter): Promise<void>;
+  /** Les articles en ligne qui annoncent cette offre. */
+  onlineByOffer(restaurantId: string, offerId: string): Promise<PostRow[]>;
+  /** Pourquoi un article qui annonce cette offre ne peut pas paraître maintenant ; `null` s'il le peut. */
+  offerProblem(restaurantId: string, offerId: string, now: Date): Promise<string | null>;
   /** Les fichiers d'un dossier, chemins complets. */
   listFiles(folder: string): Promise<string[]>;
   uploadFile(path: string, data: Uint8Array): Promise<void>;
@@ -167,6 +171,9 @@ export async function publishPost(
   if (!row) return NOT_FOUND();
   if (!canPublish(row.status)) return refuse(409, maskedMessage(row));
   if (row.revision !== p.revision) return STALE();
+  // Un article qui annonce une offre ne paraît que si l'offre vaut aujourd'hui, quel que soit le chemin.
+  const offer = row.offer_id ? await db.offerProblem(p.restaurantId, row.offer_id, p.now ?? new Date()) : null;
+  if (offer) return refuse(409, offer);
   const issues = await draftIssues(db, row, p.dishIds);
   if (issues.length > 0) {
     await traceRefusals(db, row, p.userId, issues);

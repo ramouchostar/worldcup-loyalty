@@ -1,6 +1,6 @@
 # ADR 0110 — Les offres sur la page de commande : écrites par le gérant, montrées, pas appliquées
 
-**Statut** : Accepté (2026-11-26) par le porteur (Omar) : maquette et choix conseillés validés (https://claude.ai/artifact/GJmwiP9NYQtaNdeQQhQ5cN) ; Mehdi pas encore consulté ; rien n'est construit. Demande du porteur : « affichage des promos sur le site ». **Précise** l'[ADR 0099](0099-le-site-de-commande-en-option.md) §9 (ce que montre la page du client) et l'[ADR 0108](0108-l-espace-de-commande-du-restaurant-un-compte-des-points-nina.md) §6. **N'amende ni l'ADR 0007, ni 0023, 0028, 0089 ou 0104.**
+**Statut** : Accepté (2026-11-26) par le porteur (Omar) : maquette et choix conseillés validés (https://claude.ai/artifact/GJmwiP9NYQtaNdeQQhQ5cN) ; Mehdi pas encore consulté. **Construit le 2026-11-27** (§6, ci-dessous), **jamais exécuté sur une base réelle**. Demande du porteur : « affichage des promos sur le site ». **Précise** l'[ADR 0099](0099-le-site-de-commande-en-option.md) §9 (ce que montre la page du client) et l'[ADR 0108](0108-l-espace-de-commande-du-restaurant-un-compte-des-points-nina.md) §6. **N'amende ni l'ADR 0007, ni 0023, 0028, 0089 ou 0104.**
 
 ## Contexte
 
@@ -57,9 +57,19 @@ Une commande **reçue** pendant l'offre y a droit, même si l'offre est arrêté
 
 3 offres et 31 jours sont des défauts de produit, à confirmer.
 
+### 6. Construit le 2026-11-27 : ce que la décision ne disait pas
+
+- **Deux colonnes** en plus des deux tables : `site_orders.offer_ids` (les offres jugées valables à l'enregistrement, écrites par le serveur seul) et `restaurant_posts.offer_id` (l'offre qu'un article automatique annonce). Une seule réponse du comptoir par commande et par offre, corrigeable.
+- **Publier est refusé** si le dernier jour valable est passé, si le plat n'est pas commandable, ou si une quatrième offre tomberait un même jour. Un brouillon ne se supprime pas.
+- **Les mots refusés** le sont dans le titre et les conditions, au pluriel aussi. La règle sur « point » refuse également « cuit à point ».
+- **L'état montré** ajoute « masquée » (plat devenu non commandable). Une offre dont le dernier jour coché est passé est « terminée ».
+- **Affichée** compte une fois par visite et par offre ; seules les offres en cours se comptent.
+- La console des offres est lisible par tout siège ; écrire et publier restent au gérant et au manager (la plateforme aussi, comme les autres réglages de l'espace).
+- **L'article d'une offre** (ADR 0112) : arrêter l'offre le retire aussitôt, publié compris. La lecture publique le cache dès que l'offre est arrêtée ou finie, ou son plat masqué, et aussi quand les offres sont illisibles. Un article retiré ainsi ne se republie pas.
+
 ## Conséquences
 
-- **Deux tables nouvelles**, service role seul (migration à écrire dans la PR de code ; absentes, la page reste comme aujourd'hui et la console dit « pas encore activé » ; une lecture en panne masque les offres, jamais la carte, et se dit dans les journaux) :
+- **Deux tables nouvelles**, service role seul (migration `20261127-1400-site-offers`, **à appliquer à la main** ; absentes, la page reste comme aujourd'hui et la console dit « pas encore activé » ; une lecture en panne masque les offres, jamais la carte, et se dit dans les journaux) :
   - `site_offers` : établissement, titre, conditions, plat facultatif (du même établissement), premier et dernier jour, jours de la semaine, état, créée par et quand, publiée par et quand, arrêtée par, quand et pourquoi, offre recopiée.
   - `site_offer_events` : offre, établissement, type (affichée, ouverte, appliquée, pas appliquée), commande facultative, date. Aucune donnée personnelle.
 - Mêmes portes que la commande (drapeau et forfait) : les établissements sans espace de commande n'ont pas d'offres.
@@ -77,6 +87,8 @@ Une commande **reçue** pendant l'offre y a droit, même si l'offre est arrêté
 - `CONTEXT.md` : terme « **Offre de la page de commande** ». _Avoid_ : coupon, cadeau, bon, code promo, remise appliquée. Renvoi dans les ADR 0099 et 0108.
 
 ## Trace
+
+Requêtes : `docs/mesures/suivi-offres.sql`.
 
 - Sur la carte d'une commande concernée : « **Offre appliquée** » ou « **Pas appliquée** ». Facultatif, ne bloque jamais « Retirée ». **Seuil** : un seul « pas appliquée » est lu par l'équipe Boosteats et le gérant est appelé. Si plus d'une commande concernée sur deux reste sans réponse, la mesure est aveugle : à revoir.
 - Arrêt avant la fin, avec un motif : plus de stock, équipe pas au courant, erreur dans l'offre, autre. Un « équipe pas au courant » montre que la case à cocher ne suffit pas.

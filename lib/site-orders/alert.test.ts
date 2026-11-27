@@ -4,6 +4,7 @@ import { MAX_REPEATS, REPEAT_MS, acknowledge, alertTitle, gaveUp, initialAlert, 
 import type { OrderView } from "./service";
 
 const order = (id: string, status: OrderView["status"] = "recue"): OrderView => ({
+  offerIds: [],
   id, number: id.padStart(4, "0"), firstName: "Amina", phone: null, lines: [], totalCents: 100, status,
   createdAt: "2026-11-13T12:00:00Z", readyAt: null, pickedUpAt: null, cancelledAt: null, cancelReason: null,
 });

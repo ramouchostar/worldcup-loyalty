@@ -17,7 +17,9 @@ export function composeChecked(
   facts: Facts,
   p: { menu: PublicMenu; offerings: Offerings; variant: number; day: string },
 ): { content: PostContent; issues: Issue[] } {
-  const content = compose(facts, { offerings: p.offerings, dishId: pickDish(p.menu, p.day), variant: p.variant });
+  // Une offre ne montre que SON plat : un autre plat à côté laisserait croire qu'elle s'y applique.
+  const dishId = facts.kind === "promo" ? facts.itemId : pickDish(p.menu, p.day);
+  const content = compose(facts, { offerings: p.offerings, dishId, variant: p.variant });
   return { content, issues: checkPublication(content, dishIdsOf(p.menu)) };
 }
 

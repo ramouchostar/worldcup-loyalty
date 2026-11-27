@@ -17,13 +17,15 @@ type Props = {
   canEdit: (line: CartLine) => boolean;
   onEdit: (line: CartLine) => void;
   onClose: () => void;
+  /** Ce qu'on dit sous le total quand une offre est en cours (ADR 0110) : le total ne la compte pas. */
+  offerNote?: ReactNode;
   children: ReactNode;
 };
 
 const details = (l: CartLine): string =>
   l.details.map((d) => (d.kind === "sans" ? `sans ${d.name.toLocaleLowerCase("fr-BE")}` : d.kind === "extra" ? `+ ${d.name}${d.qty > 1 ? ` ×${d.qty}` : ""}` : d.name)).join(", ");
 
-export function CartPanel({ variant, restaurantName, cart, restoredNote, onSetQty, onRemove, canEdit, onEdit, onClose, children }: Props) {
+export function CartPanel({ variant, restaurantName, cart, restoredNote, onSetQty, onRemove, canEdit, onEdit, onClose, offerNote, children }: Props) {
   const side = variant === "aside";
   const body = (
     <>
@@ -62,6 +64,7 @@ export function CartPanel({ variant, restaurantName, cart, restoredNote, onSetQt
           <span className="whitespace-nowrap text-[20px] tabular-nums">{euro(cartTotal(cart))}</span>
         </div>
       )}
+      {cart.length > 0 && offerNote}
       {children}
     </>
   );

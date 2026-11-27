@@ -15,9 +15,14 @@ export class SiteOrdersUnavailableError extends Error {
   }
 }
 
+/** Une offre affichée à la commande (ADR 0110) : ce que le client est en droit de demander au comptoir. */
+export type OrderOffer = { id: string; title: string; conditions: string | null };
+
 export type NewOrderRow = {
   restaurant_id: string; order_day: string; number: number; first_name: string; phone: string | null;
   lines: OrderLine[]; total_cents: number;
+  /** Les offres que le serveur juge valables à l'enregistrement (ADR 0110 §5). Aucune n'entre dans le total. */
+  offer_ids: string[];
   /** Le compte qui a passé la commande (ADR 0108 §2). `null` seulement pour un test ou un appel interne : la route exige un compte. */
   member_id: string | null;
 };
@@ -25,18 +30,23 @@ export type NewOrderRow = {
 export type OrderRow = {
   id: string; number: number; first_name: string; phone: string | null; lines: unknown; total_cents: number; status: string;
   created_at: string; ready_at: string | null; picked_up_at: string | null; cancelled_at: string | null; cancel_reason: string | null;
+  /** Absent tant que la migration 20261127-1400 n'est pas appliquée. */
+  offer_ids?: string[] | null;
 };
 
 export interface OrdersDb {
   /** Le restaurant est-il ouvert maintenant selon sa fiche (ADR 0108 §4, ADR 0109 §3) ? Lève sur une panne de NOTRE côté. */
   readOpenness(restaurantId: string, now: Date): Promise<Openness>;
+  /** Les offres valables maintenant. Une panne rend une liste VIDE (dite au journal) : jamais une commande perdue pour une offre. */
+  liveOffers(restaurantId: string, now: Date): Promise<OrderOffer[]>;
   loadCatalog(restaurantId: string, ids: string[]): Promise<Map<string, CatalogItem>>;
   loadTrees(restaurantId: string, ids: string[]): Promise<Map<string, OptionGroup[]>>;
   /** Le plus grand numéro déjà pris ce jour-là (0 si aucun). */
   lastNumber(restaurantId: string, day: string): Promise<number>;
   /** `conflict` = ce numéro vient d'être pris par une autre commande : on réessaie avec le suivant. */
-  /** `linked` = la commande a été écrite AVEC le lien vers le compte (faux si la migration `member_id` n'est pas appliquée). */
-  insert(row: NewOrderRow): Promise<{ ok: true; id: string; linked: boolean } | { ok: false; conflict: true }>;
+  /** `linked` = la commande a été écrite AVEC le lien vers le compte (faux si la migration `member_id` n'est pas appliquée).
+   *  `offersKept` = faux quand les offres affichées n'ont pas pu être gardées avec la commande. */
+  insert(row: NewOrderRow): Promise<{ ok: true; id: string; linked: boolean; offersKept?: boolean } | { ok: false; conflict: true }>;
   recordRefusal(restaurantId: string, reason: string): Promise<void>;
   /** Les refus de l'établissement depuis `sinceIso`, comptés par motif (`site_order_refusals`) : la matière des alertes de Nina (ADR 0108 §6). */
   countRefusals(restaurantId: string, sinceIso: string): Promise<Record<string, number>>;
@@ -47,7 +57,7 @@ export interface OrdersDb {
 }
 
 export type PlaceOutcome =
-  | { ok: true; id: string; number: string; totalCents: number; linked: boolean }
+  | { ok: true; id: string; number: string; totalCents: number; linked: boolean; offers: OrderOffer[] }
   | { ok: false; status: number; code: RefusalCode; message: string };
 
 const MAX_NUMBER_TRIES = 4;
@@ -86,15 +96,22 @@ export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: un
   const priced = priceOrder(request, catalog, trees);
   if (!priced.ok) return { ok: false, status: 422, code: priced.code, message: priced.message };
 
+  // Les offres ne changent aucun prix : elles accompagnent la commande, pour le client et pour le comptoir.
+  const offers = await db.liveOffers(restaurantId, now).catch((e) => {
+    console.error("[site-orders] offres illisibles, commande prise sans elles :", e instanceof Error ? e.message : e);
+    return [] as OrderOffer[];
+  });
+
   const day = brusselsDay(now);
   try {
     for (let i = 0; i < MAX_NUMBER_TRIES; i++) {
       const number = (await db.lastNumber(restaurantId, day)) + 1;
       const r = await db.insert({
         restaurant_id: restaurantId, order_day: day, number, first_name: request.firstName, phone: request.phone,
-        lines: priced.lines, total_cents: priced.totalCents, member_id: memberId,
+        lines: priced.lines, total_cents: priced.totalCents, member_id: memberId, offer_ids: offers.map((o) => o.id),
       });
-      if (r.ok) return { ok: true, id: r.id, number: formatNumber(number), totalCents: priced.totalCents, linked: r.linked };
+      // Offres non gardées : le comptoir ne les verrait pas sur la commande, la page ne les rappelle donc pas.
+      if (r.ok) return { ok: true, id: r.id, number: formatNumber(number), totalCents: priced.totalCents, linked: r.linked, offers: r.offersKept === false ? [] : offers };
     }
     return { ok: false, status: 503, code: "indisponible", message: "Beaucoup de commandes en même temps. Réessaie dans un instant." };
   } catch (e) {
@@ -107,13 +124,15 @@ export async function placeSiteOrder(db: OrdersDb, restaurantId: string, raw: un
 export type OrderView = {
   id: string; number: string; firstName: string; phone: string | null; lines: OrderLine[]; totalCents: number; status: OrderStatus;
   createdAt: string; readyAt: string | null; pickedUpAt: string | null; cancelledAt: string | null; cancelReason: string | null;
+  /** Les offres affichées à la commande, par identifiant ; la console y joint leur titre et la réponse du comptoir. */
+  offerIds: string[];
 };
 
 export function viewOf(r: OrderRow): OrderView {
   return {
     id: r.id, number: formatNumber(r.number), firstName: r.first_name, phone: r.phone, lines: readLines(r.lines), totalCents: r.total_cents,
     status: isOrderStatus(r.status) ? r.status : "recue", createdAt: r.created_at, readyAt: r.ready_at, pickedUpAt: r.picked_up_at,
-    cancelledAt: r.cancelled_at, cancelReason: r.cancel_reason,
+    cancelledAt: r.cancelled_at, cancelReason: r.cancel_reason, offerIds: r.offer_ids ?? [],
   };
 }
 

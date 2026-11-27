@@ -12,7 +12,8 @@ import { placeSiteOrder } from "@/lib/site-orders/service";
 // et le RGPD doivent être tranchés avant d'ouvrir à un vrai restaurant, ADR 0099).
 //
 // POST /api/site-orders  { restaurantId, firstName, phone?, lines: [{ articleId, qty, selection }] }
-//   → 201 { number, totalCents, points }   ou   4xx/5xx { error, code }
+//   → 201 { number, totalCents, points, offers }   ou   4xx/5xx { error, code }
+//   `offers` : les offres valables à l'enregistrement (ADR 0110) ; aucune n'entre dans le total, la remise est au comptoir.
 //   Restaurant fermé selon sa fiche → 409 `ferme` ; horaires inconnus → 409 `horaires_inconnus` (ADR 0108 §4, ADR 0109 §3).
 // Le navigateur n'envoie JAMAIS un prix ni un nom de plat : le serveur recalcule tout (lib/site-orders/order.ts).
 //
@@ -65,8 +66,8 @@ export async function POST(req: NextRequest) {
   }
   // ADR 0108 §2 — commander, c'est rejoindre le restaurant : après l'enregistrement, jamais avant, et sans jamais le faire échouer.
   await ensureSiteMembership(memberId, restaurantId);
-  console.info(`[site-orders] restaurant=${restaurantId} numero=${result.number} total_cents=${result.totalCents} compte=${result.linked ? "lie" : "non_lie"}`);
+  console.info(`[site-orders] restaurant=${restaurantId} numero=${result.number} total_cents=${result.totalCents} compte=${result.linked ? "lie" : "non_lie"} offres=${result.offers.length}`);
   // `points` : la commande est liée à un compte, donc sa remise rapportera des points (ADR 0108 §5). Faux si la migration
   // `member_id` n'est pas appliquée : la page ne promet alors rien.
-  return NextResponse.json({ number: result.number, totalCents: result.totalCents, points: result.linked }, { status: 201 });
+  return NextResponse.json({ number: result.number, totalCents: result.totalCents, points: result.linked, offers: result.offers.map(({ id, title }) => ({ id, title })) }, { status: 201 });
 }

@@ -8,11 +8,15 @@ import { pickDish } from "./dish";
 import { compose, initialVariant, nextVariant, occasionLabel, sourceDetails, sourceLine, VARIANTS } from "./phrases";
 import { DISH_ID, MENU } from "./testing";
 import { endOfDay } from "./time";
-import { EVENT_CATEGORIES, type Facts, type Offerings } from "./types";
+import { EVENT_CATEGORIES, type Facts, type Offerings, type PromoFacts } from "./types";
 
 const DAYS = ["2026-11-28", "2026-12-01", "2026-12-02", "2027-01-01"]; // dont le plus long nom de jour et le 1er du mois
 const OFFERINGS: Offerings[] = [false, true].flatMap((terrace) => [false, true].flatMap((onSite) => [false, true].map((screen) => ({ terrace, onSite, screen }))));
 const LONG = cleanName("Grande brocante annuelle des habitants du quartier Saint-Exemple et des environs immédiats")!;
+
+const promo = (day: string, over: Partial<PromoFacts> = {}): Facts => ({
+  kind: "promo", offerId: "o", label: "Une boisson offerte le midi", day, startsDay: day, endsDay: day, weekdays: null, itemId: null, hasConditions: false, ...over,
+});
 
 const facts: Facts[] = DAYS.flatMap((day): Facts[] => [
   ...EVENT_CATEGORIES.flatMap((category) =>
@@ -22,7 +26,10 @@ const facts: Facts[] = DAYS.flatMap((day): Facts[] => [
   { kind: "meteo", sky: "soleil", service: "midi", day },
   { kind: "meteo", sky: "pluie", service: "midi", day },
   { kind: "meteo", sky: "pluie", service: "soir", day },
-  { kind: "promo", offerId: "o", label: "Une boisson offerte le midi", day, endsDay: day },
+  promo(day),
+  promo(day, { startsDay: "2026-11-01", endsDay: "2026-12-01", weekdays: [1, 2, 3, 4, 5, 6], hasConditions: true }),
+  promo(day, { label: "Frites offertes pour tout menu poulet commandé en ligne le midi !", itemId: DISH_ID }),
+  promo(day, { label: "x".repeat(79) + "." }),
 ]);
 
 test("CHAQUE version de CHAQUE phrase passe le contrôle de publication", () => {
@@ -95,6 +102,41 @@ test("un nom venu d'un tiers est nettoyé et limité ; le contrôle refuse ce qu
     const f: Facts = { kind: "evenement", source: "visitbrussels", externalId: "x", eventId: "x", name: cleanName(name)!, category: "fete", day: "2026-11-28", distanceM: 300 };
     assert.notDeepEqual(checkPublication(compose(f, { offerings: OFFERINGS[0], dishId: null, variant: 0 }), new Set()), [], name);
   }
+});
+
+test("l'article d'une offre ne promet pas plus que la page : dates, jours, comptoir, aucun prix changé", () => {
+  const f = promo("2026-12-01", { startsDay: "2026-12-01", endsDay: "2026-12-15", weekdays: [2, 4], hasConditions: true }) as PromoFacts;
+  for (let variant = 0; variant < VARIANTS; variant++) {
+    const c = compose(f, { offerings: OFFERINGS[0], dishId: null, variant });
+    const all = c.blocks.map((b) => (b.type === "p" ? b.text : "")).join(" ");
+    assert.match(all, /du 1er au 15 décembre inclus, chaque mardi et jeudi/, all);
+    assert.match(all, /au comptoir/, all);
+    assert.match(all, /total (en ligne|affiché en ligne) ne la compte pas|les prix ne changent pas/, all);
+    assert.match(all, /Des conditions s'appliquent/, all);
+    assert.ok(all.includes("« Une boisson offerte le midi »"), all);
+    assert.ok(c.title.includes(f.label), c.title);
+  }
+  // Un titre trop long pour un préambule paraît seul, jamais coupé.
+  const long = promo("2026-12-01", { label: "x".repeat(80) }) as PromoFacts;
+  for (let variant = 0; variant < VARIANTS; variant++) assert.equal(compose(long, { offerings: OFFERINGS[0], dishId: null, variant }).title, long.label);
+  // Une offre d'un seul jour le dit tel quel, sans conditions inventées.
+  const one = compose(promo("2026-12-03"), { offerings: OFFERINGS[0], dishId: null, variant: 0 });
+  assert.match(JSON.stringify(one), /vaut le 3 décembre/);
+  assert.doesNotMatch(JSON.stringify(one), /conditions/);
+  assert.deepEqual(sourceDetails(f, { hasDish: false, offerings: OFFERINGS[0], expiresAt: endOfDay("2026-12-15") }), [
+    "Titre, jours et dates : ton offre.",
+    "« À emporter » : ta page de commande.",
+    "Retiré tout seul mardi 15 décembre au soir, ou dès que ton offre s'arrête.",
+  ]);
+});
+
+// Les titres qu'un restaurant pourrait écrire et que le contrôle (inchangé) refuse : pas d'article, la raison est dite.
+test("un titre d'offre avec un prix, une promesse de santé ou d'allergène n'a pas d'article", () => {
+  const blocked = ["Menu burger à 9,90 €", "Menu midi à 8,50", "2 tacos pour 12 euros", "Moins 2 € sur le menu duo", "Boisson sans sucre offerte", "Salade healthy offerte", "Pizza sans gluten offerte", "Menu allégé offert aux étudiants"];
+  const passes = ["-20 % sur les menus", "2e burger à moitié prix", "Frites offertes dès 2 menus", "1 + 1 sur les tacos", "Boisson offerte avec un menu"];
+  const issues = (label: string) => checkPublication(compose(promo("2026-12-01", { label }), { offerings: OFFERINGS[0], dishId: null, variant: 0 }), new Set());
+  for (const label of blocked) assert.notDeepEqual(issues(label), [], label);
+  for (const label of passes) assert.deepEqual(issues(label), [], label);
 });
 
 test("le plat montré est un repas de la carte, jamais une boisson seule", () => {

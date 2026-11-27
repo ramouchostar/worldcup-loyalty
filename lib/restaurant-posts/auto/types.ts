@@ -69,8 +69,19 @@ export type MatchFacts = {
 
 export type WeatherFacts = { kind: "meteo"; sky: "soleil" | "pluie"; service: "midi" | "soir"; day: string };
 
-/** Le contrat des promos, à brancher sur les offres (ADR 0110) quand elles existeront. */
-export type PromoFacts = { kind: "promo"; offerId: string; label: string; day: string; endsDay: string };
+/** Une offre de la page de commande (ADR 0110) : son titre, ses jours, son plat. Les conditions ne sont pas recopiées. */
+export type PromoFacts = {
+  kind: "promo";
+  offerId: string;
+  label: string;
+  day: string;
+  startsDay: string;
+  endsDay: string;
+  /** 1 = lundi … 7 = dimanche ; `null` = tous les jours. */
+  weekdays: number[] | null;
+  itemId: string | null;
+  hasConditions: boolean;
+};
 
 export type Facts = EventFacts | MatchFacts | WeatherFacts | PromoFacts;
 
@@ -82,6 +93,8 @@ export type Candidate = {
   rank: number;
   /** Jours possibles, du plus tôt au plus tard. */
   days: { day: string; expiresAt: string; facts: Facts }[];
+  /** D'autres jours viendront après ceux-ci : sans place aujourd'hui, on réessaie plus tard au lieu d'écarter pour de bon. */
+  later?: boolean;
 };
 
 export type OccasionStatus = "prevu" | "prevenu" | "publie" | "refuse" | "ecarte";

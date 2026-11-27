@@ -12,7 +12,7 @@ import { NO_OFFERINGS } from "./offerings";
 import { openingReason, openingWindow } from "./opening";
 import { VARIANTS } from "./phrases";
 import type { AutoDeps } from "./ports";
-import { reasonText, UNVERIFIABLE } from "./reasons";
+import { reasonText, STAYS_PENDING, UNVERIFIABLE } from "./reasons";
 import { readyKinds } from "./overview";
 import {
   AUTO_KINDS, PENDING_STATUSES, TERMS_VERSION, type AutoKind, type AutoSettings, type Occasion,
@@ -121,11 +121,12 @@ export async function publishNow(
   if (!restaurant || !restaurant.open) return refuse(404, "Introuvable.");
   const source = deps.sources.find((s) => s.kind === occasion.kind);
   // Une personne appuie : la source peut être interrogée (sa réserve évite les demandes répétées).
-  const check = source ? await source.recheck({ restaurantId: id, coords: restaurant.coords, now: deps.now, network: true }, occasion.facts) : null;
+  const check = source ? await source.recheck({ restaurantId: id, coords: restaurant.coords, now: deps.now, network: true, publishing: "maintenant" }, occasion.facts) : null;
   if (!check || !check.ok) {
     const reason = check && !check.ok ? check.reason : "source_indisponible";
-    // Une panne de la source n'est pas un changement : rien ne paraît, l'article attend toujours, la raison est gardée.
-    if (UNVERIFIABLE.has(reason)) await deps.posts.addEvent({ postId: occasion.post_id, restaurantId: id, kind: "refuse", reason, actorId: p.userId });
+    // Une panne de la source n'est pas un changement, ni une offre qui ne vaut pas encore : rien ne paraît, l'article attend
+    // toujours, la raison est gardée.
+    if (STAYS_PENDING.has(reason)) await deps.posts.addEvent({ postId: occasion.post_id, restaurantId: id, kind: "refuse", reason, actorId: p.userId });
     else await discardOccasion(deps, occasion, reason, PENDING_STATUSES);
     return refuse(409, reasonText(reason, null));
   }
@@ -185,6 +186,27 @@ export async function nextVersion(
     return saved;
   }
   return refuse(409, "Pas d'autre version possible pour cet article.");
+}
+
+// ─── Une offre s'arrête ──────────────────────────────────────────────────────
+
+/**
+ * Une offre arrêtée ne s'annonce plus (ADR 0110, 0112) : l'article qui attendait est écarté, ceux qui sont en ligne sont
+ * retirés tout de suite. La lecture publique les cache de toute façon : ce rangement dit au restaurateur ce qui s'est passé.
+ */
+export async function stopOfferArticles(deps: AutoDeps, p: { restaurantId: string; offerId: string; userId: string }): Promise<{ withdrawn: number }> {
+  for (const o of await deps.db.pendingOccasions(p.restaurantId)) {
+    if (o.facts.kind === "promo" && o.facts.offerId === p.offerId) await discardOccasion(deps, o, "promo_finie", PENDING_STATUSES);
+  }
+  const at = deps.now.toISOString();
+  let withdrawn = 0;
+  for (const post of await deps.posts.onlineByOffer(p.restaurantId, p.offerId)) {
+    const res = await deps.posts.update(post.id, { status: "retire", withdrawn_at: at, updated_at: at }, { status: "en_ligne" });
+    if (!res.ok) continue;
+    withdrawn++;
+    await deps.posts.addEvent({ postId: post.id, restaurantId: p.restaurantId, kind: "retire", reason: "offre_arretee", actorId: p.userId });
+  }
+  return { withdrawn };
 }
 
 // ─── Après une modification ou avant une suppression ─────────────────────────

@@ -8,7 +8,8 @@ import { plural } from "@/lib/menu-options/copy";
 import { buildTickets, distinctZones } from "@/lib/menu-options/tickets";
 import { STATUS_LABEL, isOpen, minutesToReady, toTicketLines, type OrderStatus } from "@/lib/site-orders/order";
 import { acknowledge, alertTitle, gaveUp, initialAlert, stepAlert, type AlertState } from "@/lib/site-orders/alert";
-import type { OrderView } from "@/lib/site-orders/service";
+import type { ConsoleOrder } from "@/lib/site-offers/console";
+import type { OfferAnswer } from "@/lib/site-offers/offers";
 import { chime, createAudio, keepScreenOn, readSoundPref, resumeAudio, writeSoundPref } from "./order-sound";
 
 // ADR 0099 §2 — « Commandes du site » : ce que les clients ont commandé sur le site, retrait et paiement au comptoir.
@@ -31,7 +32,20 @@ function ago(iso: string, now: number): string {
   return `il y a ${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
 }
 
-function OrderCard({ o, now, busy, onChange }: { o: OrderView; now: number; busy: boolean; onChange: (id: string, status: OrderStatus, reason?: string) => void }) {
+type CardProps = {
+  o: ConsoleOrder;
+  now: number;
+  busy: boolean;
+  onChange: (id: string, status: OrderStatus, reason?: string) => void;
+  onAnswer: (orderId: string, offerId: string, answer: OfferAnswer) => void;
+};
+
+const answerBtn = (on: boolean) => `${btn} min-w-0 flex-1 basis-[140px] border text-ink disabled:cursor-not-allowed disabled:opacity-50 ${on ? "border-boost-olive-dark bg-boost-olive/10" : "border-ink-faint bg-white hover:border-ink"}`;
+
+/** « Avec un menu. » : les conditions finissent par un point avant la phrase suivante. */
+const sentence = (s: string) => (/[.!?…]$/.test(s) ? s : `${s}.`);
+
+function OrderCard({ o, now, busy, onChange, onAnswer }: CardProps) {
   const [tickets, setTickets] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
@@ -58,6 +72,17 @@ function OrderCard({ o, now, busy, onChange }: { o: OrderView; now: number; busy
         </p>
       )}
 
+      {/* ADR 0110 §5 — l'offre affichée à la commande reste due, même arrêtée depuis : le comptoir n'a pas à s'en souvenir. */}
+      {o.offers.map((offer) => (
+        <div key={offer.id} className="rounded-lg border border-warn bg-warn/10 px-3.5 py-3 text-[15px] text-ink">
+          <p className="break-words font-semibold">Offre affichée à la commande : {offer.title}</p>
+          <p className="break-words">{offer.conditions ? `${sentence(offer.conditions)} ` : ""}Le total ci-dessous ne la compte pas : fais la remise en caisse.</p>
+        </div>
+      ))}
+      {o.offersUnreadable && (
+        <p role="alert" className="rounded-lg border border-warn bg-warn/10 px-3.5 py-3 text-[15px] text-ink">Cette commande avait une offre qui n&apos;a pas pu être lue. Recharge la page, ou demande au client ce qu&apos;il a vu.</p>
+      )}
+
       <ul className="space-y-2 border-t border-dashed border-paper-border pt-3">
         {o.lines.map((l, i) => {
           const without = l.details.filter((d) => d.kind === "sans");
@@ -72,8 +97,23 @@ function OrderCard({ o, now, busy, onChange }: { o: OrderView; now: number; busy
         })}
       </ul>
 
-      <div className="flex justify-between border-t border-dashed border-paper-border pt-2 text-[17px] font-semibold text-ink"><span>À PAYER AU COMPTOIR</span><span className="tabular-nums">{euro(o.totalCents)}</span></div>
+      <div className="flex justify-between gap-3 border-t border-dashed border-paper-border pt-2 text-[17px] font-semibold text-ink">
+        <span>{o.offerIds.length === 0 ? "À PAYER AU COMPTOIR" : o.offerIds.length > 1 ? "Total avant les offres" : "Total avant l'offre"}</span>
+        <span className="tabular-nums">{euro(o.totalCents)}</span>
+      </div>
       {o.status === "annulee" && o.cancelReason && <p className="text-[13px] text-ink-muted">Raison : {o.cancelReason}</p>}
+
+      {/* La trace (ADR 0110) : facultative, elle ne bloque jamais « Retirée ». */}
+      {o.status !== "annulee" && o.offers.map((offer) => (
+        <fieldset key={offer.id} className="min-w-0">
+          <legend className="mb-1.5 break-words text-[15px] font-semibold text-ink">{o.offers.length > 1 ? `« ${offer.title} »` : "L'offre"}, au retrait (facultatif)</legend>
+          <div className="flex flex-wrap gap-2">
+            {([["appliquee", "Offre appliquée"], ["pas_appliquee", "Pas appliquée"]] as const).map(([answer, label]) => (
+              <button key={answer} type="button" aria-pressed={offer.answer === answer} disabled={busy} className={answerBtn(offer.answer === answer)} onClick={() => onAnswer(o.id, offer.id, answer)}>{label}</button>
+            ))}
+          </div>
+        </fieldset>
+      ))}
 
       <div className="flex flex-wrap gap-2">
         {o.status === "recue" && <button type="button" className={primary} disabled={busy} onClick={() => onChange(o.id, "prete")}>Prête</button>}
@@ -101,7 +141,7 @@ function OrderCard({ o, now, busy, onChange }: { o: OrderView; now: number; busy
 
 export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
-  const [orders, setOrders] = useState<OrderView[]>([]);
+  const [orders, setOrders] = useState<ConsoleOrder[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +169,7 @@ export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/site-orders?restaurantId=${encodeURIComponent(restaurantId)}`, { cache: "no-store" });
-      const { data } = await readJsonSafe<{ orders?: OrderView[]; error?: string }>(res);
+      const { data } = await readJsonSafe<{ orders?: ConsoleOrder[]; error?: string }>(res);
       if (!live.current) return;
       if (res.status === 404) { setPhase("closed"); return; }
       if (res.status === 503) { setPhase("unavailable"); return; }
@@ -224,6 +264,21 @@ export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
     }
   }
 
+  async function answer(orderId: string, offerId: string, value: OfferAnswer) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/site-orders/offers", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ restaurantId, action: "answer", orderId, offerId, answer: value }) });
+      const { data } = await readJsonSafe<{ error?: string }>(res);
+      if (!res.ok) setError(data?.error ?? "Ta réponse n'a pas pu être enregistrée. Réessaie.");
+      await load();
+    } catch {
+      setError("Ta réponse n'a pas pu partir. Vérifie ta connexion et réessaie.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (phase === "loading") return <div className="space-y-3">{[1, 2].map((i) => <div key={i} className="h-32 animate-pulse rounded-xl border border-paper-border bg-white" />)}</div>;
   if (phase === "closed") return <Card><p className="text-[15px] text-ink">Les commandes de ton site (Nina, en pilote) ne sont pas encore ouvertes pour ton établissement. Nous te prévenons dès que c&apos;est le cas.</p></Card>;
   if (phase === "unavailable") return <Card><p className="text-[15px] text-ink">Les commandes du site ne sont pas encore activées pour ton compte. Réessaie dans un moment : nous nous en occupons.</p></Card>;
@@ -275,18 +330,18 @@ export function SiteOrdersBoard({ restaurantId }: { restaurantId: string }) {
 
       <section className="space-y-3" aria-label="À préparer">
         <h2 className="text-[17px] font-semibold text-ink">À préparer ({toPrepare.length})</h2>
-        {toPrepare.length === 0 ? <p className="text-[15px] text-ink-muted">Aucune commande à préparer.</p> : <ul className="space-y-3">{toPrepare.map((o) => <OrderCard key={o.id} o={o} now={now} busy={busy} onChange={change} />)}</ul>}
+        {toPrepare.length === 0 ? <p className="text-[15px] text-ink-muted">Aucune commande à préparer.</p> : <ul className="space-y-3">{toPrepare.map((o) => <OrderCard key={o.id} o={o} now={now} busy={busy} onChange={change} onAnswer={answer} />)}</ul>}
       </section>
 
       <section className="space-y-3" aria-label="Prêtes">
         <h2 className="text-[17px] font-semibold text-ink">Prêtes, à retirer ({ready.length})</h2>
-        {ready.length === 0 ? <p className="text-[15px] text-ink-muted">Aucune commande n&apos;attend le client.</p> : <ul className="space-y-3">{ready.map((o) => <OrderCard key={o.id} o={o} now={now} busy={busy} onChange={change} />)}</ul>}
+        {ready.length === 0 ? <p className="text-[15px] text-ink-muted">Aucune commande n&apos;attend le client.</p> : <ul className="space-y-3">{ready.map((o) => <OrderCard key={o.id} o={o} now={now} busy={busy} onChange={change} onAnswer={answer} />)}</ul>}
       </section>
 
       {done.length > 0 && (
         <details className="space-y-3">
           <summary className="cursor-pointer text-[17px] font-semibold text-ink">Terminées depuis 24 h ({done.length})</summary>
-          <ul className="mt-3 space-y-3">{done.map((o) => <OrderCard key={o.id} o={o} now={now} busy={busy} onChange={change} />)}</ul>
+          <ul className="mt-3 space-y-3">{done.map((o) => <OrderCard key={o.id} o={o} now={now} busy={busy} onChange={change} onAnswer={answer} />)}</ul>
         </details>
       )}
       <p className="text-[13px] text-ink-muted">{plural(orders.length, "commande", "commandes")} sur les dernières 24 heures.</p>

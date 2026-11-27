@@ -119,3 +119,11 @@ test("un panier de 30 lignes chargées dépasse le lien : le client copie le mes
   assert.equal(whatsAppLink("32470123456", text), null);
   assert.ok(text.includes("Burger numéro 29")); // le texte, lui, est complet : c'est ce que « Copier » donne
 });
+
+test("une offre vue sur la page est citée, avec ce qu'il faut savoir : le total ne la compte pas (ADR 0110)", () => {
+  const cart = addToCart([], cola, {}, 1);
+  const text = buildWhatsAppText(cart, "Amina", LABELS_FR, ["Frites offertes avec un menu"]);
+  assert.match(text, /Offre vue sur le site : Frites offertes avec un menu\nLe total ne compte pas l'offre : elle se fait au comptoir\./);
+  assert.ok(text.indexOf("Offre vue") > text.indexOf(LABELS_FR.total));
+  assert.doesNotMatch(buildWhatsAppText(cart, "Amina"), /Offre/);
+});

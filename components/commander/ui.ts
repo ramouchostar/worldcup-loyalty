@@ -12,6 +12,9 @@ export const accentLink = `${link} font-semibold text-[color:var(--co-accent-tex
 export const removeLink = `${link} text-danger`;
 export const stepper = `h-11 w-11 shrink-0 rounded-lg border border-[#8A8A80] bg-white text-[20px] text-ink hover:bg-paper-subtle disabled:cursor-not-allowed disabled:border-paper-border disabled:text-ink-faint ${focus}`;
 export const field = `block min-h-[48px] w-full min-w-0 rounded-lg border border-[#8A8A80] bg-white px-3 py-2 text-[15px] text-ink ${focus}`;
+/** Une offre du restaurant (ADR 0110) : un fond uni et un filet à sa couleur. */
+export const offerCard = `rounded-lg border border-[color:var(--co-accent-edge,#6B7C3F)] bg-paper-subtle px-3.5 py-3 hover:bg-paper ${focus}`;
+export const offerTag = "text-[13px] font-semibold text-[color:var(--co-accent-text,#4F5C2D)]";
 /** L'encadré d'information de l'accueil. */
 export const notice = "rounded-lg border border-paper-border bg-paper-subtle px-3.5 py-3 text-[15px] leading-snug text-ink lg:px-4";
 /** Le numéro tel qu'un téléphone le compose. */

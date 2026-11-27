@@ -66,15 +66,22 @@ export type MenuInput = {
 
 const OTHER = "Autres plats";
 
+const priceCentsOf = (r: Pick<MenuRow, "menu_price">) => Math.round(Number(r.menu_price) * 100);
+
+/** Un plat commandable : proposé, avec un prix, et des options qu'on peut satisfaire. La même règle sert à la carte et aux offres. */
+export function isOrderable(r: Pick<MenuRow, "is_active" | "menu_price">, groups: OptionGroup[]): boolean {
+  const price = priceCentsOf(r);
+  return r.is_active && Number.isFinite(price) && price > 0 && !validateTree(groups).some((i) => i.level === "erreur");
+}
+
 export function buildPublicMenu(input: MenuInput): PublicMenu {
   const byCat = new Map<string, PublicItem[]>();
   let hidden = 0;
   for (const r of input.rows) {
     if (!r.is_active) continue;
-    const price = Math.round(Number(r.menu_price) * 100);
+    const price = priceCentsOf(r);
     const groups = input.trees.get(r.id) ?? [];
-    const broken = validateTree(groups).some((i) => i.level === "erreur");
-    if (!Number.isFinite(price) || price <= 0 || broken) { hidden++; continue; }
+    if (!isOrderable(r, groups)) { hidden++; continue; }
     const confirmed = Array.isArray(r.allergens) ? (r.allergens.filter(isAllergenKey) as AllergenKey[]) : null;
     const item: PublicItem = {
       id: r.id,
