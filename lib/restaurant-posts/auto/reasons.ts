@@ -9,6 +9,10 @@ export const AUTO_REASONS = {
   arret: "La publication automatique a été arrêtée.",
   refus: "Tu as dit de ne pas le publier.",
   espace_ferme: "Ton espace de commande était fermé.",
+  ferme_ce_jour: "Tu es fermé à ce moment-là.",
+  horaires_inconnus: "Tes horaires ne sont pas connus : ta page ne prend pas de commande.",
+  horaires_illisibles: "Tes horaires n'ont pas pu être vérifiés.",
+  infos_changees: "Ce que tu proposes a changé depuis le message.",
   controle: "Le contrôle des textes l'a refusé.",
   carte_illisible: "Ta carte n'a pas pu être lue.",
   plat_absent: "Un plat de l'article n'est plus proposé.",
@@ -40,7 +44,7 @@ export function reasonText(reason: string | null, detail: string | null): string
 }
 
 /** La vérification n'a pas pu se faire : ce n'est pas un changement. */
-export const UNVERIFIABLE: ReadonlySet<string> = new Set<AutoReason>(["source_indisponible", "meteo_indisponible"]);
+export const UNVERIFIABLE: ReadonlySet<string> = new Set<AutoReason>(["source_indisponible", "meteo_indisponible", "horaires_inconnus", "horaires_illisibles"]);
 
-/** Une occasion écartée pour ces raisons peut revenir si le restaurateur rallume ou recoche avant son jour. */
-export const REVIVABLE: ReadonlySet<string> = new Set<AutoReason>(["arret", "type_decoche"]);
+/** Une occasion écartée pour ces raisons peut revenir si le restaurateur rallume, recoche ou rouvre avant son jour. */
+export const REVIVABLE: ReadonlySet<string> = new Set<AutoReason>(["arret", "type_decoche", "ferme_ce_jour", "horaires_inconnus", "horaires_illisibles"]);

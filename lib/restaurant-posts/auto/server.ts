@@ -8,13 +8,18 @@ import { articleAutoSubject } from "../../email-templates/pro-article-auto";
 import { appLink } from "../../email-templates/kit";
 import { getRestaurantContactEmail } from "../../missions-contact";
 import { siteOrdersAvailable } from "../../site-orders/access";
+import type { FicheRead } from "../../site-orders/fiche";
+import { readFiche } from "../../site-orders/fiche-db";
 import { readPublicMenu } from "../../site-orders/menu-db";
+import type { PageSettings } from "../../site-orders/page-settings";
+import { readPageSettings } from "../../site-orders/page-settings-db";
 import { createAdminClient } from "../../supabase";
 import { supabasePostsDb } from "../db";
 import { PostsUnavailableError } from "../service";
 import { canWritePosts } from "../states";
 import { supabaseAutoDb } from "./db";
-import { readOfferings } from "./offerings";
+import { readOfferings } from "./offerings-db";
+import { openDuring } from "./opening";
 import { sourceCredit } from "./phrases";
 import type { AutoDeps, AutoRestaurant, NotifyInput } from "./ports";
 import { productionSources } from "./sources";
@@ -82,6 +87,26 @@ async function notify({ occasion, content, restaurant, settings, sendId }: Notif
   return { sent: true };
 }
 
+/** Une lecture par établissement et par passage (la fiche Google coûte un appel). Rien n'est gardé au-delà. */
+function openingReader(): AutoDeps["opening"] {
+  const settings = new Map<string, Promise<PageSettings>>();
+  const fiches = new Map<string, Promise<FicheRead>>();
+  const once = <T>(kept: Map<string, Promise<T>>, key: string, read: () => Promise<T>): Promise<T> => {
+    let found = kept.get(key);
+    if (!found) kept.set(key, (found = read()));
+    return found;
+  };
+  return async (restaurantId, window) => {
+    try {
+      const set = await once(settings, restaurantId, () => readPageSettings(restaurantId));
+      return await openDuring(set, () => once(fiches, restaurantId, () => readFiche(restaurantId)), window);
+    } catch (e) {
+      console.error(`[articles auto] horaires illisibles : restaurant=${restaurantId}`, (e as Error).message);
+      return "illisibles";
+    }
+  };
+}
+
 export function autoDeps(now: Date = new Date()): AutoDeps {
   return {
     db: supabaseAutoDb(),
@@ -98,6 +123,7 @@ export function autoDeps(now: Date = new Date()): AutoDeps {
       }
     },
     offerings: readOfferings,
+    opening: openingReader(),
     notify,
   };
 }

@@ -39,7 +39,7 @@ Texte publié par le restaurant dans son espace de commande (`restaurant_posts`)
 _Avoid_ : « article » seul (réservé à une ligne de la carte), annonce (c'est un envoi), idée.
 
 **Article automatique** *(ADR 0112)* :
-Article de blog composé de phrases préparées à partir d'une occasion, que le restaurant a accepté de voir paraître sans accord un par un : prévenu la veille à 17 h par un message qui doit être délivré, publié à 10 h s'il ne dit rien, retiré tout seul après l'occasion. Le restaurant en répond ; Boosteats le compose et le publie.
+Article de blog composé de phrases préparées à partir d'une occasion, que le restaurant a accepté de voir paraître sans accord un par un : prévenu la veille à 17 h par un message qui doit être délivré, publié à 10 h s'il ne dit rien, retiré tout seul après l'occasion. Jamais pour un moment où la page refuserait la commande (fermé, horaires inconnus). Le restaurant en répond ; Boosteats le compose et le publie.
 _Avoid_ : article de Nina, article IA (aucune IA ne l'écrit), campagne, annonce.
 
 **Occasion** *(ADR 0112)* :
@@ -67,7 +67,7 @@ _Avoid_ : fermeture Google, jour férié (rien d'automatique).
 _Avoid_ : « Mon établissement » (autre page), fiche Google.
 
 **Ce que tu proposes** *(ADR 0108 §4)* :
-Terrasse, manger sur place, écran pour les matchs, cochés par le restaurant. Montré à aucun client pour l'instant ; un article n'en parlera que si c'est coché.
+Terrasse, manger sur place, écran pour les matchs, cochés par le restaurant. Pas montré sur la page de commande ; un article automatique n'en parle que si c'est coché.
 _Avoid_ : équipements, services.
 
 **Vente caisse** *(ADR 0027)* :

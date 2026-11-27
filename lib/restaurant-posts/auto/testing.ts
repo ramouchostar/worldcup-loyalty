@@ -5,6 +5,7 @@ import type { MetForecast, MetHour } from "../../signals/weather-met";
 import type { PublicMenu } from "../../site-orders/menu";
 import type { PostEvent, PostsDb } from "../service";
 import type { PostRow } from "../types";
+import type { OpeningVerdict } from "./opening";
 import type { AutoDeps, AutoRestaurant, NotifyInput } from "./ports";
 import type { SendProof } from "./proof";
 import type { AutoReason } from "./reasons";
@@ -13,7 +14,8 @@ import { matchSource } from "./sources/matches";
 import { promoSource } from "./sources/promos";
 import { weatherSource } from "./sources/weather";
 import { NO_OFFERINGS } from "./offerings";
-import { ACTIVE_STATUSES, PENDING_STATUSES, type AutoSettings, type Occasion } from "./types";
+import { brusselsDay } from "./time";
+import { ACTIVE_STATUSES, PENDING_STATUSES, type AutoSettings, type Occasion, type Offerings } from "./types";
 
 export const RESTO = "resto";
 export const DISH_ID = "33333333-3333-4333-8333-333333333333";
@@ -79,6 +81,10 @@ export function world() {
     /** Ce que le journal dira du prochain message : « delivered » par défaut. */
     proof: { status: "delivered", delivered_at: "2026-11-27T16:00:05Z", bounced_at: null, complained_at: null } as SendProof | null,
     notifyFails: null as AutoReason | null,
+    /** Les horaires : ouvert par défaut ; `closedDays` : des jours fermés, quoi que dise `opening`. */
+    opening: "ouvert" as OpeningVerdict,
+    closedDays: new Set<string>(),
+    offerings: NO_OFFERINGS as Offerings,
     /** La météo : éteinte par défaut ; `forecast` : la prévision rendue ; `down` : le service ne répond pas. */
     weather: { on: false, down: false, forecast: null as MetForecast | null, asked: [] as { network: boolean; at: string }[] },
   };
@@ -181,7 +187,8 @@ export function world() {
     now: state.now,
     async restaurant(id): Promise<AutoRestaurant> { return { id, name: "Chez Exemple", coords: state.coords, open: state.open }; },
     async menu() { return state.menu; },
-    async offerings() { return NO_OFFERINGS; },
+    async offerings() { return state.offerings; },
+    async opening(_id, window) { return state.closedDays.has(brusselsDay(window.from)) ? "ferme" : state.opening; },
     async notify(input) {
       if (state.notifyFails) return { sent: false, reason: state.notifyFails };
       sent.push(input);

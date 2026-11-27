@@ -19,7 +19,7 @@ export type PageSettings = {
   /** « Fermer pour aujourd'hui » : le jour de service fermé. */
   closedToday: string | null;
   presentation: string | null;
-  /** « Ce que tu proposes » : enregistré, montré à aucun client pour l'instant. */
+  /** « Ce que tu proposes » : pas montré sur la page ; les articles automatiques en parlent (ADR 0112). */
   offers: Offers;
 };
 

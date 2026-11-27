@@ -96,3 +96,16 @@ FROM restaurant_post_occasions
 WHERE kind = 'meteo'
 GROUP BY 1, 2
 ORDER BY 1, 2;
+
+-- 8. Horaires : les occasions écartées parce que le restaurant était fermé, ses horaires inconnus ou illisibles, ou ce
+--    qu'il propose changé. Seuil : plus d'une sur dix pour « horaires_inconnus » ou « horaires_illisibles ».
+SELECT restaurant_id,
+       count(*) AS occasions,
+       count(*) FILTER (WHERE reason = 'ferme_ce_jour')       AS ferme,
+       count(*) FILTER (WHERE reason = 'horaires_inconnus')   AS horaires_inconnus,
+       count(*) FILTER (WHERE reason = 'horaires_illisibles') AS horaires_illisibles,
+       count(*) FILTER (WHERE reason = 'infos_changees')      AS infos_changees
+FROM restaurant_post_occasions
+WHERE created_at >= NOW() - INTERVAL '8 weeks'
+GROUP BY restaurant_id
+ORDER BY restaurant_id;

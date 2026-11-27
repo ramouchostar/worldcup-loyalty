@@ -4,6 +4,7 @@
 import type { PublicMenu } from "../../site-orders/menu";
 import type { PostsDb } from "../service";
 import type { PostContent, PostRow } from "../types";
+import type { OpeningVerdict, OpeningWindow } from "./opening";
 import type { SendProof } from "./proof";
 import type { AutoReason } from "./reasons";
 import type { OccasionSource } from "./sources/types";
@@ -57,6 +58,8 @@ export type AutoDeps = {
   /** La carte proposée à la commande aujourd'hui ; `null` si elle ne se lit pas. */
   menu(restaurantId: string): Promise<PublicMenu | null>;
   offerings(restaurantId: string): Promise<Offerings>;
+  /** La page de commande prendrait-elle une commande pendant ce moment ? */
+  opening(restaurantId: string, window: OpeningWindow): Promise<OpeningVerdict>;
   /** Prévenir la veille (e-mail, puis notification si activée). `sent: false` : le message n'est pas parti. */
   notify(input: NotifyInput): Promise<{ sent: true } | { sent: false; reason: AutoReason }>;
 };
