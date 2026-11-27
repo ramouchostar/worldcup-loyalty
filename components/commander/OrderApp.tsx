@@ -9,7 +9,8 @@ import { addToCart, cartCount, cartTotal, removeLine, replaceLine, setLineQty, t
 import type { PublicItem, PublicMenu } from "@/lib/site-orders/menu";
 import { cleanPhone } from "@/lib/site-orders/order";
 import { shouldOfferRescue, type RescueEvent } from "@/lib/site-orders/rescue";
-import { buildWhatsAppText, whatsAppChatLink, whatsAppLink } from "@/lib/site-orders/whatsapp";
+import { LABELS_FR, buildWhatsAppText, whatsAppChatLink, whatsAppLink } from "@/lib/site-orders/whatsapp";
+import type { PublicOffer } from "@/lib/site-offers/offers";
 import type { Selection } from "@/lib/menu-options/types";
 import { ArticlesSlot } from "./ArticlesSlot";
 import { CartBar } from "./CartBar";
@@ -19,6 +20,8 @@ import { DishSheet } from "./DishSheet";
 import { InfoBanner } from "./InfoBanner";
 import { LoginPanel } from "./LoginPanel";
 import { MenuList } from "./MenuList";
+import { OfferNote } from "./OfferNote";
+import { OfferSheet } from "./OfferSheet";
 import { OrderHeader } from "./OrderHeader";
 import { PromotionsSlot } from "./PromotionsSlot";
 import { RescuePanel } from "./RescuePanel";
@@ -26,6 +29,7 @@ import { SendPanel } from "./SendPanel";
 import { SentConfirmation, type Sent } from "./SentConfirmation";
 import { ClosedScreen, ErrorScreen, LoadingScreen } from "./StateScreens";
 import { useFiche } from "./useFiche";
+import { useOffers } from "./useOffers";
 import { useStoredCart } from "./useStoredCart";
 import { useWide } from "./useWide";
 
@@ -39,6 +43,8 @@ import { useWide } from "./useWide";
 // fermé, et le serveur refuse aussi.
 // Honnêteté : « envoyée » veut dire que le serveur l'a enregistrée, pas que quelqu'un l'a lue (pas d'imprimante pour
 // l'instant) : le texte de confirmation le dit.
+//
+// ADR 0110 — les offres du jour s'affichent sans changer aucun prix : la remise se demande au comptoir, la page le dit.
 //
 // ADR 0107 §10 — le secours : quand le serveur ne peut pas prendre la commande (panne, pas de réseau), le panier RESTE et le
 // client l'envoie lui-même au restaurateur par WhatsApp. Rien n'est enregistré chez nous dans ce cas (aucun doublon possible).
@@ -66,6 +72,8 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
   const wide = useWide();
   const { openness, blocked, fiche, now, reload: reloadFiche } = useFiche(restaurantId);
   const { cart, setCart, resumed, markLoginLeave, forgetNote } = useStoredCart(restaurantId, menu);
+  const { offers, shown: offersShown, opened: offerOpened } = useOffers(restaurantId);
+  const [openOffer, setOpenOffer] = useState<PublicOffer | null>(null);
   const pendingCookie = useRef<Promise<void> | null>(null);
 
   // La trace du secours (compteurs seuls, aucune donnée du client) : jamais bloquante, jamais une erreur pour le client.
@@ -119,6 +127,10 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
 
   const closeDish = useCallback(() => setDish(null), []);
   const items = useMemo(() => new Map((menu?.categories ?? []).flatMap((c) => c.items).map((it) => [it.id, it] as const)), [menu]);
+  // Une offre sur un plat que cette carte ne montre pas ne se montre pas non plus.
+  const visibleOffers = useMemo(() => offers.filter((o) => !o.itemId || items.has(o.itemId)), [offers, items]);
+  const closeOffer = useCallback(() => setOpenOffer(null), []);
+  const readOffer = useCallback((offer: PublicOffer) => { setOpenOffer(offer); offerOpened(offer.id); }, [offerOpened]);
 
   function confirmDish(selection: Selection, qty: number) {
     if (!dish) return;
@@ -135,7 +147,10 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
   const whatsappNumber = menu?.whatsapp ?? null;
   // Un panier vidé n'a plus rien à envoyer, et un restaurant fermé entre-temps ne se contourne pas par WhatsApp.
   const showRescue = rescue && cart.length > 0 && !blocked;
-  const rescueText = useMemo(() => (showRescue ? buildWhatsAppText(cart, firstName) : ""), [showRescue, cart, firstName]);
+  const rescueText = useMemo(
+    () => (showRescue ? buildWhatsAppText(cart, firstName, LABELS_FR, visibleOffers.map((o) => o.title)) : ""),
+    [showRescue, cart, firstName, visibleOffers],
+  );
   const rescueLink = showRescue ? whatsAppLink(whatsappNumber, rescueText) : null;
   const chatLink = whatsAppChatLink(whatsappNumber);
 
@@ -187,13 +202,13 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ restaurantId, firstName, phone, lines: toOrderLines(cart) }),
       });
-      const { data } = await readJsonSafe<{ number?: string; totalCents?: number; points?: boolean; error?: string; code?: string }>(res);
+      const { data } = await readJsonSafe<{ number?: string; totalCents?: number; points?: boolean; offers?: Sent["offers"]; error?: string; code?: string }>(res);
       // Pas de compte : ce n'est PAS une panne (aucun secours WhatsApp) et pas une erreur du client : la connexion, panier gardé.
       if (res.status === 401 && data?.code === LOGIN_REQUIRED.code) { askLogin(); return; }
       // Fermé ou horaires inconnus selon le serveur : la page relit la fiche pour dire la même chose que lui.
       if (data?.code === "ferme" || data?.code === "horaires_inconnus") reloadFiche();
       if (!res.ok || !data?.number) { failed(res.status, data?.code, data?.error ?? "Ta commande n'a pas pu partir. Réessaie, ou appelle le restaurant."); return; }
-      setSent({ number: data.number, totalCents: data.totalCents ?? cartTotal(cart), phone: cleanPhone(phone) ?? "", points: data.points === true });
+      setSent({ number: data.number, totalCents: data.totalCents ?? cartTotal(cart), phone: cleanPhone(phone) ?? "", points: data.points === true, offers: data.offers ?? [] });
       setCart([]); // le panier gardé dans le navigateur s'efface avec lui
       forgetNote();
       setShowCart(false);
@@ -226,6 +241,7 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
       canEdit={(line) => (items.get(line.articleId)?.groups.length ?? 0) > 0}
       onEdit={(line) => { const item = items.get(line.articleId); if (item) setDish({ item, line }); }}
       onClose={() => setShowCart(false)}
+      offerNote={<OfferNote offers={visibleOffers} onRead={readOffer} />}
     >
       {cart.length > 0 && (
         <>
@@ -257,7 +273,7 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
             {note && count === 0 && !wide && <p role="status" className="mt-3 text-[15px] text-ink">{note}</p>}
           </div>
 
-          <PromotionsSlot restaurantId={restaurantId} menu={menu} />
+          <PromotionsSlot offers={visibleOffers} onShown={offersShown} onOpen={readOffer} />
           <ArticlesSlot restaurantId={restaurantId} menu={menu} />
 
           <MenuList categories={menu.categories} onPick={(item) => setDish({ item })} />
@@ -268,6 +284,20 @@ export function OrderApp({ restaurantId }: { restaurantId: string }) {
 
       {!wide && !showCart && <CartBar count={count} openness={openness} origin={fiche?.origin ?? null} signedIn={signedIn} phone={restaurantPhone} onOpen={() => setShowCart(true)} />}
       {!wide && showCart && panel("overlay")}
+
+      {openOffer && (
+        <OfferSheet
+          restaurantName={menu.restaurant.name}
+          offer={openOffer}
+          item={openOffer.itemId ? items.get(openOffer.itemId) ?? null : null}
+          onClose={closeOffer}
+          onSeeDish={() => {
+            const item = openOffer.itemId ? items.get(openOffer.itemId) : undefined;
+            setOpenOffer(null);
+            if (item) { setShowCart(false); setDish({ item }); }
+          }}
+        />
+      )}
 
       {dish && (
         <DishSheet
