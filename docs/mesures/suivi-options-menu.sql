@@ -114,6 +114,8 @@ SELECT
   COUNT(*)                                                                     AS refus,
   MIN(created_at)::date                                                        AS depuis
 FROM site_order_refusals
+-- La même table compte les visites de la page (voir suivi-accueil-commande.sql) : ce ne sont pas des refus.
+WHERE reason NOT LIKE 'fiche_vue_%' AND reason <> 'entree_app'
 GROUP BY 1, 2
 ORDER BY refus DESC;
 

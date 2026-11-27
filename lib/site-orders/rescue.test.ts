@@ -27,3 +27,9 @@ test("les trois événements de la trace ont chacun leur motif, assez court pour
   for (const reason of Object.values(RESCUE_EVENTS)) assert.ok(reason.length >= 1 && reason.length <= 60);
   assert.equal(new Set(Object.values(RESCUE_EVENTS)).size, 3);
 });
+
+test("le secours ne s'ouvre JAMAIS pour un restaurant fermé ou des horaires inconnus, quel que soit le statut (ADR 0109 §3)", () => {
+  for (const code of ["ferme", "horaires_inconnus"]) {
+    for (const status of [409, 422, 500, 503]) assert.equal(shouldOfferRescue(status, code), false, `${code} ${status}`);
+  }
+});

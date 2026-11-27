@@ -1,13 +1,15 @@
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase";
 import { getRestaurantBranding, logoPublicUrl } from "@/lib/restaurant";
 import { getAdminAccess, canManageEstablishment } from "@/lib/admin-guard";
 import { listTeamSuggestions } from "@/lib/teams";
 import { getSchoolCalendars } from "@/lib/school-calendar";
+import { siteOrdersAvailable } from "@/lib/site-orders/access";
 import { SettingsForm } from "./SettingsForm";
 import { BrandingForm } from "./BrandingForm";
 import { CommunitiesForm } from "./CommunitiesForm";
-import { PageHeader, Restricted } from "@/components/admin/ui";
+import { Card, PageHeader, Restricted } from "@/components/admin/ui";
 
 // « Mon établissement » — édition des infos publiques et des liens sociaux
 // après l'onboarding (elles n'étaient modifiables nulle part jusqu'ici).
@@ -35,10 +37,11 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
     .maybeSingle();
   if (!restaurant) notFound();
 
-  const [branding, suggestions, schoolCalendars] = await Promise.all([
+  const [branding, suggestions, schoolCalendars, siteOrders] = await Promise.all([
     getRestaurantBranding(restaurantId),
     listTeamSuggestions(restaurantId),
     getSchoolCalendars(admin, restaurantId),
+    siteOrdersAvailable(restaurantId),
   ]);
 
   return (
@@ -48,6 +51,15 @@ export default async function AdminSettingsPage({ params }: { params: Promise<{ 
         subtitle={<>Ces infos apparaissent sur ta page publique et alimentent les actions
           sociales de tes membres.</>}
       />
+
+      {/* ADR 0109 §3 — horaires, téléphone et présentation de la page de commande, quand elle est ouverte à l'établissement */}
+      {siteOrders && (
+        <Card padding="px-5 py-2">
+          <Link href={`/admin/${restaurantId}/commandes-du-site/infos`} className="flex min-h-[44px] items-center text-[15px] font-semibold text-boost-olive-dark underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink">
+            Horaires et infos de ta page de commande
+          </Link>
+        </Card>
+      )}
 
       <SettingsForm
         restaurantId={restaurantId}

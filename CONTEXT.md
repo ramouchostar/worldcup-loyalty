@@ -19,7 +19,7 @@ Commande passée par un client sur le site de commande d'un établissement (retr
 _Avoid_ : commande (seule — réservé à la commande directe d'un membre), ticket (c'est la photo de la caisse), order.
 
 **Espace de commande** *(ADR 0108)* :
-La page `/commander/<établissement>` d'un restaurant, pour l'app et pour le navigateur : identité du restaurant, carte, panier. **Un compte Boosteats est demandé pour envoyer** (e-mail ou Google), jamais pour regarder. Remplace l'idée de site vitrine (ADR 0088). Une commande retirée crédite des points au membre ; **Nina** s'occupe de tout : création, personnalisation, alertes, rapports (elle propose, le gérant valide). La fiche Google sert en coulisse (identité, horaires) : aucun lien visible n'est décidé.
+La page `/commander/<établissement>` d'un restaurant, pour l'app et pour le navigateur : identité du restaurant, carte, panier. **Un compte Boosteats est demandé pour envoyer** (e-mail ou Google), jamais pour regarder. Remplace l'idée de site vitrine (ADR 0088). Une commande retirée crédite des points au membre ; **Nina** s'occupe de tout : création, personnalisation, alertes, rapports (elle propose, le gérant valide). La fiche Google sert en coulisse (identité, horaires par défaut, note) : aucun lien visible n'est décidé, et rien de son contenu n'est gardé. L'accueil montre le restaurant, ouvert ou fermé ; dans l'app, le bloc « Commander à emporter » n'apparaît que si l'espace est ouvert. Le panier est gardé dans le navigateur pour deux heures.
 _Avoid_ : site vitrine, site internet (réservés à l'ancien ADR 0088), commande anonyme.
 
 **Commande planifiée** *(ADR 0109)* :
@@ -45,6 +45,22 @@ _Avoid_ : envoi automatique (c'est le client qui appuie sur « Envoyer »), comm
 **Numéro WhatsApp de commande** *(ADR 0107 §10)* :
 Le numéro que le restaurateur choisit pour recevoir les messages du secours (`site_order_settings.whatsapp`, chiffres seuls, indicatif compris). Distinct du téléphone de la fiche Google (`restaurants.phone`, parfois un fixe). **Montré aux clients** quand le secours s'ouvre : le restaurateur le sait (texte du réglage).
 _Avoid_ : téléphone du restaurant.
+
+**Horaires de la page de commande** *(ADR 0109 §3, amendé le 2026-11-26)* :
+Ce qui dit « ouvert » ou « fermé » sur l'espace de commande. Dans l'ordre : une fermeture saisie ; les horaires du restaurant s'il a choisi « Les miens » ; ceux de Google ; les siens si Google ne donne rien ; sinon « Horaires non vérifiés » et aucune commande. Une fiche qui dit « fermé » n'est pas un silence. La fiche n'est jamais modifiée.
+_Avoid_ : horaires synchronisés, importés ; horaires de la fiche (quand ce sont les siens).
+
+**Fermeture saisie** *(ADR 0109 §3)* :
+« Fermer pour aujourd'hui » ou un jour spécial (un jour ou plusieurs). Court de 5 h à 5 h et passe avant toute source d'horaires.
+_Avoid_ : fermeture Google, jour férié (rien d'automatique).
+
+**Infos de ma page** *(ADR 0108 §4)* :
+Écran du gérant et du manager : ce que les clients voient quand ils commandent, avec la source de chaque information (« Google » ou « Toi »).
+_Avoid_ : « Mon établissement » (autre page), fiche Google.
+
+**Ce que tu proposes** *(ADR 0108 §4)* :
+Terrasse, manger sur place, écran pour les matchs, cochés par le restaurant. Montré à aucun client pour l'instant ; un article n'en parlera que si c'est coché.
+_Avoid_ : équipements, services.
 
 **Vente caisse** *(ADR 0027)* :
 Encaissement enregistré par le système de caisse du restaurateur (membre ou non), importé par CSV/Excel à part de `orders`. **Jamais affichée ligne à ligne** (le resto a le détail dans sa caisse) — c'est la matière brute du **forecast de CA total**. Ce qui EST montré, c'est la prévision qui en découle, réservée à l'**admin/restaurateur** (jamais côté client/membre — c'est la vue admin, qui a toujours le droit aux euros ; l'ADR 0007 ne vise que le membre). Table `restaurant_sales`, **service-role only**. Une **commande directe** est une vente caisse qui a *en plus* été scannée par un membre. Le rapport est **déposé tel quel** (2026-08-22) : colonnes devinées par en-têtes + contenu (`guessMappingSmart`), **granularité détectée** (`detectGranularity` : jour / semaine / mois) — détail journalier → prévision 7 jours ; totaux hebdo/mensuels → **lecture de tendance** (moyenne récente, dernière période, direction), jamais de prévision jour par jour inventée.

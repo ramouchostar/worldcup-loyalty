@@ -3,6 +3,10 @@
 
 import { createAdminClient } from "../supabase";
 import { loadOptionTrees } from "../menu-options/store";
+import { VIEW_REASON_PREFIX } from "./fiche";
+import { readFiche } from "./fiche-db";
+import { decideForOrder } from "./hours-source";
+import { readPageSettings } from "./page-settings-db";
 import type { CatalogItem, OrderStatus } from "./order";
 import { SiteOrdersUnavailableError, type NewOrderRow, type OrderRow, type OrdersDb } from "./service";
 
@@ -17,6 +21,11 @@ export function supabaseOrdersDb(): OrdersDb {
   const fail = (what: string, error: { message: string }) => new Error(`site_orders (${what}) : ${error.message}`);
 
   return {
+    // La fiche n'est lue que si elle peut changer la réponse : jamais avec les horaires saisis par le restaurant ni pendant une
+    // fermeture qu'il a annoncée. Aucun cache (conditions Google Maps Platform).
+    async readOpenness(restaurantId, now) {
+      return (await decideForOrder(await readPageSettings(restaurantId), () => readFiche(restaurantId), now)).openness;
+    },
     async loadCatalog(restaurantId, ids) {
       // Le coin de cuisine est facultatif (migration 20261113-2300) : sans sa colonne, les plats sortent sur « CUISINE ».
       for (const cols of ["id, name, menu_price, is_active, kitchen_zone", "id, name, menu_price, is_active"]) {
@@ -68,6 +77,8 @@ export function supabaseOrdersDb(): OrdersDb {
         .select("reason")
         .eq("restaurant_id", restaurantId)
         .gte("created_at", sinceIso)
+        // Les compteurs de visites (lib/site-orders/fiche.ts) ne sont pas des refus : ils ne doivent pas remplir le plafond.
+        .not("reason", "like", `${VIEW_REASON_PREFIX}%`)
         .limit(5000); // un plafond : au-delà, le compte exact n'importe plus, l'alerte est déjà allumée
       if (error) {
         if (isMissingSiteTable(error)) throw new SiteOrdersUnavailableError();

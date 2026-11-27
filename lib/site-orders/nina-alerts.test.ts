@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   CARD_REASONS, OUTAGE_REASONS, READY_FORGOTTEN_MINUTES, REFUSAL_THRESHOLD, REFUSAL_WINDOW_HOURS, RESCUE_REASON, WAITING_MINUTES,
-  computeAlerts, refusalsSince,
+  computeAlerts, hoursProblem, refusalsSince,
 } from "./nina-alerts";
+import { ficheView, viewReason } from "./fiche";
 import { RESCUE_EVENTS } from "./rescue";
 import { LOGIN_REQUIRED } from "./account";
 import type { OrderView } from "./service";
@@ -111,6 +112,33 @@ test("les motifs lus sont ceux que le reste du code écrit (un motif renommé d'
   for (const r of [...OUTAGE_REASONS, ...CARD_REASONS, RESCUE_REASON]) assert.ok(r.length >= 1 && r.length <= 60, r);
   const all = [...OUTAGE_REASONS, ...CARD_REASONS, RESCUE_REASON] as string[];
   assert.equal(new Set(all).size, all.length); // aucun motif compté dans deux alertes
+});
+
+test("sans horaires lisibles : la cause vient de la dernière visite ou de ce qui se sait sans appeler Google", () => {
+  const check = (o: Partial<Parameters<typeof hoursProblem>[0]>) => hoursProblem({ hasOwnHours: false, staticCause: null, lastView: null, ...o });
+  assert.equal(check({}), null); // personne n'a ouvert la page : rien ne le prouve
+  assert.equal(check({ lastView: "fiche_vue_ouvert:google" }), null);
+  assert.equal(check({ lastView: "fiche_vue_inconnu:sans_horaires" }), "sans_horaires");
+  assert.equal(check({ lastView: "fiche_vue_inconnu:autre" }), null);
+  assert.equal(check({ staticCause: "pas_de_fiche" }), "pas_de_fiche");
+  assert.equal(check({ hasOwnHours: true, staticCause: "pas_de_fiche", lastView: "fiche_vue_inconnu:lecture_impossible" }), null);
+});
+
+test("le compteur écrit par la page est celui que l'alerte lit", () => {
+  const read = { ok: false, cause: "lecture_impossible" } as const;
+  const lastView = viewReason(read, ficheView(read, new Date(NOW)));
+  assert.equal(hoursProblem({ hasOwnHours: false, staticCause: null, lastView }), "lecture_impossible");
+});
+
+test("l'alerte des horaires passe devant tout et mène à la saisie", () => {
+  const href = "/admin/x/commandes-du-site/infos/horaires";
+  const a = computeAlerts({ orders: [order("1", "recue", 30)], refusals: {}, now: NOW, hours: { cause: "sans_horaires", href } });
+  assert.deepEqual(ids(a), ["horaires_illisibles", "commande_en_attente"]);
+  assert.equal(a[0].tone, "danger");
+  assert.match(a[0].detail, /Google ne donne pas d'horaires/);
+  assert.deepEqual(a[0].link, { href, label: "Saisir mes horaires" });
+  assert.equal(a[0].signature, "sans_horaires:2026-11-23"); // « J'ai vu » ne la fait taire que pour la journée
+  assert.deepEqual(computeAlerts({ orders: [], refusals: {}, now: NOW, hours: null }), []);
 });
 
 test("refusalsSince : douze heures avant l'instant donné", () => {
