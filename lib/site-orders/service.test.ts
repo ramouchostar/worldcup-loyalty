@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { OptionGroup } from "../menu-options/types";
+import type { Openness } from "./hours";
 import type { CatalogItem, OrderStatus } from "./order";
+import { shouldOfferRescue } from "./rescue";
 import { SiteOrdersUnavailableError, changeStatus, listRecentOrders, placeSiteOrder, type NewOrderRow, type OrderRow, type OrdersDb } from "./service";
 
 class MemOrdersDb implements OrdersDb {
@@ -11,6 +13,9 @@ class MemOrdersDb implements OrdersDb {
   members: (string | null)[] = [];
   conflictsLeft = 0;
   unavailable = false;
+  /** Ce que la fiche dit : ouvert, sauf si un test dit autre chose. `null` = notre base est en panne. */
+  openness: Openness | null = { state: "ouvert", closes: null };
+  async readOpenness() { if (this.openness === null) throw new Error("base en panne"); return this.openness; }
   constructor(public catalog: CatalogItem[] = [], public trees = new Map<string, OptionGroup[]>()) {}
   private guard() { if (this.unavailable) throw new SiteOrdersUnavailableError(); }
   async loadCatalog(_r: string, ids: string[]) { return new Map(this.catalog.filter((c) => ids.includes(c.id)).map((c) => [c.id, c])); }
@@ -184,4 +189,52 @@ test("listRecentOrders : lit les commandes figées (jamais de ligne illisible fa
   assert.equal(o.number, "0001");
   assert.deepEqual(o.lines, []);
   assert.equal(o.status, "recue");
+});
+
+// ─── Les horaires (ADR 0108 §4, ADR 0109 §3) ─────────────────────────────────
+
+test("placeSiteOrder : restaurant fermé selon sa fiche = refus « ferme », rien n'est écrit, et le secours WhatsApp ne s'ouvre pas", async () => {
+  const db = new MemOrdersDb([cola]);
+  db.openness = { state: "ferme", opens: { day: "2026-11-14", time: "11:00", at: "2026-11-14T10:00:00.000Z" } };
+  const out = await placeSiteOrder(db, "r1", body(), NOW, "u1");
+  assert.equal(out.ok, false);
+  if (out.ok) return;
+  assert.equal(out.code, "ferme");
+  assert.equal(out.status, 409);
+  assert.match(out.message, /ouvre demain à 11:00/);
+  assert.match(out.message, /panier est gardé/);
+  assert.equal(db.rows.length, 0);
+  assert.equal(shouldOfferRescue(out.status, out.code), false);
+});
+
+test("placeSiteOrder : horaires inconnus = aucune commande, motif « horaires_inconnus », la réponse dit d'appeler", async () => {
+  const db = new MemOrdersDb([cola]);
+  db.openness = { state: "inconnu" };
+  const out = await placeSiteOrder(db, "r1", body(), NOW, "u1");
+  assert.equal(out.ok, false);
+  if (out.ok) return;
+  assert.equal(out.code, "horaires_inconnus");
+  assert.equal(out.status, 409);
+  assert.match(out.message, /Appelle/);
+  assert.equal(db.rows.length, 0);
+  assert.equal(shouldOfferRescue(out.status, out.code), false);
+});
+
+test("placeSiteOrder : une panne de notre base pendant la lecture des horaires reste « indisponible » (le secours s'ouvre)", async () => {
+  const db = new MemOrdersDb([cola]);
+  db.openness = null;
+  const out = await placeSiteOrder(db, "r1", body(), NOW, "u1");
+  assert.equal(out.ok, false);
+  if (out.ok) return;
+  assert.equal(out.code, "indisponible");
+  assert.equal(shouldOfferRescue(out.status, out.code), true);
+  assert.equal(db.rows.length, 0);
+});
+
+test("placeSiteOrder : une demande mal formée est refusée avant toute lecture de la fiche (elle ne coûte rien)", async () => {
+  const db = new MemOrdersDb([cola]);
+  let reads = 0;
+  db.readOpenness = async () => { reads++; return { state: "ouvert", closes: null }; };
+  await placeSiteOrder(db, "r1", body({ firstName: " " }), NOW, "u1");
+  assert.equal(reads, 0);
 });

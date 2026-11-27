@@ -6,9 +6,12 @@
 //  - une commande « reçue » que personne n'a passée à « prête » (le serveur ne sait pas qui l'a VUE : il sait qu'elle attend) ;
 //  - une commande « prête » jamais retirée ni annulée (le client n'est pas venu, ou on a oublié de le dire : ses points en dépendent) ;
 //  - des envois qui ont échoué et ouvert le secours WhatsApp (ADR 0107 §10) : ces commandes ne sont PAS enregistrées ;
-//  - des refus en série : une panne de notre côté, ou des clients qui butent sur la carte (plat disparu, choix impossible).
+//  - des refus en série : une panne de notre côté, ou des clients qui butent sur la carte (plat disparu, choix impossible) ;
+//  - aucun horaire lisible (ADR 0109 §3) : la page ne prend alors aucune commande.
 // Les seuils sont des défauts de produit, à recalibrer avec les premières commandes réelles (ADR 0065).
 
+import type { HoursCause } from "./hours-source";
+import { brusselsDay } from "./order";
 import type { OrderView } from "./service";
 
 /** Une commande « reçue » depuis plus de ce délai, sans être « prête », devient une alerte. */
@@ -27,7 +30,38 @@ export const CARD_REASONS = ["plat_inconnu", "plat_indisponible", "choix_invalid
 /** Le motif tracé quand la page propose le secours WhatsApp (lib/site-orders/rescue.ts). */
 export const RESCUE_REASON = "secours_propose";
 
-export type AlertId = "commande_en_attente" | "panne" | "commande_oubliee" | "secours_whatsapp" | "clients_bloques";
+/** Le dernier client à ouvrir la page compte sur cette fenêtre : au-delà, on ne sait plus ce que la page montre. */
+export const HOURS_VIEW_WINDOW_HOURS = 12;
+
+const HOURS_CAUSES: readonly HoursCause[] = ["pas_de_fiche", "places_absent", "lecture_impossible", "sans_horaires"];
+const UNKNOWN_VIEW = "fiche_vue_inconnu:";
+
+/**
+ * Pourquoi la page ne peut lire aucun horaire ; `null` si elle le peut, ou si rien ne le prouve. Sans appel à Google : la
+ * console est relue toutes les trente secondes.
+ */
+export function hoursProblem(input: {
+  /** Le restaurant a saisi une semaine : la page a toujours quelque chose à lire. */
+  hasOwnHours: boolean;
+  /** Ce qui se sait sans interroger Google : aucune fiche reliée, ou pas de clé. */
+  staticCause: "pas_de_fiche" | "places_absent" | null;
+  /** Le dernier compteur `fiche_vue_…` de la fenêtre. */
+  lastView: string | null;
+}): HoursCause | null {
+  if (input.hasOwnHours) return null;
+  if (input.staticCause) return input.staticCause;
+  const cause = input.lastView?.startsWith(UNKNOWN_VIEW) ? input.lastView.slice(UNKNOWN_VIEW.length) : null;
+  return HOURS_CAUSES.find((c) => c === cause) ?? null;
+}
+
+const HOURS_DETAIL: Record<HoursCause, string> = {
+  pas_de_fiche: "Aucune fiche Google n'est reliée à ton restaurant.",
+  places_absent: "La lecture de Google n'est pas branchée de notre côté.",
+  lecture_impossible: "Google n'a pas répondu à la dernière visite.",
+  sans_horaires: "Google ne donne pas d'horaires pour ton restaurant.",
+};
+
+export type AlertId = "horaires_illisibles" | "commande_en_attente" | "panne" | "commande_oubliee" | "secours_whatsapp" | "clients_bloques";
 
 export type NinaAlert = {
   id: AlertId;
@@ -37,6 +71,8 @@ export type NinaAlert = {
   detail: string;
   /** Change quand l'alerte s'aggrave ou change d'objet : un « J'ai vu » ne vaut que pour la signature qu'il a vue. */
   signature: string;
+  /** Là où l'alerte se règle, quand ce n'est pas sur la page des commandes. */
+  link?: { href: string; label: string };
 };
 
 export type AlertInput = {
@@ -45,6 +81,8 @@ export type AlertInput = {
   refusals: Readonly<Record<string, number>>;
   /** Millisecondes. */
   now: number;
+  /** Aucun horaire lisible (`hoursProblem`) et où le régler ; absent pour qui ne peut pas le régler. */
+  hours?: { cause: HoursCause; href: string } | null;
 };
 
 const minutesSince = (iso: string, now: number): number => Math.max(0, Math.floor((now - Date.parse(iso)) / 60000));
@@ -58,8 +96,20 @@ function nameOrders(orders: readonly OrderView[]): string {
 }
 
 /** Les alertes à montrer maintenant, les plus graves d'abord. Aucune alerte = rien à dire : la liste est vide, jamais un « tout va bien » inventé. */
-export function computeAlerts({ orders, refusals, now }: AlertInput): NinaAlert[] {
+export function computeAlerts({ orders, refusals, now, hours }: AlertInput): NinaAlert[] {
   const out: NinaAlert[] = [];
+
+  if (hours) {
+    out.push({
+      id: "horaires_illisibles",
+      tone: "danger",
+      title: "Tes clients ne peuvent pas commander : horaires introuvables",
+      detail: `${HOURS_DETAIL[hours.cause]} Saisis tes horaires dans « Infos de ma page ».`,
+      // La page reste fermée tant que rien ne change : un « J'ai vu » ne vaut que pour la journée.
+      signature: `${hours.cause}:${brusselsDay(new Date(now))}`,
+      link: { href: hours.href, label: "Saisir mes horaires" },
+    });
+  }
 
   const waiting = orders.filter((o) => o.status === "recue" && minutesSince(o.createdAt, now) >= WAITING_MINUTES).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
   if (waiting.length > 0) {

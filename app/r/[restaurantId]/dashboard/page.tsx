@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Camera, Coins, Gift, Lightbulb, MessageCircle, Share2, Trophy, UtensilsCrossed } from "lucide-react";
 import { PEOPLE_EMOJI } from "@/lib/fluent-emoji";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
+import { getRestaurantBranding, getRestaurantId, isRestaurantOwner } from "@/lib/restaurant";
 import { loadRewardGrid } from "@/lib/rewards";
 import { getBudgetStatus } from "@/lib/budget";
 import { recordFunnelStep } from "@/lib/funnel";
@@ -20,6 +20,8 @@ import type { Order, PendingReward } from "@/types";
 import { RedeemButton } from "@/app/r/[restaurantId]/my-rewards/RedeemButton";
 import { ChooseButton } from "@/app/r/[restaurantId]/points/ChooseButton";
 import { claimDeadline, claimOpensAt, isClaimNotYetOpen, redemptionRule } from "@/lib/reward-window";
+import { MemberOrderBlock } from "@/components/commander/MemberOrderBlock";
+import { siteOrdersAvailable } from "@/lib/site-orders/access";
 
 // ADR 0059 — l'accueil membre répond à trois questions, dans l'ordre, sans
 // faire défiler : qu'est-ce que j'ai (un cadeau qui attend, et le choix
@@ -63,6 +65,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     teamsHidden,
     pointsSummary,
     catalogue,
+    orderSpaceOpen,
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -105,7 +108,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
     // « Mes points » (ADR 0061) : le solde qui s'échange, et le catalogue.
     getPointsSummary(user.id, restaurantId),
     listCatalogue(restaurantId),
+    // ADR 0108 §3 — l'entrée « Commander » : drapeau ET forfait (le drapeau d'abord, sans lecture quand il est fermé).
+    siteOrdersAvailable(restaurantId),
   ]);
+  const orderBranding = orderSpaceOpen ? await getRestaurantBranding(restaurantId) : null;
 
   // Carte gérant (ADR 0030 §2) — owner de CE resto ou admin legacy sur le
   // resto par défaut. Pas le super-admin (il a son entrée Plateforme).
@@ -323,6 +329,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ rest
         <Camera className="w-6 h-6 shrink-0" strokeWidth={2.5} aria-hidden="true" />
         Prendre mon ticket en photo
       </Link>
+
+      {/* ── Commander à emporter (ADR 0108 §3) — après la photo, qui reste visible sans défiler (ADR 0059). ── */}
+      {orderBranding && <MemberOrderBlock restaurantId={restaurantId} primaryColor={orderBranding.brand_primary} />}
 
       {/* ── Mes points (ADR 0061) — sous la photo quand un cadeau occupe le haut ── */}
       {gift && pointsCard}

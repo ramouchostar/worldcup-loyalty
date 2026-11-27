@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { readJsonSafe } from "@/lib/fetch-json";
 import type { NinaAlert } from "@/lib/site-orders/nina-alerts";
@@ -79,6 +80,7 @@ export function NinaAlerts({ restaurantId }: { restaurantId: string }) {
             <div className="min-w-[220px] flex-1 space-y-1">
               <p className={`text-[15px] font-semibold ${a.tone === "danger" ? "text-danger" : "text-ink"}`}>{a.title}</p>
               <p className="text-[15px] text-ink">{a.detail}</p>
+              {a.link && <Link href={a.link.href} className="inline-flex min-h-[44px] items-center text-[15px] font-semibold text-boost-olive-dark underline underline-offset-2">{a.link.label}</Link>}
             </div>
             <button type="button" onClick={() => markSeen(a)} className={`${btn} border border-paper-border bg-white text-ink hover:border-ink-faint`}>J&apos;ai vu</button>
           </li>

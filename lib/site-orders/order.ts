@@ -27,7 +27,7 @@ export type OrderRequest = { firstName: string; phone: string | null; lines: Ord
 
 export type RefusalCode =
   | "forme" | "prenom" | "telephone" | "trop_de_lignes" | "quantite" | "plat_inconnu" | "plat_indisponible"
-  | "choix_invalide" | "plafond" | "ferme" | "limite" | "indisponible";
+  | "choix_invalide" | "plafond" | "ferme" | "horaires_inconnus" | "limite" | "indisponible";
 
 export type CheckedRequest = { ok: true; request: OrderRequest } | { ok: false; code: RefusalCode; message: string };
 

@@ -282,6 +282,64 @@ export async function placeRating(placeId: string): Promise<{ rating: number; co
   return typeof p.rating === "number" ? { rating: p.rating, count: p.userRatingCount ?? 0 } : null;
 }
 
+// ADR 0108 §4, ADR 0109 §3 — ce que l'espace de commande lit sur la fiche : horaires (ordinaires et des sept prochains jours,
+// exceptions comprises), état de l'établissement, note et nombre d'avis. UN seul appel « Place Details Enterprise ».
+// Rien n'est gardé : les conditions Google Maps Platform n'autorisent le cache que de la latitude, de la longitude et de
+// l'identifiant de fiche (voir la note de mise en œuvre de l'ADR 0108). L'appelant lit à chaque besoin.
+export type HoursPoint = {
+  day?: number; hour?: number; minute?: number;
+  /** Jour local de l'établissement : présent sur les horaires « courants » seulement. */
+  date?: { year?: number; month?: number; day?: number };
+  /** Borne coupée à la fenêtre de sept jours : l'heure réelle est au-delà. */
+  truncated?: boolean;
+};
+export type HoursBlock = { openNow?: boolean; periods?: { open?: HoursPoint; close?: HoursPoint }[]; nextOpenTime?: string };
+
+export interface PlaceOrderingInfo {
+  rating: number | null;
+  reviewsCount: number | null;
+  businessStatus: string | null;
+  currentOpeningHours: HoursBlock | null;
+  regularOpeningHours: HoursBlock | null;
+  /** Fournisseurs tiers que Google demande de citer avec ce résultat. */
+  attributions: { provider?: string; providerUri?: string }[];
+  /** Lecture de la console seulement : pour dire si l'adresse et le téléphone du restaurant sont ceux de la fiche. */
+  address?: string | null;
+  phone?: string | null;
+}
+
+const ORDERING_FIELDS = [
+  "rating", "userRatingCount", "businessStatus",
+  "currentOpeningHours.openNow", "currentOpeningHours.periods", "currentOpeningHours.nextOpenTime",
+  "regularOpeningHours.openNow", "regularOpeningHours.periods", "regularOpeningHours.nextOpenTime",
+  "attributions",
+].join(",");
+
+/** Quand le restaurant montre ses propres horaires, la page ne demande que la note : les horaires reviennent alors vides. */
+const RATING_FIELDS = ["rating", "userRatingCount", "attributions"].join(",");
+
+/** La console ajoute l'adresse et le téléphone de la fiche, écrits comme à l'inscription. */
+const CONSOLE_FIELDS = `${ORDERING_FIELDS},formattedAddress,nationalPhoneNumber`;
+
+/** `timeoutMs` court : une page de commande n'attend pas dix secondes une réponse de Google. */
+export async function placeOrderingInfo(placeId: string, timeoutMs = 4_000, wanted: "horaires" | "note" | "console" = "horaires"): Promise<PlaceOrderingInfo> {
+  if (!/^[\w-]{10,300}$/.test(placeId)) throw new PlacesError("identifiant de fiche invalide");
+  const p = await call<{
+    rating?: number; userRatingCount?: number; businessStatus?: string; currentOpeningHours?: HoursBlock;
+    regularOpeningHours?: HoursBlock; attributions?: { provider?: string; providerUri?: string }[];
+    formattedAddress?: string; nationalPhoneNumber?: string;
+  }>(`/places/${encodeURIComponent(placeId)}?languageCode=fr&regionCode=be`, { fieldMask: wanted === "note" ? RATING_FIELDS : wanted === "console" ? CONSOLE_FIELDS : ORDERING_FIELDS, timeoutMs });
+  return {
+    rating: typeof p.rating === "number" ? p.rating : null,
+    reviewsCount: typeof p.userRatingCount === "number" ? p.userRatingCount : null,
+    businessStatus: p.businessStatus ?? null,
+    currentOpeningHours: p.currentOpeningHours ?? null,
+    regularOpeningHours: p.regularOpeningHours ?? null,
+    attributions: p.attributions ?? [],
+    ...(wanted === "console" ? { address: p.formattedAddress ?? null, phone: p.nationalPhoneNumber ?? null } : {}),
+  };
+}
+
 // ─── Voisins ─────────────────────────────────────────────────────────────────
 
 export interface Neighbor {
